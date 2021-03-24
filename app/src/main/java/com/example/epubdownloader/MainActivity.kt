@@ -13,11 +13,11 @@ import androidx.navigation.ui.setupWithNavController
 class MainActivity : AppCompatActivity() {
     companion object {
         lateinit var activity: MainActivity;
+        val api: MainAPI = NovelPassionProvider()
     }
 
     public lateinit var mainContext: Context;
 
-    val api: MainAPI = NovelPassionProvider()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
