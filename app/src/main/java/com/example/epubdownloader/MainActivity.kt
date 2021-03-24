@@ -1,9 +1,14 @@
 package com.example.epubdownloader
 
 import android.content.Context
-import androidx.appcompat.app.AppCompatActivity
+
 import android.os.Bundle
-import kotlin.concurrent.thread
+import com.google.android.material.bottomnavigation.BottomNavigationView
+import androidx.appcompat.app.AppCompatActivity
+import androidx.navigation.findNavController
+import androidx.navigation.ui.AppBarConfiguration
+import androidx.navigation.ui.setupActionBarWithNavController
+import androidx.navigation.ui.setupWithNavController
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -19,8 +24,15 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         activity = this
         mainContext = this.applicationContext
-        thread {
-            api.load("https://www.novelpassion.com/novel/world-s-best-martial-artist")
-        }
+
+        val navView: BottomNavigationView = findViewById(R.id.nav_view)
+
+        val navController = findNavController(R.id.nav_host_fragment)
+        // Passing each menu ID as a set of Ids because each
+        // menu should be considered as top level destinations.
+        val appBarConfiguration = AppBarConfiguration(setOf(
+            R.id.navigation_search )) // R.id.navigation_dashboard, R.id.navigation_notifications
+        //setupActionBarWithNavController(navController, appBarConfiguration)
+        navView.setupWithNavController(navController)
     }
 }

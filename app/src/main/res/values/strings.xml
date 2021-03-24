@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">EpubDownloader</string>
+    <string name="title_search">Search</string>
+    <string name="search_hint">Search Novels</string>
 </resources>

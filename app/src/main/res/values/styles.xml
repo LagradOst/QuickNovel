@@ -1,10 +1,18 @@
 <resources>
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+    <style name="AppTheme" parent="Theme.MaterialComponents.NoActionBar">
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
-    </style>
 
+        <item name="android:navigationBarColor">@color/darkBackground</item>
+        <item name="android:statusBarColor">@color/grayBackground</item>
+
+        <item name="android:textColorHint">@color/searchColor</item>
+        <item name="android:editTextColor">@color/textColor</item>
+
+        <!--<item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">false</item>-->
+    </style>
 </resources>

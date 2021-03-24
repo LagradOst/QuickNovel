@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/dashboardRoot"
+        tools:context=".ui.search.SearchFragment"
+        android:orientation="vertical"
+        android:background="@color/grayBackground">
+    <View android:layout_width="wrap_content" android:layout_height="0dp" android:id="@+id/top_padding">
+
+    </View>
+
+
+    <androidx.appcompat.widget.SearchView
+            android:animateLayoutChanges="true"
+            android:id="@+id/main_search"
+            app:queryBackground="@color/transparent"
+            android:iconifiedByDefault="false"
+            app:queryHint="@string/search_hint"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_margin="10dp"
+            app:iconifiedByDefault="false"
+            app:searchIcon="@null"
+
+            android:background="@drawable/search_background"
+    >
+        <!--app:queryHint="@string/search_hint"
+         android:background="@color/grayBackground" @color/itemBackground
+                    app:searchHintIcon="@drawable/search_white"
+                    -->
+    </androidx.appcompat.widget.SearchView>
+    <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+        <GridLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:paddingStart="5dp"
+                android:paddingTop="5dp"
+                android:paddingEnd="5dp"
+                android:id="@+id/cardSpace"
+                android:orientation="vertical"
+        >
+        </GridLayout>
+    </ScrollView>
+</LinearLayout>
