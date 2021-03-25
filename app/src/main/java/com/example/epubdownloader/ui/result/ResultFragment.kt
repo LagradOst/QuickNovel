@@ -77,6 +77,17 @@ class ResultFragment(url: String) : Fragment() {
                     if (res.views != null) {
                         result_views.text = humanReadableByteCountSI(res.views)
                     }
+                    if(res.Synopsis != null) {
+                        result_synopsis_text.text = res.Synopsis
+                    }
+                    val last = res.data.last()
+                   result_total_chapters.text = "Latest: " +  last.name //+ " " + last.dateOfRelease
+
+                    /*
+                    if(res.tags != null) {
+                        var text = res.tags.joinToString(" • ")
+                        result_tags.text = text
+                    }*/
 
                     val glideUrl =
                         GlideUrl(res.posterUrl)

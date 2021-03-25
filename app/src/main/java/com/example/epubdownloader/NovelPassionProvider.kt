@@ -70,6 +70,7 @@ class NovelPassionProvider : MainAPI() {
                 val views = c.select("i.sp3").text().toInt()
                 data.add(ChapterData(name, url, added, views))
             }
+            data.reverse()
 
             val peopleVotedText = document.selectFirst("small.fs16").text()!!
             val peopleVoted = peopleVotedText.substring(1, peopleVotedText.length - 9).toInt()
