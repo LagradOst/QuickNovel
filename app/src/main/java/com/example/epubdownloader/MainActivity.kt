@@ -45,6 +45,8 @@ class MainActivity : AppCompatActivity() {
         //setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
 
+        BookDownloader.init()
+
         loadResult("https://www.novelpassion.com/novel/battle-frenzy")
     }
 }

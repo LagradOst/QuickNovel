@@ -87,7 +87,8 @@ class BookDownloader {
                     if (rFile.exists()) {
                         continue
                     }
-
+                    rFile.parentFile.mkdirs()
+                    //if(rFile.isDirectory) rFile.delete()
                     rFile.createNewFile()
                     var page: String? = null
                     while (page == null) {
@@ -106,7 +107,7 @@ class BookDownloader {
                     createNotification(id, load, index + 1, total, timePerLoad * (total - index))
                 }
             } catch (e: Exception) {
-
+                println(e)
             }
         }
 
@@ -115,10 +116,10 @@ class BookDownloader {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             }
             val pendingIntent: PendingIntent = PendingIntent.getActivity(MainActivity.activity, 0, intent, 0)
-
-            val hours = eta / 3600;
-            val minutes = (eta % 3600) / 60;
-            val seconds = eta % 60;
+            val eta_int = eta.toInt()
+            val hours: Int = eta_int / 3600;
+            val minutes: Int = (eta_int % 3600) / 60;
+            val seconds: Int = eta_int % 60;
             var timeformat = String.format("%02d h %02d min %02d s", hours, minutes, seconds);
             if (minutes <= 0 && hours <= 0) {
                 timeformat = String.format("%02d s", seconds);
@@ -134,7 +135,7 @@ class BookDownloader {
                 .setOnlyAlertOnce(true)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(pendingIntent)
-                .setColor(MainActivity.activity.getColor(R.attr.colorPrimary))
+                //.setColor(MainActivity.activity.getColor(R.attr.colorPrimary))
                 .setContentText(load.name)
                 .setSubText("$timeformat remaining")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

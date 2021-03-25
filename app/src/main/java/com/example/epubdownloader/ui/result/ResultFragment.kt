@@ -15,6 +15,8 @@ import com.example.epubdownloader.R
 import kotlinx.android.synthetic.main.fragment_result.*
 import kotlin.concurrent.thread
 import com.bumptech.glide.request.RequestOptions.bitmapTransform
+import com.example.epubdownloader.BookDownloader
+import com.example.epubdownloader.LoadResponse
 import jp.wasabeef.glide.transformations.BlurTransformation
 import java.text.StringCharacterIterator
 
@@ -50,13 +52,23 @@ class ResultFragment(url: String) : Fragment() {
         return inflater.inflate(R.layout.fragment_result, container, false)
     }
 
+    var load: LoadResponse? = null
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         result_holder.visibility = View.GONE
         result_loading.visibility = View.VISIBLE
 
+        result_download_btt.setOnClickListener {
+            if (load == null) return@setOnClickListener
+            thread {
+                BookDownloader.download(load!!, MainActivity.api)
+            }
+        }
+
         thread {
             val res = MainActivity.api.load(resultUrl)
+            load = res
             activity?.runOnUiThread {
                 if (res == null) {
                     Toast.makeText(context, "Error loading", Toast.LENGTH_SHORT).show()
@@ -77,11 +89,11 @@ class ResultFragment(url: String) : Fragment() {
                     if (res.views != null) {
                         result_views.text = humanReadableByteCountSI(res.views)
                     }
-                    if(res.Synopsis != null) {
+                    if (res.Synopsis != null) {
                         result_synopsis_text.text = res.Synopsis
                     }
                     val last = res.data.last()
-                   result_total_chapters.text = "Latest: " +  last.name //+ " " + last.dateOfRelease
+                    result_total_chapters.text = "Latest: " + last.name //+ " " + last.dateOfRelease
 
                     /*
                     if(res.tags != null) {

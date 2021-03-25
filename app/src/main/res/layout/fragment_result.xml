@@ -229,6 +229,7 @@
                                   android:layout_columnWeight="1" android:layout_marginRight="5dp" android:orientation="vertical"
                     >
                         <com.google.android.material.button.MaterialButton
+                                android:id="@+id/result_download_btt"
                                 android:text="@string/download_text"
                                 android:textAllCaps="false"
                                 android:textSize="15sp"
