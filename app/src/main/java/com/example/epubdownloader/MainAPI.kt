@@ -31,6 +31,8 @@ data class LoadResponse(
     val posterUrl: String?,
     //RATING IS FROM 0-100
     val rating: Int?,
+    val peopleVoted: Int?,
+    val views: Int?,
     val Synopsis: String?,
     val tags: ArrayList<String>?,
 )

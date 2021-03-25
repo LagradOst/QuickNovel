@@ -5,6 +5,7 @@
     <color name="colorAccent">#818fff</color>
 
     <color name="darkBackground">#0f0f10</color>
+    <color name="bitDarkerGrayBackground">#191a1f</color>
     <color name="grayBackground">#1b1c22</color>
     <color name="itemBackground">#25262c</color>
 

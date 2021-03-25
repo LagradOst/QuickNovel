@@ -10,6 +10,8 @@ import android.widget.*
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.model.GlideUrl
+import com.example.epubdownloader.MainActivity.Companion.activity
+import com.example.epubdownloader.ui.result.ResultFragment
 import kotlinx.android.synthetic.main.search_result_compact.view.*
 import kotlin.concurrent.thread
 import kotlin.math.roundToInt
@@ -65,6 +67,10 @@ class ResAdapter(
                 Glide.with(it)
                     .load(glideUrl)
                     .into(cardView)
+            }
+
+            cardView.setOnClickListener {
+                MainActivity.loadResult(card.url)
             }
         }
 

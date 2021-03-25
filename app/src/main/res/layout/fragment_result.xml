@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+             android:layout_width="match_parent"
+             android:layout_height="match_parent" xmlns:app="http://schemas.android.com/apk/res-auto"
+             android:background="@color/grayBackground">
+    <ProgressBar
+            android:id="@+id/result_loading"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_gravity="center"
+            android:indeterminate="true"
+            android:visibility="gone"
+    >
+    </ProgressBar>
+
+    <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scaleType="centerCrop"
+            android:alpha="0.3"
+            android:background="@color/darkBackground"
+            android:id="@+id/result_poster_blur"
+    ></ImageView>
+
+    <LinearLayout
+            android:id="@+id/result_holder"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+    >
+        <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:layout_margin="10dp"
+        >
+            <androidx.cardview.widget.CardView
+                    android:layout_width="100dp"
+                    android:layout_height="150dp"
+                    app:cardCornerRadius="5dp"
+                    android:elevation="10dp"
+
+            >
+                <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+
+                        android:id="@+id/result_poster"
+                ></ImageView>
+            </androidx.cardview.widget.CardView>
+
+            <LinearLayout android:orientation="vertical" android:layout_marginLeft="10dp"
+                          android:layout_width="match_parent" android:layout_height="match_parent">
+                <TextView
+                        android:id="@+id/result_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/textColor"
+                        android:textSize="20sp"
+                        android:text="TEST"></TextView>
+
+                <TextView
+                        android:layout_marginTop="10dp"
+                        android:id="@+id/result_author"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/colorAccent"
+                        android:textSize="15sp"
+                        android:text="TEST"></TextView>
+
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+
+        <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:cardCornerRadius="15dp"
+                android:backgroundTint="@color/bitDarkerGrayBackground"
+
+
+        >
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+                <androidx.cardview.widget.CardView
+                        android:layout_margin="10dp"
+                        app:cardCornerRadius="15dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="60dp"
+                        android:elevation="0dp"
+                        android:backgroundTint="@color/grayBackground"
+                >
+                    <GridLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="horizontal"
+
+                    >
+                        <LinearLayout android:gravity="center" android:layout_height="match_parent"
+                                      android:layout_columnWeight="1" android:orientation="vertical"
+                        >
+                            <TextView
+                                    android:text="836k"
+                                    android:id="@+id/result_views"
+
+                                    android:textSize="23sp"
+                                    android:gravity="center"
+                                    android:textColor="@color/textColor"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content">
+                            </TextView>
+                            <TextView
+                                    android:text="Views"
+                                    android:textSize="12sp"
+                                    android:gravity="center"
+                                    android:textColor="@color/grayTextColor"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content">
+                            </TextView>
+                        </LinearLayout>
+                        <LinearLayout android:gravity="center" android:layout_height="match_parent"
+                                      android:layout_columnWeight="1" android:orientation="vertical"
+                        >
+                            <TextView
+                                    android:text="4.4★"
+                                    android:id="@+id/result_rating"
+                                    android:textSize="23sp"
+                                    android:gravity="center"
+                                    android:textColor="@color/textColor"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content">
+                            </TextView>
+                            <TextView
+                                    android:text="1000 Ratings"
+                                    android:id="@+id/result_rating_voted_count"
+                                    android:textSize="12sp"
+                                    android:gravity="center"
+                                    android:textColor="@color/grayTextColor"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content">
+                            </TextView>
+                        </LinearLayout>
+
+                    </GridLayout>
+
+                </androidx.cardview.widget.CardView>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </LinearLayout>
+</FrameLayout>

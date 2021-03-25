@@ -41,7 +41,7 @@ class NovelPassionProvider : MainAPI() {
             val response = khttp.get(url)
 
             val document = Jsoup.parse(response.text)
-            val name = document.select("h2.pt4").text()!!
+            val name = document.selectFirst("h2.pt4").text()!!
             val author = document.selectFirst("a.stq").text()!!
             val posterUrl = mainUrl + document.select("i.g_thumb > img").attr("src")
             val tags: ArrayList<String> = ArrayList()
@@ -71,7 +71,11 @@ class NovelPassionProvider : MainAPI() {
                 data.add(ChapterData(name, url, added, views))
             }
 
-            return LoadResponse(name, data, author, posterUrl, rating, synopsis, tags)
+            val peopleVotedText = document.selectFirst("small.fs16").text()!!
+            val peopleVoted = peopleVotedText.substring(1, peopleVotedText.length - 9).toInt()
+            val views = document.selectFirst("address > p > span").text().replace(",","").toInt()
+
+            return LoadResponse(name, data, author, posterUrl, rating, peopleVoted, views, synopsis, tags)
         } catch (e: Exception) {
             return null
         }
