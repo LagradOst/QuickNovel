@@ -45,6 +45,6 @@ class MainActivity : AppCompatActivity() {
         //setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
 
-        loadResult("https://www.novelpassion.com/novel/battle-frenzy")
+        //loadResult("https://www.novelpassion.com/novel/battle-frenzy")
     }
 }
