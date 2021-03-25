@@ -1,7 +1,5 @@
 package com.example.epubdownloader
 
-import android.widget.Toast
-import khttp.head
 import org.jsoup.Jsoup
 import java.lang.Exception
 
@@ -9,6 +7,17 @@ class NovelPassionProvider : MainAPI() {
 
     override val name: String get() = "Novel Passion"
     override val mainUrl: String get() = "https://www.novelpassion.com"
+
+    override fun loadPage(url: String): String? {
+        return try {
+            val response = khttp.get(url)
+            val document = Jsoup.parse(response.text)
+            val res = document.selectFirst("div.cha-words");
+            res.html()
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     override fun search(query: String): ArrayList<SearchResponse>? {
         try {
@@ -64,7 +73,7 @@ class NovelPassionProvider : MainAPI() {
             val data: ArrayList<ChapterData> = ArrayList()
             val chapterHeaders = document.select("ol.content-list > li > a")
             for (c in chapterHeaders) {
-                val url = c.attr("href")
+                val url = mainUrl + c.attr("href")
                 val name = c.select("span.sp1").text()
                 val added = c.select("i.sp2").text()
                 val views = c.select("i.sp3").text().toInt()
@@ -74,7 +83,7 @@ class NovelPassionProvider : MainAPI() {
 
             val peopleVotedText = document.selectFirst("small.fs16").text()!!
             val peopleVoted = peopleVotedText.substring(1, peopleVotedText.length - 9).toInt()
-            val views = document.selectFirst("address > p > span").text().replace(",","").toInt()
+            val views = document.selectFirst("address > p > span").text().replace(",", "").toInt()
 
             return LoadResponse(name, data, author, posterUrl, rating, peopleVoted, views, synopsis, tags)
         } catch (e: Exception) {
