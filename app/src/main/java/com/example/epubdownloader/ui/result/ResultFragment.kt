@@ -24,6 +24,7 @@ import android.widget.LinearLayout
 import androidx.core.view.marginTop
 import androidx.core.view.setPadding
 import android.widget.RelativeLayout
+import com.example.epubdownloader.BookDownloader.turnToEpub
 import kotlinx.android.synthetic.main.activity_main.*
 
 
@@ -213,6 +214,16 @@ class ResultFragment(url: String) : Fragment() {
                     BookDownloader.DownloadType.IsPaused -> BookDownloader.updateDownload(localId,
                         BookDownloader.DownloadType.IsDownloading)
                     else -> println("ERROR")
+                }
+            }
+        }
+
+        result_download_generate_epub.setOnClickListener {
+            if (load != null) {
+                if (turnToEpub(load!!, MainActivity.api)) {
+                    Toast.makeText(context, "Created ${load!!.name}", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(context, "Error creating the Epub", Toast.LENGTH_LONG).show()
                 }
             }
         }

@@ -1,5 +1,7 @@
 package com.example.epubdownloader
 
+import android.Manifest
+import android.R.attr
 import android.app.IntentService
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -14,9 +16,23 @@ import com.bumptech.glide.Glide
 import com.example.epubdownloader.BookDownloader.cachedNotifications
 import com.example.epubdownloader.BookDownloader.createNotification
 import com.example.epubdownloader.BookDownloader.updateDownload
+import nl.siegmann.epublib.domain.Author
 import java.io.File
 import java.lang.Exception
 import java.lang.Thread.sleep
+import nl.siegmann.epublib.domain.Book
+import nl.siegmann.epublib.domain.MediaType
+import nl.siegmann.epublib.domain.Resource
+import nl.siegmann.epublib.service.MediatypeService
+import java.io.FileOutputStream
+
+import nl.siegmann.epublib.epub.EpubWriter
+import android.R.attr.text
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import java.util.concurrent.Executors
+
 
 const val UPDATE_TIME = 1000
 const val CHANNEL_ID = "epubdownloader.general"
@@ -85,6 +101,10 @@ object BookDownloader {
         return "$fileSeperator$apiName$fileSeperator$author$fileSeperator$name$fileSeperator$index.txt"
     }
 
+    fun getFilenameIMG(apiName: String, author: String, name: String): String {
+        return "$fileSeperator$apiName$fileSeperator$author$fileSeperator$name${fileSeperator}poster.jpg"
+    }
+
     val cachedBitmaps = hashMapOf<String, Bitmap>()
 
     fun updateDownload(id: Int, state: DownloadType) {
@@ -149,6 +169,69 @@ object BookDownloader {
         }
     }
 
+    fun checkWrite(): Boolean {
+        return (ContextCompat.checkSelfPermission(MainActivity.activity,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                == PackageManager.PERMISSION_GRANTED)
+    }
+
+    fun turnToEpub(load: LoadResponse, api: MainAPI): Boolean {
+
+        if (!checkWrite()) {
+            ActivityCompat.requestPermissions(MainActivity.activity,
+                arrayOf(
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                ),
+                1337);
+            if (!checkWrite()) return false
+        }
+
+        val sApiName = sanitizeFilename(api.name)
+        val sAuthor = if (load.author == null) "" else sanitizeFilename(load.author)
+        val sName = sanitizeFilename(load.name)
+        //val id = "$sApiName$sAuthor$sName".hashCode()
+        val book = Book()
+        val metadata = book.metadata
+        metadata.addAuthor(Author(load.author))
+        metadata.addTitle(load.name)
+
+        val poster_filepath =
+            MainActivity.activity.filesDir.toString() + getFilenameIMG(sApiName, sAuthor, sName)
+        val pFile = File(poster_filepath)
+        if (pFile.exists()) {
+            book.coverImage = Resource(pFile.readBytes(), MediaType("cover", ".jpg"))
+        }
+
+        var index = 0
+        while (true) {
+            val filepath =
+                MainActivity.activity.filesDir.toString() + getFilename(sApiName, sAuthor, sName, index)
+            val rFile = File(filepath)
+            if (rFile.exists()) {
+                val text = rFile.readText()
+                val firstChar = text.indexOf('\n')
+                val title = text.substring(0, firstChar)
+                val data = text.substring(firstChar + 1);
+                val chapter = Resource("id$index", data.toByteArray(), "chapter$index.html", MediatypeService.XHTML)
+                book.addSection(title, chapter)
+            } else {
+                break;
+            }
+            index++
+        }
+        val epubWriter = EpubWriter()
+        val bookFile =
+            File(android.os.Environment.getExternalStorageDirectory().path +
+                    "${fileSeperator}Download${fileSeperator}Epub${fileSeperator}",
+                "${sanitizeFilename(load.name)}.epub")
+        bookFile.parentFile.mkdirs()
+        bookFile.createNewFile()
+        epubWriter.write(book, FileOutputStream(bookFile))
+
+        return true
+    }
+
     fun download(load: LoadResponse, api: MainAPI) {
         try {
             val sApiName = sanitizeFilename(api.name)
@@ -161,6 +244,22 @@ object BookDownloader {
             isRunning[id] = DownloadType.IsDownloading
 
             var timePerLoad = 1.0
+// khttp.get(load.posterUrl).raw.readBytes()
+
+            try {
+                if (load.posterUrl != null) {
+                    val poster_filepath =
+                        MainActivity.activity.filesDir.toString() + getFilenameIMG(sApiName, sAuthor, sName)
+
+                    val bytes = khttp.get(load.posterUrl).raw.readBytes()
+
+                    val pFile = File(poster_filepath)
+                    pFile.parentFile.mkdirs()
+                    pFile.writeBytes(bytes)
+                }
+            } catch (e: Exception) {
+                sleep(1000)
+            }
 
             val total = load.data.size
             for ((index, d) in load.data.withIndex()) {
@@ -185,7 +284,7 @@ object BookDownloader {
                     if (!isRunning.containsKey(id)) return
 
                     if (page != null) {
-                        rFile.writeText(page)
+                        rFile.writeText("${d.name}\n${page}")
                     } else {
                         sleep(5000) // ERROR
                     }
