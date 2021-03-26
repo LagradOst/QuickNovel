@@ -223,30 +223,33 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="horizontal"
-
                 >
-                    <LinearLayout android:gravity="center" android:layout_height="match_parent"
-                                  android:layout_columnWeight="1" android:layout_marginRight="5dp" android:orientation="vertical"
-                    >
+
                         <com.google.android.material.button.MaterialButton
+                                android:layout_columnWeight="1"
+                                android:layout_marginRight="5dp"
+                                android:gravity="center" android:layout_height="match_parent"
+
                                 android:id="@+id/result_download_btt"
                                 android:text="@string/download_text"
                                 android:textAllCaps="false"
                                 android:textSize="15sp"
                                 android:elevation="10dp"
-                                android:gravity="center"
                                 android:textColor="@color/textColor"
                                 app:cornerRadius="5dp"
                                 android:backgroundTint="@color/colorPrimary"
                                 app:rippleColor="@color/colorPrimary"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content">
+                                android:layout_width="50dp">
                         </com.google.android.material.button.MaterialButton>
-                    </LinearLayout>
-                    <LinearLayout android:gravity="center" android:layout_height="match_parent"
-                                  android:layout_columnWeight="1" android:layout_marginLeft="5dp" android:orientation="vertical"
-                    >
+
                         <com.google.android.material.button.MaterialButton
+                                android:layout_columnWeight="1"
+                                android:layout_marginLeft="5dp"
+                                android:gravity="center" android:layout_height="match_parent"
+
+                                app:icon="@drawable/ic_baseline_create_24"
+                                app:iconSize="20dp"
+                                app:iconTint="@color/white"
                                 android:enabled="false"
                                 android:alpha="0.5"
                                 android:text="@string/generate_epub"
@@ -254,15 +257,12 @@
                                 android:textAllCaps="false"
                                 android:textSize="15sp"
                                 android:elevation="10dp"
-                                android:gravity="center"
                                 android:textColor="@color/textColor"
                                 app:cornerRadius="5dp"
                                 android:backgroundTint="@color/colorPrimary"
                                 app:rippleColor="@color/colorPrimary"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content">
+                                android:layout_width="50dp">
                         </com.google.android.material.button.MaterialButton>
-                    </LinearLayout>
                 </GridLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
