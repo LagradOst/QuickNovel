@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.Toast
+import androidx.core.view.size
 import androidx.fragment.app.Fragment
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.model.GlideUrl
@@ -18,6 +19,11 @@ import jp.wasabeef.glide.transformations.BlurTransformation
 import java.text.StringCharacterIterator
 
 import java.text.CharacterIterator
+import android.util.DisplayMetrics
+import android.widget.LinearLayout
+import androidx.core.view.marginTop
+import androidx.core.view.setPadding
+import android.widget.RelativeLayout
 
 
 class ResultFragment(url: String) : Fragment() {
@@ -85,7 +91,7 @@ class ResultFragment(url: String) : Fragment() {
         }
 
         result_download_btt.iconSize = 30.toPx
-        result_download_btt.setIconResource(when(state) {
+        result_download_btt.setIconResource(when (state) {
             BookDownloader.DownloadType.IsDownloading -> R.drawable.netflix_pause
             BookDownloader.DownloadType.IsPaused -> R.drawable.netflix_play
             else -> R.drawable.netflix_download
@@ -101,6 +107,22 @@ class ResultFragment(url: String) : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         result_holder.visibility = View.GONE
         result_loading.visibility = View.VISIBLE
+        //  result_mainscroll.scrollTo(100.toPx, 0)
+        result_mainscroll.setOnScrollChangeListener { v, scrollX, scrollY, oldScrollX, oldScrollY ->
+            val scrollFade = minOf(1f, 1 - scrollY / 170.toPx.toFloat())
+            result_info_header.alpha = scrollFade
+            result_info_header.scaleX = 0.95f + scrollFade * 0.05f
+            result_info_header.scaleY = 0.95f + scrollFade * 0.05f
+        }
+
+        // TRANSPARENT STATUSBAR
+        result_info_header.setPadding(0, MainActivity.statusBarHeight, 0, 0)
+        val parameter = result_empty_view.getLayoutParams() as LinearLayout.LayoutParams
+        parameter.setMargins(parameter.leftMargin,
+            parameter.topMargin + MainActivity.statusBarHeight,
+            parameter.rightMargin,
+            parameter.bottomMargin)
+        result_empty_view.setLayoutParams(parameter)
 
         thread {
             val res = MainActivity.api.load(resultUrl)
@@ -162,6 +184,17 @@ class ResultFragment(url: String) : Fragment() {
                             .apply(bitmapTransform(BlurTransformation(100, 3)))
                             .into(result_poster_blur)
                     }
+
+                    result_download_card.post {
+                        val displayMetrics = context!!.resources.displayMetrics
+                        val height = result_download_card.height
+                        result_scroll_padding.setPadding(
+                            result_scroll_padding.paddingLeft,
+                            result_scroll_padding.paddingTop,
+                            result_scroll_padding.paddingRight,
+                            displayMetrics.heightPixels - height)
+                    }
+
                 }
             }
         }

@@ -12,7 +12,10 @@
         <item name="android:textColorHint">@color/searchColor</item>
         <item name="android:editTextColor">@color/textColor</item>
 
-        <!--<item name="android:windowTranslucentStatus">true</item>
-        <item name="android:windowTranslucentNavigation">false</item>-->
+        <item name="android:scrollbarThumbVertical">@null</item>
+        <item name="android:scrollbarThumbHorizontal">@null</item>
+
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">false</item>
     </style>
 </resources>

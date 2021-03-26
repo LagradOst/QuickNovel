@@ -11,12 +11,18 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.example.epubdownloader.ui.result.ResultFragment
+import android.view.Window
+
+import android.graphics.Rect
+import android.view.View
+
 
 val Int.toPx: Int get() = (this * Resources.getSystem().displayMetrics.density).toInt()
 val Int.toDp: Int get() = (this / Resources.getSystem().displayMetrics.density).toInt()
 class MainActivity : AppCompatActivity() {
     companion object {
         lateinit var activity: MainActivity;
+        var statusBarHeight = 0
         val api: MainAPI = NovelPassionProvider()
 
         fun loadResult(url : String) {
@@ -31,6 +37,14 @@ class MainActivity : AppCompatActivity() {
 
     lateinit var mainContext: Context;
 
+    fun getStatusBarHeight(): Int {
+        var result = 0
+        val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
+        if (resourceId > 0) {
+            result = resources.getDimensionPixelSize(resourceId)
+        }
+        return result
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +64,8 @@ class MainActivity : AppCompatActivity() {
 
         BookDownloader.init()
 
-       // loadResult("https://www.novelpassion.com/novel/battle-frenzy")
+        statusBarHeight = getStatusBarHeight()
+
+        //loadResult("https://www.novelpassion.com/novel/battle-frenzy")
     }
 }
