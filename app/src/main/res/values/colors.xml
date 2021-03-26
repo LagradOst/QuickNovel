@@ -14,4 +14,6 @@
     <color name="lightGrayTextColor">#9f9fa0</color>
     <color name="searchColor">#DADADA</color>
     <color name="transparent">#00000000</color>
+
+    <color name="white">#FFF</color>
 </resources>

@@ -12,7 +12,10 @@ class NovelPassionProvider : MainAPI() {
         return try {
             val response = khttp.get(url)
             val document = Jsoup.parse(response.text)
-            val res = document.selectFirst("div.cha-words");
+            val res = document.selectFirst("div.cha-words")
+            if(res.html() == "") {
+                return null
+            }
             res.html()
         } catch (e: Exception) {
             null

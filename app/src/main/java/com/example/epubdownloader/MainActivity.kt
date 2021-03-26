@@ -1,6 +1,7 @@
 package com.example.epubdownloader
 
 import android.content.Context
+import android.content.res.Resources
 
 import android.os.Bundle
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -11,6 +12,8 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.example.epubdownloader.ui.result.ResultFragment
 
+val Int.toPx: Int get() = (this * Resources.getSystem().displayMetrics.density).toInt()
+val Int.toDp: Int get() = (this / Resources.getSystem().displayMetrics.density).toInt()
 class MainActivity : AppCompatActivity() {
     companion object {
         lateinit var activity: MainActivity;
@@ -47,6 +50,6 @@ class MainActivity : AppCompatActivity() {
 
         BookDownloader.init()
 
-        loadResult("https://www.novelpassion.com/novel/battle-frenzy")
+       // loadResult("https://www.novelpassion.com/novel/battle-frenzy")
     }
 }
