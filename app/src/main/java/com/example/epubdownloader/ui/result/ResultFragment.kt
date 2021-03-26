@@ -24,6 +24,7 @@ import android.widget.LinearLayout
 import androidx.core.view.marginTop
 import androidx.core.view.setPadding
 import android.widget.RelativeLayout
+import kotlinx.android.synthetic.main.activity_main.*
 
 
 class ResultFragment(url: String) : Fragment() {
@@ -192,7 +193,7 @@ class ResultFragment(url: String) : Fragment() {
                             result_scroll_padding.paddingLeft,
                             result_scroll_padding.paddingTop,
                             result_scroll_padding.paddingRight,
-                            displayMetrics.heightPixels - height)
+                            displayMetrics.heightPixels - height - MainActivity.activity.nav_view.height)
                     }
 
                 }
