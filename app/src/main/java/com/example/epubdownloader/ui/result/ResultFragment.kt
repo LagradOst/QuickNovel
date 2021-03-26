@@ -195,19 +195,17 @@ class ResultFragment(url: String) : Fragment() {
                             result_scroll_padding.paddingRight,
                             displayMetrics.heightPixels - height - MainActivity.activity.nav_view.height)
                     }
-
                 }
             }
         }
+
         BookDownloader.downloadNotification += ::updateDownloadInfo
 
         result_download_btt.setOnClickListener {
             if (load == null || localId == 0) return@setOnClickListener
 
             thread {
-                val state =
-                    if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped
-                when (state) {
+                when (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped) {
                     BookDownloader.DownloadType.IsFailed -> BookDownloader.download(load!!, MainActivity.api)
                     BookDownloader.DownloadType.IsStopped -> BookDownloader.download(load!!, MainActivity.api)
                     BookDownloader.DownloadType.IsDownloading -> BookDownloader.updateDownload(localId,
