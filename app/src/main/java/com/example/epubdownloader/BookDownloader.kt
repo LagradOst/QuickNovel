@@ -211,6 +211,7 @@ object BookDownloader {
             if (rFile.exists()) {
                 val text = rFile.readText()
                 val firstChar = text.indexOf('\n')
+                if (firstChar == -1) break // Invalid File
                 val title = text.substring(0, firstChar)
                 val data = text.substring(firstChar + 1);
                 val chapter = Resource("id$index", data.toByteArray(), "chapter$index.html", MediatypeService.XHTML)
@@ -273,7 +274,8 @@ object BookDownloader {
                     MainActivity.activity.filesDir.toString() + getFilename(sApiName, sAuthor, sName, index)
                 val rFile: File = File(filepath)
                 if (rFile.exists()) {
-                    continue
+                    if (rFile.length() > 10) // TO PREVENT INVALID FILE FROM HAVING TO REMOVE EVERYTHING
+                        continue
                 }
                 rFile.parentFile.mkdirs()
                 //if(rFile.isDirectory) rFile.delete()
