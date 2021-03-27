@@ -56,6 +56,7 @@ class ResAdapter(
         val cardView: ImageView = itemView.imageView
         val cardText: TextView = itemView.imageText
         val cardTextExtra: TextView = itemView.imageTextExtra
+        val bg = itemView.backgroundCard
         fun bind(card: SearchResponse) {
             cardText.text = card.name
             if(card.latestChapter != null) {
@@ -69,7 +70,7 @@ class ResAdapter(
                     .into(cardView)
             }
 
-            cardView.setOnClickListener {
+            bg.setOnClickListener {
                 MainActivity.loadResult(card.url)
             }
         }

@@ -14,28 +14,47 @@ import com.example.epubdownloader.ui.result.ResultFragment
 import android.view.Window
 
 import android.graphics.Rect
+import android.graphics.drawable.ColorDrawable
 import android.view.View
+import android.widget.FrameLayout
+import androidx.core.content.res.ResourcesCompat
 
 
 val Int.toPx: Int get() = (this * Resources.getSystem().displayMetrics.density).toInt()
 val Int.toDp: Int get() = (this / Resources.getSystem().displayMetrics.density).toInt()
+
 class MainActivity : AppCompatActivity() {
     companion object {
-        lateinit var activity: MainActivity;
+        var isInResults = false
+
+        lateinit var activity: MainActivity
         var statusBarHeight = 0
         val api: MainAPI = NovelPassionProvider()
 
-        fun loadResult(url : String) {
+        fun loadResult(url: String) {
             activity.runOnUiThread {
                 activity.supportFragmentManager.beginTransaction()
                     //?.setCustomAnimations(R.anim.enter, R.anim.exit, R.anim.pop_enter, R.anim.pop_exit)
-                    .add(R.id.nav_host_fragment, ResultFragment(url))
+                    .add(R.id.homeRoot, ResultFragment().newInstance(url))
                     .commit()
             }
         }
-    }
 
-    lateinit var mainContext: Context;
+        fun backPressed(): Boolean {
+            val currentFragment = activity.supportFragmentManager.fragments.last {
+                it.isVisible
+            }
+
+            if (isInResults && currentFragment != null) {
+                activity.supportFragmentManager.beginTransaction()
+                    //?.setCustomAnimations(R.anim.enter, R.anim.exit, R.anim.pop_enter, R.anim.pop_exit)
+                    .remove(currentFragment)
+                    .commitAllowingStateLoss()
+                return true
+            }
+            return false
+        }
+    }
 
     fun getStatusBarHeight(): Int {
         var result = 0
@@ -46,11 +65,19 @@ class MainActivity : AppCompatActivity() {
         return result
     }
 
+    override fun onBackPressed() {
+        if (backPressed()) return
+        super.onBackPressed()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        activity = this
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        activity = this
-        mainContext = this.applicationContext
+
+        this.findViewById<FrameLayout>(R.id.container).background =
+            ColorDrawable(ResourcesCompat.getColor(resources, R.color.grayBackground, null)) // FIXES ICON
 
         val navView: BottomNavigationView = findViewById(R.id.nav_view)
 
@@ -58,7 +85,7 @@ class MainActivity : AppCompatActivity() {
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
         val appBarConfiguration = AppBarConfiguration(setOf(
-            R.id.navigation_search )) // R.id.navigation_dashboard, R.id.navigation_notifications
+            R.id.navigation_search)) // R.id.navigation_dashboard, R.id.navigation_notifications
         //setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
 

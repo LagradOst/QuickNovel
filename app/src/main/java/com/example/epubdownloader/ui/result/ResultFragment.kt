@@ -1,5 +1,6 @@
 package com.example.epubdownloader.ui.result
 
+import android.content.Context
 import android.opengl.Visibility
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -20,16 +21,28 @@ import java.text.StringCharacterIterator
 
 import java.text.CharacterIterator
 import android.util.DisplayMetrics
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import androidx.core.view.marginTop
 import androidx.core.view.setPadding
 import android.widget.RelativeLayout
+import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
 import com.example.epubdownloader.BookDownloader.turnToEpub
 import kotlinx.android.synthetic.main.activity_main.*
 
 
-class ResultFragment(url: String) : Fragment() {
-    val resultUrl = url
+class ResultFragment : Fragment() {
+    fun newInstance(url: String) =
+        ResultFragment().apply {
+            arguments = Bundle().apply {
+                //println(data)
+                putString("url", url)
+            }
+        }
+
+
+    var resultUrl = ""
 
     fun humanReadableByteCountSI(bytes: Int): String {
         var bytes = bytes
@@ -50,11 +63,18 @@ class ResultFragment(url: String) : Fragment() {
         savedInstanceState: Bundle?,
     ): View? {
 
-        activity?.window?.setSoftInputMode(
+        /*activity?.window?.setSoftInputMode(
             WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
-        )
+        )*/
 
         return inflater.inflate(R.layout.fragment_result, container, false)
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        arguments?.getString("url")?.let {
+            resultUrl = it
+        }
     }
 
     var load: LoadResponse? = null
@@ -101,30 +121,52 @@ class ResultFragment(url: String) : Fragment() {
     }
 
     override fun onDestroy() {
+        MainActivity.isInResults = false
         BookDownloader.downloadNotification -= ::updateDownloadInfo
+        MainActivity.activity.window.navigationBarColor =
+            ResourcesCompat.getColor(resources, R.color.darkBackground, null)
         super.onDestroy()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        MainActivity.isInResults = true
+
+        MainActivity.activity.window.navigationBarColor =
+            ResourcesCompat.getColor(resources, R.color.grayBackground, null)
+
         result_holder.visibility = View.GONE
         result_loading.visibility = View.VISIBLE
         //  result_mainscroll.scrollTo(100.toPx, 0)
         result_mainscroll.setOnScrollChangeListener { v, scrollX, scrollY, oldScrollX, oldScrollY ->
-            val scrollFade = minOf(1f, 1 - scrollY / 170.toPx.toFloat())
+            val scrollFade = maxOf(0f, 1 - scrollY / 170.toPx.toFloat())
             result_info_header.alpha = scrollFade
             result_info_header.scaleX = 0.95f + scrollFade * 0.05f
             result_info_header.scaleY = 0.95f + scrollFade * 0.05f
+
+            val crossFade = maxOf(0f, 1 - scrollY / 140.toPx.toFloat())
+            result_back.alpha = crossFade
+            result_back.isEnabled = crossFade > 0
         }
 
         // TRANSPARENT STATUSBAR
         result_info_header.setPadding(0, MainActivity.statusBarHeight, 0, 0)
+        //result_back.setPadding(0, MainActivity.statusBarHeight, 0, 0)
+
         val parameter = result_empty_view.getLayoutParams() as LinearLayout.LayoutParams
         parameter.setMargins(parameter.leftMargin,
             parameter.topMargin + MainActivity.statusBarHeight,
             parameter.rightMargin,
             parameter.bottomMargin)
         result_empty_view.setLayoutParams(parameter)
+
+        val back_parameter = result_back.getLayoutParams() as FrameLayout.LayoutParams
+        back_parameter.setMargins(back_parameter.leftMargin,
+            back_parameter.topMargin + MainActivity.statusBarHeight,
+            back_parameter.rightMargin,
+            back_parameter.bottomMargin)
+        result_back.setLayoutParams(back_parameter)
 
         thread {
             val res = MainActivity.api.load(resultUrl)
@@ -133,6 +175,9 @@ class ResultFragment(url: String) : Fragment() {
                 if (res == null) {
                     Toast.makeText(context, "Error loading", Toast.LENGTH_SHORT).show()
                 } else {
+                    MainActivity.activity.window.navigationBarColor =
+                        ResourcesCompat.getColor(resources, R.color.bitDarkerGrayBackground, null)
+
                     result_holder.visibility = View.VISIBLE
                     result_loading.visibility = View.GONE
 
@@ -194,7 +239,7 @@ class ResultFragment(url: String) : Fragment() {
                             result_scroll_padding.paddingLeft,
                             result_scroll_padding.paddingTop,
                             result_scroll_padding.paddingRight,
-                            displayMetrics.heightPixels - height - MainActivity.activity.nav_view.height)
+                            displayMetrics.heightPixels - height) // - MainActivity.activity.nav_view.height
                     }
                 }
             }
@@ -217,7 +262,9 @@ class ResultFragment(url: String) : Fragment() {
                 }
             }
         }
-
+        result_back.setOnClickListener {
+            MainActivity.backPressed()
+        }
         result_download_generate_epub.setOnClickListener {
             if (load != null) {
                 if (turnToEpub(load!!, MainActivity.api)) {
