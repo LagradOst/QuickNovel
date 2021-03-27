@@ -18,5 +18,10 @@
 
         <item name="android:windowTranslucentStatus">true</item>
         <item name="android:windowTranslucentNavigation">false</item>
+
+        <!--<item name="bottomNavigationStyle">@style/Widget.App.BottomNavigationView</item>-->
     </style>
+<!--
+    <style name="Widget.App.BottomNavigationView" parent="Widget.Design.BottomNavigationView">
+    </style>-->
 </resources>

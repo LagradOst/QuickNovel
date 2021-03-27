@@ -10,4 +10,6 @@
     <string name="novel_imagecover_descript">Novel Imagecover</string>
     <string name="background_image_descript">Background Image</string>
     <string name="back_to_search">Back to search</string>
+    <string name="downloads_text">Downloads</string>
+    <string name="title_download">Downloads</string>
 </resources>

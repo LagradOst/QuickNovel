@@ -147,23 +147,26 @@ object BookDownloader {
         return "$sApiname$sAuthor$sName".hashCode()
     }
 
-    fun downloadInfo(load: LoadResponse, api: MainAPI): DownloadResponse? {
+    fun downloadInfo(author: String?, name: String, total: Int, apiName: String): DownloadResponse? {
         try {
-            val sApiname = sanitizeFilename(api.name)
-            val sAuthor = if (load.author == null) "" else sanitizeFilename(load.author)
-            val sName = sanitizeFilename(load.name)
+            val sApiname = sanitizeFilename(apiName)
+            val sAuthor = if (author == null) "" else sanitizeFilename(author)
+            val sName = sanitizeFilename(name)
             val id = "$sApiname$sAuthor$sName".hashCode()
 
             var count = 0
-            for ((index, d) in load.data.withIndex()) {
+            for (index in 0..total) {
                 val filepath =
                     MainActivity.activity.filesDir.toString() + getFilename(sApiname, sAuthor, sName, index)
                 val rFile: File = File(filepath)
                 if (rFile.exists()) {
                     count++
                 }
+                else {
+                    break
+                }
             }
-            return DownloadResponse(count, load.data.size, id)
+            return DownloadResponse(count, total, id)
         } catch (e: Exception) {
             return null
         }

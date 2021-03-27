@@ -11,5 +11,11 @@
             android:label="@string/title_search"
             android:layout_height="match_parent"
             tools:layout="@layout/fragment_search"/>
+    <fragment
+            android:id="@+id/navigation_download"
+            android:name="com.example.epubdownloader.ui.download.DownloadFragment"
+            android:label="@string/title_download"
+            android:layout_height="match_parent"
+            tools:layout="@layout/fragment_downloads"/>
 
 </navigation>

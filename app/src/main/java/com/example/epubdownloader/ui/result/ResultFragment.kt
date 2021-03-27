@@ -29,6 +29,7 @@ import android.widget.RelativeLayout
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import com.example.epubdownloader.BookDownloader.turnToEpub
+import com.example.epubdownloader.ui.download.DownloadFragment
 import kotlinx.android.synthetic.main.activity_main.*
 
 
@@ -154,19 +155,19 @@ class ResultFragment : Fragment() {
         result_info_header.setPadding(0, MainActivity.statusBarHeight, 0, 0)
         //result_back.setPadding(0, MainActivity.statusBarHeight, 0, 0)
 
-        val parameter = result_empty_view.getLayoutParams() as LinearLayout.LayoutParams
+        val parameter = result_empty_view.layoutParams as LinearLayout.LayoutParams
         parameter.setMargins(parameter.leftMargin,
             parameter.topMargin + MainActivity.statusBarHeight,
             parameter.rightMargin,
             parameter.bottomMargin)
-        result_empty_view.setLayoutParams(parameter)
+        result_empty_view.layoutParams = parameter
 
-        val back_parameter = result_back.getLayoutParams() as FrameLayout.LayoutParams
+        val back_parameter = result_back.layoutParams as FrameLayout.LayoutParams
         back_parameter.setMargins(back_parameter.leftMargin,
             back_parameter.topMargin + MainActivity.statusBarHeight,
             back_parameter.rightMargin,
             back_parameter.bottomMargin)
-        result_back.setLayoutParams(back_parameter)
+        result_back.layoutParams = back_parameter
 
         thread {
             val res = MainActivity.api.load(resultUrl)
@@ -207,7 +208,7 @@ class ResultFragment : Fragment() {
                     }*/
 
                     localId = BookDownloader.generateId(res, MainActivity.api)
-                    val start = BookDownloader.downloadInfo(res, MainActivity.api)
+                    val start = BookDownloader.downloadInfo(res.author, res.name, res.data.size, MainActivity.api.name)
                     result_download_progress_text_eta.text = ""
                     if (start != null) {
                         result_download_progress_text.text = "${start.progress}/${start.total}"
@@ -249,6 +250,19 @@ class ResultFragment : Fragment() {
 
         result_download_btt.setOnClickListener {
             if (load == null || localId == 0) return@setOnClickListener
+            val l = load!!
+            DataStore.setKey(DOWNLOAD_FOLDER, BookDownloader.generateId(l, MainActivity.api).toString(),
+                DownloadFragment.DownloadData(resultUrl,
+                    l.name,
+                    l.author,
+                    l.posterUrl,
+                    l.rating,
+                    l.peopleVoted,
+                    l.views,
+                    l.Synopsis,
+                    l.tags,
+                    MainActivity.api.name
+                ))
 
             thread {
                 when (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped) {
@@ -262,13 +276,16 @@ class ResultFragment : Fragment() {
                 }
             }
         }
+
         result_back.setOnClickListener {
             MainActivity.backPressed()
         }
+
         result_download_generate_epub.setOnClickListener {
             if (load != null) {
-                if (turnToEpub(load!!, MainActivity.api)) {
-                    Toast.makeText(context, "Created ${load!!.name}", Toast.LENGTH_LONG).show()
+                val l = load!!
+                if (turnToEpub(l, MainActivity.api)) {
+                    Toast.makeText(context, "Created ${l.name}", Toast.LENGTH_LONG).show()
                 } else {
                     Toast.makeText(context, "Error creating the Epub", Toast.LENGTH_LONG).show()
                 }

@@ -20,8 +20,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:background="@color/darkBackground"
-                    app:itemTextColor="@color/colorPrimary"
-                    app:itemIconTint="@color/colorPrimary"
+
                     app:layout_constraintLeft_toLeftOf="parent"
                     app:layout_constraintRight_toRightOf="parent"
                     app:menu="@menu/bottom_nav_menu"

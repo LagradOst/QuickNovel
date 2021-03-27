@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:background="@color/grayBackground"
+              android:padding="10dp"
+              android:orientation="vertical"
+>
+    <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/downloads_text"
+            android:textSize="18sp"
+            android:textColor="@color/textColor"
+    />
+    <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+    >
+        <androidx.recyclerview.widget.RecyclerView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:paddingStart="8dp"
+                android:paddingTop="5dp"
+                android:paddingEnd="8dp"
+                android:id="@+id/download_cardSpace"
+                android:orientation="vertical"
+        >
+        </androidx.recyclerview.widget.RecyclerView>
+    </ScrollView>
+
+</LinearLayout>

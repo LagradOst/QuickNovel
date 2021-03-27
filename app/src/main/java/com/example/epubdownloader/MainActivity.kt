@@ -85,10 +85,10 @@ class MainActivity : AppCompatActivity() {
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
         val appBarConfiguration = AppBarConfiguration(setOf(
-            R.id.navigation_search)) // R.id.navigation_dashboard, R.id.navigation_notifications
+            R.id.navigation_search, R.id.navigation_download)) // R.id.navigation_dashboard, R.id.navigation_notifications
         //setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
-
+        DataStore.init(this)
         BookDownloader.init()
 
         statusBarHeight = getStatusBarHeight()
