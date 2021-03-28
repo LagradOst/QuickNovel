@@ -178,7 +178,7 @@ object BookDownloader {
                 val filepath =
                     MainActivity.activity.filesDir.toString() + getFilename(sApiname, sAuthor, sName, index)
                 val rFile: File = File(filepath)
-                if (rFile.exists()) {
+                if (rFile.exists() && rFile.length() > 10) {
                     count++
                 } else {
                     break
@@ -285,15 +285,17 @@ object BookDownloader {
             if (rFile.exists()) {
                 val text = rFile.readText()
                 val firstChar = text.indexOf('\n')
-                if (firstChar == -1) break // Invalid File
+                if (firstChar == -1) {
+                    break
+                } // Invalid File
                 val title = text.substring(0, firstChar)
                 val data = text.substring(firstChar + 1);
                 val chapter = Resource("id$index", data.toByteArray(), "chapter$index.html", MediatypeService.XHTML)
                 book.addSection(title, chapter)
+                index++
             } else {
-                break;
+                break
             }
-            index++
         }
         val epubWriter = EpubWriter()
         val bookFile =
@@ -302,7 +304,7 @@ object BookDownloader {
                 "${sanitizeFilename(name)}.epub")
         bookFile.parentFile.mkdirs()
         bookFile.createNewFile()
-        DataStore.setKey(DOWNLOAD_EPUB_SIZE, id.toString(), index)
+        DataStore.setKey(DOWNLOAD_EPUB_SIZE, id.toString(), book.contents.size)
         epubWriter.write(book, FileOutputStream(bookFile))
         isTurningIntoEpub.remove(id)
         return true

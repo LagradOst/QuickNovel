@@ -105,7 +105,8 @@ class DloadAdapter(
             })
 
             fun getEpub(): Boolean {
-                return DataStore.getKey(DOWNLOAD_EPUB_SIZE, card.id.toString(), 0) != card.downloadedCount
+                val dloaded = DataStore.getKey(DOWNLOAD_EPUB_SIZE, card.id.toString(), 0)
+                return dloaded != card.downloadedCount
             }
 
             fun updateBar(isGenerating: Boolean? = null) {
