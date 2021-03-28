@@ -90,7 +90,7 @@ class DloadAdapter(
             }
 
             download_update.text = when (card.state) {
-                BookDownloader.DownloadType.IsDone -> "Downloaded"
+                BookDownloader.DownloadType.IsDone -> "Done"
                 BookDownloader.DownloadType.IsDownloading -> "Pause"
                 BookDownloader.DownloadType.IsPaused -> "Resume"
                 BookDownloader.DownloadType.IsFailed -> "Re-Download"
