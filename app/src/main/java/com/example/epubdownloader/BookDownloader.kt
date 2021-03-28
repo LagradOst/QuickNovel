@@ -137,6 +137,8 @@ object BookDownloader {
     }
 
     val isRunning = hashMapOf<Int, DownloadType>()
+    val isTurningIntoEpub = hashMapOf<Int, Boolean>()
+
     val downloadNotification = Event<DownloadNotification>()
 
     fun generateId(load: LoadResponse, api: MainAPI): Int {
@@ -190,7 +192,7 @@ object BookDownloader {
                 == PackageManager.PERMISSION_GRANTED)
     }
 
-    fun turnToEpub(load: LoadResponse, api: MainAPI): Boolean {
+    fun turnToEpub(author: String?, name: String, apiName: String): Boolean {
         if (!checkWrite()) {
             ActivityCompat.requestPermissions(MainActivity.activity,
                 arrayOf(
@@ -201,14 +203,18 @@ object BookDownloader {
             if (!checkWrite()) return false
         }
 
-        val sApiName = sanitizeFilename(api.name)
-        val sAuthor = if (load.author == null) "" else sanitizeFilename(load.author)
-        val sName = sanitizeFilename(load.name)
-        //val id = "$sApiName$sAuthor$sName".hashCode()
+        val sApiName = sanitizeFilename(apiName)
+        val sAuthor = if (author == null) "" else sanitizeFilename(author)
+        val sName = sanitizeFilename(name)
+        val id = "$sApiName$sAuthor$sName".hashCode()
+        if(isTurningIntoEpub.containsKey(id)) return false
+        isTurningIntoEpub[id] = true
         val book = Book()
         val metadata = book.metadata
-        metadata.addAuthor(Author(load.author))
-        metadata.addTitle(load.name)
+        if(author != null) {
+            metadata.addAuthor(Author(author))
+        }
+        metadata.addTitle(name)
 
         val poster_filepath =
             MainActivity.activity.filesDir.toString() + getFilenameIMG(sApiName, sAuthor, sName)
@@ -239,11 +245,12 @@ object BookDownloader {
         val bookFile =
             File(android.os.Environment.getExternalStorageDirectory().path +
                     "${fileSeperator}Download${fileSeperator}Epub${fileSeperator}",
-                "${sanitizeFilename(load.name)}.epub")
+                "${sanitizeFilename(name)}.epub")
         bookFile.parentFile.mkdirs()
         bookFile.createNewFile()
+        DataStore.setKey(DOWNLOAD_EPUB_SIZE, id.toString(), index)
         epubWriter.write(book, FileOutputStream(bookFile))
-
+        isTurningIntoEpub.remove(id)
         return true
     }
 
@@ -291,7 +298,7 @@ object BookDownloader {
                         continue
                 }
                 rFile.parentFile.mkdirs()
-                if(rFile.isDirectory) rFile.delete()
+                if (rFile.isDirectory) rFile.delete()
                 rFile.createNewFile()
                 var page: String? = null
                 while (page == null) {
@@ -327,7 +334,6 @@ object BookDownloader {
         val eta: Double,
         val _state: DownloadType,
     )
-
 
     val cachedNotifications = hashMapOf<Int, NotificationData>()
 

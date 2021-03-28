@@ -5,12 +5,18 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import androidx.core.content.res.ResourcesCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.epubdownloader.*
 import kotlinx.android.synthetic.main.fragment_downloads.*
+import kotlinx.android.synthetic.main.fragment_result.*
 import kotlinx.android.synthetic.main.fragment_search.*
+import androidx.recyclerview.widget.SimpleItemAnimator
+
+import androidx.recyclerview.widget.RecyclerView.ItemAnimator
+
 
 class DownloadFragment : Fragment() {
     data class DownloadData(
@@ -42,6 +48,9 @@ class DownloadFragment : Fragment() {
         val downloadedCount: Int,
         val downloadedTotal: Int,
         val updated: Boolean,
+        val ETA: String,
+        val state: BookDownloader.DownloadType,
+        val id: Int,
     )
 
     override fun onCreateView(
@@ -53,15 +62,56 @@ class DownloadFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_downloads, container, false)
     }
 
+    override fun onDestroy() {
+        BookDownloader.downloadNotification -= ::updateDownloadInfo
+        super.onDestroy()
+    }
+
+    fun updateDownloadInfo(info: BookDownloader.DownloadNotification) {
+        val arry = (download_cardSpace.adapter as DloadAdapter).cardList
+        var index = 0
+        for (res in arry) {
+            if (res.id == info.id) {
+                (download_cardSpace.adapter as DloadAdapter).cardList[index] =
+                    DownloadDataLoaded(
+                        res.source,
+                        res.name,
+                        res.author,
+                        res.posterUrl,
+                        res.rating,
+                        res.peopleVoted,
+                        res.views,
+                        res.Synopsis,
+                        res.tags,
+                        res.apiName,
+                        info.progress,
+                        info.total,
+                        true,
+                        info.ETA,
+                        info.state,
+                        res.id,
+                    )
+                activity?.runOnUiThread {
+                    if (download_cardSpace != null) {
+                        (download_cardSpace.adapter as DloadAdapter).notifyItemChanged(index)
+                    }
+                }
+                break
+            }
+            index++
+        }
+    }
+
     fun loadData() {
         val arry = ArrayList<DownloadDataLoaded>()
         val keys = DataStore.getKeys(DOWNLOAD_FOLDER)
         for (k in keys) {
-            val res = DataStore.getKey<DownloadData>(k) as DownloadData?
+            val res = DataStore.getKey<DownloadData>(k)
             if (res != null) {
                 val localId = BookDownloader.generateId(res.apiName, res.author, res.name)
                 val info = BookDownloader.downloadInfo(res.author, res.name, 100000, res.apiName)
                 if (info != null && info.progress > 0) {
+                    val state = (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped)!!
                     arry.add(DownloadDataLoaded(
                         res.source,
                         res.name,
@@ -75,7 +125,10 @@ class DownloadFragment : Fragment() {
                         res.apiName,
                         info.progress,
                         DataStore.getKey(DOWNLOAD_TOTAL, localId.toString(), info.progress)!!,
-                        false
+                        false,
+                        "",
+                        state,
+                        info.id,
                     ))
                 }
             }
@@ -95,7 +148,13 @@ class DownloadFragment : Fragment() {
                 download_cardSpace,
             )
         }
+        adapter?.setHasStableIds(true)
         download_cardSpace.adapter = adapter
+        val animator: ItemAnimator = download_cardSpace.getItemAnimator()!!
+        if (animator is SimpleItemAnimator) {
+            (animator as SimpleItemAnimator).supportsChangeAnimations = false
+        }
+
         download_cardSpace.layoutManager = GridLayoutManager(context, 1)
 
         val parameter = download_top_padding.layoutParams as LinearLayout.LayoutParams
@@ -106,5 +165,7 @@ class DownloadFragment : Fragment() {
         download_top_padding.layoutParams = parameter
 
         loadData()
+
+        BookDownloader.downloadNotification += ::updateDownloadInfo
     }
 }

@@ -12,4 +12,6 @@
     <string name="back_to_search">Back to search</string>
     <string name="downloads_text">Downloads</string>
     <string name="title_download">Downloads</string>
+    <string name="open_text">Read</string>
+    <string name="update_text">Update</string>
 </resources>

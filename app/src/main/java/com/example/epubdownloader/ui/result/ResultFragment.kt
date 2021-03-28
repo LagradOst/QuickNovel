@@ -106,7 +106,7 @@ class ResultFragment : Fragment() {
 
 
         result_download_btt.text = when (state) {
-            BookDownloader.DownloadType.IsDone -> "Delete"
+            BookDownloader.DownloadType.IsDone -> "Downloaded"
             BookDownloader.DownloadType.IsDownloading -> "Pause"
             BookDownloader.DownloadType.IsPaused -> "Resume"
             BookDownloader.DownloadType.IsFailed -> "Re-Download"
@@ -286,12 +286,19 @@ class ResultFragment : Fragment() {
 
         result_download_generate_epub.setOnClickListener {
             if (load != null) {
-                val l = load!!
-                if (turnToEpub(l, MainActivity.api)) {
-                    Toast.makeText(context, "Created ${l.name}", Toast.LENGTH_LONG).show()
-                } else {
-                    Toast.makeText(context, "Error creating the Epub", Toast.LENGTH_LONG).show()
+                thread {
+                    val l = load!!
+                    val done = turnToEpub(l.author, l.name, MainActivity.api.name)
+                    MainActivity.activity.runOnUiThread {
+                        if (done) {
+                            Toast.makeText(context, "Created ${l.name}", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(context, "Error creating the Epub", Toast.LENGTH_LONG).show()
+                        }
+                    }
+
                 }
+
             }
         }
     }
