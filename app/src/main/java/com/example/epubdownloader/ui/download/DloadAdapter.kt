@@ -108,7 +108,7 @@ class DloadAdapter(
                 return DataStore.getKey(DOWNLOAD_EPUB_SIZE, card.id.toString(), 0) != card.downloadedCount
             }
 
-            fun updateBar(isGenerating: Boolean?) {
+            fun updateBar(isGenerating: Boolean? = null) {
                 val isIndeterminate = isGenerating ?: BookDownloader.isTurningIntoEpub.containsKey(card.id)
                 download_progressbar.visibility = if(!isIndeterminate) View.VISIBLE else View.INVISIBLE
                 download_progressbar_indeterment.visibility = if(isIndeterminate) View.VISIBLE else View.INVISIBLE
@@ -143,7 +143,7 @@ class DloadAdapter(
                         }
                     }
                 } else {
-                    //TODO READ
+                    BookDownloader.openEpub(card.name)
                 }
             }
 

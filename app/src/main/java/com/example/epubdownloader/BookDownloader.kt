@@ -32,6 +32,15 @@ import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import java.util.concurrent.Executors
+import android.app.Application
+import android.content.ActivityNotFoundException
+import android.content.Intent.*
+import android.net.Uri
+import android.webkit.MimeTypeMap
+
+import android.R.attr.path
+import androidx.core.content.FileProvider
+
 
 const val UPDATE_TIME = 1000
 const val CHANNEL_ID = "epubdownloader.general"
@@ -192,14 +201,59 @@ object BookDownloader {
                 == PackageManager.PERMISSION_GRANTED)
     }
 
+    fun requestRW() {
+        ActivityCompat.requestPermissions(MainActivity.activity,
+            arrayOf(
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            ),
+            1337)
+    }
+
+    fun openEpub(name: String): Boolean {
+        if (!checkWrite()) {
+            requestRW()
+            if (!checkWrite()) return false
+        }
+
+        val bookFile =
+            File(android.os.Environment.getExternalStorageDirectory().path +
+                    "${fileSeperator}Download${fileSeperator}Epub${fileSeperator}",
+                "${sanitizeFilename(name)}.epub")
+        /*val intent = Intent(ACTION_VIEW)
+        intent.setDataAndTypeAndNormalize(android.net.Uri.parse(bookFile.path), "application/epub+zip")
+       // intent.addFlags(FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+      //  intent.addFlags(FLAG_GRANT_PREFIX_URI_PERMISSION)
+        intent.addFlags(FLAG_GRANT_READ_URI_PERMISSION)
+       // intent.addFlags(FLAG_GRANT_WRITE_URI_PERMISSION)
+
+        intent.addFlags(FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_REQUIRE_DEFAULT)*/
+        try {
+            // MainActivity.activity.startActivity(intent)
+        } catch (e: Exception) {
+            return false
+        }
+        val intent = Intent()
+        intent.action = ACTION_VIEW
+        intent.addFlags(FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+        intent.addFlags(FLAG_GRANT_PREFIX_URI_PERMISSION)
+        intent.addFlags(FLAG_GRANT_READ_URI_PERMISSION)
+        intent.addFlags(FLAG_GRANT_WRITE_URI_PERMISSION)
+        val mime = MimeTypeMap.getSingleton()
+        val ext: String = bookFile.name.substring(bookFile.name.lastIndexOf(".") + 1)
+        val type = mime.getMimeTypeFromExtension(ext)
+
+        intent.setDataAndType(FileProvider.getUriForFile(MainActivity.activity,
+            MainActivity.activity.applicationContext.packageName + ".provider",
+            bookFile), type)
+        MainActivity.activity.startActivity(intent)
+
+        return true
+    }
+
     fun turnToEpub(author: String?, name: String, apiName: String): Boolean {
         if (!checkWrite()) {
-            ActivityCompat.requestPermissions(MainActivity.activity,
-                arrayOf(
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                    Manifest.permission.READ_EXTERNAL_STORAGE
-                ),
-                1337);
+            requestRW()
             if (!checkWrite()) return false
         }
 
@@ -207,11 +261,11 @@ object BookDownloader {
         val sAuthor = if (author == null) "" else sanitizeFilename(author)
         val sName = sanitizeFilename(name)
         val id = "$sApiName$sAuthor$sName".hashCode()
-        if(isTurningIntoEpub.containsKey(id)) return false
+        if (isTurningIntoEpub.containsKey(id)) return false
         isTurningIntoEpub[id] = true
         val book = Book()
         val metadata = book.metadata
-        if(author != null) {
+        if (author != null) {
             metadata.addAuthor(Author(author))
         }
         metadata.addTitle(name)

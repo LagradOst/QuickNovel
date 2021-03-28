@@ -80,6 +80,23 @@ class ResultFragment : Fragment() {
 
     var load: LoadResponse? = null
     var localId = 0
+    var generateEpub = false
+    var lastProgress: Int = 0
+    fun updateGenerateBtt(progress: Int?) {
+        if (load != null) {
+            generateEpub = DataStore.getKey(DOWNLOAD_EPUB_SIZE, localId.toString(), 0) != (progress ?: lastProgress)
+            if (progress != null) lastProgress = progress
+            if (result_download_generate_epub != null) {
+                if (generateEpub) {
+                    result_download_generate_epub.setIconResource(R.drawable.ic_baseline_create_24)
+                    result_download_generate_epub.text = "Generate Epub"
+                } else {
+                    result_download_generate_epub.setIconResource(R.drawable.ic_baseline_menu_book_24)
+                    result_download_generate_epub.text = "Read Epub"
+                }
+            }
+        }
+    }
 
     fun updateDownloadInfo(info: BookDownloader.DownloadNotification) {
         if (localId != info.id) return
@@ -88,6 +105,7 @@ class ResultFragment : Fragment() {
             result_download_progress_bar.progress = info.progress * 100 / info.total
             result_download_progress_text_eta.text = info.ETA
             updateDownloadButtons(info.progress, info.total, info.state)
+            updateGenerateBtt(info.progress)
         }
     }
 
@@ -214,6 +232,7 @@ class ResultFragment : Fragment() {
                     val start = BookDownloader.downloadInfo(res.author, res.name, res.data.size, MainActivity.api.name)
                     result_download_progress_text_eta.text = ""
                     if (start != null) {
+                        updateGenerateBtt(start.progress)
                         result_download_progress_text.text = "${start.progress}/${start.total}"
                         result_download_progress_bar.progress = start.progress * 100 / start.total
                         val state =
@@ -285,20 +304,25 @@ class ResultFragment : Fragment() {
         }
 
         result_download_generate_epub.setOnClickListener {
-            if (load != null) {
-                thread {
-                    val l = load!!
-                    val done = turnToEpub(l.author, l.name, MainActivity.api.name)
-                    MainActivity.activity.runOnUiThread {
-                        if (done) {
-                            Toast.makeText(context, "Created ${l.name}", Toast.LENGTH_LONG).show()
-                        } else {
-                            Toast.makeText(context, "Error creating the Epub", Toast.LENGTH_LONG).show()
+            if (generateEpub) {
+                if (load != null) {
+                    thread {
+                        val l = load!!
+                        val done = turnToEpub(l.author, l.name, MainActivity.api.name)
+                        MainActivity.activity.runOnUiThread {
+                            updateGenerateBtt(null)
+                            if (done) {
+                                Toast.makeText(context, "Created ${l.name}", Toast.LENGTH_LONG).show()
+                            } else {
+                                Toast.makeText(context, "Error creating the Epub", Toast.LENGTH_LONG).show()
+                            }
                         }
                     }
-
                 }
-
+            } else {
+                if (load != null) {
+                    BookDownloader.openEpub(load!!.name)
+                }
             }
         }
     }
