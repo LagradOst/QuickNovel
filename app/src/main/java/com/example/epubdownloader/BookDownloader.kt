@@ -33,7 +33,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import java.util.concurrent.Executors
 
-
 const val UPDATE_TIME = 1000
 const val CHANNEL_ID = "epubdownloader.general"
 const val CHANNEL_NAME = "Downloads"
@@ -141,31 +140,44 @@ object BookDownloader {
     val downloadNotification = Event<DownloadNotification>()
 
     fun generateId(load: LoadResponse, api: MainAPI): Int {
-        val sApiname = sanitizeFilename(api.name)
-        val sAuthor = if (load.author == null) "" else sanitizeFilename(load.author)
-        val sName = sanitizeFilename(load.name)
+        return generateId(api.name, load.author, load.name)
+    }
+
+    fun generateId(apiName: String, author: String?, name: String): Int {
+        val sApiname = sanitizeFilename(apiName)
+        val sAuthor = if (author == null) "" else sanitizeFilename(author)
+        val sName = sanitizeFilename(name)
         return "$sApiname$sAuthor$sName".hashCode()
     }
 
-    fun downloadInfo(author: String?, name: String, total: Int, apiName: String): DownloadResponse? {
+    fun downloadInfo(author: String?, name: String, total: Int, apiName: String, start: Int = -1): DownloadResponse? {
         try {
             val sApiname = sanitizeFilename(apiName)
             val sAuthor = if (author == null) "" else sanitizeFilename(author)
             val sName = sanitizeFilename(name)
             val id = "$sApiname$sAuthor$sName".hashCode()
 
-            var count = 0
-            for (index in 0..total) {
+            var sStart = start
+            if (sStart == -1) { // CACHE DATA
+                sStart = maxOf(DataStore.getKey(DOWNLOAD_SIZE, id.toString(), 0)!! - 1, 0)
+            }
+
+            var count = sStart
+            for (index in sStart..total) {
                 val filepath =
                     MainActivity.activity.filesDir.toString() + getFilename(sApiname, sAuthor, sName, index)
                 val rFile: File = File(filepath)
                 if (rFile.exists()) {
                     count++
-                }
-                else {
+                } else {
                     break
                 }
             }
+
+            if (sStart == count && start > 0) {
+                return downloadInfo(author, name, total, apiName, maxOf(sStart - 100, 0))
+            }
+            DataStore.setKey(DOWNLOAD_SIZE, id.toString(), count)
             return DownloadResponse(count, total, id)
         } catch (e: Exception) {
             return null
@@ -179,7 +191,6 @@ object BookDownloader {
     }
 
     fun turnToEpub(load: LoadResponse, api: MainAPI): Boolean {
-
         if (!checkWrite()) {
             ActivityCompat.requestPermissions(MainActivity.activity,
                 arrayOf(
@@ -248,14 +259,13 @@ object BookDownloader {
             isRunning[id] = DownloadType.IsDownloading
 
             var timePerLoad = 1.0
-// khttp.get(load.posterUrl).raw.readBytes()
 
             try {
                 if (load.posterUrl != null) {
                     val poster_filepath =
                         MainActivity.activity.filesDir.toString() + getFilenameIMG(sApiName, sAuthor, sName)
-
-                    val bytes = khttp.get(load.posterUrl).raw.readBytes()
+                    val get = khttp.get(load.posterUrl)
+                    val bytes = get.content
 
                     val pFile = File(poster_filepath)
                     pFile.parentFile.mkdirs()
@@ -264,8 +274,8 @@ object BookDownloader {
             } catch (e: Exception) {
                 sleep(1000)
             }
-
             val total = load.data.size
+
             for ((index, d) in load.data.withIndex()) {
                 if (!isRunning.containsKey(id)) return
                 while (isRunning[id] == DownloadType.IsPaused) {
@@ -281,7 +291,7 @@ object BookDownloader {
                         continue
                 }
                 rFile.parentFile.mkdirs()
-                //if(rFile.isDirectory) rFile.delete()
+                if(rFile.isDirectory) rFile.delete()
                 rFile.createNewFile()
                 var page: String? = null
                 while (page == null) {
@@ -483,5 +493,4 @@ object BookDownloader {
             notificationManager.createNotificationChannel(channel)
         }
     }
-
 }

@@ -6,11 +6,15 @@
               android:padding="10dp"
               android:orientation="vertical"
 >
+    <View android:layout_width="wrap_content" android:layout_height="0dp" android:id="@+id/download_top_padding">
+
+    </View>
     <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/downloads_text"
             android:textSize="18sp"
+            android:textStyle="bold"
             android:textColor="@color/textColor"
     />
     <ScrollView
@@ -21,9 +25,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:clipToPadding="false"
-                android:paddingStart="8dp"
                 android:paddingTop="5dp"
-                android:paddingEnd="8dp"
                 android:id="@+id/download_cardSpace"
                 android:orientation="vertical"
         >

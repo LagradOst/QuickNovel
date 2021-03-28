@@ -176,6 +176,7 @@ class ResultFragment : Fragment() {
                 if (res == null) {
                     Toast.makeText(context, "Error loading", Toast.LENGTH_SHORT).show()
                 } else {
+
                     MainActivity.activity.window.navigationBarColor =
                         ResourcesCompat.getColor(resources, R.color.bitDarkerGrayBackground, null)
 
@@ -208,6 +209,8 @@ class ResultFragment : Fragment() {
                     }*/
 
                     localId = BookDownloader.generateId(res, MainActivity.api)
+                    DataStore.setKey(DOWNLOAD_TOTAL, localId.toString(), res.data.size)
+
                     val start = BookDownloader.downloadInfo(res.author, res.name, res.data.size, MainActivity.api.name)
                     result_download_progress_text_eta.text = ""
                     if (start != null) {

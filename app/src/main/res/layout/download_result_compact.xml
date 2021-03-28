@@ -5,7 +5,7 @@
         android:layout_height="80dp"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         android:orientation="vertical"
-        android:layoutDirection="rtl"
+        android:layoutDirection="ltr"
 >
     <androidx.cardview.widget.CardView
             xmlns:card_view="http://schemas.android.com/apk/res-auto"
@@ -32,29 +32,55 @@
                 tools:ignore="RtlHardcoded"/>
         <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:orientation="vertical"
-                android:layout_gravity="center"
-                android:layout_marginStart="70dp"
-                android:layout_marginEnd="70dp">
+                android:layout_marginStart="64dp"
+                android:layout_marginEnd="10dp">
             <TextView
+                    android:layout_marginTop="10dp"
+                    tools:text="Overgeared"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="start"
+                    android:textColor="@color/textColor"
+                    android:id="@+id/imageText"
+                    android:textStyle="bold"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+            />
+
+            <TextView
+                    android:id="@+id/download_progress_text"
+                    android:layout_marginTop="10dp"
+                    android:gravity="start"
+                    tools:text="1034/1960"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
 
                     android:textColor="@color/textColor"
-                    android:id="@+id/imageText"
                     android:textStyle="bold"
                     android:maxLines="3"
             />
-            <TextView
+            <androidx.core.widget.ContentLoadingProgressBar
+                    style="@android:style/Widget.Material.ProgressBar.Horizontal"
+                    android:layout_gravity="bottom"
+                    android:id="@+id/download_progressbar"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/grayTextColor"
-                    android:id="@+id/imageTextExtra"
-                    android:textStyle="bold"
-                    android:maxLines="3"
-            />
+                    tools:progress="10"
+                    android:layout_marginTop="4dp"
+                    android:layout_height="5dp">
+            </androidx.core.widget.ContentLoadingProgressBar>
         </LinearLayout>
+        <!--<ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_margin="10dp"
 
+                app:tint="@color/textColor"
+                android:layout_gravity="center_vertical|end"
+                android:src="@drawable/ic_baseline_more_vert_24"
+        >
+
+        </ImageView>-->
     </androidx.cardview.widget.CardView>
 </LinearLayout>
