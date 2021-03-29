@@ -18,8 +18,26 @@
 
         <item name="android:windowTranslucentStatus">true</item>
         <item name="android:windowTranslucentNavigation">false</item>
-
+        <item name="alertDialogTheme">@style/Theme.AlertDialog</item>
         <!--<item name="bottomNavigationStyle">@style/Widget.App.BottomNavigationView</item>-->
+    </style>
+
+    <!--===========-->
+    <!--AlertDialog-->
+    <!--===========-->
+    <style name="Theme.AlertDialog" parent="ThemeOverlay.MaterialComponents.Dialog.Alert">
+        <item name="android:windowMinWidthMajor">@android:dimen/dialog_min_width_major</item>
+        <item name="android:windowMinWidthMinor">@android:dimen/dialog_min_width_minor</item>
+        <item name="android:windowBackground">@drawable/dialog__window_background</item>
+        <item name="textAllCaps">false</item>
+<!--
+        <item name="android:background">?attr/colorSurface</item>
+        <item name="shapeAppearanceOverlay">@style/Theme.MaterialAlertDialog.Style.ShapeAppearance</item>
+
+        <item name="materialAlertDialogTitleTextStyle">@style/Theme.MaterialAlertDialog.Style.Title</item>-->
+        <!--<item name="android:textColorPrimary">@color/colorPrimary</item>
+        <item name="android:textColor">@color/colorPrimary</item>-->
+
     </style>
 <!--
     <style name="Widget.App.BottomNavigationView" parent="Widget.Design.BottomNavigationView">

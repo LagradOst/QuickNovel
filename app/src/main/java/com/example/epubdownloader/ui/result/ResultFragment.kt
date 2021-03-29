@@ -116,14 +116,17 @@ class ResultFragment : Fragment() {
             result_download_generate_epub.alpha = if (ePubGeneration) 1f else 0.5f
         }
 
+        var loadlState = state
         val download = progress < total
+        if(!download) {
+            loadlState = BookDownloader.DownloadType.IsDone
+        }
         if (result_download_btt.isEnabled != download) {
             result_download_btt.isEnabled = download
             result_download_btt.alpha = if (download) 1f else 0.5f
         }
 
-
-        result_download_btt.text = when (state) {
+        result_download_btt.text = when (loadlState) {
             BookDownloader.DownloadType.IsDone -> "Downloaded"
             BookDownloader.DownloadType.IsDownloading -> "Pause"
             BookDownloader.DownloadType.IsPaused -> "Resume"
@@ -132,9 +135,11 @@ class ResultFragment : Fragment() {
         }
 
         result_download_btt.iconSize = 30.toPx
-        result_download_btt.setIconResource(when (state) {
+        result_download_btt.setIconResource(when (loadlState) {
             BookDownloader.DownloadType.IsDownloading -> R.drawable.netflix_pause
             BookDownloader.DownloadType.IsPaused -> R.drawable.netflix_play
+            BookDownloader.DownloadType.IsFailed -> R.drawable.ic_baseline_autorenew_24
+            BookDownloader.DownloadType.IsDone -> R.drawable.ic_baseline_check_24
             else -> R.drawable.netflix_download
         })
     }

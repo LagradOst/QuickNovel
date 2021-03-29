@@ -64,6 +64,7 @@ class DownloadFragment : Fragment() {
 
     override fun onDestroy() {
         BookDownloader.downloadNotification -= ::updateDownloadInfo
+        BookDownloader.downloadRemove -= ::removeAction
         super.onDestroy()
     }
 
@@ -85,7 +86,7 @@ class DownloadFragment : Fragment() {
                         res.tags,
                         res.apiName,
                         info.progress,
-                        info.total,
+                        maxOf(info.progress, info.total), //IDK Bug fix ?
                         true,
                         info.ETA,
                         info.state,
@@ -102,6 +103,10 @@ class DownloadFragment : Fragment() {
         }
     }
 
+    fun removeAction(id : Int) {
+        loadData()
+    }
+
     fun loadData() {
         val arry = ArrayList<DownloadDataLoaded>()
         val keys = DataStore.getKeys(DOWNLOAD_FOLDER)
@@ -111,7 +116,8 @@ class DownloadFragment : Fragment() {
                 val localId = BookDownloader.generateId(res.apiName, res.author, res.name)
                 val info = BookDownloader.downloadInfo(res.author, res.name, 100000, res.apiName)
                 if (info != null && info.progress > 0) {
-                    val state = (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped)!!
+                    val state =
+                        (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped)!!
                     arry.add(DownloadDataLoaded(
                         res.source,
                         res.name,
@@ -167,5 +173,6 @@ class DownloadFragment : Fragment() {
         loadData()
 
         BookDownloader.downloadNotification += ::updateDownloadInfo
+        BookDownloader.downloadRemove += ::removeAction
     }
 }

@@ -1,7 +1,6 @@
 package com.example.epubdownloader
 
 import android.Manifest
-import android.R.attr
 import android.app.IntentService
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -13,8 +12,6 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.bumptech.glide.Glide
-import com.example.epubdownloader.BookDownloader.cachedNotifications
-import com.example.epubdownloader.BookDownloader.createNotification
 import com.example.epubdownloader.BookDownloader.updateDownload
 import nl.siegmann.epublib.domain.Author
 import java.io.File
@@ -27,22 +24,16 @@ import nl.siegmann.epublib.service.MediatypeService
 import java.io.FileOutputStream
 
 import nl.siegmann.epublib.epub.EpubWriter
-import android.R.attr.text
 import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import java.util.concurrent.Executors
-import android.app.Application
-import android.content.ActivityNotFoundException
 import android.content.Intent.*
-import android.net.Uri
 import android.webkit.MimeTypeMap
 
-import android.R.attr.path
 import androidx.core.content.FileProvider
+import android.os.Environment
 
 
-const val UPDATE_TIME = 1000
 const val CHANNEL_ID = "epubdownloader.general"
 const val CHANNEL_NAME = "Downloads"
 const val CHANNEL_DESCRIPT = "The download notification channel"
@@ -103,17 +94,17 @@ object BookDownloader {
         return name.replace("  ", " ")
     }
 
-    val fileSeperator = File.separatorChar
+    private val fs = File.separatorChar
 
-    fun getFilename(apiName: String, author: String, name: String, index: Int): String {
-        return "$fileSeperator$apiName$fileSeperator$author$fileSeperator$name$fileSeperator$index.txt"
+    private fun getFilename(apiName: String, author: String, name: String, index: Int): String {
+        return "$fs$apiName$fs$author$fs$name$fs$index.txt".replace("$fs$fs", "$fs")
     }
 
     fun getFilenameIMG(apiName: String, author: String, name: String): String {
-        return "$fileSeperator$apiName$fileSeperator$author$fileSeperator$name${fileSeperator}poster.jpg"
+        return "$fs$apiName$fs$author$fs$name${fs}poster.jpg".replace("$fs$fs", "$fs")
     }
 
-    val cachedBitmaps = hashMapOf<String, Bitmap>()
+    private val cachedBitmaps = hashMapOf<String, Bitmap>()
 
     fun updateDownload(id: Int, state: DownloadType) {
         if (state == DownloadType.IsStopped || state == DownloadType.IsFailed || state == DownloadType.IsDone) {
@@ -130,7 +121,7 @@ object BookDownloader {
         }
     }
 
-    fun getImageBitmapFromUrl(url: String): Bitmap? {
+    private fun getImageBitmapFromUrl(url: String): Bitmap? {
         if (cachedBitmaps.containsKey(url)) {
             return cachedBitmaps[url]
         }
@@ -149,6 +140,7 @@ object BookDownloader {
     val isTurningIntoEpub = hashMapOf<Int, Boolean>()
 
     val downloadNotification = Event<DownloadNotification>()
+    val downloadRemove = Event<Int>()
 
     fun generateId(load: LoadResponse, api: MainAPI): Int {
         return generateId(api.name, load.author, load.name)
@@ -195,13 +187,13 @@ object BookDownloader {
         }
     }
 
-    fun checkWrite(): Boolean {
+    private fun checkWrite(): Boolean {
         return (ContextCompat.checkSelfPermission(MainActivity.activity,
             Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 == PackageManager.PERMISSION_GRANTED)
     }
 
-    fun requestRW() {
+    private fun requestRW() {
         ActivityCompat.requestPermissions(MainActivity.activity,
             arrayOf(
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
@@ -218,36 +210,26 @@ object BookDownloader {
 
         val bookFile =
             File(android.os.Environment.getExternalStorageDirectory().path +
-                    "${fileSeperator}Download${fileSeperator}Epub${fileSeperator}",
+                    "${fs}Download${fs}Epub${fs}",
                 "${sanitizeFilename(name)}.epub")
-        /*val intent = Intent(ACTION_VIEW)
-        intent.setDataAndTypeAndNormalize(android.net.Uri.parse(bookFile.path), "application/epub+zip")
-       // intent.addFlags(FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
-      //  intent.addFlags(FLAG_GRANT_PREFIX_URI_PERMISSION)
-        intent.addFlags(FLAG_GRANT_READ_URI_PERMISSION)
-       // intent.addFlags(FLAG_GRANT_WRITE_URI_PERMISSION)
-
-        intent.addFlags(FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_REQUIRE_DEFAULT)*/
         try {
-            // MainActivity.activity.startActivity(intent)
+            val intent = Intent()
+            intent.action = ACTION_VIEW
+            intent.addFlags(FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+            intent.addFlags(FLAG_GRANT_PREFIX_URI_PERMISSION)
+            intent.addFlags(FLAG_GRANT_READ_URI_PERMISSION)
+            intent.addFlags(FLAG_GRANT_WRITE_URI_PERMISSION)
+            val mime = MimeTypeMap.getSingleton()
+            val ext: String = bookFile.name.substring(bookFile.name.lastIndexOf(".") + 1)
+            val type = mime.getMimeTypeFromExtension(ext)
+
+            intent.setDataAndType(FileProvider.getUriForFile(MainActivity.activity,
+                MainActivity.activity.applicationContext.packageName + ".provider",
+                bookFile), type) // THIS IS NEEDED BECAUSE A REGULAR INTENT WONT OPEN MOONREADER
+            MainActivity.activity.startActivity(intent)
         } catch (e: Exception) {
             return false
         }
-        val intent = Intent()
-        intent.action = ACTION_VIEW
-        intent.addFlags(FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
-        intent.addFlags(FLAG_GRANT_PREFIX_URI_PERMISSION)
-        intent.addFlags(FLAG_GRANT_READ_URI_PERMISSION)
-        intent.addFlags(FLAG_GRANT_WRITE_URI_PERMISSION)
-        val mime = MimeTypeMap.getSingleton()
-        val ext: String = bookFile.name.substring(bookFile.name.lastIndexOf(".") + 1)
-        val type = mime.getMimeTypeFromExtension(ext)
-
-        intent.setDataAndType(FileProvider.getUriForFile(MainActivity.activity,
-            MainActivity.activity.applicationContext.packageName + ".provider",
-            bookFile), type)
-        MainActivity.activity.startActivity(intent)
-
         return true
     }
 
@@ -300,7 +282,7 @@ object BookDownloader {
         val epubWriter = EpubWriter()
         val bookFile =
             File(android.os.Environment.getExternalStorageDirectory().path +
-                    "${fileSeperator}Download${fileSeperator}Epub${fileSeperator}",
+                    "${fs}Download${fs}Epub${fs}",
                 "${sanitizeFilename(name)}.epub")
         bookFile.parentFile.mkdirs()
         bookFile.createNewFile()
@@ -308,6 +290,35 @@ object BookDownloader {
         epubWriter.write(book, FileOutputStream(bookFile))
         isTurningIntoEpub.remove(id)
         return true
+    }
+
+    fun remove(author: String?, name: String, apiName: String) {
+        try {
+            val sApiName = sanitizeFilename(apiName)
+            val sAuthor = if (author == null) "" else sanitizeFilename(author)
+            val sName = sanitizeFilename(name)
+            val id = "$sApiName$sAuthor$sName".hashCode()
+
+            if (isRunning.containsKey(id)) { // GETS FUCKED WHEN PAUSED AND THEN RESUME FIX
+                isRunning.remove(id)
+            }
+
+            val dir =
+                File(MainActivity.activity.filesDir.toString() + "$fs$sApiName$fs$sAuthor$fs$sName".replace("$fs$fs",
+                    "$fs"))
+            if (dir.isDirectory) {
+                val children = dir.list()
+                for (i in children.indices) {
+                    File(dir, children[i]).delete()
+                }
+            }
+
+            DataStore.removeKey(DOWNLOAD_SIZE, id.toString())
+            DataStore.removeKey(DOWNLOAD_TOTAL, id.toString())
+            downloadRemove.invoke(id)
+        } catch (e: Exception) {
+            println(e)
+        }
     }
 
     fun download(load: LoadResponse, api: MainAPI) {
@@ -339,44 +350,61 @@ object BookDownloader {
             }
             val total = load.data.size
 
-            for ((index, d) in load.data.withIndex()) {
-                if (!isRunning.containsKey(id)) return
-                while (isRunning[id] == DownloadType.IsPaused) {
-                    sleep(100)
-                }
-                val lastTime = System.currentTimeMillis() / 1000.0
-
-                val filepath =
-                    MainActivity.activity.filesDir.toString() + getFilename(sApiName, sAuthor, sName, index)
-                val rFile: File = File(filepath)
-                if (rFile.exists()) {
-                    if (rFile.length() > 10) // TO PREVENT INVALID FILE FROM HAVING TO REMOVE EVERYTHING
-                        continue
-                }
-                rFile.parentFile.mkdirs()
-                if (rFile.isDirectory) rFile.delete()
-                rFile.createNewFile()
-                var page: String? = null
-                while (page == null) {
-                    page = api.loadPage(d.url)
+            try {
+                var lastIndex = 0
+                for ((index, d) in load.data.withIndex()) {
                     if (!isRunning.containsKey(id)) return
-
-                    if (page != null) {
-                        rFile.writeText("${d.name}\n${page}")
-                    } else {
-                        sleep(5000) // ERROR
+                    while (isRunning[id] == DownloadType.IsPaused) {
+                        sleep(100)
                     }
-                }
+                    val lastTime = System.currentTimeMillis() / 1000.0
 
-                val dloadTime = System.currentTimeMillis() / 1000.0
-                timePerLoad = (dloadTime - lastTime) * 0.05 + timePerLoad * 0.95 // rolling avrage
-                createAndStoreNotification(NotificationData(id,
-                    load,
-                    index + 1,
-                    total,
-                    timePerLoad * (total - index),
-                    isRunning[id] ?: DownloadType.IsDownloading))
+                    val filepath =
+                        MainActivity.activity.filesDir.toString() + getFilename(sApiName, sAuthor, sName, index)
+                    val rFile: File = File(filepath)
+                    if (rFile.exists()) {
+                        if (rFile.length() > 10) { // TO PREVENT INVALID FILE FROM HAVING TO REMOVE EVERYTHING
+                            lastIndex = index + 1
+                            continue
+                        }
+                    }
+                    rFile.parentFile.mkdirs()
+                    if (rFile.isDirectory) rFile.delete()
+                    rFile.createNewFile()
+                    var page: String? = null
+                    while (page == null) {
+                        page = api.loadPage(d.url)
+                        if (!isRunning.containsKey(id)) return
+
+                        if (page != null) {
+                            rFile.writeText("${d.name}\n${page}")
+                        } else {
+                            sleep(5000) // ERROR
+                        }
+                    }
+
+                    val dloadTime = System.currentTimeMillis() / 1000.0
+                    timePerLoad = (dloadTime - lastTime) * 0.05 + timePerLoad * 0.95 // rolling avrage
+                    createAndStoreNotification(NotificationData(id,
+                        load,
+                        index + 1,
+                        total,
+                        timePerLoad * (total - index),
+                        isRunning[id] ?: DownloadType.IsDownloading))
+                    lastIndex = index + 1
+                }
+                if (lastIndex == total) {
+                    createAndStoreNotification(NotificationData(id,
+                        load,
+                        lastIndex,
+                        total,
+                        0.0,
+                        DownloadType.IsDone))
+                }
+            } catch (e: Exception) {
+                println(e)
             }
+            isRunning.remove(id)
         } catch (e: Exception) {
             println(e)
         }

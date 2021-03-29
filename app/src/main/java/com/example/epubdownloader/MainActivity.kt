@@ -32,6 +32,8 @@ class MainActivity : AppCompatActivity() {
         val api: MainAPI = NovelPassionProvider()
 
         fun loadResult(url: String) {
+            if(isInResults) return
+            isInResults = true
             activity.runOnUiThread {
                 activity.supportFragmentManager.beginTransaction()
                     //?.setCustomAnimations(R.anim.enter, R.anim.exit, R.anim.pop_enter, R.anim.pop_exit)

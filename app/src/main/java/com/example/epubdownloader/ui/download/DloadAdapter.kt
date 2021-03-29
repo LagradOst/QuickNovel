@@ -8,6 +8,7 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -21,6 +22,7 @@ import kotlinx.android.synthetic.main.search_result_compact.view.backgroundCard
 import kotlinx.android.synthetic.main.search_result_compact.view.imageText
 import kotlinx.android.synthetic.main.search_result_compact.view.imageView
 import kotlin.concurrent.thread
+import android.content.DialogInterface
 
 
 class DloadAdapter(
@@ -72,6 +74,7 @@ class DloadAdapter(
         val download_update: MaterialButton = itemView.download_update
         val download_open_btt: MaterialButton = itemView.download_open_btt
         val download_progressbar_indeterment: ProgressBar = itemView.download_progressbar_indeterment
+        val download_delete_trash: ImageView = itemView.download_delete_trash
 
         //        val cardTextExtra: TextView = itemView.imageTextExtra
         val bg = itemView.backgroundCard
@@ -81,6 +84,13 @@ class DloadAdapter(
                 "${card.downloadedCount}/${card.downloadedTotal}" + if (card.ETA == "") "" else " - ${card.ETA}"
             download_progressbar.progress = card.downloadedCount * 100 / card.downloadedTotal
 
+            var realState = card.state
+            if (card.downloadedCount >= card.downloadedTotal && card.updated) {
+                download_update.alpha = 0.5f
+                download_update.isEnabled = false
+                realState = BookDownloader.DownloadType.IsDone
+            }
+
             val glideUrl =
                 GlideUrl(card.posterUrl)
             context.let {
@@ -89,7 +99,7 @@ class DloadAdapter(
                     .into(cardView)
             }
 
-            download_update.text = when (card.state) {
+            download_update.text = when (realState) {
                 BookDownloader.DownloadType.IsDone -> "Done"
                 BookDownloader.DownloadType.IsDownloading -> "Pause"
                 BookDownloader.DownloadType.IsPaused -> "Resume"
@@ -97,10 +107,12 @@ class DloadAdapter(
                 BookDownloader.DownloadType.IsStopped -> "Update"
             }
 
-            download_update.setIconResource(when (card.state) {
+            download_update.setIconResource(when (realState) {
                 BookDownloader.DownloadType.IsDownloading -> R.drawable.netflix_pause
                 BookDownloader.DownloadType.IsPaused -> R.drawable.netflix_play
                 BookDownloader.DownloadType.IsStopped -> R.drawable.ic_baseline_autorenew_24
+                BookDownloader.DownloadType.IsFailed -> R.drawable.ic_baseline_autorenew_24
+                BookDownloader.DownloadType.IsDone -> R.drawable.ic_baseline_check_24
                 else -> R.drawable.netflix_download
             })
 
@@ -111,8 +123,8 @@ class DloadAdapter(
 
             fun updateBar(isGenerating: Boolean? = null) {
                 val isIndeterminate = isGenerating ?: BookDownloader.isTurningIntoEpub.containsKey(card.id)
-                download_progressbar.visibility = if(!isIndeterminate) View.VISIBLE else View.INVISIBLE
-                download_progressbar_indeterment.visibility = if(isIndeterminate) View.VISIBLE else View.INVISIBLE
+                download_progressbar.visibility = if (!isIndeterminate) View.VISIBLE else View.INVISIBLE
+                download_progressbar_indeterment.visibility = if (isIndeterminate) View.VISIBLE else View.INVISIBLE
             }
 
             fun updateEpub() {
@@ -174,8 +186,26 @@ class DloadAdapter(
                 }
             }
 
-            bg.setOnClickListener {
+            cardView.setOnClickListener {
                 MainActivity.loadResult(card.source)
+            }
+
+            download_delete_trash.setOnClickListener {
+                val dialogClickListener =
+                    DialogInterface.OnClickListener { dialog, which ->
+                        when (which) {
+                            DialogInterface.BUTTON_POSITIVE -> {
+                                BookDownloader.remove(card.author, card.name, card.apiName)
+                            }
+                            DialogInterface.BUTTON_NEGATIVE -> {
+                            }
+                        }
+                    }
+                val builder: AlertDialog.Builder = AlertDialog.Builder(context)
+                builder.setMessage("This will permanently delete ${card.name}.\nAre you sure?").setTitle("Delete")
+                    .setPositiveButton("Delete", dialogClickListener)
+                    .setNegativeButton("Cancel", dialogClickListener)
+                    .show()
             }
         }
     }

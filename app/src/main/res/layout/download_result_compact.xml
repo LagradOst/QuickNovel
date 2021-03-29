@@ -35,32 +35,52 @@
                 android:orientation="vertical"
                 android:layout_marginStart="77.5dp"
                 android:layout_marginEnd="10dp">
-            <TextView
-                    android:layout_marginTop="10dp"
-                    tools:text="Overgeared"
+            <FrameLayout
+                    android:orientation="horizontal"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="start"
-                    android:textColor="@color/textColor"
-                    android:id="@+id/imageText"
-                    android:textStyle="bold"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-            />
+                    android:layout_height="wrap_content">
 
-            <TextView
-                    android:id="@+id/download_progress_text"
-                    android:layout_marginTop="1dp"
-                    android:gravity="start"
-                    tools:text="1034/1960 - Paused"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                <ImageView
+                        android:id="@+id/download_delete_trash"
+                        android:background="?selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_baseline_delete_outline_24"
+                        android:layout_width="30dp" android:layout_height="30dp"
+                        android:layout_gravity="end"
+                        android:layout_marginTop="10dp"
+                >
+                </ImageView>
+                <LinearLayout android:orientation="vertical" android:layout_width="wrap_content"
+                              android:layout_height="wrap_content">
+                    <TextView
+                            android:layout_marginTop="10dp"
+                            tools:text="Overgeared"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="start|center_vertical"
+                            android:textColor="@color/textColor"
+                            android:id="@+id/imageText"
+                            android:textStyle="bold"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                    />
+                    <TextView
+                            android:id="@+id/download_progress_text"
+                            android:layout_marginTop="1dp"
+                            android:gravity="start"
+                            tools:text="1034/1960 - Paused"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
 
-                    android:textColor="@color/textColor"
-                    android:textStyle="bold"
-                    android:maxLines="3"
-            />
-            <FrameLayout android:layout_width="match_parent" android:layout_marginTop="-7dp" android:layout_height="wrap_content">
+                            android:textColor="@color/textColor"
+                            android:textStyle="bold"
+                            android:maxLines="3"
+                    />
+                </LinearLayout>
+            </FrameLayout>
+
+
+            <FrameLayout android:layout_width="match_parent" android:layout_marginTop="-7dp"
+                         android:layout_height="wrap_content">
                 <androidx.core.widget.ContentLoadingProgressBar
                         style="@android:style/Widget.Material.ProgressBar.Horizontal"
                         android:layout_gravity="center"
@@ -85,7 +105,8 @@
                 </androidx.core.widget.ContentLoadingProgressBar>
             </FrameLayout>
 
-            <LinearLayout android:layout_width="match_parent" android:layout_marginTop="-5dp" android:layout_height="match_parent">
+            <LinearLayout android:layout_width="match_parent" android:layout_marginTop="-5dp"
+                          android:layout_height="match_parent">
                 <com.google.android.material.button.MaterialButton
                         android:id="@+id/download_open_btt"
                         android:layout_marginRight="5dp"
