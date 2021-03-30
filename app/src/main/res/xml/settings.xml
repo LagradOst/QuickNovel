@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PreferenceScreen
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+>
+    <PreferenceCategory/>
+    <PreferenceCategory
+            android:key="general"
+            android:title="General"
+            app:isPreferenceVisible="true"
+    >
+        <!--
+        <DropDownPreference
+                android:title="Active Provider"
+                android:icon="@drawable/ic_baseline_discord_24"
+        >
+
+        </DropDownPreference>-->
+        <Preference
+                android:title="Join Discord"
+                android:icon="@drawable/ic_baseline_discord_24"
+                app:summary="https://discord.gg/5Hus6fM">
+            <intent android:action="android.intent.action.VIEW"
+                    android:data="https://discord.gg/5Hus6fM"/>
+        </Preference>
+    </PreferenceCategory>
+</PreferenceScreen>

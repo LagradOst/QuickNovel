@@ -9,4 +9,8 @@
             android:id="@+id/navigation_download"
             android:icon="@drawable/main_dload_icon_navview"
             android:title="@string/title_download"/>
+    <item
+            android:id="@+id/navigation_settings"
+            android:icon="@drawable/ic_outline_settings_24"
+            android:title="Settings"/>
 </menu>
