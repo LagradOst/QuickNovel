@@ -31,10 +31,10 @@ class MainActivity : AppCompatActivity() {
         var statusBarHeight = 0
 
         // val api: MainAPI = RoyalRoadProvider()//NovelPassionProvider()
-        private val apis: Array<MainAPI> = arrayOf(NovelPassionProvider(), RoyalRoadProvider())
-        val activeAPI : MainAPI = apis[1]
+        val apis: Array<MainAPI> = arrayOf(NovelPassionProvider(), RoyalRoadProvider())
+        var activeAPI: MainAPI = apis[1]
 
-        fun getApiFromName(name : String) : MainAPI {
+        fun getApiFromName(name: String): MainAPI {
             for (a in apis) {
                 if (a.name == name) {
                     return a
@@ -49,7 +49,7 @@ class MainActivity : AppCompatActivity() {
             activity.runOnUiThread {
                 activity.supportFragmentManager.beginTransaction()
                     //?.setCustomAnimations(R.anim.enter, R.anim.exit, R.anim.pop_enter, R.anim.pop_exit)
-                    .add(R.id.homeRoot, ResultFragment().newInstance(url,apiName))
+                    .add(R.id.homeRoot, ResultFragment().newInstance(url, apiName))
                     .commit()
             }
         }
@@ -107,7 +107,15 @@ class MainActivity : AppCompatActivity() {
         BookDownloader.init()
 
         statusBarHeight = getStatusBarHeight()
+        val pref = activity.getPreferences(Context.MODE_PRIVATE)
+        val sharedPref = pref
+            .getString(getString(R.string.provider_list_key), apis[0].name)
+            .toString()
+        activeAPI = getApiFromName(sharedPref)
 
+        val edit = pref.edit()
+        edit.putString(getString(R.string.provider_list_key, activeAPI.name), activeAPI.name)
+        edit.commit()
         //loadResult("https://www.novelpassion.com/novel/battle-frenzy")
         //loadResult("https://www.royalroad.com/fiction/40182/only-villains-do-that", MainActivity.activeAPI.name)
     }

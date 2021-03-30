@@ -14,4 +14,5 @@
     <string name="title_download">Downloads</string>
     <string name="open_text">Read</string>
     <string name="update_text">Update</string>
+    <string name="provider_list_key">provider_list</string>
 </resources>

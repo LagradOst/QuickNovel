@@ -10,13 +10,11 @@
             android:title="General"
             app:isPreferenceVisible="true"
     >
-        <!--
-        <DropDownPreference
+        <ListPreference
+                app:icon="@drawable/ic_baseline_cloud_24"
+                android:key="@string/provider_list_key"
                 android:title="Active Provider"
-                android:icon="@drawable/ic_baseline_discord_24"
-        >
-
-        </DropDownPreference>-->
+                app:useSimpleSummaryProvider="true" />
         <Preference
                 android:title="Join Discord"
                 android:icon="@drawable/ic_baseline_discord_24"
