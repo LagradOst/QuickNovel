@@ -23,6 +23,7 @@ import kotlinx.android.synthetic.main.search_result_compact.view.imageText
 import kotlinx.android.synthetic.main.search_result_compact.view.imageView
 import kotlin.concurrent.thread
 import android.content.DialogInterface
+import com.example.epubdownloader.MainActivity.Companion.getApiFromName
 
 
 class DloadAdapter(
@@ -79,6 +80,9 @@ class DloadAdapter(
         //        val cardTextExtra: TextView = itemView.imageTextExtra
         val bg = itemView.backgroundCard
         fun bind(card: DownloadFragment.DownloadDataLoaded) {
+
+            val api = getApiFromName(card.apiName)
+
             cardText.text = card.name
             download_progress_text.text =
                 "${card.downloadedCount}/${card.downloadedTotal}" + if (card.ETA == "") "" else " - ${card.ETA}"
@@ -165,7 +169,7 @@ class DloadAdapter(
                     val res =
                         if (cachedLoadResponse.containsKey(card.id))
                             cachedLoadResponse[card.id] else
-                            MainActivity.api.load(card.source)
+                            api.load(card.source)
                     if (res == null) {
                         activity.runOnUiThread {
                             Toast.makeText(context, "Error loading", Toast.LENGTH_SHORT).show()
@@ -174,8 +178,8 @@ class DloadAdapter(
                         cachedLoadResponse[card.id] = res
                         val localId = card.id//BookDownloader.generateId(res, MainActivity.api)
                         when (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped) {
-                            BookDownloader.DownloadType.IsFailed -> BookDownloader.download(res, MainActivity.api)
-                            BookDownloader.DownloadType.IsStopped -> BookDownloader.download(res, MainActivity.api)
+                            BookDownloader.DownloadType.IsFailed -> BookDownloader.download(res, api)
+                            BookDownloader.DownloadType.IsStopped -> BookDownloader.download(res, api)
                             BookDownloader.DownloadType.IsDownloading -> BookDownloader.updateDownload(localId,
                                 BookDownloader.DownloadType.IsPaused)
                             BookDownloader.DownloadType.IsPaused -> BookDownloader.updateDownload(localId,
@@ -187,7 +191,7 @@ class DloadAdapter(
             }
 
             cardView.setOnClickListener {
-                MainActivity.loadResult(card.source)
+                MainActivity.loadResult(card.source, card.apiName)
             }
 
             download_delete_trash.setOnClickListener {

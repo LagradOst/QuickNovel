@@ -17,6 +17,7 @@ class NovelPassionProvider : MainAPI() {
                 return null
             }
             res.html()
+                .replace("( NovelFull )","") // FUCK ADS
         } catch (e: Exception) {
             null
         }
@@ -62,7 +63,7 @@ class NovelPassionProvider : MainAPI() {
             var synopsis = ""
             val synoParts = document.select("div.g_txt_over > div.c_000 > p")
             for (s in synoParts) {
-                synopsis += s.text()!! + "\n"
+                synopsis += s.text()!! + "\n\n"
             }
 
             val infoheader =

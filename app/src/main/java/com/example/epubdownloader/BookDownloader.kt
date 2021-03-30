@@ -31,7 +31,6 @@ import android.content.Intent.*
 import android.webkit.MimeTypeMap
 
 import androidx.core.content.FileProvider
-import android.os.Environment
 
 
 const val CHANNEL_ID = "epubdownloader.general"
@@ -336,12 +335,12 @@ object BookDownloader {
 
             try {
                 if (load.posterUrl != null) {
-                    val poster_filepath =
+                    val posterFilepath =
                         MainActivity.activity.filesDir.toString() + getFilenameIMG(sApiName, sAuthor, sName)
                     val get = khttp.get(load.posterUrl)
                     val bytes = get.content
 
-                    val pFile = File(poster_filepath)
+                    val pFile = File(posterFilepath)
                     pFile.parentFile.mkdirs()
                     pFile.writeBytes(bytes)
                 }
@@ -440,7 +439,7 @@ object BookDownloader {
         }
 
         val intent = Intent(MainActivity.activity, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            flags = FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TASK
         }
         val pendingIntent: PendingIntent = PendingIntent.getActivity(MainActivity.activity, 0, intent, 0)
 
@@ -477,14 +476,14 @@ object BookDownloader {
         var timeformat = ""
         if (state == DownloadType.IsDownloading) { // ETA
             val eta_int = eta.toInt()
-            val hours: Int = eta_int / 3600;
-            val minutes: Int = (eta_int % 3600) / 60;
-            val seconds: Int = eta_int % 60;
-            timeformat = String.format("%02d h %02d min %02d s", hours, minutes, seconds);
+            val hours: Int = eta_int / 3600
+            val minutes: Int = (eta_int % 3600) / 60
+            val seconds: Int = eta_int % 60
+            timeformat = String.format("%02d h %02d min %02d s", hours, minutes, seconds)
             if (minutes <= 0 && hours <= 0) {
                 timeformat = String.format("%02d s", seconds);
             } else if (hours <= 0) {
-                timeformat = String.format("%02d min %02d s", minutes, seconds);
+                timeformat = String.format("%02d min %02d s", minutes, seconds)
             }
 
             builder.setSubText("$timeformat remaining")

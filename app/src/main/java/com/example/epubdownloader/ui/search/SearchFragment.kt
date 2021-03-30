@@ -64,7 +64,7 @@ class SearchFragment : Fragment() {
                 search_exit_icon.alpha = 0f
                 search_loading_bar.alpha = 1f
                 thread {
-                    val data = MainActivity.api.search(query)
+                    val data = MainActivity.activeAPI.search(query)
                     activity?.runOnUiThread {
                         if (data == null) {
                             Toast.makeText(activity, "Server error", Toast.LENGTH_LONG).show()

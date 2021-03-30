@@ -26,24 +26,28 @@ import android.widget.LinearLayout
 import androidx.core.view.marginTop
 import androidx.core.view.setPadding
 import android.widget.RelativeLayout
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import com.example.epubdownloader.BookDownloader.turnToEpub
 import com.example.epubdownloader.ui.download.DownloadFragment
 import kotlinx.android.synthetic.main.activity_main.*
 
+const val MAX_SYNO_LENGH = 300
 
 class ResultFragment : Fragment() {
-    fun newInstance(url: String) =
+    fun newInstance(url: String, apiName : String) =
         ResultFragment().apply {
             arguments = Bundle().apply {
                 //println(data)
                 putString("url", url)
+                putString("apiName", apiName)
             }
         }
 
 
     var resultUrl = ""
+    var api : MainAPI = MainActivity.activeAPI
 
     fun humanReadableByteCountSI(bytes: Int): String {
         var bytes = bytes
@@ -75,6 +79,9 @@ class ResultFragment : Fragment() {
         super.onAttach(context)
         arguments?.getString("url")?.let {
             resultUrl = it
+        }
+        arguments?.getString("apiName")?.let {
+            api = MainActivity.getApiFromName(it)
         }
     }
 
@@ -118,7 +125,7 @@ class ResultFragment : Fragment() {
 
         var loadlState = state
         val download = progress < total
-        if(!download) {
+        if (!download) {
             loadlState = BookDownloader.DownloadType.IsDone
         }
         if (result_download_btt.isEnabled != download) {
@@ -193,7 +200,7 @@ class ResultFragment : Fragment() {
         result_back.layoutParams = back_parameter
 
         thread {
-            val res = MainActivity.api.load(resultUrl)
+            val res = api.load(resultUrl)
             load = res
             activity?.runOnUiThread {
                 if (res == null) {
@@ -220,7 +227,16 @@ class ResultFragment : Fragment() {
                         result_views.text = humanReadableByteCountSI(res.views)
                     }
                     if (res.Synopsis != null) {
-                        result_synopsis_text.text = res.Synopsis
+                        var syno = res.Synopsis
+                        if (syno.length > MAX_SYNO_LENGH) {
+                            syno = syno.substring(0, MAX_SYNO_LENGH) + "..."
+                            result_synopsis_text.setOnClickListener {
+                                val builder: AlertDialog.Builder = AlertDialog.Builder(this.context!!)
+                                builder.setMessage(res.Synopsis).setTitle("Synopsis")
+                                    .show()
+                            }
+                        }
+                        result_synopsis_text.text = syno
                     }
                     val last = res.data.last()
                     result_total_chapters.text = "Latest: " + last.name //+ " " + last.dateOfRelease
@@ -231,10 +247,10 @@ class ResultFragment : Fragment() {
                         result_tags.text = text
                     }*/
 
-                    localId = BookDownloader.generateId(res, MainActivity.api)
+                    localId = BookDownloader.generateId(res, api)
                     DataStore.setKey(DOWNLOAD_TOTAL, localId.toString(), res.data.size)
 
-                    val start = BookDownloader.downloadInfo(res.author, res.name, res.data.size, MainActivity.api.name)
+                    val start = BookDownloader.downloadInfo(res.author, res.name, res.data.size, api.name)
                     result_download_progress_text_eta.text = ""
                     if (start != null) {
                         updateGenerateBtt(start.progress)
@@ -278,7 +294,7 @@ class ResultFragment : Fragment() {
         result_download_btt.setOnClickListener {
             if (load == null || localId == 0) return@setOnClickListener
             val l = load!!
-            DataStore.setKey(DOWNLOAD_FOLDER, BookDownloader.generateId(l, MainActivity.api).toString(),
+            DataStore.setKey(DOWNLOAD_FOLDER, BookDownloader.generateId(l, api).toString(),
                 DownloadFragment.DownloadData(resultUrl,
                     l.name,
                     l.author,
@@ -288,13 +304,13 @@ class ResultFragment : Fragment() {
                     l.views,
                     l.Synopsis,
                     l.tags,
-                    MainActivity.api.name
+                    api.name
                 ))
 
             thread {
                 when (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped) {
-                    BookDownloader.DownloadType.IsFailed -> BookDownloader.download(load!!, MainActivity.api)
-                    BookDownloader.DownloadType.IsStopped -> BookDownloader.download(load!!, MainActivity.api)
+                    BookDownloader.DownloadType.IsFailed -> BookDownloader.download(load!!, api)
+                    BookDownloader.DownloadType.IsStopped -> BookDownloader.download(load!!, api)
                     BookDownloader.DownloadType.IsDownloading -> BookDownloader.updateDownload(localId,
                         BookDownloader.DownloadType.IsPaused)
                     BookDownloader.DownloadType.IsPaused -> BookDownloader.updateDownload(localId,
@@ -313,7 +329,7 @@ class ResultFragment : Fragment() {
                 if (load != null) {
                     thread {
                         val l = load!!
-                        val done = turnToEpub(l.author, l.name, MainActivity.api.name)
+                        val done = turnToEpub(l.author, l.name, api.name)
                         MainActivity.activity.runOnUiThread {
                             updateGenerateBtt(null)
                             if (done) {

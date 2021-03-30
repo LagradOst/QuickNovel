@@ -29,15 +29,27 @@ class MainActivity : AppCompatActivity() {
 
         lateinit var activity: MainActivity
         var statusBarHeight = 0
-        val api: MainAPI = NovelPassionProvider()
 
-        fun loadResult(url: String) {
-            if(isInResults) return
+        // val api: MainAPI = RoyalRoadProvider()//NovelPassionProvider()
+        private val apis: Array<MainAPI> = arrayOf(NovelPassionProvider(), RoyalRoadProvider())
+        val activeAPI : MainAPI = apis[1]
+
+        fun getApiFromName(name : String) : MainAPI {
+            for (a in apis) {
+                if (a.name == name) {
+                    return a
+                }
+            }
+            return activeAPI
+        }
+
+        fun loadResult(url: String, apiName: String) {
+            if (isInResults) return
             isInResults = true
             activity.runOnUiThread {
                 activity.supportFragmentManager.beginTransaction()
                     //?.setCustomAnimations(R.anim.enter, R.anim.exit, R.anim.pop_enter, R.anim.pop_exit)
-                    .add(R.id.homeRoot, ResultFragment().newInstance(url))
+                    .add(R.id.homeRoot, ResultFragment().newInstance(url,apiName))
                     .commit()
             }
         }
@@ -87,7 +99,8 @@ class MainActivity : AppCompatActivity() {
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
         val appBarConfiguration = AppBarConfiguration(setOf(
-            R.id.navigation_search, R.id.navigation_download)) // R.id.navigation_dashboard, R.id.navigation_notifications
+            R.id.navigation_search,
+            R.id.navigation_download)) // R.id.navigation_dashboard, R.id.navigation_notifications
         //setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
         DataStore.init(this)
@@ -96,5 +109,6 @@ class MainActivity : AppCompatActivity() {
         statusBarHeight = getStatusBarHeight()
 
         //loadResult("https://www.novelpassion.com/novel/battle-frenzy")
+        //loadResult("https://www.royalroad.com/fiction/40182/only-villains-do-that", MainActivity.activeAPI.name)
     }
 }
