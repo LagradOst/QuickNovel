@@ -217,7 +217,7 @@ class ResultFragment : Fragment() {
                     result_author.text = res.author
 
                     if (res.rating != null) {
-                        result_rating.text = (res.rating.toFloat() / 20f).toString() + "★" //TODO FIX SETTINGS
+                        result_rating.text = (res.rating.toFloat() / 200f).toString() + "★" //TODO FIX SETTINGS
                         if (res.peopleVoted != null) {
                             result_rating_voted_count.text = "${res.peopleVoted} Votes"
                         }

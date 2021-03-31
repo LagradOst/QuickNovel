@@ -8,16 +8,16 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.example.epubdownloader.ui.result.ResultFragment
-import android.view.Window
 
-import android.graphics.Rect
 import android.graphics.drawable.ColorDrawable
-import android.view.View
 import android.widget.FrameLayout
 import androidx.core.content.res.ResourcesCompat
+import androidx.preference.PreferenceManager
+import com.example.epubdownloader.providers.BestLightNovelProvider
+import com.example.epubdownloader.providers.NovelPassionProvider
+import com.example.epubdownloader.providers.RoyalRoadProvider
 
 
 val Int.toPx: Int get() = (this * Resources.getSystem().displayMetrics.density).toInt()
@@ -30,8 +30,11 @@ class MainActivity : AppCompatActivity() {
         lateinit var activity: MainActivity
         var statusBarHeight = 0
 
-        // val api: MainAPI = RoyalRoadProvider()//NovelPassionProvider()
-        val apis: Array<MainAPI> = arrayOf(NovelPassionProvider(), RoyalRoadProvider())
+        val apis: Array<MainAPI> = arrayOf(
+            NovelPassionProvider(),
+            RoyalRoadProvider(),
+            BestLightNovelProvider(),
+        )
         var activeAPI: MainAPI = apis[1]
 
         fun getApiFromName(name: String): MainAPI {
@@ -107,15 +110,13 @@ class MainActivity : AppCompatActivity() {
         BookDownloader.init()
 
         statusBarHeight = getStatusBarHeight()
-        val pref = activity.getPreferences(Context.MODE_PRIVATE)
-        val sharedPref = pref
-            .getString(getString(R.string.provider_list_key), apis[0].name)
-            .toString()
-        activeAPI = getApiFromName(sharedPref)
+        val settingsManager = PreferenceManager.getDefaultSharedPreferences(activity)
 
-        val edit = pref.edit()
+        val apiName = settingsManager.getString(getString(R.string.provider_list_key), apis[0].name)
+        activeAPI = getApiFromName(apiName ?: apis[0].name)
+        val edit = settingsManager.edit()
         edit.putString(getString(R.string.provider_list_key, activeAPI.name), activeAPI.name)
-        edit.commit()
+        edit.apply()
         //loadResult("https://www.novelpassion.com/novel/battle-frenzy")
         //loadResult("https://www.royalroad.com/fiction/40182/only-villains-do-that", MainActivity.activeAPI.name)
     }

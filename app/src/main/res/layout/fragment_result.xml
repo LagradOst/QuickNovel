@@ -59,6 +59,8 @@
                           android:layout_width="wrap_content" android:layout_height="match_parent">
                 <TextView
                         android:id="@+id/result_title"
+                        tools:text="The Beginning After The End"
+                        android:layout_marginRight="40dp"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="@color/textColor"

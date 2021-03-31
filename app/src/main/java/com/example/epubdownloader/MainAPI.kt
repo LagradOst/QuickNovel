@@ -29,7 +29,7 @@ data class LoadResponse(
     val data: ArrayList<ChapterData>,
     val author: String?,
     val posterUrl: String?,
-    //RATING IS FROM 0-100
+    //RATING IS FROM 0-1000
     val rating: Int?,
     val peopleVoted: Int?,
     val views: Int?,

@@ -1,5 +1,9 @@
-package com.example.epubdownloader
+package com.example.epubdownloader.providers
 
+import com.example.epubdownloader.ChapterData
+import com.example.epubdownloader.LoadResponse
+import com.example.epubdownloader.MainAPI
+import com.example.epubdownloader.SearchResponse
 import org.jsoup.Jsoup
 import java.lang.Exception
 
@@ -13,7 +17,7 @@ class RoyalRoadProvider : MainAPI() {
 
             val document = Jsoup.parse(response.text)
             val headers = document.select("div.fiction-list-item")
-            if (headers.size <= 0) return null
+            if (headers.size <= 0) return ArrayList()
             val returnValue: ArrayList<SearchResponse> = ArrayList()
             for (h in headers) {
                 val head = h.selectFirst("> div.search-content")
@@ -28,7 +32,7 @@ class RoyalRoadProvider : MainAPI() {
                 }
 
                 val ratingHead = head.selectFirst("> div.stats").select("> div")[1].selectFirst("> span").attr("title")
-                val rating = (ratingHead.toFloat() * 20).toInt()
+                val rating = (ratingHead.toFloat() * 200).toInt()
                 val latestChapter = null
                 returnValue.add(SearchResponse(name, url, posterUrl, rating, latestChapter))
             }
@@ -45,7 +49,7 @@ class RoyalRoadProvider : MainAPI() {
             val document = Jsoup.parse(response.text)
 
             val ratingAttr = document.selectFirst("span.font-red-sunglo").attr("data-content")
-            val rating = (ratingAttr.substring(0, ratingAttr.indexOf('/')).toFloat() * 20).toInt()
+            val rating = (ratingAttr.substring(0, ratingAttr.indexOf('/')).toFloat() * 200).toInt()
             val name = document.selectFirst("h1.font-white").text()
             val author = document.selectFirst("h4.font-white > span > a").text()
             val tagsDoc = document.select("span.tags > a")

@@ -1,5 +1,9 @@
-package com.example.epubdownloader
+package com.example.epubdownloader.providers
 
+import com.example.epubdownloader.ChapterData
+import com.example.epubdownloader.LoadResponse
+import com.example.epubdownloader.MainAPI
+import com.example.epubdownloader.SearchResponse
 import org.jsoup.Jsoup
 import java.lang.Exception
 
@@ -29,18 +33,18 @@ class NovelPassionProvider : MainAPI() {
 
             val document = Jsoup.parse(response.text)
             val headers = document.select("div.lh1d5")
-            if (headers.size <= 0) return null
+            if (headers.size <= 0) return ArrayList()
             val returnValue: ArrayList<SearchResponse> = ArrayList()
             for (h in headers) {
-                val head = h.selectFirst("a.c_000");
+                val head = h.selectFirst("> a.c_000")
                 val name = head.attr("title")
                 val url = mainUrl + head.attr("href")
 
-                var posterUrl = head.selectFirst("i.oh > img").attr("src")
+                var posterUrl = head.selectFirst("> i.oh > img").attr("src")
                 if (posterUrl != null) posterUrl = mainUrl + posterUrl
 
-                val rating = (h.selectFirst("p.g_star_num > small").text()!!.toFloat() * 20).toInt()
-                val latestChapter = h.selectFirst("div > div.dab > a").attr("title")
+                val rating = (h.selectFirst("> p.g_star_num > small").text()!!.toFloat() * 200).toInt()
+                val latestChapter = h.selectFirst("> div > div.dab > a").attr("title")
                 returnValue.add(SearchResponse(name, url, posterUrl, rating, latestChapter))
             }
             return returnValue
@@ -59,7 +63,7 @@ class NovelPassionProvider : MainAPI() {
             val posterUrl = mainUrl + document.select("i.g_thumb > img").attr("src")
             val tags: ArrayList<String> = ArrayList()
 
-            val rating = (document.select("strong.vam").text().toFloat() * 20).toInt()
+            val rating = (document.select("strong.vam").text().toFloat() * 200).toInt()
             var synopsis = ""
             val synoParts = document.select("div.g_txt_over > div.c_000 > p")
             for (s in synoParts) {
