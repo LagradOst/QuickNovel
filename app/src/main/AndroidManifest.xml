@@ -22,6 +22,10 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <activity android:name=".ReadActivity">
+        </activity>
+
         <service
                 android:name=".DownloadService"
                 android:enabled="true"

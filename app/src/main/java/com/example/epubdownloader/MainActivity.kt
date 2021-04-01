@@ -1,5 +1,6 @@
 package com.example.epubdownloader
 
+import android.R.attr
 import android.content.Context
 import android.content.res.Resources
 
@@ -18,6 +19,12 @@ import androidx.preference.PreferenceManager
 import com.example.epubdownloader.providers.BestLightNovelProvider
 import com.example.epubdownloader.providers.NovelPassionProvider
 import com.example.epubdownloader.providers.RoyalRoadProvider
+import android.R.attr.value
+
+import android.content.Intent
+
+
+
 
 
 val Int.toPx: Int get() = (this * Resources.getSystem().displayMetrics.density).toInt()
@@ -117,6 +124,8 @@ class MainActivity : AppCompatActivity() {
         val edit = settingsManager.edit()
         edit.putString(getString(R.string.provider_list_key, activeAPI.name), activeAPI.name)
         edit.apply()
+
+
         //loadResult("https://www.novelpassion.com/novel/battle-frenzy")
         //loadResult("https://www.royalroad.com/fiction/40182/only-villains-do-that", MainActivity.activeAPI.name)
     }

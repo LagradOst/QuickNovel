@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+        android:paddingTop="0dp"
+        android:background="@color/readerBackground"
+        android:padding="20dp"
+        android:orientation="vertical">
+    <View android:id="@+id/read_topmargin"
+            android:layout_width="match_parent" android:layout_height="0dp">
+
+    </View>
+    <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <TextView
+                android:id="@+id/read_text"
+                android:fontFamily="serif"
+                android:textColor="@color/readerTextColor"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+        </TextView>
+    </ScrollView>
+
+
+</LinearLayout>

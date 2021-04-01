@@ -16,4 +16,6 @@
     <color name="transparent">#00000000</color>
 
     <color name="white">#FFF</color>
+    <color name="readerBackground">#3c3c3c</color>
+    <color name="readerTextColor">#cccccc</color>
 </resources>

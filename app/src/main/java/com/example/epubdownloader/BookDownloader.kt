@@ -99,7 +99,7 @@ object BookDownloader {
         return "$fs$apiName$fs$author$fs$name$fs$index.txt".replace("$fs$fs", "$fs")
     }
 
-    fun getFilenameIMG(apiName: String, author: String, name: String): String {
+    private fun getFilenameIMG(apiName: String, author: String, name: String): String {
         return "$fs$apiName$fs$author$fs$name${fs}poster.jpg".replace("$fs$fs", "$fs")
     }
 
@@ -201,7 +201,21 @@ object BookDownloader {
             1337)
     }
 
-    fun openEpub(name: String): Boolean {
+    fun openEpub(name: String, openInApp: Boolean = false): Boolean {
+        if(openInApp) {
+            val myIntent = Intent(MainActivity.activity, ReadActivity::class.java)
+
+            val bookFile =
+                File(android.os.Environment.getExternalStorageDirectory().path +
+                        "${fs}Download${fs}Epub${fs}",
+                    "${sanitizeFilename(name)}.epub")
+            myIntent.putExtra("path", bookFile.path) //Optional parameters
+
+            MainActivity.activity.startActivity(myIntent)
+
+            return true
+        }
+
         if (!checkWrite()) {
             requestRW()
             if (!checkWrite()) return false
