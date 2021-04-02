@@ -6,7 +6,6 @@
         android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
         android:paddingTop="0dp"
         android:background="@color/readerBackground"
-        android:padding="20dp"
         android:orientation="vertical">
     <View android:id="@+id/read_topmargin"
             android:layout_width="match_parent" android:layout_height="0dp">
@@ -15,13 +14,15 @@
     <ScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
-        <TextView
+        <com.example.epubdownloader.roundedbg.RoundedBgTextView
                 android:id="@+id/read_text"
+                android:padding="20dp"
                 android:fontFamily="serif"
+                android:text="@string/exampleTXT"
                 android:textColor="@color/readerTextColor"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content">
-        </TextView>
+        </com.example.epubdownloader.roundedbg.RoundedBgTextView>
     </ScrollView>
 
 

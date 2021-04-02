@@ -201,7 +201,7 @@ object BookDownloader {
             1337)
     }
 
-    fun openEpub(name: String, openInApp: Boolean = false): Boolean {
+    fun openEpub(name: String, openInApp: Boolean = true): Boolean {
         if(openInApp) {
             val myIntent = Intent(MainActivity.activity, ReadActivity::class.java)
 

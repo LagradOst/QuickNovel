@@ -15,4 +15,5 @@
     <string name="open_text">Read</string>
     <string name="update_text">Update</string>
     <string name="provider_list_key">provider_list</string>
+    <string name="exampleTXT">"this is <annotation key="rounded">a regular</annotation> paragraph."</string>
 </resources>

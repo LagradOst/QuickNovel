@@ -18,4 +18,6 @@
     <color name="white">#FFF</color>
     <color name="readerBackground">#3c3c3c</color>
     <color name="readerTextColor">#cccccc</color>
+    <color name="readerHightlightedTextColor">#206f96</color>
+    <color name="roundedTextBorder">#DD0277BD</color>
 </resources>

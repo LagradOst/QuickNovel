@@ -1,7 +1,5 @@
 package com.example.epubdownloader
 
-import android.R.attr
-import android.content.Context
 import android.content.res.Resources
 
 import android.os.Bundle
@@ -19,16 +17,11 @@ import androidx.preference.PreferenceManager
 import com.example.epubdownloader.providers.BestLightNovelProvider
 import com.example.epubdownloader.providers.NovelPassionProvider
 import com.example.epubdownloader.providers.RoyalRoadProvider
-import android.R.attr.value
-
-import android.content.Intent
-
-
-
-
 
 val Int.toPx: Int get() = (this * Resources.getSystem().displayMetrics.density).toInt()
+val Float.toPx: Float get() = (this * Resources.getSystem().displayMetrics.density)
 val Int.toDp: Int get() = (this / Resources.getSystem().displayMetrics.density).toInt()
+val Float.toDp: Float get() = (this / Resources.getSystem().displayMetrics.density)
 
 class MainActivity : AppCompatActivity() {
     companion object {
