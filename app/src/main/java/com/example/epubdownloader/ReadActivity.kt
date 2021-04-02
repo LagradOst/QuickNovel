@@ -8,11 +8,11 @@ import android.content.Intent
 import android.content.res.Resources
 import android.graphics.Color
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import nl.siegmann.epublib.domain.Book
 import java.io.FileInputStream
 
 import nl.siegmann.epublib.epub.EpubReader
-import androidx.core.text.HtmlCompat
 
 import android.text.Spanned
 import android.view.View
@@ -36,23 +36,22 @@ import kotlin.concurrent.thread
 import android.util.Log
 
 import android.text.SpannableStringBuilder
-import androidx.core.text.buildSpannedString
-import androidx.core.text.clearSpans
-import androidx.core.text.inSpans
+import androidx.core.text.*
 
 
-fun setHighLightedText(tv: TextView, textToHighlight: String): Boolean {
-    val tvt = tv.text.toString()
+fun setHighLightedText(tv: TextView, start: Int, end: Int): Boolean {
     val wordToSpan: Spannable = SpannableString(tv.text)
-    val ofe = tvt.indexOf(textToHighlight, 0)
-    if (ofe == -1) {
-        return false
-    } else {
-        wordToSpan.clearSpans()
-        wordToSpan.setSpan(android.text.Annotation("","rounded"), ofe,  ofe + textToHighlight.length-1 + 50, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-
-        tv.setText(wordToSpan, TextView.BufferType.SPANNABLE)
+    val spans = wordToSpan.getSpans<android.text.Annotation>(0, tv.text.length)
+    for (s in spans) {
+        wordToSpan.removeSpan(s)
     }
+    wordToSpan.setSpan(android.text.Annotation("", "rounded"),
+        start,
+        end,
+        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+    tv.setText(wordToSpan, TextView.BufferType.SPANNABLE)
+
     return true
 }
 
@@ -70,7 +69,20 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                 showMessage("This Language is not supported")
             } else { // TESTING
+                tts!!.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                    override fun onDone(utteranceId: String) {
+                        canSpeek = true
+                        //   startVoiceRecognitionActivity()
+                    }
 
+                    override fun onError(utteranceId: String) {
+                        canSpeek = true
+                    }
+
+                    override fun onStart(utteranceId: String) {
+                        println("DONE")
+                    }
+                })
             }
         } else {
             showMessage("Initialization Failed!")
@@ -78,11 +90,13 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun speakOut(msg: String) {
+        canSpeek = false
         if (msg.isEmpty() || msg.isNullOrBlank()) {
             showMessage("No data")
             return
         }
-        tts!!.speak(msg, TextToSpeech.QUEUE_FLUSH, null)
+        speekId++
+        tts!!.speak(msg, TextToSpeech.QUEUE_FLUSH, null, speekId.toString())
     }
 
     public override fun onDestroy() {
@@ -99,6 +113,9 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     lateinit var path: String
     lateinit var read_text: TextView
+
+    var canSpeek = true
+    var speekId = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -131,19 +148,71 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         read_text.text = spanned
         val text = read_text.text
         read_text.post {
+            thread {
+                sleep(500)
+
+                var index = 0
+                while (true) {
+                    val invalidStartChars = arrayOf(' ', '.', ',', '\n')
+                    while (invalidStartChars.contains(read_text.text[index])) {
+                        index++
+                    }
+
+                    val arry = arrayOf(".", "\n")
+                    var endIndex = 10000
+                    for (a in arry) {
+                        val indexEnd = read_text.text.indexOf(a, index)
+                        if (indexEnd < endIndex) {
+                            endIndex = indexEnd
+                        }
+                    }
+
+                    val message = read_text.text.substring(index, endIndex)
+                    if (message
+                            .replace("\n", "")
+                            .replace("\t", "")
+                            .replace(".", "").isNotEmpty()
+                    ) {
+                        canSpeek = false
+
+                        var msg = message//Regex("\\p{L}").replace(message,"")
+                        val invalidChars = arrayOf("-", "<", ">", "_", "^")
+                        for (c in invalidChars) {
+                            msg = msg.replace(c,"")
+                        }
+                        ReadActivity.readActivity.runOnUiThread {
+                            setHighLightedText(read_text, index, endIndex)
+                            if (msg.isNotEmpty()) {
+                                speakOut(msg)
+                            }
+                        }
+                        if (msg.isEmpty()) {
+                            sleep(500)
+                            canSpeek = true
+                        }
+                        while (!canSpeek) {
+                            sleep(1)
+                        }
+                        //sleep(500)
+                    }
+
+                    index = endIndex + 1
+                }
+            }
+            /*
             val lineCount = read_text.layout.lineCount
             thread {
                 for (i in 0..lineCount) {
                     try {
                         ReadActivity.readActivity.runOnUiThread {
                             try {
-                                if(read_text.layout == null) return@runOnUiThread
+                                if (read_text.layout == null) return@runOnUiThread
                                 val start = read_text.layout.getLineStart(i)
                                 val end = read_text.layout.getLineEnd(i)
                                 val read = text.substring(start, end)
                                 println("TEXT:" + read) // TTS
                                 setHighLightedText(read_text, read)
-                            } catch (e : Exception) {
+                            } catch (e: Exception) {
                                 return@runOnUiThread
                             }
                         }
@@ -152,7 +221,7 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                         break
                     }
                 }
-            }
+            }*/
         }
     }
 }

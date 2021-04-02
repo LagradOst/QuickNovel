@@ -18,6 +18,7 @@
                 android:id="@+id/read_text"
                 android:padding="20dp"
                 android:fontFamily="serif"
+                android:lineSpacingExtra="3sp"
                 android:text="@string/exampleTXT"
                 android:textColor="@color/readerTextColor"
                 android:layout_width="wrap_content"
