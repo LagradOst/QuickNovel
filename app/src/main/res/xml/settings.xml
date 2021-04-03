@@ -15,6 +15,15 @@
                 android:key="@string/provider_list_key"
                 android:title="Active Provider"
                 app:useSimpleSummaryProvider="true" />
+        <ListPreference
+                app:icon="@drawable/ic_baseline_star_24"
+                android:key="@string/rating_format_key"
+                android:title="Rating Format"
+                app:defaultValue="star"
+                app:useSimpleSummaryProvider="true"
+                android:entries="@array/RatingFormat"
+                android:entryValues="@array/RatingFormatData"
+        />
         <Preference
                 android:title="Join Discord"
                 android:icon="@drawable/ic_baseline_discord_24"

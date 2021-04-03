@@ -7,19 +7,19 @@
 
     <fragment
             android:id="@+id/navigation_search"
-            android:name="com.example.epubdownloader.ui.search.SearchFragment"
+            android:name="com.lagradost.quicknovel.ui.search.SearchFragment"
             android:label="@string/title_search"
             android:layout_height="match_parent"
             tools:layout="@layout/fragment_search"/>
     <fragment
             android:id="@+id/navigation_download"
-            android:name="com.example.epubdownloader.ui.download.DownloadFragment"
+            android:name="com.lagradost.quicknovel.ui.download.DownloadFragment"
             android:label="@string/title_download"
             android:layout_height="match_parent"
             tools:layout="@layout/fragment_downloads"/>
     <fragment
             android:id="@+id/navigation_settings"
-            android:name="com.example.epubdownloader.ui.settings.SettingsFragment"
+            android:name="com.lagradost.quicknovel.ui.settings.SettingsFragment"
             android:label="@string/title_download"
             android:layout_height="match_parent">
 

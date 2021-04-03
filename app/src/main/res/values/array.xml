@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="RatingFormat">
+        <item>5 Star (4.43★)</item>
+        <item>10 Point (5/10)</item>
+        <item>10 Point Decimal (5.5/10.0)</item>
+        <item>100 Point (55/100)</item>
+    </string-array>
+    <string-array name="RatingFormatData">
+        <item>star</item>
+        <item>point10</item>
+        <item>point10d</item>
+        <item>point100</item>
+    </string-array>
+</resources>

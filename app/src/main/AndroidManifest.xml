@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.example.epubdownloader">
+          package="com.lagradost.quicknovel">
 
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
@@ -15,7 +15,7 @@
             android:supportsRtl="true"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
             android:theme="@style/AppTheme">
-        <activity android:name=".MainActivity">
+        <activity android:name="com.lagradost.quicknovel.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
@@ -23,11 +23,11 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".ReadActivity">
+        <activity android:name="com.lagradost.quicknovel.ReadActivity">
         </activity>
 
         <service
-                android:name=".DownloadService"
+                android:name="com.lagradost.quicknovel.DownloadService"
                 android:enabled="true"
                 android:exported="false">
         </service>
