@@ -1,0 +1,55 @@
+name: Build App
+
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  check_wrapper:
+    name: Validate Gradle Wrapper
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v2
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v1
+
+  build:
+    name: Build app
+    needs: check_wrapper
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@0.5.0
+        with:
+          access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone repo
+        uses: actions/checkout@v2
+
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+
+      - name: Build app
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: assembleRelease
+          wrapper-cache-enabled: true
+          dependencies-cache-enabled: true
+          configuration-cache-enabled: true
+
+      - name: Rename app
+        run: |
+          cd app/build/outputs/apk/release
+          mv app-release-unsigned.apk QuickNovel.apk
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: QuickNovel
+          path: app/build/outputs/apk/release/QuickNovel.apk
