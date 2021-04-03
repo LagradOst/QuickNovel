@@ -14,7 +14,7 @@
     <ScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
-        <com.lagradost.quicknovel.roundedbg.RoundedBgTextView
+        <com.lagradost.quicknovel.ui.roundedbg.RoundedBgTextView
                 android:id="@+id/read_text"
                 android:padding="20dp"
                 android:fontFamily="serif"
@@ -23,7 +23,7 @@
                 android:textColor="@color/readerTextColor"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content">
-        </com.lagradost.quicknovel.roundedbg.RoundedBgTextView>
+        </com.lagradost.quicknovel.ui.roundedbg.RoundedBgTextView>
     </ScrollView>
 
 

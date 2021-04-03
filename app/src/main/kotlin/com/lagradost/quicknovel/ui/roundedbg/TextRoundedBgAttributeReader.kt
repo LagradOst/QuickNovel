@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 */
-package com.lagradost.quicknovel.roundedbg
+package com.lagradost.quicknovel.ui.roundedbg
 
 import android.content.Context
 import android.graphics.drawable.Drawable
