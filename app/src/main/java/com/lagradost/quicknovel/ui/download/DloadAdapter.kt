@@ -175,6 +175,7 @@ class DloadAdapter(
                     } else {
                         cachedLoadResponse[card.id] = res
                         val localId = card.id//BookDownloader.generateId(res, MainActivity.api)
+                        DataStore.setKey(DOWNLOAD_TOTAL, localId.toString(), res.data.size) // FIX BUG WHEN DOWNLOAD IS OVER TOTAL
                         when (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped) {
                             BookDownloader.DownloadType.IsFailed -> BookDownloader.download(res, api)
                             BookDownloader.DownloadType.IsStopped -> BookDownloader.download(res, api)

@@ -13,6 +13,7 @@ import kotlinx.android.synthetic.main.fragment_downloads.*
 import androidx.recyclerview.widget.SimpleItemAnimator
 
 import androidx.recyclerview.widget.RecyclerView.ItemAnimator
+import kotlin.concurrent.thread
 
 
 class DownloadFragment : Fragment() {
@@ -100,7 +101,7 @@ class DownloadFragment : Fragment() {
         }
     }
 
-    fun removeAction(id : Int) {
+    fun removeAction(id: Int) {
         loadData()
     }
 
@@ -108,7 +109,7 @@ class DownloadFragment : Fragment() {
         val arry = ArrayList<DownloadDataLoaded>()
         val keys = DataStore.getKeys(DOWNLOAD_FOLDER)
         for (k in keys) {
-            val res = DataStore.getKey<DownloadData>(k)
+            val res = DataStore.getKey<DownloadData>(k) // THIS SHIT LAGS THE APPLICATION IF ON MAIN THREAD (IF NOT WARMED UP BEFOREHAND, SEE @WARMUP)
             if (res != null) {
                 val localId = BookDownloader.generateId(res.apiName, res.author, res.name)
                 val info = BookDownloader.downloadInfo(res.author, res.name, 100000, res.apiName)
@@ -127,7 +128,8 @@ class DownloadFragment : Fragment() {
                         res.tags,
                         res.apiName,
                         info.progress,
-                        DataStore.getKey(DOWNLOAD_TOTAL, localId.toString(), info.progress)!!,
+                        maxOf(info.progress,
+                            DataStore.getKey(DOWNLOAD_TOTAL, localId.toString(), info.progress)!!), //IDK Bug fix ?
                         false,
                         "",
                         state,
@@ -137,12 +139,15 @@ class DownloadFragment : Fragment() {
             }
         }
 
-        (download_cardSpace.adapter as DloadAdapter).cardList = arry
-        (download_cardSpace.adapter as DloadAdapter).notifyDataSetChanged()
+        activity?.runOnUiThread {
+            (download_cardSpace.adapter as DloadAdapter).cardList = arry
+            (download_cardSpace.adapter as DloadAdapter).notifyDataSetChanged()
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
 
         val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = context?.let {
             DloadAdapter(
@@ -158,6 +163,7 @@ class DownloadFragment : Fragment() {
             (animator as SimpleItemAnimator).supportsChangeAnimations = false
         }
 
+
         download_cardSpace.layoutManager = GridLayoutManager(context, 1)
 
         val parameter = download_top_padding.layoutParams as LinearLayout.LayoutParams
@@ -167,7 +173,9 @@ class DownloadFragment : Fragment() {
             parameter.bottomMargin)
         download_top_padding.layoutParams = parameter
 
-        loadData()
+        //thread {
+        loadData() // CAN BE DONE ON ANOTHER THREAD
+        //}
 
         BookDownloader.downloadNotification += ::updateDownloadInfo
         BookDownloader.downloadRemove += ::removeAction

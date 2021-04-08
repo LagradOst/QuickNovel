@@ -17,6 +17,8 @@ import androidx.preference.PreferenceManager
 import com.lagradost.quicknovel.providers.BestLightNovelProvider
 import com.lagradost.quicknovel.providers.NovelPassionProvider
 import com.lagradost.quicknovel.providers.RoyalRoadProvider
+import com.lagradost.quicknovel.ui.download.DownloadFragment
+import kotlin.concurrent.thread
 
 val Int.toPx: Int get() = (this * Resources.getSystem().displayMetrics.density).toInt()
 val Float.toPx: Float get() = (this * Resources.getSystem().displayMetrics.density)
@@ -118,6 +120,12 @@ class MainActivity : AppCompatActivity() {
         edit.putString(getString(R.string.provider_list_key, activeAPI.name), activeAPI.name)
         edit.apply()
 
+        thread { // IDK, WARMUP OR SMTH, THIS WILL JUST REDUCE THE INITIAL LOADING TIME FOR DOWNLOADS, NO REAL USAGE, SEE @WARMUP
+            val keys = DataStore.getKeys(DOWNLOAD_FOLDER)
+            for (k in keys) {
+                DataStore.getKey<DownloadFragment.DownloadData>(k)
+            }
+        }
 
         //loadResult("https://www.novelpassion.com/novel/battle-frenzy")
         //loadResult("https://www.royalroad.com/fiction/40182/only-villains-do-that", MainActivity.activeAPI.name)

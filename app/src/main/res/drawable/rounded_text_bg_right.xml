@@ -17,6 +17,6 @@
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <solid android:color="@color/readerHightlightedTextColor"/>
     <stroke android:width="@dimen/roundedTextBorderWidth" android:color="@color/roundedTextBorder"/>
-    <corners android:topRightRadius="@dimen/roundedTextBorderRadius"
-             android:bottomRightRadius="@dimen/roundedTextBorderRadius"/>
+    <corners android:radius="@dimen/roundedTextBorderRadius"/>
+
 </shape>

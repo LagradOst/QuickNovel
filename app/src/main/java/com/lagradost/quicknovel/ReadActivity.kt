@@ -14,6 +14,7 @@ import androidx.core.text.HtmlCompat
 import androidx.core.text.getSpans
 import nl.siegmann.epublib.epub.EpubReader
 import java.io.FileInputStream
+import java.lang.Exception
 import java.lang.Thread.sleep
 import java.util.*
 import kotlin.concurrent.thread
@@ -124,7 +125,9 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val epubReader = EpubReader()
         val book = epubReader.readEpub(FileInputStream(path))
 
-        val spanned = HtmlCompat.fromHtml(book.contents[0].reader.readText(), HtmlCompat.FROM_HTML_MODE_LEGACY)
+        val spanned = HtmlCompat.fromHtml(
+            book.contents[0].reader.readText().replace("...", "…"),
+            HtmlCompat.FROM_HTML_MODE_LEGACY)
 
         window.navigationBarColor = getColor(R.color.readerBackground)
         read_text.text = spanned
@@ -135,50 +138,79 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
                 var index = 0
                 while (true) {
-                    val invalidStartChars = arrayOf(' ', '.', ',', '\n', '\"')
+                    val invalidStartChars =
+                        arrayOf(' ', '.', ',', '\n', '\"', '…',
+                            '\'', '’', '‘', '“', '”', '«', '»', '「', '」')
                     while (invalidStartChars.contains(read_text.text[index])) {
                         index++
+                        if (index >= read_text.text.length) {
+                            return@thread //TODO NEXT CHAPTER
+                        }
                     }
 
-                    val arry = arrayOf(".", "\n",";","?")
-                    var endIndex = 10000
-                    for (a in arry) {
-                        val indexEnd = read_text.text.indexOf(a, index)
+                    var endIndex = Int.MAX_VALUE
+                    for (a in arrayOf(".", "\n", ";", "?", ":")) {
+                        var indexEnd = read_text.text.indexOf(a, index)
+                        if (indexEnd == -1) continue
+                        while (true) {
+                            if (indexEnd + 1 < read_text.text.length) {
+                                if (read_text.text[indexEnd + 1] == '.') {
+                                    indexEnd++
+                                    continue
+                                }
+                            }
+                            break
+                        }
+
                         if (indexEnd < endIndex) {
-                            //if(indexEnd+1 < read_text.text.size)
                             endIndex = indexEnd
                         }
                     }
-
-                    val message = read_text.text.substring(index, endIndex)
-                    if (message
-                            .replace("\n", "")
-                            .replace("\t", "")
-                            .replace(".", "").isNotEmpty()
-                    ) {
-                        canSpeek = false
-
-                        var msg = message//Regex("\\p{L}").replace(message,"")
-                        val invalidChars = arrayOf("-", "<", ">", "_", "^")
-                        for (c in invalidChars) {
-                            msg = msg.replace(c,"")
-                        }
-                        ReadActivity.readActivity.runOnUiThread {
-                            setHighLightedText(read_text, index, endIndex)
-                            if (msg.isNotEmpty()) {
-                                speakOut(msg)
-                            }
-                        }
-                        if (msg.isEmpty()) {
-                            sleep(500)
-                            canSpeek = true
-                        }
-                        while (!canSpeek) {
-                            sleep(1)
-                        }
-                        //sleep(500)
+                    if (endIndex > read_text.text.length) {
+                        endIndex = read_text.text.length
                     }
+                    if (index >= read_text.text.length) {
+                        return@thread //TODO NEXT CHAPTER
+                    }
+                    try {
+                        // THIS PART IF FOR THE SPEAK PART, REMOVING STUFF THAT IS WACK
+                        val message = read_text.text.substring(index, endIndex)
+                        var msg = message//Regex("\\p{L}").replace(message,"")
+                        val invalidChars =
+                            arrayOf("-", "<", ">", "_", "^", "\'", "’", "‘", "“", "”", "«", "»", "「", "」", "—", "¿")
+                        for (c in invalidChars) {
+                            msg = msg.replace(c, "")
+                        }
+                        msg = msg.replace("...", ",")
+                            .replace("…", ",")
 
+                        if (msg
+                                .replace("\n", "")
+                                .replace("\t", "")
+                                .replace(".", "").isNotEmpty()
+                        ) {
+                            canSpeek = false
+
+                            ReadActivity.readActivity.runOnUiThread {
+                                setHighLightedText(read_text, index, endIndex)
+                                if (msg.isNotEmpty()) {
+                                    speakOut(msg)
+                                }
+                            }
+                            sleep(1000)
+                            if (msg.isEmpty()) {
+                                sleep(500)
+                                canSpeek = true
+                            }
+                            while (!canSpeek) {
+                                sleep(1)
+                            }
+                            //sleep(500)
+                        }
+                    } catch (e: Exception) {
+                        println(e)
+                        return@thread
+                    }
                     index = endIndex + 1
                 }
             }
