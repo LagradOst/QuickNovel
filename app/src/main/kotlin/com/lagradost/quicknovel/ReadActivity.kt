@@ -135,16 +135,17 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
                 var index = 0
                 while (true) {
-                    val invalidStartChars = arrayOf(' ', '.', ',', '\n')
+                    val invalidStartChars = arrayOf(' ', '.', ',', '\n', '\"')
                     while (invalidStartChars.contains(read_text.text[index])) {
                         index++
                     }
 
-                    val arry = arrayOf(".", "\n")
+                    val arry = arrayOf(".", "\n",";","?")
                     var endIndex = 10000
                     for (a in arry) {
                         val indexEnd = read_text.text.indexOf(a, index)
                         if (indexEnd < endIndex) {
+                            //if(indexEnd+1 < read_text.text.size)
                             endIndex = indexEnd
                         }
                     }
