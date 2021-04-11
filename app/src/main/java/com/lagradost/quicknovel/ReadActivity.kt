@@ -194,8 +194,10 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             if (lockTTS && isTTSRunning) {
                 if (read_scroll.height + scrollY <= minScroll) {
                     read_scroll.scrollTo(0, minScroll - read_scroll.height)
+                    read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
                 } else if (scrollY >= maxScroll) {
                     read_scroll.scrollTo(0, maxScroll)
+                    read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
                 }
             }
         }
