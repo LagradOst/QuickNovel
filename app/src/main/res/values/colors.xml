@@ -16,8 +16,9 @@
     <color name="transparent">#00000000</color>
 
     <color name="white">#FFF</color>
-    <color name="readerBackground">#3c3c3c</color>
+    <color name="readerBackground">#292832</color> <!--3c3c3c-->
     <color name="readerTextColor">#cccccc</color>
     <color name="readerHightlightedTextColor">#206f96</color>
+    <color name="readerHightlightedMetaInfo">#0D000000</color>
     <color name="roundedTextBorder">#DD0277BD</color>
 </resources>

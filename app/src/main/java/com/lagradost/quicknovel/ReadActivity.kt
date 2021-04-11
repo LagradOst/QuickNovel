@@ -18,9 +18,11 @@ import nl.siegmann.epublib.epub.EpubReader
 import java.io.FileInputStream
 import java.lang.Exception
 import java.lang.Thread.sleep
+import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.concurrent.thread
+import java.util.Locale
 
 
 fun setHighLightedText(tv: TextView, start: Int, end: Int): Boolean {
@@ -100,6 +102,8 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     lateinit var path: String
     lateinit var read_text: TextView
     lateinit var read_scroll: ScrollView
+    lateinit var read_time: TextView
+    lateinit var read_chapter_name: TextView
 
     var canSpeek = true
     var speekId = 0
@@ -108,14 +112,56 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     var minScroll = 0
     var maxScroll = 0
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) hideSystemUI()
+    }
+
+    private fun hideSystemUI() {
+        // Enables regular immersive mode.
+        // For "lean back" mode, remove SYSTEM_UI_FLAG_IMMERSIVE.
+        // Or for "sticky immersive," replace it with SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+        window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_IMMERSIVE
+                // Set the content to appear under the system bars so that the
+                // content doesn't resize when the system bars hide and show.
+                or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                // Hide the nav bar and status bar
+                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                or View.SYSTEM_UI_FLAG_FULLSCREEN)
+    }
+
+    // Shows the system bars by removing all the flags
+// except for the ones that make the content appear under the system bars.
+    private fun showSystemUI() {
+        window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+    }
+
+    fun updateTimeText() {
+        val currentTime: String = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+        if (read_time != null) {
+            read_time.text = currentTime
+            read_time.postDelayed({ -> updateTimeText() }, 1000)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.read_main)
+        read_text = findViewById(R.id.read_text)
+        read_scroll = findViewById(R.id.read_scroll)
+        read_chapter_name = findViewById(R.id.read_chapter_name)
+        read_time = findViewById(R.id.read_time)
+        val read_topmargin = findViewById<View>(R.id.read_topmargin)
+
+        hideSystemUI()
 
         readActivity = this
         tts = TextToSpeech(this, this)
 
-        val read_topmargin = findViewById<View>(R.id.read_topmargin)
 
         val parameter = read_topmargin.layoutParams as LinearLayout.LayoutParams
         parameter.setMargins(parameter.leftMargin,
@@ -127,21 +173,22 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val intent = intent
         path = intent.getStringExtra("path")!!
 
-
-        read_text = findViewById(R.id.read_text)
-        read_scroll = findViewById(R.id.read_scroll)
-
         val epubReader = EpubReader()
         val book = epubReader.readEpub(FileInputStream(path))
 
+        val chapterIndex = 0
+        val chapter = book.tableOfContents.tocReferences[chapterIndex]
         val spanned = HtmlCompat.fromHtml(
-            book.contents[0].reader.readText().replace("...", "…"),
+            chapter.resource.reader.readText().replace("...", "…"),
             HtmlCompat.FROM_HTML_MODE_LEGACY)
 
+        read_chapter_name.text = chapter.title ?: "Chapter ${chapterIndex + 1}"
+
+        book.tableOfContents.allUniqueResources
         window.navigationBarColor = getColor(R.color.readerBackground)
         read_text.text = spanned
         val text = read_text.text
-        println("TEXT:" + book.contents[0].reader.readText())
+        //println("TEXT:" + book.contents[0].reader.readText())
 
         read_scroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->
             if (lockTTS && isTTSRunning) {
@@ -152,6 +199,8 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 }
             }
         }
+
+        updateTimeText()
 
         read_text.post {
             val startLines: ArrayList<Int> = ArrayList()
@@ -240,6 +289,7 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                                     if (startLines[s] > index) {
                                         for (e in s..startLines.size) {
                                             if (startLines[e] > endIndex) {
+                                                if (read_text.layout == null) return@runOnUiThread
                                                 maxScroll = read_text.layout.getLineTop(s)
                                                 minScroll = read_text.layout.getLineBottom(e)
                                                 if (read_scroll.height + read_scroll.scrollY < minScroll ||
