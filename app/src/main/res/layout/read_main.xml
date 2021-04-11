@@ -12,6 +12,7 @@
 
     </View>
     <ScrollView
+            android:id="@+id/read_scroll"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
         <com.lagradost.quicknovel.ui.roundedbg.RoundedBgTextView

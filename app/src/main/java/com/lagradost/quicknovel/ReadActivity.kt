@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel
 
+import android.graphics.Rect
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
@@ -7,6 +8,7 @@ import android.text.Spannable
 import android.text.SpannableString
 import android.view.View
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -17,6 +19,7 @@ import java.io.FileInputStream
 import java.lang.Exception
 import java.lang.Thread.sleep
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.concurrent.thread
 
 
@@ -96,9 +99,14 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     lateinit var path: String
     lateinit var read_text: TextView
+    lateinit var read_scroll: ScrollView
 
     var canSpeek = true
     var speekId = 0
+    var isTTSRunning = true
+    val lockTTS = true
+    var minScroll = 0
+    var maxScroll = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -121,6 +129,7 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
 
         read_text = findViewById(R.id.read_text)
+        read_scroll = findViewById(R.id.read_scroll)
 
         val epubReader = EpubReader()
         val book = epubReader.readEpub(FileInputStream(path))
@@ -132,15 +141,30 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         window.navigationBarColor = getColor(R.color.readerBackground)
         read_text.text = spanned
         val text = read_text.text
-        read_text.post {
-            thread {
-                sleep(500)
+        println("TEXT:" + book.contents[0].reader.readText())
 
+        read_scroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+            if (lockTTS && isTTSRunning) {
+                if (read_scroll.height + scrollY <= minScroll) {
+                    read_scroll.scrollTo(0, minScroll - read_scroll.height)
+                } else if (scrollY >= maxScroll) {
+                    read_scroll.scrollTo(0, maxScroll)
+                }
+            }
+        }
+
+        read_text.post {
+            val startLines: ArrayList<Int> = ArrayList()
+            for (i in 0..read_text.layout.lineCount) {
+                startLines.add(read_text.layout.getLineStart(i))
+            }
+            thread {
+                isTTSRunning = true
                 var index = 0
                 while (true) {
                     val invalidStartChars =
-                        arrayOf(' ', '.', ',', '\n', '\"', '…',
-                            '\'', '’', '‘', '“', '”', '«', '»', '「', '」')
+                        arrayOf(' ', '.', ',', '\n', '\"',
+                            '\'', '’', '‘', '“', '”', '«', '»', '「', '」', '…')
                     while (invalidStartChars.contains(read_text.text[index])) {
                         index++
                         if (index >= read_text.text.length) {
@@ -150,9 +174,9 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
                     var endIndex = Int.MAX_VALUE
                     for (a in arrayOf(".", "\n", ";", "?", ":")) {
-                        var indexEnd = read_text.text.indexOf(a, index)
+                        val indexEnd = read_text.text.indexOf(a, index)
                         if (indexEnd == -1) continue
-                        while (true) {
+                        /*while (true) {
                             if (indexEnd + 1 < read_text.text.length) {
                                 if (read_text.text[indexEnd + 1] == '.') {
                                     indexEnd++
@@ -160,29 +184,49 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                                 }
                             }
                             break
-                        }
+                        }*/
 
                         if (indexEnd < endIndex) {
-                            endIndex = indexEnd
+                            endIndex = indexEnd + 1
                         }
                     }
+
+
                     if (endIndex > read_text.text.length) {
                         endIndex = read_text.text.length
                     }
                     if (index >= read_text.text.length) {
                         return@thread //TODO NEXT CHAPTER
                     }
+
+                    val invalidEndChars =
+                        arrayOf('\n')
+                    while (true) {
+                        var containsInvalidEndChar = false
+                        for (a in invalidEndChars) {
+                            if (endIndex <= 0 || endIndex > read_text.text.length) break
+                            if (read_text.text[endIndex - 1] == a) {
+                                containsInvalidEndChar = true
+                                endIndex--
+                            }
+                        }
+                        if (!containsInvalidEndChar) {
+                            break
+                        }
+                    }
+
+
                     try {
                         // THIS PART IF FOR THE SPEAK PART, REMOVING STUFF THAT IS WACK
                         val message = read_text.text.substring(index, endIndex)
                         var msg = message//Regex("\\p{L}").replace(message,"")
                         val invalidChars =
-                            arrayOf("-", "<", ">", "_", "^", "\'", "’", "‘", "“", "”", "«", "»", "「", "」", "—", "¿")
+                            arrayOf("-", "<", ">", "_", "^", "\'", "«", "»", "「", "」", "—", "¿")
                         for (c in invalidChars) {
                             msg = msg.replace(c, "")
                         }
                         msg = msg.replace("...", ",")
-                            .replace("…", ",")
+                        /*.replace("…", ",")*/
 
                         if (msg
                                 .replace("\n", "")
@@ -191,7 +235,26 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                         ) {
                             canSpeek = false
 
-                            ReadActivity.readActivity.runOnUiThread {
+                            readActivity.runOnUiThread {
+                                for (s in 0..startLines.size) {
+                                    if (startLines[s] > index) {
+                                        for (e in s..startLines.size) {
+                                            if (startLines[e] > endIndex) {
+                                                maxScroll = read_text.layout.getLineTop(s)
+                                                minScroll = read_text.layout.getLineBottom(e)
+                                                if (read_scroll.height + read_scroll.scrollY < minScroll ||
+                                                    read_scroll.scrollY > maxScroll
+                                                ) {
+                                                    read_scroll.scrollTo(0, read_text.layout.getLineTop(s))
+                                                }
+                                                break
+                                            }
+                                        }
+                                        //read_scroll.scrollTo(0, read_text.layout.getLineTop(i) - 200) // SKIP SNAP SETTING
+
+                                        break
+                                    }
+                                }
                                 setHighLightedText(read_text, index, endIndex)
                                 if (msg.isNotEmpty()) {
                                     speakOut(msg)
@@ -214,6 +277,7 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     index = endIndex + 1
                 }
             }
+
             /*
             val lineCount = read_text.layout.lineCount
             thread {
