@@ -17,4 +17,6 @@
     <string name="provider_list_key">provider_list</string>
     <string name="rating_format_key">rating_format</string>
     <string name="exampleTXT">"this is <annotation key="rounded">a regular</annotation> paragraph."</string>
+    <string name="tags">Tags</string>
+    <string name="views">Views</string>
 </resources>

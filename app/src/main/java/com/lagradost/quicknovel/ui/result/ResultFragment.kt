@@ -20,8 +20,11 @@ import java.text.CharacterIterator
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat.getColor
+import androidx.core.content.ContextCompat.getColorStateList
 import androidx.core.content.res.ResourcesCompat
 import androidx.preference.PreferenceManager
+import com.google.android.material.button.MaterialButton
 import com.lagradost.quicknovel.BookDownloader.turnToEpub
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import kotlinx.android.synthetic.main.activity_main.*
@@ -102,8 +105,8 @@ class ResultFragment : Fragment() {
         if (localId != info.id) return
         activity?.runOnUiThread {
             result_download_progress_text.text = "${info.progress}/${info.total}"
-            result_download_progress_bar.progress = info.progress
             result_download_progress_bar.max = info.total
+            result_download_progress_bar.progress = info.progress
             result_download_progress_text_eta.text = info.ETA
             updateDownloadButtons(info.progress, info.total, info.state)
             updateGenerateBtt(info.progress)
@@ -159,7 +162,7 @@ class ResultFragment : Fragment() {
         MainActivity.isInResults = true
 
         MainActivity.activity.window.navigationBarColor =
-            ResourcesCompat.getColor(resources, R.color.grayBackground, null)
+            ResourcesCompat.getColor(resources, R.color.bitDarkerGrayBackground, null)
 
         result_holder.visibility = View.GONE
         result_loading.visibility = View.VISIBLE
@@ -200,9 +203,9 @@ class ResultFragment : Fragment() {
                 if (res == null) {
                     Toast.makeText(context, "Error loading", Toast.LENGTH_SHORT).show()
                 } else {
-
+/*
                     MainActivity.activity.window.navigationBarColor =
-                        ResourcesCompat.getColor(resources, R.color.bitDarkerGrayBackground, null)
+                        ResourcesCompat.getColor(resources, R.color.bitDarkerGrayBackground, null)*/
 
                     result_holder.visibility = View.VISIBLE
                     result_loading.visibility = View.GONE
@@ -225,6 +228,51 @@ class ResultFragment : Fragment() {
                             result_rating_voted_count.text = "${res.peopleVoted} Votes"
                         }
                     }
+
+                    if (res.tags == null && (res.status == null || res.status <= 0)) {
+                        result_tag_holder.visibility = View.GONE
+                    } else {
+                        var index = 0
+                        if (res.status != null && res.status > 0) {
+                            val viewBtt = layoutInflater.inflate(R.layout.result_tag, null)
+                            val mat = viewBtt.findViewById<MaterialButton>(R.id.result_tag_card)
+                            mat.strokeColor = getColorStateList(context!!, R.color.colorOngoing)
+                            mat.setTextColor(getColor(context!!, R.color.colorOngoing))
+                            mat.rippleColor = getColorStateList(context!!, R.color.colorOngoing)
+                            mat.text = when (res.status) {
+                                1 -> "Ongoing"
+                                2 -> "Completed"
+                                3 -> "Paused"
+                                else -> "ERROR"
+                            }
+                            result_tag.addView(viewBtt, index)
+                            index++
+                        }
+                        if (res.tags != null) {
+                            for (tag in res.tags) {
+                                /*val viewBtt = layoutInflater.inflate(R.layout.result_tag, null) as MaterialButton
+                                viewBtt.text = tag*/
+
+                                val viewBtt = layoutInflater.inflate(R.layout.result_tag, null)
+                                viewBtt.findViewById<MaterialButton>(R.id.result_tag_card).text = tag
+                                result_tag.addView(viewBtt, index)
+                                index++
+                            }
+                        }
+
+                    }
+                    /*
+                    if(res.status != null && res.status > 0) {
+                        result_status.text = when(res.status) {
+                            1 -> "Ongoing"
+                            2 -> "Complete"
+                            3 -> "Pause"
+                            else -> "ERROR"
+                        }
+                    }
+                    else {
+                        result_status.visibility = View.GONE
+                    }*/
 
                     if (res.views != null) {
                         result_views.text = humanReadableByteCountSI(res.views)
@@ -258,8 +306,9 @@ class ResultFragment : Fragment() {
                     if (start != null) {
                         updateGenerateBtt(start.progress)
                         result_download_progress_text.text = "${start.progress}/${start.total}"
-                        result_download_progress_bar.progress = start.progress
+
                         result_download_progress_bar.max = start.total
+                        result_download_progress_bar.progress = start.progress
                         val state =
                             if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped
                         updateDownloadButtons(start.progress, start.total, state!!)
@@ -287,7 +336,7 @@ class ResultFragment : Fragment() {
                             result_scroll_padding.paddingLeft,
                             result_scroll_padding.paddingTop,
                             result_scroll_padding.paddingRight,
-                            displayMetrics.heightPixels - height) // - MainActivity.activity.nav_view.height
+                            maxOf(0, displayMetrics.heightPixels - height))// - MainActivity.activity.nav_view.height
                     }
                 }
             }

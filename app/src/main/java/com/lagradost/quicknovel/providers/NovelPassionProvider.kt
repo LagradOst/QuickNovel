@@ -17,11 +17,11 @@ class NovelPassionProvider : MainAPI() {
             val response = khttp.get(url)
             val document = Jsoup.parse(response.text)
             val res = document.selectFirst("div.cha-words")
-            if(res.html() == "") {
+            if (res.html() == "") {
                 return null
             }
             res.html()
-                .replace("( NovelFull )","") // FUCK ADS
+                .replace("( NovelFull )", "") // FUCK ADS
         } catch (e: Exception) {
             null
         }
@@ -93,7 +93,22 @@ class NovelPassionProvider : MainAPI() {
             val peopleVoted = peopleVotedText.substring(1, peopleVotedText.length - 9).toInt()
             val views = document.selectFirst("address > p > span").text().replace(",", "").toInt()
 
-            return LoadResponse(name, data, author, posterUrl, rating, peopleVoted, views, synopsis, tags)
+            val statusTxt =
+                document.select("div.psn > address.lh20 > p.ell > a") // 0 = Author, 1 = Tags
+
+            var status = 0
+            for (s in statusTxt) {
+                if(s.hasText()) {
+                    status = when(s.text()) {
+                        "Ongoing" -> 1
+                        "Completed" -> 2
+                        else -> 0
+                    }
+                    if(status > 0) break
+                }
+            }
+
+            return LoadResponse(name, data, author, posterUrl, rating, peopleVoted, views, synopsis, tags, status)
         } catch (e: Exception) {
             return null
         }

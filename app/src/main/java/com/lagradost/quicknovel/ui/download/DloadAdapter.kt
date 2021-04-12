@@ -75,14 +75,14 @@ class DloadAdapter(
         //        val cardTextExtra: TextView = itemView.imageTextExtra
         val bg = itemView.backgroundCard
         fun bind(card: DownloadFragment.DownloadDataLoaded) {
-
             val api = getApiFromName(card.apiName)
 
             cardText.text = card.name
             download_progress_text.text =
                 "${card.downloadedCount}/${card.downloadedTotal}" + if (card.ETA == "") "" else " - ${card.ETA}"
-            download_progressbar.progress = card.downloadedCount
+
             download_progressbar.max = card.downloadedTotal
+            download_progressbar.progress = card.downloadedCount
 
             var realState = card.state
             if (card.downloadedCount >= card.downloadedTotal && card.updated) {
@@ -147,12 +147,13 @@ class DloadAdapter(
                         val done = BookDownloader.turnToEpub(card.author, card.name, card.apiName)
                         MainActivity.activity.runOnUiThread {
                             if (done) {
-                                Toast.makeText(context, "Created ${card.name}", Toast.LENGTH_LONG).show()
+                                //Toast.makeText(context, "Created ${card.name}", Toast.LENGTH_LONG).show()
                             } else {
                                 Toast.makeText(context, "Error creating the Epub", Toast.LENGTH_LONG).show()
                             }
                             updateEpub()
                             updateBar(null)
+                            BookDownloader.openEpub(card.name)
                         }
                     }
                 } else {

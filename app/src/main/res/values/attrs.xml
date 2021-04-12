@@ -23,4 +23,6 @@
         <attr name="roundedTextDrawableMid" format="reference"/>
         <attr name="roundedTextDrawableRight" format="reference"/>
     </declare-styleable>
+    <declare-styleable name="FlowLayout_Layout"></declare-styleable>
+    <declare-styleable name="FlowLayout_Layout_layout_space"></declare-styleable>
 </resources>

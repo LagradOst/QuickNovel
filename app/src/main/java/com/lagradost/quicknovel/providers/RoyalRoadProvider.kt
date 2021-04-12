@@ -88,7 +88,22 @@ class RoyalRoadProvider : MainAPI() {
             val peopleRatedHeader = document.select("div.stats-content > div > meta")
             val peopleRated = peopleRatedHeader[2].attr("content").toInt()
 
-            return LoadResponse(name, data, author, posterUrl, rating, peopleRated, views, synopsis, tags)
+            val statusTxt = document.select("div.col-md-8 > div.margin-bottom-10 > span.label")
+
+            var status = 0
+            for (s in statusTxt) {
+                if(s.hasText()) {
+                    status = when(s.text()) {
+                        "ONGOING" -> 1
+                        "COMPLETED" -> 2
+                        "HIATUS" -> 3
+                        else -> 0
+                    }
+                    if(status > 0) break
+                }
+            }
+
+            return LoadResponse(name, data, author, posterUrl, rating, peopleRated, views, synopsis, tags, status)
         } catch (e: Exception) {
             return null
         }

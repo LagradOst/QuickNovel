@@ -106,7 +106,13 @@ class BestLightNovelProvider : MainAPI() {
                 .replace(",", "")
                 .replace("\"", "").substring("View : ".length).toInt()
 
-            return LoadResponse(name, data, author, posterUrl, rating, peopleVoted, views, synopsis, tags)
+            val status = when (infoHeaders[3].selectFirst("> a").text()) {
+                "Ongoing" -> 1
+                "Completed" -> 2
+                else -> 0
+            }
+
+            return LoadResponse(name, data, author, posterUrl, rating, peopleVoted, views, synopsis, tags, status)
         } catch (e: Exception) {
             return null
         }
