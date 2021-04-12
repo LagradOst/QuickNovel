@@ -28,6 +28,12 @@ import com.google.android.material.button.MaterialButton
 import com.lagradost.quicknovel.BookDownloader.turnToEpub
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import kotlinx.android.synthetic.main.activity_main.*
+import android.net.Uri
+
+import android.content.Intent
+
+
+
 
 const val MAX_SYNO_LENGH = 300
 
@@ -210,7 +216,14 @@ class ResultFragment : Fragment() {
                     result_loading.visibility = View.GONE
 
                     result_title.text = res.name
-                    result_author.text = res.author
+                    result_author.text = res.author ?: "Author not found"
+
+                    result_openinbrower_text.text = ""// resultUrl
+                    result_openinbrower.setOnClickListener {
+                        val i = Intent(Intent.ACTION_VIEW)
+                        i.data = Uri.parse(resultUrl)
+                        startActivity(i)
+                    }
 
                     if (res.rating != null) {
                         val settingsManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)

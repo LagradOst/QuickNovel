@@ -187,18 +187,50 @@
                             </GridLayout>
 
                         </androidx.cardview.widget.CardView>
+                        <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+                            <LinearLayout android:layout_gravity="end|center_vertical"
+                                          android:orientation="horizontal" android:layout_width="wrap_content"
+                                          android:layout_height="wrap_content">
+                                <TextView
+                                        android:id="@+id/result_openinbrower_text"
+                                        android:gravity="center"
+                                        android:text="@string/open_in_browser"
+                                        android:layout_width="wrap_content" android:layout_height="match_parent">
+                                </TextView>
+                                <ImageView
+                                        android:id="@+id/result_openinbrower"
+                                        android:background="?selectableItemBackgroundBorderless"
+                                        android:src="@drawable/ic_baseline_public_24"
+                                        android:layout_width="25dp"
+                                        android:layout_height="25dp"
+                                        android:layout_margin="5dp"
+                                        app:tint="@color/textColor"
+                                        android:contentDescription="@string/open_in_browser">
+                                </ImageView>
+                            </LinearLayout>
+                            <!--<ImageView
+                                    android:id="@+id/result_openinbrower"
+                                    android:background="?selectableItemBackgroundBorderless"
+                                    android:src="@drawable/ic_baseline_public_24"
+                                    android:layout_width="25dp"
+                                    android:layout_height="25dp"
+                                    android:layout_margin="5dp"
+                                    android:layout_gravity="center_vertical"
+                                    app:tint="@color/textColor"
+                                    android:contentDescription="@string/open_in_browser">
+                            </ImageView>-->
+                            <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/synopsis"
+                                    android:textSize="17sp"
+                                    android:layout_marginTop="10dp"
+                                    android:layout_marginBottom="10dp"
+                                    android:textStyle="normal"
+                                    android:textColor="@color/textColor"
+                            />
+                        </FrameLayout>
 
-
-                        <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/synopsis"
-                                android:textSize="17sp"
-                                android:layout_marginTop="10dp"
-                                android:layout_marginBottom="10dp"
-                                android:textStyle="normal"
-                                android:textColor="@color/textColor"
-                        />
 
                         <TextView
                                 tools:text="As Shin Youngwoo has had an unfortunate life and is now stuck carrying bricks on construction sites. He even had to do labor in the VR game, Satisfy!
@@ -221,7 +253,9 @@ Translator: Rainbow Turtle"
                                 android:textStyle="normal"
                                 android:textColor="@color/textColor"
                         />
-                        <com.lagradost.quicknovel.MyFlowLayout android:id="@+id/result_tag" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        <com.lagradost.quicknovel.MyFlowLayout android:id="@+id/result_tag"
+                                                               android:layout_width="match_parent"
+                                                               android:layout_height="wrap_content"
                                                                android:orientation="horizontal">
 
                         </com.lagradost.quicknovel.MyFlowLayout>

@@ -100,7 +100,7 @@
                             android:layout_margin="5dp"
                             android:scaleX="0.8"
                             android:scaleY="0.8"
-                    >
+                            android:contentDescription="@string/delete">
                     </ImageView>
                 </LinearLayout>
                 <LinearLayout

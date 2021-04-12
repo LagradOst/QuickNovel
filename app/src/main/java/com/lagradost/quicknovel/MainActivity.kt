@@ -14,10 +14,7 @@ import android.graphics.drawable.ColorDrawable
 import android.widget.FrameLayout
 import androidx.core.content.res.ResourcesCompat
 import androidx.preference.PreferenceManager
-import com.lagradost.quicknovel.providers.AllProvider
-import com.lagradost.quicknovel.providers.BestLightNovelProvider
-import com.lagradost.quicknovel.providers.NovelPassionProvider
-import com.lagradost.quicknovel.providers.RoyalRoadProvider
+import com.lagradost.quicknovel.providers.*
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import kotlin.concurrent.thread
 
@@ -38,6 +35,7 @@ class MainActivity : AppCompatActivity() {
             NovelPassionProvider(),
             RoyalRoadProvider(),
             BestLightNovelProvider(),
+            WuxiaWorldOnlineProvider()
         )
         var activeAPI: MainAPI = apis[1]
 

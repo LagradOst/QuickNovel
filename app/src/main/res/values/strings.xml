@@ -19,4 +19,6 @@
     <string name="exampleTXT">"this is <annotation key="rounded">a regular</annotation> paragraph."</string>
     <string name="tags">Tags</string>
     <string name="views">Views</string>
+    <string name="delete">Delete</string>
+    <string name="open_in_browser">Open In Browser</string>
 </resources>
