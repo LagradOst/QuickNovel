@@ -22,6 +22,7 @@ data class SearchResponse(
     val posterUrl: String?,
     val rating: Int?,
     val latestChapter: String?,
+    val apiName: String,
 )
 
 data class LoadResponse(
@@ -35,7 +36,7 @@ data class LoadResponse(
     val views: Int?,
     val Synopsis: String?,
     val tags: ArrayList<String>?,
-    val status : Int?, // 0 = null - implemented but not found, 1 = Ongoing, 2 = Complete, 3 = Pause/HIATUS
+    val status: Int?, // 0 = null - implemented but not found, 1 = Ongoing, 2 = Complete, 3 = Pause/HIATUS
 )
 
 data class ChapterData(

@@ -41,9 +41,8 @@ class ResultFragment : Fragment() {
             }
         }
 
-
     var resultUrl = ""
-    var api: MainAPI = MainActivity.activeAPI
+    var api: MainAPI = MainAPI()
 
     fun humanReadableByteCountSI(bytes: Int): String {
         var bytes = bytes

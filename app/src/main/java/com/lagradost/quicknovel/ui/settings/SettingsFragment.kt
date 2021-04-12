@@ -12,8 +12,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
         setPreferencesFromResource(R.xml.settings, rootKey)
 
         val listPreference = findPreference<ListPreference>("provider_list")!!
-        listPreference.entries = MainActivity.apis.map { it.name }.toTypedArray()
-        listPreference.entryValues = MainActivity.apis.map { it.name }.toTypedArray()
+
+        val apiNames = MainActivity.apis.map { it.name }
+
+        listPreference.entries = apiNames.toTypedArray()
+        listPreference.entryValues = apiNames.toTypedArray()
         listPreference.setOnPreferenceChangeListener { preference, newValue ->
             MainActivity.activeAPI = MainActivity.getApiFromName(newValue.toString())
             return@setOnPreferenceChangeListener true

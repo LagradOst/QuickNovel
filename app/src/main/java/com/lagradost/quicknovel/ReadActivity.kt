@@ -107,7 +107,7 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     var canSpeek = true
     var speekId = 0
-    var isTTSRunning = true
+    var isTTSRunning = false
     val lockTTS = true
     var minScroll = 0
     var maxScroll = 0
@@ -209,6 +209,7 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             for (i in 0..read_text.layout.lineCount) {
                 startLines.add(read_text.layout.getLineStart(i))
             }
+            return@post
             thread {
                 isTTSRunning = true
                 var index = 0

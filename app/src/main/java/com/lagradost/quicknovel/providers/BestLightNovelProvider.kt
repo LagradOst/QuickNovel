@@ -6,6 +6,8 @@ import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.SearchResponse
 import org.jsoup.Jsoup
 import java.lang.Exception
+import java.util.*
+import kotlin.collections.ArrayList
 
 class BestLightNovelProvider : MainAPI() {
     override val name: String get() = "BestLightNovel"
@@ -42,7 +44,7 @@ class BestLightNovelProvider : MainAPI() {
 
                 val rating = null
                 val latestChapter = h.selectFirst("> a.chapter").text()
-                returnValue.add(SearchResponse(name, url, posterUrl, rating, latestChapter))
+                returnValue.add(SearchResponse(name, url, posterUrl, rating, latestChapter, this.name))
             }
             return returnValue
         } catch (e: Exception) {
@@ -106,9 +108,9 @@ class BestLightNovelProvider : MainAPI() {
                 .replace(",", "")
                 .replace("\"", "").substring("View : ".length).toInt()
 
-            val status = when (infoHeaders[3].selectFirst("> a").text()) {
-                "Ongoing" -> 1
-                "Completed" -> 2
+            val status = when (infoHeaders[3].selectFirst("> a").text().toLowerCase(Locale.getDefault())) {
+                "ongoing" -> 1
+                "completed" -> 2
                 else -> 0
             }
 

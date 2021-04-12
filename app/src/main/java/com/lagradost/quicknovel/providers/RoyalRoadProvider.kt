@@ -33,8 +33,8 @@ class RoyalRoadProvider : MainAPI() {
 
                 val ratingHead = head.selectFirst("> div.stats").select("> div")[1].selectFirst("> span").attr("title")
                 val rating = (ratingHead.toFloat() * 200).toInt()
-                val latestChapter = null
-                returnValue.add(SearchResponse(name, url, posterUrl, rating, latestChapter))
+                val latestChapter = h.select("div.stats > div.col-sm-6 > span")[4].text()
+                returnValue.add(SearchResponse(name, url, posterUrl, rating, latestChapter, this.name))
             }
             return returnValue
         } catch (e: Exception) {
@@ -92,14 +92,14 @@ class RoyalRoadProvider : MainAPI() {
 
             var status = 0
             for (s in statusTxt) {
-                if(s.hasText()) {
-                    status = when(s.text()) {
+                if (s.hasText()) {
+                    status = when (s.text()) {
                         "ONGOING" -> 1
                         "COMPLETED" -> 2
                         "HIATUS" -> 3
                         else -> 0
                     }
-                    if(status > 0) break
+                    if (status > 0) break
                 }
             }
 

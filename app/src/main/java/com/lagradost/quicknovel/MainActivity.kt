@@ -14,6 +14,7 @@ import android.graphics.drawable.ColorDrawable
 import android.widget.FrameLayout
 import androidx.core.content.res.ResourcesCompat
 import androidx.preference.PreferenceManager
+import com.lagradost.quicknovel.providers.AllProvider
 import com.lagradost.quicknovel.providers.BestLightNovelProvider
 import com.lagradost.quicknovel.providers.NovelPassionProvider
 import com.lagradost.quicknovel.providers.RoyalRoadProvider
@@ -33,6 +34,7 @@ class MainActivity : AppCompatActivity() {
         var statusBarHeight = 0
 
         val apis: Array<MainAPI> = arrayOf(
+            AllProvider(),
             NovelPassionProvider(),
             RoyalRoadProvider(),
             BestLightNovelProvider(),

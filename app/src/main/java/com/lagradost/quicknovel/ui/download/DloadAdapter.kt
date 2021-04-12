@@ -145,7 +145,7 @@ class DloadAdapter(
                     updateBar(true)
                     thread {
                         val done = BookDownloader.turnToEpub(card.author, card.name, card.apiName)
-                        MainActivity.activity.runOnUiThread {
+                        activity.runOnUiThread {
                             if (done) {
                                 //Toast.makeText(context, "Created ${card.name}", Toast.LENGTH_LONG).show()
                             } else {

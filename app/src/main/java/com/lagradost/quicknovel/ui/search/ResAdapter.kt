@@ -54,9 +54,8 @@ class ResAdapter(
         val bg = itemView.backgroundCard
         fun bind(card: SearchResponse) {
             cardText.text = card.name
-            if (card.latestChapter != null) {
-                cardTextExtra.text = card.latestChapter
-            }
+            cardTextExtra.text = card.latestChapter ?: ""
+
             val glideUrl =
                 GlideUrl(card.posterUrl)
             context.let {
@@ -66,7 +65,7 @@ class ResAdapter(
             }
 
             bg.setOnClickListener {
-                MainActivity.loadResult(card.url, MainActivity.activeAPI.name)
+                MainActivity.loadResult(card.url, card.apiName)
             }
         }
 

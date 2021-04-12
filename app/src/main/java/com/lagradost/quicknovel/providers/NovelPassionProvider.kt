@@ -45,7 +45,7 @@ class NovelPassionProvider : MainAPI() {
 
                 val rating = (h.selectFirst("> p.g_star_num > small").text()!!.toFloat() * 200).toInt()
                 val latestChapter = h.selectFirst("> div > div.dab > a").attr("title")
-                returnValue.add(SearchResponse(name, url, posterUrl, rating, latestChapter))
+                returnValue.add(SearchResponse(name, url, posterUrl, rating, latestChapter, this.name))
             }
             return returnValue
         } catch (e: Exception) {
@@ -98,13 +98,13 @@ class NovelPassionProvider : MainAPI() {
 
             var status = 0
             for (s in statusTxt) {
-                if(s.hasText()) {
-                    status = when(s.text()) {
+                if (s.hasText()) {
+                    status = when (s.text()) {
                         "Ongoing" -> 1
                         "Completed" -> 2
                         else -> 0
                     }
-                    if(status > 0) break
+                    if (status > 0) break
                 }
             }
 
