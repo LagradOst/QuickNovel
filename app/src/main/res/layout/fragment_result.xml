@@ -128,7 +128,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="60dp"
                                 android:elevation="0dp"
-                                android:backgroundTint="@color/grayBackground"
+                                android:backgroundTint="@color/itemBackground"
 
                         >
                             <GridLayout
@@ -190,29 +190,32 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/synopsis"
-                                android:textSize="15sp"
+                                android:textSize="17sp"
                                 android:layout_marginTop="10dp"
                                 android:layout_marginBottom="10dp"
-                                android:textStyle="bold"
+                                android:textStyle="normal"
                                 android:textColor="@color/textColor"
                         />
 
                         <TextView
+                                tools:text="As Shin Youngwoo has had an unfortunate life and is now stuck carrying bricks on construction sites. He even had to do labor in the VR game, Satisfy!
+However, luck would soon enter his hopeless life. His character, ‘Grid’, would discover the Northern End Cave for a quest, and in that place, he would find ‘Pagma’s Rare Book’ and become a legendary class player…
+Translator: Rainbow Turtle"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:id="@+id/result_synopsis_text"
                                 android:textSize="14sp"
-                                android:textColor="@color/textColor"
+                                android:textColor="@color/lightGrayTextColor"
                         />
 
                         <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/download"
-                                android:textSize="15sp"
+                                android:textSize="17sp"
                                 android:layout_marginTop="10dp"
                                 android:layout_marginBottom="10dp"
-                                android:textStyle="bold"
+                                android:textStyle="normal"
                                 android:textColor="@color/textColor"
                         />
                         <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
@@ -245,6 +248,7 @@
                                 android:progress="50"
                                 android:layout_marginTop="10dp"
                                 android:layout_marginBottom="10dp"
+                                android:progressBackgroundTint="@color/colorPrimary"
                                 style="@android:style/Widget.Material.ProgressBar.Horizontal"
                                 android:layout_height="wrap_content">
                         </androidx.core.widget.ContentLoadingProgressBar>

@@ -116,7 +116,7 @@ object BookDownloader {
 
         val not = cachedNotifications[id]
         if (not != null) {
-            createNotification(not.id, not.load, not.progress, not.total, not.eta, state)
+            createNotification(not.id, not.load, not.progress, not.total, not.eta, state, true)
         }
     }
 
@@ -201,8 +201,8 @@ object BookDownloader {
             1337)
     }
 
-    fun openEpub(name: String, openInApp: Boolean = true): Boolean {
-        if(openInApp) {
+    fun openEpub(name: String, openInApp: Boolean = false): Boolean {
+        if (openInApp) {
             val myIntent = Intent(MainActivity.activity, ReadActivity::class.java)
 
             val bookFile =
@@ -365,6 +365,7 @@ object BookDownloader {
 
             try {
                 var lastIndex = 0
+                var downloadCount = 0
                 for ((index, d) in load.data.withIndex()) {
                     if (!isRunning.containsKey(id)) return
                     while (isRunning[id] == DownloadType.IsPaused) {
@@ -391,6 +392,7 @@ object BookDownloader {
 
                         if (page != null) {
                             rFile.writeText("${d.name}\n${page}")
+                            downloadCount++
                         } else {
                             sleep(5000) // ERROR
                         }
@@ -412,7 +414,7 @@ object BookDownloader {
                         lastIndex,
                         total,
                         0.0,
-                        DownloadType.IsDone))
+                        DownloadType.IsDone), downloadCount > 0)
                 }
             } catch (e: Exception) {
                 println(e)
@@ -434,9 +436,9 @@ object BookDownloader {
 
     val cachedNotifications = hashMapOf<Int, NotificationData>()
 
-    fun createAndStoreNotification(data: NotificationData) {
+    fun createAndStoreNotification(data: NotificationData, show: Boolean = true) {
         cachedNotifications[data.id] = data
-        createNotification(data.id, data.load, data.progress, data.total, data.eta, data._state)
+        createNotification(data.id, data.load, data.progress, data.total, data.eta, data._state, show)
     }
 
     fun createNotification(
@@ -446,45 +448,11 @@ object BookDownloader {
         total: Int,
         eta: Double,
         _state: DownloadType,
+        showNotification: Boolean,
     ) {
         var state = _state
         if (progress >= total) {
             state = DownloadType.IsDone
-        }
-
-        val intent = Intent(MainActivity.activity, MainActivity::class.java).apply {
-            flags = FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TASK
-        }
-        val pendingIntent: PendingIntent = PendingIntent.getActivity(MainActivity.activity, 0, intent, 0)
-
-        val builder = NotificationCompat.Builder(MainActivity.activity, CHANNEL_ID)
-            .setAutoCancel(true)
-            .setColorized(true)
-            .setAutoCancel(true)
-            .setOnlyAlertOnce(true)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setColor(MainActivity.activity.getColor(R.color.colorPrimary))
-            .setContentText(
-                when (state) {
-                    DownloadType.IsDone -> "Download Done - ${load.name}"
-                    DownloadType.IsDownloading -> "Downloading ${load.name} - $progress/$total"
-                    DownloadType.IsPaused -> "Paused ${load.name} - $progress/$total"
-                    DownloadType.IsFailed -> "Error ${load.name} - $progress/$total"
-                    DownloadType.IsStopped -> "Stopped ${load.name} - $progress/$total"
-                })
-            .setSmallIcon(
-                when (state) {
-                    DownloadType.IsDone -> R.drawable.rddone
-                    DownloadType.IsDownloading -> R.drawable.rdload
-                    DownloadType.IsPaused -> R.drawable.rdpause
-                    DownloadType.IsFailed -> R.drawable.rderror
-                    DownloadType.IsStopped -> R.drawable.rderror
-                }
-            )
-            .setContentIntent(pendingIntent)
-
-        if (state == DownloadType.IsDownloading || state == DownloadType.IsPaused) {
-            builder.setProgress(total, progress, false)
         }
 
         var timeformat = ""
@@ -499,8 +467,6 @@ object BookDownloader {
             } else if (hours <= 0) {
                 timeformat = String.format("%02d min %02d s", minutes, seconds)
             }
-
-            builder.setSubText("$timeformat remaining")
         }
 
         val ETA = when (state) {
@@ -513,66 +479,106 @@ object BookDownloader {
 
         downloadNotification.invoke(DownloadNotification(progress, total, id, ETA, state))
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (load.posterUrl != null) {
-                val poster = getImageBitmapFromUrl(load.posterUrl)
-                if (poster != null)
-                    builder.setLargeIcon(poster)
+        if (showNotification) {
+            val intent = Intent(MainActivity.activity, MainActivity::class.java).apply {
+                flags = FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TASK
             }
-        }
+            val pendingIntent: PendingIntent = PendingIntent.getActivity(MainActivity.activity, 0, intent, 0)
 
-        if ((state == DownloadType.IsDownloading || state == DownloadType.IsPaused) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val actionTypes: MutableList<DownloadActionType> = ArrayList<DownloadActionType>()
-            // INIT
-            if (state == DownloadType.IsDownloading) {
-                actionTypes.add(DownloadActionType.Pause)
-                actionTypes.add(DownloadActionType.Stop)
-            }
-
-            if (state == DownloadType.IsPaused) {
-                actionTypes.add(DownloadActionType.Resume)
-                actionTypes.add(DownloadActionType.Stop)
-            }
-
-            // ADD ACTIONS
-            for ((index, i) in actionTypes.withIndex()) {
-                val _resultIntent = Intent(MainActivity.activity, DownloadService::class.java)
-
-                _resultIntent.putExtra(
-                    "type", when (i) {
-                        DownloadActionType.Resume -> "resume"
-                        DownloadActionType.Pause -> "pause"
-                        DownloadActionType.Stop -> "stop"
+            val builder = NotificationCompat.Builder(MainActivity.activity, CHANNEL_ID)
+                .setAutoCancel(true)
+                .setColorized(true)
+                .setAutoCancel(true)
+                .setOnlyAlertOnce(true)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setColor(MainActivity.activity.getColor(R.color.colorPrimary))
+                .setContentText(
+                    when (state) {
+                        DownloadType.IsDone -> "Download Done - ${load.name}"
+                        DownloadType.IsDownloading -> "Downloading ${load.name} - $progress/$total"
+                        DownloadType.IsPaused -> "Paused ${load.name} - $progress/$total"
+                        DownloadType.IsFailed -> "Error ${load.name} - $progress/$total"
+                        DownloadType.IsStopped -> "Stopped ${load.name} - $progress/$total"
+                    })
+                .setSmallIcon(
+                    when (state) {
+                        DownloadType.IsDone -> R.drawable.rddone
+                        DownloadType.IsDownloading -> R.drawable.rdload
+                        DownloadType.IsPaused -> R.drawable.rdpause
+                        DownloadType.IsFailed -> R.drawable.rderror
+                        DownloadType.IsStopped -> R.drawable.rderror
                     }
                 )
+                .setContentIntent(pendingIntent)
 
-                _resultIntent.putExtra("id", id)
-
-                val pending: PendingIntent = PendingIntent.getService(
-                    MainActivity.activity, 4337 + index + id,
-                    _resultIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT
-                )
-
-                builder.addAction(
-                    NotificationCompat.Action(
-                        when (i) {
-                            DownloadActionType.Resume -> R.drawable.rdload
-                            DownloadActionType.Pause -> R.drawable.rdpause
-                            DownloadActionType.Stop -> R.drawable.rderror
-                        }, when (i) {
-                            DownloadActionType.Resume -> "Resume"
-                            DownloadActionType.Pause -> "Pause"
-                            DownloadActionType.Stop -> "Stop"
-                        }, pending
-                    )
-                )
+            if (state == DownloadType.IsDownloading) {
+                builder.setSubText("$timeformat remaining")
             }
-        }
+            if (state == DownloadType.IsDownloading || state == DownloadType.IsPaused) {
+                builder.setProgress(total, progress, false)
+            }
 
-        with(NotificationManagerCompat.from(MainActivity.activity)) {
-            // notificationId is a unique int for each notification that you must define
-            notify(id, builder.build())
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (load.posterUrl != null) {
+                    val poster = getImageBitmapFromUrl(load.posterUrl)
+                    if (poster != null)
+                        builder.setLargeIcon(poster)
+                }
+            }
+
+            if ((state == DownloadType.IsDownloading || state == DownloadType.IsPaused) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val actionTypes: MutableList<DownloadActionType> = ArrayList<DownloadActionType>()
+                // INIT
+                if (state == DownloadType.IsDownloading) {
+                    actionTypes.add(DownloadActionType.Pause)
+                    actionTypes.add(DownloadActionType.Stop)
+                }
+
+                if (state == DownloadType.IsPaused) {
+                    actionTypes.add(DownloadActionType.Resume)
+                    actionTypes.add(DownloadActionType.Stop)
+                }
+
+                // ADD ACTIONS
+                for ((index, i) in actionTypes.withIndex()) {
+                    val _resultIntent = Intent(MainActivity.activity, DownloadService::class.java)
+
+                    _resultIntent.putExtra(
+                        "type", when (i) {
+                            DownloadActionType.Resume -> "resume"
+                            DownloadActionType.Pause -> "pause"
+                            DownloadActionType.Stop -> "stop"
+                        }
+                    )
+
+                    _resultIntent.putExtra("id", id)
+
+                    val pending: PendingIntent = PendingIntent.getService(
+                        MainActivity.activity, 4337 + index + id,
+                        _resultIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                    )
+
+                    builder.addAction(
+                        NotificationCompat.Action(
+                            when (i) {
+                                DownloadActionType.Resume -> R.drawable.rdload
+                                DownloadActionType.Pause -> R.drawable.rdpause
+                                DownloadActionType.Stop -> R.drawable.rderror
+                            }, when (i) {
+                                DownloadActionType.Resume -> "Resume"
+                                DownloadActionType.Pause -> "Pause"
+                                DownloadActionType.Stop -> "Stop"
+                            }, pending
+                        )
+                    )
+                }
+            }
+
+            with(NotificationManagerCompat.from(MainActivity.activity)) {
+                // notificationId is a unique int for each notification that you must define
+                notify(id, builder.build())
+            }
         }
     }
 

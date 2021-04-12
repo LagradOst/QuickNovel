@@ -6,8 +6,8 @@
 
     <color name="darkBackground">#0f0f10</color>
     <color name="bitDarkerGrayBackground">#191a1f</color>
-    <color name="grayBackground">#1b1c22</color>
-    <color name="itemBackground">#25262c</color>
+    <color name="grayBackground">#141419</color>
+    <color name="itemBackground">#1B1B20</color>
 
     <color name="textColor">#FFF</color>
     <color name="grayTextColor">#5e5f62</color>

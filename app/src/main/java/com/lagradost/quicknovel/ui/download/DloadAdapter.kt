@@ -4,10 +4,6 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.ProgressBar
-import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -21,6 +17,7 @@ import kotlinx.android.synthetic.main.search_result_compact.view.imageText
 import kotlinx.android.synthetic.main.search_result_compact.view.imageView
 import kotlin.concurrent.thread
 import android.content.DialogInterface
+import android.widget.*
 import com.lagradost.quicknovel.MainActivity.Companion.getApiFromName
 
 
@@ -70,8 +67,8 @@ class DloadAdapter(
         val cardText: TextView = itemView.imageText
         val download_progress_text: TextView = itemView.download_progress_text
         val download_progressbar: ProgressBar = itemView.download_progressbar
-        val download_update: MaterialButton = itemView.download_update
-        val download_open_btt: MaterialButton = itemView.download_open_btt
+        val download_update: ImageView = itemView.download_update
+        val download_open_btt: LinearLayout = itemView.download_open_btt
         val download_progressbar_indeterment: ProgressBar = itemView.download_progressbar_indeterment
         val download_delete_trash: ImageView = itemView.download_delete_trash
 
@@ -84,7 +81,8 @@ class DloadAdapter(
             cardText.text = card.name
             download_progress_text.text =
                 "${card.downloadedCount}/${card.downloadedTotal}" + if (card.ETA == "") "" else " - ${card.ETA}"
-            download_progressbar.progress = card.downloadedCount * 100 / card.downloadedTotal
+            download_progressbar.progress = card.downloadedCount
+            download_progressbar.max = card.downloadedTotal
 
             var realState = card.state
             if (card.downloadedCount >= card.downloadedTotal && card.updated) {
@@ -101,7 +99,7 @@ class DloadAdapter(
                     .into(cardView)
             }
 
-            download_update.text = when (realState) {
+            download_update.contentDescription = when (realState) {
                 BookDownloader.DownloadType.IsDone -> "Done"
                 BookDownloader.DownloadType.IsDownloading -> "Pause"
                 BookDownloader.DownloadType.IsPaused -> "Resume"
@@ -109,8 +107,8 @@ class DloadAdapter(
                 BookDownloader.DownloadType.IsStopped -> "Update"
             }
 
-            download_update.setIconResource(when (realState) {
-                BookDownloader.DownloadType.IsDownloading -> R.drawable.netflix_pause
+            download_update.setImageResource(when (realState) {
+                BookDownloader.DownloadType.IsDownloading -> R.drawable.ic_baseline_pause_24
                 BookDownloader.DownloadType.IsPaused -> R.drawable.netflix_play
                 BookDownloader.DownloadType.IsStopped -> R.drawable.ic_baseline_autorenew_24
                 BookDownloader.DownloadType.IsFailed -> R.drawable.ic_baseline_autorenew_24
@@ -132,11 +130,11 @@ class DloadAdapter(
             fun updateEpub() {
                 val generateEpub = getEpub()
                 if (generateEpub) {
-                    download_open_btt.setIconResource(R.drawable.ic_baseline_create_24)
-                    download_open_btt.text = "Generate"
+                  //  download_open_btt.setImageResource(R.drawable.ic_baseline_create_24)
+                    download_open_btt.contentDescription = "Generate"
                 } else {
-                    download_open_btt.setIconResource(R.drawable.ic_baseline_menu_book_24)
-                    download_open_btt.text = "Read"
+                  //  download_open_btt.setImageResource(R.drawable.ic_baseline_menu_book_24)
+                    download_open_btt.contentDescription = "Read"
                 }
             }
             updateEpub()

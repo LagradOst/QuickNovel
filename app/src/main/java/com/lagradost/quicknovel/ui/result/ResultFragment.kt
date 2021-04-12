@@ -102,7 +102,8 @@ class ResultFragment : Fragment() {
         if (localId != info.id) return
         activity?.runOnUiThread {
             result_download_progress_text.text = "${info.progress}/${info.total}"
-            result_download_progress_bar.progress = info.progress * 100 / info.total
+            result_download_progress_bar.progress = info.progress
+            result_download_progress_bar.max = info.total
             result_download_progress_text_eta.text = info.ETA
             updateDownloadButtons(info.progress, info.total, info.state)
             updateGenerateBtt(info.progress)
@@ -136,7 +137,7 @@ class ResultFragment : Fragment() {
 
         result_download_btt.iconSize = 30.toPx
         result_download_btt.setIconResource(when (loadlState) {
-            BookDownloader.DownloadType.IsDownloading -> R.drawable.netflix_pause
+            BookDownloader.DownloadType.IsDownloading -> R.drawable.ic_baseline_pause_24
             BookDownloader.DownloadType.IsPaused -> R.drawable.netflix_play
             BookDownloader.DownloadType.IsFailed -> R.drawable.ic_baseline_autorenew_24
             BookDownloader.DownloadType.IsDone -> R.drawable.ic_baseline_check_24
@@ -257,7 +258,8 @@ class ResultFragment : Fragment() {
                     if (start != null) {
                         updateGenerateBtt(start.progress)
                         result_download_progress_text.text = "${start.progress}/${start.total}"
-                        result_download_progress_bar.progress = start.progress * 100 / start.total
+                        result_download_progress_bar.progress = start.progress
+                        result_download_progress_bar.max = start.total
                         val state =
                             if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped
                         updateDownloadButtons(start.progress, start.total, state!!)
