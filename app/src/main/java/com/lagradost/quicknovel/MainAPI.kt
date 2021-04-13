@@ -1,5 +1,11 @@
 package com.lagradost.quicknovel
 
+import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.json.JsonMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.fasterxml.jackson.module.kotlin.readValue
+
 open class MainAPI {
     open val name = "NONE"
     open val mainUrl = "NONE"
@@ -45,4 +51,25 @@ data class ChapterData(
     val dateOfRelease: String?,
     val views: Int?,
     //val index : Int,
+)
+
+data class GithubAsset(
+    val name: String,
+    val size: Int, // Size bytes
+    val browser_download_url: String, // download link
+    val content_type: String // application/vnd.android.package-archive
+)
+
+data class GithubRelease(
+    val tag_name: String, // Version code
+    val body: String, // Desc
+    val assets: List<GithubAsset>,
+    val target_commitish: String // branch
+)
+
+data class Update(
+    val shouldUpdate: Boolean,
+    val updateURL: String?,
+    val updateVersion: String?,
+    val changelog: String?
 )

@@ -14,6 +14,10 @@ import android.graphics.drawable.ColorDrawable
 import android.widget.FrameLayout
 import androidx.core.content.res.ResourcesCompat
 import androidx.preference.PreferenceManager
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.json.JsonMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.quicknovel.providers.*
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import java.util.HashSet
@@ -58,8 +62,10 @@ class MainActivity : AppCompatActivity() {
         fun getApiSettings(): HashSet<String> {
             val settingsManager = PreferenceManager.getDefaultSharedPreferences(activity)
 
-            return settingsManager.getStringSet(activity.getString(R.string.search_providers_list_key),
-                setOf(apis[defProvider].name))?.toHashSet() ?: hashSetOf(apis[defProvider].name)
+            return settingsManager.getStringSet(
+                activity.getString(R.string.search_providers_list_key),
+                setOf(apis[defProvider].name)
+            )?.toHashSet() ?: hashSetOf(apis[defProvider].name)
         }
 
         fun loadResult(url: String, apiName: String) {
@@ -87,6 +93,45 @@ class MainActivity : AppCompatActivity() {
             }
             return false
         }
+
+        fun getAppUpdate(): Update {
+            try {
+                val mapper = JsonMapper.builder().addModule(KotlinModule())
+                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build()
+
+                val repoName = "QuickNovel"
+                val author = "LagradOst"
+                val url = "https://api.github.com/repos/${author}/${repoName}/releases"
+                val headers = mapOf("Accept" to "application/vnd.github.v3+json")
+
+                val response =
+                    mapper.readValue<List<GithubRelease>>(khttp.get(url, headers = headers).text)
+
+                val versionRegex = Regex("""(.*?((\d)\.(\d)\.(\d)).*\.apk)""")
+
+                val found = response.sortedWith(compareBy { release ->
+                    release.assets.filter { asset -> asset.content_type == "application/vnd.android.package-archive" }
+                        .getOrNull(0)?.name?.let { versionRegex.find(it)?.groupValues?.get(2) }
+                }).toList().lastOrNull()
+
+                val foundAsset = found?.assets?.getOrNull(0)
+                val currentVersion = activity.packageName?.let { activity.packageManager?.getPackageInfo(it, 0) }
+
+                val foundVersion = foundAsset?.name?.let { versionRegex.find(it) }
+                val shouldUpdate =
+                    if (found != null && foundAsset?.browser_download_url != "" && foundVersion != null) currentVersion?.versionName?.compareTo(
+                        foundVersion.groupValues[2]
+                    )!! < 0 else false
+                return if (foundVersion != null) {
+                    Update(shouldUpdate, foundAsset.browser_download_url, foundVersion.groupValues[2], found.body)
+                } else {
+                    Update(false, null, null, null)
+                }
+            } catch (e: Exception) {
+                println(e)
+                return Update(false, null, null, null)
+            }
+        }
     }
 
     fun getStatusBarHeight(): Int {
@@ -105,7 +150,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         activity = this
-
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
@@ -117,9 +161,12 @@ class MainActivity : AppCompatActivity() {
         val navController = findNavController(R.id.nav_host_fragment)
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
-        val appBarConfiguration = AppBarConfiguration(setOf(
-            R.id.navigation_search,
-            R.id.navigation_download)) // R.id.navigation_dashboard, R.id.navigation_notifications
+        val appBarConfiguration = AppBarConfiguration(
+            setOf(
+                R.id.navigation_search,
+                R.id.navigation_download
+            )
+        ) // R.id.navigation_dashboard, R.id.navigation_notifications
         //setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
         DataStore.init(this)
