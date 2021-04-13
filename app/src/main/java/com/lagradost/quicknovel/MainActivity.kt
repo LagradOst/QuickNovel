@@ -14,6 +14,12 @@ import android.graphics.drawable.ColorDrawable
 import android.widget.FrameLayout
 import androidx.core.content.res.ResourcesCompat
 import androidx.preference.PreferenceManager
+import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.json.JsonMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.fasterxml.jackson.module.kotlin.readValue
+import com.lagradost.quicknovel.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.providers.*
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import java.util.HashSet
@@ -31,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         var isInResults = false
 
+        // === API ===
         lateinit var activity: MainActivity
         var statusBarHeight = 0
 
@@ -144,6 +151,10 @@ class MainActivity : AppCompatActivity() {
             for (k in keys) {
                 DataStore.getKey<DownloadFragment.DownloadData>(k)
             }
+        }
+
+        thread {
+            runAutoUpdate(this)
         }
 
         //loadResult("https://www.novelpassion.com/novel/battle-frenzy")

@@ -109,12 +109,14 @@ class ResultFragment : Fragment() {
     fun updateDownloadInfo(info: BookDownloader.DownloadNotification) {
         if (localId != info.id) return
         activity?.runOnUiThread {
-            result_download_progress_text.text = "${info.progress}/${info.total}"
-            result_download_progress_bar.max = info.total
-            result_download_progress_bar.progress = info.progress
-            result_download_progress_text_eta.text = info.ETA
-            updateDownloadButtons(info.progress, info.total, info.state)
-            updateGenerateBtt(info.progress)
+            if(result_download_progress_text != null) {
+                result_download_progress_text.text = "${info.progress}/${info.total}"
+                result_download_progress_bar.max = info.total
+                result_download_progress_bar.progress = info.progress
+                result_download_progress_text_eta.text = info.ETA
+                updateDownloadButtons(info.progress, info.total, info.state)
+                updateGenerateBtt(info.progress)
+            }
         }
     }
 

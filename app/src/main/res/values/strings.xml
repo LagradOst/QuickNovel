@@ -16,6 +16,8 @@
     <string name="update_text">Update</string>
     <string name="provider_list_key">provider_list</string>
     <string name="search_providers_list_key">search_providers_list</string>
+    <string name="auto_update_key">auto_update</string>
+    <string name="manual_check_update_key">manual_check_update</string>
     <string name="rating_format_key">rating_format</string>
     <string name="exampleTXT">"this is <annotation key="rounded">a regular</annotation> paragraph."</string>
     <string name="tags">Tags</string>

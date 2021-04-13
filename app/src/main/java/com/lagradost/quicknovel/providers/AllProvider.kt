@@ -21,14 +21,18 @@ class AllProvider : MainAPI() {
         }
 
         var maxCount = 0
+        var providerCount = 0
         for (res in list) {
             if (res != null) {
                 if (res.size > maxCount) {
                     maxCount = res.size
                 }
+                providerCount++
             }
         }
-        if (maxCount == 0) return null
+
+        if (providerCount == 0) return null
+        if (maxCount == 0) return ArrayList()
 
         val result = ArrayList<SearchResponse>()
         for (i in 0..maxCount) {
