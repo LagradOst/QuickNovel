@@ -13,34 +13,50 @@
     <View android:layout_width="wrap_content" android:layout_height="0dp" android:id="@+id/top_padding">
 
     </View>
-    <androidx.appcompat.widget.SearchView
-            android:animateLayoutChanges="true"
-            android:id="@+id/main_search"
-            app:queryBackground="@color/transparent"
-            android:iconifiedByDefault="false"
-            app:queryHint="@string/search_hint"
-            android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:layout_margin="10dp"
-            app:iconifiedByDefault="false"
-            app:searchIcon="@null"
-            android:background="@drawable/search_background"
-    >
-        <androidx.core.widget.ContentLoadingProgressBar
-                android:id="@+id/search_loading_bar"
-                android:layout_width="20dp" android:layout_height="20dp"
-                                                        android:layout_marginLeft="-35dp"
-                                                        style="@style/Widget.AppCompat.ProgressBar"
-                                                        android:foregroundTint="@color/white"
-                                                        android:progressTint="@color/white"
-                                                        android:layout_gravity="center">
+    <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+        <FrameLayout android:layout_width="match_parent" android:layout_marginEnd="30dp" android:layout_height="wrap_content">
+            <androidx.appcompat.widget.SearchView
+                    android:animateLayoutChanges="true"
+                    android:id="@+id/main_search"
+                    app:queryBackground="@color/transparent"
+                    android:iconifiedByDefault="false"
+                    app:queryHint="@string/search_hint"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_margin="10dp"
+                    app:iconifiedByDefault="false"
+                    app:searchIcon="@null"
+                    android:background="@drawable/search_background"
+            >
+                <androidx.core.widget.ContentLoadingProgressBar
+                        android:id="@+id/search_loading_bar"
+                        android:layout_width="20dp" android:layout_height="20dp"
+                        android:layout_marginStart="-35dp"
+                        style="@style/Widget.AppCompat.ProgressBar"
+                        android:foregroundTint="@color/white"
+                        android:progressTint="@color/white"
+                        android:layout_gravity="center">
 
-        </androidx.core.widget.ContentLoadingProgressBar>
-        <!--app:queryHint="@string/search_hint"
-         android:background="@color/grayBackground" @color/itemBackground
-                    app:searchHintIcon="@drawable/search_white"
-                    -->
-    </androidx.appcompat.widget.SearchView>
+                </androidx.core.widget.ContentLoadingProgressBar>
+                <!--app:queryHint="@string/search_hint"
+                 android:background="@color/grayBackground" @color/itemBackground
+                            app:searchHintIcon="@drawable/search_white"
+                            -->
+            </androidx.appcompat.widget.SearchView>
+        </FrameLayout>
+        <ImageView
+                android:id="@+id/search_filter"
+                android:background="?selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_baseline_tune_24"
+                android:layout_width="25dp"
+                android:layout_height="25dp"
+                android:layout_margin="5dp"
+                android:layout_gravity="end|center_vertical"
+                app:tint="@color/textColor"
+                android:contentDescription="@string/open_in_browser">
+        </ImageView>
+    </FrameLayout>
+
     <ScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"

@@ -10,8 +10,13 @@ class AllProvider : MainAPI() {
     override val name: String
         get() = "All Sources"
     private val mutex = ReentrantLock()
+
+    public var providersActive = HashSet<String>()
+
     override fun search(query: String): ArrayList<SearchResponse>? {
-        val list = MainActivity.apis.filter { a -> a.name != this.name }.pmap { a ->
+        val list = MainActivity.apis.filter { a ->
+            a.name != this.name && (providersActive.size == 0 || providersActive.contains(a.name))
+        }.pmap { a ->
             a.search(query)
         }
 

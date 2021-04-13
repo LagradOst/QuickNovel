@@ -16,12 +16,16 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.preference.PreferenceManager
 import com.lagradost.quicknovel.providers.*
 import com.lagradost.quicknovel.ui.download.DownloadFragment
+import java.util.HashSet
 import kotlin.concurrent.thread
+import kotlin.coroutines.coroutineContext
 
 val Int.toPx: Int get() = (this * Resources.getSystem().displayMetrics.density).toInt()
 val Float.toPx: Float get() = (this * Resources.getSystem().displayMetrics.density)
 val Int.toDp: Int get() = (this / Resources.getSystem().displayMetrics.density).toInt()
 val Float.toDp: Float get() = (this / Resources.getSystem().displayMetrics.density)
+
+const val defProvider = 0
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -31,12 +35,15 @@ class MainActivity : AppCompatActivity() {
         var statusBarHeight = 0
 
         val apis: Array<MainAPI> = arrayOf(
-            AllProvider(),
+            //AllProvider(),
             NovelPassionProvider(),
             RoyalRoadProvider(),
             BestLightNovelProvider(),
             WuxiaWorldOnlineProvider()
         )
+
+        val allApi: AllProvider = AllProvider()
+
         var activeAPI: MainAPI = apis[1]
 
         fun getApiFromName(name: String): MainAPI {
@@ -46,6 +53,13 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             return activeAPI
+        }
+
+        fun getApiSettings(): HashSet<String> {
+            val settingsManager = PreferenceManager.getDefaultSharedPreferences(activity)
+
+            return settingsManager.getStringSet(activity.getString(R.string.search_providers_list_key),
+                setOf(apis[defProvider].name))?.toHashSet() ?: hashSetOf(apis[defProvider].name)
         }
 
         fun loadResult(url: String, apiName: String) {
@@ -113,12 +127,17 @@ class MainActivity : AppCompatActivity() {
 
         statusBarHeight = getStatusBarHeight()
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(activity)
-
+        val apiNames = getApiSettings()
+        allApi.providersActive = apiNames
+        val edit = settingsManager.edit()
+        edit.putStringSet(getString(R.string.search_providers_list_key), allApi.providersActive)
+        edit.apply()
+        /*
         val apiName = settingsManager.getString(getString(R.string.provider_list_key), apis[0].name)
         activeAPI = getApiFromName(apiName ?: apis[0].name)
         val edit = settingsManager.edit()
         edit.putString(getString(R.string.provider_list_key, activeAPI.name), activeAPI.name)
-        edit.apply()
+        edit.apply()*/
 
         thread { // IDK, WARMUP OR SMTH, THIS WILL JUST REDUCE THE INITIAL LOADING TIME FOR DOWNLOADS, NO REAL USAGE, SEE @WARMUP
             val keys = DataStore.getKeys(DOWNLOAD_FOLDER)

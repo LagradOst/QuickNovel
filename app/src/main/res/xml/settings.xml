@@ -10,10 +10,16 @@
             android:title="General"
             app:isPreferenceVisible="true"
     >
+        <!--
         <ListPreference
                 app:icon="@drawable/ic_baseline_cloud_24"
                 android:key="@string/provider_list_key"
                 android:title="Active Provider"
+                app:useSimpleSummaryProvider="true" />-->
+        <MultiSelectListPreference
+                app:icon="@drawable/ic_baseline_cloud_24"
+                android:key="@string/search_providers_list_key"
+                android:title="Search Providers"
                 app:useSimpleSummaryProvider="true" />
         <ListPreference
                 app:icon="@drawable/ic_baseline_star_24"

@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.ui.search
 
+import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -11,16 +12,16 @@ import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.lagradost.quicknovel.MainActivity
-import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.ResAdapter
-import com.lagradost.quicknovel.SearchResponse
 import kotlinx.android.synthetic.main.fragment_search.*
 import kotlin.concurrent.thread
 
 import android.widget.ImageView
-
-
+import androidx.appcompat.app.AlertDialog
+import androidx.fragment.app.DialogFragment
+import androidx.preference.DialogPreference
+import androidx.preference.PreferenceManager
+import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity.Companion.getApiSettings
 
 
 class SearchFragment : Fragment() {
@@ -55,21 +56,49 @@ class SearchFragment : Fragment() {
             )
         }
         cardSpace.adapter = adapter
-        cardSpace.layoutManager = GridLayoutManager(context,1)
+        cardSpace.layoutManager = GridLayoutManager(context, 1)
         search_loading_bar.alpha = 0f
         val search_exit_icon = main_search.findViewById<ImageView>(androidx.appcompat.R.id.search_close_btn)
+
+        search_filter.setOnClickListener {
+            val builder: AlertDialog.Builder = AlertDialog.Builder(this.context!!)
+            val settingsManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
+            val apiNamesSetting = getApiSettings()
+
+            val apiNames = MainActivity.apis.map { it.name }
+
+            builder.setMultiChoiceItems(apiNames.toTypedArray(),
+                apiNames.map { a -> apiNamesSetting.contains(a) }.toBooleanArray(),
+                DialogInterface.OnMultiChoiceClickListener { _, position: Int, checked: Boolean ->
+                    val apiNamesSettingLocal = getApiSettings()
+                    val settingsManagerLocal = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
+                    if (checked) {
+                        apiNamesSettingLocal.add(apiNames[position])
+                    } else {
+                        apiNamesSettingLocal.remove(apiNames[position])
+                    }
+
+                    val edit = settingsManagerLocal.edit()
+                    edit.putStringSet(getString(R.string.search_providers_list_key),
+                        apiNames.filter { a -> apiNamesSettingLocal.contains(a) }.toSet())
+                    edit.apply()
+                    MainActivity.allApi.providersActive = apiNamesSettingLocal
+                })
+            builder.setTitle("Search Providers")
+            builder.show()
+        }
+
         main_search.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String): Boolean
-            {
+            override fun onQueryTextSubmit(query: String): Boolean {
                 search_exit_icon.alpha = 0f
                 search_loading_bar.alpha = 1f
                 thread {
-                    val data = MainActivity.activeAPI.search(query)
+                    val data = MainActivity.allApi.search(query)//MainActivity.activeAPI.search(query)
                     activity?.runOnUiThread {
                         if (data == null) {
                             Toast.makeText(activity, "Server error", Toast.LENGTH_LONG).show()
                         } else {
-                            (cardSpace.adapter as ResAdapter).cardList =  data
+                            (cardSpace.adapter as ResAdapter).cardList = data
                             (cardSpace.adapter as ResAdapter).notifyDataSetChanged()
                         }
                         search_exit_icon.alpha = 1f
@@ -80,8 +109,6 @@ class SearchFragment : Fragment() {
             }
 
             override fun onQueryTextChange(newText: String): Boolean {
-
-
                 return true
             }
         })
