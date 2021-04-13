@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel
 
+import android.content.Intent
 import android.content.res.Resources
 
 import android.os.Bundle
@@ -11,6 +12,7 @@ import androidx.navigation.ui.setupWithNavController
 import com.lagradost.quicknovel.ui.result.ResultFragment
 
 import android.graphics.drawable.ColorDrawable
+import android.net.Uri
 import android.widget.FrameLayout
 import androidx.core.content.res.ResourcesCompat
 import androidx.preference.PreferenceManager
@@ -80,6 +82,16 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        fun loadResutFromUrl(url: String?) {
+            if (url == null) return
+            for (api in apis) {
+                if (url.contains(api.mainUrl)) {
+                    loadResult(url, api.name)
+                    break
+                }
+            }
+        }
+
         fun backPressed(): Boolean {
             val currentFragment = activity.supportFragmentManager.fragments.last {
                 it.isVisible
@@ -108,6 +120,12 @@ class MainActivity : AppCompatActivity() {
     override fun onBackPressed() {
         if (backPressed()) return
         super.onBackPressed()
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        val data: String? = intent?.data?.toString()
+        loadResutFromUrl(data)
+        super.onNewIntent(intent)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -157,6 +175,8 @@ class MainActivity : AppCompatActivity() {
             runAutoUpdate(this)
         }
 
+        val data: String? = intent?.data?.toString()
+        loadResutFromUrl(data)
         //loadResult("https://www.novelpassion.com/novel/battle-frenzy")
         //loadResult("https://www.royalroad.com/fiction/40182/only-villains-do-that", MainActivity.activeAPI.name)
     }

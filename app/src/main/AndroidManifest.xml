@@ -16,12 +16,24 @@
             android:supportsRtl="true"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
             android:theme="@style/AppTheme">
-        <activity android:name="com.lagradost.quicknovel.MainActivity">
+        <activity android:name="com.lagradost.quicknovel.MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
-
                 <category android:name="android.intent.category.LAUNCHER"/>
+
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:scheme="https" android:host="bestlightnovel.com" android:pathPrefix="/"/>
+                <data android:scheme="https" android:host="www.novelpassion.com" android:pathPrefix="/novel"/>
+                <data android:scheme="https" android:host="www.royalroad.com" android:pathPrefix="/fiction"/>
+                <data android:scheme="https" android:host="wuxiaworld.online" android:pathPrefix="/"/>
+            </intent-filter>
+
         </activity>
 
         <activity android:name="com.lagradost.quicknovel.ReadActivity">
