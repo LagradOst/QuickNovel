@@ -240,6 +240,7 @@ object BookDownloader {
                 MainActivity.activity.applicationContext.packageName + ".provider",
                 bookFile), type) // THIS IS NEEDED BECAUSE A REGULAR INTENT WONT OPEN MOONREADER
             MainActivity.activity.startActivity(intent)
+            //MainActivity.activity.startActivityForResult(intent,1337) // SEE @moonreader
         } catch (e: Exception) {
             return false
         }

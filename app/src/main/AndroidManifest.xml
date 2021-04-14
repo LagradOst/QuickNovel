@@ -10,9 +10,9 @@
     <application
             android:requestLegacyExternalStorage="true"
             android:allowBackup="true"
-            android:icon="@drawable/ic_quicknovel"
+            android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name"
-            android:roundIcon="@drawable/ic_quicknovel"
+            android:roundIcon="@mipmap/ic_launcher"
             android:supportsRtl="true"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
             android:theme="@style/AppTheme">
