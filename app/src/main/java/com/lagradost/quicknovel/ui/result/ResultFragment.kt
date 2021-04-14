@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.ui.result
 
+import android.animation.ObjectAnimator
 import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -31,9 +32,7 @@ import kotlinx.android.synthetic.main.activity_main.*
 import android.net.Uri
 
 import android.content.Intent
-
-
-
+import android.view.animation.DecelerateInterpolator
 
 const val MAX_SYNO_LENGH = 300
 
@@ -111,8 +110,21 @@ class ResultFragment : Fragment() {
         activity?.runOnUiThread {
             if(result_download_progress_text != null) {
                 result_download_progress_text.text = "${info.progress}/${info.total}"
-                result_download_progress_bar.max = info.total
-                result_download_progress_bar.progress = info.progress
+              //  result_download_progress_bar.max = info.total
+                // ANIMATION PROGRESSBAR
+                result_download_progress_bar.max = info.total * 100
+
+                val animation: ObjectAnimator = ObjectAnimator.ofInt(result_download_progress_bar,
+                    "progress",
+                    result_download_progress_bar.progress,
+                    info.progress * 100)
+
+                animation.duration = 500
+                animation.setAutoCancel(true)
+                animation.interpolator = DecelerateInterpolator()
+                animation.start()
+
+                //result_download_progress_bar.progress = info.progress
                 result_download_progress_text_eta.text = info.ETA
                 updateDownloadButtons(info.progress, info.total, info.state)
                 updateGenerateBtt(info.progress)

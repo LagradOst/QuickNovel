@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel
 
+import android.animation.ObjectAnimator
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
@@ -17,6 +18,7 @@ import kotlinx.android.synthetic.main.search_result_compact.view.imageText
 import kotlinx.android.synthetic.main.search_result_compact.view.imageView
 import kotlin.concurrent.thread
 import android.content.DialogInterface
+import android.view.animation.DecelerateInterpolator
 import android.widget.*
 import com.lagradost.quicknovel.MainActivity.Companion.getApiFromName
 
@@ -81,8 +83,24 @@ class DloadAdapter(
             download_progress_text.text =
                 "${card.downloadedCount}/${card.downloadedTotal}" + if (card.ETA == "") "" else " - ${card.ETA}"
 
-            download_progressbar.max = card.downloadedTotal
-            download_progressbar.progress = card.downloadedCount
+            // ANIMATION PROGRESSBAR
+            download_progressbar.max = card.downloadedTotal * 100
+
+            if (download_progressbar.progress != 0) {
+                val animation: ObjectAnimator = ObjectAnimator.ofInt(download_progressbar,
+                    "progress",
+                    download_progressbar.progress,
+                    card.downloadedCount * 100)
+
+                animation.duration = 500
+                animation.setAutoCancel(true)
+                animation.interpolator = DecelerateInterpolator()
+                animation.start()
+            }
+            else {
+                download_progressbar.progress = card.downloadedCount * 100
+            }
+            //download_progressbar.progress = card.downloadedCount
 
             var realState = card.state
             if (card.downloadedCount >= card.downloadedTotal && card.updated) {
@@ -130,10 +148,10 @@ class DloadAdapter(
             fun updateEpub() {
                 val generateEpub = getEpub()
                 if (generateEpub) {
-                  //  download_open_btt.setImageResource(R.drawable.ic_baseline_create_24)
+                    //  download_open_btt.setImageResource(R.drawable.ic_baseline_create_24)
                     download_open_btt.contentDescription = "Generate"
                 } else {
-                  //  download_open_btt.setImageResource(R.drawable.ic_baseline_menu_book_24)
+                    //  download_open_btt.setImageResource(R.drawable.ic_baseline_menu_book_24)
                     download_open_btt.contentDescription = "Read"
                 }
             }
@@ -174,7 +192,9 @@ class DloadAdapter(
                     } else {
                         cachedLoadResponse[card.id] = res
                         val localId = card.id//BookDownloader.generateId(res, MainActivity.api)
-                        DataStore.setKey(DOWNLOAD_TOTAL, localId.toString(), res.data.size) // FIX BUG WHEN DOWNLOAD IS OVER TOTAL
+                        DataStore.setKey(DOWNLOAD_TOTAL,
+                            localId.toString(),
+                            res.data.size) // FIX BUG WHEN DOWNLOAD IS OVER TOTAL
                         when (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped) {
                             BookDownloader.DownloadType.IsFailed -> BookDownloader.download(res, api)
                             BookDownloader.DownloadType.IsStopped -> BookDownloader.download(res, api)
