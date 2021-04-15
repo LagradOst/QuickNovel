@@ -186,13 +186,13 @@ object BookDownloader {
         }
     }
 
-    private fun checkWrite(): Boolean {
+     fun checkWrite(): Boolean {
         return (ContextCompat.checkSelfPermission(MainActivity.activity,
             Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 == PackageManager.PERMISSION_GRANTED)
     }
 
-    private fun requestRW() {
+     fun requestRW() {
         ActivityCompat.requestPermissions(MainActivity.activity,
             arrayOf(
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,

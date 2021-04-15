@@ -2,13 +2,13 @@
 <FrameLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="match_parent" xmlns:tools="http://schemas.android.com/tools"
         android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
         android:paddingTop="0dp"
         android:background="@color/readerBackground"
 >
     <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
-                  android:layout_marginBottom="20dp" android:orientation="vertical">
+                  android:layout_marginBottom="25dp" android:orientation="vertical">
         <View android:id="@+id/read_topmargin"
               android:layout_width="match_parent" android:layout_height="0dp">
         </View>
@@ -28,8 +28,8 @@
             </com.lagradost.quicknovel.ui.roundedbg.RoundedBgTextView>
         </ScrollView>
     </LinearLayout>
-
     <FrameLayout
+            android:id="@+id/read_overlay"
             android:orientation="horizontal"
             android:layout_gravity="bottom"
             android:layout_width="match_parent"
@@ -37,15 +37,15 @@
             android:paddingRight="10dp"
             android:background="@color/readerHightlightedMetaInfo"
 
-            android:layout_height="15dp">
+            android:layout_height="25dp">
         <TextView
-                android:text="20:35"
+                tools:text="20:35"
                 android:textStyle="bold"
                 android:gravity="center"
                 android:id="@+id/read_time"
                 android:textSize="11sp"
                 android:textColor="@color/readerTextColor"
-                android:layout_width="50dp" android:layout_height="match_parent">
+                android:layout_width="50dp" android:layout_height="match_parent" tools:ignore="SmallSp">
         </TextView>
         <TextView
                 android:layout_marginLeft="50dp"
@@ -57,9 +57,19 @@
                 android:gravity="center"
                 android:layout_gravity="center_horizontal"
                 android:layout_height="match_parent"
-                android:text="Chapter 1148 - You Will Support Me in the Future"
-                android:textColor="@color/readerTextColor">
+                tools:text="Chapter 1148 - You Will Support Me in the Future"
+                android:textColor="@color/readerTextColor" tools:ignore="SmallSp">
         </TextView>
+        <!--        <ImageView
+                        android:id="@+id/read_menu"
+                        android:background="?selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_baseline_menu_24"
+                        android:layout_width="15dp" android:layout_height="15dp"
+                        android:layout_gravity="end|center_vertical"
+                        android:layout_margin="5dp"
+                        android:contentDescription="@string/select_chapter">
+                </ImageView>-->
+
         <!--<TextView
                 android:text="78.5%"
                 android:textStyle="bold"
@@ -70,4 +80,14 @@
                 android:layout_width="50dp" android:layout_height="match_parent">
         </TextView>-->
     </FrameLayout>
+    <androidx.core.widget.ContentLoadingProgressBar
+            android:id="@+id/read_overflow_progress"
+            android:layout_gravity="bottom"
+            android:layout_width="match_parent"
+            android:visibility="gone"
+            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+            android:layout_marginBottom="-5dp"
+            android:layout_height="10dp">
+
+    </androidx.core.widget.ContentLoadingProgressBar>
 </FrameLayout>

@@ -182,6 +182,10 @@ class MainActivity : AppCompatActivity() {
 
         val data: String? = intent?.data?.toString()
         loadResutFromUrl(data)
+
+        if(!BookDownloader.checkWrite()) {
+            BookDownloader.requestRW()
+        }
         //loadResult("https://www.novelpassion.com/novel/battle-frenzy")
         //loadResult("https://www.royalroad.com/fiction/40182/only-villains-do-that", MainActivity.activeAPI.name)
     }

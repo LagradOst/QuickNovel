@@ -83,11 +83,10 @@
                             android:id="@+id/download_update"
                             android:background="?selectableItemBackgroundBorderless"
                             android:src="@drawable/ic_baseline_autorenew_24"
-                            android:layout_width="30dp" android:layout_height="30dp"
+                            android:layout_width="40dp" android:layout_height="match_parent"
                             android:layout_gravity="end|center_vertical"
-                            android:layout_margin="5dp"
-                            android:scaleX="0.8"
-                            android:scaleY="0.8"
+                            android:scaleX="0.6"
+                            android:scaleY="0.6"
                     >
                     </ImageView>
 
@@ -95,11 +94,11 @@
                             android:id="@+id/download_delete_trash"
                             android:background="?selectableItemBackgroundBorderless"
                             android:src="@drawable/ic_baseline_delete_outline_24"
-                            android:layout_width="30dp" android:layout_height="30dp"
+                            android:layout_width="40dp" android:layout_height="match_parent"
                             android:layout_gravity="end|center_vertical"
-                            android:layout_margin="5dp"
-                            android:scaleX="0.8"
-                            android:scaleY="0.8"
+                            android:layout_marginRight="5dp"
+                            android:scaleX="0.6"
+                            android:scaleY="0.6"
                             android:contentDescription="@string/delete">
                     </ImageView>
                 </LinearLayout>
