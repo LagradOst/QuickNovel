@@ -21,7 +21,7 @@ class NovelPassionProvider : MainAPI() {
                 return null
             }
             res.html()
-                .replace("( NovelFull )", "") // FUCK ADS
+                .replace("( NovelFull )", "").replace("NiceNovel.com", "") // FUCK ADS
         } catch (e: Exception) {
             null
         }

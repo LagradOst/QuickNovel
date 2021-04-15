@@ -108,23 +108,29 @@ class ResultFragment : Fragment() {
     fun updateDownloadInfo(info: BookDownloader.DownloadNotification) {
         if (localId != info.id) return
         activity?.runOnUiThread {
-            if(result_download_progress_text != null) {
+            if (result_download_progress_text != null) {
                 result_download_progress_text.text = "${info.progress}/${info.total}"
-              //  result_download_progress_bar.max = info.total
+                //  result_download_progress_bar.max = info.total
                 // ANIMATION PROGRESSBAR
                 result_download_progress_bar.max = info.total * 100
 
-                val animation: ObjectAnimator = ObjectAnimator.ofInt(result_download_progress_bar,
-                    "progress",
-                    result_download_progress_bar.progress,
-                    info.progress * 100)
+                if (result_download_progress_bar.progress != 0) {
 
-                animation.duration = 500
-                animation.setAutoCancel(true)
-                animation.interpolator = DecelerateInterpolator()
-                animation.start()
 
-                //result_download_progress_bar.progress = info.progress
+                    val animation: ObjectAnimator = ObjectAnimator.ofInt(result_download_progress_bar,
+                        "progress",
+                        result_download_progress_bar.progress,
+                        info.progress * 100)
+
+                    animation.duration = 500
+                    animation.setAutoCancel(true)
+                    animation.interpolator = DecelerateInterpolator()
+                    animation.start()
+                }
+                else {
+                    result_download_progress_bar.progress = info.progress * 100
+                }
+
                 result_download_progress_text_eta.text = info.ETA
                 updateDownloadButtons(info.progress, info.total, info.state)
                 updateGenerateBtt(info.progress)
@@ -333,8 +339,8 @@ class ResultFragment : Fragment() {
                         updateGenerateBtt(start.progress)
                         result_download_progress_text.text = "${start.progress}/${start.total}"
 
-                        result_download_progress_bar.max = start.total
-                        result_download_progress_bar.progress = start.progress
+                        result_download_progress_bar.max = start.total * 100
+                        result_download_progress_bar.progress = start.progress * 100
                         val state =
                             if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped
                         updateDownloadButtons(start.progress, start.total, state!!)
