@@ -238,7 +238,7 @@ class ResultFragment : Fragment() {
                     result_title.text = res.name
                     result_author.text = res.author ?: "Author not found"
 
-                    result_openinbrower_text.text = ""// resultUrl
+                    result_openinbrower_text.text = api.name //""// resultUrl
                     result_openinbrower.setOnClickListener {
                         val i = Intent(Intent.ACTION_VIEW)
                         i.data = Uri.parse(resultUrl)

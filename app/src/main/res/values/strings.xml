@@ -25,4 +25,5 @@
     <string name="delete">Delete</string>
     <string name="open_in_browser">Open In Browser</string>
     <string name="select_chapter">Select Chapter</string>
+    <string name="search_poster_descript">Poster</string>
 </resources>

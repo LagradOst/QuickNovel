@@ -51,10 +51,12 @@ class ResAdapter(
         val cardView: ImageView = itemView.imageView
         val cardText: TextView = itemView.imageText
         val cardTextExtra: TextView = itemView.imageTextExtra
+        val imageTextProvider: TextView = itemView.imageTextProvider
         val bg = itemView.backgroundCard
         fun bind(card: SearchResponse) {
             cardText.text = card.name
             cardTextExtra.text = card.latestChapter ?: ""
+            imageTextProvider.text = card.apiName
 
             val glideUrl =
                 GlideUrl(card.posterUrl)
