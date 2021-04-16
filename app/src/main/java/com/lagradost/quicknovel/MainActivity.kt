@@ -24,6 +24,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.quicknovel.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.providers.*
 import com.lagradost.quicknovel.ui.download.DownloadFragment
+import kotlinx.android.synthetic.main.fragment_result.*
 import java.util.HashSet
 import kotlin.concurrent.thread
 import kotlin.coroutines.coroutineContext
@@ -106,12 +107,24 @@ class MainActivity : AppCompatActivity() {
             }
             return false
         }
+
+        fun getRating(score: Int): String {
+            val settingsManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
+
+            return when (settingsManager.getString(activity.getString(R.string.rating_format_key), "star")) {
+                "point10" -> "${(score / 100)}/10"
+                "point10d" -> "${"%.1f".format(score / 100f).replace(',', '.')}/10.0"
+                "point100" -> "${score / 10}/100"
+                else -> "%.2f".format(score.toFloat() / 200f).replace(',', '.') + "★" // star
+            }
+        }
     }
 
     /* // MOON READER WONT RETURN THE DURATION, BUT THIS CAN BE USED FOR SOME USER FEEDBACK IN THE FUTURE??? SEE @moonreader
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
     }*/
+
 
     fun getStatusBarHeight(): Int {
         var result = 0
@@ -183,7 +196,7 @@ class MainActivity : AppCompatActivity() {
         val data: String? = intent?.data?.toString()
         loadResutFromUrl(data)
 
-        if(!BookDownloader.checkWrite()) {
+        if (!BookDownloader.checkWrite()) {
             BookDownloader.requestRW()
         }
         //loadResult("https://www.novelpassion.com/novel/battle-frenzy")

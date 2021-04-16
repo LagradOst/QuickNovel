@@ -126,8 +126,7 @@ class ResultFragment : Fragment() {
                     animation.setAutoCancel(true)
                     animation.interpolator = DecelerateInterpolator()
                     animation.start()
-                }
-                else {
+                } else {
                     result_download_progress_bar.progress = info.progress * 100
                 }
 
@@ -246,16 +245,7 @@ class ResultFragment : Fragment() {
                     }
 
                     if (res.rating != null) {
-                        val settingsManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
-                        val ratingName = settingsManager.getString(getString(R.string.rating_format_key), "star")
-
-                        result_rating.text = when (ratingName) {
-                            "point10" -> "${(res.rating / 100)}/10"
-                            "point10d" -> "${"%.1f".format(res.rating / 100f).replace(',', '.')}/10.0"
-                            "point100" -> "${res.rating / 10}/100"
-                            else -> "%.2f".format(res.rating.toFloat() / 200f).replace(',', '.') + "★" // star
-                        }
-
+                        result_rating.text = MainActivity.getRating(res.rating)
                         if (res.peopleVoted != null) {
                             result_rating_voted_count.text = "${res.peopleVoted} Votes"
                         }

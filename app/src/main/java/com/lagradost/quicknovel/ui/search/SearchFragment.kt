@@ -22,6 +22,7 @@ import androidx.preference.DialogPreference
 import androidx.preference.PreferenceManager
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.getApiSettings
+import com.lagradost.quicknovel.ui.download.DownloadFragment
 
 
 class SearchFragment : Fragment() {
@@ -36,6 +37,10 @@ class SearchFragment : Fragment() {
         )
 
         return inflater.inflate(R.layout.fragment_search, container, false)
+    }
+
+    companion object {
+        val searchDowloads = ArrayList<DownloadFragment.DownloadData>()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -113,5 +118,19 @@ class SearchFragment : Fragment() {
                 return true
             }
         })
+
+        thread {
+            searchDowloads.clear()
+            val keys = DataStore.getKeys(DOWNLOAD_FOLDER)
+            for (k in keys) {
+                val data = DataStore.getKey<DownloadFragment.DownloadData>(k)
+                if (data != null) {
+                    val info = BookDownloader.downloadInfo(data.author, data.name, 100000, data.apiName)
+                    if(info != null && info.progress > 0) {
+                        searchDowloads.add(data)
+                    }
+                }
+            }
+        }
     }
 }

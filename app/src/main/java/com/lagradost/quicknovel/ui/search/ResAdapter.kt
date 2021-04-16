@@ -9,7 +9,8 @@ import android.widget.*
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.model.GlideUrl
-import kotlinx.android.synthetic.main.search_result_compact.view.*
+import com.lagradost.quicknovel.ui.search.SearchFragment
+import kotlinx.android.synthetic.main.search_result_super_compact.view.*
 
 
 class ResAdapter(
@@ -24,7 +25,7 @@ class ResAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
 
-        val layout = R.layout.search_result_compact
+        val layout = R.layout.search_result_super_compact
         return CardViewHolder(
             LayoutInflater.from(parent.context).inflate(layout, parent, false),
             context!!,
@@ -55,8 +56,35 @@ class ResAdapter(
         val bg = itemView.backgroundCard
         fun bind(card: SearchResponse) {
             cardText.text = card.name
-            cardTextExtra.text = card.latestChapter ?: ""
-            imageTextProvider.text = card.apiName
+            if (card.latestChapter == null) {
+                cardTextExtra.text = card.apiName
+            } else {
+                val r = Regex("""[0-9]+""")
+                val matches = r.findAll(card.latestChapter, 0).toList()
+                if (matches.isNotEmpty()) {
+                    var max = 0
+                    for (m in matches) {
+                        val subMax = m.value.toInt()
+                        if (subMax > max) {
+                            max = subMax
+                        }
+                    }
+                    cardTextExtra.text =
+                        "${card.apiName} • $max Chapter${if (max != 1) "s" else ""}" /*+ if (card.rating == null) "" else " • " + MainActivity.getRating(
+                            card.rating)*/
+                } else {
+                    cardTextExtra.text = card.apiName
+                }
+            }
+
+            bg.setCardBackgroundColor(MainActivity.activity.getColor(R.color.itemBackground))
+            for (d in SearchFragment.searchDowloads) {
+                if(card.url == d.source) {
+                    bg.setCardBackgroundColor(MainActivity.activity.getColor(R.color.colorItemSeen))
+                    break
+                }
+            }
+            //imageTextProvider.text = card.apiName
 
             val glideUrl =
                 GlideUrl(card.posterUrl)

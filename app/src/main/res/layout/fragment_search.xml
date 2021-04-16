@@ -22,7 +22,7 @@
                     android:iconifiedByDefault="false"
                     app:queryHint="@string/search_hint"
                     android:layout_width="match_parent"
-                    android:layout_height="50dp"
+                    android:layout_height="40dp"
                     android:layout_margin="10dp"
                     app:iconifiedByDefault="false"
                     app:searchIcon="@null"

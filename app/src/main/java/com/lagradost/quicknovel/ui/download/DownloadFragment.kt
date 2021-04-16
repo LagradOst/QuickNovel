@@ -64,10 +64,10 @@ class DownloadFragment : Fragment() {
         SotringMethod("Default", DEFAULT_SORT),
         SotringMethod("Alphabetical (A-Z)", ALPHA_SORT),
         SotringMethod("Alphabetical (Z-A)", REVERSE_ALPHA_SORT),
-        SotringMethod("Download count, (high to low)", DOWNLOADSIZE_SORT),
-        SotringMethod("Download count, (low to high)", REVERSE_DOWNLOADSIZE_SORT),
-        SotringMethod("Download percentage, (high to low)", DOWNLOADPRECENTAGE_SORT),
-        SotringMethod("Download percentage, (low to high)", REVERSE_DOWNLOADPRECENTAGE_SORT),
+        SotringMethod("Download count (high to low)", DOWNLOADSIZE_SORT),
+        SotringMethod("Download count (low to high)", REVERSE_DOWNLOADSIZE_SORT),
+        SotringMethod("Download percentage (high to low)", DOWNLOADPRECENTAGE_SORT),
+        SotringMethod("Download percentage (low to high)", REVERSE_DOWNLOADPRECENTAGE_SORT),
     )
     val standardSotringMethod = sotringMethods[0].id
     var currentSortingMethod = standardSotringMethod
