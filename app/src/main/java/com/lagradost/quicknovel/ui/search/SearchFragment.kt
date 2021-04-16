@@ -85,6 +85,7 @@ class SearchFragment : Fragment() {
                     MainActivity.allApi.providersActive = apiNamesSettingLocal
                 })
             builder.setTitle("Search Providers")
+            builder.setNegativeButton("Cancel") { _, _ -> }
             builder.show()
         }
 
