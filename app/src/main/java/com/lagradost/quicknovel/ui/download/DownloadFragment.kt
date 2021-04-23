@@ -111,9 +111,11 @@ class DownloadFragment : Fragment() {
                         info.state,
                         res.id,
                     )
+                (download_cardSpace.adapter as DloadAdapter).cardList =
+                    sortArray((download_cardSpace.adapter as DloadAdapter).cardList)
                 activity?.runOnUiThread {
-                    if (download_cardSpace != null) {
-                        (download_cardSpace.adapter as DloadAdapter).notifyItemChanged(index)
+                    if (download_cardSpace != null) { // IN CASE YOU SWITCH, THIS WILL BE NULL IS YOU TIME IT
+                        (download_cardSpace.adapter as DloadAdapter).notifyDataSetChanged()
                     }
                 }
                 break
@@ -124,6 +126,38 @@ class DownloadFragment : Fragment() {
 
     fun removeAction(id: Int) {
         loadData()
+    }
+
+    fun sortArray(arry: ArrayList<DownloadDataLoaded>): ArrayList<DownloadDataLoaded> {
+        return when (currentSortingMethod) {
+            DEFAULT_SORT -> arry
+            ALPHA_SORT -> {
+                arry.sortBy { t -> t.name }
+                arry
+            }
+            REVERSE_ALPHA_SORT -> {
+                arry.sortBy { t -> t.name }
+                arry.reverse()
+                arry
+            }
+            DOWNLOADSIZE_SORT -> {
+                arry.sortBy { t -> -t.downloadedCount }
+                arry
+            }
+            REVERSE_DOWNLOADSIZE_SORT -> {
+                arry.sortBy { t -> t.downloadedCount }
+                arry
+            }
+            DOWNLOADPRECENTAGE_SORT -> {
+                arry.sortBy { t -> -t.downloadedCount.toFloat() / t.downloadedTotal }
+                arry
+            }
+            REVERSE_DOWNLOADPRECENTAGE_SORT -> {
+                arry.sortBy { t -> t.downloadedCount.toFloat() / t.downloadedTotal }
+                arry
+            }
+            else -> arry
+        }
     }
 
     fun loadData() {
@@ -160,38 +194,9 @@ class DownloadFragment : Fragment() {
                 }
             }
         }
-        val newArry: ArrayList<DownloadDataLoaded> = when (currentSortingMethod) {
-            DEFAULT_SORT -> arry
-            ALPHA_SORT -> {
-                arry.sortBy { t -> t.name }
-                arry
-            }
-            REVERSE_ALPHA_SORT -> {
-                arry.sortBy { t -> t.name }
-                arry.reverse()
-                arry
-            }
-            DOWNLOADSIZE_SORT -> {
-                arry.sortBy { t -> -t.downloadedCount }
-                arry
-            }
-            REVERSE_DOWNLOADSIZE_SORT -> {
-                arry.sortBy { t -> t.downloadedCount }
-                arry
-            }
-            DOWNLOADPRECENTAGE_SORT -> {
-                arry.sortBy { t -> -t.downloadedCount.toFloat() / t.downloadedTotal }
-                arry
-            }
-            REVERSE_DOWNLOADPRECENTAGE_SORT -> {
-                arry.sortBy { t -> t.downloadedCount.toFloat() / t.downloadedTotal }
-                arry
-            }
-            else -> arry
-        }
 
         activity?.runOnUiThread {
-            (download_cardSpace.adapter as DloadAdapter).cardList = newArry
+            (download_cardSpace.adapter as DloadAdapter).cardList = sortArray(arry)
             (download_cardSpace.adapter as DloadAdapter).notifyDataSetChanged()
         }
     }

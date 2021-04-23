@@ -186,19 +186,32 @@ object BookDownloader {
         }
     }
 
-     fun checkWrite(): Boolean {
+    fun checkWrite(): Boolean {
         return (ContextCompat.checkSelfPermission(MainActivity.activity,
             Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 == PackageManager.PERMISSION_GRANTED)
     }
 
-     fun requestRW() {
+    fun requestRW() {
         ActivityCompat.requestPermissions(MainActivity.activity,
             arrayOf(
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 Manifest.permission.READ_EXTERNAL_STORAGE
             ),
             1337)
+    }
+
+    fun hasEpub(name: String): Boolean {
+        if (!checkWrite()) {
+            requestRW()
+            if (!checkWrite()) return false
+        }
+
+        val bookFile =
+            File(android.os.Environment.getExternalStorageDirectory().path +
+                    "${fs}Download${fs}Epub${fs}",
+                "${sanitizeFilename(name)}.epub")
+        return bookFile.exists()
     }
 
     fun openEpub(name: String, openInApp: Boolean = false): Boolean {
@@ -478,7 +491,9 @@ object BookDownloader {
             DownloadType.IsStopped -> "Stopped"
         }
 
-        downloadNotification.invoke(DownloadNotification(progress, total, id, ETA, state))
+        val not = DownloadNotification(progress, total, id, ETA, state)
+
+        downloadNotification.invoke(not)
 
         if (showNotification) {
             val intent = Intent(MainActivity.activity, MainActivity::class.java).apply {

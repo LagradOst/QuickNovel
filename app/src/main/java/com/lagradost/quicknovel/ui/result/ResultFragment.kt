@@ -2,37 +2,36 @@ package com.lagradost.quicknovel.ui.result
 
 import android.animation.ObjectAnimator
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
-import androidx.fragment.app.Fragment
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.model.GlideUrl
-import kotlinx.android.synthetic.main.fragment_result.*
-import kotlin.concurrent.thread
-import com.bumptech.glide.request.RequestOptions.bitmapTransform
-import com.lagradost.quicknovel.*
-import jp.wasabeef.glide.transformations.BlurTransformation
-import java.text.StringCharacterIterator
-
-import java.text.CharacterIterator
+import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat.getColor
 import androidx.core.content.ContextCompat.getColorStateList
 import androidx.core.content.res.ResourcesCompat
-import androidx.preference.PreferenceManager
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProviders
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.model.GlideUrl
+import com.bumptech.glide.request.RequestOptions.bitmapTransform
 import com.google.android.material.button.MaterialButton
+import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.BookDownloader.turnToEpub
+import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.download.DownloadFragment
+import jp.wasabeef.glide.transformations.BlurTransformation
 import kotlinx.android.synthetic.main.activity_main.*
-import android.net.Uri
-
-import android.content.Intent
-import android.view.animation.DecelerateInterpolator
+import kotlinx.android.synthetic.main.fragment_result.*
+import java.text.CharacterIterator
+import java.text.StringCharacterIterator
+import kotlin.concurrent.thread
 
 const val MAX_SYNO_LENGH = 300
 
@@ -45,6 +44,8 @@ class ResultFragment : Fragment() {
                 putString("apiName", apiName)
             }
         }
+
+    private lateinit var viewModel: ResultViewModel
 
     var resultUrl = ""
     var api: MainAPI = MainAPI()
@@ -75,6 +76,7 @@ class ResultFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_result, container, false)
     }
 
+    val factory = InjectorUtils.provideQuotesViewModelFactory()
     override fun onAttach(context: Context) {
         super.onAttach(context)
         arguments?.getString("url")?.let {
@@ -85,13 +87,16 @@ class ResultFragment : Fragment() {
         }
     }
 
-    var load: LoadResponse? = null
-    var localId = 0
+    override fun onActivityCreated(savedInstanceState: Bundle?) {
+        super.onActivityCreated(savedInstanceState)
+
+    }
+
     var generateEpub = false
     var lastProgress: Int = 0
     fun updateGenerateBtt(progress: Int?) {
-        if (load != null) {
-            generateEpub = DataStore.getKey(DOWNLOAD_EPUB_SIZE, localId.toString(), 0) != (progress ?: lastProgress)
+        if (viewModel.loadResponse.value != null) {
+            generateEpub = DataStore.getKey(DOWNLOAD_EPUB_SIZE, viewModel.id.value.toString(), 0) != (progress ?: lastProgress)
             if (progress != null) lastProgress = progress
             if (result_download_generate_epub != null) {
                 if (generateEpub) {
@@ -105,36 +110,35 @@ class ResultFragment : Fragment() {
         }
     }
 
-    fun updateDownloadInfo(info: BookDownloader.DownloadNotification) {
-        if (localId != info.id) return
-        activity?.runOnUiThread {
-            if (result_download_progress_text != null) {
-                result_download_progress_text.text = "${info.progress}/${info.total}"
-                //  result_download_progress_bar.max = info.total
-                // ANIMATION PROGRESSBAR
-                result_download_progress_bar.max = info.total * 100
+    fun updateDownloadInfo(info: BookDownloader.DownloadNotification?) {
+        if (info == null) return
+        if (result_download_progress_text != null) {
+            result_download_progress_text.text = "${info.progress}/${info.total}"
+            //  result_download_progress_bar.max = info.total
+            // ANIMATION PROGRESSBAR
+            result_download_progress_bar.max = info.total * 100
 
-                if (result_download_progress_bar.progress != 0) {
+            if (result_download_progress_bar.progress != 0) {
 
 
-                    val animation: ObjectAnimator = ObjectAnimator.ofInt(result_download_progress_bar,
-                        "progress",
-                        result_download_progress_bar.progress,
-                        info.progress * 100)
+                val animation: ObjectAnimator = ObjectAnimator.ofInt(result_download_progress_bar,
+                    "progress",
+                    result_download_progress_bar.progress,
+                    info.progress * 100)
 
-                    animation.duration = 500
-                    animation.setAutoCancel(true)
-                    animation.interpolator = DecelerateInterpolator()
-                    animation.start()
-                } else {
-                    result_download_progress_bar.progress = info.progress * 100
-                }
-
-                result_download_progress_text_eta.text = info.ETA
-                updateDownloadButtons(info.progress, info.total, info.state)
-                updateGenerateBtt(info.progress)
+                animation.duration = 500
+                animation.setAutoCancel(true)
+                animation.interpolator = DecelerateInterpolator()
+                animation.start()
+            } else {
+                result_download_progress_bar.progress = info.progress * 100
             }
+
+            result_download_progress_text_eta.text = info.ETA
+            updateDownloadButtons(info.progress, info.total, info.state)
+            updateGenerateBtt(info.progress)
         }
+
     }
 
     fun updateDownloadButtons(progress: Int, total: Int, state: BookDownloader.DownloadType) {
@@ -173,17 +177,189 @@ class ResultFragment : Fragment() {
     }
 
     override fun onDestroy() {
-        MainActivity.isInResults = false
-        BookDownloader.downloadNotification -= ::updateDownloadInfo
+        //BookDownloader.downloadNotification -= ::updateDownloadInfo
         MainActivity.activity.window.navigationBarColor =
             ResourcesCompat.getColor(resources, R.color.darkBackground, null)
         super.onDestroy()
     }
 
+    fun newState(loadResponse: LoadResponse?) {
+        val isLoaded = viewModel.isLoaded.value ?: false
+        val validState = isLoaded && loadResponse != null
+        result_holder.visibility = if (isLoaded) View.VISIBLE else View.GONE
+        result_loading.visibility = if (validState) View.GONE else View.VISIBLE
+
+        /*
+        if (mainStore.state.resultState.downloadNotification == null) mainStore.dispatch(
+            LoadDownloadData())*/
+
+        if (validState) {
+            val res = loadResponse!!
+            result_title.text = res.name
+            result_author.text = res.author ?: getString(R.string.no_author)
+
+            result_openinbrower_text.text = api.name //""// resultUrl
+            result_openinbrower.setOnClickListener {
+                val i = Intent(Intent.ACTION_VIEW)
+                i.data = Uri.parse(resultUrl)
+                startActivity(i)
+            }
+
+            result_rating_voted_count.text = getString(R.string.no_data)
+            if (res.rating != null) {
+                result_rating.text = MainActivity.getRating(res.rating)
+                if (res.peopleVoted != null) {
+                    result_rating_voted_count.text = "${res.peopleVoted} Votes"
+                }
+            }
+
+            // === TAGS ===
+            result_tag.removeAllViews()
+            if (res.tags == null && (res.status == null || res.status <= 0)) {
+                result_tag_holder.visibility = View.GONE
+            } else {
+                result_tag_holder.visibility = View.VISIBLE
+
+                var index = 0
+                if (res.status != null && res.status > 0) {
+                    val viewBtt = layoutInflater.inflate(R.layout.result_tag, null)
+                    val mat = viewBtt.findViewById<MaterialButton>(R.id.result_tag_card)
+                    mat.strokeColor = getColorStateList(context!!, R.color.colorOngoing)
+                    mat.setTextColor(getColor(context!!, R.color.colorOngoing))
+                    mat.rippleColor = getColorStateList(context!!, R.color.colorOngoing)
+                    mat.text = when (res.status) {
+                        1 -> "Ongoing"
+                        2 -> "Completed"
+                        3 -> "Paused"
+                        4 -> "Dropped"
+                        else -> "ERROR"
+                    }
+                    result_tag.addView(viewBtt, index)
+                    index++
+                }
+
+                if (res.tags != null) {
+                    for (tag in res.tags) {
+                        val viewBtt = layoutInflater.inflate(R.layout.result_tag, null)
+                        viewBtt.findViewById<MaterialButton>(R.id.result_tag_card).text = tag
+                        result_tag.addView(viewBtt, index)
+                        index++
+                    }
+                }
+            }
+
+            /*
+            if(res.status != null && res.status > 0) {
+                result_status.text = when(res.status) {
+                    1 -> "Ongoing"
+                    2 -> "Complete"
+                    3 -> "Pause"
+                    else -> "ERROR"
+                }
+            }
+            else {
+                result_status.visibility = View.GONE
+            }*/
+
+
+            result_views.text =
+                if (res.views != null) humanReadableByteCountSI(res.views) else getString(R.string.no_data)
+
+            if (res.Synopsis != null) {
+                var syno = res.Synopsis
+                if (syno.length > MAX_SYNO_LENGH) {
+                    syno = syno.substring(0, MAX_SYNO_LENGH) + "..."
+                }
+                result_synopsis_text.setOnClickListener {
+                    val builder: AlertDialog.Builder = AlertDialog.Builder(this.context!!)
+                    builder.setMessage(res.Synopsis).setTitle("Synopsis")
+                        .show()
+                }
+                result_synopsis_text.text = syno
+            } else {
+                result_synopsis_text.text = "..."
+            }
+
+            if (res.data.size > 0) {
+                val last = res.data.last()
+                result_total_chapters.text = "Latest: " + last.name //+ " " + last.dateOfRelease
+            } else {
+                result_total_chapters.text = getString(R.string.no_chapters)
+            }
+
+            val localId = viewModel.id.value!!
+
+            DataStore.setKey(DOWNLOAD_TOTAL, localId.toString(), res.data.size)
+
+            /*
+            val start = BookDownloader.downloadInfo(res.author, res.name, res.data.size, api.name)
+            result_download_progress_text_eta.text = ""
+            if (start != null) {
+                updateGenerateBtt(start.progress)
+                result_download_progress_text.text = "${start.progress}/${start.total}"
+
+                result_download_progress_bar.max = start.total * 100
+                result_download_progress_bar.progress = start.progress * 100
+                val state =
+                    if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped
+                updateDownloadButtons(start.progress, start.total, state!!)
+            } else {
+                result_download_progress_bar.progress = 0
+            }*/
+
+            val glideUrl =
+                GlideUrl(res.posterUrl)
+            context!!.let {
+                Glide.with(it)
+                    .load(glideUrl)
+                    .into(result_poster)
+
+                Glide.with(it)
+                    .load(glideUrl)
+                    .apply(bitmapTransform(BlurTransformation(100, 3)))
+                    .into(result_poster_blur)
+            }
+
+            result_download_card.post {
+                val displayMetrics = context!!.resources.displayMetrics
+                val height = result_download_card.height
+                result_scroll_padding.setPadding(
+                    result_scroll_padding.paddingLeft,
+                    result_scroll_padding.paddingTop,
+                    result_scroll_padding.paddingRight,
+                    maxOf(0, displayMetrics.heightPixels - height))// - MainActivity.activity.nav_view.height
+            }
+        } else {
+            if (isLoaded) {
+                Toast.makeText(context, "Error loading", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        viewModel = ViewModelProviders.of(this, factory)
+            .get(ResultViewModel::class.java)
+        println("STATEID:::${viewModel.downloadNotification.value} :: ${viewModel.loadResponse.value?.name}")
+        if (viewModel.loadResponse.value == null)
+            viewModel.initState(resultUrl, api.name)
 
-        MainActivity.isInResults = true
+
+        observe(viewModel.downloadNotification, ::updateDownloadInfo)
+        observe(viewModel.loadResponse, ::newState)
+
+        /*
+        storeSubscription =
+            mainStore.subscribe { activity?.runOnUiThread { newState(mainStore.state.resultState.loadResponse) } }
+        storeSubscription =
+            mainStore.subscribe {
+                if (mainStore.state.resultState.downloadNotification != null) {
+                    activity?.runOnUiThread {
+                        updateDownloadInfo(mainStore.state.resultState.downloadNotification!!)
+                    }
+                }
+            }*/
+
 
         MainActivity.activity.window.navigationBarColor =
             ResourcesCompat.getColor(resources, R.color.bitDarkerGrayBackground, null)
@@ -220,155 +396,10 @@ class ResultFragment : Fragment() {
             back_parameter.bottomMargin)
         result_back.layoutParams = back_parameter
 
-        thread {
-            val res = api.load(resultUrl)
-            load = res
-            activity?.runOnUiThread {
-                if (res == null) {
-                    Toast.makeText(context, "Error loading", Toast.LENGTH_SHORT).show()
-                } else {
-/*
-                    MainActivity.activity.window.navigationBarColor =
-                        ResourcesCompat.getColor(resources, R.color.bitDarkerGrayBackground, null)*/
-
-                    result_holder.visibility = View.VISIBLE
-                    result_loading.visibility = View.GONE
-
-                    result_title.text = res.name
-                    result_author.text = res.author ?: "Author not found"
-
-                    result_openinbrower_text.text = api.name //""// resultUrl
-                    result_openinbrower.setOnClickListener {
-                        val i = Intent(Intent.ACTION_VIEW)
-                        i.data = Uri.parse(resultUrl)
-                        startActivity(i)
-                    }
-
-                    if (res.rating != null) {
-                        result_rating.text = MainActivity.getRating(res.rating)
-                        if (res.peopleVoted != null) {
-                            result_rating_voted_count.text = "${res.peopleVoted} Votes"
-                        }
-                    }
-
-                    if (res.tags == null && (res.status == null || res.status <= 0)) {
-                        result_tag_holder.visibility = View.GONE
-                    } else {
-                        var index = 0
-                        if (res.status != null && res.status > 0) {
-                            val viewBtt = layoutInflater.inflate(R.layout.result_tag, null)
-                            val mat = viewBtt.findViewById<MaterialButton>(R.id.result_tag_card)
-                            mat.strokeColor = getColorStateList(context!!, R.color.colorOngoing)
-                            mat.setTextColor(getColor(context!!, R.color.colorOngoing))
-                            mat.rippleColor = getColorStateList(context!!, R.color.colorOngoing)
-                            mat.text = when (res.status) {
-                                1 -> "Ongoing"
-                                2 -> "Completed"
-                                3 -> "Paused"
-                                else -> "ERROR"
-                            }
-                            result_tag.addView(viewBtt, index)
-                            index++
-                        }
-                        if (res.tags != null) {
-                            for (tag in res.tags) {
-                                /*val viewBtt = layoutInflater.inflate(R.layout.result_tag, null) as MaterialButton
-                                viewBtt.text = tag*/
-
-                                val viewBtt = layoutInflater.inflate(R.layout.result_tag, null)
-                                viewBtt.findViewById<MaterialButton>(R.id.result_tag_card).text = tag
-                                result_tag.addView(viewBtt, index)
-                                index++
-                            }
-                        }
-
-                    }
-                    /*
-                    if(res.status != null && res.status > 0) {
-                        result_status.text = when(res.status) {
-                            1 -> "Ongoing"
-                            2 -> "Complete"
-                            3 -> "Pause"
-                            else -> "ERROR"
-                        }
-                    }
-                    else {
-                        result_status.visibility = View.GONE
-                    }*/
-
-                    if (res.views != null) {
-                        result_views.text = humanReadableByteCountSI(res.views)
-                    }
-                    if (res.Synopsis != null) {
-                        var syno = res.Synopsis
-                        if (syno.length > MAX_SYNO_LENGH) {
-                            syno = syno.substring(0, MAX_SYNO_LENGH) + "..."
-                            result_synopsis_text.setOnClickListener {
-                                val builder: AlertDialog.Builder = AlertDialog.Builder(this.context!!)
-                                builder.setMessage(res.Synopsis).setTitle("Synopsis")
-                                    .show()
-                            }
-                        }
-                        result_synopsis_text.text = syno
-                    }
-                    val last = res.data.last()
-                    result_total_chapters.text = "Latest: " + last.name //+ " " + last.dateOfRelease
-
-                    /*
-                    if(res.tags != null) {
-                        var text = res.tags.joinToString(" • ")
-                        result_tags.text = text
-                    }*/
-
-                    localId = BookDownloader.generateId(res, api)
-                    DataStore.setKey(DOWNLOAD_TOTAL, localId.toString(), res.data.size)
-
-                    val start = BookDownloader.downloadInfo(res.author, res.name, res.data.size, api.name)
-                    result_download_progress_text_eta.text = ""
-                    if (start != null) {
-                        updateGenerateBtt(start.progress)
-                        result_download_progress_text.text = "${start.progress}/${start.total}"
-
-                        result_download_progress_bar.max = start.total * 100
-                        result_download_progress_bar.progress = start.progress * 100
-                        val state =
-                            if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped
-                        updateDownloadButtons(start.progress, start.total, state!!)
-                    } else {
-                        result_download_progress_bar.progress = 0
-                    }
-
-                    val glideUrl =
-                        GlideUrl(res.posterUrl)
-                    context!!.let {
-                        Glide.with(it)
-                            .load(glideUrl)
-                            .into(result_poster)
-
-                        Glide.with(it)
-                            .load(glideUrl)
-                            .apply(bitmapTransform(BlurTransformation(100, 3)))
-                            .into(result_poster_blur)
-                    }
-
-                    result_download_card.post {
-                        val displayMetrics = context!!.resources.displayMetrics
-                        val height = result_download_card.height
-                        result_scroll_padding.setPadding(
-                            result_scroll_padding.paddingLeft,
-                            result_scroll_padding.paddingTop,
-                            result_scroll_padding.paddingRight,
-                            maxOf(0, displayMetrics.heightPixels - height))// - MainActivity.activity.nav_view.height
-                    }
-                }
-            }
-        }
-
-        BookDownloader.downloadNotification += ::updateDownloadInfo
-
         result_download_btt.setOnClickListener {
-            if (load == null || localId == 0) return@setOnClickListener
-            val l = load!!
+            val localId = viewModel.id.value!!
+            if (viewModel.loadResponse.value == null || localId == -1) return@setOnClickListener
+            val l = viewModel.loadResponse.value!!
             DataStore.setKey(DOWNLOAD_FOLDER, BookDownloader.generateId(l, api).toString(),
                 DownloadFragment.DownloadData(resultUrl,
                     l.name,
@@ -384,8 +415,8 @@ class ResultFragment : Fragment() {
 
             thread {
                 when (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped) {
-                    BookDownloader.DownloadType.IsFailed -> BookDownloader.download(load!!, api)
-                    BookDownloader.DownloadType.IsStopped -> BookDownloader.download(load!!, api)
+                    BookDownloader.DownloadType.IsFailed -> BookDownloader.download(l, api)
+                    BookDownloader.DownloadType.IsStopped -> BookDownloader.download(l, api)
                     BookDownloader.DownloadType.IsDownloading -> BookDownloader.updateDownload(localId,
                         BookDownloader.DownloadType.IsPaused)
                     BookDownloader.DownloadType.IsPaused -> BookDownloader.updateDownload(localId,
@@ -401,9 +432,9 @@ class ResultFragment : Fragment() {
 
         result_download_generate_epub.setOnClickListener {
             if (generateEpub) {
-                if (load != null) {
+                if (viewModel.loadResponse.value != null) {
                     thread {
-                        val l = load!!
+                        val l = viewModel.loadResponse.value!!
                         val done = turnToEpub(l.author, l.name, api.name)
                         MainActivity.activity.runOnUiThread {
                             updateGenerateBtt(null)
@@ -416,8 +447,16 @@ class ResultFragment : Fragment() {
                     }
                 }
             } else {
-                if (load != null) {
-                    BookDownloader.openEpub(load!!.name)
+                if (viewModel.loadResponse.value != null) {
+                    thread {
+                        val card = viewModel.loadResponse.value!!
+                        if (!BookDownloader.hasEpub(card.name)) {
+                            BookDownloader.turnToEpub(card.author, card.name, api.name)
+                        }
+                        MainActivity.activity.runOnUiThread {
+                            BookDownloader.openEpub(card.name)
+                        }
+                    }
                 }
             }
         }

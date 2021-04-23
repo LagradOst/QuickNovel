@@ -4,6 +4,8 @@
     <string name="search_hint">Search Novels</string>
     <string name="synopsis">Synopsis</string>
     <string name="no_data">No Data</string>
+    <string name="no_author">Author not found</string>
+    <string name="no_chapters">No Chapters</string>
     <string name="generate_epub">Generate Epub</string>
     <string name="download_text">Download</string>
     <string name="download">Download</string>

@@ -175,7 +175,14 @@ class DloadAdapter(
                         }
                     }
                 } else {
-                    BookDownloader.openEpub(card.name)
+                    thread {
+                        if(!BookDownloader.hasEpub(card.name)) {
+                            BookDownloader.turnToEpub(card.author, card.name, card.apiName)
+                        }
+                        activity.runOnUiThread {
+                            BookDownloader.openEpub(card.name)
+                        }
+                    }
                 }
             }
 

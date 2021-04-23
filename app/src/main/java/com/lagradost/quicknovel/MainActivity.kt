@@ -25,7 +25,12 @@ import com.lagradost.quicknovel.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.providers.*
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import kotlinx.android.synthetic.main.fragment_result.*
+import org.reduxkotlin.createThreadSafeStore
 import java.util.HashSet
+import java.util.concurrent.BlockingQueue
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.coroutines.coroutineContext
 
@@ -36,10 +41,29 @@ val Float.toDp: Float get() = (this / Resources.getSystem().displayMetrics.densi
 
 const val defProvider = 0
 
-class MainActivity : AppCompatActivity() {
-    companion object {
-        var isInResults = false
+private val NUMBER_OF_CORES = Runtime.getRuntime().availableProcessors()
 
+// Instantiates the queue of Runnables as a LinkedBlockingQueue
+private val workQueue: BlockingQueue<Runnable> =
+    LinkedBlockingQueue<Runnable>()
+
+// Sets the amount of time an idle thread waits before terminating
+private const val KEEP_ALIVE_TIME = 1L
+// Sets the Time Unit to seconds
+private val KEEP_ALIVE_TIME_UNIT = TimeUnit.SECONDS
+// Creates a thread pool manager
+public val threadPoolExecutor: ThreadPoolExecutor = ThreadPoolExecutor(
+    NUMBER_OF_CORES,       // Initial pool size
+    NUMBER_OF_CORES,       // Max pool size
+    KEEP_ALIVE_TIME,
+    KEEP_ALIVE_TIME_UNIT,
+    workQueue
+)
+
+class MainActivity : AppCompatActivity() {
+
+
+    companion object {
         // === API ===
         lateinit var activity: MainActivity
         var statusBarHeight = 0
@@ -49,7 +73,8 @@ class MainActivity : AppCompatActivity() {
             NovelPassionProvider(),
             RoyalRoadProvider(),
             BestLightNovelProvider(),
-            WuxiaWorldOnlineProvider()
+            WuxiaWorldOnlineProvider(),
+            WuxiaWorldSiteProvider(),
         )
 
         val allApi: AllProvider = AllProvider()
@@ -73,8 +98,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         fun loadResult(url: String, apiName: String) {
-            if (isInResults) return
-            isInResults = true
             activity.runOnUiThread {
                 activity.supportFragmentManager.beginTransaction()
                     //?.setCustomAnimations(R.anim.enter, R.anim.exit, R.anim.pop_enter, R.anim.pop_exit)
@@ -98,7 +121,7 @@ class MainActivity : AppCompatActivity() {
                 it.isVisible
             }
 
-            if (isInResults && currentFragment != null) {
+            if (currentFragment != null && activity.supportFragmentManager.fragments.size > 2) {
                 activity.supportFragmentManager.beginTransaction()
                     //?.setCustomAnimations(R.anim.enter, R.anim.exit, R.anim.pop_enter, R.anim.pop_exit)
                     .remove(currentFragment)
