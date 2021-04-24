@@ -36,6 +36,12 @@
                 app:defaultValue="true"
                 android:icon="@drawable/ic_baseline_notifications_active_24"
         />
+        <SwitchPreference
+                app:key="@string/external_reader_key"
+                android:title="External reader"
+                app:defaultValue="true"
+                android:icon="@drawable/ic_baseline_menu_book_24"
+        />
         <Preference
                 android:title="Check for Update"
                 app:key="@string/manual_check_update_key"

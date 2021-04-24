@@ -31,6 +31,7 @@ import android.content.Intent.*
 import android.webkit.MimeTypeMap
 
 import androidx.core.content.FileProvider
+import androidx.preference.PreferenceManager
 
 
 const val CHANNEL_ID = "epubdownloader.general"
@@ -214,8 +215,10 @@ object BookDownloader {
         return bookFile.exists()
     }
 
-    fun openEpub(name: String, openInApp: Boolean = false): Boolean {
-        if (openInApp) {
+    fun openEpub(name: String, openInApp: Boolean? = null): Boolean {
+        val settingsManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
+
+        if (openInApp ?: !(settingsManager.getBoolean(MainActivity.activity.getString(R.string.external_reader_key), true))) {
             val myIntent = Intent(MainActivity.activity, ReadActivity::class.java)
 
             val bookFile =

@@ -22,7 +22,9 @@ import androidx.core.text.getSpans
 import kotlinx.android.synthetic.main.read_main.*
 import nl.siegmann.epublib.domain.Book
 import nl.siegmann.epublib.epub.EpubReader
+import org.jsoup.Jsoup
 import java.io.FileInputStream
+import java.lang.Exception
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.Locale
@@ -254,19 +256,31 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             read_chapter_name.text = chapterName!!
             return
         }
-        val height = getScrollRange()
+        val height = maxOf(1, getScrollRange())
         val chaptersTotal = ceil(height.toDouble() / read_scroll.height).toInt()
         val currentChapter = read_scroll.scrollY * chaptersTotal / height
         read_chapter_name.text = "${chapterName!!} (${currentChapter + 1}/${chaptersTotal + 1})"
     }
 
-    fun loadChapter(chapterIndex: Int, scrollToTop: Boolean) {
+    private fun loadChapter(chapterIndex: Int, scrollToTop: Boolean, scrollToRemember: Boolean = false) {
+        DataStore.setKey(EPUB_CURRENT_POSITION, book.title, chapterIndex)
+
         fun scroll() {
             readActivity.runOnUiThread {
+                if (scrollToRemember) {
+                    val scrollToY = DataStore.getKey<Int>(EPUB_CURRENT_POSITION_SCROLL, book.title, null)
+                    if (scrollToY != null) {
+                        read_scroll.scrollTo(0, scrollToY)
+                        read_scroll.fling(0)
+                        return@runOnUiThread
+                    }
+                }
+
                 val scrollToY = if (scrollToTop) 0 else getScrollRange()
                 read_scroll.scrollTo(0, scrollToY)
                 read_scroll.fling(0)
                 updateChapterName(scrollToY)
+
             }
         }
         read_text.alpha = 0f
@@ -277,12 +291,46 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         updateChapterName(0)
 
+        val txt = chapter.resource.reader.readText()
+            //TODO NICE TABLE
+            .replace("<tr>", "<div style=\"text-align: center\">")
+            .replace("</tr>", "</div>")
+            .replace("<td>", "")
+            .replace("</td>", " ")
+        val document = Jsoup.parse(txt)
+
+        // REMOVE USELESS STUFF THAT WONT BE USED IN A NORMAL TXT
+        document.select("style").remove()
+        document.select("script").remove()
+
+        for (a in document.allElements) {
+            if (a != null && a.hasText() &&
+                (a.text() == chapterName || (a.tagName() == "h3" && a.text().startsWith("Chapter ${chapterIndex + 1}")))
+            ) { // IDK, SOME MIGHT PREFER THIS SETTING??
+                a.remove() // THIS REMOVES THE TITLE
+                break
+            }
+        }
+
+        /*
+          var lastBr = false
+        lastBr = if (a.tagName() == "br") { // REMOVE DUPLICATE br, SO NO LONG LINE BREAKS
+            if (lastBr) {
+                a.remove()
+            }
+            true
+        } else {
+            false
+        }*/
+
         val spanned = HtmlCompat.fromHtml(
-            chapter.resource.reader.readText().replace("...", "…"),
-            HtmlCompat.FROM_HTML_MODE_LEGACY)
-
-
-        //book.tableOfContents.allUniqueResources
+            document.html()
+                //.replace("\n\n", "\n") // REMOVES EMPTY SPACE
+                .replace("...", "…") // MAKES EASIER TO WORK WITH
+                .replace("<p>.*<strong>Translator:.*?Editor:.*>".toRegex(), "") // FUCK THIS, LEGIT IN EVERY CHAPTER
+                .replace("<.*?Translator:.*?Editor:.*?>".toRegex(), "") // FUCK THIS, LEGIT IN EVERY CHAPTER
+            , HtmlCompat.FROM_HTML_MODE_LEGACY)
+        println("TEXT:" + document.html())
         read_text.text = spanned
         read_text.post {
             loadTextLines()
@@ -295,7 +343,14 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         textLines = ArrayList()
         val lay = read_text.layout
         for (i in 0..lay.lineCount) {
-            textLines?.add(TextLine(lay.getLineStart(i), lay.getLineEnd(i), lay.getLineTop(i), lay.getLineBottom(i)))
+            try {
+                textLines?.add(TextLine(lay.getLineStart(i),
+                    lay.getLineEnd(i),
+                    lay.getLineTop(i),
+                    lay.getLineBottom(i)))
+            } catch (e: Exception) {
+                println("EX: $e")
+            }
         }
     }
 
@@ -378,9 +433,11 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val epubReader = EpubReader()
         book = epubReader.readEpub(FileInputStream(path))
         maxChapter = book.tableOfContents.tocReferences.size
-        loadChapter(DataStore.getKey<Int>(EPUB_CURRENT_POSITION, book.title) ?: 0, true)
+        loadChapter(DataStore.getKey<Int>(EPUB_CURRENT_POSITION, book.title) ?: 0, true, true)
         updateTimeText()
         read_scroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+            DataStore.setKey(EPUB_CURRENT_POSITION_SCROLL, book.title, scrollY)
+
             mainScrollY = scrollY
             updateChapterName(scrollY)
         }
@@ -429,10 +486,10 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     startY = null
 
                     if (100 * scrollYOverflow / OVERFLOW_NEXT_CHAPTER_DELTA >= OVERFLOW_NEXT_CHAPTER_NEXT) {
-                        if (mainScrollY == 0) {
-                            loadPrevChapter()
-                        } else if (mainScrollY >= height) {
+                        if (mainScrollY >= height && overflowDown) {
                             loadNextChapter()
+                        } else if (mainScrollY == 0 && !overflowDown) {
+                            loadPrevChapter()
                         }
                     }
                     scrollYOverflow = 0f

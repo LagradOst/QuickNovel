@@ -16,6 +16,8 @@
                 android:id="@+id/read_scroll"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
+            <!-- android:textSize="10sp" -->
+
             <com.lagradost.quicknovel.ui.roundedbg.RoundedBgTextView
                     android:id="@+id/read_text"
                     android:padding="20dp"
