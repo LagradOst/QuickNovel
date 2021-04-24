@@ -29,7 +29,8 @@ class ResultViewModel(val repo: ResultRepository) : ViewModel() {
         this.apiName.value = apiName
 
         BookDownloader.downloadNotification += {
-            downloadNotification.postValue(it)
+            if (it.id == id.value)
+                downloadNotification.postValue(it)
         }
 
         thread {
