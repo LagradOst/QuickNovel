@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
@@ -14,6 +15,7 @@ import kotlinx.android.synthetic.main.fragment_downloads.*
 import androidx.recyclerview.widget.SimpleItemAnimator
 
 import androidx.recyclerview.widget.RecyclerView.ItemAnimator
+import kotlin.concurrent.thread
 
 const val DEFAULT_SORT = 0
 const val ALPHA_SORT = 1
@@ -22,8 +24,44 @@ const val DOWNLOADSIZE_SORT = 3
 const val REVERSE_DOWNLOADSIZE_SORT = 4
 const val DOWNLOADPRECENTAGE_SORT = 5
 const val REVERSE_DOWNLOADPRECENTAGE_SORT = 6
+const val LAST_ACCES_SORT = 7
+const val REVERSE_LAST_ACCES_SORT = 8
 
 class DownloadFragment : Fragment() {
+    companion object {
+        fun updateDownloadFromCard(card: DownloadFragment.DownloadDataLoaded, pauseOngoing: Boolean = false) {
+            thread {
+                val api = MainActivity.getApiFromName(card.apiName)
+                val res =
+                    if (DloadAdapter.cachedLoadResponse.containsKey(card.id))
+                        DloadAdapter.cachedLoadResponse[card.id] else
+                        api.load(card.source)
+                if (res == null) {
+                    /*MainActivity.activity.runOnUiThread {
+                        Toast.makeText(context, "Error loading", Toast.LENGTH_SHORT).show()
+                    }*/
+                } else {
+                    DloadAdapter.cachedLoadResponse[card.id] = res
+                    val localId = card.id//BookDownloader.generateId(res, MainActivity.api)
+                    DataStore.setKey(DOWNLOAD_TOTAL,
+                        localId.toString(),
+                        res.data.size) // FIX BUG WHEN DOWNLOAD IS OVER TOTAL
+                    when (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped) {
+                        BookDownloader.DownloadType.IsFailed -> BookDownloader.download(res, api)
+                        BookDownloader.DownloadType.IsStopped -> BookDownloader.download(res, api)
+                        BookDownloader.DownloadType.IsDownloading -> BookDownloader.updateDownload(localId,
+                            if (pauseOngoing) BookDownloader.DownloadType.IsPaused else BookDownloader.DownloadType.IsDownloading)
+                        BookDownloader.DownloadType.IsPaused -> BookDownloader.updateDownload(localId,
+                            BookDownloader.DownloadType.IsDownloading)
+                        else -> println("ERROR")
+                    }
+                }
+            }
+        }
+
+    }
+
+
     data class DownloadData(
         val source: String,
         val name: String,
@@ -62,6 +100,7 @@ class DownloadFragment : Fragment() {
 
     private val sotringMethods = arrayOf(
         SotringMethod("Default", DEFAULT_SORT),
+        SotringMethod("Recently opened", LAST_ACCES_SORT),
         SotringMethod("Alphabetical (A-Z)", ALPHA_SORT),
         SotringMethod("Alphabetical (Z-A)", REVERSE_ALPHA_SORT),
         SotringMethod("Download count (high to low)", DOWNLOADSIZE_SORT),
@@ -69,7 +108,7 @@ class DownloadFragment : Fragment() {
         SotringMethod("Download percentage (high to low)", DOWNLOADPRECENTAGE_SORT),
         SotringMethod("Download percentage (low to high)", REVERSE_DOWNLOADPRECENTAGE_SORT),
     )
-    val standardSotringMethod = sotringMethods[0].id
+    val standardSotringMethod = LAST_ACCES_SORT
     var currentSortingMethod = standardSotringMethod
 
     override fun onCreateView(
@@ -156,6 +195,10 @@ class DownloadFragment : Fragment() {
                 arry.sortBy { t -> t.downloadedCount.toFloat() / t.downloadedTotal }
                 arry
             }
+            LAST_ACCES_SORT -> {
+                arry.sortBy { t -> -(DataStore.getKey<Long>(DOWNLOAD_EPUB_LAST_ACCESS, t.id.toString(), 0)!!) }
+                arry
+            }
             else -> arry
         }
     }
@@ -223,6 +266,17 @@ class DownloadFragment : Fragment() {
 
             dialog = builder.create()
             dialog.show()
+        }
+
+        swipe_container.setProgressBackgroundColorSchemeResource(R.color.darkBackground)
+        swipe_container.setColorSchemeResources(R.color.colorPrimary)
+        swipe_container.setOnRefreshListener {
+            for (card in (download_cardSpace.adapter as DloadAdapter).cardList) {
+                if ((card.downloadedCount * 100 / card.downloadedTotal) > 90) {
+                    updateDownloadFromCard(card)
+                }
+            }
+            swipe_container.isRefreshing = false
         }
 
         val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = context?.let {

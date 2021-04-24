@@ -14,11 +14,13 @@
 
     </View>
     <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content">
-        <FrameLayout android:layout_width="match_parent" android:layout_marginEnd="30dp" android:layout_height="wrap_content">
+        <FrameLayout android:layout_width="match_parent" android:layout_marginEnd="30dp"
+                     android:layout_height="wrap_content">
             <androidx.appcompat.widget.SearchView
                     android:animateLayoutChanges="true"
                     android:id="@+id/main_search"
                     app:queryBackground="@color/transparent"
+
                     android:iconifiedByDefault="false"
                     app:queryHint="@string/search_hint"
                     android:layout_width="match_parent"
@@ -56,21 +58,15 @@
                 android:contentDescription="@string/open_in_browser">
         </ImageView>
     </FrameLayout>
-
-    <ScrollView
+    <androidx.recyclerview.widget.RecyclerView
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
->
-        <androidx.recyclerview.widget.RecyclerView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:clipToPadding="false"
-                android:paddingStart="8dp"
-                android:paddingTop="5dp"
-                android:paddingEnd="8dp"
-                android:id="@+id/cardSpace"
-                android:orientation="vertical"
-        >
-        </androidx.recyclerview.widget.RecyclerView>
-    </ScrollView>
+            android:layout_height="wrap_content"
+            android:clipToPadding="false"
+            android:paddingStart="8dp"
+            android:paddingTop="5dp"
+            android:paddingEnd="8dp"
+            android:id="@+id/cardSpace"
+            android:orientation="vertical"
+    >
+    </androidx.recyclerview.widget.RecyclerView>
 </LinearLayout>

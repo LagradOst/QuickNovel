@@ -11,7 +11,6 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.model.GlideUrl
 import com.lagradost.quicknovel.MainActivity.Companion.activity
 import com.lagradost.quicknovel.ui.download.DownloadFragment
-import com.google.android.material.button.MaterialButton
 import kotlinx.android.synthetic.main.download_result_compact.view.*
 import kotlinx.android.synthetic.main.search_result_compact.view.backgroundCard
 import kotlinx.android.synthetic.main.search_result_compact.view.imageText
@@ -20,7 +19,9 @@ import kotlin.concurrent.thread
 import android.content.DialogInterface
 import android.view.animation.DecelerateInterpolator
 import android.widget.*
+import com.lagradost.quicknovel.BookDownloader.updateDownload
 import com.lagradost.quicknovel.MainActivity.Companion.getApiFromName
+import com.lagradost.quicknovel.ui.download.DownloadFragment.Companion.updateDownloadFromCard
 
 
 class DloadAdapter(
@@ -73,6 +74,7 @@ class DloadAdapter(
         val download_open_btt: LinearLayout = itemView.download_open_btt
         val download_progressbar_indeterment: ProgressBar = itemView.download_progressbar_indeterment
         val download_delete_trash: ImageView = itemView.download_delete_trash
+        val imageTextMore: TextView = itemView.imageTextMore
 
         //        val cardTextExtra: TextView = itemView.imageTextExtra
         val bg = itemView.backgroundCard
@@ -96,17 +98,21 @@ class DloadAdapter(
                 animation.setAutoCancel(true)
                 animation.interpolator = DecelerateInterpolator()
                 animation.start()
-            }
-            else {
+            } else {
                 download_progressbar.progress = card.downloadedCount * 100
             }
             //download_progressbar.progress = card.downloadedCount
+            download_progressbar.alpha = if (card.downloadedCount >= card.downloadedTotal) 0f else 1f
 
             var realState = card.state
             if (card.downloadedCount >= card.downloadedTotal && card.updated) {
                 download_update.alpha = 0.5f
                 download_update.isEnabled = false
                 realState = BookDownloader.DownloadType.IsDone
+            }
+            else {
+                download_update.alpha = 1f
+                download_update.isEnabled = true
             }
 
             val glideUrl =
@@ -134,10 +140,22 @@ class DloadAdapter(
                 else -> R.drawable.netflix_download
             })
 
-            fun getEpub(): Boolean {
-                val dloaded = DataStore.getKey(DOWNLOAD_EPUB_SIZE, card.id.toString(), 0)
-                return dloaded != card.downloadedCount
+            fun getDiff(): Int {
+                val dloaded = DataStore.getKey(DOWNLOAD_EPUB_SIZE, card.id.toString(), 0)!!
+                return card.downloadedCount - dloaded
             }
+
+            fun getEpub(): Boolean {
+                return getDiff() != 0
+            }
+
+            fun updateTxtDiff() {
+                val diff = getDiff()
+                imageTextMore.text = if (diff > 0) "+$diff "
+                else ""
+            }
+
+            updateTxtDiff()
 
             fun updateBar(isGenerating: Boolean? = null) {
                 val isIndeterminate = isGenerating ?: BookDownloader.isTurningIntoEpub.containsKey(card.id)
@@ -171,48 +189,27 @@ class DloadAdapter(
                             }
                             updateEpub()
                             updateBar(null)
+                            DataStore.setKey(DOWNLOAD_EPUB_LAST_ACCESS, card.id.toString(), System.currentTimeMillis())
                             BookDownloader.openEpub(card.name)
+                            updateTxtDiff()
                         }
                     }
                 } else {
                     thread {
-                        if(!BookDownloader.hasEpub(card.name)) {
+                        if (!BookDownloader.hasEpub(card.name)) {
                             BookDownloader.turnToEpub(card.author, card.name, card.apiName)
                         }
                         activity.runOnUiThread {
+                            DataStore.setKey(DOWNLOAD_EPUB_LAST_ACCESS, card.id.toString(), System.currentTimeMillis())
                             BookDownloader.openEpub(card.name)
+                            updateTxtDiff()
                         }
                     }
                 }
             }
 
             download_update.setOnClickListener {
-                thread {
-                    val res =
-                        if (cachedLoadResponse.containsKey(card.id))
-                            cachedLoadResponse[card.id] else
-                            api.load(card.source)
-                    if (res == null) {
-                        activity.runOnUiThread {
-                            Toast.makeText(context, "Error loading", Toast.LENGTH_SHORT).show()
-                        }
-                    } else {
-                        cachedLoadResponse[card.id] = res
-                        val localId = card.id//BookDownloader.generateId(res, MainActivity.api)
-                        DataStore.setKey(DOWNLOAD_TOTAL,
-                            localId.toString(),
-                            res.data.size) // FIX BUG WHEN DOWNLOAD IS OVER TOTAL
-                        when (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped) {
-                            BookDownloader.DownloadType.IsFailed -> BookDownloader.download(res, api)
-                            BookDownloader.DownloadType.IsStopped -> BookDownloader.download(res, api)
-                            BookDownloader.DownloadType.IsDownloading -> BookDownloader.updateDownload(localId,
-                                BookDownloader.DownloadType.IsPaused)
-                            BookDownloader.DownloadType.IsPaused -> BookDownloader.updateDownload(localId,
-                                BookDownloader.DownloadType.IsDownloading)
-                            else -> println("ERROR")
-                        }
-                    }
-                }
+                updateDownloadFromCard(card,true)
             }
 
             cardView.setOnClickListener {

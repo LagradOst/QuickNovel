@@ -13,6 +13,7 @@ const val DOWNLOAD_FOLDER: String = "downloads_data"
 const val DOWNLOAD_SIZE: String = "downloads_size"
 const val DOWNLOAD_TOTAL: String = "downloads_total"
 const val DOWNLOAD_EPUB_SIZE: String = "downloads_epub_size"
+const val DOWNLOAD_EPUB_LAST_ACCESS: String = "downloads_epub_last_access"
 const val EPUB_CURRENT_POSITION: String = "reader_epub_position"
 const val EPUB_CURRENT_POSITION_SCROLL: String = "reader_epub_position_scroll"
 

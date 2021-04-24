@@ -487,7 +487,7 @@ object BookDownloader {
         }
 
         val ETA = when (state) {
-            DownloadType.IsDone -> "Downloaded"
+            DownloadType.IsDone -> "" //Downloaded
             DownloadType.IsDownloading -> timeformat
             DownloadType.IsPaused -> "Paused"
             DownloadType.IsFailed -> "Error"

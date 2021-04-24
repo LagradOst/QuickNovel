@@ -15,23 +15,32 @@
             android:layout_marginBottom="2dp"
             android:elevation="0dp"
 
-            app:cardCornerRadius="5dp"
+            app:cardCornerRadius="@dimen/roundedImageRadius"
             app:cardBackgroundColor="@color/itemBackground"
             android:clickable="true"
             android:focusable="true"
     >
         <!-- USING CROP RATIO (182/268), centerCrop for fill -->
 
-        <ImageView
-                android:layout_gravity="left"
-                android:id="@+id/imageView"
-                android:scaleType="centerCrop"
+        <androidx.cardview.widget.CardView
+                android:elevation="0dp"
+                app:cardCornerRadius="@dimen/roundedImageRadius"
                 android:layout_width="67.5dp"
-                android:layout_height="match_parent"
-                android:foreground="?android:attr/selectableItemBackgroundBorderless"
-                tools:ignore="RtlHardcoded"/>
-        <FrameLayout android:layout_marginStart="0dp" android:layout_marginBottom="-5dp" android:layout_gravity="bottom" android:layout_width="match_parent" android:layout_marginTop="0dp"
-                     android:layout_height="wrap_content">
+                android:layout_height="match_parent">
+            <ImageView
+                    android:layout_gravity="left"
+                    android:id="@+id/imageView"
+                    android:scaleType="centerCrop"
+                    android:layout_height="match_parent"
+                    android:layout_width="match_parent"
+                    android:foreground="?android:attr/selectableItemBackgroundBorderless"
+                    tools:ignore="RtlHardcoded"/>
+        </androidx.cardview.widget.CardView>
+
+        <FrameLayout
+                android:layout_marginStart="66dp" android:layout_marginBottom="-5dp" android:layout_gravity="bottom"
+                android:layout_width="match_parent" android:layout_marginTop="0dp"
+                android:layout_height="wrap_content">
             <androidx.core.widget.ContentLoadingProgressBar
                     style="@android:style/Widget.Material.ProgressBar.Horizontal"
                     android:layout_gravity="center"
@@ -67,7 +76,8 @@
                     android:orientation="horizontal"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent">
-                <LinearLayout android:layout_width="wrap_content" android:layout_gravity="end|center_vertical" android:layout_height="match_parent">
+                <LinearLayout android:layout_width="wrap_content" android:layout_gravity="end|center_vertical"
+                              android:layout_height="match_parent">
                     <!--<ImageView
                             android:id="@+id/download_open_btt"
                             android:background="?selectableItemBackgroundBorderless"
@@ -83,7 +93,8 @@
                             android:id="@+id/download_update"
                             android:background="?selectableItemBackgroundBorderless"
                             android:src="@drawable/ic_baseline_autorenew_24"
-                            android:layout_width="40dp" android:layout_height="match_parent"
+                            android:padding="10dp"
+                            android:layout_width="60dp" android:layout_height="match_parent"
                             android:layout_gravity="end|center_vertical"
                             android:scaleX="0.6"
                             android:scaleY="0.6"
@@ -105,20 +116,22 @@
                 <LinearLayout
                         android:layout_gravity="center_vertical"
                         android:orientation="vertical"
-                        android:layout_marginEnd="120dp"
-                              android:layout_width="match_parent"
-                              android:layout_height="wrap_content">
+                        android:layout_marginEnd="100dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
                     <TextView
-                            tools:text="Overgeared"
-                            android:layout_width="match_parent"
+                            tools:text="Overgeared\ndadwa"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:gravity="start|center_vertical"
                             android:textColor="@color/textColor"
                             android:id="@+id/imageText"
                             android:textStyle="bold"
                             android:ellipsize="end"
-                            android:maxLines="1"
+                            android:maxLines="2"
                     />
+
                     <TextView
                             android:id="@+id/download_progress_text"
 
@@ -134,6 +147,20 @@
                     />
                 </LinearLayout>
 
+                <TextView
+                        tools:text="+5  "
+                        android:layout_marginEnd="90dp"
+                        android:layout_gravity="center_vertical"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="end"
+
+                        android:textColor="@color/colorPrimary"
+                        android:id="@+id/imageTextMore"
+                        android:textStyle="bold"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                />
             </FrameLayout>
 
 

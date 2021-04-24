@@ -40,7 +40,7 @@
             <androidx.cardview.widget.CardView
                     android:layout_width="100dp"
                     android:layout_height="150dp"
-                    app:cardCornerRadius="5dp"
+                    app:cardCornerRadius="@dimen/roundedImageRadius"
                     android:elevation="10dp"
 
             >

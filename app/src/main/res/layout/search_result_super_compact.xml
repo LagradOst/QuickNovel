@@ -22,15 +22,21 @@
             android:focusable="true"
     >
         <!-- USING CROP RATIO (182/268), centerCrop for fill -->
-
-        <ImageView
-                android:layout_gravity="left"
-                android:id="@+id/imageView"
-                android:scaleType="centerCrop"
+        <androidx.cardview.widget.CardView
+                app:cardCornerRadius="@dimen/roundedImageRadius"
                 android:layout_width="60dp"
-                android:layout_height="match_parent"
-                android:foreground="?android:attr/selectableItemBackgroundBorderless"
-                tools:ignore="RtlHardcoded" android:contentDescription="@string/search_poster_descript"/>
+                android:elevation="0dp"
+                android:layout_height="match_parent">
+            <ImageView
+                    android:layout_gravity="left"
+                    android:id="@+id/imageView"
+                    android:scaleType="centerCrop"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:foreground="?android:attr/selectableItemBackgroundBorderless"
+                    tools:ignore="RtlHardcoded" android:contentDescription="@string/search_poster_descript"/>
+        </androidx.cardview.widget.CardView>
+
         <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
