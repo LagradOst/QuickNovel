@@ -2,6 +2,7 @@ package com.lagradost.quicknovel.ui.result
 
 import android.animation.ObjectAnimator
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -116,14 +117,16 @@ class ResultFragment : Fragment() {
     fun updateDownloadInfo(info: BookDownloader.DownloadNotification?) {
         if (info == null) return
         if (result_download_progress_text != null) {
+            val hasDownload = info.progress > 0
+            download_delete_trash_from_result.visibility = if (hasDownload) View.VISIBLE else View.GONE
+            download_delete_trash_from_result.isClickable = hasDownload
+
             result_download_progress_text.text = "${info.progress}/${info.total}"
             //  result_download_progress_bar.max = info.total
             // ANIMATION PROGRESSBAR
             result_download_progress_bar.max = info.total * 100
 
             if (result_download_progress_bar.progress != 0) {
-
-
                 val animation: ObjectAnimator = ObjectAnimator.ofInt(result_download_progress_bar,
                     "progress",
                     result_download_progress_bar.progress,
@@ -146,8 +149,8 @@ class ResultFragment : Fragment() {
 
     fun updateDownloadButtons(progress: Int, total: Int, state: BookDownloader.DownloadType) {
         val ePubGeneration = progress > 0
-        if (result_download_generate_epub.isEnabled != ePubGeneration) {
-            result_download_generate_epub.isEnabled = ePubGeneration
+        if (result_download_generate_epub.isClickable != ePubGeneration) {
+            result_download_generate_epub.isClickable = ePubGeneration
             result_download_generate_epub.alpha = if (ePubGeneration) 1f else 0.5f
         }
 
@@ -156,8 +159,8 @@ class ResultFragment : Fragment() {
         if (!download) {
             loadlState = BookDownloader.DownloadType.IsDone
         }
-        if (result_download_btt.isEnabled != download) {
-            result_download_btt.isEnabled = download
+        if (result_download_btt.isClickable != download) {
+            result_download_btt.isClickable = download
             result_download_btt.alpha = if (download) 1f else 0.5f
         }
 
@@ -186,6 +189,13 @@ class ResultFragment : Fragment() {
         super.onDestroy()
     }
 
+    fun newIsFailed(failed: Boolean) {
+        val isLoaded = viewModel.isLoaded.value ?: false
+        val validState = isLoaded && viewModel.loadResponse.value != null
+        result_loading.visibility = if (validState || failed) View.GONE else View.VISIBLE
+        result_reload_connectionerror.visibility = if (failed) View.VISIBLE else View.GONE
+    }
+
     fun newState(loadResponse: LoadResponse?) {
         val isLoaded = viewModel.isLoaded.value ?: false
         val validState = isLoaded && loadResponse != null
@@ -206,6 +216,34 @@ class ResultFragment : Fragment() {
                 val i = Intent(Intent.ACTION_VIEW)
                 i.data = Uri.parse(resultUrl)
                 startActivity(i)
+            }
+
+            download_delete_trash_from_result.setOnClickListener {
+                val dialogClickListener =
+                    DialogInterface.OnClickListener { dialog, which ->
+                        when (which) {
+                            DialogInterface.BUTTON_POSITIVE -> {
+                                BookDownloader.remove(loadResponse.author,
+                                    loadResponse.name,
+                                    viewModel.apiName.value ?: "")
+                                var curren_value = viewModel.downloadNotification.value!!
+
+                                viewModel.downloadNotification.postValue(BookDownloader.DownloadNotification(0,
+                                    curren_value.total,
+                                    curren_value.id,
+                                    "",
+                                    BookDownloader.DownloadType.IsStopped))
+                            }
+                            DialogInterface.BUTTON_NEGATIVE -> {
+                            }
+                        }
+                    }
+                val builder: AlertDialog.Builder = AlertDialog.Builder(this.requireContext())
+                builder.setMessage("This will permanently delete ${loadResponse.name}.\nAre you sure?")
+                    .setTitle("Delete")
+                    .setPositiveButton("Delete", dialogClickListener)
+                    .setNegativeButton("Cancel", dialogClickListener)
+                    .show()
             }
 
             result_rating_voted_count.text = getString(R.string.no_data)
@@ -332,10 +370,6 @@ class ResultFragment : Fragment() {
                     result_scroll_padding.paddingRight,
                     maxOf(0, displayMetrics.heightPixels - height))// - MainActivity.activity.nav_view.height
             }
-        } else {
-            if (isLoaded) {
-                Toast.makeText(context, "Error loading", Toast.LENGTH_SHORT).show()
-            }
         }
     }
 
@@ -347,9 +381,13 @@ class ResultFragment : Fragment() {
         if (viewModel.loadResponse.value == null)
             viewModel.initState(resultUrl, api.name)
 
+        result_reload_connectionerror.setOnClickListener {
+            viewModel.initState(resultUrl, api.name)
+        }
 
         observe(viewModel.downloadNotification, ::updateDownloadInfo)
         observe(viewModel.loadResponse, ::newState)
+        observe(viewModel.isFailedConnection, ::newIsFailed)
 
         /*
         storeSubscription =

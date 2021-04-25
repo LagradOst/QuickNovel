@@ -64,10 +64,13 @@ class SearchFragment : Fragment() {
         cardSpace.layoutManager = GridLayoutManager(context, 1)
         search_loading_bar.alpha = 0f
         val search_exit_icon = main_search.findViewById<ImageView>(androidx.appcompat.R.id.search_close_btn)
+        val search_mag_icon = main_search.findViewById<ImageView>(androidx.appcompat.R.id.search_mag_icon)
+        search_mag_icon.scaleX = 0.65f
+        search_mag_icon.scaleY = 0.65f
 
         search_filter.setOnClickListener {
             val builder: AlertDialog.Builder = AlertDialog.Builder(this.context!!)
-            val settingsManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
+            //val settingsManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
             val apiNamesSetting = getApiSettings()
 
             val apiNames = MainActivity.apis.map { it.name }

@@ -3,6 +3,8 @@ package com.lagradost.quicknovel.ui.result
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.lagradost.quicknovel.BookDownloader
+import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
+import com.lagradost.quicknovel.DataStore
 import com.lagradost.quicknovel.LoadResponse
 import kotlin.concurrent.thread
 
@@ -16,6 +18,7 @@ class ResultViewModel(val repo: ResultRepository) : ViewModel() {
         MutableLiveData<String>()
     }
 
+    val isFailedConnection: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
     val isLoaded: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
     val loadResponse: MutableLiveData<LoadResponse?> by lazy {
         MutableLiveData<LoadResponse?>()
@@ -27,6 +30,8 @@ class ResultViewModel(val repo: ResultRepository) : ViewModel() {
     fun initState(url: String, apiName: String) {
         this.resultUrl.value = url
         this.apiName.value = apiName
+        isFailedConnection.postValue(false)
+
 
         BookDownloader.downloadNotification += {
             if (it.id == id.value)
@@ -38,12 +43,16 @@ class ResultViewModel(val repo: ResultRepository) : ViewModel() {
             ) { res ->
                 isLoaded.postValue(true)
                 loadResponse.postValue(res)
-                if (res != null) {
-
+                if(res == null) {
+                    isFailedConnection.postValue(true)
+                }
+                else {
+                    isFailedConnection.postValue(false)
                     val tid = BookDownloader.generateId(this.apiName.value!!,
                         res.author,
                         res.name)
                     id.postValue(tid)
+                    DataStore.setKey(DOWNLOAD_EPUB_LAST_ACCESS, tid.toString(), System.currentTimeMillis())
 
                     val start = BookDownloader.downloadInfo(res.author, res.name, res.data.size, apiName)
                     if (start != null) {

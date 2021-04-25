@@ -20,7 +20,6 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
-
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -32,8 +31,8 @@
                 <data android:scheme="https" android:host="www.novelpassion.com" android:pathPrefix="/novel"/>
                 <data android:scheme="https" android:host="www.royalroad.com" android:pathPrefix="/fiction"/>
                 <data android:scheme="https" android:host="wuxiaworld.online" android:pathPrefix="/"/>
+                <data android:scheme="https" android:host="wuxiaworld.site" android:pathPrefix="/"/>
             </intent-filter>
-
         </activity>
 
         <activity android:name="com.lagradost.quicknovel.ReadActivity">
@@ -54,5 +53,4 @@
                     android:resource="@xml/provider_paths"/>
         </provider>
     </application>
-
 </manifest>

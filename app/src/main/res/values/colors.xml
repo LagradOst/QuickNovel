@@ -15,7 +15,8 @@
     <color name="textColor">#FFF</color>
     <color name="grayTextColor">#5e5f62</color>
     <color name="lightGrayTextColor">#9f9fa0</color>
-    <color name="searchColor">#DADADA</color> <!--DADADA-->
+    <color name="searchColor">@color/textColor</color> <!--DADADA-->
+    <color name="searchColorTransparent">#1AFFFFFF</color> <!--DADADA-->
     <color name="transparent">#00000000</color>
 
     <color name="white">#FFF</color>

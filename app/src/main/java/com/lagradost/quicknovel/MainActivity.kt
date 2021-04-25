@@ -25,7 +25,6 @@ import com.lagradost.quicknovel.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.providers.*
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import kotlinx.android.synthetic.main.fragment_result.*
-import org.reduxkotlin.createThreadSafeStore
 import java.util.HashSet
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
@@ -100,7 +99,7 @@ class MainActivity : AppCompatActivity() {
         fun loadResult(url: String, apiName: String) {
             activity.runOnUiThread {
                 activity.supportFragmentManager.beginTransaction()
-                    //?.setCustomAnimations(R.anim.enter, R.anim.exit, R.anim.pop_enter, R.anim.pop_exit)
+                    .setCustomAnimations(R.anim.enter_anim, R.anim.exit_anim, R.anim.pop_enter, R.anim.pop_exit)
                     .add(R.id.homeRoot, ResultFragment().newInstance(url, apiName))
                     .commit()
             }
@@ -123,7 +122,7 @@ class MainActivity : AppCompatActivity() {
 
             if (currentFragment != null && activity.supportFragmentManager.fragments.size > 2) {
                 activity.supportFragmentManager.beginTransaction()
-                    //?.setCustomAnimations(R.anim.enter, R.anim.exit, R.anim.pop_enter, R.anim.pop_exit)
+                    .setCustomAnimations(R.anim.enter_anim, R.anim.exit_anim, R.anim.pop_enter, R.anim.pop_exit)
                     .remove(currentFragment)
                     .commitAllowingStateLoss()
                 return true

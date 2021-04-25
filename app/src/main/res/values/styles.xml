@@ -19,7 +19,16 @@
         <item name="android:windowTranslucentStatus">true</item>
         <item name="android:windowTranslucentNavigation">false</item>
         <item name="alertDialogTheme">@style/Theme.AlertDialog</item>
+
+        <item name="android:textViewStyle">@style/RobotoTextViewStyle</item>
+        <item name="android:buttonStyle">@style/RobotoButtonStyle</item>
+        <item name="materialButtonStyle">@style/RobotoMaterialButtonStyle</item>
+        <item name="preferenceFragmentCompatStyle">@style/PreferenceTheme</item>
     </style>
+
+    <style name="PreferenceTheme" parent="@style/AppTheme">
+    </style>
+
 
     <style name="Theme.AlertDialog" parent="ThemeOverlay.MaterialComponents.Dialog.Alert">
         <item name="android:windowMinWidthMajor">@android:dimen/dialog_min_width_major</item>
@@ -35,5 +44,17 @@
         <item name="roundedTextDrawableLeft">@drawable/rounded_text_bg_left</item>
         <item name="roundedTextDrawableMid">@drawable/rounded_text_bg_mid</item>
         <item name="roundedTextDrawableRight">@drawable/rounded_text_bg_right</item>
+    </style>
+
+    <style name="RobotoTextViewStyle" parent="android:Widget.TextView">
+        <item name="android:fontFamily">@font/google_sans</item>
+    </style>
+
+    <style name="RobotoButtonStyle" parent="android:Widget.Holo.Button">
+        <item name="android:fontFamily">@font/google_sans</item>
+    </style>
+
+    <style name="RobotoMaterialButtonStyle" parent="Widget.MaterialComponents.Button">
+        <item name="android:fontFamily">@font/google_sans</item>
     </style>
 </resources>

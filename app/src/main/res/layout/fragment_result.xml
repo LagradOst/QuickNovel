@@ -16,7 +16,24 @@
             android:visibility="gone"
     >
     </ProgressBar>
+    <com.google.android.material.button.MaterialButton
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:layout_height="50dp"
 
+            app:icon="@drawable/ic_baseline_autorenew_24"
+            app:iconSize="20dp"
+            android:text="@string/reload_error"
+            android:id="@+id/result_reload_connectionerror"
+            android:textAllCaps="false"
+            android:textSize="15sp"
+            app:cornerRadius="5dp"
+            app:strokeWidth="2dp"
+            app:strokeColor="@color/colorAccent"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            app:rippleColor="@color/colorPrimary"
+            android:layout_width="200dp">
+    </com.google.android.material.button.MaterialButton>
 
     <ImageView
             android:layout_width="match_parent"
@@ -60,7 +77,7 @@
                 <TextView
                         android:id="@+id/result_title"
                         tools:text="The Beginning After The End"
-                        android:layout_marginRight="40dp"
+                        android:layout_marginEnd="40dp"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="@color/textColor"
@@ -267,99 +284,116 @@ Translator: Rainbow Turtle"
                                     android:layout_height="match_parent"
                             />
                         </HorizontalScrollView>-->
+                        <LinearLayout android:layout_margin="0dp" android:layout_gravity="bottom" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+                            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+                                <ImageView
+                                        android:id="@+id/download_delete_trash_from_result"
+                                        android:background="?selectableItemBackgroundBorderless"
+                                        android:src="@drawable/ic_baseline_delete_outline_24"
+                                        android:layout_width="25dp" android:layout_height="match_parent"
+                                        android:layout_gravity="end|center_vertical"
+                                        android:layout_marginRight="5dp"
+                                        android:contentDescription="@string/delete">
+                                </ImageView>
+                                <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/download"
+                                        android:textSize="17sp"
+                                        android:layout_marginTop="10dp"
+                                        android:layout_marginBottom="10dp"
+                                        android:textStyle="normal"
+                                        android:textColor="@color/textColor"
+                                />
 
-                        <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/download"
-                                android:textSize="17sp"
-                                android:layout_marginTop="10dp"
-                                android:layout_marginBottom="10dp"
-                                android:textStyle="normal"
-                                android:textColor="@color/textColor"
-                        />
-                        <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
-                                      android:layout_height="wrap_content">
-                            <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/no_data"
-                                    android:id="@+id/result_download_progress_text"
-                                    android:textSize="14sp"
-                                    android:textColor="@color/textColor"
-                            />
-                            <TextView
+                            </LinearLayout>
+
+                            <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
+                                          android:layout_height="wrap_content">
+
+                                <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/no_data"
+                                        android:id="@+id/result_download_progress_text"
+                                        android:textSize="14sp"
+                                        android:textColor="@color/textColor"
+                                />
+                                <TextView
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:layout_gravity="end"
+                                        android:gravity="end"
+                                        android:text="@string/no_data"
+                                        android:id="@+id/result_download_progress_text_eta"
+                                        android:textSize="14sp"
+                                        android:textColor="@color/textColor"
+                                />
+                            </LinearLayout>
+
+                            <androidx.core.widget.ContentLoadingProgressBar
+                                    android:progressTint="@color/colorPrimary"
+                                    android:id="@+id/result_download_progress_bar"
                                     android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:layout_gravity="end"
-                                    android:gravity="end"
-                                    android:text="@string/no_data"
-                                    android:id="@+id/result_download_progress_text_eta"
-                                    android:textSize="14sp"
-                                    android:textColor="@color/textColor"
-                            />
+                                    android:indeterminate="false"
+                                    android:progress="50"
+                                    android:layout_marginTop="10dp"
+                                    android:layout_marginBottom="10dp"
+                                    android:progressBackgroundTint="@color/colorPrimary"
+                                    style="@android:style/Widget.Material.ProgressBar.Horizontal"
+                                    android:layout_height="wrap_content">
+                            </androidx.core.widget.ContentLoadingProgressBar>
+                            <GridLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:orientation="horizontal"
+                            >
+
+                                <com.google.android.material.button.MaterialButton
+                                        android:layout_columnWeight="1"
+                                        android:gravity="center" android:layout_height="match_parent"
+                                        android:layout_marginRight="5dp"
+
+                                        app:icon="@drawable/ic_baseline_create_24"
+                                        app:iconSize="20dp"
+                                        android:text="@string/generate_epub"
+                                        android:id="@+id/result_download_generate_epub"
+                                        android:textAllCaps="false"
+                                        android:textSize="15sp"
+                                        app:cornerRadius="5dp"
+                                        app:strokeWidth="2dp"
+                                        app:strokeColor="@color/colorAccent"
+                                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                        app:rippleColor="@color/colorPrimary"
+                                        android:layout_width="50dp">
+                                </com.google.android.material.button.MaterialButton>
+                                <!--
+                                      app:iconTint="@color/white"
+                                      android:textColor="@color/textColor"-->
+                                <com.google.android.material.button.MaterialButton
+                                        android:layout_columnWeight="1"
+                                        android:layout_marginStart="5dp"
+
+
+                                        android:gravity="center" android:layout_height="match_parent"
+
+                                        android:id="@+id/result_download_btt"
+                                        android:text="@string/download_text"
+                                        android:textAllCaps="false"
+                                        android:textSize="15sp"
+                                        app:strokeWidth="2dp"
+                                        app:strokeColor="@color/colorAccent"
+                                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                        app:rippleColor="@color/colorPrimary"
+                                        android:layout_width="50dp">
+                                </com.google.android.material.button.MaterialButton>
+
+                            </GridLayout>
                         </LinearLayout>
-
-                        <androidx.core.widget.ContentLoadingProgressBar
-                                android:progressTint="@color/colorPrimary"
-                                android:id="@+id/result_download_progress_bar"
-                                android:layout_width="match_parent"
-                                android:indeterminate="false"
-                                android:progress="50"
-                                android:layout_marginTop="10dp"
-                                android:layout_marginBottom="10dp"
-                                android:progressBackgroundTint="@color/colorPrimary"
-                                style="@android:style/Widget.Material.ProgressBar.Horizontal"
-                                android:layout_height="wrap_content">
-                        </androidx.core.widget.ContentLoadingProgressBar>
-                        <GridLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:orientation="horizontal"
-                        >
-
-                            <com.google.android.material.button.MaterialButton
-                                    android:layout_columnWeight="1"
-                                    android:gravity="center" android:layout_height="match_parent"
-                                    android:layout_marginRight="5dp"
-
-                                    app:icon="@drawable/ic_baseline_create_24"
-                                    app:iconSize="20dp"
-                                    app:iconTint="@color/white"
-                                    android:enabled="false"
-                                    android:alpha="0.5"
-                                    android:text="@string/generate_epub"
-                                    android:id="@+id/result_download_generate_epub"
-                                    android:textAllCaps="false"
-                                    android:textSize="15sp"
-                                    android:elevation="10dp"
-                                    android:textColor="@color/textColor"
-                                    app:cornerRadius="5dp"
-                                    android:backgroundTint="@color/colorPrimary"
-                                    app:rippleColor="@color/colorPrimary"
-                                    android:layout_width="50dp">
-                            </com.google.android.material.button.MaterialButton>
-                            <com.google.android.material.button.MaterialButton
-                                    android:layout_columnWeight="1"
-                                    android:layout_marginLeft="5dp"
-
-                                    android:gravity="center" android:layout_height="match_parent"
-
-                                    android:id="@+id/result_download_btt"
-                                    android:text="@string/download_text"
-                                    android:textAllCaps="false"
-                                    android:textSize="15sp"
-                                    android:elevation="10dp"
-                                    android:textColor="@color/textColor"
-                                    app:cornerRadius="5dp"
-                                    android:backgroundTint="@color/colorPrimary"
-                                    app:rippleColor="@color/colorPrimary"
-                                    android:layout_width="50dp">
-                            </com.google.android.material.button.MaterialButton>
-
-                        </GridLayout>
                     </LinearLayout>
+
                 </androidx.cardview.widget.CardView>
+
 
             </LinearLayout>
 
@@ -378,4 +412,5 @@ Translator: Rainbow Turtle"
             android:contentDescription="@string/back_to_search">
 
     </ImageView>
+
 </FrameLayout>

@@ -96,7 +96,9 @@ class WuxiaWorldSiteProvider : MainAPI() {
             var synopsis = ""
             val synoParts = document.select("div.summary__content > p")
             for (s in synoParts) {
-                synopsis += s.text()!! + "\n\n"
+                if(s.hasText() && !s.text().toLowerCase(Locale.getDefault()).contains("wuxiaworld.site")) { // FUCK ADS
+                    synopsis += s.text()!! + "\n\n"
+                }
             }
 
             val data: ArrayList<ChapterData> = ArrayList()
@@ -116,7 +118,7 @@ class WuxiaWorldSiteProvider : MainAPI() {
 
             val views = null
 
-            val aHeader = document.selectFirst("div.post-status > div.post-content_item > div.summary-content")
+            val aHeader = document.select("div.post-status > div.post-content_item > div.summary-content")[1]
 
             val status = when (aHeader.text().toLowerCase(Locale.getDefault())) {
                 "ongoing" -> 1
