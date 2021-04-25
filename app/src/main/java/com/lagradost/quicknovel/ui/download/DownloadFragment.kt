@@ -29,6 +29,35 @@ const val REVERSE_LAST_ACCES_SORT = 8
 
 class DownloadFragment : Fragment() {
     companion object {
+        fun updateDownloadFromResult(res : LoadResponse, localId : Int, apiName: String, source: String, pauseOngoing: Boolean = false) {
+            val api = MainActivity.getApiFromName(apiName)
+            DataStore.setKey(DOWNLOAD_TOTAL,
+                localId.toString(),
+                res.data.size) // FIX BUG WHEN DOWNLOAD IS OVER TOTAL
+
+            DataStore.setKey(DOWNLOAD_FOLDER, BookDownloader.generateId(res, api).toString(),
+                DownloadFragment.DownloadData(source,
+                    res.name,
+                    res.author,
+                    res.posterUrl,
+                    res.rating,
+                    res.peopleVoted,
+                    res.views,
+                    res.Synopsis,
+                    res.tags,
+                    api.name
+                ))
+            when (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped) {
+                BookDownloader.DownloadType.IsFailed -> BookDownloader.download(res, api)
+                BookDownloader.DownloadType.IsStopped -> BookDownloader.download(res, api)
+                BookDownloader.DownloadType.IsDownloading -> BookDownloader.updateDownload(localId,
+                    if (pauseOngoing) BookDownloader.DownloadType.IsPaused else BookDownloader.DownloadType.IsDownloading)
+                BookDownloader.DownloadType.IsPaused -> BookDownloader.updateDownload(localId,
+                    BookDownloader.DownloadType.IsDownloading)
+                else -> println("ERROR")
+            }
+        }
+
         fun updateDownloadFromCard(card: DownloadFragment.DownloadDataLoaded, pauseOngoing: Boolean = false) {
             thread {
                 val api = MainActivity.getApiFromName(card.apiName)
@@ -43,18 +72,7 @@ class DownloadFragment : Fragment() {
                 } else {
                     DloadAdapter.cachedLoadResponse[card.id] = res
                     val localId = card.id//BookDownloader.generateId(res, MainActivity.api)
-                    DataStore.setKey(DOWNLOAD_TOTAL,
-                        localId.toString(),
-                        res.data.size) // FIX BUG WHEN DOWNLOAD IS OVER TOTAL
-                    when (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped) {
-                        BookDownloader.DownloadType.IsFailed -> BookDownloader.download(res, api)
-                        BookDownloader.DownloadType.IsStopped -> BookDownloader.download(res, api)
-                        BookDownloader.DownloadType.IsDownloading -> BookDownloader.updateDownload(localId,
-                            if (pauseOngoing) BookDownloader.DownloadType.IsPaused else BookDownloader.DownloadType.IsDownloading)
-                        BookDownloader.DownloadType.IsPaused -> BookDownloader.updateDownload(localId,
-                            BookDownloader.DownloadType.IsDownloading)
-                        else -> println("ERROR")
-                    }
+                    updateDownloadFromResult(res,localId,card.apiName,card.source,pauseOngoing)
                 }
             }
         }

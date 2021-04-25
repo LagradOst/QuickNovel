@@ -33,14 +33,23 @@
         <SwitchPreference
                 app:key="@string/auto_update_key"
                 android:title="Show app updates"
+                android:summary="Automatically search for new updates on start"
                 app:defaultValue="true"
                 android:icon="@drawable/ic_baseline_notifications_active_24"
         />
         <SwitchPreference
                 app:key="@string/external_reader_key"
                 android:title="External reader"
+                android:summary="Use an external app to read"
                 app:defaultValue="true"
                 android:icon="@drawable/ic_baseline_menu_book_24"
+        />
+        <SwitchPreference
+                app:key="@string/remove_external_key"
+                android:title="Remove Bloat"
+                android:summary="Removes the title and Translator from all pages"
+                app:defaultValue="true"
+                android:icon="@drawable/ic_baseline_edit_24"
         />
         <Preference
                 android:title="Check for Update"

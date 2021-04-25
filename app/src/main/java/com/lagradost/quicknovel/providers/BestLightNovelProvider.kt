@@ -9,9 +9,17 @@ import java.lang.Exception
 import java.util.*
 import kotlin.collections.ArrayList
 
+val String?.textClean: String?
+    get() = (this
+        ?.replace("...","…")
+        ?.replace("\\.([^-\\s])".toRegex(), "$1")
+        ?.replace("\\+([^-\\s])".toRegex(), "$1")
+            )
+
 class BestLightNovelProvider : MainAPI() {
     override val name: String get() = "BestLightNovel"
     override val mainUrl: String get() = "https://bestlightnovel.com"
+
 
     override fun loadPage(url: String): String? {
         return try {
@@ -21,7 +29,7 @@ class BestLightNovelProvider : MainAPI() {
             if (res.html() == "") {
                 return null
             }
-            res.html()
+            res.html().textClean
         } catch (e: Exception) {
             null
         }
@@ -77,8 +85,7 @@ class BestLightNovelProvider : MainAPI() {
             for (t in tagsHeader) {
                 tags.add(t.text())
             }
-
-            val synopsis = document.select("div.entry-header > div")[1].text()
+            val synopsis = document.select("div.entry-header > div")[1].text().textClean
 
             val data: ArrayList<ChapterData> = ArrayList()
             val chapterHeaders = document.select("div.chapter-list > div")

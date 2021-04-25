@@ -1,5 +1,7 @@
 package com.lagradost.quicknovel
 
+import org.jsoup.Jsoup
+
 open class MainAPI {
     open val name = "NONE"
     open val mainUrl = "NONE"
@@ -14,6 +16,25 @@ open class MainAPI {
     open fun loadPage(url: String): String? {
         return null
     }
+}
+
+fun stripHtml(txt: String, chapterName: String? = null, chapterIndex: Int? = null): String {
+    val document = Jsoup.parse(txt)
+    if(chapterName != null && chapterIndex != null) {
+        for (a in document.allElements) {
+            if (a != null && a.hasText() &&
+                (a.text() == chapterName || (a.tagName() == "h3" && a.text().startsWith("Chapter ${chapterIndex + 1}")))
+            ) { // IDK, SOME MIGHT PREFER THIS SETTING??
+                a.remove() // THIS REMOVES THE TITLE
+                break
+            }
+        }
+    }
+
+    return document.html()
+        .replace("<p>.*<strong>Translator:.*?Editor:.*>".toRegex(), "") // FUCK THIS, LEGIT IN EVERY CHAPTER
+        .replace("<.*?Translator:.*?Editor:.*?>".toRegex(), "") // FUCK THIS, LEGIT IN EVERY CHAPTER
+
 }
 
 data class SearchResponse(

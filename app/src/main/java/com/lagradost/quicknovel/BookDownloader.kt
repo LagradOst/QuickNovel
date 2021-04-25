@@ -218,7 +218,9 @@ object BookDownloader {
     fun openEpub(name: String, openInApp: Boolean? = null): Boolean {
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
 
-        if (openInApp ?: !(settingsManager.getBoolean(MainActivity.activity.getString(R.string.external_reader_key), true))) {
+        if (openInApp ?: !(settingsManager.getBoolean(MainActivity.activity.getString(R.string.external_reader_key),
+                true))
+        ) {
             val myIntent = Intent(MainActivity.activity, ReadActivity::class.java)
 
             val bookFile =
@@ -288,7 +290,10 @@ object BookDownloader {
         if (pFile.exists()) {
             book.coverImage = Resource(pFile.readBytes(), MediaType("cover", ".jpg"))
         }
+        val settingsManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
 
+        val stripHtml =
+            (settingsManager.getBoolean(MainActivity.activity.getString(R.string.remove_external_key), true))
         var index = 0
         while (true) {
             val filepath =
@@ -301,8 +306,9 @@ object BookDownloader {
                     break
                 } // Invalid File
                 val title = text.substring(0, firstChar)
-                val data = text.substring(firstChar + 1);
-                val chapter = Resource("id$index", data.toByteArray(), "chapter$index.html", MediatypeService.XHTML)
+                val data = text.substring(firstChar + 1)
+                val bytes = (if (stripHtml) stripHtml(data, title, index) else data).toByteArray()
+                val chapter = Resource("id$index", bytes, "chapter$index.html", MediatypeService.XHTML)
                 book.addSection(title, chapter)
                 index++
             } else {

@@ -26,6 +26,8 @@ import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.BookDownloader.turnToEpub
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.download.DownloadFragment
+import com.lagradost.quicknovel.ui.download.DownloadFragment.Companion.updateDownloadFromCard
+import com.lagradost.quicknovel.ui.download.DownloadFragment.Companion.updateDownloadFromResult
 import jp.wasabeef.glide.transformations.BlurTransformation
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.fragment_result.*
@@ -96,7 +98,8 @@ class ResultFragment : Fragment() {
     var lastProgress: Int = 0
     fun updateGenerateBtt(progress: Int?) {
         if (viewModel.loadResponse.value != null) {
-            generateEpub = DataStore.getKey(DOWNLOAD_EPUB_SIZE, viewModel.id.value.toString(), 0) != (progress ?: lastProgress)
+            generateEpub =
+                DataStore.getKey(DOWNLOAD_EPUB_SIZE, viewModel.id.value.toString(), 0) != (progress ?: lastProgress)
             if (progress != null) lastProgress = progress
             if (result_download_generate_epub != null) {
                 if (generateEpub) {
@@ -397,31 +400,14 @@ class ResultFragment : Fragment() {
         result_back.layoutParams = back_parameter
 
         result_download_btt.setOnClickListener {
-            val localId = viewModel.id.value!!
-            if (viewModel.loadResponse.value == null || localId == -1) return@setOnClickListener
-            val l = viewModel.loadResponse.value!!
-            DataStore.setKey(DOWNLOAD_FOLDER, BookDownloader.generateId(l, api).toString(),
-                DownloadFragment.DownloadData(resultUrl,
-                    l.name,
-                    l.author,
-                    l.posterUrl,
-                    l.rating,
-                    l.peopleVoted,
-                    l.views,
-                    l.Synopsis,
-                    l.tags,
-                    api.name
-                ))
-
             thread {
-                when (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped) {
-                    BookDownloader.DownloadType.IsFailed -> BookDownloader.download(l, api)
-                    BookDownloader.DownloadType.IsStopped -> BookDownloader.download(l, api)
-                    BookDownloader.DownloadType.IsDownloading -> BookDownloader.updateDownload(localId,
-                        BookDownloader.DownloadType.IsPaused)
-                    BookDownloader.DownloadType.IsPaused -> BookDownloader.updateDownload(localId,
-                        BookDownloader.DownloadType.IsDownloading)
-                    else -> println("ERROR")
+                if (viewModel.loadResponse.value != null && viewModel.id.value != null && viewModel.apiName.value != null && viewModel.resultUrl.value != null) {
+                    updateDownloadFromResult(
+                        viewModel.loadResponse.value!!,
+                        viewModel.id.value!!,
+                        viewModel.apiName.value!!,
+                        viewModel.resultUrl.value!!,
+                        true)
                 }
             }
         }
