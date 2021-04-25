@@ -47,7 +47,7 @@
         <SwitchPreference
                 app:key="@string/remove_external_key"
                 android:title="Remove Bloat"
-                android:summary="Removes the title and Translator from all pages"
+                android:summary="Removes the title and translator from all pages, will cause longer generation time"
                 app:defaultValue="true"
                 android:icon="@drawable/ic_baseline_edit_24"
         />

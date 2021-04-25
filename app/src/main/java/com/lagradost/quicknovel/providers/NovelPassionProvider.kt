@@ -21,7 +21,13 @@ class NovelPassionProvider : MainAPI() {
                 return null
             }
             res.html()
-                .replace("( NovelFull )", "").replace("NiceNovel.com", "") // FUCK ADS
+                // FUCK ADS
+                .replace("( NovelFull )", "")
+                .replace("NiceNovel.com", "")
+                .replace("NovelsToday.com","")
+                .replace("NovelsToday","")
+                .replace("read online free","")
+                .replace("NovelWell.com","")
         } catch (e: Exception) {
             null
         }
