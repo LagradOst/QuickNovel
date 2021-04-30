@@ -118,7 +118,8 @@ class WuxiaWorldSiteProvider : MainAPI() {
 
             val views = null
 
-            val aHeader = document.select("div.post-status > div.post-content_item > div.summary-content")[1]
+            val aHeaders = document.select("div.post-status > div.post-content_item > div.summary-content")
+            val aHeader = aHeaders.last()
 
             val status = when (aHeader.text().toLowerCase(Locale.getDefault())) {
                 "ongoing" -> 1

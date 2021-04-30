@@ -199,8 +199,6 @@ class ResultFragment : Fragment() {
     fun newState(loadResponse: LoadResponse?) {
         val isLoaded = viewModel.isLoaded.value ?: false
         val validState = isLoaded && loadResponse != null
-        result_holder.visibility = if (isLoaded) View.VISIBLE else View.GONE
-        result_loading.visibility = if (validState) View.GONE else View.VISIBLE
 
         /*
         if (mainStore.state.resultState.downloadNotification == null) mainStore.dispatch(
@@ -371,6 +369,10 @@ class ResultFragment : Fragment() {
                     maxOf(0, displayMetrics.heightPixels - height))// - MainActivity.activity.nav_view.height
             }
         }
+
+        // TO FIX 1 FRAME WACK
+        result_holder.visibility = if (isLoaded) View.VISIBLE else View.GONE
+        result_loading.visibility = if (validState) View.GONE else View.VISIBLE
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
