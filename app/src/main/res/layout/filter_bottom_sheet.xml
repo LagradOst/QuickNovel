@@ -18,6 +18,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
             <TextView
+                    style="@style/AppTextViewStyle"
                     android:layout_gravity="center_vertical"
                     android:text="@string/filter_dialog_sort_by" android:textColor="@color/textColor" android:textSize="18sp"
                     android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -55,6 +56,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
         <TextView
+                style="@style/AppTextViewStyle"
                 android:id="@+id/filter_general_text"
                 android:layout_columnWeight="2" android:textSize="17sp" android:paddingBottom="40dp"
                 android:text="@string/filter_dialog_general" android:textColor="@color/lightGrayTextColor"
@@ -70,6 +72,7 @@
         </Spinner>
 
         <TextView
+                style="@style/AppTextViewStyle"
                 android:id="@+id/filter_order_text"
                 android:layout_columnWeight="2" android:textSize="17sp" android:paddingBottom="40dp"
                 android:text="@string/filter_dialog_order_by" android:textColor="@color/lightGrayTextColor"
@@ -85,6 +88,7 @@
         </Spinner>
 
         <TextView
+                style="@style/AppTextViewStyle"
                 android:id="@+id/filter_tag_text"
                 android:layout_columnWeight="2" android:textSize="17sp" android:paddingBottom="40dp"
                 android:text="@string/filter_dialog_genre" android:textColor="@color/lightGrayTextColor" android:layout_width="wrap_content"
