@@ -17,8 +17,6 @@ import kotlin.concurrent.thread
 
 import android.widget.ImageView
 import androidx.appcompat.app.AlertDialog
-import androidx.fragment.app.DialogFragment
-import androidx.preference.DialogPreference
 import androidx.preference.PreferenceManager
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.getApiSettings
@@ -56,10 +54,11 @@ class SearchFragment : Fragment() {
         val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = context?.let {
             ResAdapter(
                 it,
-                ArrayList<SearchResponse>(),
+                ArrayList(),
                 cardSpace,
             )
         }
+
         cardSpace.adapter = adapter
         cardSpace.layoutManager = GridLayoutManager(context, 1)
         search_loading_bar.alpha = 0f

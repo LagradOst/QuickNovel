@@ -3,25 +3,32 @@
             xmlns:app="http://schemas.android.com/apk/res-auto"
             xmlns:tools="http://schemas.android.com/tools"
             android:id="@+id/mobile_navigation"
-            app:startDestination="@+id/navigation_search">
-
+            app:startDestination="@+id/navigation_mainpage">
+    <fragment
+            android:id="@+id/navigation_mainpage"
+            android:name="com.lagradost.quicknovel.ui.mainpage.MainPageFragment"
+            android:label="@string/title_mainpage"
+            android:layout_height="match_parent"
+            tools:layout="@layout/fragment_mainpage">
+    </fragment>
     <fragment
             android:id="@+id/navigation_search"
             android:name="com.lagradost.quicknovel.ui.search.SearchFragment"
             android:label="@string/title_search"
             android:layout_height="match_parent"
-            tools:layout="@layout/fragment_search"/>
+            tools:layout="@layout/fragment_search">
+    </fragment>
     <fragment
             android:id="@+id/navigation_download"
             android:name="com.lagradost.quicknovel.ui.download.DownloadFragment"
             android:label="@string/title_download"
             android:layout_height="match_parent"
-            tools:layout="@layout/fragment_downloads"/>
+            tools:layout="@layout/fragment_downloads">
+    </fragment>
     <fragment
             android:id="@+id/navigation_settings"
             android:name="com.lagradost.quicknovel.ui.settings.SettingsFragment"
             android:label="@string/title_download"
             android:layout_height="match_parent">
-
     </fragment>
 </navigation>

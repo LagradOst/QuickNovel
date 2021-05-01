@@ -5,16 +5,17 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.lagradost.quicknovel.*
-import kotlinx.android.synthetic.main.fragment_downloads.*
-import androidx.recyclerview.widget.SimpleItemAnimator
-
 import androidx.recyclerview.widget.RecyclerView.ItemAnimator
+import androidx.recyclerview.widget.SimpleItemAnimator
+import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.mvvm.observe
+import com.lagradost.quicknovel.ui.result.ResultViewModel
+import kotlinx.android.synthetic.main.fragment_downloads.*
 import kotlin.concurrent.thread
 
 const val DEFAULT_SORT = 0
@@ -29,7 +30,13 @@ const val REVERSE_LAST_ACCES_SORT = 8
 
 class DownloadFragment : Fragment() {
     companion object {
-        fun updateDownloadFromResult(res : LoadResponse, localId : Int, apiName: String, source: String, pauseOngoing: Boolean = false) {
+        fun updateDownloadFromResult(
+            res: LoadResponse,
+            localId: Int,
+            apiName: String,
+            source: String,
+            pauseOngoing: Boolean = false,
+        ) {
             val api = MainActivity.getApiFromName(apiName)
             DataStore.setKey(DOWNLOAD_TOTAL,
                 localId.toString(),
@@ -43,7 +50,7 @@ class DownloadFragment : Fragment() {
                     res.rating,
                     res.peopleVoted,
                     res.views,
-                    res.Synopsis,
+                    res.synopsis,
                     res.tags,
                     api.name
                 ))
@@ -72,13 +79,14 @@ class DownloadFragment : Fragment() {
                 } else {
                     DloadAdapter.cachedLoadResponse[card.id] = res
                     val localId = card.id//BookDownloader.generateId(res, MainActivity.api)
-                    updateDownloadFromResult(res,localId,card.apiName,card.source,pauseOngoing)
+                    updateDownloadFromResult(res, localId, card.apiName, card.source, pauseOngoing)
                 }
             }
         }
 
     }
 
+    private lateinit var viewModel: DownloadViewModel
 
     data class DownloadData(
         val source: String,
@@ -126,8 +134,6 @@ class DownloadFragment : Fragment() {
         SotringMethod("Download percentage (high to low)", DOWNLOADPRECENTAGE_SORT),
         SotringMethod("Download percentage (low to high)", REVERSE_DOWNLOADPRECENTAGE_SORT),
     )
-    val standardSotringMethod = LAST_ACCES_SORT
-    var currentSortingMethod = standardSotringMethod
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -145,138 +151,38 @@ class DownloadFragment : Fragment() {
     }
 
     fun updateDownloadInfo(info: BookDownloader.DownloadNotification) {
-        val arry = (download_cardSpace.adapter as DloadAdapter).cardList
-        var index = 0
-        for (res in arry) {
-            if (res.id == info.id) {
-                (download_cardSpace.adapter as DloadAdapter).cardList[index] =
-                    DownloadDataLoaded(
-                        res.source,
-                        res.name,
-                        res.author,
-                        res.posterUrl,
-                        res.rating,
-                        res.peopleVoted,
-                        res.views,
-                        res.Synopsis,
-                        res.tags,
-                        res.apiName,
-                        info.progress,
-                        maxOf(info.progress, info.total), //IDK Bug fix ?
-                        true,
-                        info.ETA,
-                        info.state,
-                        res.id,
-                    )
-                (download_cardSpace.adapter as DloadAdapter).cardList =
-                    sortArray((download_cardSpace.adapter as DloadAdapter).cardList)
-                activity?.runOnUiThread {
-                    if (download_cardSpace != null) { // IN CASE YOU SWITCH, THIS WILL BE NULL IS YOU TIME IT
-                        (download_cardSpace.adapter as DloadAdapter).notifyDataSetChanged()
-                    }
-                }
-                break
-            }
-            index++
-        }
+        viewModel.updateDownloadInfo(info)
     }
 
     fun removeAction(id: Int) {
-        loadData()
+        viewModel.removeActon(id)
     }
 
-    fun sortArray(arry: ArrayList<DownloadDataLoaded>): ArrayList<DownloadDataLoaded> {
-        return when (currentSortingMethod) {
-            DEFAULT_SORT -> arry
-            ALPHA_SORT -> {
-                arry.sortBy { t -> t.name }
-                arry
-            }
-            REVERSE_ALPHA_SORT -> {
-                arry.sortBy { t -> t.name }
-                arry.reverse()
-                arry
-            }
-            DOWNLOADSIZE_SORT -> {
-                arry.sortBy { t -> -t.downloadedCount }
-                arry
-            }
-            REVERSE_DOWNLOADSIZE_SORT -> {
-                arry.sortBy { t -> t.downloadedCount }
-                arry
-            }
-            DOWNLOADPRECENTAGE_SORT -> {
-                arry.sortBy { t -> -t.downloadedCount.toFloat() / t.downloadedTotal }
-                arry
-            }
-            REVERSE_DOWNLOADPRECENTAGE_SORT -> {
-                arry.sortBy { t -> t.downloadedCount.toFloat() / t.downloadedTotal }
-                arry
-            }
-            LAST_ACCES_SORT -> {
-                arry.sortBy { t -> -(DataStore.getKey<Long>(DOWNLOAD_EPUB_LAST_ACCESS, t.id.toString(), 0)!!) }
-                arry
-            }
-            else -> arry
-        }
-    }
-
-    fun loadData() {
-        val arry = ArrayList<DownloadDataLoaded>()
-        val keys = DataStore.getKeys(DOWNLOAD_FOLDER)
-        for (k in keys) {
-            val res =
-                DataStore.getKey<DownloadData>(k) // THIS SHIT LAGS THE APPLICATION IF ON MAIN THREAD (IF NOT WARMED UP BEFOREHAND, SEE @WARMUP)
-            if (res != null) {
-                val localId = BookDownloader.generateId(res.apiName, res.author, res.name)
-                val info = BookDownloader.downloadInfo(res.author, res.name, 100000, res.apiName)
-                if (info != null && info.progress > 0) {
-                    val state =
-                        (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped)!!
-                    arry.add(DownloadDataLoaded(
-                        res.source,
-                        res.name,
-                        res.author,
-                        res.posterUrl,
-                        res.rating,
-                        res.peopleVoted,
-                        res.views,
-                        res.Synopsis,
-                        res.tags,
-                        res.apiName,
-                        info.progress,
-                        maxOf(info.progress,
-                            DataStore.getKey(DOWNLOAD_TOTAL, localId.toString(), info.progress)!!), //IDK Bug fix ?
-                        false,
-                        "",
-                        state,
-                        info.id,
-                    ))
-                }
-            }
-        }
-
-        activity?.runOnUiThread {
-            (download_cardSpace.adapter as DloadAdapter).cardList = sortArray(arry)
-            (download_cardSpace.adapter as DloadAdapter).notifyDataSetChanged()
-        }
+    fun updateData(data: ArrayList<DownloadFragment.DownloadDataLoaded>) {
+        (download_cardSpace.adapter as DloadAdapter).cardList = data
+        (download_cardSpace.adapter as DloadAdapter).notifyDataSetChanged()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        currentSortingMethod = DataStore.getKey("SearchSettings", ::currentSortingMethod.name, standardSotringMethod)
-            ?: standardSotringMethod
+
+        viewModel = ViewModelProviders.of(MainActivity.activity).get(DownloadViewModel::class.java)
+
+        observe(viewModel.cards, ::updateData)
+        thread {
+            viewModel.loadData()
+        }
 
         download_filter.setOnClickListener {
             val builder: AlertDialog.Builder = AlertDialog.Builder(this.context!!)
             lateinit var dialog: AlertDialog
             builder.setSingleChoiceItems(sotringMethods.map { t -> t.name }.toTypedArray(),
-                sotringMethods.indexOfFirst { t -> t.id == currentSortingMethod }
+                sotringMethods.indexOfFirst { t -> t.id ==  viewModel.currentSortingMethod.value }
             ) { _, which ->
-                currentSortingMethod = sotringMethods[which].id
-                DataStore.setKey("SearchSettings", ::currentSortingMethod.name, currentSortingMethod)
+                val id = sotringMethods[which].id
+                viewModel.currentSortingMethod.postValue(id)
+                DataStore.setKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, id)
 
-                loadData()
                 dialog.dismiss()
             }
             builder.setTitle("Sorting order")
@@ -321,10 +227,6 @@ class DownloadFragment : Fragment() {
             parameter.rightMargin,
             parameter.bottomMargin)
         download_top_padding.layoutParams = parameter
-
-        //thread {
-        loadData() // CAN BE DONE ON ANOTHER THREAD
-        //}
 
         BookDownloader.downloadNotification += ::updateDownloadInfo
         BookDownloader.downloadRemove += ::removeAction

@@ -15,6 +15,7 @@ import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.widget.FrameLayout
 import androidx.core.content.res.ResourcesCompat
+import androidx.navigation.NavOptions
 import androidx.preference.PreferenceManager
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.DeserializationFeature
@@ -182,11 +183,40 @@ class MainActivity : AppCompatActivity() {
         val navController = findNavController(R.id.nav_host_fragment)
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
-        val appBarConfiguration = AppBarConfiguration(setOf(
+        /*val appBarConfiguration = AppBarConfiguration(setOf(
             R.id.navigation_search,
-            R.id.navigation_download)) // R.id.navigation_dashboard, R.id.navigation_notifications
+            R.id.navigation_download))*/ // R.id.navigation_dashboard, R.id.navigation_notifications
         //setupActionBarWithNavController(navController, appBarConfiguration)
-        navView.setupWithNavController(navController)
+        val options = NavOptions.Builder()
+            .setLaunchSingleTop(true)
+            .setEnterAnim(R.anim.nav_enter_anim)
+            .setExitAnim(R.anim.nav_exit_anim)
+            .setPopEnterAnim(R.anim.nav_pop_enter)
+            .setPopExitAnim(R.anim.nav_pop_exit)
+            .setPopUpTo(navController.graph.startDestination, false)
+            .build()
+/*
+        navView.setOnNavigationItemReselectedListener { item ->
+            return@setOnNavigationItemReselectedListener
+        }*/
+        navView.setOnNavigationItemSelectedListener { item ->
+            when(item.itemId) {
+                R.id.navigation_mainpage -> {
+                    navController.navigate(R.id.navigation_mainpage,null,options)
+                }
+                R.id.navigation_search -> {
+                    navController.navigate(R.id.navigation_search,null,options)
+                }
+                R.id.navigation_download -> {
+                    navController.navigate(R.id.navigation_download,null,options)
+                }
+                R.id.navigation_settings -> {
+                    navController.navigate(R.id.navigation_settings,null,options)
+                }
+            }
+            true
+        }
+
         DataStore.init(this)
         BookDownloader.init()
 

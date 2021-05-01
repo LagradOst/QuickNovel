@@ -43,10 +43,9 @@ class ResultViewModel(val repo: ResultRepository) : ViewModel() {
             ) { res ->
                 isLoaded.postValue(true)
                 loadResponse.postValue(res)
-                if(res == null) {
+                if (res == null) {
                     isFailedConnection.postValue(true)
-                }
-                else {
+                } else {
                     isFailedConnection.postValue(false)
                     val tid = BookDownloader.generateId(this.apiName.value!!,
                         res.author,

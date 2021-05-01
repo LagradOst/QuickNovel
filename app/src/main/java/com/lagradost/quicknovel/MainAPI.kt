@@ -5,6 +5,23 @@ import org.jsoup.Jsoup
 open class MainAPI {
     open val name = "NONE"
     open val mainUrl = "NONE"
+
+    // DECLARE HAS ACCESS TO MAIN PAGE INFORMATION
+    open val hasMainPage = false
+
+    open val mainCategories: ArrayList<Pair<String, String>> = ArrayList()
+    open val orderBys: ArrayList<Pair<String, String>> = ArrayList()
+    open val tags: ArrayList<Pair<String, String>> = ArrayList()
+
+    open fun loadMainPage(
+        page: Int,
+        mainCategory: String?,
+        orderBy: String?,
+        tag: String?,
+    ): ArrayList<MainPageResponse>? {
+        return null
+    }
+
     open fun search(query: String): ArrayList<SearchResponse>? {
         return null
     }
@@ -20,7 +37,7 @@ open class MainAPI {
 
 fun stripHtml(txt: String, chapterName: String? = null, chapterIndex: Int? = null): String {
     val document = Jsoup.parse(txt)
-    if(chapterName != null && chapterIndex != null) {
+    if (chapterName != null && chapterIndex != null) {
         for (a in document.allElements) {
             if (a != null && a.hasText() &&
                 (a.text() == chapterName || (a.tagName() == "h3" && a.text().startsWith("Chapter ${chapterIndex + 1}")))
@@ -36,6 +53,16 @@ fun stripHtml(txt: String, chapterName: String? = null, chapterIndex: Int? = nul
         .replace("<.*?Translator:.*?Editor:.*?>".toRegex(), "") // FUCK THIS, LEGIT IN EVERY CHAPTER
 
 }
+
+data class MainPageResponse(
+    val name: String,
+    val url: String,
+    val posterUrl: String?,
+    val rating: Int?,
+    val latestChapter: String?,
+    val apiName: String,
+    val tags: ArrayList<String>,
+)
 
 data class SearchResponse(
     val name: String,
@@ -55,7 +82,7 @@ data class LoadResponse(
     val rating: Int?,
     val peopleVoted: Int?,
     val views: Int?,
-    val Synopsis: String?,
+    val synopsis: String?,
     val tags: ArrayList<String>?,
     val status: Int?, // 0 = null - implemented but not found, 1 = Ongoing, 2 = Complete, 3 = Pause/HIATUS, 4 = Dropped
 )

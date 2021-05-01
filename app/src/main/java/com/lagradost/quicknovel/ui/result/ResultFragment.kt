@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.ui.result
 
 import android.animation.ObjectAnimator
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
@@ -26,11 +27,9 @@ import com.google.android.material.button.MaterialButton
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.BookDownloader.turnToEpub
 import com.lagradost.quicknovel.mvvm.observe
-import com.lagradost.quicknovel.ui.download.DownloadFragment
-import com.lagradost.quicknovel.ui.download.DownloadFragment.Companion.updateDownloadFromCard
 import com.lagradost.quicknovel.ui.download.DownloadFragment.Companion.updateDownloadFromResult
+import com.lagradost.quicknovel.ui.download.DownloadViewModel
 import jp.wasabeef.glide.transformations.BlurTransformation
-import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.fragment_result.*
 import java.text.CharacterIterator
 import java.text.StringCharacterIterator
@@ -79,7 +78,7 @@ class ResultFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_result, container, false)
     }
 
-    val factory = InjectorUtils.provideQuotesViewModelFactory()
+    val factory = InjectorUtils.provideResultViewModelFactory()
     override fun onAttach(context: Context) {
         super.onAttach(context)
         arguments?.getString("url")?.let {
@@ -114,6 +113,7 @@ class ResultFragment : Fragment() {
         }
     }
 
+    @SuppressLint("SetTextI18n")
     fun updateDownloadInfo(info: BookDownloader.DownloadNotification?) {
         if (info == null) return
         if (result_download_progress_text != null) {
@@ -144,7 +144,6 @@ class ResultFragment : Fragment() {
             updateDownloadButtons(info.progress, info.total, info.state)
             updateGenerateBtt(info.progress)
         }
-
     }
 
     fun updateDownloadButtons(progress: Int, total: Int, state: BookDownloader.DownloadType) {
@@ -304,14 +303,14 @@ class ResultFragment : Fragment() {
             result_views.text =
                 if (res.views != null) humanReadableByteCountSI(res.views) else getString(R.string.no_data)
 
-            if (res.Synopsis != null) {
-                var syno = res.Synopsis
+            if (res.synopsis != null) {
+                var syno = res.synopsis
                 if (syno.length > MAX_SYNO_LENGH) {
                     syno = syno.substring(0, MAX_SYNO_LENGH) + "..."
                 }
                 result_synopsis_text.setOnClickListener {
                     val builder: AlertDialog.Builder = AlertDialog.Builder(this.context!!)
-                    builder.setMessage(res.Synopsis).setTitle("Synopsis")
+                    builder.setMessage(res.synopsis).setTitle("Synopsis")
                         .show()
                 }
                 result_synopsis_text.text = syno
@@ -358,27 +357,28 @@ class ResultFragment : Fragment() {
                     .apply(bitmapTransform(BlurTransformation(100, 3)))
                     .into(result_poster_blur)
             }
-
-            result_download_card.post {
-                val displayMetrics = context!!.resources.displayMetrics
-                val height = result_download_card.height
-                result_scroll_padding.setPadding(
-                    result_scroll_padding.paddingLeft,
-                    result_scroll_padding.paddingTop,
-                    result_scroll_padding.paddingRight,
-                    maxOf(0, displayMetrics.heightPixels - height))// - MainActivity.activity.nav_view.height
-            }
         }
 
         // TO FIX 1 FRAME WACK
         result_holder.visibility = if (isLoaded) View.VISIBLE else View.GONE
         result_loading.visibility = if (validState) View.GONE else View.VISIBLE
+
+        result_download_card.post {
+            val displayMetrics = context!!.resources.displayMetrics
+            val height = result_download_card.height
+            result_scroll_padding.setPadding(
+                result_scroll_padding.paddingLeft,
+                result_scroll_padding.paddingTop,
+                result_scroll_padding.paddingRight,
+                maxOf(0, displayMetrics.heightPixels - height))// - MainActivity.activity.nav_view.height
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewModel = ViewModelProviders.of(this, factory)
             .get(ResultViewModel::class.java)
+
         println("STATEID:::${viewModel.downloadNotification.value} :: ${viewModel.loadResponse.value?.name}")
         if (viewModel.loadResponse.value == null)
             viewModel.initState(resultUrl, api.name)

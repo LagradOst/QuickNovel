@@ -1,15 +1,87 @@
 package com.lagradost.quicknovel.providers
 
-import com.lagradost.quicknovel.ChapterData
-import com.lagradost.quicknovel.LoadResponse
-import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.*
 import org.jsoup.Jsoup
 import java.lang.Exception
 
 class RoyalRoadProvider : MainAPI() {
     override val name: String get() = "Royal Road"
     override val mainUrl: String get() = "https://www.royalroad.com"
+
+    override val hasMainPage: Boolean
+        get() = true
+
+    //, "Ongoing", "Complete", "Popular this week", "Latest Updates", "New Releases", "Trending"
+    override val mainCategories: ArrayList<Pair<String, String>>
+        get() = arrayListOf(
+            Pair("Best Rated", "best-rated"),
+            Pair("Ongoing", "active-popular"),
+            Pair("Complete", "complete"),
+            Pair("Popular this week", "weekly-popular"),
+            Pair("Latest Updates", "latest-updates"),
+            Pair("New Releases", "new-releases"),
+            Pair("Trending", "trending"),
+        )
+    override val tags: ArrayList<Pair<String, String>>
+        get() = arrayListOf(
+            Pair("All", ""),
+            Pair("Action", "action"),
+            Pair("Adventure", "adventure"),
+            Pair("Comedy", "comedy"),
+            Pair("Contemporary", "contemporary"),
+            Pair("Drama", "drama"),
+            Pair("Fantasy", "fantasy"),
+            Pair("Historical", "historical"),
+            Pair("Horror", "horror"),
+            Pair("Mystery", "mystery"),
+            Pair("Psychological", "psychological"),
+            Pair("Romance", "romance"),
+            Pair("Satire", "satire"),
+            Pair("Sci-fi", "sci_fi"),
+            Pair("Short Story", "one_shot"),
+            Pair("Tragedy", "tragedy")
+        )
+
+    override fun loadMainPage(
+        page: Int,
+        mainCategory: String?,
+        orderBy: String?,
+        tag: String?,
+    ): ArrayList<MainPageResponse>? {
+        val url = "$mainUrl/fictions/$mainCategory?page=$page${if (tag == null || tag == "") "" else "&genre=$tag"}"
+        try {
+            val response = khttp.get(url)
+
+            val document = Jsoup.parse(response.text)
+            val headers = document.select("div.fiction-list-item")
+            if (headers.size <= 0) return ArrayList()
+
+            val returnValue: ArrayList<MainPageResponse> = ArrayList()
+            for (h in headers) {
+                val head = h.selectFirst("> div")
+                val hInfo = head.selectFirst("> h2.fiction-title > a")
+
+                val name = hInfo.text()
+                val url = mainUrl + hInfo.attr("href")
+
+                var posterUrl = h.selectFirst("> figure > a > img").attr("src")
+                if (posterUrl.startsWith('/')) {
+                    posterUrl = mainUrl + posterUrl
+                }
+
+                val ratingHead = head.selectFirst("> div.stats").select("> div")[1].selectFirst("> span").attr("title")
+                val rating = (ratingHead.toFloat() * 200).toInt()
+                val latestChapter = h.select("div.stats > div.col-sm-6 > span")[4].text()
+
+                val tags = ArrayList(h.select("span.tags > a").map { t -> t.text() })
+                returnValue.add(MainPageResponse(name, url, posterUrl, rating, latestChapter, this.name, tags))
+            }
+            return returnValue
+        } catch (e: Exception) {
+            return null
+        }
+    }
+
 
     override fun search(query: String): ArrayList<SearchResponse>? {
         try {

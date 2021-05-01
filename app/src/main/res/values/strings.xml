@@ -32,4 +32,6 @@
     <string name="select_chapter">Select Chapter</string>
     <string name="search_poster_descript">Poster</string>
     <string name="sort_downloads_descript">Sort Downloads</string>
+    <string name="title_settings">Settings</string>
+    <string name="title_mainpage">Home</string>
 </resources>
