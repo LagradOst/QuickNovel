@@ -20,24 +20,28 @@ class MainPageViewModel : ViewModel() {
         }
         return@lazy MutableLiveData<MainAPI>()
     }
+    val currentPage: MutableLiveData<Int> by lazy {
+        MutableLiveData<Int>()
+    }
 
     fun load(
-        page: Int,
+        page: Int?,
         mainCategory: Int?,
         orderBy: Int?,
         tag: Int?,
     ) {
-        if (page == 0)
+        val cPage = page ?: ((currentPage.value ?: 0) + 1)
+        if (cPage == 0)
             cards.postValue(ArrayList())
 
         val api = api.value
         if (api != null) {
-            val list = api.loadMainPage(page,
+            val list = api.loadMainPage(cPage + 1, // cPage starts at 0, load starts at 1
                 if (mainCategory != null) api.mainCategories[mainCategory].second else null,
                 if (orderBy != null) api.orderBys[orderBy].second else null,
                 if (tag != null) api.tags[tag].second else null)
 
-            val copy = if(page == 0) ArrayList() else cards.value
+            val copy = if (cPage == 0) ArrayList() else cards.value
 
             if (list != null && copy != null) {
                 for (i in list) {
@@ -46,5 +50,6 @@ class MainPageViewModel : ViewModel() {
             }
             cards.postValue(copy)
         }
+        currentPage.postValue(cPage)
     }
 }

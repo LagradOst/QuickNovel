@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<androidx.coordinatorlayout.widget.CoordinatorLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
+        android:layout_height="match_parent" xmlns:tools="http://schemas.android.com/tools">
     <androidx.recyclerview.widget.RecyclerView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -13,6 +12,17 @@
             android:paddingEnd="8dp"
             android:id="@+id/mainpage_list"
             android:orientation="vertical"
-    >
-    </androidx.recyclerview.widget.RecyclerView>
-</LinearLayout>
+    />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/mainpage_fab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|bottom"
+            android:src="@drawable/ic_sort_24dp"
+            tools:text="Action"
+
+            style="@style/Widget.MaterialComponents.FloatingActionButton"
+            android:contentDescription="Filter"
+            android:layout_margin="16dp"/>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
