@@ -49,6 +49,8 @@ class RoyalRoadProvider : MainAPI() {
         tag: String?,
     ): ArrayList<MainPageResponse>? {
         val url = "$mainUrl/fictions/$mainCategory?page=$page${if (tag == null || tag == "") "" else "&genre=$tag"}"
+        if (page > 1 && mainCategory == "trending") return ArrayList()
+
         try {
             val response = khttp.get(url)
 
@@ -69,9 +71,24 @@ class RoyalRoadProvider : MainAPI() {
                     posterUrl = mainUrl + posterUrl
                 }
 
-                val ratingHead = head.selectFirst("> div.stats").select("> div")[1].selectFirst("> span").attr("title")
-                val rating = (ratingHead.toFloat() * 200).toInt()
-                val latestChapter = h.select("div.stats > div.col-sm-6 > span")[4].text()
+                val rating = try {
+                    val ratingHead =
+                        head.selectFirst("> div.stats").select("> div")[1].selectFirst("> span").attr("title")
+                    (ratingHead.toFloat() * 200).toInt()
+                } catch (e: Exception) {
+                    null
+                }
+
+                val latestChapter = try {
+                    if(mainCategory == "latest-updates") {
+                        head.selectFirst("> ul.list-unstyled > li.list-item > a > span").text()
+                    }
+                    else {
+                        h.select("div.stats > div.col-sm-6 > span")[4].text()
+                    }
+                } catch (e: Exception) {
+                    null
+                }
 
                 val tags = ArrayList(h.select("span.tags > a").map { t -> t.text() })
                 returnValue.add(MainPageResponse(name, url, posterUrl, rating, latestChapter, this.name, tags))

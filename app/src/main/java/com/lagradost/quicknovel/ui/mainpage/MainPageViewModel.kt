@@ -20,8 +20,19 @@ class MainPageViewModel : ViewModel() {
         }
         return@lazy MutableLiveData<MainAPI>()
     }
+
     val currentPage: MutableLiveData<Int> by lazy {
         MutableLiveData<Int>()
+    }
+
+    val currentMainCategory: MutableLiveData<Int> by lazy {
+        MutableLiveData<Int>(null)
+    }
+    val currentOrderBy: MutableLiveData<Int> by lazy {
+        MutableLiveData<Int>(null)
+    }
+    val currentTag: MutableLiveData<Int> by lazy {
+        MutableLiveData<Int>(null)
     }
 
     fun load(
@@ -50,6 +61,10 @@ class MainPageViewModel : ViewModel() {
             }
             cards.postValue(copy)
         }
+
         currentPage.postValue(cPage)
+        currentTag.postValue(tag)
+        currentOrderBy.postValue(orderBy)
+        currentMainCategory.postValue(mainCategory)
     }
 }

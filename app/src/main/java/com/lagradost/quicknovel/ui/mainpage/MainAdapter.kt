@@ -55,34 +55,16 @@ class MainAdapter(
         val bg = itemView.backgroundCard
         fun bind(card: MainPageResponse) {
             cardText.text = card.name
-            if (card.latestChapter == null) {
-                cardTextExtra.text = card.apiName
-            } else {
-                val r = Regex("""[0-9]+""")
-                val matches = r.findAll(card.latestChapter, 0).toList()
-                if (matches.isNotEmpty()) {
-                    var max = 0
-                    for (m in matches) {
-                        val subMax = m.value.toInt()
-                        if (subMax > max) {
-                            max = subMax
-                        }
-                    }
-                    cardTextExtra.text =
-                        "${card.apiName} • $max Chapter${if (max != 1) "s" else ""}" /*+ if (card.rating == null) "" else " • " + MainActivity.getRating(
-                            card.rating)*/
-                } else {
-                    cardTextExtra.text = card.apiName
-                }
-            }
+            cardTextExtra.text = card.latestChapter ?: ""
 
+            /*
             bg.setCardBackgroundColor(MainActivity.activity.getColor(R.color.itemBackground))
             for (d in SearchFragment.searchDowloads) {
-                if(card.url == d.source) {
+                if (card.url == d.source) {
                     bg.setCardBackgroundColor(MainActivity.activity.getColor(R.color.colorItemSeen))
                     break
                 }
-            }
+            }*/
             //imageTextProvider.text = card.apiName
 
             val glideUrl =

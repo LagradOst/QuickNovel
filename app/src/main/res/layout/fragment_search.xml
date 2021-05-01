@@ -10,9 +10,7 @@
         android:orientation="vertical"
         android:background="@color/grayBackground">
 
-    <View android:layout_width="wrap_content" android:layout_height="0dp" android:id="@+id/top_padding">
-
-    </View>
+    <View android:layout_width="wrap_content" android:layout_height="0dp" android:id="@+id/top_padding"/>
     <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content">
         <FrameLayout android:layout_width="match_parent" android:layout_marginEnd="30dp"
                      android:layout_height="wrap_content">

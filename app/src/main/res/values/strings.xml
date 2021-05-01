@@ -34,4 +34,9 @@
     <string name="sort_downloads_descript">Sort Downloads</string>
     <string name="title_settings">Settings</string>
     <string name="title_mainpage">Home</string>
+    <string name="filter_dialog_sort_by">Sort by</string>
+    <string name="filter_dialog_filter">Filter</string>
+    <string name="filter_dialog_general">General:</string>
+    <string name="filter_dialog_order_by">Order by:</string>
+    <string name="filter_dialog_genre">Genre:</string>
 </resources>
