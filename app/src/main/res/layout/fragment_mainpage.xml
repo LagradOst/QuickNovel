@@ -2,7 +2,10 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" xmlns:tools="http://schemas.android.com/tools">
+        android:layout_height="match_parent" xmlns:tools="http://schemas.android.com/tools"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:background="@color/grayBackground"
+>
     <ProgressBar
             android:id="@+id/mainpage_loading"
             android:layout_width="50dp"
@@ -12,8 +15,15 @@
             android:visibility="visible"
     >
     </ProgressBar>
-    <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <LinearLayout android:orientation="vertical" android:layout_width="match_parent"
+                  android:layout_height="match_parent">
         <View android:layout_width="wrap_content" android:layout_height="0dp" android:id="@+id/mainpage_top_padding"/>
+        <androidx.appcompat.widget.Toolbar
+                android:id="@+id/mainpage_toolbar"
+                app:menu="@menu/mainpage_actionbar"
+                android:layout_width="match_parent" android:layout_height="wrap_content">
+        </androidx.appcompat.widget.Toolbar>
         <androidx.recyclerview.widget.RecyclerView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -25,8 +35,6 @@
                 android:orientation="vertical"
         />
     </LinearLayout>
-
-
     <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/mainpage_fab"
             android:layout_width="wrap_content"
@@ -36,6 +44,6 @@
             tools:text="Action"
 
             style="@style/Widget.MaterialComponents.FloatingActionButton"
-            android:contentDescription="Filter"
+            android:contentDescription="@string/mainpage_filter"
             android:layout_margin="16dp"/>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

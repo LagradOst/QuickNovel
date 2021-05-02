@@ -1,7 +1,9 @@
 package com.lagradost.quicknovel
 
+import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
+import android.graphics.Color
 
 import android.os.Bundle
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -13,8 +15,16 @@ import com.lagradost.quicknovel.ui.result.ResultFragment
 
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
+import android.view.View
+import android.view.Window
 import android.widget.FrameLayout
+import androidx.annotation.AttrRes
+import androidx.annotation.ColorInt
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.alpha
+import androidx.core.graphics.blue
+import androidx.core.graphics.green
+import androidx.core.graphics.red
 import androidx.navigation.NavOptions
 import androidx.preference.PreferenceManager
 import com.fasterxml.jackson.annotation.JsonProperty
@@ -33,6 +43,7 @@ import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.coroutines.coroutineContext
+import kotlin.math.roundToInt
 
 val Int.toPx: Int get() = (this * Resources.getSystem().displayMetrics.density).toInt()
 val Float.toPx: Float get() = (this * Resources.getSystem().displayMetrics.density)
@@ -69,6 +80,8 @@ class MainActivity : AppCompatActivity() {
         // === API ===
         lateinit var activity: MainActivity
         var statusBarHeight = 0
+
+        lateinit var navOptions: NavOptions
 
         val apis: Array<MainAPI> = arrayOf(
             //AllProvider(),
@@ -124,6 +137,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             if (currentFragment != null && activity.supportFragmentManager.fragments.size > 2) {
+                MainActivity.showNavbar()
                 activity.supportFragmentManager.beginTransaction()
                     .setCustomAnimations(R.anim.enter_anim, R.anim.exit_anim, R.anim.pop_enter, R.anim.pop_exit)
                     .remove(currentFragment)
@@ -132,6 +146,40 @@ class MainActivity : AppCompatActivity() {
             }
             return false
         }
+
+        @ColorInt
+        fun Context.getResourceColor(@AttrRes resource: Int, alphaFactor: Float = 1f): Int {
+            val typedArray = obtainStyledAttributes(intArrayOf(resource))
+            val color = typedArray.getColor(0, 0)
+            typedArray.recycle()
+
+            if (alphaFactor < 1f) {
+                val alpha = (color.alpha * alphaFactor).roundToInt()
+                return Color.argb(alpha, color.red, color.green, color.blue)
+            }
+
+            return color
+        }
+
+        fun semihideNavbar() {
+            val w: Window? = activity.window // in Activity's onCreate() for instance
+            if(w != null) {
+                val uiVisibility =
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                w.decorView.systemUiVisibility = uiVisibility
+                w.navigationBarColor = activity.getResourceColor(android.R.attr.navigationBarColor, 0.7F) ?: Color.TRANSPARENT
+            }
+
+        }
+
+        fun showNavbar() {
+            val w: Window? = activity.window // in Activity's onCreate() for instance
+            if(w != null) {
+                w.decorView.systemUiVisibility = 0
+                w.navigationBarColor = android.R.attr.navigationBarColor
+            }
+        }
+
 
         fun getRating(score: Int): String {
             val settingsManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
@@ -189,7 +237,7 @@ class MainActivity : AppCompatActivity() {
             R.id.navigation_search,
             R.id.navigation_download))*/ // R.id.navigation_dashboard, R.id.navigation_notifications
         //setupActionBarWithNavController(navController, appBarConfiguration)
-        val options = NavOptions.Builder()
+        navOptions = NavOptions.Builder()
             .setLaunchSingleTop(true)
             .setEnterAnim(R.anim.nav_enter_anim)
             .setExitAnim(R.anim.nav_exit_anim)
@@ -204,16 +252,16 @@ class MainActivity : AppCompatActivity() {
         navView.setOnNavigationItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.navigation_homepage -> {
-                    navController.navigate(R.id.navigation_homepage, null, options)
+                    navController.navigate(R.id.navigation_homepage, null, navOptions)
                 }
                 R.id.navigation_search -> {
-                    navController.navigate(R.id.navigation_search, null, options)
+                    navController.navigate(R.id.navigation_search, null, navOptions)
                 }
                 R.id.navigation_download -> {
-                    navController.navigate(R.id.navigation_download, null, options)
+                    navController.navigate(R.id.navigation_download, null, navOptions)
                 }
                 R.id.navigation_settings -> {
-                    navController.navigate(R.id.navigation_settings, null, options)
+                    navController.navigate(R.id.navigation_settings, null, navOptions)
                 }
             }
             true

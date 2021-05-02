@@ -1,24 +1,35 @@
 package com.lagradost.quicknovel.ui.mainpage
 
+import android.content.Context
+import android.content.Intent
+import android.content.res.Resources
+import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget.ArrayAdapter
-import android.widget.LinearLayout
-import android.widget.Spinner
-import android.widget.TextView
+import android.view.*
+import android.widget.*
+import androidx.annotation.AttrRes
+import androidx.annotation.ColorInt
+import androidx.core.graphics.alpha
+import androidx.core.graphics.blue
+import androidx.core.graphics.green
+import androidx.core.graphics.red
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProviders
+import androidx.navigation.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
-import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity
+import com.lagradost.quicknovel.MainAdapter
+import com.lagradost.quicknovel.MainPageResponse
+import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.mvvm.observe
 import kotlinx.android.synthetic.main.fragment_mainpage.*
 import kotlin.concurrent.thread
+import kotlin.math.roundToInt
 
 
 class MainPageFragment : Fragment() {
@@ -35,10 +46,19 @@ class MainPageFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_mainpage, container, false)
     }
 
+    fun newInstance(apiName: String) =
+        MainPageFragment().apply {
+            arguments = Bundle().apply {
+                putString("apiName", apiName)
+            }
+        }
+
     private lateinit var viewModel: MainPageViewModel
 
     private fun updateList(data: ArrayList<MainPageResponse>) {
         mainpage_loading.visibility = if (data.size > 0) View.GONE else View.VISIBLE
+        //if (data.size > 0) MainActivity.semihideNavbar()
+
         (mainpage_list.adapter as MainAdapter).cardList = data
         (mainpage_list.adapter as MainAdapter).notifyDataSetChanged()
         isLoading = false
@@ -48,16 +68,52 @@ class MainPageFragment : Fragment() {
     var pastVisiblesItems = 0
     var visibleItemCount = 0
     var totalItemCount = 0
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val parameter = mainpage_top_padding.layoutParams as LinearLayout.LayoutParams
         parameter.setMargins(parameter.leftMargin,
-            parameter.topMargin + MainActivity.statusBarHeight,
+            parameter.topMargin + MainActivity.statusBarHeight + mainpage_toolbar.height,
             parameter.rightMargin,
             parameter.bottomMargin)
         mainpage_top_padding.layoutParams = parameter
 
-        viewModel = ViewModelProviders.of(MainActivity.activity).get(MainPageViewModel::class.java)
+
+        viewModel = ViewModelProviders.of(this).get(MainPageViewModel::class.java)
+        arguments?.getString("apiName")?.let {
+            viewModel.api.value = MainActivity.getApiFromName(it)
+        }
+
+        mainpage_toolbar.title = viewModel.api.value?.name ?: "ERROR"
+        mainpage_toolbar.setNavigationIcon(R.drawable.ic_baseline_arrow_back_24)
+        mainpage_toolbar.setNavigationOnClickListener {
+            val navController = MainActivity.activity.findNavController(R.id.nav_host_fragment)
+            navController.navigate(R.id.navigation_homepage, null, MainActivity.navOptions)
+        }
+        mainpage_toolbar.setOnMenuItemClickListener {
+            when (it.itemId) {
+                R.id.action_open_in_browser -> {
+                    val url = viewModel.currentUrl.value
+                    if (url != null) {
+                        val i = Intent(Intent.ACTION_VIEW)
+                        i.data = Uri.parse(url)
+                        startActivity(i)
+                    }
+                }
+                else -> {
+                }
+            }
+            return@setOnMenuItemClickListener true
+        }
+
+        /*
+        mainpage_list.setOnScrollChangeListener { v, scrollX, scrollY, oldScrollX, oldScrollY ->
+            val dy = scrollY - oldScrollY
+            val statush = MainActivity.statusBarHeight
+
+            mainpage_toolbar.translationY = maxOf(-mainpage_toolbar.height.toFloat() - statush,
+                minOf(0f, mainpage_toolbar.translationY - statush - dy)) + statush
+           // mainpage_list.setPadding() = mainpage_toolbar.translationY
+        }*/
 
         if (viewModel.cards.value?.size ?: 0 <= 0 && !isLoading) {
             isLoading = true
@@ -155,7 +211,11 @@ class MainPageFragment : Fragment() {
                 bottomSheetDialog.dismiss()
             }
 
+            bottomSheetDialog.setOnDismissListener {
+                //  MainActivity.semihideNavbar()
+            }
             bottomSheetDialog.show()
+            //  MainActivity.showNavbar()
         }
 
         /*

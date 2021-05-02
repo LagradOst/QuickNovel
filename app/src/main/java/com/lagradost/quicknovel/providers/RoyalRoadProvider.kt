@@ -49,16 +49,17 @@ class RoyalRoadProvider : MainAPI() {
         mainCategory: String?,
         orderBy: String?,
         tag: String?,
-    ): ArrayList<MainPageResponse>? {
+    ): HeadMainPageResponse? {
         val url = "$mainUrl/fictions/$mainCategory?page=$page${if (tag == null || tag == "") "" else "&genre=$tag"}"
-        if (page > 1 && mainCategory == "trending") return ArrayList() // TRENDING ONLY HAS 1 PAGE
+        if (page > 1 && mainCategory == "trending") return HeadMainPageResponse(url,
+            ArrayList()) // TRENDING ONLY HAS 1 PAGE
 
         try {
             val response = khttp.get(url)
 
             val document = Jsoup.parse(response.text)
             val headers = document.select("div.fiction-list-item")
-            if (headers.size <= 0) return ArrayList()
+            if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
 
             val returnValue: ArrayList<MainPageResponse> = ArrayList()
             for (h in headers) {
@@ -82,10 +83,9 @@ class RoyalRoadProvider : MainAPI() {
                 }
 
                 val latestChapter = try {
-                    if(mainCategory == "latest-updates") {
+                    if (mainCategory == "latest-updates") {
                         head.selectFirst("> ul.list-unstyled > li.list-item > a > span").text()
-                    }
-                    else {
+                    } else {
                         h.select("div.stats > div.col-sm-6 > span")[4].text()
                     }
                 } catch (e: Exception) {
@@ -95,7 +95,7 @@ class RoyalRoadProvider : MainAPI() {
                 val tags = ArrayList(h.select("span.tags > a").map { t -> t.text() })
                 returnValue.add(MainPageResponse(name, url, posterUrl, rating, latestChapter, this.name, tags))
             }
-            return returnValue
+            return HeadMainPageResponse(url, returnValue)
         } catch (e: Exception) {
             return null
         }

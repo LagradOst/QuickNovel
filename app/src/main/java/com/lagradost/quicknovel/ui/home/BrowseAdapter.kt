@@ -1,12 +1,16 @@
 package com.lagradost.quicknovel
 
 import android.content.Context
+import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.cardview.widget.CardView
+import androidx.navigation.findNavController
 import androidx.recyclerview.widget.RecyclerView
+import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
+import com.lagradost.quicknovel.ui.result.ResultFragment
 import kotlinx.android.synthetic.main.browse_list_compact.view.*
 import kotlinx.android.synthetic.main.download_result_compact.view.*
 
@@ -55,11 +59,20 @@ class BrowseAdapter(
         fun bind(api: MainAPI) {
             browse_text.text = api.name
             val icon = api.iconId
-            if(icon != null) {
+            if (icon != null) {
                 browse_icon.setImageResource(icon)
             }
             cardView.setOnClickListener {
-                println("TEST")
+                val navController = MainActivity.activity.findNavController(R.id.nav_host_fragment)
+                navController.navigate(R.id.navigation_mainpage, Bundle().apply {
+                    putString("apiName", api.name)
+                },MainActivity.navOptions)
+
+/*
+                MainActivity.activity.supportFragmentManager.beginTransaction()
+                    .setCustomAnimations(R.anim.enter_anim, R.anim.exit_anim, R.anim.pop_enter, R.anim.pop_exit)
+                    .add(R.id.nav_host_fragment, MainPageFragment().newInstance(api.name))
+                    .commit()*/
             }
         }
     }

@@ -20,7 +20,7 @@ open class MainAPI {
         mainCategory: String?,
         orderBy: String?,
         tag: String?,
-    ): ArrayList<MainPageResponse>? {
+    ): HeadMainPageResponse? {
         return null
     }
 
@@ -55,6 +55,11 @@ fun stripHtml(txt: String, chapterName: String? = null, chapterIndex: Int? = nul
         .replace("<.*?Translator:.*?Editor:.*?>".toRegex(), "") // FUCK THIS, LEGIT IN EVERY CHAPTER
 
 }
+
+data class HeadMainPageResponse(
+    val url: String,
+    val response: ArrayList<MainPageResponse>?,
+)
 
 data class MainPageResponse(
     val name: String,

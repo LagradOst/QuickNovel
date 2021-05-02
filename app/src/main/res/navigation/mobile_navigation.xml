@@ -31,4 +31,10 @@
             android:label="@string/title_download"
             android:layout_height="match_parent">
     </fragment>
+    <fragment
+            android:id="@+id/navigation_mainpage"
+            android:name="com.lagradost.quicknovel.ui.mainpage.MainPageFragment"
+            android:label="@string/title_download"
+            android:layout_height="match_parent">
+    </fragment>
 </navigation>

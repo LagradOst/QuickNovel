@@ -40,4 +40,6 @@
     <string name="filter_dialog_order_by">Order by:</string>
     <string name="filter_dialog_genre">Genre:</string>
     <string name="browse_list_icon">Icon</string>
+    <string name="home_title_text">Explore</string>
+    <string name="mainpage_filter">Filter</string>
 </resources>

@@ -67,7 +67,7 @@ class WuxiaWorldSiteProvider : MainAPI() {
         mainCategory: String?,
         orderBy: String?,
         tag: String?,
-    ): ArrayList<MainPageResponse>? {
+    ): HeadMainPageResponse? {
 
         val order = when (tag) {
             "" -> "novel-list"
@@ -75,7 +75,7 @@ class WuxiaWorldSiteProvider : MainAPI() {
             "completed" -> "tag/$tag"
             else -> "genre/$tag"
         }
-        val url = "$mainUrl/$order/${if (orderBy == null || orderBy == "") "" else "?m_orderby=$orderBy"}"
+        val url = "$mainUrl/$order/page/$page/${if (orderBy == null || orderBy == "") "" else "?m_orderby=$orderBy"}"
 
         try {
             val response = khttp.get(url)
@@ -83,22 +83,25 @@ class WuxiaWorldSiteProvider : MainAPI() {
             val document = Jsoup.parse(response.text)
             //""div.page-content-listing > div.page-listing-item > div > div > div.page-item-detail"
             val headers = document.select("div.page-item-detail")
-            if (headers.size <= 0) return ArrayList()
+            if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
 
             val returnValue: ArrayList<MainPageResponse> = ArrayList()
             for (h in headers) {
                 val imageHeader = h.selectFirst("div.item-thumb > a")
-                val url = imageHeader.attr("href")
                 val name = imageHeader.attr("title")
+                if (name.contains("Comic")) continue // I DON'T WANT MANGA!
+
+                val url = imageHeader.attr("href")
                 val posterUrl = imageHeader.selectFirst("> img").attr("src")
                 val sum = h.selectFirst("div.item-summary")
                 val rating =
-                    (sum.selectFirst("> div.rating > div.post-total-rating > span.score").text().toFloat() * 200).toInt()
+                    (sum.selectFirst("> div.rating > div.post-total-rating > span.score").text()
+                        .toFloat() * 200).toInt()
                 val latestChap = sum.selectFirst("> div.list-chapter > div.chapter-item > span > a").text()
                 returnValue.add(MainPageResponse(name, url, posterUrl, rating, latestChap, this.name, ArrayList()))
             }
 
-            return returnValue
+            return HeadMainPageResponse(url, returnValue)
         } catch (e: Exception) {
             return null
         }
