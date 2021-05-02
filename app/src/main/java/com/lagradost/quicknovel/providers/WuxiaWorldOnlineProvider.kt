@@ -65,7 +65,7 @@ class WuxiaWorldOnlineProvider : MainAPI() {
         )
 
     override fun loadMainPage(page: Int, mainCategory: String?, orderBy: String?, tag: String?): HeadMainPageResponse? {
-        val url = "$mainUrl/wuxia-list?sort=$orderBy&genres_include=$tag" // TAGS
+        val url = "$mainUrl/wuxia-list?sort=$orderBy&genres_include=$tag&page=$page" // TAGS
         try {
             val response = khttp.get(url)
 
