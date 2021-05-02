@@ -11,7 +11,7 @@ class RoyalRoadProvider : MainAPI() {
     override val hasMainPage: Boolean
         get() = true
 
-    override val mainCategories: ArrayList<Pair<String, String>>
+    override val orderBys: ArrayList<Pair<String, String>>
         get() = arrayListOf(
             Pair("Best Rated", "best-rated"),
             Pair("Ongoing", "active-popular"),
@@ -50,8 +50,8 @@ class RoyalRoadProvider : MainAPI() {
         orderBy: String?,
         tag: String?,
     ): HeadMainPageResponse? {
-        val url = "$mainUrl/fictions/$mainCategory?page=$page${if (tag == null || tag == "") "" else "&genre=$tag"}"
-        if (page > 1 && mainCategory == "trending") return HeadMainPageResponse(url,
+        val url = "$mainUrl/fictions/$orderBy?page=$page${if (tag == null || tag == "") "" else "&genre=$tag"}"
+        if (page > 1 && orderBy == "trending") return HeadMainPageResponse(url,
             ArrayList()) // TRENDING ONLY HAS 1 PAGE
 
         try {
@@ -83,7 +83,7 @@ class RoyalRoadProvider : MainAPI() {
                 }
 
                 val latestChapter = try {
-                    if (mainCategory == "latest-updates") {
+                    if (orderBy == "latest-updates") {
                         head.selectFirst("> ul.list-unstyled > li.list-item > a > span").text()
                     } else {
                         h.select("div.stats > div.col-sm-6 > span")[4].text()

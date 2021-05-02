@@ -1,9 +1,6 @@
 package com.lagradost.quicknovel.providers
 
-import com.lagradost.quicknovel.ChapterData
-import com.lagradost.quicknovel.LoadResponse
-import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.lang.Exception
@@ -13,6 +10,89 @@ import kotlin.collections.ArrayList
 class WuxiaWorldOnlineProvider : MainAPI() {
     override val mainUrl: String get() = "https://wuxiaworld.online"
     override val name: String get() = "WuxiaWorldOnline"
+    override val hasMainPage: Boolean
+        get() = true
+
+    override val iconId: Int
+        get() = R.drawable.icon_wuxiaworldonline
+
+    override val tags: ArrayList<Pair<String, String>>
+        get() = arrayListOf(
+            Pair("All", ""),
+            Pair("Chinese", "Chinese"),
+            Pair("Action", "Action"),
+            Pair("Adventure", "Adventure"),
+            Pair("Fantasy", "Fantasy"),
+            Pair("Martial Arts", "Martial Arts"),
+            Pair("Romance", "Romance"),
+            Pair("Xianxia", "Xianxia"),
+            //Pair("Editor's choice", "Editor's choice"),
+            Pair("Original", "Original"),
+            Pair("Korean", "Korean"),
+            Pair("Comedy", "Comedy"),
+            Pair("Japanese", "Japanese"),
+            Pair("Xuanhuan", "Xuanhuan"),
+            Pair("Mystery", "Mystery"),
+            Pair("Supernatural", "Supernatural"),
+            Pair("Drama", "Drama"),
+            Pair("Historical", "Historical"),
+            Pair("Horror", "Horror"),
+            Pair("Sci-Fi", "Sci-Fi"),
+            Pair("Thriller", "Thriller"),
+            Pair("Futuristic", "Futuristic"),
+            Pair("Academy", "Academy"),
+            Pair("Completed", "Completed"),
+            Pair("Harem", "Harem"),
+            Pair("School Life", "Schoollife"),
+            Pair("Martial Arts", "Martialarts"),
+            Pair("Slice of Life", "Sliceoflife"),
+            Pair("English", "English"),
+            Pair("Reincarnation", "Reincarnation"),
+            Pair("Psychological", "Psychological"),
+            Pair("Sci-fi", "Scifi"),
+            Pair("Mature", "Mature"),
+            Pair("Ghosts", "Ghosts"),
+            Pair("Demons", "Demons"),
+            Pair("Gods", "Gods"),
+            Pair("Cultivation", "Cultivation"),
+        )
+
+    override val orderBys: ArrayList<Pair<String, String>>
+        get() = arrayListOf(
+            Pair("Recents Updated", "recents"),
+            Pair("Most Viewed", "popularity"),
+            Pair("Lastest Releases", "date_added"),
+        )
+
+    override fun loadMainPage(page: Int, mainCategory: String?, orderBy: String?, tag: String?): HeadMainPageResponse? {
+        val url = "$mainUrl/wuxia-list?sort=$orderBy&genres_include=$tag" // TAGS
+        try {
+            val response = khttp.get(url)
+
+            val document = Jsoup.parse(response.text)
+
+            val headers = document.select("div.manga-grid > div.itemupdate")
+            if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
+            val returnValue: ArrayList<MainPageResponse> = ArrayList()
+            for (h in headers) {
+                val a = h.selectFirst("> a")
+                var url = mainUrl + a.attr("href")
+                if (url.startsWith('/')) {
+                    url = mainUrl + url
+                }
+                val name = a.attr("title")
+                var posterUrl = a.selectFirst("> img").attr("src")
+                if (posterUrl.startsWith('/')) {
+                    posterUrl = mainUrl + posterUrl
+                }
+                val latestChap = h.select("> ul > li")[1].selectFirst("> span > a").text()
+                returnValue.add(MainPageResponse(name, url, posterUrl, null, latestChap, this.name, ArrayList()))
+            }
+            return HeadMainPageResponse(url, returnValue)
+        } catch (e: Exception) {
+            return null
+        }
+    }
 
     override fun loadPage(url: String): String? {
         return try {

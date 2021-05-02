@@ -1,15 +1,101 @@
 package com.lagradost.quicknovel.providers
 
-import com.lagradost.quicknovel.ChapterData
-import com.lagradost.quicknovel.LoadResponse
-import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.*
 import org.jsoup.Jsoup
 import java.lang.Exception
 
 class NovelPassionProvider : MainAPI() {
     override val name: String get() = "Novel Passion"
     override val mainUrl: String get() = "https://www.novelpassion.com"
+    override val iconId: Int
+        get() = R.drawable.icon_novelpassion
+    override val hasMainPage: Boolean
+        get() = true
+
+    override val tags: ArrayList<Pair<String, String>>
+        get() = arrayListOf(
+            Pair("All", "all"),
+            Pair("Shounen", "shounen"),
+            Pair("Harem", "harem"),
+            Pair("Comedy", "comedy"),
+            Pair("Martial Arts", "martial-arts"),
+            Pair("School Life", "school-life"),
+            Pair("Mystery", "mystery"),
+            Pair("Shoujo", "shoujo"),
+            Pair("Romance", "romance"),
+            Pair("Sci-fi", "sci-fi"),
+            Pair("Gender Bender", "gender-bender"),
+            Pair("Mature", "mature"),
+            Pair("Fantasy", "fantasy"),
+            Pair("Horror", "horror"),
+            Pair("Drama", "drama"),
+            Pair("Tragedy", "tragedy"),
+            Pair("Supernatural", "supernatural"),
+            Pair("Ecchi", "ecchi"),
+            Pair("Xuanhuan", "xuanhuan"),
+            Pair("Adventure", "adventure"),
+            Pair("Action", "action"),
+            Pair("Psychological", "psychological"),
+            Pair("Xianxia", "xianxia"),
+            Pair("Wuxia", "wuxia"),
+            Pair("Historical", "historical"),
+            Pair("Slice of Life", "slice-of-life"),
+            Pair("Seinen", "seinen"),
+            Pair("Lolicon", "lolicon"),
+            Pair("Adult", "adult"),
+            Pair("Josei", "josei"),
+            Pair("Sports", "sports"),
+            Pair("Smut", "smut"),
+            Pair("Mecha", "mecha"),
+            Pair("Yaoi", "yaoi"),
+            Pair("Shounen Ai", "shounen-ai"),
+        )
+
+    override val orderBys: ArrayList<Pair<String, String>>
+        get() = arrayListOf(
+            Pair("Recently Updated", "1"),
+            Pair("New Novel", "2"),
+            Pair("Hot Novel", "3"),
+            Pair("Top All", "4"),
+            Pair("Top Monthly", "5"),
+            Pair("Top Weekly", "6"),
+            Pair("Top Daily", "7"),
+            Pair("Chapter Quantities", "8"),
+        )
+
+    override val mainCategories: ArrayList<Pair<String, String>>
+        get() = arrayListOf(
+            Pair("All", "1"),
+            Pair("Ongoing", "2"),
+            Pair("Completed", "3"),
+        )
+
+    override fun loadMainPage(page: Int, mainCategory: String?, orderBy: String?, tag: String?): HeadMainPageResponse? {
+        val url = "https://www.novelpassion.com/category/$tag?p=$page&s=$mainCategory&f=$orderBy"
+        try {
+            val response = khttp.get(url)
+
+            val document = Jsoup.parse(response.text)
+            val headers = document.select("div.lh1d5")
+            if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
+            val returnValue: ArrayList<MainPageResponse> = ArrayList()
+            for (h in headers) {
+                val head = h.selectFirst("> a.c_000")
+                val name = head.attr("title")
+                val url = mainUrl + head.attr("href")
+
+                var posterUrl = head.selectFirst("> i.oh > img").attr("src")
+                if (posterUrl != null) posterUrl = mainUrl + posterUrl
+
+                val rating = (h.selectFirst("> p.g_star_num > small").text()!!.toFloat() * 200).toInt()
+                val latestChapter = h.selectFirst("> div > div.dab > a").attr("title")
+                returnValue.add(MainPageResponse(name, url, posterUrl, rating, latestChapter, this.name, ArrayList()))
+            }
+            return HeadMainPageResponse(url, returnValue)
+        } catch (e: Exception) {
+            return null
+        }
+    }
 
     override fun loadPage(url: String): String? {
         return try {
@@ -23,10 +109,10 @@ class NovelPassionProvider : MainAPI() {
                 // FUCK ADS
                 .replace("( NovelFull )", "")
                 .replace("NiceNovel.com", "")
-                .replace("NovelsToday.com","")
-                .replace("NovelsToday","")
-                .replace("read online free","")
-                .replace("NovelWell.com","")
+                .replace("NovelsToday.com", "")
+                .replace("NovelsToday", "")
+                .replace("read online free", "")
+                .replace("NovelWell.com", "")
         } catch (e: Exception) {
             null
         }

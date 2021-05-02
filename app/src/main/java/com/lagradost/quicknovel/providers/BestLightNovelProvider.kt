@@ -11,7 +11,6 @@ import kotlin.collections.ArrayList
 
 val String?.textClean: String?
     get() = (this
-        ?.replace("...","…")
         ?.replace("\\.([^-\\s])".toRegex(), "$1")
         ?.replace("\\+([^-\\s])".toRegex(), "$1")
             )
