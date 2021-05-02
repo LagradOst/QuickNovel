@@ -67,7 +67,7 @@
                 android:id="@+id/filter_general_spinner"
                 android:layout_columnWeight="1"
                 android:backgroundTint="@color/white"
-                android:popupBackground="@color/darkBackground"
+                android:popupBackground="@color/itemBackground"
                 android:layout_width="wrap_content" android:layout_height="wrap_content">
         </Spinner>
 
@@ -83,7 +83,7 @@
                 android:id="@+id/filter_order_spinner"
                 android:layout_columnWeight="1"
                 android:backgroundTint="@color/white"
-                android:popupBackground="@color/darkBackground"
+                android:popupBackground="@color/itemBackground"
                 android:layout_width="wrap_content" android:layout_height="wrap_content">
         </Spinner>
 
@@ -98,7 +98,7 @@
                 android:id="@+id/filter_tag_spinner"
                 android:layout_columnWeight="1"
                 android:backgroundTint="@color/white"
-                android:popupBackground="@color/darkBackground"
+                android:popupBackground="@color/itemBackground"
                 android:layout_width="wrap_content" android:layout_height="wrap_content">
         </Spinner>
     </GridLayout>
