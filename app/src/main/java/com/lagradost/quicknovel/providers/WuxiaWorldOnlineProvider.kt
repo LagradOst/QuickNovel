@@ -76,7 +76,7 @@ class WuxiaWorldOnlineProvider : MainAPI() {
             val returnValue: ArrayList<MainPageResponse> = ArrayList()
             for (h in headers) {
                 val a = h.selectFirst("> a")
-                var url = mainUrl + a.attr("href")
+                var url = a.attr("href")
                 if (url.startsWith('/')) {
                     url = mainUrl + url
                 }

@@ -71,7 +71,7 @@ class NovelPassionProvider : MainAPI() {
         )
 
     override fun loadMainPage(page: Int, mainCategory: String?, orderBy: String?, tag: String?): HeadMainPageResponse? {
-        val url = "https://www.novelpassion.com/category/$tag?p=$page&s=$mainCategory&f=$orderBy"
+        val url = "$mainUrl/category/$tag?p=$page&s=$mainCategory&f=$orderBy"
         try {
             val response = khttp.get(url)
 
@@ -82,8 +82,10 @@ class NovelPassionProvider : MainAPI() {
             for (h in headers) {
                 val head = h.selectFirst("> a.c_000")
                 val name = head.attr("title")
-                val url = mainUrl + head.attr("href")
-
+                var url = head.attr("href")
+                if (url.startsWith('/')) {
+                    url = mainUrl + url
+                }
                 var posterUrl = head.selectFirst("> i.oh > img").attr("src")
                 if (posterUrl != null) posterUrl = mainUrl + posterUrl
 
