@@ -11,7 +11,6 @@ class RoyalRoadProvider : MainAPI() {
     override val hasMainPage: Boolean
         get() = true
 
-    //, "Ongoing", "Complete", "Popular this week", "Latest Updates", "New Releases", "Trending"
     override val mainCategories: ArrayList<Pair<String, String>>
         get() = arrayListOf(
             Pair("Best Rated", "best-rated"),
@@ -42,6 +41,9 @@ class RoyalRoadProvider : MainAPI() {
             Pair("Tragedy", "tragedy")
         )
 
+    override val iconId: Int
+        get() = R.drawable.icon_royalroad
+
     override fun loadMainPage(
         page: Int,
         mainCategory: String?,
@@ -49,7 +51,7 @@ class RoyalRoadProvider : MainAPI() {
         tag: String?,
     ): ArrayList<MainPageResponse>? {
         val url = "$mainUrl/fictions/$mainCategory?page=$page${if (tag == null || tag == "") "" else "&genre=$tag"}"
-        if (page > 1 && mainCategory == "trending") return ArrayList()
+        if (page > 1 && mainCategory == "trending") return ArrayList() // TRENDING ONLY HAS 1 PAGE
 
         try {
             val response = khttp.get(url)

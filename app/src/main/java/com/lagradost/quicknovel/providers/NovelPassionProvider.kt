@@ -8,7 +8,6 @@ import org.jsoup.Jsoup
 import java.lang.Exception
 
 class NovelPassionProvider : MainAPI() {
-
     override val name: String get() = "Novel Passion"
     override val mainUrl: String get() = "https://www.novelpassion.com"
 

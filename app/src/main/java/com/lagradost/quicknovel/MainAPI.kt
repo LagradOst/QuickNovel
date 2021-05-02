@@ -13,6 +13,8 @@ open class MainAPI {
     open val orderBys: ArrayList<Pair<String, String>> = ArrayList()
     open val tags: ArrayList<Pair<String, String>> = ArrayList()
 
+    open val iconId: Int? = null
+
     open fun loadMainPage(
         page: Int,
         mainCategory: String?,

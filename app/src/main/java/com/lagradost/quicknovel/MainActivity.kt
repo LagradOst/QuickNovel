@@ -49,8 +49,10 @@ private val workQueue: BlockingQueue<Runnable> =
 
 // Sets the amount of time an idle thread waits before terminating
 private const val KEEP_ALIVE_TIME = 1L
+
 // Sets the Time Unit to seconds
 private val KEEP_ALIVE_TIME_UNIT = TimeUnit.SECONDS
+
 // Creates a thread pool manager
 public val threadPoolExecutor: ThreadPoolExecutor = ThreadPoolExecutor(
     NUMBER_OF_CORES,       // Initial pool size
@@ -200,18 +202,18 @@ class MainActivity : AppCompatActivity() {
             return@setOnNavigationItemReselectedListener
         }*/
         navView.setOnNavigationItemSelectedListener { item ->
-            when(item.itemId) {
-                R.id.navigation_mainpage -> {
-                    navController.navigate(R.id.navigation_mainpage,null,options)
+            when (item.itemId) {
+                R.id.navigation_homepage -> {
+                    navController.navigate(R.id.navigation_homepage, null, options)
                 }
                 R.id.navigation_search -> {
-                    navController.navigate(R.id.navigation_search,null,options)
+                    navController.navigate(R.id.navigation_search, null, options)
                 }
                 R.id.navigation_download -> {
-                    navController.navigate(R.id.navigation_download,null,options)
+                    navController.navigate(R.id.navigation_download, null, options)
                 }
                 R.id.navigation_settings -> {
-                    navController.navigate(R.id.navigation_settings,null,options)
+                    navController.navigate(R.id.navigation_settings, null, options)
                 }
             }
             true

@@ -1,9 +1,6 @@
 package com.lagradost.quicknovel.providers
 
-import com.lagradost.quicknovel.ChapterData
-import com.lagradost.quicknovel.LoadResponse
-import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.*
 import org.jsoup.Jsoup
 import java.lang.Exception
 import java.util.*
@@ -12,6 +9,100 @@ import kotlin.collections.ArrayList
 class WuxiaWorldSiteProvider : MainAPI() {
     override val name: String get() = "WuxiaWorldSite"
     override val mainUrl: String get() = "https://wuxiaworld.site"
+
+    override val hasMainPage: Boolean
+        get() = true
+
+    override val tags: ArrayList<Pair<String, String>>
+        get() = arrayListOf(
+            Pair("All", ""),
+            Pair("Completed", "completed"),
+            Pair("Action", "action"),
+            Pair("Adventure", "adventure"),
+            Pair("Comedy", "comedy"),
+            Pair("Drama", "genre"),
+            Pair("Ecchi", "ecchi"),
+            Pair("Fantasy", "fantasy"),
+            Pair("Harem", "harem"),
+            Pair("Josei", "josei"),
+            Pair("Martial Arts", "martial-arts"),
+            Pair("Gender Bender", "gender-bender"),
+            Pair("Historical", "historical"),
+            Pair("Horror", "horror"),
+            Pair("Mature", "mature"),
+            Pair("Mecha", "mecha"),
+            Pair("Mystery", "mystery"),
+            Pair("Psychological", "psychological"),
+            Pair("Romance", "romance"),
+            Pair("School Life", "school-life"),
+            Pair("Sci-fi", "sci-fi"),
+            Pair("Seinen", "seinen"),
+            Pair("Shoujo", "shoujo"),
+            Pair("Shounen", "shounen"),
+            Pair("Slice of Life", "slice-of-life"),
+            Pair("Sports", "sports"),
+            Pair("Supernatural", "supernatural"),
+            Pair("Tragedy", "tragedy"),
+            Pair("Wuxia", "wuxia"),
+            Pair("Xianxia", "xianxia"),
+            Pair("Xuanhuan", "xuanhuan"),
+        )
+
+    override val orderBys: ArrayList<Pair<String, String>>
+        get() = arrayListOf(
+            Pair("Nothing", ""),
+            Pair("New", "new-manga"),
+            Pair("Most Views", "views"),
+            Pair("Trending", "trending"),
+            Pair("Rating", "rating"),
+            Pair("A-Z", "alphabet"),
+            Pair("Latest", "latest"),
+        )
+
+    override val iconId: Int
+        get() = R.drawable.icon_wuxiaworldsite
+
+    override fun loadMainPage(
+        page: Int,
+        mainCategory: String?,
+        orderBy: String?,
+        tag: String?,
+    ): ArrayList<MainPageResponse>? {
+
+        val order = when (tag) {
+            "" -> "novel-list"
+            null -> "novel-list"
+            "completed" -> "tag/$tag"
+            else -> "genre/$tag"
+        }
+        val url = "$mainUrl/$order/${if (orderBy == null || orderBy == "") "" else "?m_orderby=$orderBy"}"
+
+        try {
+            val response = khttp.get(url)
+
+            val document = Jsoup.parse(response.text)
+            //""div.page-content-listing > div.page-listing-item > div > div > div.page-item-detail"
+            val headers = document.select("div.page-item-detail")
+            if (headers.size <= 0) return ArrayList()
+
+            val returnValue: ArrayList<MainPageResponse> = ArrayList()
+            for (h in headers) {
+                val imageHeader = h.selectFirst("div.item-thumb > a")
+                val url = imageHeader.attr("href")
+                val name = imageHeader.attr("title")
+                val posterUrl = imageHeader.selectFirst("> img").attr("src")
+                val sum = h.selectFirst("div.item-summary")
+                val rating =
+                    (sum.selectFirst("> div.rating > div.post-total-rating > span.score").text().toFloat() * 200).toInt()
+                val latestChap = sum.selectFirst("> div.list-chapter > div.chapter-item > span > a").text()
+                returnValue.add(MainPageResponse(name, url, posterUrl, rating, latestChap, this.name, ArrayList()))
+            }
+
+            return returnValue
+        } catch (e: Exception) {
+            return null
+        }
+    }
 
     override fun loadPage(url: String): String? {
         return try {
@@ -22,8 +113,8 @@ class WuxiaWorldSiteProvider : MainAPI() {
                 return null
             }
             res.html()
-                .replace("(adsbygoogle = window.adsbygoogle || []).push({});","")
-                .replace("Read latest Chapters at WuxiaWorld.Site Only","") // FUCK ADS
+                .replace("(adsbygoogle = window.adsbygoogle || []).push({});", "")
+                .replace("Read latest Chapters at WuxiaWorld.Site Only", "") // FUCK ADS
         } catch (e: Exception) {
             null
         }
@@ -42,7 +133,7 @@ class WuxiaWorldSiteProvider : MainAPI() {
                 val title = head.selectFirst("> div.post-title > h3 > a")
                 val name = title.text()
 
-                if(name.contains("Comic")) continue // I DON'T WANT MANGA!
+                if (name.contains("Comic")) continue // I DON'T WANT MANGA!
 
                 val url = title.attr("href")
 
@@ -96,7 +187,7 @@ class WuxiaWorldSiteProvider : MainAPI() {
             var synopsis = ""
             val synoParts = document.select("div.summary__content > p")
             for (s in synoParts) {
-                if(s.hasText() && !s.text().toLowerCase(Locale.getDefault()).contains("wuxiaworld.site")) { // FUCK ADS
+                if (s.hasText() && !s.text().toLowerCase(Locale.getDefault()).contains("wuxiaworld.site")) { // FUCK ADS
                     synopsis += s.text()!! + "\n\n"
                 }
             }

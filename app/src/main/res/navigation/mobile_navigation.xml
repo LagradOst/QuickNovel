@@ -3,13 +3,13 @@
             xmlns:app="http://schemas.android.com/apk/res-auto"
             xmlns:tools="http://schemas.android.com/tools"
             android:id="@+id/mobile_navigation"
-            app:startDestination="@+id/navigation_mainpage">
+            app:startDestination="@+id/navigation_homepage">
     <fragment
-            android:id="@+id/navigation_mainpage"
-            android:name="com.lagradost.quicknovel.ui.mainpage.MainPageFragment"
-            android:label="@string/title_mainpage"
+            android:id="@+id/navigation_homepage"
+            android:name="com.lagradost.quicknovel.ui.home.HomeFragment"
+            android:label="@string/title_home"
             android:layout_height="match_parent"
-            tools:layout="@layout/fragment_mainpage">
+            tools:layout="@layout/fragment_home">
     </fragment>
     <fragment
             android:id="@+id/navigation_search"
