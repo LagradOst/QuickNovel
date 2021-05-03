@@ -57,6 +57,13 @@
                 app:icon="@drawable/ic_baseline_system_update_24"
         />
         <Preference
+                android:title="Github"
+                android:icon="@drawable/ic_github_logo"
+                app:summary="https://github.com/LagradOst/QuickNovel">
+            <intent android:action="android.intent.action.VIEW"
+                    android:data="https://github.com/LagradOst/QuickNovel"/>
+        </Preference>
+        <Preference
                 android:title="Join Discord"
                 android:icon="@drawable/ic_baseline_discord_24"
                 app:summary="https://discord.gg/5Hus6fM">

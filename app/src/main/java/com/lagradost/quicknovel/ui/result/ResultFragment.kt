@@ -379,7 +379,6 @@ class ResultFragment : Fragment() {
         viewModel = ViewModelProviders.of(this, factory)
             .get(ResultViewModel::class.java)
 
-        println("STATEID:::${viewModel.downloadNotification.value} :: ${viewModel.loadResponse.value?.name}")
         if (viewModel.loadResponse.value == null)
             viewModel.initState(resultUrl, api.name)
 

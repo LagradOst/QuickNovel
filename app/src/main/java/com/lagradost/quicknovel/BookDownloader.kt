@@ -410,7 +410,7 @@ object BookDownloader {
                     rFile.createNewFile()
                     var page: String? = null
                     while (page == null) {
-                        page = api.loadPage(d.url)
+                        page = api.loadHtml(d.url)
                         if (!isRunning.containsKey(id)) return
 
                         if (page != null) {

@@ -107,7 +107,7 @@ class WuxiaWorldSiteProvider : MainAPI() {
         }
     }
 
-    override fun loadPage(url: String): String? {
+    override fun loadHtml(url: String): String? {
         return try {
             val response = khttp.get(url)
             val document = Jsoup.parse(response.text)

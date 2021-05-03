@@ -20,7 +20,7 @@
             <ImageView
                     tools:src="@drawable/icon_royalroad"
                     android:id="@+id/browse_icon"
-                    android:padding="10dp" android:layout_width="50dp"
+                    android:padding="9dp" android:layout_width="50dp"
                     android:layout_height="50dp"
                     android:contentDescription="@string/browse_list_icon">
 

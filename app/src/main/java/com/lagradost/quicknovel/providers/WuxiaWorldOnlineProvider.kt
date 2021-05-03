@@ -76,17 +76,13 @@ class WuxiaWorldOnlineProvider : MainAPI() {
             val returnValue: ArrayList<MainPageResponse> = ArrayList()
             for (h in headers) {
                 val a = h.selectFirst("> a")
-                var url = a.attr("href")
-                if (url.startsWith('/')) {
-                    url = mainUrl + url
-                }
+                val url = a.attr("href")
+
                 val name = a.attr("title")
-                var posterUrl = a.selectFirst("> img").attr("src")
-                if (posterUrl.startsWith('/')) {
-                    posterUrl = mainUrl + posterUrl
-                }
+                val posterUrl = a.selectFirst("> img").attr("src")
+
                 val latestChap = h.select("> ul > li")[1].selectFirst("> span > a").text()
-                returnValue.add(MainPageResponse(name, url, posterUrl, null, latestChap, this.name, ArrayList()))
+                returnValue.add(MainPageResponse(name, fixUrl(url), fixUrl(posterUrl), null, latestChap, this.name, ArrayList()))
             }
             return HeadMainPageResponse(url, returnValue)
         } catch (e: Exception) {
@@ -94,7 +90,7 @@ class WuxiaWorldOnlineProvider : MainAPI() {
         }
     }
 
-    override fun loadPage(url: String): String? {
+    override fun loadHtml(url: String): String? {
         return try {
             val response = khttp.get(url)
             val document = Jsoup.parse(response.text)
@@ -123,13 +119,10 @@ class WuxiaWorldOnlineProvider : MainAPI() {
                 val name = hInfo.text()
                 val url = hInfo.attr("href")
 
-                var posterUrl = h.selectFirst("> img").attr("src")
-                if (posterUrl.startsWith('/')) {
-                    posterUrl = mainUrl + posterUrl
-                }
+                val posterUrl = h.selectFirst("> img").attr("src")
 
                 val latestChapter = h.selectFirst("> span > a > span").text()
-                returnValue.add(SearchResponse(name, url, posterUrl, null, latestChapter, this.name))
+                returnValue.add(SearchResponse(name, url, fixUrl(posterUrl), null, latestChapter, this.name))
             }
             return returnValue
         } catch (e: Exception) {
@@ -160,10 +153,7 @@ class WuxiaWorldOnlineProvider : MainAPI() {
                 author = auth.selectFirst("a").text()
             }
 
-            var posterUrl = document.select("span.info_image > img").attr("src")
-            if (posterUrl.startsWith('/')) {
-                posterUrl = mainUrl + posterUrl
-            }
+            val posterUrl = document.select("span.info_image > img").attr("src")
 
             val tags: ArrayList<String> = ArrayList()
 
@@ -230,7 +220,7 @@ class WuxiaWorldOnlineProvider : MainAPI() {
                     else -> 0
                 }
 
-            return LoadResponse(name, data, author, posterUrl, rating, peopleVoted, views, synopsis, tags, status)
+            return LoadResponse(name, data, author, fixUrl(posterUrl), rating, peopleVoted, views, synopsis, tags, status)
         } catch (e: Exception) {
             return null
         }

@@ -32,9 +32,16 @@ open class MainAPI {
         return null
     }
 
-    open fun loadPage(url: String): String? {
+    open fun loadHtml(url: String): String? {
         return null
     }
+}
+
+fun MainAPI.fixUrl(url: String): String {
+    if (url.startsWith('/')) {
+        return mainUrl + url
+    }
+    return url
 }
 
 fun stripHtml(txt: String, chapterName: String? = null, chapterIndex: Int? = null): String {

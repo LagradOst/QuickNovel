@@ -73,9 +73,9 @@ public val threadPoolExecutor: ThreadPoolExecutor = ThreadPoolExecutor(
     workQueue
 )
 
+const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
+
 class MainActivity : AppCompatActivity() {
-
-
     companion object {
         // === API ===
         lateinit var activity: MainActivity
@@ -90,11 +90,10 @@ class MainActivity : AppCompatActivity() {
             BestLightNovelProvider(),
             WuxiaWorldOnlineProvider(),
             WuxiaWorldSiteProvider(),
+            ReadLightNovelProvider(),
         )
 
         val allApi: AllProvider = AllProvider()
-
-        var activeAPI: MainAPI = apis[1]
 
         fun getApiFromName(name: String): MainAPI {
             for (a in apis) {
@@ -102,7 +101,7 @@ class MainActivity : AppCompatActivity() {
                     return a
                 }
             }
-            return activeAPI
+            return apis[1]
         }
 
         fun getApiSettings(): HashSet<String> {
@@ -137,7 +136,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             if (currentFragment != null && activity.supportFragmentManager.fragments.size > 2) {
-                MainActivity.showNavbar()
+                //MainActivity.showNavbar()
                 activity.supportFragmentManager.beginTransaction()
                     .setCustomAnimations(R.anim.enter_anim, R.anim.exit_anim, R.anim.pop_enter, R.anim.pop_exit)
                     .remove(currentFragment)
@@ -169,7 +168,6 @@ class MainActivity : AppCompatActivity() {
                 w.decorView.systemUiVisibility = uiVisibility
                 w.navigationBarColor = activity.getResourceColor(android.R.attr.navigationBarColor, 0.7F) ?: Color.TRANSPARENT
             }
-
         }
 
         fun showNavbar() {

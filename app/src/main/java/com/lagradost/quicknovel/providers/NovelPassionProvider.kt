@@ -82,16 +82,13 @@ class NovelPassionProvider : MainAPI() {
             for (h in headers) {
                 val head = h.selectFirst("> a.c_000")
                 val name = head.attr("title")
-                var url = head.attr("href")
-                if (url.startsWith('/')) {
-                    url = mainUrl + url
-                }
+                val url = head.attr("href")
                 var posterUrl = head.selectFirst("> i.oh > img").attr("src")
                 if (posterUrl != null) posterUrl = mainUrl + posterUrl
 
                 val rating = (h.selectFirst("> p.g_star_num > small").text()!!.toFloat() * 200).toInt()
                 val latestChapter = h.selectFirst("> div > div.dab > a").attr("title")
-                returnValue.add(MainPageResponse(name, url, posterUrl, rating, latestChapter, this.name, ArrayList()))
+                returnValue.add(MainPageResponse(name,fixUrl(url), posterUrl, rating, latestChapter, this.name, ArrayList()))
             }
             return HeadMainPageResponse(url, returnValue)
         } catch (e: Exception) {
@@ -99,7 +96,7 @@ class NovelPassionProvider : MainAPI() {
         }
     }
 
-    override fun loadPage(url: String): String? {
+    override fun loadHtml(url: String): String? {
         return try {
             val response = khttp.get(url)
             val document = Jsoup.parse(response.text)

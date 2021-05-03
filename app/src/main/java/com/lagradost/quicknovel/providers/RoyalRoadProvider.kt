@@ -70,9 +70,6 @@ class RoyalRoadProvider : MainAPI() {
                 val url = mainUrl + hInfo.attr("href")
 
                 var posterUrl = h.selectFirst("> figure > a > img").attr("src")
-                if (posterUrl.startsWith('/')) {
-                    posterUrl = mainUrl + posterUrl
-                }
 
                 val rating = try {
                     val ratingHead =
@@ -93,7 +90,7 @@ class RoyalRoadProvider : MainAPI() {
                 }
 
                 val tags = ArrayList(h.select("span.tags > a").map { t -> t.text() })
-                returnValue.add(MainPageResponse(name, url, posterUrl, rating, latestChapter, this.name, tags))
+                returnValue.add(MainPageResponse(name, fixUrl(url), fixUrl(posterUrl), rating, latestChapter, this.name, tags))
             }
             return HeadMainPageResponse(url, returnValue)
         } catch (e: Exception) {
@@ -104,7 +101,7 @@ class RoyalRoadProvider : MainAPI() {
 
     override fun search(query: String): ArrayList<SearchResponse>? {
         try {
-            val response = khttp.get("https://www.royalroad.com/fictions/search?title=$query")
+            val response = khttp.get("$mainUrl/fictions/search?title=$query")
 
             val document = Jsoup.parse(response.text)
             val headers = document.select("div.fiction-list-item")
@@ -117,15 +114,12 @@ class RoyalRoadProvider : MainAPI() {
                 val name = hInfo.text()
                 val url = mainUrl + hInfo.attr("href")
 
-                var posterUrl = h.selectFirst("> figure.text-center > a > img").attr("src")
-                if (posterUrl.startsWith('/')) {
-                    posterUrl = mainUrl + posterUrl
-                }
+                val posterUrl = h.selectFirst("> figure.text-center > a > img").attr("src")
 
                 val ratingHead = head.selectFirst("> div.stats").select("> div")[1].selectFirst("> span").attr("title")
                 val rating = (ratingHead.toFloat() * 200).toInt()
                 val latestChapter = h.select("div.stats > div.col-sm-6 > span")[4].text()
-                returnValue.add(SearchResponse(name, url, posterUrl, rating, latestChapter, this.name))
+                returnValue.add(SearchResponse(name, url, fixUrl(posterUrl), rating, latestChapter, this.name))
             }
             return returnValue
         } catch (e: Exception) {
@@ -159,19 +153,13 @@ class RoyalRoadProvider : MainAPI() {
             val chapterHeaders = document.select("div.portlet-body > table > tbody > tr")
             for (c in chapterHeaders) {
                 var url = c.attr("data-url")
-                if (url.startsWith('/')) {
-                    url = mainUrl + url
-                }
                 val td = c.select("> td") // 0 = Name, 1 = Upload
                 val name = td[0].selectFirst("> a").text()
                 val added = td[1].selectFirst("> a > time").text()
                 val views = null
-                data.add(ChapterData(name, url, added, views))
+                data.add(ChapterData(name, fixUrl(url), added, views))
             }
-            var posterUrl = document.selectFirst("div.fic-header > div > img").attr("src")
-            if (posterUrl.startsWith('/')) {
-                posterUrl = mainUrl + posterUrl
-            }
+            val posterUrl = document.selectFirst("div.fic-header > div > img").attr("src")
 
             val hStates = document.select("ul.list-unstyled")[1]
             val stats = hStates.select("> li")
@@ -194,13 +182,13 @@ class RoyalRoadProvider : MainAPI() {
                 }
             }
 
-            return LoadResponse(name, data, author, posterUrl, rating, peopleRated, views, synopsis, tags, status)
+            return LoadResponse(name, data, author, fixUrl(posterUrl), rating, peopleRated, views, synopsis, tags, status)
         } catch (e: Exception) {
             return null
         }
     }
 
-    override fun loadPage(url: String): String? {
+    override fun loadHtml(url: String): String? {
         return try {
             val response = khttp.get(url)
             val document = Jsoup.parse(response.text)
