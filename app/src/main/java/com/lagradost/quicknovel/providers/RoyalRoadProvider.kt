@@ -42,7 +42,7 @@ class RoyalRoadProvider : MainAPI() {
         )
 
     override val iconId: Int
-        get() = R.drawable.icon_royalroad
+        get() = R.drawable.icon_royalroad2
 
     override fun loadMainPage(
         page: Int,
