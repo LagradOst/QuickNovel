@@ -91,6 +91,7 @@ class MainActivity : AppCompatActivity() {
             WuxiaWorldOnlineProvider(),
             WuxiaWorldSiteProvider(),
             ReadLightNovelProvider(),
+            BoxNovelProvider(),
         )
 
         val allApi: AllProvider = AllProvider()
