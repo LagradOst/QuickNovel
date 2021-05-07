@@ -8,15 +8,17 @@
         android:id="@+id/dashboardRoot"
         tools:context=".ui.search.SearchFragment"
         android:orientation="vertical"
+        android:layout_marginTop="@dimen/navbarHeight"
+
         android:background="@color/grayBackground">
 
-    <View android:layout_width="wrap_content" android:layout_height="0dp" android:id="@+id/top_padding"/>
     <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                  android:layout_margin="10dp" android:background="@drawable/search_background"
     >
         <FrameLayout android:layout_width="match_parent" android:layout_marginEnd="30dp"
                      android:layout_height="wrap_content">
             <androidx.appcompat.widget.SearchView
+
                     android:animateLayoutChanges="true"
                     android:id="@+id/main_search"
                     app:queryBackground="@color/transparent"

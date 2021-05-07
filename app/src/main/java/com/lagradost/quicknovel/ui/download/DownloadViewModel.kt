@@ -14,8 +14,13 @@ class DownloadViewModel : ViewModel() {
         MutableLiveData<Int>(DataStore.getKey(DOWNLOAD_SETTINGS,DOWNLOAD_SORTING_METHOD, standardSotringMethod)
             ?: standardSotringMethod)
 
-    fun sortArray(arry: ArrayList<DownloadFragment.DownloadDataLoaded>): ArrayList<DownloadFragment.DownloadDataLoaded> {
-        return when (currentSortingMethod.value) {
+    fun sortArray(arry: ArrayList<DownloadFragment.DownloadDataLoaded>, sortMethod: Int? = null): ArrayList<DownloadFragment.DownloadDataLoaded> {
+
+        if(sortMethod != null) {
+            currentSortingMethod.postValue(sortMethod)
+        }
+
+        return when (sortMethod ?: currentSortingMethod.value) {
             DEFAULT_SORT -> arry
             ALPHA_SORT -> {
                 arry.sortBy { t -> t.name }
@@ -87,9 +92,9 @@ class DownloadViewModel : ViewModel() {
         cards.postValue(sortArray(arry))
     }
 
-    fun sortData() {
+    fun sortData(sortMethod : Int? = null) {
         if (cards.value != null) {
-            cards.postValue(sortArray(cards.value!!))
+            cards.postValue(sortArray(cards.value!!,sortMethod))
         }
     }
 

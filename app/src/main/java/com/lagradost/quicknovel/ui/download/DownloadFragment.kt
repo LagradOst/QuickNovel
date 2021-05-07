@@ -4,17 +4,18 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.LinearLayout
-import androidx.appcompat.app.AlertDialog
+import android.widget.AbsListView.CHOICE_MODE_SINGLE
+import android.widget.ArrayAdapter
+import android.widget.ListView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ItemAnimator
 import androidx.recyclerview.widget.SimpleItemAnimator
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.mvvm.observe
-import com.lagradost.quicknovel.ui.result.ResultViewModel
 import kotlinx.android.synthetic.main.fragment_downloads.*
 import kotlin.concurrent.thread
 
@@ -173,6 +174,32 @@ class DownloadFragment : Fragment() {
             viewModel.loadData()
         }
 
+        download_toolbar.setOnMenuItemClickListener {
+            when (it.itemId) {
+                R.id.action_sort -> {
+                    val bottomSheetDialog = BottomSheetDialog(this.context!!)
+                    bottomSheetDialog.setContentView(R.layout.sort_bottom_sheet)
+                    val res = bottomSheetDialog.findViewById<ListView>(R.id.sort_click)!!
+                    val arrayAdapter = ArrayAdapter<String>(this.context!!, R.layout.checkmark_select_dialog)
+                    arrayAdapter.addAll(ArrayList(sotringMethods.map { t -> t.name }))
+
+                    res.choiceMode = CHOICE_MODE_SINGLE
+                    res.adapter = arrayAdapter
+                    res.setItemChecked(sotringMethods.indexOfFirst { t -> t.id ==  viewModel.currentSortingMethod.value },true)
+                    res.setOnItemClickListener { parent, view, position, id ->
+                        val sel = sotringMethods[position].id
+                        DataStore.setKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, sel)
+                        viewModel.sortData(sel)
+                        bottomSheetDialog.dismiss()
+                    }
+                    bottomSheetDialog.show()
+                }
+                else -> {
+                }
+            }
+            return@setOnMenuItemClickListener true
+        }
+        /*
         download_filter.setOnClickListener {
             val builder: AlertDialog.Builder = AlertDialog.Builder(this.context!!)
             lateinit var dialog: AlertDialog
@@ -190,7 +217,8 @@ class DownloadFragment : Fragment() {
 
             dialog = builder.create()
             dialog.show()
-        }
+        }*/
+
 
         swipe_container.setProgressBackgroundColorSchemeResource(R.color.darkBackground)
         swipe_container.setColorSchemeResources(R.color.colorPrimary)
@@ -220,13 +248,6 @@ class DownloadFragment : Fragment() {
 
 
         download_cardSpace.layoutManager = GridLayoutManager(context, 1)
-
-        val parameter = download_top_padding.layoutParams as LinearLayout.LayoutParams
-        parameter.setMargins(parameter.leftMargin,
-            parameter.topMargin + MainActivity.statusBarHeight,
-            parameter.rightMargin,
-            parameter.bottomMargin)
-        download_top_padding.layoutParams = parameter
 
         BookDownloader.downloadNotification += ::updateDownloadInfo
         BookDownloader.downloadRemove += ::removeAction

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="colorPrimary">#3d50fa</color>
+    <color name="colorRipple">#1A3D50FA</color>
     <color name="colorSearch">@color/itemBackground</color> <!--#3444D1-->
     <color name="colorItemSeen">#1E1E32</color>
     <color name="colorOngoing">#F53B66</color> <!--FF8181-->

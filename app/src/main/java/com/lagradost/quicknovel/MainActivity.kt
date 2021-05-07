@@ -17,6 +17,7 @@ import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.view.View
 import android.view.Window
+import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.annotation.AttrRes
 import androidx.annotation.ColorInt
@@ -179,6 +180,17 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        fun transNavbar(trans : Boolean) {
+            val w: Window? = activity.window // in Activity's onCreate() for instance
+            if(w != null) {
+                if(trans) {
+                    w.setFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS,WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+                }
+                else {
+                    w.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+                }
+            }
+        }
 
         fun getRating(score: Int): String {
             val settingsManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)

@@ -44,13 +44,6 @@ class SearchFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val parameter = top_padding.layoutParams as LinearLayout.LayoutParams
-        parameter.setMargins(parameter.leftMargin,
-            parameter.topMargin + MainActivity.statusBarHeight,
-            parameter.rightMargin,
-            parameter.bottomMargin)
-        top_padding.layoutParams = parameter
-
         val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = context?.let {
             ResAdapter(
                 it,

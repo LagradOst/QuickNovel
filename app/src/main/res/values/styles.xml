@@ -16,7 +16,7 @@
         <item name="android:scrollbarThumbVertical">@null</item>
         <item name="android:scrollbarThumbHorizontal">@null</item>
 
-        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentStatus">true</item> <!--true-->
         <item name="android:windowTranslucentNavigation">false</item>
         <item name="alertDialogTheme">@style/Theme.AlertDialog</item>
 

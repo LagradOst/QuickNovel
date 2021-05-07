@@ -73,14 +73,6 @@ class MainPageFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        val parameter = mainpage_top_padding.layoutParams as LinearLayout.LayoutParams
-        parameter.setMargins(parameter.leftMargin,
-            parameter.topMargin + MainActivity.statusBarHeight + mainpage_toolbar.height,
-            parameter.rightMargin,
-            parameter.bottomMargin)
-        mainpage_top_padding.layoutParams = parameter
-
-
         viewModel = ViewModelProviders.of(this).get(MainPageViewModel::class.java)
         arguments?.getString("apiName")?.let {
             viewModel.api.value = MainActivity.getApiFromName(it)
@@ -128,6 +120,7 @@ class MainPageFragment : Fragment() {
             }
         })
 
+        searchView.queryHint = getString(R.string.search_hint)
 
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String): Boolean {

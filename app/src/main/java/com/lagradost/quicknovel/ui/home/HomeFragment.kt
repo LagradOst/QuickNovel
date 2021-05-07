@@ -39,14 +39,7 @@ class HomeFragment : Fragment() {
         home_browselist.adapter = adapter
         home_browselist.layoutManager = GridLayoutManager(context, 1)
 
-        val parameter = home_top_padding.layoutParams as LinearLayout.LayoutParams
-        parameter.setMargins(parameter.leftMargin,
-            parameter.topMargin + MainActivity.statusBarHeight,
-            parameter.rightMargin,
-            parameter.bottomMargin)
-        home_top_padding.layoutParams = parameter
-
-
+/*
         home_toolbar.setOnMenuItemClickListener {
             when (it.itemId) {
                 R.id.action_goto_search -> {
@@ -57,6 +50,6 @@ class HomeFragment : Fragment() {
                 }
             }
             return@setOnMenuItemClickListener true
-        }
+        }*/
     }
 }

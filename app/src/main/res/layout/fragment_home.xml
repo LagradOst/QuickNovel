@@ -1,31 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<androidx.coordinatorlayout.widget.CoordinatorLayout
         xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
-    <View android:layout_width="wrap_content" android:layout_height="0dp" android:id="@+id/home_top_padding"/>
-    <androidx.appcompat.widget.Toolbar
-            android:id="@+id/home_toolbar"
-            app:menu="@menu/home_actionbar"
-            app:title="Explore"
-            android:layout_width="match_parent" android:layout_height="wrap_content">
-    </androidx.appcompat.widget.Toolbar>
-    <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content">
 
-        <androidx.recyclerview.widget.RecyclerView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:clipToPadding="false"
-                android:paddingTop="5dp"
-                android:id="@+id/home_browselist"
-                android:orientation="vertical"
-        >
-        </androidx.recyclerview.widget.RecyclerView>
+    <com.google.android.material.appbar.AppBarLayout
+            android:background="@android:color/transparent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/home_toolbar"
+                app:menu="@menu/home_actionbar"
+                android:paddingTop="@dimen/navbarHeight"
+                app:title="Explore"
+                android:background="@color/grayBackground"
+                app:layout_scrollFlags="scroll|enterAlways"
+                android:layout_width="match_parent" android:layout_height="wrap_content">
+        </com.google.android.material.appbar.MaterialToolbar>
+    </com.google.android.material.appbar.AppBarLayout>
 
-        <View
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/shadowHeight"
-                android:background="@drawable/shadow"/>
-    </FrameLayout>
-</LinearLayout>
+    <androidx.recyclerview.widget.RecyclerView
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp"
+            android:id="@+id/home_browselist"
+            android:orientation="vertical"
+    >
+    </androidx.recyclerview.widget.RecyclerView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

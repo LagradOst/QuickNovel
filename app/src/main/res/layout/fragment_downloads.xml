@@ -1,50 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:background="@color/grayBackground"
-              android:padding="5dp"
-              android:orientation="vertical"
->
-    <View android:layout_width="wrap_content" android:layout_height="0dp" android:id="@+id/download_top_padding">
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:background="@color/grayBackground"
+        android:orientation="vertical">
 
-    </View>
-    <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content">
-        <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+    <com.google.android.material.appbar.AppBarLayout
+            android:background="@android:color/transparent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/download_toolbar"
+                app:menu="@menu/download_actionbar"
+                android:paddingTop="@dimen/navbarHeight"
+                app:title="My Downloads"
+                android:background="@color/grayBackground"
+                app:layout_scrollFlags="scroll|enterAlways"
+                android:layout_width="match_parent" android:layout_height="wrap_content">
+        </com.google.android.material.appbar.MaterialToolbar>
+    </com.google.android.material.appbar.AppBarLayout>
 
-                android:text="@string/downloads_text"
-                android:layout_gravity="center_vertical|center"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="@color/textColor"
-        />
-        <ImageView
-                android:layout_gravity="end|center_vertical"
-                android:id="@+id/download_filter"
-                android:background="?selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_baseline_filter_list_24"
-                android:layout_width="25dp"
-                android:layout_height="25dp"
-                android:layout_margin="5dp"
-                android:contentDescription="@string/sort_downloads_descript">
-        </ImageView>
-    </FrameLayout>
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
             android:id="@+id/swipe_container"
             android:layout_width="match_parent"
-
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"
             android:layout_height="match_parent">
-        <androidx.recyclerview.widget.RecyclerView
 
+        <androidx.recyclerview.widget.RecyclerView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:clipToPadding="false"
                 android:paddingTop="5dp"
                 android:id="@+id/download_cardSpace"
-                android:orientation="vertical"
-        >
+                android:orientation="vertical">
+
         </androidx.recyclerview.widget.RecyclerView>
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-</LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
