@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+            android:id="@+id/action_search"
+            android:icon="@drawable/search_icon"
+            app:showAsAction="always|collapseActionView"
+            app:actionViewClass="androidx.appcompat.widget.SearchView"
+            android:title="@string/title_search"/>
+    <item
             android:id="@+id/action_open_in_browser"
             android:icon="@drawable/ic_baseline_public_24"
             android:title="@string/open_in_browser"

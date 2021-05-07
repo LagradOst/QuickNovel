@@ -39,6 +39,35 @@ class MainPageViewModel : ViewModel() {
         MutableLiveData<String>(null)
     }
 
+    val isInSearch: MutableLiveData<Boolean> by lazy {
+        MutableLiveData<Boolean>(false)
+    }
+
+    val isSearchResults: MutableLiveData<Boolean> by lazy {
+        MutableLiveData<Boolean>(false)
+    }
+
+    fun search(query: String) {
+        cards.postValue(ArrayList())
+        currentPage.postValue(0)
+        val api = api.value
+        if (api != null) {
+            isInSearch.postValue(true)
+            cards.postValue(
+                ArrayList(api.search(query)?.map { t ->
+                    MainPageResponse(t.name,
+                        t.url,
+                        t.posterUrl,
+                        t.rating,
+                        t.latestChapter,
+                        t.apiName,
+                        ArrayList())
+                } ?: ArrayList())
+            )
+            isSearchResults.postValue(true)
+        }
+    }
+
     fun load(
         page: Int?,
         mainCategory: Int?,
@@ -51,6 +80,7 @@ class MainPageViewModel : ViewModel() {
 
         val api = api.value
         if (api != null) {
+            isInSearch.postValue(false)
             val load = api.loadMainPage(cPage + 1, // cPage starts at 0, load starts at 1
                 if (mainCategory != null) api.mainCategories[mainCategory].second else null,
                 if (orderBy != null) api.orderBys[orderBy].second else null,
@@ -71,6 +101,7 @@ class MainPageViewModel : ViewModel() {
             cards.postValue(copy)
         }
 
+        isSearchResults.postValue(false)
         currentPage.postValue(cPage)
         currentTag.postValue(tag)
         currentOrderBy.postValue(orderBy)

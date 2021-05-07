@@ -121,6 +121,8 @@ class SearchFragment : Fragment() {
             }
         })
 
+        main_search.onActionViewExpanded()
+
         thread {
             searchDowloads.clear()
             val keys = DataStore.getKeys(DOWNLOAD_FOLDER)

@@ -1,27 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
     <View android:layout_width="wrap_content" android:layout_height="0dp" android:id="@+id/home_top_padding"/>
-    <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="25dp"
-            android:layout_margin="5dp"
-            android:text="@string/home_title_text"
-            android:layout_gravity="center_vertical|center"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/textColor"
-    />
-    <androidx.recyclerview.widget.RecyclerView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:paddingTop="5dp"
-            android:id="@+id/home_browselist"
-            android:orientation="vertical"
-    >
-    </androidx.recyclerview.widget.RecyclerView>
+    <androidx.appcompat.widget.Toolbar
+            android:id="@+id/home_toolbar"
+            app:menu="@menu/home_actionbar"
+            app:title="Explore"
+            android:layout_width="match_parent" android:layout_height="wrap_content">
+    </androidx.appcompat.widget.Toolbar>
+    <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+
+        <androidx.recyclerview.widget.RecyclerView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingTop="5dp"
+                android:id="@+id/home_browselist"
+                android:orientation="vertical"
+        >
+        </androidx.recyclerview.widget.RecyclerView>
+
+        <View
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/shadowHeight"
+                android:background="@drawable/shadow"/>
+    </FrameLayout>
 </LinearLayout>

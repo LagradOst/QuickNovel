@@ -24,16 +24,23 @@
                 app:menu="@menu/mainpage_actionbar"
                 android:layout_width="match_parent" android:layout_height="wrap_content">
         </androidx.appcompat.widget.Toolbar>
-        <androidx.recyclerview.widget.RecyclerView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:clipToPadding="false"
-                android:paddingStart="8dp"
-                android:paddingTop="5dp"
-                android:paddingEnd="8dp"
-                android:id="@+id/mainpage_list"
-                android:orientation="vertical"
-        />
+        <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+            <androidx.recyclerview.widget.RecyclerView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clipToPadding="false"
+                    android:paddingStart="8dp"
+                    android:paddingTop="5dp"
+                    android:paddingEnd="8dp"
+                    android:id="@+id/mainpage_list"
+                    android:orientation="vertical"
+            />
+            <View
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/shadowHeight"
+                    android:background="@drawable/shadow"/>
+        </FrameLayout>
+
     </LinearLayout>
     <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/mainpage_fab"

@@ -11,7 +11,9 @@
         android:background="@color/grayBackground">
 
     <View android:layout_width="wrap_content" android:layout_height="0dp" android:id="@+id/top_padding"/>
-    <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+    <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                 android:layout_margin="10dp" android:background="@drawable/search_background"
+    >
         <FrameLayout android:layout_width="match_parent" android:layout_marginEnd="30dp"
                      android:layout_height="wrap_content">
             <androidx.appcompat.widget.SearchView
@@ -26,7 +28,6 @@
                     android:layout_height="40dp"
                     android:layout_margin="10dp"
                     app:iconifiedByDefault="false"
-                    android:background="@drawable/search_background"
                     tools:ignore="RtlSymmetry">
                 <androidx.core.widget.ContentLoadingProgressBar
                         android:id="@+id/search_loading_bar"
@@ -50,7 +51,7 @@
                 android:src="@drawable/ic_baseline_tune_24"
                 android:layout_width="25dp"
                 android:layout_height="25dp"
-                android:layout_margin="5dp"
+                android:layout_margin="10dp"
                 android:layout_gravity="end|center_vertical"
                 app:tint="@color/textColor"
                 android:contentDescription="@string/open_in_browser">

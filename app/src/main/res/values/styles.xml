@@ -25,9 +25,16 @@
         <item name="materialButtonStyle">@style/AppMaterialButtonStyle</item>
         <item name="preferenceFragmentCompatStyle">@style/PreferenceTheme</item>
         <item name="bottomSheetDialogTheme">@style/AppBottomSheetDialogTheme</item>
+        <item name="searchViewStyle">@style/AppSearchViewStyle</item>
     </style>
 
-
+    <style name="AppSearchViewStyle"
+           parent="Theme.MaterialComponents.NoActionBar">
+        <item name="android:searchIcon">@drawable/search_icon</item>
+        <item name="android:queryHint">@string/search_hint</item>
+        <item name="android:background">@color/transparent</item>
+        <item name="android:fontFamily">@font/google_sans</item>
+    </style>
     <style name="AppBottomSheetDialogTheme"
            parent="Theme.Design.Light.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/AppModalStyle</item>

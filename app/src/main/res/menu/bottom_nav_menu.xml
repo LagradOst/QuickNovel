@@ -5,10 +5,10 @@
             android:id="@+id/navigation_homepage"
             android:icon="@drawable/ic_outline_explore_24"
             android:title="@string/title_home"/>
-    <item
+    <!--<item
             android:id="@+id/navigation_search"
-            android:icon="@drawable/search_white"
-            android:title="@string/title_search"/>
+            android:icon="@drawable/search_icon"
+            android:title="@string/title_search"/>-->
     <item
             android:id="@+id/navigation_download"
             android:icon="@drawable/main_dload_icon_navview"

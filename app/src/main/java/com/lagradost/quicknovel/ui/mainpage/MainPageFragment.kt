@@ -1,19 +1,12 @@
 package com.lagradost.quicknovel.ui.mainpage
 
-import android.content.Context
 import android.content.Intent
-import android.content.res.Resources
-import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.view.*
 import android.widget.*
-import androidx.annotation.AttrRes
-import androidx.annotation.ColorInt
-import androidx.core.graphics.alpha
-import androidx.core.graphics.blue
-import androidx.core.graphics.green
-import androidx.core.graphics.red
+import androidx.appcompat.widget.SearchView
+import androidx.core.view.MenuItemCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.findNavController
@@ -22,14 +15,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
-import com.lagradost.quicknovel.MainActivity
-import com.lagradost.quicknovel.MainAdapter
-import com.lagradost.quicknovel.MainPageResponse
-import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.mvvm.observe
 import kotlinx.android.synthetic.main.fragment_mainpage.*
 import kotlin.concurrent.thread
-import kotlin.math.roundToInt
 
 
 class MainPageFragment : Fragment() {
@@ -69,6 +58,20 @@ class MainPageFragment : Fragment() {
     var visibleItemCount = 0
     var totalItemCount = 0
 
+    fun defLoad() {
+        if (!isLoading) {
+            isLoading = true
+            thread {
+                val api = viewModel.api.value
+                if (api != null)
+                    viewModel.load(0,
+                        if (api.mainCategories.size > 0) 0 else null,
+                        if (api.orderBys.size > 0) 0 else null,
+                        if (api.tags.size > 0) 0 else null)
+            }
+        }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val parameter = mainpage_top_padding.layoutParams as LinearLayout.LayoutParams
         parameter.setMargins(parameter.leftMargin,
@@ -99,11 +102,45 @@ class MainPageFragment : Fragment() {
                         startActivity(i)
                     }
                 }
+                /*
+                R.id.action_search -> {
+                }*/
                 else -> {
                 }
             }
             return@setOnMenuItemClickListener true
         }
+
+        val myActionMenuItem =
+            mainpage_toolbar.menu.findItem(R.id.action_search)
+        val searchView = myActionMenuItem.actionView as SearchView
+        myActionMenuItem.setOnActionExpandListener(object : MenuItem.OnActionExpandListener {
+            override fun onMenuItemActionExpand(item: MenuItem?): Boolean {
+                viewModel.isInSearch.postValue(true)
+                return true
+            }
+
+            override fun onMenuItemActionCollapse(item: MenuItem?): Boolean {
+                viewModel.isInSearch.postValue(false)
+                if (viewModel.isSearchResults.value == true)
+                    defLoad() // IN CASE THE USER HAS SEARCHED SOMETHING, RELOAD ON BACK
+                return true
+            }
+        })
+
+
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String): Boolean {
+                thread {
+                    viewModel.search(query)//MainActivity.activeAPI.search(query)
+                }
+                return true
+            }
+
+            override fun onQueryTextChange(newText: String): Boolean {
+                return true
+            }
+        })
 
         /*
         mainpage_list.setOnScrollChangeListener { v, scrollX, scrollY, oldScrollX, oldScrollY ->
@@ -115,17 +152,6 @@ class MainPageFragment : Fragment() {
            // mainpage_list.setPadding() = mainpage_toolbar.translationY
         }*/
 
-        if (viewModel.cards.value?.size ?: 0 <= 0 && !isLoading) {
-            isLoading = true
-            thread {
-                val api = viewModel.api.value
-                if (api != null)
-                    viewModel.load(0,
-                        if (api.mainCategories.size > 0) 0 else null,
-                        if (api.orderBys.size > 0) 0 else null,
-                        if (api.tags.size > 0) 0 else null)
-            }
-        }
 
         val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = context?.let {
             MainAdapter(
@@ -144,6 +170,8 @@ class MainPageFragment : Fragment() {
         mainpage_list.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 if (dy > 0) { //check for scroll down
+                    if (viewModel.isInSearch.value == true) return
+
                     visibleItemCount = mLayoutManager.getChildCount()
                     totalItemCount = mLayoutManager.getItemCount()
                     pastVisiblesItems = mLayoutManager.findFirstVisibleItemPosition()
@@ -239,5 +267,7 @@ class MainPageFragment : Fragment() {
         }*/
 
         observe(viewModel.cards, ::updateList)
+        if (viewModel.cards.value?.size ?: 0 <= 0)
+            defLoad()
     }
 }

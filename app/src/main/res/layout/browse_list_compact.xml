@@ -35,7 +35,5 @@
 
             </TextView>
         </FrameLayout>
-
     </androidx.cardview.widget.CardView>
-
 </LinearLayout>

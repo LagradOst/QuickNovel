@@ -6,13 +6,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.MutableLiveData
+import androidx.navigation.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.*
-import kotlinx.android.synthetic.main.fragment_downloads.*
 import kotlinx.android.synthetic.main.fragment_home.*
-import kotlinx.android.synthetic.main.fragment_mainpage.*
 
 class HomeFragment : Fragment() {
     override fun onCreateView(
@@ -47,5 +45,18 @@ class HomeFragment : Fragment() {
             parameter.rightMargin,
             parameter.bottomMargin)
         home_top_padding.layoutParams = parameter
+
+
+        home_toolbar.setOnMenuItemClickListener {
+            when (it.itemId) {
+                R.id.action_goto_search -> {
+                    val navController = MainActivity.activity.findNavController(R.id.nav_host_fragment)
+                    navController.navigate(R.id.navigation_search, null, MainActivity.navOptions)
+                }
+                else -> {
+                }
+            }
+            return@setOnMenuItemClickListener true
+        }
     }
 }
