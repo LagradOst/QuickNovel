@@ -21,7 +21,7 @@ class RoyalRoadProvider : MainAPI() {
         get() = arrayListOf(
             Pair("Best Rated", "best-rated"),
             Pair("Ongoing", "active-popular"),
-            Pair("Complete", "complete"),
+            Pair("Completed", "complete"),
             Pair("Popular this week", "weekly-popular"),
             Pair("Latest Updates", "latest-updates"),
             Pair("New Releases", "new-releases"),
@@ -43,6 +43,18 @@ class RoyalRoadProvider : MainAPI() {
             Pair("Romance", "romance"),
             Pair("Satire", "satire"),
             Pair("Sci-fi", "sci_fi"),
+            Pair("LitRPG", "litrpg"),
+            Pair("Magic", "magic"),
+            Pair("GameLit", "gamelit"),
+            Pair("Male Lead", "male_lead"),
+            Pair("Female Lead", "female_lead"),
+            Pair("Portal Fantasy / Isekai", "summoned_hero"),
+            Pair("High Fantasy", "high_fantasy"),
+            Pair("Harem", "harem"),
+            Pair("Gender Bender", "gender_bender"),
+            Pair("Anti-Hero Lead", "anti-hero_lead"),
+            Pair("Progression", "Progression"),
+            Pair("Strategy", "strategy"),
             Pair("Short Story", "one_shot"),
             Pair("Tragedy", "tragedy")
         )
