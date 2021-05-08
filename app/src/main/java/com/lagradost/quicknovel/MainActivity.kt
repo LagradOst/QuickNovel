@@ -136,6 +136,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        fun fixPaddingStatusbar(v: View) {
+            v.setPadding(v.paddingLeft, v.paddingTop + activity.getStatusBarHeight(), v.paddingRight, v.paddingBottom)
+        }
+
         fun getGridIsCompact(): Boolean {
             return getGridFormat() != "grid"
         }

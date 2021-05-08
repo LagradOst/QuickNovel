@@ -5,7 +5,7 @@
         xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id="@+id/dashboardRoot"
+        android:id="@+id/searchRoot"
         tools:context=".ui.search.SearchFragment"
         android:orientation="vertical"
         android:layout_marginTop="@dimen/navbarHeight"

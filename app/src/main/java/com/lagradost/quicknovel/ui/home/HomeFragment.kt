@@ -4,12 +4,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.LinearLayout
 import androidx.fragment.app.Fragment
-import androidx.navigation.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.BrowseAdapter
+import com.lagradost.quicknovel.MainAPI
+import com.lagradost.quicknovel.MainActivity
+import com.lagradost.quicknovel.R
 import kotlinx.android.synthetic.main.fragment_home.*
 
 class HomeFragment : Fragment() {
@@ -38,6 +39,7 @@ class HomeFragment : Fragment() {
         }
         home_browselist.adapter = adapter
         home_browselist.layoutManager = GridLayoutManager(context, 1)
+        MainActivity.fixPaddingStatusbar(homeRoot)
 
 /*
         home_toolbar.setOnMenuItemClickListener {

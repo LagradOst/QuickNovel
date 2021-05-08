@@ -166,6 +166,7 @@ class DownloadFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        MainActivity.fixPaddingStatusbar(downloadRoot)
 
         viewModel = ViewModelProviders.of(MainActivity.activity).get(DownloadViewModel::class.java)
 

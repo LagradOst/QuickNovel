@@ -78,6 +78,7 @@ class MainPageFragment : Fragment() {
         arguments?.getString("apiName")?.let {
             viewModel.api.value = MainActivity.getApiFromName(it)
         }
+        MainActivity.fixPaddingStatusbar(mainpageRoot)
 
         mainpage_toolbar.title = viewModel.api.value?.name ?: "ERROR"
         mainpage_toolbar.setNavigationIcon(R.drawable.ic_baseline_arrow_back_24)

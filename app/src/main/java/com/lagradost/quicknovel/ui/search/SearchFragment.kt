@@ -46,6 +46,8 @@ class SearchFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        MainActivity.fixPaddingStatusbar(searchRoot)
+
         val compactView = MainActivity.getGridIsCompact()
         val spanCountLandscape = if (compactView) 2 else 6
         val spanCountPortrait = if (compactView) 1 else 3

@@ -5,6 +5,7 @@
         android:layout_height="match_parent"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         android:background="@color/grayBackground"
+        android:id="@+id/downloadRoot"
         android:orientation="vertical">
 
     <com.google.android.material.appbar.AppBarLayout

@@ -19,5 +19,5 @@
     <dimen name="roundedTextBorderWidth">0dp</dimen>
     <dimen name="roundedImageRadius">4dp</dimen>
     <dimen name="shadowHeight">4dp</dimen>
-    <dimen name="navbarHeight">20dp</dimen>
+    <dimen name="navbarHeight">0dp</dimen>
 </resources>
