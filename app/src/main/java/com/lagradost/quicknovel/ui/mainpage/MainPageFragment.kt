@@ -36,10 +36,17 @@ class MainPageFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_mainpage, container, false)
     }
 
-    fun newInstance(apiName: String) =
+    fun newInstance(apiName: String, mainCategory: Int? = null, orderBy: Int? = null, tag: Int? = null) =
         MainPageFragment().apply {
             arguments = Bundle().apply {
                 putString("apiName", apiName)
+
+                if (mainCategory != null)
+                    putInt("mainCategory", mainCategory)
+                if (orderBy != null)
+                    putInt("orderBy", orderBy)
+                if (tag != null)
+                    putInt("tag", tag)
             }
         }
 
@@ -73,18 +80,32 @@ class MainPageFragment : Fragment() {
         }
     }
 
+    var defMainCategory: Int? = null
+    var defOrderBy: Int? = null
+    var defTag: Int? = null
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         viewModel = ViewModelProviders.of(this).get(MainPageViewModel::class.java)
         arguments?.getString("apiName")?.let {
             viewModel.api.value = MainActivity.getApiFromName(it)
         }
+
+        defMainCategory = arguments?.getInt("mainCategory", -1)
+        defOrderBy = arguments?.getInt("orderBy", -1)
+        defTag = arguments?.getInt("tag", -1)
+
+        if (defTag == -1) defTag = null
+        if (defOrderBy == -1) defOrderBy = null
+        if (defMainCategory == -1) defMainCategory = null
+
         MainActivity.fixPaddingStatusbar(mainpageRoot)
 
         mainpage_toolbar.title = viewModel.api.value?.name ?: "ERROR"
         mainpage_toolbar.setNavigationIcon(R.drawable.ic_baseline_arrow_back_24)
         mainpage_toolbar.setNavigationOnClickListener {
-            val navController = MainActivity.activity.findNavController(R.id.nav_host_fragment)
-            navController.navigate(R.id.navigation_homepage, null, MainActivity.navOptions)
+            activity?.onBackPressed()
+            //val navController = MainActivity.activity.findNavController(R.id.nav_host_fragment)
+            //navController.navigate(R.id.navigation_homepage, null, MainActivity.navOptions)
         }
         mainpage_toolbar.setOnMenuItemClickListener {
             when (it.itemId) {
@@ -267,7 +288,17 @@ class MainPageFragment : Fragment() {
         }*/
 
         observe(viewModel.cards, ::updateList)
-        if (viewModel.cards.value?.size ?: 0 <= 0)
-            defLoad()
+
+        if (viewModel.cards.value?.size ?: 0 <= 0) {
+            isLoading = true
+            thread {
+                val api = viewModel.api.value
+                if (api != null)
+                    viewModel.load(0,
+                        defMainCategory ?: if (api.mainCategories.size > 0) 0 else null,
+                        defOrderBy ?: if (api.orderBys.size > 0) 0 else null,
+                        defTag ?: if (api.tags.size > 0) 0 else null)
+            }
+        }
     }
 }

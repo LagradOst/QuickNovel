@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat.getColorStateList
 import androidx.core.content.res.ResourcesCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProviders
+import androidx.navigation.findNavController
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.request.RequestOptions.bitmapTransform
@@ -29,6 +30,7 @@ import com.lagradost.quicknovel.BookDownloader.turnToEpub
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.download.DownloadFragment.Companion.updateDownloadFromResult
 import com.lagradost.quicknovel.ui.download.DownloadViewModel
+import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import jp.wasabeef.glide.transformations.BlurTransformation
 import kotlinx.android.synthetic.main.fragment_result.*
 import java.text.CharacterIterator
@@ -279,7 +281,25 @@ class ResultFragment : Fragment() {
                 if (res.tags != null) {
                     for (tag in res.tags) {
                         val viewBtt = layoutInflater.inflate(R.layout.result_tag, null)
-                        viewBtt.findViewById<MaterialButton>(R.id.result_tag_card).text = tag
+                        val btt = viewBtt.findViewById<MaterialButton>(R.id.result_tag_card)
+                        btt.text = tag
+
+                        for ((tagindex, apiTag) in api.tags.withIndex()) {
+                            if (apiTag.first == tag) {
+                                btt.setOnClickListener {
+                                    MainActivity.activity.supportFragmentManager.beginTransaction()
+                                        .setCustomAnimations(
+                                            R.anim.enter_anim,
+                                            R.anim.exit_anim,
+                                            R.anim.pop_enter,
+                                            R.anim.pop_exit)
+                                        .add(R.id.homeRoot, MainPageFragment().newInstance(api.name, tag = tagindex))
+                                        .commit()
+                                }
+                                break
+                            }
+                        }
+
                         result_tag.addView(viewBtt, index)
                         index++
                     }

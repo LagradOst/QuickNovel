@@ -34,7 +34,7 @@
             app:rippleColor="@color/colorPrimary"
             android:layout_width="wrap_content"
             android:minWidth="200dp"
-            >
+    >
     </com.google.android.material.button.MaterialButton>
 
     <ImageView
@@ -271,10 +271,11 @@ Translator: Rainbow Turtle"
                                 android:textStyle="normal"
                                 android:textColor="@color/textColor"
                         />
-                        <com.lagradost.quicknovel.MyFlowLayout android:id="@+id/result_tag"
-                                                               android:layout_width="match_parent"
-                                                               android:layout_height="wrap_content"
-                                                               android:orientation="horizontal">
+                        <com.lagradost.quicknovel.MyFlowLayout
+                                android:id="@+id/result_tag"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal">
 
                         </com.lagradost.quicknovel.MyFlowLayout>
                         <!--
@@ -285,7 +286,9 @@ Translator: Rainbow Turtle"
                                     android:layout_height="match_parent"
                             />
                         </HorizontalScrollView>-->
-                        <LinearLayout android:layout_margin="0dp" android:layout_gravity="bottom" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+                        <LinearLayout android:layout_margin="0dp" android:layout_gravity="bottom"
+                                      android:orientation="vertical" android:layout_width="match_parent"
+                                      android:layout_height="wrap_content">
                             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
                                 <ImageView
                                         android:id="@+id/download_delete_trash_from_result"

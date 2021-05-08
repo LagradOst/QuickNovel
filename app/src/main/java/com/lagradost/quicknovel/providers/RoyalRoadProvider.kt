@@ -72,7 +72,7 @@ class RoyalRoadProvider : MainAPI() {
                 val name = hInfo.text()
                 val url = mainUrl + hInfo.attr("href")
 
-                var posterUrl = h.selectFirst("> figure > a > img").attr("src")
+                val posterUrl = h.selectFirst("> figure > a > img").attr("src")
 
                 val rating = try {
                     val ratingHead =
@@ -147,15 +147,21 @@ class RoyalRoadProvider : MainAPI() {
             }
 
             var synopsis = ""
-            val synoParts = document.select("div.description > div > p")
-            for (s in synoParts) {
-                synopsis += s.text()!! + "\n\n"
+            val synoDescript = document.select("div.description > div")
+            val synoParts = synoDescript.select("> p")
+            if(synoParts.size == 0 && synoDescript.hasText()) {
+                synopsis = synoDescript.text().replace("\n","\n\n") // JUST IN CASE
+            }
+            else {
+                for (s in synoParts) {
+                    synopsis += s.text()!! + "\n\n"
+                }
             }
 
             val data: ArrayList<ChapterData> = ArrayList()
             val chapterHeaders = document.select("div.portlet-body > table > tbody > tr")
             for (c in chapterHeaders) {
-                var url = c.attr("data-url")
+                val url = c.attr("data-url")
                 val td = c.select("> td") // 0 = Name, 1 = Upload
                 val name = td[0].selectFirst("> a").text()
                 val added = td[1].selectFirst("> a > time").text()
