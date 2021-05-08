@@ -8,9 +8,12 @@ class NovelPassionProvider : MainAPI() {
     override val name: String get() = "Novel Passion"
     override val mainUrl: String get() = "https://www.novelpassion.com"
     override val iconId: Int
-        get() = R.drawable.icon_novelpassion
+        get() = R.drawable.big_icon_novelpassion
     override val hasMainPage: Boolean
         get() = true
+
+    override val iconBackgroundId: Int
+        get() = R.color.novelPassionColor
 
     override val tags: ArrayList<Pair<String, String>>
         get() = arrayListOf(

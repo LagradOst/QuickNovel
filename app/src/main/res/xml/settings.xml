@@ -30,6 +30,15 @@
                 android:entries="@array/RatingFormat"
                 android:entryValues="@array/RatingFormatData"
         />
+        <ListPreference
+                app:icon="@drawable/ic_baseline_grid_view_24"
+                android:key="@string/grid_format_key"
+                android:title="Display Mode"
+                app:defaultValue="grid"
+                app:useSimpleSummaryProvider="true"
+                android:entries="@array/GridFormat"
+                android:entryValues="@array/GridFormatData"
+        />
         <SwitchPreference
                 app:key="@string/auto_update_key"
                 android:title="Show app updates"

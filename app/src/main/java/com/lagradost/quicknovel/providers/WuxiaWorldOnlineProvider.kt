@@ -16,6 +16,9 @@ class WuxiaWorldOnlineProvider : MainAPI() {
     override val iconId: Int
         get() = R.drawable.icon_wuxiaworldonline
 
+    override val iconBackgroundId: Int
+        get() = R.color.wuxiaWorldOnlineColor
+
     override val tags: ArrayList<Pair<String, String>>
         get() = arrayListOf(
             Pair("All", ""),

@@ -11,9 +11,12 @@ class ReadLightNovelProvider : MainAPI() {
     override val mainUrl: String
         get() = "https://www.readlightnovel.org"
     override val iconId: Int
-        get() = R.drawable.icon_readlightnovel4
+        get() = R.drawable.big_icon_readlightnovel
     override val hasMainPage: Boolean
         get() = true
+
+    override val iconBackgroundId: Int
+        get() = R.color.readLightNovelColor
 
     override val orderBys: ArrayList<Pair<String, String>>
         get() = arrayListOf(

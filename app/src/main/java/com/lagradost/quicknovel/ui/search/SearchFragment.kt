@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.ui.search
 
 import android.content.DialogInterface
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -21,6 +22,7 @@ import androidx.preference.PreferenceManager
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.getApiSettings
 import com.lagradost.quicknovel.ui.download.DownloadFragment
+import kotlinx.android.synthetic.main.fragment_mainpage.*
 
 
 class SearchFragment : Fragment() {
@@ -44,6 +46,16 @@ class SearchFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val compactView = MainActivity.getGridIsCompact()
+        val spanCountLandscape = if (compactView) 2 else 6
+        val spanCountPortrait = if (compactView) 1 else 3
+        val orientation = resources.configuration.orientation
+        if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            cardSpace.spanCount = spanCountLandscape
+        } else {
+            cardSpace.spanCount = spanCountPortrait
+        }
+
         val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = context?.let {
             ResAdapter(
                 it,
@@ -53,7 +65,7 @@ class SearchFragment : Fragment() {
         }
 
         cardSpace.adapter = adapter
-        cardSpace.layoutManager = GridLayoutManager(context, 1)
+        //cardSpace.layoutManager = GridLayoutManager(context, 1)
         search_loading_bar.alpha = 0f
         val search_exit_icon = main_search.findViewById<ImageView>(androidx.appcompat.R.id.search_close_btn)
         val search_mag_icon = main_search.findViewById<ImageView>(androidx.appcompat.R.id.search_mag_icon)

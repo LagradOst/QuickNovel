@@ -2,26 +2,22 @@ package com.lagradost.quicknovel
 
 import android.animation.ObjectAnimator
 import android.content.Context
+import android.content.DialogInterface
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.DecelerateInterpolator
+import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.model.GlideUrl
 import com.lagradost.quicknovel.MainActivity.Companion.activity
-import com.lagradost.quicknovel.ui.download.DownloadFragment
-import kotlinx.android.synthetic.main.download_result_compact.view.*
-import kotlinx.android.synthetic.main.search_result_compact.view.backgroundCard
-import kotlinx.android.synthetic.main.search_result_compact.view.imageText
-import kotlinx.android.synthetic.main.search_result_compact.view.imageView
-import kotlin.concurrent.thread
-import android.content.DialogInterface
-import android.view.animation.DecelerateInterpolator
-import android.widget.*
-import com.lagradost.quicknovel.BookDownloader.updateDownload
 import com.lagradost.quicknovel.MainActivity.Companion.getApiFromName
+import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.download.DownloadFragment.Companion.updateDownloadFromCard
+import kotlinx.android.synthetic.main.download_result_compact.view.*
+import kotlin.concurrent.thread
 
 
 class DloadAdapter(

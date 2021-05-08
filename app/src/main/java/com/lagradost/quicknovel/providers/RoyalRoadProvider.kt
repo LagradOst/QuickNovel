@@ -11,6 +11,12 @@ class RoyalRoadProvider : MainAPI() {
     override val hasMainPage: Boolean
         get() = true
 
+    override val iconId: Int
+        get() = R.drawable.big_icon_royalroad
+
+    override val iconBackgroundId: Int
+        get() = R.color.royalRoadColor
+
     override val orderBys: ArrayList<Pair<String, String>>
         get() = arrayListOf(
             Pair("Best Rated", "best-rated"),
@@ -40,9 +46,6 @@ class RoyalRoadProvider : MainAPI() {
             Pair("Short Story", "one_shot"),
             Pair("Tragedy", "tragedy")
         )
-
-    override val iconId: Int
-        get() = R.drawable.icon_royalroad2
 
     override fun loadMainPage(
         page: Int,

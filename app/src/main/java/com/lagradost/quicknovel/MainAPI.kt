@@ -14,6 +14,7 @@ open class MainAPI {
     open val tags: ArrayList<Pair<String, String>> = ArrayList()
 
     open val iconId: Int? = null
+    open val iconBackgroundId: Int = R.color.darkBackground
 
     open fun loadMainPage(
         page: Int,

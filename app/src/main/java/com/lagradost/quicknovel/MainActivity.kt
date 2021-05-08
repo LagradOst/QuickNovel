@@ -74,7 +74,8 @@ public val threadPoolExecutor: ThreadPoolExecutor = ThreadPoolExecutor(
     workQueue
 )
 
-const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
+const val USER_AGENT =
+    "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -87,9 +88,9 @@ class MainActivity : AppCompatActivity() {
         val apis: Array<MainAPI> = arrayOf(
             //AllProvider(),
             NovelPassionProvider(),
-            RoyalRoadProvider(),
             BestLightNovelProvider(),
             WuxiaWorldOnlineProvider(),
+            RoyalRoadProvider(),
             WuxiaWorldSiteProvider(),
             ReadLightNovelProvider(),
             BoxNovelProvider(),
@@ -120,6 +121,23 @@ class MainActivity : AppCompatActivity() {
                     .add(R.id.homeRoot, ResultFragment().newInstance(url, apiName))
                     .commit()
             }
+        }
+
+        private fun getGridFormat(): String {
+            val settingsManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
+            return settingsManager.getString(activity.getString(R.string.grid_format_key), "grid")!!
+        }
+
+        fun getGridFormatId(): Int {
+            return when (getGridFormat()) {
+                "list" -> R.layout.search_result_compact
+                "compact_list" -> R.layout.search_result_super_compact
+                else -> R.layout.search_result_grid
+            }
+        }
+
+        fun getGridIsCompact(): Boolean {
+            return getGridFormat() != "grid"
         }
 
         fun loadResutFromUrl(url: String?) {
@@ -164,29 +182,30 @@ class MainActivity : AppCompatActivity() {
 
         fun semihideNavbar() {
             val w: Window? = activity.window // in Activity's onCreate() for instance
-            if(w != null) {
+            if (w != null) {
                 val uiVisibility =
                     View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                 w.decorView.systemUiVisibility = uiVisibility
-                w.navigationBarColor = activity.getResourceColor(android.R.attr.navigationBarColor, 0.7F) ?: Color.TRANSPARENT
+                w.navigationBarColor =
+                    activity.getResourceColor(android.R.attr.navigationBarColor, 0.7F) ?: Color.TRANSPARENT
             }
         }
 
         fun showNavbar() {
             val w: Window? = activity.window // in Activity's onCreate() for instance
-            if(w != null) {
+            if (w != null) {
                 w.decorView.systemUiVisibility = 0
                 w.navigationBarColor = android.R.attr.navigationBarColor
             }
         }
 
-        fun transNavbar(trans : Boolean) {
+        fun transNavbar(trans: Boolean) {
             val w: Window? = activity.window // in Activity's onCreate() for instance
-            if(w != null) {
-                if(trans) {
-                    w.setFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS,WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-                }
-                else {
+            if (w != null) {
+                if (trans) {
+                    w.setFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS,
+                        WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+                } else {
                     w.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
                 }
             }

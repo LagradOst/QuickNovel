@@ -28,19 +28,20 @@
                 android:layout_width="match_parent" android:layout_height="wrap_content">
         </com.google.android.material.appbar.MaterialToolbar>
     </com.google.android.material.appbar.AppBarLayout>
+        <com.lagradost.quicknovel.ui.AutofitRecyclerView
+                app:layout_behavior="@string/appbar_scrolling_view_behavior"
 
-    <androidx.recyclerview.widget.RecyclerView
-            app:layout_behavior="@string/appbar_scrolling_view_behavior"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:paddingStart="8dp"
+                android:paddingTop="5dp"
+                android:paddingEnd="8dp"
+                app:spanCount="3"
+                android:id="@+id/mainpage_list"
+                android:orientation="vertical"
+        />
 
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:clipToPadding="false"
-            android:paddingStart="8dp"
-            android:paddingTop="5dp"
-            android:paddingEnd="8dp"
-            android:id="@+id/mainpage_list"
-            android:orientation="vertical"
-    />
     <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/mainpage_fab"
             android:layout_width="wrap_content"

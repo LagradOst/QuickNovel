@@ -5,14 +5,12 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.*
+import android.widget.ImageView
+import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.navigation.findNavController
 import androidx.recyclerview.widget.RecyclerView
-import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
-import com.lagradost.quicknovel.ui.result.ResultFragment
 import kotlinx.android.synthetic.main.browse_list_compact.view.*
-import kotlinx.android.synthetic.main.download_result_compact.view.*
 
 class BrowseAdapter(
     context: Context,
@@ -53,6 +51,7 @@ class BrowseAdapter(
     constructor(itemView: View, _context: Context, resView: RecyclerView) : RecyclerView.ViewHolder(itemView) {
         val context = _context
         val cardView: CardView = itemView.browse_background
+        val browse_icon_background: CardView = itemView.browse_icon_background
         val browse_icon: ImageView = itemView.browse_icon
         val browse_text: TextView = itemView.browse_text
 
@@ -62,11 +61,13 @@ class BrowseAdapter(
             if (icon != null) {
                 browse_icon.setImageResource(icon)
             }
+            browse_icon_background.setCardBackgroundColor(context.getColor(api.iconBackgroundId))
+
             cardView.setOnClickListener {
                 val navController = MainActivity.activity.findNavController(R.id.nav_host_fragment)
                 navController.navigate(R.id.navigation_mainpage, Bundle().apply {
                     putString("apiName", api.name)
-                },MainActivity.navOptions)
+                }, MainActivity.navOptions)
 
 /*
                 MainActivity.activity.supportFragmentManager.beginTransaction()

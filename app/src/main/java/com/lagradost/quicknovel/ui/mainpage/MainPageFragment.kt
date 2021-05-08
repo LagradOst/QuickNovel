@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.ui.mainpage
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.view.*
@@ -144,7 +145,15 @@ class MainPageFragment : Fragment() {
                 minOf(0f, mainpage_toolbar.translationY - statush - dy)) + statush
            // mainpage_list.setPadding() = mainpage_toolbar.translationY
         }*/
-
+        val compactView = MainActivity.getGridIsCompact()
+        val spanCountLandscape = if (compactView) 2 else 6
+        val spanCountPortrait = if (compactView) 1 else 3
+        val orientation = resources.configuration.orientation
+        if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            mainpage_list.spanCount = spanCountLandscape
+        } else {
+            mainpage_list.spanCount = spanCountPortrait
+        }
 
         val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = context?.let {
             MainAdapter(
@@ -153,12 +162,9 @@ class MainPageFragment : Fragment() {
                 mainpage_list,
             )
         }
-        mainpage_list.adapter = adapter
-        mainpage_list.layoutManager = GridLayoutManager(context, 1)
 
-        val mLayoutManager: LinearLayoutManager
-        mLayoutManager = LinearLayoutManager(this.context)
-        mainpage_list.setLayoutManager(mLayoutManager)
+        mainpage_list.adapter = adapter
+        val mLayoutManager = mainpage_list.layoutManager!! as GridLayoutManager
 
         mainpage_list.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {

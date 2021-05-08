@@ -26,4 +26,11 @@
     <color name="readerHightlightedTextColor">#206f96</color>
     <color name="readerHightlightedMetaInfo">#0D000000</color>
     <color name="roundedTextBorder">#DD0277BD</color>
+
+    <color name="novelPassionColor">#FFF</color>
+    <color name="wuxiaWorldOnlineColor">#24242B</color>
+    <color name="royalRoadColor">@color/darkBackground</color>
+    <color name="wuxiaWorldSiteColor">#1670bf</color>
+    <color name="readLightNovelColor">#FFF</color>
+    <color name="boxNovelColor">#eb3349</color>
 </resources>

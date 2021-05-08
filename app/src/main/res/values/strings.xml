@@ -24,6 +24,7 @@
     <string name="remove_external_key">remove_external</string>
     <string name="manual_check_update_key">manual_check_update</string>
     <string name="rating_format_key">rating_format</string>
+    <string name="grid_format_key">grid_format</string>
     <string name="exampleTXT">"this is <annotation key="rounded">a regular</annotation> paragraph."</string>
     <string name="tags">Tags</string>
     <string name="views">Views</string>
@@ -42,4 +43,5 @@
     <string name="browse_list_icon">Icon</string>
     <string name="home_title_text">Explore</string>
     <string name="mainpage_filter">Filter</string>
+    <string name="shadow_descript">Shadow</string>
 </resources>

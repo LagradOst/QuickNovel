@@ -12,10 +12,13 @@ class BoxNovelProvider : MainAPI() {
     override val mainUrl: String
         get() = "https://boxnovel.com"
     override val iconId: Int
-        get() = R.drawable.icon_boxnovel
+        get() = R.drawable.big_icon_boxnovel
 
     override val hasMainPage: Boolean
         get() = true
+
+    override val iconBackgroundId: Int
+        get() = R.color.boxNovelColor
 
     override val tags: ArrayList<Pair<String, String>>
         get() = arrayListOf(

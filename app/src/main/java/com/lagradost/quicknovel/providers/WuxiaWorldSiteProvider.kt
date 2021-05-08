@@ -13,6 +13,12 @@ class WuxiaWorldSiteProvider : MainAPI() {
     override val hasMainPage: Boolean
         get() = true
 
+    override val iconId: Int
+        get() = R.drawable.big_icon_wuxiaworldsite
+
+    override val iconBackgroundId: Int
+        get() = R.color.wuxiaWorldSiteColor
+
     override val tags: ArrayList<Pair<String, String>>
         get() = arrayListOf(
             Pair("All", ""),
@@ -58,9 +64,6 @@ class WuxiaWorldSiteProvider : MainAPI() {
             Pair("A-Z", "alphabet"),
             Pair("Latest", "latest"),
         )
-
-    override val iconId: Int
-        get() = R.drawable.icon_wuxiaworldsite
 
     override fun loadMainPage(
         page: Int,
