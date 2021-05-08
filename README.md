@@ -17,6 +17,10 @@ Adfree FOSS Android app for downloading novels.
 
 - https://wuxiaworld.site
 
+- https://www.readlightnovel.org
+
+- https://boxnovel.com
+
 **Screenshoots:**
 
-<img src="./.github/search.jpg " height="500"/><img src="./.github/downloads.jpg " height="500"/><img src="./.github/result.jpg " height="500"/>
+<img src="./.github/home.jpg" height="500"/><img src="./.github/search.jpg" height="500"/><img src="./.github/downloads.jpg" height="500"/><img src="./.github/result.jpg" height="500"/>
