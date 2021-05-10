@@ -75,7 +75,7 @@ class SearchFragment : Fragment() {
         search_mag_icon.scaleY = 0.65f
 
         search_filter.setOnClickListener {
-            val builder: AlertDialog.Builder = AlertDialog.Builder(this.context!!)
+            val builder: AlertDialog.Builder = AlertDialog.Builder(requireContext())
             //val settingsManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
             val apiNamesSetting = getApiSettings()
 

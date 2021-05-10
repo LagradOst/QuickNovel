@@ -216,13 +216,21 @@ class MainActivity : AppCompatActivity() {
         }
 
         fun getRating(score: Int): String {
-            val settingsManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
+            val settingsManager = PreferenceManager.getDefaultSharedPreferences(activity)
 
             return when (settingsManager.getString(activity.getString(R.string.rating_format_key), "star")) {
                 "point10" -> "${(score / 100)}/10"
                 "point10d" -> "${"%.1f".format(score / 100f).replace(',', '.')}/10.0"
                 "point100" -> "${score / 10}/100"
                 else -> "%.2f".format(score.toFloat() / 200f).replace(',', '.') + "★" // star
+            }
+        }
+
+        fun getRatingReview(score: Int): String {
+            val settingsManager = PreferenceManager.getDefaultSharedPreferences(activity)
+            return when (settingsManager.getString(activity.getString(R.string.rating_format_key), "star")) {
+                "star" -> "${score / 200}★"
+                else -> "${(score / 100)}/10"
             }
         }
     }

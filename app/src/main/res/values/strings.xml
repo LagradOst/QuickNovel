@@ -44,4 +44,5 @@
     <string name="home_title_text">Explore</string>
     <string name="mainpage_filter">Filter</string>
     <string name="shadow_descript">Shadow</string>
+    <string name="user_image_avatar">Avatar</string>
 </resources>

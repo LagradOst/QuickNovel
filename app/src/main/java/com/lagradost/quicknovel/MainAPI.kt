@@ -2,7 +2,7 @@ package com.lagradost.quicknovel
 
 import org.jsoup.Jsoup
 
-open class MainAPI {
+abstract class MainAPI {
     open val name = "NONE"
     open val mainUrl = "NONE"
 
@@ -22,6 +22,11 @@ open class MainAPI {
         orderBy: String?,
         tag: String?,
     ): HeadMainPageResponse? {
+        return null
+    }
+
+    open val hasReviews : Boolean = false
+    open fun loadReviews(url : String, page: Int, showSpoilers : Boolean = false): ArrayList<UserReview>? {
         return null
     }
 
@@ -67,6 +72,15 @@ fun stripHtml(txt: String, chapterName: String? = null, chapterIndex: Int? = nul
 data class HeadMainPageResponse(
     val url: String,
     val response: ArrayList<MainPageResponse>?,
+)
+
+data class UserReview(
+    val review : String,
+    val username: String?,
+    val reviewDate: String?,
+    val avatarUrl: String?,
+    val rating: Int?,
+    val ratings: ArrayList<Pair<Int, String>>?,
 )
 
 data class MainPageResponse(

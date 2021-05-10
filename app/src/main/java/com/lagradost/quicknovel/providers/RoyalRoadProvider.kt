@@ -3,6 +3,8 @@ package com.lagradost.quicknovel.providers
 import com.lagradost.quicknovel.*
 import org.jsoup.Jsoup
 import java.lang.Exception
+import java.util.*
+import kotlin.collections.ArrayList
 
 class RoyalRoadProvider : MainAPI() {
     override val name: String get() = "Royal Road"
@@ -59,6 +61,94 @@ class RoyalRoadProvider : MainAPI() {
             Pair("Tragedy", "tragedy")
         )
 
+    override val hasReviews: Boolean
+        get() = true
+
+    override fun loadReviews(url: String, page: Int, showSpoilers: Boolean): ArrayList<UserReview>? {
+        try {
+            val response = khttp.get("$url?sorting=top&reviews=$page") //TODO SORTING ??
+
+            val document = Jsoup.parse(response.text)
+            val reviews = document.select("div.reviews-container > div.review")
+            if (reviews.size <= 0) return ArrayList()
+            val returnValue: ArrayList<UserReview> = ArrayList()
+            for (r in reviews) {
+                val textContent = r.selectFirst("> div.review-right-content")
+                val scoreContent = r.selectFirst("> div.review-side")
+                fun parseScore(data: String): Int {
+                    return Character.getNumericValue(data[0]) * 200 // TO INT WILL FUCK WITH IT BECAUSE IT IS A CHAR
+                }
+
+                val scoreHeader = scoreContent.selectFirst("> div.scores > div")
+                var overallScore =
+                    parseScore(scoreHeader.selectFirst("> div.overall-score-container")
+                        .select("> div")[1].attr("aria-label"))
+
+                if (overallScore < 0) { //SOMETHING WENT WRONG
+                    val divHeader = scoreHeader.selectFirst("> div.overall-score-container")
+                    val divs = divHeader
+                        .select("> div")
+                    val names = divs[1].selectFirst("> div")
+
+                    overallScore = 200 * when {
+                        names.hasClass("star-50") -> {
+                            5
+                        }
+                        names.hasClass("star-40") -> {
+                            4
+                        }
+                        names.hasClass("star-30") -> {
+                            3
+                        }
+                        names.hasClass("star-20") -> {
+                            2
+                        }
+                        names.hasClass("star-10") -> {
+                            1
+                        }
+                        else -> {
+                            -1
+                        }
+                    }
+                }
+                if(overallScore < 0) break // JUST IN CASE
+
+                val avatar = scoreContent.selectFirst("> div.avatar-container-general > img")
+                val avatarUrl = avatar.attr("src")
+
+                val scores = scoreHeader.select("> div.advanced-score")
+                val scoresData = if (scores.size <= 0) ArrayList<Pair<Int, String>>() else scores.map { s ->
+                    val divs = s.select("> div")
+                    Pair(parseScore(divs[1].attr("aria-label")), divs[0].text())
+                }
+
+                val reviewHeader = textContent.selectFirst("> div.review-header")
+                val reviewMeta = reviewHeader.selectFirst("> div.review-meta")
+
+                val username = reviewMeta.selectFirst("> span > a").text()
+
+                val sdf = java.text.SimpleDateFormat("yyyy-MM-dd",
+                    MainActivity.activity.resources.configuration.locale) //TODO FIX BETTER IMPLEMENTATION
+                val date = Date(reviewMeta.selectFirst("> span > a > time").attr("unixtime").toLong() * 1000)
+
+                val reviewTime = sdf.format(date).toString()
+
+                val reviewContent = textContent.selectFirst("> div.review-content")
+                if (!showSpoilers) reviewContent.removeClass("spoiler")
+                val reviewTxt = reviewContent.text()
+
+                returnValue.add(UserReview(reviewTxt, username,
+                    reviewTime,
+                    fixUrl(avatarUrl),
+                    overallScore,
+                    ArrayList(scoresData)))
+            }
+            return returnValue
+        } catch (e: Exception) {
+            return null
+        }
+    }
+
     override fun loadMainPage(
         page: Int,
         mainCategory: String?,
@@ -105,7 +195,13 @@ class RoyalRoadProvider : MainAPI() {
                 }
 
                 val tags = ArrayList(h.select("span.tags > a").map { t -> t.text() })
-                returnValue.add(MainPageResponse(name, fixUrl(url), fixUrl(posterUrl), rating, latestChapter, this.name, tags))
+                returnValue.add(MainPageResponse(name,
+                    fixUrl(url),
+                    fixUrl(posterUrl),
+                    rating,
+                    latestChapter,
+                    this.name,
+                    tags))
             }
             return HeadMainPageResponse(url, returnValue)
         } catch (e: Exception) {
@@ -161,10 +257,9 @@ class RoyalRoadProvider : MainAPI() {
             var synopsis = ""
             val synoDescript = document.select("div.description > div")
             val synoParts = synoDescript.select("> p")
-            if(synoParts.size == 0 && synoDescript.hasText()) {
-                synopsis = synoDescript.text().replace("\n","\n\n") // JUST IN CASE
-            }
-            else {
+            if (synoParts.size == 0 && synoDescript.hasText()) {
+                synopsis = synoDescript.text().replace("\n", "\n\n") // JUST IN CASE
+            } else {
                 for (s in synoParts) {
                     synopsis += s.text()!! + "\n\n"
                 }
@@ -203,7 +298,16 @@ class RoyalRoadProvider : MainAPI() {
                 }
             }
 
-            return LoadResponse(name, data, author, fixUrl(posterUrl), rating, peopleRated, views, synopsis, tags, status)
+            return LoadResponse(name,
+                data,
+                author,
+                fixUrl(posterUrl),
+                rating,
+                peopleRated,
+                views,
+                synopsis,
+                tags,
+                status)
         } catch (e: Exception) {
             return null
         }

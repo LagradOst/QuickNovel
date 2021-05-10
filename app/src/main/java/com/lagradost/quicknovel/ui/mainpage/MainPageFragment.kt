@@ -193,8 +193,8 @@ class MainPageFragment : Fragment() {
                 if (dy > 0) { //check for scroll down
                     if (viewModel.isInSearch.value == true) return
 
-                    visibleItemCount = mLayoutManager.getChildCount()
-                    totalItemCount = mLayoutManager.getItemCount()
+                    visibleItemCount = mLayoutManager.childCount
+                    totalItemCount = mLayoutManager.itemCount
                     pastVisiblesItems = mLayoutManager.findFirstVisibleItemPosition()
                     if (!isLoading) {
                         if (visibleItemCount + pastVisiblesItems >= totalItemCount) {
@@ -216,7 +216,7 @@ class MainPageFragment : Fragment() {
                 return@setOnClickListener
             }
 
-            val bottomSheetDialog = BottomSheetDialog(this.context!!)
+            val bottomSheetDialog = BottomSheetDialog(requireContext())
             bottomSheetDialog.setContentView(R.layout.filter_bottom_sheet)
 
             val filter_general_text = bottomSheetDialog.findViewById<TextView>(R.id.filter_general_text)!!
@@ -232,7 +232,7 @@ class MainPageFragment : Fragment() {
                     txt.visibility = View.GONE
                     spinner.visibility = View.GONE
                 } else {
-                    val arrayAdapter = ArrayAdapter<String>(this.context!!, R.layout.spinner_select_dialog)
+                    val arrayAdapter = ArrayAdapter<String>(requireContext(), R.layout.spinner_select_dialog)
 
                     arrayAdapter.addAll(data.map { t -> t.first })
                     spinner.adapter = arrayAdapter

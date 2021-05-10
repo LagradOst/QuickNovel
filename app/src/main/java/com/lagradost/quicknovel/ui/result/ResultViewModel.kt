@@ -2,10 +2,7 @@ package com.lagradost.quicknovel.ui.result
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.lagradost.quicknovel.BookDownloader
-import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
-import com.lagradost.quicknovel.DataStore
-import com.lagradost.quicknovel.LoadResponse
+import com.lagradost.quicknovel.*
 import kotlin.concurrent.thread
 
 class ResultViewModel(val repo: ResultRepository) : ViewModel() {
@@ -17,6 +14,9 @@ class ResultViewModel(val repo: ResultRepository) : ViewModel() {
     val apiName: MutableLiveData<String> by lazy {
         MutableLiveData<String>()
     }
+    val currentTabIndex: MutableLiveData<Int> by lazy {
+        MutableLiveData<Int>(0)
+    }
 
     val isFailedConnection: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
     val isLoaded: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
@@ -27,11 +27,34 @@ class ResultViewModel(val repo: ResultRepository) : ViewModel() {
         MutableLiveData<BookDownloader.DownloadNotification?>()
     }
 
+    val reviews: MutableLiveData<ArrayList<UserReview>> by lazy {
+        MutableLiveData<ArrayList<UserReview>>()
+    }
+    val reviewPage: MutableLiveData<Int> by lazy {
+        MutableLiveData<Int>(0)
+    }
+
+    fun loadMoreReviews() {
+        thread {
+            val loadPage = (reviewPage.value ?: 0) + 1
+            val api = MainActivity.getApiFromName(apiName.value!!)
+            val moreReviews = api.loadReviews(resultUrl.value!!,
+                loadPage,
+                false) // API STARTS AT 0, BUT REQUEST STARTS AT 1
+            if (moreReviews != null) {
+                val merged = ArrayList<UserReview>()
+                merged.addAll(reviews.value ?: ArrayList())
+                merged.addAll(moreReviews)
+                reviews.postValue(merged)
+                reviewPage.postValue(loadPage + 1)
+            }
+        }
+    }
+
     fun initState(url: String, apiName: String) {
         this.resultUrl.value = url
         this.apiName.value = apiName
         isFailedConnection.postValue(false)
-
 
         BookDownloader.downloadNotification += {
             if (it.id == id.value)

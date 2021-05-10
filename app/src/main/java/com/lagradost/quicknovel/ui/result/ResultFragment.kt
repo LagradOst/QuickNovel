@@ -18,12 +18,16 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat.getColor
 import androidx.core.content.ContextCompat.getColorStateList
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProviders
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.request.RequestOptions.bitmapTransform
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.tabs.TabLayout
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.BookDownloader.turnToEpub
 import com.lagradost.quicknovel.mvvm.observe
@@ -34,6 +38,7 @@ import kotlinx.android.synthetic.main.fragment_result.*
 import java.text.CharacterIterator
 import java.text.StringCharacterIterator
 import kotlin.concurrent.thread
+import kotlin.math.max
 
 const val MAX_SYNO_LENGH = 300
 
@@ -50,7 +55,7 @@ class ResultFragment : Fragment() {
     private lateinit var viewModel: ResultViewModel
 
     var resultUrl = ""
-    var api: MainAPI = MainAPI()
+    lateinit var api: MainAPI
 
     fun humanReadableByteCountSI(bytes: Int): String {
         var bytes = bytes
@@ -91,7 +96,19 @@ class ResultFragment : Fragment() {
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
+    }
 
+    fun getReviews(data: ArrayList<UserReview>) {
+        (result_reviews.adapter as ReviewAdapter).cardList = data
+        (result_reviews.adapter as ReviewAdapter).notifyDataSetChanged()
+        isLoadingReviews = false
+    }
+
+    var isLoadingReviews = false
+    fun loadReviews() {
+        if (isLoadingReviews) return
+        isLoadingReviews = true
+        viewModel.loadMoreReviews()
     }
 
     var generateEpub = false
@@ -215,6 +232,33 @@ class ResultFragment : Fragment() {
                 startActivity(i)
             }
 
+            result_tabs.removeAllTabs()
+            result_tabs.visibility = if (api.hasReviews) View.VISIBLE else View.GONE
+            if (api.hasReviews) {
+                result_tabs.addTab(result_tabs.newTab().setText("Novel"))
+                result_tabs.addTab(result_tabs.newTab().setText("Reviews"))
+                val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = context?.let {
+                    ReviewAdapter(
+                        it,
+                        ArrayList(),
+                        result_reviews,
+                    )
+                }
+                result_reviews.adapter = adapter
+                result_reviews.layoutManager = GridLayoutManager(context, 1)
+            }
+
+            result_tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+                override fun onTabSelected(tab: TabLayout.Tab?) {
+                    val pos = tab?.position
+                    viewModel.currentTabIndex.postValue(pos)
+                }
+
+                override fun onTabUnselected(tab: TabLayout.Tab?) {}
+
+                override fun onTabReselected(tab: TabLayout.Tab?) {}
+            })
+
             download_delete_trash_from_result.setOnClickListener {
                 val dialogClickListener =
                     DialogInterface.OnClickListener { dialog, which ->
@@ -262,9 +306,9 @@ class ResultFragment : Fragment() {
                 if (res.status != null && res.status > 0) {
                     val viewBtt = layoutInflater.inflate(R.layout.result_tag, null)
                     val mat = viewBtt.findViewById<MaterialButton>(R.id.result_tag_card)
-                    mat.strokeColor = getColorStateList(context!!, R.color.colorOngoing)
-                    mat.setTextColor(getColor(context!!, R.color.colorOngoing))
-                    mat.rippleColor = getColorStateList(context!!, R.color.colorOngoing)
+                    mat.strokeColor = getColorStateList(requireContext(), R.color.colorOngoing)
+                    mat.setTextColor(getColor(requireContext(), R.color.colorOngoing))
+                    mat.rippleColor = getColorStateList(requireContext(), R.color.colorOngoing)
                     val status = when (res.status) {
                         1 -> "Ongoing"
                         2 -> "Completed"
@@ -344,7 +388,7 @@ class ResultFragment : Fragment() {
                     syno = syno.substring(0, MAX_SYNO_LENGH) + "..."
                 }
                 result_synopsis_text.setOnClickListener {
-                    val builder: AlertDialog.Builder = AlertDialog.Builder(this.context!!)
+                    val builder: AlertDialog.Builder = AlertDialog.Builder(requireContext())
                     builder.setMessage(res.synopsis).setTitle("Synopsis")
                         .show()
                 }
@@ -401,11 +445,13 @@ class ResultFragment : Fragment() {
         result_download_card.post {
             val displayMetrics = context!!.resources.displayMetrics
             val height = result_download_card.height
-            result_scroll_padding.setPadding(
-                result_scroll_padding.paddingLeft,
-                result_scroll_padding.paddingTop,
-                result_scroll_padding.paddingRight,
-                maxOf(0, displayMetrics.heightPixels - height))// - MainActivity.activity.nav_view.height
+            val total = displayMetrics.heightPixels - height
+            //result_reviewsholder.minimumHeight = displayMetrics.heightPixels
+            result_novelholder.setPadding(
+                result_novelholder.paddingLeft,
+                result_novelholder.paddingTop,
+                result_novelholder.paddingRight,
+                maxOf(0, total))// - MainActivity.activity.nav_view.height
         }
     }
 
@@ -424,6 +470,22 @@ class ResultFragment : Fragment() {
         observe(viewModel.downloadNotification, ::updateDownloadInfo)
         observe(viewModel.loadResponse, ::newState)
         observe(viewModel.isFailedConnection, ::newIsFailed)
+        observe(viewModel.reviews, ::getReviews)
+
+        observe(viewModel.currentTabIndex) { pos ->
+            fun setVis(v: View, lpos: Int) {
+                v.visibility = if (lpos == pos) View.VISIBLE else View.GONE
+            }
+            setVis(result_novelholder, 0)
+            setVis(result_reviewsholder, 1)
+
+            if (pos == 1 && (result_reviews.adapter as ReviewAdapter).cardList.size <= 0) {
+                loadReviews()
+            }
+            if (pos != result_tabs.selectedTabPosition) {
+                result_tabs.selectTab(result_tabs.getTabAt(pos))
+            }
+        }
 
         /*
         storeSubscription =
@@ -444,7 +506,9 @@ class ResultFragment : Fragment() {
         result_holder.visibility = View.GONE
         result_loading.visibility = View.VISIBLE
         //  result_mainscroll.scrollTo(100.toPx, 0)
-        result_mainscroll.setOnScrollChangeListener { v, scrollX, scrollY, oldScrollX, oldScrollY ->
+        result_mainscroll.setOnScrollChangeListener { v: NestedScrollView, _, scrollY, _, oldScrollY ->
+            if (result_info_header == null) return@setOnScrollChangeListener // CRASH IF PERFECTLY TIMED
+
             val scrollFade = maxOf(0f, 1 - scrollY / 170.toPx.toFloat())
             result_info_header.alpha = scrollFade
             result_info_header.scaleX = 0.95f + scrollFade * 0.05f
@@ -453,6 +517,18 @@ class ResultFragment : Fragment() {
             val crossFade = maxOf(0f, 1 - scrollY / 140.toPx.toFloat())
             result_back.alpha = crossFade
             result_back.isEnabled = crossFade > 0
+
+            //REVIEWS
+            val dy = scrollY - oldScrollY
+            if (dy > 0) { //check for scroll down
+                //TODO OBSERVE
+                val max = (v.getChildAt(0).measuredHeight - v.measuredHeight)
+                if (viewModel.currentTabIndex.value == 1 &&
+                    scrollY >= max
+                ) {
+                    loadReviews()
+                }
+            }
         }
 
         // TRANSPARENT STATUSBAR

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.button.MaterialButton
+        android:insetBottom="2dp"
+        android:insetTop="2dp"
+        android:insetLeft="2dp"
+        android:insetRight="2dp"
+        android:minHeight="0dp"
+        android:minWidth="0dp"
+        android:layout_height="35dp"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:textAllCaps="false"
+        android:textSize="12sp"
+        android:layout_width="wrap_content"
+        app:cornerRadius="100dp"
+        app:strokeWidth="2dp"
+        tools:text="Test"
+        app:strokeColor="@color/colorAccent"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:id="@+id/result_review_card" xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto" xmlns:tools="http://schemas.android.com/tools">
+
+</com.google.android.material.button.MaterialButton>

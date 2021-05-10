@@ -30,7 +30,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
         updatePrefrence.setOnPreferenceClickListener {
             thread {
-                if (!InAppUpdater.runAutoUpdate(this.context!!, false)) {
+                if (!InAppUpdater.runAutoUpdate(requireContext(), false)) {
                     activity?.runOnUiThread {
                         Toast.makeText(this.context, "No Update Found", Toast.LENGTH_SHORT).show()
                     }

@@ -26,6 +26,7 @@
         <item name="preferenceFragmentCompatStyle">@style/PreferenceTheme</item>
         <item name="bottomSheetDialogTheme">@style/AppBottomSheetDialogTheme</item>
         <item name="searchViewStyle">@style/AppSearchViewStyle</item>
+        <item name="tabStyle">@style/Theme.Widget.Tabs</item>
     </style>
 
     <style name="AppSearchViewStyle"
@@ -76,5 +77,18 @@
 
     <style name="AppMaterialButtonStyle" parent="Widget.MaterialComponents.Button">
         <item name="android:fontFamily">@font/google_sans</item>
+    </style>
+
+    <style name="Theme.Widget.Tabs" parent="Widget.MaterialComponents.TabLayout.Colored">
+        <item name="tabGravity">center</item>
+        <item name="backgroundTint">@color/transparent</item>
+        <item name="tabIndicator">@drawable/tab_selector</item>
+        <item name="tabIndicatorColor">@color/colorPrimary</item>
+        <item name="tabTextColor">@color/colorPrimary</item>
+        <item name="tabIndicatorFullWidth">false</item>
+        <item name="tabIndicatorHeight">3dp</item>
+        <item name="tabInlineLabel">true</item>
+        <item name="tabMinWidth">75dp</item>
+        <item name="tabMode">scrollable</item>
     </style>
 </resources>
