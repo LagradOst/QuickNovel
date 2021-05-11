@@ -59,6 +59,14 @@
             </LinearLayout>
         </LinearLayout>
         <TextView
+                android:paddingTop="10dp"
+                android:paddingBottom="5dp"
+                tools:text="GOOD REVIEW"
+                android:textColor="@color/textColor"
+                android:textStyle="bold"
+                android:id="@+id/review_title" android:layout_width="match_parent" android:layout_height="wrap_content">
+        </TextView>
+        <TextView
                 android:paddingBottom="5dp"
                 tools:text="From some of my brief discussions with the author, it seemed there were no plans at all to bring this story to the Royalroad platform. Many tried to persuade him with little success. But it seems that Royalroad is going to be graced with this story after all. I have followed this story since sometime back in 2013, and this might be my favourite high-fantasy fiction of all time. "
                 android:id="@+id/review_body" android:layout_width="match_parent" android:layout_height="wrap_content">

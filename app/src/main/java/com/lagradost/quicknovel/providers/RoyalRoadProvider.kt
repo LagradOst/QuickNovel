@@ -66,7 +66,8 @@ class RoyalRoadProvider : MainAPI() {
 
     override fun loadReviews(url: String, page: Int, showSpoilers: Boolean): ArrayList<UserReview>? {
         try {
-            val response = khttp.get("$url?sorting=top&reviews=$page") //TODO SORTING ??
+            val realUrl = "$url?sorting=top&reviews=$page"
+            val response = khttp.get(realUrl) //TODO SORTING ??
 
             val document = Jsoup.parse(response.text)
             val reviews = document.select("div.reviews-container > div.review")
@@ -76,7 +77,8 @@ class RoyalRoadProvider : MainAPI() {
                 val textContent = r.selectFirst("> div.review-right-content")
                 val scoreContent = r.selectFirst("> div.review-side")
                 fun parseScore(data: String): Int {
-                    return Character.getNumericValue(data[0]) * 200 // TO INT WILL FUCK WITH IT BECAUSE IT IS A CHAR
+                    return ((data.replace("stars", "")
+                        .toFloatOrNull() ?: -1f) * 200).toInt()
                 }
 
                 val scoreHeader = scoreContent.selectFirst("> div.scores > div")
@@ -90,28 +92,43 @@ class RoyalRoadProvider : MainAPI() {
                         .select("> div")
                     val names = divs[1].selectFirst("> div")
 
-                    overallScore = 200 * when {
+                    overallScore = 20 * when { // PROBS FOR LOOP HERE
                         names.hasClass("star-50") -> {
-                            5
+                            50
+                        }
+                        names.hasClass("star-45") -> {
+                            45
                         }
                         names.hasClass("star-40") -> {
-                            4
+                            40
+                        }
+                        names.hasClass("star-35") -> {
+                            35
                         }
                         names.hasClass("star-30") -> {
-                            3
+                            30
+                        }
+                        names.hasClass("star-25") -> {
+                            25
                         }
                         names.hasClass("star-20") -> {
-                            2
+                            20
+                        }
+                        names.hasClass("star-15") -> {
+                            15
                         }
                         names.hasClass("star-10") -> {
-                            1
+                            10
+                        }
+                        names.hasClass("star-5") -> {
+                            5
                         }
                         else -> {
-                            -1
+                            -10
                         }
                     }
                 }
-                if(overallScore < 0) break // JUST IN CASE
+                if (overallScore < 0) continue // JUST IN CASE
 
                 val avatar = scoreContent.selectFirst("> div.avatar-container-general > img")
                 val avatarUrl = avatar.attr("src")
@@ -125,6 +142,8 @@ class RoyalRoadProvider : MainAPI() {
                 val reviewHeader = textContent.selectFirst("> div.review-header")
                 val reviewMeta = reviewHeader.selectFirst("> div.review-meta")
 
+                val reviewTitle = reviewHeader.selectFirst("> div > div > h4").text()
+
                 val username = reviewMeta.selectFirst("> span > a").text()
 
                 val sdf = java.text.SimpleDateFormat("yyyy-MM-dd",
@@ -137,7 +156,10 @@ class RoyalRoadProvider : MainAPI() {
                 if (!showSpoilers) reviewContent.removeClass("spoiler")
                 val reviewTxt = reviewContent.text()
 
-                returnValue.add(UserReview(reviewTxt, username,
+                returnValue.add(UserReview(
+                    reviewTxt,
+                    reviewTitle,
+                    username,
                     reviewTime,
                     fixUrl(avatarUrl),
                     overallScore,

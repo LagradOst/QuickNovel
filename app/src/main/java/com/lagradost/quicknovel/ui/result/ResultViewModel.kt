@@ -46,7 +46,7 @@ class ResultViewModel(val repo: ResultRepository) : ViewModel() {
                 merged.addAll(reviews.value ?: ArrayList())
                 merged.addAll(moreReviews)
                 reviews.postValue(merged)
-                reviewPage.postValue(loadPage + 1)
+                reviewPage.postValue(loadPage)
             }
         }
     }

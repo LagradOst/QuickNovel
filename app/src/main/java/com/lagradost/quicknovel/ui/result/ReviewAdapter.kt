@@ -65,6 +65,7 @@ class ReviewAdapter(
         val review_time: TextView = itemView.review_time
         val review_image: ImageView = itemView.review_image
         val review_tags: MyFlowLayout = itemView.review_tags
+        val review_title: TextView = itemView.review_title
 
         @SuppressLint("SetTextI18n")
         fun bind(card: UserReview) {
@@ -74,11 +75,17 @@ class ReviewAdapter(
             }
             review_body.setOnClickListener {
                 val builder: AlertDialog.Builder = AlertDialog.Builder(this.context)
-                builder.setMessage(card.review).setTitle(card.username)
-                    .show()
+                builder.setMessage(card.review)
+                val title = card.reviewTitle ?: card.username
+                ?: if (card.rating != null) "Overall ${MainActivity.getRatingReview(card.rating)}" else null
+                if (title != null)
+                    builder.setTitle(title)
+                builder.show()
             }
 
             review_body.text = reviewText
+            review_title.text = card.reviewTitle ?: ""
+            review_title.visibility = if (review_title.text == "") View.GONE else View.VISIBLE
 
             review_time.text = card.reviewDate
             review_author.text = card.username

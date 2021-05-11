@@ -76,6 +76,7 @@ data class HeadMainPageResponse(
 
 data class UserReview(
     val review : String,
+    val reviewTitle : String?,
     val username: String?,
     val reviewDate: String?,
     val avatarUrl: String?,
