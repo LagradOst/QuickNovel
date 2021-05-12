@@ -55,9 +55,10 @@ class DloadAdapter(
         return cardList[position].id.toLong()
     }
 
+    /*
     companion object {
         val cachedLoadResponse = hashMapOf<Int, LoadResponse>()
-    }
+    }*/
 
     class DownloadCardViewHolder
     constructor(itemView: View, _context: Context, resView: RecyclerView) : RecyclerView.ViewHolder(itemView) {

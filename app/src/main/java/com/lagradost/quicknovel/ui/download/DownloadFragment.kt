@@ -70,15 +70,15 @@ class DownloadFragment : Fragment() {
             thread {
                 val api = MainActivity.getApiFromName(card.apiName)
                 val res =
-                    if (DloadAdapter.cachedLoadResponse.containsKey(card.id))
-                        DloadAdapter.cachedLoadResponse[card.id] else
+                    /*if (DloadAdapter.cachedLoadResponse.containsKey(card.id))
+                        DloadAdapter.cachedLoadResponse[card.id] else*/
                         api.load(card.source)
                 if (res == null) {
                     /*MainActivity.activity.runOnUiThread {
                         Toast.makeText(context, "Error loading", Toast.LENGTH_SHORT).show()
                     }*/
                 } else {
-                    DloadAdapter.cachedLoadResponse[card.id] = res
+                    //DloadAdapter.cachedLoadResponse[card.id] = res
                     val localId = card.id//BookDownloader.generateId(res, MainActivity.api)
                     updateDownloadFromResult(res, localId, card.apiName, card.source, pauseOngoing)
                 }
