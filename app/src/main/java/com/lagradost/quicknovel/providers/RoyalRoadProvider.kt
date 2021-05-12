@@ -314,6 +314,7 @@ class RoyalRoadProvider : MainAPI() {
                         "ONGOING" -> 1
                         "COMPLETED" -> 2
                         "HIATUS" -> 3
+                        "STUB" -> 4
                         else -> 0
                     }
                     if (status > 0) break
