@@ -447,6 +447,7 @@ Translator: Rainbow Turtle"
             android:layout_height="30dp"
             android:layout_margin="10dp"
             android:layout_gravity="end"
+            android:tint="?attr/white"
             android:src="@drawable/ic_sharp_clear_24"
             android:contentDescription="@string/back_to_search">
 

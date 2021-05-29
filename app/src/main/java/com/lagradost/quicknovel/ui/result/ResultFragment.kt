@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.res.Configuration
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -402,6 +403,8 @@ class ResultFragment : Fragment() {
 
             result_views.text =
                 if (res.views != null) humanReadableByteCountSI(res.views) else getString(R.string.no_data)
+
+            result_back.setColorFilter(Color.WHITE)
 
             if (res.synopsis != null) {
                 var syno = res.synopsis

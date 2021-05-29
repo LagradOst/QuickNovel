@@ -208,8 +208,7 @@ class MainPageFragment : Fragment() {
                             }
                         }
                     }
-                }
-                else {
+                } else if (dy < 5) {
                     mainpage_fab.extend()
                 }
             }
