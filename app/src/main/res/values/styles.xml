@@ -51,13 +51,14 @@
         <item name="grayBackground">@color/grayBackground</item>
         <item name="boxItemBackground">@color/itemBackground</item>
         <item name="iconColor">@color/iconColor</item>
+        <item name="white">#FFF</item>
     </style>
 
     <style name="PreferencesTheme" parent="@style/Base.Theme.AppCompat">
         <item name="android:textColorPrimary">?attr/textColor</item>
         <item name="android:textColorSecondary">?attr/grayTextColor</item>
         <item name="android:colorAccent">?attr/colorAccent</item>
-        <item name="android:tint">?attr/textColor</item>
+       <!-- <item name="android:tint">?attr/textColor</item>-->
     </style>
 
     <style name="AppSearchViewStyle"
@@ -129,6 +130,7 @@
         <item name="bitDarkerGrayBackground">@color/darkBitDarkerGrayBackground</item>
         <item name="grayBackground">@color/darkGrayBackground</item>
         <item name="boxItemBackground">@color/darkItemBackground</item>
+        <item name="white">#FFF</item>
     </style>
     <style name="LightMode">
         <item name="darkBackground">@color/lightDarkBackground</item>
@@ -137,5 +139,6 @@
         <item name="boxItemBackground">@color/lightItemBackground</item>
         <item name="textColor">@color/lightTextColor</item>
         <item name="grayTextColor">@color/lightGrayTextColor</item>
+        <item name="white">#000</item>
     </style>
 </resources>
