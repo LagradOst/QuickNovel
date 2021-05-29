@@ -7,7 +7,7 @@
         android:layout_height="match_parent">
     <androidx.cardview.widget.CardView
             app:cardCornerRadius="10dp"
-            android:backgroundTint="@color/itemBackground"
+            android:backgroundTint="?attr/boxItemBackground"
             android:layout_width="match_parent" android:layout_height="wrap_content">
         <TextView
                 style="@style/AppTextViewStyle"
@@ -18,7 +18,7 @@
                 android:paddingLeft="20dp"
                 android:paddingRight="20dp"
                 android:layout_gravity="center_vertical"
-                android:text="@string/filter_dialog_sort_by" android:textColor="@color/textColor" android:textSize="18sp"
+                android:text="@string/filter_dialog_sort_by" android:textColor="?attr/textColor" android:textSize="18sp"
                 android:layout_width="wrap_content" android:layout_height="55dp"
         >
         </TextView>

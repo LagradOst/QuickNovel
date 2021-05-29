@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout
         xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:id="@+id/homeRoot"
@@ -15,7 +16,7 @@
                 app:menu="@menu/home_actionbar"
                 android:paddingTop="@dimen/navbarHeight"
                 app:title="Explore"
-                android:background="@color/grayBackground"
+                android:background="?attr/grayBackground"
                 app:layout_scrollFlags="scroll|enterAlways"
                 android:layout_width="match_parent" android:layout_height="wrap_content">
         </com.google.android.material.appbar.MaterialToolbar>
@@ -30,6 +31,7 @@
             android:paddingRight="5dp"
             android:id="@+id/home_browselist"
             android:orientation="vertical"
+            tools:listitem="@layout/browse_list_compact"
     >
     </androidx.recyclerview.widget.RecyclerView>
 

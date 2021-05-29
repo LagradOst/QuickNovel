@@ -13,21 +13,21 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.browse_list_compact.view.*
 
 class BrowseAdapter(
-    context: Context,
-    animeList: ArrayList<MainAPI>,
-    resView: RecyclerView,
+    val context: Context,
+    var cardList: ArrayList<MainAPI>,
+    val resView: RecyclerView,
 ) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-    var cardList = animeList
-    var context: Context? = context
-    var resView: RecyclerView? = resView
+   // var cardList = animeList
+  //  var context: Context? = context
+   // var resView: RecyclerView? = resView
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val layout = R.layout.browse_list_compact
         return BrowseCardViewHolder(
             LayoutInflater.from(parent.context).inflate(layout, parent, false),
-            context!!,
-            resView!!
+            context,
+            resView
         )
     }
 

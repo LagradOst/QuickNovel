@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -30,6 +31,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayout
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.BookDownloader.turnToEpub
+import com.lagradost.quicknovel.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.download.DownloadFragment.Companion.updateDownloadFromResult
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
@@ -163,6 +165,24 @@ class ResultFragment : Fragment() {
         }
     }
 
+    private fun updateScrollHeight() {
+        if(result_novelholder == null) return
+        val displayMetrics = requireContext().resources.displayMetrics
+        val height = result_download_card.height
+        val total = displayMetrics.heightPixels - height
+        //result_reviewsholder.minimumHeight = displayMetrics.heightPixels
+        result_novelholder.setPadding(
+            result_novelholder.paddingLeft,
+            result_novelholder.paddingTop,
+            result_novelholder.paddingRight,
+            maxOf(0, total))// - MainActivity.activity.nav_view.height
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        updateScrollHeight()
+    }
+
     fun updateDownloadButtons(progress: Int, total: Int, state: BookDownloader.DownloadType) {
         val ePubGeneration = progress > 0
         if (result_download_generate_epub.isClickable != ePubGeneration) {
@@ -201,7 +221,7 @@ class ResultFragment : Fragment() {
     override fun onDestroy() {
         //BookDownloader.downloadNotification -= ::updateDownloadInfo
         MainActivity.activity.window.navigationBarColor =
-            ResourcesCompat.getColor(resources, R.color.darkBackground, null)
+            requireContext().colorFromAttribute(R.attr.darkBackground)
         super.onDestroy()
     }
 
@@ -426,7 +446,7 @@ class ResultFragment : Fragment() {
 
             val glideUrl =
                 GlideUrl(res.posterUrl)
-            context!!.let {
+            requireContext().let {
                 Glide.with(it)
                     .load(glideUrl)
                     .into(result_poster)
@@ -443,15 +463,7 @@ class ResultFragment : Fragment() {
         result_loading.visibility = if (validState) View.GONE else View.VISIBLE
 
         result_download_card.post {
-            val displayMetrics = context!!.resources.displayMetrics
-            val height = result_download_card.height
-            val total = displayMetrics.heightPixels - height
-            //result_reviewsholder.minimumHeight = displayMetrics.heightPixels
-            result_novelholder.setPadding(
-                result_novelholder.paddingLeft,
-                result_novelholder.paddingTop,
-                result_novelholder.paddingRight,
-                maxOf(0, total))// - MainActivity.activity.nav_view.height
+            updateScrollHeight()
         }
     }
 
@@ -501,7 +513,7 @@ class ResultFragment : Fragment() {
 
 
         MainActivity.activity.window.navigationBarColor =
-            ResourcesCompat.getColor(resources, R.color.bitDarkerGrayBackground, null)
+            requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground)
 
         result_holder.visibility = View.GONE
         result_loading.visibility = View.VISIBLE

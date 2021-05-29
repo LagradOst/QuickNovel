@@ -60,6 +60,16 @@
                 app:defaultValue="true"
                 android:icon="@drawable/ic_baseline_edit_24"
         />
+
+        <ListPreference
+                app:key="theme"
+                android:title="Theme"
+                android:icon="@drawable/ic_baseline_color_lens_24"
+                app:useSimpleSummaryProvider="true"
+                app:defaultValue="Dark"
+                android:entries="@array/Themes"
+                android:entryValues="@array/Themes"
+        />
         <Preference
                 android:title="Check for Update"
                 app:key="@string/manual_check_update_key"

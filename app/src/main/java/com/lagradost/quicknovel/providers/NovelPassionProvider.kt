@@ -115,6 +115,7 @@ class NovelPassionProvider : MainAPI() {
                 .replace("NovelsToday", "")
                 .replace("read online free", "")
                 .replace("NovelWell.com", "")
+                .textClean // FOR SOME REASON SOME WORDS HAVE DOTS IN THEM
         } catch (e: Exception) {
             null
         }

@@ -5,7 +5,7 @@
         android:id="@+id/mainpageRoot"
         android:layout_height="match_parent" xmlns:tools="http://schemas.android.com/tools"
         xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:background="@color/grayBackground"
+        android:background="?attr/grayBackground"
 >
     <ProgressBar
             android:id="@+id/mainpage_loading"
@@ -24,7 +24,7 @@
                 android:id="@+id/mainpage_toolbar"
                 app:menu="@menu/mainpage_actionbar"
                 android:paddingTop="@dimen/navbarHeight"
-                android:background="@color/grayBackground"
+                android:background="?attr/grayBackground"
                 app:layout_scrollFlags="scroll|enterAlways"
                 android:layout_width="match_parent" android:layout_height="wrap_content">
         </com.google.android.material.appbar.MaterialToolbar>

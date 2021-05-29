@@ -2,13 +2,15 @@
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.MaterialComponents.NoActionBar">
         <!-- Customize your theme here. -->
+
+
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
         <item name="android:windowBackground">@drawable/splash_background</item>
 
-        <item name="android:navigationBarColor">@color/darkBackground</item>
-        <item name="android:statusBarColor">@color/grayBackground</item>
+        <item name="android:navigationBarColor">?attr/darkBackground</item>
+        <item name="android:statusBarColor">?attr/grayBackground</item>
 
         <item name="android:textColorHint">@color/searchColor</item>
         <item name="android:editTextColor">@color/textColor</item>
@@ -27,6 +29,17 @@
         <item name="bottomSheetDialogTheme">@style/AppBottomSheetDialogTheme</item>
         <item name="searchViewStyle">@style/AppSearchViewStyle</item>
         <item name="tabStyle">@style/Theme.Widget.Tabs</item>
+
+
+        <!-- DEF STYLE -->
+        <item name="textColor">@color/textColor</item>
+        <item name="colorItemSeen">@color/colorItemSeen</item>
+        <item name="grayTextColor">@color/grayTextColor</item>
+        <item name="lightGrayTextColor">@color/lightGrayTextColor</item>
+        <item name="darkBackground">@color/darkBackground</item>
+        <item name="bitDarkerGrayBackground">@color/bitDarkerGrayBackground</item>
+        <item name="grayBackground">@color/grayBackground</item>
+        <item name="boxItemBackground">@color/itemBackground</item>
     </style>
 
     <style name="AppSearchViewStyle"
@@ -90,5 +103,12 @@
         <item name="tabInlineLabel">true</item>
         <item name="tabMinWidth">75dp</item>
         <item name="tabMode">scrollable</item>
+    </style>
+
+    <style name="DarkAlternative">
+        <item name="darkBackground">@color/darkDarkBackground</item>
+        <item name="bitDarkerGrayBackground">@color/darkBitDarkerGrayBackground</item>
+        <item name="grayBackground">@color/darkGrayBackground</item>
+        <item name="boxItemBackground">@color/darkItemBackground</item>
     </style>
 </resources>

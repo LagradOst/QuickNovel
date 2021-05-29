@@ -34,7 +34,6 @@ android {
 }
 
 repositories {
-
     maven {
         url 'https://github.com/psiegman/mvn-repo/raw/master/releases'
     }
@@ -59,7 +58,6 @@ dependencies {
     implementation 'jp.wasabeef:glide-transformations:4.0.0'
     implementation "com.fasterxml.jackson.module:jackson-module-kotlin:2.11.3"
     implementation "androidx.preference:preference-ktx:1.1.1"
-    implementation "androidx.preference:preference:1.1.1"
 
     implementation('nl.siegmann.epublib:epublib-core:3.1') {
         exclude group: 'org.slf4j'

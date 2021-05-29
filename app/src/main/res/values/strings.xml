@@ -31,7 +31,7 @@
     <string name="delete">Delete</string>
     <string name="open_in_browser">Open In Browser</string>
     <string name="select_chapter">Select Chapter</string>
-    <string name="search_poster_descript">Poster</string>
+    <string name="poster_descript">Poster</string>
     <string name="sort_downloads_descript">Sort Downloads</string>
     <string name="title_settings">Settings</string>
     <string name="title_home">Home</string>
@@ -45,4 +45,6 @@
     <string name="mainpage_filter">Filter</string>
     <string name="shadow_descript">Shadow</string>
     <string name="user_image_avatar">Avatar</string>
+    <string name="change_providers_descript">Change Provider</string>
+    <string name="poster_open_source_descript">Open Source</string>
 </resources>

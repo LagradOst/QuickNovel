@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
@@ -9,6 +10,7 @@ import android.widget.*
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.model.GlideUrl
+import com.lagradost.quicknovel.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.ui.AutofitRecyclerView
 import com.lagradost.quicknovel.ui.search.SearchFragment
 import kotlinx.android.synthetic.main.search_result_super_compact.view.*
@@ -16,22 +18,19 @@ import kotlin.math.roundToInt
 
 
 class ResAdapter(
-    context: Context,
-    animeList: ArrayList<SearchResponse>,
-    resView: AutofitRecyclerView,
+    val context: Context,
+    var cardList: ArrayList<SearchResponse>,
+    val resView: AutofitRecyclerView,
 ) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-    var cardList = animeList
-    var context: Context? = context
-    var resView: AutofitRecyclerView? = resView
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
 
         val layout = MainActivity.getGridFormatId()
         return CardViewHolder(
             LayoutInflater.from(parent.context).inflate(layout, parent, false),
-            context!!,
-            resView!!
+            context,
+            resView
         )
     }
 
@@ -40,7 +39,6 @@ class ResAdapter(
             is CardViewHolder -> {
                 holder.bind(cardList[position])
             }
-
         }
     }
 
@@ -54,11 +52,13 @@ class ResAdapter(
         val cardView: ImageView = itemView.imageView
         val cardText: TextView = itemView.imageText
         val cardTextExtra: TextView? = itemView.imageTextExtra
+
         //val imageTextProvider: TextView? = itemView.imageTextProvider
         val bg = itemView.backgroundCard
         val compactView = MainActivity.getGridIsCompact()
         private val coverHeight: Int = if (compactView) 80.toPx else (resView.itemWidth / 0.68).roundToInt()
 
+        @SuppressLint("SetTextI18n")
         fun bind(card: SearchResponse) {
             cardView.apply {
                 layoutParams = FrameLayout.LayoutParams(
@@ -92,13 +92,14 @@ class ResAdapter(
                 }
             }
 
-            bg.setCardBackgroundColor(MainActivity.activity.getColor(R.color.itemBackground))
+            /*
+            bg.setCardBackgroundColor(context.colorFromAttribute(R.attr.itemBackground))
             for (d in SearchFragment.searchDowloads) {
                 if (card.url == d.source) {
-                    bg.setCardBackgroundColor(MainActivity.activity.getColor(R.color.colorItemSeen))
+                    bg.setCardBackgroundColor(context.colorFromAttribute(R.attr.colorItemSeen))
                     break
                 }
-            }
+            }*/
             //imageTextProvider.text = card.apiName
 
             val glideUrl =
@@ -113,6 +114,5 @@ class ResAdapter(
                 MainActivity.loadResult(card.url, card.apiName)
             }
         }
-
     }
 }

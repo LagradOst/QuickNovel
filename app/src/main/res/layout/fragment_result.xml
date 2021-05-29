@@ -3,7 +3,7 @@
              android:layout_width="match_parent"
              android:layout_height="match_parent" xmlns:app="http://schemas.android.com/apk/res-auto"
              xmlns:tools="http://schemas.android.com/tools"
-             android:background="@color/bitDarkerGrayBackground"
+             android:background="?attr/bitDarkerGrayBackground"
              android:clickable="true"
              android:focusable="true"
 >
@@ -81,7 +81,7 @@
                         android:layout_marginEnd="40dp"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/textColor"
+                        android:textColor="?attr/textColor"
                         android:textSize="20sp"
                         android:text="@string/no_data"/>
 
@@ -99,7 +99,7 @@
                         android:id="@+id/result_total_chapters"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/textColor"
+                        android:textColor="?attr/textColor"
                         android:textSize="14sp"
                         android:text="@string/no_data"/>
             </LinearLayout>
@@ -128,7 +128,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         app:cardCornerRadius="15dp"
-                        android:backgroundTint="@color/bitDarkerGrayBackground"
+                        android:backgroundTint="?attr/bitDarkerGrayBackground"
                 >
 
                     <LinearLayout
@@ -166,7 +166,7 @@
 
                                             android:textSize="23sp"
                                             android:gravity="center"
-                                            android:textColor="@color/textColor"
+                                            android:textColor="?attr/textColor"
                                             android:layout_width="match_parent"
                                             android:layout_height="wrap_content">
                                     </TextView>
@@ -174,7 +174,7 @@
                                             android:text="@string/views"
                                             android:textSize="12sp"
                                             android:gravity="center"
-                                            android:textColor="@color/grayTextColor"
+                                            android:textColor="?attr/grayTextColor"
                                             android:layout_width="match_parent"
                                             android:layout_height="wrap_content">
                                     </TextView>
@@ -188,7 +188,7 @@
                                             android:id="@+id/result_rating"
                                             android:textSize="23sp"
                                             android:gravity="center"
-                                            android:textColor="@color/textColor"
+                                            android:textColor="?attr/textColor"
                                             android:layout_width="match_parent"
                                             android:layout_height="wrap_content">
                                     </TextView>
@@ -197,7 +197,7 @@
                                             android:id="@+id/result_rating_voted_count"
                                             android:textSize="12sp"
                                             android:gravity="center"
-                                            android:textColor="@color/grayTextColor"
+                                            android:textColor="?attr/grayTextColor"
                                             android:layout_width="match_parent"
                                             android:layout_height="wrap_content">
                                     </TextView>
@@ -257,7 +257,7 @@
                                             android:layout_width="25dp"
                                             android:layout_height="25dp"
                                             android:layout_margin="5dp"
-                                            app:tint="@color/textColor"
+                                            app:tint="?attr/textColor"
                                             android:contentDescription="@string/open_in_browser">
                                     </ImageView>
                                 </LinearLayout>
@@ -269,7 +269,7 @@
                                         android:layout_height="25dp"
                                         android:layout_margin="5dp"
                                         android:layout_gravity="center_vertical"
-                                        app:tint="@color/textColor"
+                                        app:tint="?attr/textColor"
                                         android:contentDescription="@string/open_in_browser">
                                 </ImageView>-->
                                 <TextView
@@ -280,7 +280,7 @@
                                         android:layout_marginTop="10dp"
                                         android:layout_marginBottom="10dp"
                                         android:textStyle="normal"
-                                        android:textColor="@color/textColor"
+                                        android:textColor="?attr/textColor"
                                 />
                             </FrameLayout>
 
@@ -293,7 +293,7 @@ Translator: Rainbow Turtle"
                                     android:layout_height="wrap_content"
                                     android:id="@+id/result_synopsis_text"
                                     android:textSize="14sp"
-                                    android:textColor="@color/lightGrayTextColor"
+                                    android:textColor="?attr/lightGrayTextColor"
                             />
 
                             <TextView
@@ -305,7 +305,7 @@ Translator: Rainbow Turtle"
                                     android:layout_marginTop="10dp"
                                     android:layout_marginBottom="10dp"
                                     android:textStyle="normal"
-                                    android:textColor="@color/textColor"
+                                    android:textColor="?attr/textColor"
                             />
                             <com.lagradost.quicknovel.MyFlowLayout
                                     android:id="@+id/result_tag"
@@ -343,7 +343,7 @@ Translator: Rainbow Turtle"
                                             android:layout_marginTop="10dp"
                                             android:layout_marginBottom="10dp"
                                             android:textStyle="normal"
-                                            android:textColor="@color/textColor"
+                                            android:textColor="?attr/textColor"
                                     />
 
                                 </LinearLayout>
@@ -357,7 +357,7 @@ Translator: Rainbow Turtle"
                                             tools:text="@string/no_data"
                                             android:id="@+id/result_download_progress_text"
                                             android:textSize="14sp"
-                                            android:textColor="@color/textColor"
+                                            android:textColor="?attr/textColor"
                                     />
                                     <TextView
                                             android:layout_width="match_parent"
@@ -367,7 +367,7 @@ Translator: Rainbow Turtle"
                                             tools:text="@string/no_data"
                                             android:id="@+id/result_download_progress_text_eta"
                                             android:textSize="14sp"
-                                            android:textColor="@color/textColor"
+                                            android:textColor="?attr/textColor"
                                     />
                                 </LinearLayout>
 
@@ -409,7 +409,7 @@ Translator: Rainbow Turtle"
                                     </com.google.android.material.button.MaterialButton>
                                     <!--
                                           app:iconTint="@color/white"
-                                          android:textColor="@color/textColor"-->
+                                          android:textColor="?attr/textColor"-->
                                     <com.google.android.material.button.MaterialButton
                                             android:layout_columnWeight="1"
                                             android:layout_marginStart="5dp"

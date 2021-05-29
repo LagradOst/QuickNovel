@@ -1,50 +1,45 @@
 package com.lagradost.quicknovel
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
 import android.graphics.Color
-
-import android.os.Bundle
-import com.google.android.material.bottomnavigation.BottomNavigationView
-import androidx.appcompat.app.AppCompatActivity
-import androidx.navigation.findNavController
-import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.setupWithNavController
-import com.lagradost.quicknovel.ui.result.ResultFragment
-
 import android.graphics.drawable.ColorDrawable
-import android.net.Uri
+import android.os.Bundle
+import android.util.TypedValue
 import android.view.View
 import android.view.Window
 import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.annotation.AttrRes
 import androidx.annotation.ColorInt
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.alpha
 import androidx.core.graphics.blue
 import androidx.core.graphics.green
 import androidx.core.graphics.red
 import androidx.navigation.NavOptions
+import androidx.navigation.findNavController
 import androidx.preference.PreferenceManager
-import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.json.JsonMapper
-import com.fasterxml.jackson.module.kotlin.KotlinModule
-import com.fasterxml.jackson.module.kotlin.readValue
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.lagradost.quicknovel.InAppUpdater.Companion.runAutoUpdate
+import com.lagradost.quicknovel.MainActivity.Companion.getResourceColor
+import com.lagradost.quicknovel.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.providers.*
 import com.lagradost.quicknovel.ui.download.DownloadFragment
+import com.lagradost.quicknovel.ui.result.ResultFragment
+import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.fragment_result.*
-import java.util.HashSet
+import kotlinx.android.synthetic.main.fragment_search.*
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
-import kotlin.coroutines.coroutineContext
 import kotlin.math.roundToInt
+
 
 val Int.toPx: Int get() = (this * Resources.getSystem().displayMetrics.density).toInt()
 val Float.toPx: Float get() = (this * Resources.getSystem().displayMetrics.density)
@@ -267,8 +262,18 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        this.findViewById<FrameLayout>(R.id.container).background =
-            ColorDrawable(ResourcesCompat.getColor(resources, R.color.grayBackground, null)) // FIXES ICON
+        val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
+        val currentTheme = when (settingsManager.getString("theme", "Dark")) {
+            "Black" -> R.style.AppTheme
+            "Dark" -> R.style.DarkAlternative
+            // "Light" -> R.style.LightMode
+            else -> R.style.AppTheme
+        }
+        theme.applyStyle(currentTheme, true)
+
+        container.background = ColorDrawable(colorFromAttribute(R.attr.grayBackground))
+        nav_view.background = ColorDrawable(colorFromAttribute(R.attr.darkBackground))
+        window.navigationBarColor = colorFromAttribute(R.attr.darkBackground)
 
         val navView: BottomNavigationView = findViewById(R.id.nav_view)
 
@@ -313,7 +318,6 @@ class MainActivity : AppCompatActivity() {
         BookDownloader.init()
 
         statusBarHeight = getStatusBarHeight()
-        val settingsManager = PreferenceManager.getDefaultSharedPreferences(activity)
         val apiNames = getApiSettings()
         allApi.providersActive = apiNames
         val edit = settingsManager.edit()

@@ -2,7 +2,7 @@
 <resources>
     <color name="colorPrimary">#3d50fa</color>
     <color name="colorRipple">#1A3D50FA</color>
-    <color name="colorSearch">@color/itemBackground</color> <!--#3444D1-->
+    <color name="colorSearch">?attr/boxItemBackground</color>
     <color name="colorItemSeen">#1E1E32</color>
     <color name="colorOngoing">#F53B66</color> <!--FF8181-->
     <color name="colorPrimaryDark">#3700B3</color>
@@ -17,7 +17,7 @@
     <color name="grayTextColor">#5e5f62</color>
     <color name="lightGrayTextColor">#9f9fa0</color>
     <color name="searchColor">@color/textColor</color> <!--DADADA-->
-    <color name="searchColorTransparent">#1AFFFFFF</color> <!--DADADA-->
+    <!--<color name="searchColorTransparent">#1AFFFFFF</color>--> <!--DADADA-->
     <color name="transparent">#00000000</color>
 
     <color name="white">#FFF</color>
@@ -33,4 +33,10 @@
     <color name="wuxiaWorldSiteColor">#1670bf</color>
     <color name="readLightNovelColor">#FFF</color>
     <color name="boxNovelColor">#eb3349</color>
+
+    <!--Alt Dark Mode -->
+    <color name="darkDarkBackground">#2B2C30</color> <!--0f0f10 0E0E10 303135 2B2C30-->
+    <color name="darkBitDarkerGrayBackground">#1C1C20</color> <!--191a1f 19181E 202125 1C1C20-->
+    <color name="darkGrayBackground">#1C1C20</color> <!--141419 202125-->
+    <color name="darkItemBackground">#242529</color> <!--1B1B20--> <!-- 38373c--> <!--131217--> <!--232225-->
 </resources>

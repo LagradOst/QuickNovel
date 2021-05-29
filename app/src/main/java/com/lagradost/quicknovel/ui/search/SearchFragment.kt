@@ -43,21 +43,30 @@ class SearchFragment : Fragment() {
         val searchDowloads = ArrayList<DownloadFragment.DownloadData>()
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        MainActivity.fixPaddingStatusbar(searchRoot)
-
+    fun setupGridView() {
         val compactView = MainActivity.getGridIsCompact()
         val spanCountLandscape = if (compactView) 2 else 6
         val spanCountPortrait = if (compactView) 1 else 3
         val orientation = resources.configuration.orientation
+        if(cardSpace == null) return
         if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
             cardSpace.spanCount = spanCountLandscape
         } else {
             cardSpace.spanCount = spanCountPortrait
         }
+    }
 
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        setupGridView()
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        MainActivity.fixPaddingStatusbar(searchRoot)
+
+        setupGridView()
         val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = context?.let {
             ResAdapter(
                 it,

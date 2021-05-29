@@ -10,7 +10,7 @@
             android:layout_gravity="center_vertical|center"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="@color/textColor" />
+            android:textColor="?attr/textColor" />
 
     <ImageView
             android:layout_gravity="end|center_vertical"

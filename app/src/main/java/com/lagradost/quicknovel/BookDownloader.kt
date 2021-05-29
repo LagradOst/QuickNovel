@@ -32,6 +32,7 @@ import android.webkit.MimeTypeMap
 
 import androidx.core.content.FileProvider
 import androidx.preference.PreferenceManager
+import com.lagradost.quicknovel.UIHelper.colorFromAttribute
 
 
 const val CHANNEL_ID = "epubdownloader.general"
@@ -516,7 +517,7 @@ object BookDownloader {
                 .setAutoCancel(true)
                 .setOnlyAlertOnce(true)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setColor(MainActivity.activity.getColor(R.color.colorPrimary))
+                .setColor(MainActivity.activity.colorFromAttribute(R.attr.colorPrimary))
                 .setContentText(
                     when (state) {
                         DownloadType.IsDone -> "Download Done - ${load.name}"

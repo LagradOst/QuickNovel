@@ -10,8 +10,8 @@
             android:layout_margin="2dp"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:elevation="0dp"
-            app:cardBackgroundColor="@color/itemBackground"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="?attr/boxItemBackground"
             app:cardCornerRadius="5dp"
             android:clickable="true"
             android:focusable="true"
@@ -34,7 +34,7 @@
             <TextView
                     tools:text="Royal Road"
                     android:id="@+id/browse_text"
-                    android:textColor="@color/textColor" android:paddingStart="10dp"
+                    android:textColor="?attr/textColor" android:paddingStart="10dp"
                     android:layout_marginStart="50dp" android:layout_marginEnd="50dp" android:gravity="start"
                     android:layout_gravity="center" android:layout_width="match_parent"
                     android:layout_height="match_parent">
