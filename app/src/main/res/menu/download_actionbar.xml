@@ -4,5 +4,6 @@
             android:id="@+id/action_sort"
             android:icon="@drawable/ic_sort_24dp"
             app:showAsAction="always"
+            app:iconTint="?attr/iconColor"
             android:title="@string/sort_downloads_descript"/>
 </menu>

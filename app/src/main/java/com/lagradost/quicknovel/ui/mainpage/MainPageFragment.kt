@@ -191,6 +191,7 @@ class MainPageFragment : Fragment() {
         mainpage_list.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 if (dy > 0) { //check for scroll down
+                    mainpage_fab.shrink()
                     if (viewModel.isInSearch.value == true) return
 
                     visibleItemCount = mLayoutManager.childCount
@@ -207,6 +208,9 @@ class MainPageFragment : Fragment() {
                             }
                         }
                     }
+                }
+                else {
+                    mainpage_fab.extend()
                 }
             }
         })

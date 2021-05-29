@@ -67,8 +67,8 @@
                 android:icon="@drawable/ic_baseline_color_lens_24"
                 app:useSimpleSummaryProvider="true"
                 app:defaultValue="Dark"
-                android:entries="@array/Themes"
-                android:entryValues="@array/Themes"
+                android:entries="@array/ThemesNames"
+                android:entryValues="@array/ThemesValues"
         />
         <Preference
                 android:title="Check for Update"

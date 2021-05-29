@@ -47,4 +47,5 @@
     <string name="user_image_avatar">Avatar</string>
     <string name="change_providers_descript">Change Provider</string>
     <string name="poster_open_source_descript">Open Source</string>
+    <string name="mainpage_sort_by_button_text">Sort By</string>
 </resources>

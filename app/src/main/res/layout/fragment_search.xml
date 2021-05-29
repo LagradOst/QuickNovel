@@ -102,7 +102,7 @@
                 android:layout_height="25dp"
                 android:layout_margin="10dp"
                 android:layout_gravity="end|center_vertical"
-                app:tint="?attr/textColor"
+                app:tint="?attr/iconColor"
                 android:contentDescription="@string/change_providers_descript">
         </ImageView>
     </FrameLayout>

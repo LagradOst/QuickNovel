@@ -94,6 +94,7 @@
                             android:background="?selectableItemBackgroundBorderless"
                             android:src="@drawable/ic_baseline_autorenew_24"
                             android:padding="10dp"
+                            android:tint="?attr/textColor"
                             android:layout_width="60dp" android:layout_height="match_parent"
                             android:layout_gravity="end|center_vertical"
                             android:scaleX="0.6"
@@ -108,6 +109,7 @@
                             android:layout_width="40dp" android:layout_height="match_parent"
                             android:layout_gravity="end|center_vertical"
                             android:layout_marginRight="5dp"
+                            android:tint="?attr/textColor"
                             android:scaleX="0.6"
                             android:scaleY="0.6"
                             android:contentDescription="@string/delete">
@@ -141,7 +143,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
 
-                            android:textColor="?attr/lightGrayTextColor"
+                            android:textColor="?attr/grayTextColor"
                             android:textStyle="bold"
                             android:maxLines="3"
                     />

@@ -18,6 +18,8 @@
                 android:paddingTop="@dimen/navbarHeight"
                 app:title="My Downloads"
                 android:background="?attr/grayBackground"
+                app:navigationIconTint="?attr/iconColor"
+                app:titleTextColor="?attr/textColor"
                 app:layout_scrollFlags="scroll|enterAlways"
                 android:layout_width="match_parent" android:layout_height="wrap_content">
         </com.google.android.material.appbar.MaterialToolbar>

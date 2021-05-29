@@ -24,6 +24,8 @@
                 android:id="@+id/mainpage_toolbar"
                 app:menu="@menu/mainpage_actionbar"
                 android:paddingTop="@dimen/navbarHeight"
+                app:navigationIconTint="?attr/iconColor"
+                app:titleTextColor="?attr/textColor"
                 android:background="?attr/grayBackground"
                 app:layout_scrollFlags="scroll|enterAlways"
                 android:layout_width="match_parent" android:layout_height="wrap_content">
@@ -43,17 +45,21 @@
                 android:orientation="vertical"
         />
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
             android:id="@+id/mainpage_fab"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end|bottom"
-            app:backgroundTint="@color/colorPrimary"
-            app:tint="@color/white"
+            app:elevation="0dp"
+            android:textStyle="bold"
 
-            android:src="@drawable/ic_sort_24dp"
-            tools:text="Action"
+            app:backgroundTint="?attr/darkBackground"
+            app:tint="?attr/colorPrimary"
+            android:textColor="?attr/colorPrimary"
+            app:iconTint="?attr/colorPrimary"
+            app:icon="@drawable/ic_sort_24dp"
+            android:text="@string/mainpage_sort_by_button_text"
 
-            android:contentDescription="@string/mainpage_filter"
+            android:contentDescription="@string/mainpage_sort_by_button_text"
             android:layout_margin="16dp"/>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

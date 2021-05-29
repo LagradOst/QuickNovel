@@ -15,6 +15,6 @@
         android:ellipsize="marquee"
         android:drawableEnd="@drawable/ic_baseline_check_24"
         android:drawableTint="@color/check_selection_color"
-        tools:drawableTint="@color/colorPrimary"
+        tools:drawableTint="?attr/colorPrimary"
         android:drawablePadding="20dp"
 />

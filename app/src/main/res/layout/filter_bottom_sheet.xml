@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
-        xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:background="@null"
@@ -50,16 +51,18 @@
     <GridLayout
             android:paddingLeft="20dp"
             android:paddingRight="20dp"
-            android:paddingTop="20dp"
+            android:paddingTop="30dp"
+            android:layout_marginTop="-10dp"
             android:columnCount="2"
             android:orientation="horizontal"
+            android:background="?attr/darkBackground"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
         <TextView
                 style="@style/AppTextViewStyle"
                 android:id="@+id/filter_general_text"
                 android:layout_columnWeight="2" android:textSize="17sp" android:paddingBottom="40dp"
-                android:text="@string/filter_dialog_general" android:textColor="?attr/lightGrayTextColor"
+                android:text="@string/filter_dialog_general" android:textColor="?attr/grayTextColor"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content">
         </TextView>
@@ -75,7 +78,7 @@
                 style="@style/AppTextViewStyle"
                 android:id="@+id/filter_order_text"
                 android:layout_columnWeight="2" android:textSize="17sp" android:paddingBottom="40dp"
-                android:text="@string/filter_dialog_order_by" android:textColor="?attr/lightGrayTextColor"
+                android:text="@string/filter_dialog_order_by" android:textColor="?attr/grayTextColor"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content">
         </TextView>
@@ -91,7 +94,7 @@
                 style="@style/AppTextViewStyle"
                 android:id="@+id/filter_tag_text"
                 android:layout_columnWeight="2" android:textSize="17sp" android:paddingBottom="40dp"
-                android:text="@string/filter_dialog_genre" android:textColor="?attr/lightGrayTextColor" android:layout_width="wrap_content"
+                android:text="@string/filter_dialog_genre" android:textColor="?attr/grayTextColor" android:layout_width="wrap_content"
                 android:layout_height="wrap_content">
         </TextView>
         <Spinner

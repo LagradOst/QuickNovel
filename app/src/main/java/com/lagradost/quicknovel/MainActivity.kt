@@ -3,9 +3,11 @@ package com.lagradost.quicknovel
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.content.res.Resources
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.View
@@ -259,31 +261,27 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         activity = this
 
+        val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
+        val themeName = settingsManager.getString("theme", "Dark")
+        val currentTheme = when (themeName) {
+            "Black" -> R.style.AppTheme
+            "Dark" -> R.style.DarkAlternative
+            "Light" -> R.style.LightMode
+            else -> R.style.AppTheme
+        }
+        //val isLightTheme = themeName == "Light"
+
+        theme.applyStyle(currentTheme, true) // THEME IS SET BEFORE VIEW IS CREATED TO APPLY THE THEME TO THE MAIN VIEW
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
-        val currentTheme = when (settingsManager.getString("theme", "Dark")) {
-            "Black" -> R.style.AppTheme
-            "Dark" -> R.style.DarkAlternative
-            // "Light" -> R.style.LightMode
-            else -> R.style.AppTheme
-        }
-        theme.applyStyle(currentTheme, true)
-
-        container.background = ColorDrawable(colorFromAttribute(R.attr.grayBackground))
-        nav_view.background = ColorDrawable(colorFromAttribute(R.attr.darkBackground))
-        window.navigationBarColor = colorFromAttribute(R.attr.darkBackground)
 
         val navView: BottomNavigationView = findViewById(R.id.nav_view)
 
         val navController = findNavController(R.id.nav_host_fragment)
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
-        /*val appBarConfiguration = AppBarConfiguration(setOf(
-            R.id.navigation_search,
-            R.id.navigation_download))*/ // R.id.navigation_dashboard, R.id.navigation_notifications
-        //setupActionBarWithNavController(navController, appBarConfiguration)
+
+        window.navigationBarColor = colorFromAttribute(R.attr.darkBackground)
         navOptions = NavOptions.Builder()
             .setLaunchSingleTop(true)
             .setEnterAnim(R.anim.nav_enter_anim)

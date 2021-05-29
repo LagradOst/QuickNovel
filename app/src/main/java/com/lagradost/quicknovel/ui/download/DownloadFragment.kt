@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView.ItemAnimator
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.mvvm.observe
 import kotlinx.android.synthetic.main.fragment_downloads.*
 import kotlin.concurrent.thread
@@ -72,7 +73,7 @@ class DownloadFragment : Fragment() {
                 val res =
                     /*if (DloadAdapter.cachedLoadResponse.containsKey(card.id))
                         DloadAdapter.cachedLoadResponse[card.id] else*/
-                        api.load(card.source)
+                    api.load(card.source)
                 if (res == null) {
                     /*MainActivity.activity.runOnUiThread {
                         Toast.makeText(context, "Error loading", Toast.LENGTH_SHORT).show()
@@ -186,7 +187,8 @@ class DownloadFragment : Fragment() {
 
                     res.choiceMode = CHOICE_MODE_SINGLE
                     res.adapter = arrayAdapter
-                    res.setItemChecked(sotringMethods.indexOfFirst { t -> t.id ==  viewModel.currentSortingMethod.value },true)
+                    res.setItemChecked(sotringMethods.indexOfFirst { t -> t.id == viewModel.currentSortingMethod.value },
+                        true)
                     res.setOnItemClickListener { parent, view, position, id ->
                         val sel = sotringMethods[position].id
                         DataStore.setKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, sel)
@@ -221,8 +223,8 @@ class DownloadFragment : Fragment() {
         }*/
 
 
-        swipe_container.setProgressBackgroundColorSchemeResource(R.color.darkBackground)
-        swipe_container.setColorSchemeResources(R.color.colorPrimary)
+        swipe_container.setProgressBackgroundColorSchemeColor(requireContext().colorFromAttribute(R.attr.darkBackground))
+        swipe_container.setColorSchemeColors(requireContext().colorFromAttribute(R.attr.colorPrimary))
         swipe_container.setOnRefreshListener {
             for (card in (download_cardSpace.adapter as DloadAdapter).cardList) {
                 if ((card.downloadedCount * 100 / card.downloadedTotal) > 90) {

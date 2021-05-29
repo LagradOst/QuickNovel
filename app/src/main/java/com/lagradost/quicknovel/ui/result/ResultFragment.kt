@@ -16,6 +16,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getColor
 import androidx.core.content.ContextCompat.getColorStateList
 import androidx.core.content.res.ResourcesCompat
@@ -456,6 +457,8 @@ class ResultFragment : Fragment() {
                     .apply(bitmapTransform(BlurTransformation(100, 3)))
                     .into(result_poster_blur)
             }
+
+            result_container.setBackgroundColor(ContextCompat.getColor(requireContext(),R.color.bitDarkerGrayBackground))
         }
 
         // TO FIX 1 FRAME WACK
@@ -478,6 +481,8 @@ class ResultFragment : Fragment() {
         result_reload_connectionerror.setOnClickListener {
             viewModel.initState(resultUrl, api.name)
         }
+
+        result_container.setBackgroundColor(requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground) )
 
         observe(viewModel.downloadNotification, ::updateDownloadInfo)
         observe(viewModel.loadResponse, ::newState)

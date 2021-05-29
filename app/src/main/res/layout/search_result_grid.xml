@@ -39,6 +39,7 @@
                 android:src="@drawable/title_shadow"
                 android:layout_gravity="bottom" android:contentDescription="@string/shadow_descript">
         </ImageView>
+        <!-- @color/textColor and NOT attr? -->
         <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -46,7 +47,7 @@
                 android:layout_gravity="bottom"
                 android:paddingBottom="5dp"
                 android:paddingTop="5dp"
-                android:textColor="?attr/textColor"
+                android:textColor="@color/textColor"
                 android:id="@+id/imageText"
                 android:textStyle="bold"
                 android:maxLines="2"

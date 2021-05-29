@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-             android:layout_width="match_parent"
-             android:layout_height="match_parent" xmlns:app="http://schemas.android.com/apk/res-auto"
-             xmlns:tools="http://schemas.android.com/tools"
-             android:background="?attr/bitDarkerGrayBackground"
-             android:clickable="true"
-             android:focusable="true"
+<FrameLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:id="@+id/result_container"
+        android:layout_height="match_parent" xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:background="?attr/bitDarkerGrayBackground"
+        android:clickable="true"
+        android:focusable="true"
 >
     <ProgressBar
             android:id="@+id/result_loading"
@@ -81,7 +83,7 @@
                         android:layout_marginEnd="40dp"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="?attr/textColor"
+                        android:textColor="@color/textColor"
                         android:textSize="20sp"
                         android:text="@string/no_data"/>
 
@@ -99,7 +101,7 @@
                         android:id="@+id/result_total_chapters"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="?attr/textColor"
+                        android:textColor="@color/textColor"
                         android:textSize="14sp"
                         android:text="@string/no_data"/>
             </LinearLayout>
@@ -122,13 +124,11 @@
                 >
 
                 </View>
-                <androidx.cardview.widget.CardView
+                <FrameLayout
                         android:id="@+id/result_download_card"
-                        app:cardElevation="0dp"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        app:cardCornerRadius="15dp"
-                        android:backgroundTint="?attr/bitDarkerGrayBackground"
+                        android:background="@drawable/white_card"
                 >
 
                     <LinearLayout
@@ -148,7 +148,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="60dp"
                                 android:elevation="0dp"
-                                android:backgroundTint="@color/itemBackground"
+                                android:backgroundTint="?attr/boxItemBackground"
 
                         >
                             <GridLayout
@@ -245,6 +245,7 @@
                                               android:orientation="horizontal" android:layout_width="wrap_content"
                                               android:layout_height="wrap_content">
                                     <TextView
+                                            android:textColor="?attr/grayTextColor"
                                             android:id="@+id/result_openinbrower_text"
                                             android:gravity="center"
                                             android:text="@string/open_in_browser"
@@ -257,7 +258,7 @@
                                             android:layout_width="25dp"
                                             android:layout_height="25dp"
                                             android:layout_margin="5dp"
-                                            app:tint="?attr/textColor"
+                                            app:tint="?attr/iconColor"
                                             android:contentDescription="@string/open_in_browser">
                                     </ImageView>
                                 </LinearLayout>
@@ -293,7 +294,7 @@ Translator: Rainbow Turtle"
                                     android:layout_height="wrap_content"
                                     android:id="@+id/result_synopsis_text"
                                     android:textSize="14sp"
-                                    android:textColor="?attr/lightGrayTextColor"
+                                    android:textColor="?attr/grayTextColor"
                             />
 
                             <TextView
@@ -330,6 +331,7 @@ Translator: Rainbow Turtle"
                                             android:id="@+id/download_delete_trash_from_result"
                                             android:background="?selectableItemBackgroundBorderless"
                                             android:src="@drawable/ic_baseline_delete_outline_24"
+                                            android:tint="?attr/textColor"
                                             android:layout_width="25dp" android:layout_height="match_parent"
                                             android:layout_gravity="end|center_vertical"
                                             android:layout_marginRight="5dp"
@@ -433,7 +435,7 @@ Translator: Rainbow Turtle"
 
                         </LinearLayout>
                     </LinearLayout>
-                </androidx.cardview.widget.CardView>
+                </FrameLayout>
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
     </FrameLayout>

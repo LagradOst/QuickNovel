@@ -3,12 +3,15 @@
     <item
             android:id="@+id/action_search"
             android:icon="@drawable/search_icon"
+            android:tint="?attr/iconColor"
+            app:iconTint="?attr/iconColor"
             app:showAsAction="always|collapseActionView"
             app:actionViewClass="androidx.appcompat.widget.SearchView"
             android:title="@string/title_search"/>
     <item
             android:id="@+id/action_open_in_browser"
             android:icon="@drawable/ic_baseline_public_24"
+            app:iconTint="?attr/iconColor"
             android:title="@string/open_in_browser"
             app:showAsAction="ifRoom"/>
 </menu>

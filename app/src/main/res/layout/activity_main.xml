@@ -4,6 +4,7 @@
         xmlns:app="http://schemas.android.com/apk/res-auto"
         android:id="@+id/container"
         android:layout_width="match_parent"
+        android:background="?attr/grayBackground"
         android:layout_height="match_parent"
         android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
         android:paddingTop="0dp">
@@ -23,6 +24,8 @@
                     android:background="?attr/darkBackground"
                     app:itemRippleColor="@color/colorRipple"
                     app:labelVisibilityMode="labeled"
+                    app:itemTextColor="@color/item_select_color"
+                    app:itemIconTint="@color/item_select_color"
 
                     app:layout_constraintLeft_toLeftOf="parent"
                     app:layout_constraintRight_toRightOf="parent"
