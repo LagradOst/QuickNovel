@@ -122,7 +122,6 @@
                         android:layout_height="170dp"
                         android:id="@+id/result_empty_view"
                 >
-
                 </View>
                 <FrameLayout
                         android:id="@+id/result_download_card"
@@ -227,6 +226,7 @@
                                 android:visibility="gone"
                                 android:id="@+id/result_reviewsholder"
                                 android:orientation="vertical"
+                                android:minHeight="500dp"
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent">
                             <androidx.recyclerview.widget.RecyclerView
@@ -429,10 +429,8 @@ Translator: Rainbow Turtle"
                                             app:rippleColor="@color/colorPrimary"
                                             android:layout_width="50dp">
                                     </com.google.android.material.button.MaterialButton>
-
                                 </GridLayout>
                             </LinearLayout>
-
                         </LinearLayout>
                     </LinearLayout>
                 </FrameLayout>
@@ -450,7 +448,5 @@ Translator: Rainbow Turtle"
             android:tint="?attr/white"
             android:src="@drawable/ic_sharp_clear_24"
             android:contentDescription="@string/back_to_search">
-
     </ImageView>
-
 </FrameLayout>
