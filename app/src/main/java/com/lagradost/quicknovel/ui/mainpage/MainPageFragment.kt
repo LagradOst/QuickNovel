@@ -19,6 +19,7 @@ import com.google.android.material.button.MaterialButton
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.mvvm.observe
 import kotlinx.android.synthetic.main.fragment_mainpage.*
+import kotlinx.android.synthetic.main.fragment_search.*
 import kotlin.concurrent.thread
 
 
@@ -83,6 +84,23 @@ class MainPageFragment : Fragment() {
     var defMainCategory: Int? = null
     var defOrderBy: Int? = null
     var defTag: Int? = null
+
+    fun setupGridView() {
+        val compactView = MainActivity.getGridIsCompact()
+        val spanCountLandscape = if (compactView) 2 else 6
+        val spanCountPortrait = if (compactView) 1 else 3
+        val orientation = resources.configuration.orientation
+        if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            mainpage_list.spanCount = spanCountLandscape
+        } else {
+            mainpage_list.spanCount = spanCountPortrait
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        setupGridView()
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         viewModel = ViewModelProviders.of(this).get(MainPageViewModel::class.java)
@@ -167,15 +185,7 @@ class MainPageFragment : Fragment() {
                 minOf(0f, mainpage_toolbar.translationY - statush - dy)) + statush
            // mainpage_list.setPadding() = mainpage_toolbar.translationY
         }*/
-        val compactView = MainActivity.getGridIsCompact()
-        val spanCountLandscape = if (compactView) 2 else 6
-        val spanCountPortrait = if (compactView) 1 else 3
-        val orientation = resources.configuration.orientation
-        if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            mainpage_list.spanCount = spanCountLandscape
-        } else {
-            mainpage_list.spanCount = spanCountPortrait
-        }
+        setupGridView()
 
         val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = context?.let {
             MainAdapter(

@@ -43,7 +43,7 @@ class SearchFragment : Fragment() {
         val searchDowloads = ArrayList<DownloadFragment.DownloadData>()
     }
 
-    fun setupGridView() {
+    private fun setupGridView() {
         val compactView = MainActivity.getGridIsCompact()
         val spanCountLandscape = if (compactView) 2 else 6
         val spanCountPortrait = if (compactView) 1 else 3
