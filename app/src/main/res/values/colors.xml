@@ -24,7 +24,7 @@
     <color name="readerBackground">#292832</color> <!--3c3c3c-->
     <color name="readerTextColor">#cccccc</color>
     <color name="readerHightlightedTextColor">#206f96</color>
-    <color name="readerHightlightedMetaInfo">#0D000000</color>
+    <color name="readerHightlightedMetaInfo">#191919</color>
     <color name="roundedTextBorder">#DD0277BD</color>
 
     <color name="novelPassionColor">#FFF</color>

@@ -39,11 +39,14 @@
             </intent-filter>
         </activity>
 
-        <activity android:name="com.lagradost.quicknovel.ReadActivity">
+        <activity android:name=".ReadActivity"
+                  android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
+
+        >
         </activity>
 
         <service
-                android:name="com.lagradost.quicknovel.DownloadService"
+                android:name=".DownloadService"
                 android:enabled="true"
                 android:exported="false">
         </service>

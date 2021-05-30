@@ -1,7 +1,9 @@
 package com.lagradost.quicknovel
 
+import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.content.DialogInterface
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
@@ -17,8 +19,13 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.animation.doOnEnd
 import androidx.core.text.HtmlCompat
 import androidx.core.text.getSpans
+import com.lagradost.quicknovel.UIHelper.colorFromAttribute
+import com.lagradost.quicknovel.UIHelper.fixPaddingStatusbar
+import com.lagradost.quicknovel.UIHelper.popupMenu
+import com.lagradost.quicknovel.ui.OrientationType
 import kotlinx.android.synthetic.main.read_main.*
 import nl.siegmann.epublib.domain.Book
 import nl.siegmann.epublib.epub.EpubReader
@@ -29,6 +36,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.Locale
 import kotlin.collections.ArrayList
+import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.sqrt
@@ -38,6 +46,7 @@ const val OVERFLOW_NEXT_CHAPTER_DELTA = 600
 const val OVERFLOW_NEXT_CHAPTER_SHOW_PROCENTAGE = 10
 const val OVERFLOW_NEXT_CHAPTER_NEXT = 90
 const val OVERFLOW_NEXT_CHAPTER_SAFESPACE = 20
+const val TOGGLE_DISTANCE = 20f
 
 fun setHighLightedText(tv: TextView, start: Int, end: Int): Boolean {
     val wordToSpan: Spannable = SpannableString(tv.text)
@@ -129,21 +138,24 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) hideSystemUI()
+        // if (hasFocus) hideSystemUI()
     }
 
     fun changeStatusBarState(hide: Boolean) {
-        if (hide) {
-            window?.setFlags(
-                WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN
-            )
-        } else {
-            window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-        }
+        /* if (hide) {
+              window?.setFlags(
+                  WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                  WindowManager.LayoutParams.FLAG_FULLSCREEN
+              )
+          } else {
+              window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+          }*/
     }
 
+    var isHidden = true
+
     private fun hideSystemUI() {
+        isHidden = true
         // Enables regular immersive mode.
         // For "lean back" mode, remove SYSTEM_UI_FLAG_IMMERSIVE.
         // Or for "sticky immersive," replace it with SYSTEM_UI_FLAG_IMMERSIVE_STICKY
@@ -157,15 +169,46 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 or View.SYSTEM_UI_FLAG_FULLSCREEN)
         changeStatusBarState(true)
+
+        reader_bottom_view.translationY = 0f
+        ObjectAnimator.ofFloat(reader_bottom_view, "translationY", reader_bottom_view.height.toFloat()).apply {
+            duration = 200
+            start()
+        }.doOnEnd {
+            reader_bottom_view.visibility = View.GONE
+        }
+        read_toolbar_holder.translationY = 0f
+        ObjectAnimator.ofFloat(read_toolbar_holder, "translationY", -read_toolbar_holder.height.toFloat()).apply {
+            duration = 200
+            start()
+        }.doOnEnd {
+            read_toolbar_holder.visibility = View.GONE
+        }
     }
 
     // Shows the system bars by removing all the flags
 // except for the ones that make the content appear under the system bars.
     private fun showSystemUI() {
+        isHidden = false
         window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                /* or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION*/
                 or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
         changeStatusBarState(false)
+
+        read_toolbar_holder.visibility = View.VISIBLE
+        reader_bottom_view.visibility = View.VISIBLE
+        reader_bottom_view.translationY = reader_bottom_view.height.toFloat()
+        read_toolbar_holder.translationY = -read_toolbar_holder.height.toFloat()
+        ObjectAnimator.ofFloat(reader_bottom_view, "translationY", 0f).apply {
+            duration = 200
+            start()
+        }
+
+        ObjectAnimator.ofFloat(read_toolbar_holder, "translationY", 0f).apply {
+            duration = 200
+            start()
+        }
+
     }
 
     fun updateTimeText() {
@@ -247,6 +290,10 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
 
     var startY: Float? = null
+    var scrollStartY: Float = 0f
+    var scrollStartX: Float = 0f
+    var scrollDistance : Float = 0f
+
     var overflowDown: Boolean = true
     var chapterName: String? = null
 
@@ -289,6 +336,8 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         chapterName = chapter.title ?: "Chapter ${chapterIndex + 1}"
         currentChapter = chapterIndex
 
+        read_toolbar.title = book.title
+        read_toolbar.subtitle = chapterName
         updateChapterName(0)
 
         val txt = chapter.resource.reader.readText()
@@ -341,9 +390,10 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     fun loadTextLines() {
         textLines = ArrayList()
-        val lay = read_text.layout
+        val lay = read_text.layout ?: return
         for (i in 0..lay.lineCount) {
             try {
+                if(lay == null) return
                 textLines?.add(TextLine(lay.getLineStart(i),
                     lay.getLineEnd(i),
                     lay.getLineTop(i),
@@ -401,6 +451,18 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         return scrollRange
     }
 
+    /*
+    private fun setViewerFlags(flag: Int, mask: Int) {
+        viewer_flags = viewer_flags and mask.inv() or (flag and mask)
+    }*/
+
+    //var viewer_flags: Int = 0
+    var orientationType: Int = OrientationType.DEFAULT.prefValue
+    /*
+    var orientationType: Int
+        get() = viewer_flags and OrientationType.MASK
+        set(rotationType) = setViewerFlags(rotationType, OrientationType.MASK)*/
+
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -411,8 +473,52 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         //read_time = findViewById(R.id.read_time)
         //val read_topmargin = findViewById<View>(R.id.read_topmargin)
 
+        // hideSystemUI()
+        fixPaddingStatusbar(read_toolbar)
+
+        //<editor-fold desc="Screen Rotation">
+        fun setRot(org: OrientationType) {
+            orientationType = org.prefValue
+            requestedOrientation = org.flag
+            read_action_rotate.setImageResource(org.iconRes)
+        }
+
+        read_action_rotate.setOnClickListener {
+            read_action_rotate.popupMenu(
+                items = OrientationType.values().map { it.prefValue to it.stringRes },
+                selectedItemId = orientationType
+                //   ?: preferences.defaultOrientationType(),
+            ) {
+                val org = OrientationType.fromSpinner(itemId)
+                DataStore.setKey(EPUB_LOCK_ROTATION, itemId)
+                setRot(org)
+            }
+        }
+
+        setRot(OrientationType.fromSpinner(DataStore.getKey(EPUB_LOCK_ROTATION,
+            OrientationType.DEFAULT.prefValue)))
+        //</editor-fold>
+
+        read_action_chapters.setOnClickListener {
+            selectChapter()
+        }
+
+        /*
+        read_text.setOnClickListener {
+            if(isHidden) {
+                showSystemUI()
+            }
+            else {
+                hideSystemUI()
+            }
+        }*/
+
         hideSystemUI()
 
+        read_toolbar.setNavigationIcon(R.drawable.ic_baseline_arrow_back_24)
+        read_toolbar.setNavigationOnClickListener {
+            finish() // KILLS ACTIVITY
+        }
         read_overflow_progress.max = OVERFLOW_NEXT_CHAPTER_DELTA
 
         readActivity = this
@@ -425,7 +531,8 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             parameter.rightMargin,
             parameter.bottomMargin)
         read_topmargin.layoutParams = parameter
-        window.navigationBarColor = getColor(R.color.readerBackground)
+        window.navigationBarColor =
+            colorFromAttribute(R.attr.grayBackground) //getColor(R.color.readerHightlightedMetaInfo)
 
         val intent = intent
         path = intent.getStringExtra("path")!!
@@ -442,6 +549,14 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             updateChapterName(scrollY)
         }
 
+        fun toggleShow() {
+            if (isHidden) {
+                showSystemUI()
+            } else {
+                hideSystemUI()
+            }
+        }
+
         read_scroll.setOnTouchListener { _, event ->
             val height = getScrollRange()
 
@@ -454,16 +569,26 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                         overflowDown = false
                         startY = event.y
                     }
+
+                    scrollStartY = event.y
+                    scrollStartX = event.x
+                    scrollDistance = 0f
                 }
                 MotionEvent.ACTION_MOVE -> {
+                    val deltaX = scrollStartX - event.x
+                    val deltaY = scrollStartY - event.y
+                    scrollDistance += abs(deltaX) + abs(deltaY)
+                    scrollStartY = event.y
+                    scrollStartX = event.x
+
                     fun deltaShow() {
                         if (scrollYOverflow * 100 / OVERFLOW_NEXT_CHAPTER_DELTA > OVERFLOW_NEXT_CHAPTER_SHOW_PROCENTAGE) {
-                            read_overflow_progress.visibility = View.VISIBLE
+                            /*read_overflow_progress.visibility = View.VISIBLE
                             read_overflow_progress.progress =
-                                minOf(scrollYOverflow.toInt(), OVERFLOW_NEXT_CHAPTER_DELTA)
+                                minOf(scrollYOverflow.toInt(), OVERFLOW_NEXT_CHAPTER_DELTA)*/
 
                             read_text.translationY = (if (overflowDown) -1f else 1f) * sqrt(minOf(scrollYOverflow,
-                                OVERFLOW_NEXT_CHAPTER_DELTA.toFloat()))
+                                OVERFLOW_NEXT_CHAPTER_DELTA.toFloat())) * 4 // *4 is the amount the page moves when you overload it
 
                         }
                     }
@@ -481,6 +606,11 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 }
                 MotionEvent.ACTION_UP -> {
                     println("ACTION_UP")
+
+                    if (scrollDistance < TOGGLE_DISTANCE) {
+                        toggleShow()
+                    }
+
                     read_overflow_progress.visibility = View.GONE
                     read_text.translationY = 0f
                     startY = null

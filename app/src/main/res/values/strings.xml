@@ -48,4 +48,17 @@
     <string name="change_providers_descript">Change Provider</string>
     <string name="poster_open_source_descript">Open Source</string>
     <string name="mainpage_sort_by_button_text">Sort By</string>
+    <string name="read_action_settings">Settings</string>
+    <string name="read_action_chapters">Chapters</string>
+    <string name="read_action_tts">Text To Speech</string>
+    <string name="read_action_screen_rotation">Screen Rotation</string>
+
+    <!--rotations -->
+    <string name="default_rotation_type">Default</string>
+    <string name="rotation_type">Rotation type</string>
+    <string name="rotation_free">Free</string>
+    <string name="rotation_portrait">Portrait</string>
+    <string name="rotation_landscape">Landscape</string>
+    <string name="rotation_force_portrait">Locked portrait</string>
+    <string name="rotation_force_landscape">Locked landscape</string>
 </resources>

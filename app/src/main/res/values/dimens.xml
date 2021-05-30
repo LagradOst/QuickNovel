@@ -20,4 +20,5 @@
     <dimen name="roundedImageRadius">4dp</dimen>
     <dimen name="shadsowHeight">4dp</dimen>
     <dimen name="navbarHeight">0dp</dimen>
+    <dimen name="screenEdgeMargin">24dp</dimen>
 </resources>

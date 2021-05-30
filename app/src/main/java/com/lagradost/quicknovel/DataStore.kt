@@ -18,6 +18,7 @@ const val EPUB_CURRENT_POSITION: String = "reader_epub_position"
 const val EPUB_CURRENT_POSITION_SCROLL: String = "reader_epub_position_scroll"
 const val DOWNLOAD_SORTING_METHOD: String = "download_sorting"
 const val DOWNLOAD_SETTINGS: String = "download_settings"
+const val EPUB_LOCK_ROTATION: String = "reader_epub_rotation"
 
 @SuppressLint("StaticFieldLeak")
 object DataStore {
