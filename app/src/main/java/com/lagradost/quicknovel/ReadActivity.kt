@@ -4,6 +4,7 @@ import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.content.DialogInterface
 import android.content.pm.ActivityInfo
+import android.content.res.Configuration
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
@@ -27,15 +28,18 @@ import com.lagradost.quicknovel.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.UIHelper.popupMenu
 import com.lagradost.quicknovel.ui.OrientationType
 import kotlinx.android.synthetic.main.read_main.*
+import kotlinx.coroutines.*
 import nl.siegmann.epublib.domain.Book
 import nl.siegmann.epublib.epub.EpubReader
 import org.jsoup.Jsoup
 import java.io.FileInputStream
 import java.lang.Exception
+import java.lang.Thread.sleep
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.Locale
 import kotlin.collections.ArrayList
+import kotlin.concurrent.thread
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
@@ -48,20 +52,33 @@ const val OVERFLOW_NEXT_CHAPTER_NEXT = 90
 const val OVERFLOW_NEXT_CHAPTER_SAFESPACE = 20
 const val TOGGLE_DISTANCE = 20f
 
-fun setHighLightedText(tv: TextView, start: Int, end: Int): Boolean {
+fun clearTextViewOfSpans(tv: TextView) {
     val wordToSpan: Spannable = SpannableString(tv.text)
     val spans = wordToSpan.getSpans<android.text.Annotation>(0, tv.text.length)
     for (s in spans) {
         wordToSpan.removeSpan(s)
     }
-    wordToSpan.setSpan(android.text.Annotation("", "rounded"),
-        start,
-        end,
-        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-
     tv.setText(wordToSpan, TextView.BufferType.SPANNABLE)
+}
 
-    return true
+fun setHighLightedText(tv: TextView, start: Int, end: Int): Boolean {
+    try {
+        val wordToSpan: Spannable = SpannableString(tv.text)
+        val spans = wordToSpan.getSpans<android.text.Annotation>(0, tv.text.length)
+        for (s in spans) {
+            wordToSpan.removeSpan(s)
+        }
+        wordToSpan.setSpan(android.text.Annotation("", "rounded"),
+            start,
+            end,
+            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+        tv.setText(wordToSpan, TextView.BufferType.SPANNABLE)
+
+        return true
+    } catch (e: Exception) {
+        return false
+    }
 }
 
 class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
@@ -81,7 +98,6 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 tts!!.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onDone(utteranceId: String) {
                         canSpeek = true
-                        //   startVoiceRecognitionActivity()
                     }
 
                     override fun onError(utteranceId: String) {
@@ -89,7 +105,7 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     }
 
                     override fun onStart(utteranceId: String) {
-                        println("DONE")
+
                     }
                 })
             }
@@ -98,16 +114,23 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
-    private fun speakOut(msg: String) {
-        canSpeek = true
-        /*canSpeek = false
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        stopTTS()
+        globalTTSLines.clear()
+    }
 
-        if (msg.isEmpty() || msg.isNullOrBlank()) {
+    private fun speakOut(msg: String) {
+        canSpeek = false
+
+        if (msg.isEmpty() || msg.isBlank()) {
             showMessage("No data")
             return
         }
         speekId++
-        tts!!.speak(msg, TextToSpeech.QUEUE_FLUSH, null, speekId.toString())*/
+        if (tts != null) {
+            tts!!.speak(msg, TextToSpeech.QUEUE_FLUSH, null, speekId.toString())
+        }
     }
 
     public override fun onDestroy() {
@@ -219,53 +242,67 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
-    fun loadNextChapter() {
-        if (currentChapter >= maxChapter - 1) {
+    private fun loadNextChapter() : Boolean {
+        return if (currentChapter >= maxChapter - 1) {
             Toast.makeText(this, "No more chapters", Toast.LENGTH_SHORT).show()
+            false
         } else {
             loadChapter(currentChapter + 1, true)
             read_scroll.smoothScrollTo(0, 0)
+            true
         }
     }
 
-    fun loadPrevChapter() {
-        if (currentChapter <= 0) {
+    private fun loadPrevChapter() : Boolean {
+        return if (currentChapter <= 0) {
+            false
             //Toast.makeText(this, "No more chapters", Toast.LENGTH_SHORT).show()
         } else {
             loadChapter(currentChapter - 1, false)
+            true
         }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         //TODO SETTING VOLUME KEYS
-        return if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+        return if (isHidden && (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP)) {
             if (textLines != null) {
                 val readHeight = read_scroll.height - read_overlay.height
                 if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-                    if (read_scroll.scrollY >= getScrollRange()) {
-                        loadNextChapter()
-                    } else {
-                        for (t in textLines!!) {
-                            if (t.topPosition > mainScrollY + readHeight) {
-                                read_scroll.scrollTo(0, t.topPosition)
-                                read_scroll.fling(0)
-                                return true
+                    if(isTTSRunning) {
+                        nextTTSLine()
+                    }
+                    else {
+                        if (read_scroll.scrollY >= getScrollRange()) {
+                            loadNextChapter()
+                        } else {
+                            for (t in textLines!!) {
+                                if (t.topPosition > mainScrollY + readHeight) {
+                                    read_scroll.scrollTo(0, t.topPosition)
+                                    read_scroll.fling(0)
+                                    return true
+                                }
                             }
+                            loadNextChapter()
                         }
-                        loadNextChapter()
                     }
                 } else {
-                    if (read_scroll.scrollY <= 0) {
-                        loadPrevChapter()
-                    } else {
-                        for (t in textLines!!) {
-                            if (t.topPosition > mainScrollY - read_scroll.height) {
-                                read_scroll.scrollTo(0, t.topPosition)
-                                read_scroll.fling(0)
-                                return true
+                    if(isTTSRunning) {
+                        prevTTSLine()
+                    }
+                    else {
+                        if (read_scroll.scrollY <= 0) {
+                            loadPrevChapter()
+                        } else {
+                            for (t in textLines!!) {
+                                if (t.topPosition > mainScrollY - read_scroll.height) {
+                                    read_scroll.scrollTo(0, t.topPosition)
+                                    read_scroll.fling(0)
+                                    return true
+                                }
                             }
+                            loadPrevChapter()
                         }
-                        loadPrevChapter()
                     }
                 }
 
@@ -292,7 +329,7 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     var startY: Float? = null
     var scrollStartY: Float = 0f
     var scrollStartX: Float = 0f
-    var scrollDistance : Float = 0f
+    var scrollDistance: Float = 0f
 
     var overflowDown: Boolean = true
     var chapterName: String? = null
@@ -310,6 +347,7 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun loadChapter(chapterIndex: Int, scrollToTop: Boolean, scrollToRemember: Boolean = false) {
+
         DataStore.setKey(EPUB_CURRENT_POSITION, book.title, chapterIndex)
 
         fun scroll() {
@@ -338,6 +376,8 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         read_toolbar.title = book.title
         read_toolbar.subtitle = chapterName
+        read_title_text.text = chapterName
+
         updateChapterName(0)
 
         val txt = chapter.resource.reader.readText()
@@ -385,21 +425,296 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             loadTextLines()
             scroll()
             read_text.alpha = 1f
+
+            globalTTSLines.clear()
+            interuptTTS()
+            if(isTTSRunning) {
+                startTTS(true)
+            }
         }
     }
 
-    fun loadTextLines() {
+    private fun loadTextLines() {
         textLines = ArrayList()
         val lay = read_text.layout ?: return
         for (i in 0..lay.lineCount) {
             try {
-                if(lay == null) return
+                if (lay == null) return
                 textLines?.add(TextLine(lay.getLineStart(i),
                     lay.getLineEnd(i),
                     lay.getLineTop(i),
                     lay.getLineBottom(i)))
             } catch (e: Exception) {
                 println("EX: $e")
+            }
+        }
+    }
+
+    private fun interuptTTS() {
+        if (tts != null) {
+            tts!!.stop()
+        }
+        canSpeek = true
+    }
+
+    private fun nextTTSLine() {
+        //readFromIndex++
+        interuptTTS()
+    }
+
+    private fun prevTTSLine() {
+        readFromIndex -= 2
+        interuptTTS()
+    }
+
+    private fun stopTTS() {
+        isTTSRunning = false
+        clearTextViewOfSpans(read_text)
+        interuptTTS()
+    }
+
+    data class TTSLine(
+        val speakOutMsg: String,
+        val startIndex: Int,
+        val endIndex: Int,
+        val minScroll: Int,
+        val maxScroll: Int,
+    )
+
+    var globalTTSLines = ArrayList<TTSLine>()
+
+    private fun prepareTTS(callback: (Boolean) -> Unit) {
+        val job = Job()
+        val uiScope = CoroutineScope(Dispatchers.Main + job)
+        uiScope.launch {
+            val ttsLines = ArrayList<TTSLine>()
+
+            var index = 0
+            while (true) {
+                val invalidStartChars =
+                    arrayOf(' ', '.', ',', '\n', '\"',
+                        '\'', '’', '‘', '“', '”', '«', '»', '「', '」', '…')
+                while (invalidStartChars.contains(read_text.text[index])) {
+                    index++
+                    if (index >= read_text.text.length) {
+                        globalTTSLines = ttsLines
+                        callback.invoke(true)
+                        return@launch //TODO NEXT CHAPTER
+                    }
+                }
+
+                var endIndex = Int.MAX_VALUE
+                for (a in arrayOf(".", "\n", ";", "?", ":")) {
+                    val indexEnd = read_text.text.indexOf(a, index)
+                    if (indexEnd == -1) continue
+                    /*while (true) {
+                        if (indexEnd + 1 < read_text.text.length) {
+                            if (read_text.text[indexEnd + 1] == '.') {
+                                indexEnd++
+                                continue
+                            }
+                        }
+                        break
+                    }*/
+
+                    if (indexEnd < endIndex) {
+                        endIndex = indexEnd + 1
+                    }
+                }
+
+
+                if (endIndex > read_text.text.length) {
+                    endIndex = read_text.text.length
+                }
+                if (index >= read_text.text.length) {
+                    globalTTSLines = ttsLines
+                    callback.invoke(true)
+                    return@launch //TODO NEXT CHAPTER
+                }
+
+                val invalidEndChars =
+                    arrayOf('\n')
+                while (true) {
+                    var containsInvalidEndChar = false
+                    for (a in invalidEndChars) {
+                        if (endIndex <= 0 || endIndex > read_text.text.length) break
+                        if (read_text.text[endIndex - 1] == a) {
+                            containsInvalidEndChar = true
+                            endIndex--
+                        }
+                    }
+                    if (!containsInvalidEndChar) {
+                        break
+                    }
+                }
+
+                try {
+                    // THIS PART IF FOR THE SPEAK PART, REMOVING STUFF THAT IS WACK
+                    val message = read_text.text.substring(index, endIndex)
+                    var msg = message//Regex("\\p{L}").replace(message,"")
+                    val invalidChars =
+                        arrayOf("-", "<", ">", "_", "^", "\'", "«", "»", "「", "」", "—", "¿")
+                    for (c in invalidChars) {
+                        msg = msg.replace(c, " ")
+                    }
+                    msg = msg.replace("...", " ")
+
+                    /*.replace("…", ",")*/
+
+                    if (msg
+                            .replace("\n", "")
+                            .replace("\t", "")
+                            .replace(".", "").isNotEmpty()
+                    ) {
+                        /*for (s in 0..startLines.size) {
+                                   if (startLines[s] > index) {
+                                       for (e in s..startLines.size) {
+                                           if (startLines[e] > endIndex) {
+                                               if (read_text.layout == null) return@runOnUiThread
+                                               maxScroll = read_text.layout.getLineTop(s)
+                                               minScroll = read_text.layout.getLineBottom(e)
+                                               if (read_scroll.height + read_scroll.scrollY < minScroll ||
+                                                   read_scroll.scrollY > maxScroll
+                                               ) {
+                                                   read_scroll.scrollTo(0, read_text.layout.getLineTop(s))
+                                               }
+                                               break
+                                           }
+                                       }
+                                       //read_scroll.scrollTo(0, read_text.layout.getLineTop(i) - 200) // SKIP SNAP SETTING
+
+                                       break
+                                   }
+                               }*/
+                        if (textLines == null)
+                            return@launch
+                        for (s in 0..(textLines?.size ?: 0)) {
+                            val start = textLines?.get(s) ?: return@launch
+
+                            if (start.startIndex > index) {
+                                for (e in s..(textLines?.size ?: 0)) {
+                                    val end = textLines?.get(e) ?: return@launch
+                                    if (end.startIndex > endIndex) {
+                                        if (read_text.layout == null) return@launch
+                                        maxScroll = start.topPosition//read_text.layout.getLineTop(s)
+                                        minScroll = end.bottomPosition // read_text.layout.getLineBottom(e)
+                                        ttsLines.add(TTSLine(msg, index, endIndex, minScroll, maxScroll))
+                                        /*if (read_scroll.height + read_scroll.scrollY < minScroll ||
+                                            read_scroll.scrollY > maxScroll
+                                        ) {
+                                            read_scroll.scrollTo(0, read_text.layout.getLineTop(s))
+                                        }*/
+                                        break
+                                    }
+                                }
+                                break
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    println(e)
+                    return@launch
+                }
+                index = endIndex + 1
+            }
+        }
+    }
+
+    private var readFromIndex = 0
+    private fun runTTS(fromStart: Boolean = false) {
+        isTTSRunning = true
+
+        val job = Job()
+        val uiScope = CoroutineScope(Dispatchers.Main + job)
+        uiScope.launch {
+            if(fromStart) {
+                readFromIndex = 0
+            }
+            else {
+                for ((startIndex, line) in globalTTSLines.withIndex()) {
+                    if (read_scroll.scrollY + read_title_text.height - 10 <= line.minScroll) {
+                        readFromIndex = startIndex
+                        break
+                    }
+                }
+            }
+
+            while (true) {
+                try {
+                    if (!isTTSRunning) return@launch
+                    if(globalTTSLines.size == 0) return@launch
+                    if(readFromIndex < 0) {
+                        if(!loadPrevChapter()) {
+                            stopTTS()
+                        }
+                        return@launch
+                    }
+                    else if(readFromIndex >= globalTTSLines.size) {
+                        if(!loadNextChapter()) {
+                            stopTTS()
+                        }
+                        return@launch
+                    }
+                    println("INDEX::: " + globalTTSLines.size + "||" + readFromIndex)
+                    val line = globalTTSLines[readFromIndex]
+
+                    setHighLightedText(read_text, line.startIndex, line.endIndex)
+                    minScroll = line.minScroll
+                    maxScroll = line.maxScroll
+
+                    if (read_scroll != null) {
+                        checkTTSRange(read_scroll.scrollY, true)
+                    }
+
+                    val msg = line.speakOutMsg
+                    if (msg.isNotEmpty() && msg.isNotBlank()) {
+                        speakOut(msg)
+                    }
+
+                    if (msg.isEmpty()) {
+                        delay(500)
+                        canSpeek = true
+                    }
+                    while (!canSpeek) {
+                        delay(10)
+                        if (!isTTSRunning) return@launch
+                    }
+                    readFromIndex++
+                } catch (e: Exception) {
+                    println(e)
+                    return@launch
+                }
+            }
+        }
+    }
+
+    private fun startTTS(fromStart : Boolean = false) {
+        if (globalTTSLines.size <= 0) {
+            prepareTTS {
+                if (it) {
+                    runTTS(fromStart)
+                } else {
+                    Toast.makeText(this, "Error parsing text", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } else {
+            runTTS(fromStart)
+        }
+    }
+
+    private fun checkTTSRange(scrollY: Int, scrollToTop: Boolean = false) {
+        if (lockTTS && isTTSRunning) {
+            if (read_scroll.height + scrollY - read_title_text.height -10.toPx <= minScroll) { // FOR WHEN THE TEXT IS ON THE BOTTOM OF THE SCREEN
+                if(scrollToTop) {
+                    read_scroll.scrollTo(0, maxScroll + read_title_text.height)
+                }
+                else {
+                    read_scroll.scrollTo(0, minScroll - read_scroll.height + read_title_text.height + 10.toPx)
+                }
+                read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
+            } else if (scrollY - read_title_text.height >= maxScroll) { // WHEN TEXT IS ON TOP
+                read_scroll.scrollTo(0, maxScroll + read_title_text.height)
+                read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
             }
         }
     }
@@ -467,6 +782,8 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.read_main)
+        read_title_text.minHeight = read_toolbar.height
+
         //read_text = findViewById(R.id.read_text)
         //read_scroll = findViewById(R.id.read_scroll)
         //read_chapter_name = findViewById(R.id.read_chapter_name)
@@ -495,12 +812,23 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
         }
 
+            //read_text.marg(read_text.left, read_toolbar_holder.height, read_text.right, read_text.bottom)
+
+
         setRot(OrientationType.fromSpinner(DataStore.getKey(EPUB_LOCK_ROTATION,
             OrientationType.DEFAULT.prefValue)))
         //</editor-fold>
 
         read_action_chapters.setOnClickListener {
             selectChapter()
+        }
+
+        read_action_tts.setOnClickListener {
+            if (isTTSRunning) {
+                stopTTS()
+            } else {
+                startTTS()
+            }
         }
 
         /*
@@ -543,6 +871,8 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         loadChapter(DataStore.getKey<Int>(EPUB_CURRENT_POSITION, book.title) ?: 0, true, true)
         updateTimeText()
         read_scroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+            checkTTSRange(scrollY)
+
             DataStore.setKey(EPUB_CURRENT_POSITION_SCROLL, book.title, scrollY)
 
             mainScrollY = scrollY
