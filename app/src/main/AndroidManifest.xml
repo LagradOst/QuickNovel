@@ -19,6 +19,7 @@
                 android:name=".MainActivity"
                 android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
                 android:exported="true">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -40,13 +41,25 @@
         </activity>
 
         <activity android:name=".ReadActivity"
-                  android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
-
-        >
+                  android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation">
         </activity>
+
+        <receiver
+                android:name=".RemoteTTSReceiver"
+                android:enabled="true"
+                android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON"/>
+            </intent-filter>
+        </receiver>
 
         <service
                 android:name=".DownloadService"
+                android:enabled="true"
+                android:exported="false">
+        </service>
+        <service
+                android:name=".TTSPauseService"
                 android:enabled="true"
                 android:exported="false">
         </service>

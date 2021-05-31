@@ -3,6 +3,9 @@ package com.lagradost.quicknovel
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+import android.os.Build
 import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
@@ -40,6 +43,21 @@ object UIHelper {
 
     fun Activity.fixPaddingStatusbar(v: View) {
         v.setPadding(v.paddingLeft, v.paddingTop + getStatusBarHeight(), v.paddingRight, v.paddingBottom)
+    }
+
+    fun Activity.requestAudioFocus(focusRequest: AudioFocusRequest?) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && focusRequest != null) {
+            val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            audioManager.requestAudioFocus(focusRequest)
+        } else {
+            val audioManager: AudioManager =
+                getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            audioManager.requestAudioFocus(
+                null,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK
+            )
+        }
     }
 
     /**

@@ -2,18 +2,24 @@ package com.lagradost.quicknovel
 
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
-import android.content.DialogInterface
-import android.content.pm.ActivityInfo
+import android.app.*
+import android.content.*
 import android.content.res.Configuration
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+import android.os.Build
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.support.v4.media.session.MediaSessionCompat
 import android.text.Spannable
 import android.text.SpannableString
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
-import android.view.WindowManager
 import android.widget.ArrayAdapter
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -21,11 +27,14 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.doOnEnd
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.text.HtmlCompat
 import androidx.core.text.getSpans
 import com.lagradost.quicknovel.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.UIHelper.popupMenu
+import com.lagradost.quicknovel.UIHelper.requestAudioFocus
 import com.lagradost.quicknovel.ui.OrientationType
 import kotlinx.android.synthetic.main.read_main.*
 import kotlinx.coroutines.*
@@ -33,13 +42,8 @@ import nl.siegmann.epublib.domain.Book
 import nl.siegmann.epublib.epub.EpubReader
 import org.jsoup.Jsoup
 import java.io.FileInputStream
-import java.lang.Exception
-import java.lang.Thread.sleep
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.Locale
-import kotlin.collections.ArrayList
-import kotlin.concurrent.thread
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
@@ -51,6 +55,9 @@ const val OVERFLOW_NEXT_CHAPTER_SHOW_PROCENTAGE = 10
 const val OVERFLOW_NEXT_CHAPTER_NEXT = 90
 const val OVERFLOW_NEXT_CHAPTER_SAFESPACE = 20
 const val TOGGLE_DISTANCE = 20f
+
+const val TTS_CHANNEL_ID = "QuickNovelTTS"
+const val TTS_NOTIFICATION_ID = 133742
 
 fun clearTextViewOfSpans(tv: TextView) {
     val wordToSpan: Spannable = SpannableString(tv.text)
@@ -81,15 +88,131 @@ fun setHighLightedText(tv: TextView, start: Int, end: Int): Boolean {
     }
 }
 
+private class BecomingNoisyReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
+            if (ReadActivity.readActivity.ttsStatus == ReadActivity.TTSStatus.IsRunning) {
+                ReadActivity.readActivity.isTTSPaused = true
+            }
+        }
+    }
+}
+
+class RemoteTTSReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        println("ONRECIVE")
+        if (Intent.ACTION_MEDIA_BUTTON == intent.action) {
+            val event = intent.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT)
+            if (event != null && ReadActivity.readActivity != null) {
+                when (event.keyCode) {
+                    KeyEvent.KEYCODE_MEDIA_PAUSE -> ReadActivity.readActivity.callOnPause()
+                    KeyEvent.KEYCODE_MEDIA_PLAY -> ReadActivity.readActivity.callOnPlay()
+                    KeyEvent.KEYCODE_MEDIA_STOP -> ReadActivity.readActivity.callOnStop()
+                    //KeyEvent.KEYCODE_MEDIA_SKIP_FORWARD -> onPlayerEvent.invoke(PlayerEventType.SeekForward)
+                    //KeyEvent.KEYCODE_MEDIA_SKIP_BACKWARD -> onPlayerEvent.invoke(PlayerEventType.SeekBack)
+                    KeyEvent.KEYCODE_HEADSETHOOK -> ReadActivity.readActivity.callOnPause()
+                }
+            }
+        }
+    }
+}
+
+class TTSPauseService : IntentService("TTSPauseService") {
+    override fun onHandleIntent(intent: Intent?) {
+        if (intent != null) {
+            val id = intent.getIntExtra("id", -1)
+            when (id) {
+                TTSActionType.Pause.ordinal -> {
+                    ReadActivity.readActivity.isTTSPaused = true
+                }
+                TTSActionType.Resume.ordinal -> {
+                    ReadActivity.readActivity.isTTSPaused = false
+                }
+                TTSActionType.Stop.ordinal -> {
+                    ReadActivity.readActivity.stopTTS()
+                }
+            }
+        }
+    }
+}
+
+enum class TTSActionType {
+    Pause,
+    Resume,
+    Stop,
+}
+
 class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     companion object {
         lateinit var readActivity: ReadActivity
     }
 
+    fun callOnPause() {
+        if (!isTTSPaused) {
+            isTTSPaused = true
+        }
+    }
+
+    fun callOnPlay() {
+        if (isTTSPaused) {
+            isTTSPaused = false
+        }
+    }
+
+    fun callOnStop() {
+        if (isTTSRunning) {
+            isTTSRunning = true
+        }
+    }
+
+    private val callbacks = object : MediaSessionCompat.Callback() {
+        override fun onMediaButtonEvent(mediaButtonEvent: Intent?): Boolean {
+            println("EVENT TAKEN")
+            if (mediaButtonEvent != null) {
+
+                val event = mediaButtonEvent.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT) as KeyEvent
+                println("EVENT: " + event.keyCode)
+                when (event.keyCode) {
+                    KeyEvent.KEYCODE_MEDIA_PAUSE -> callOnPause()
+                    KeyEvent.KEYCODE_MEDIA_PLAY -> callOnPlay()
+                    KeyEvent.KEYCODE_MEDIA_STOP -> callOnStop()
+                    //KeyEvent.KEYCODE_MEDIA_SKIP_FORWARD -> onPlayerEvent.invoke(PlayerEventType.SeekForward)
+                    //KeyEvent.KEYCODE_MEDIA_SKIP_BACKWARD -> onPlayerEvent.invoke(PlayerEventType.SeekBack)
+                    KeyEvent.KEYCODE_HEADSETHOOK -> callOnPause()
+                }
+            }
+            return super.onMediaButtonEvent(mediaButtonEvent)
+        }
+
+        override fun onPlay() {
+            println("EVENT TAKEN1")
+
+            callOnPlay()
+        }
+
+        override fun onPause() {
+            println("EVENT TAKEN2")
+
+            callOnPause()
+        }
+
+        override fun onStop() {
+            println("EVENT TAKEN3")
+
+            callOnStop()
+        }
+    }
+
+    private val intentFilter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
+    private val myNoisyAudioStreamReceiver = BecomingNoisyReceiver()
+
     private var tts: TextToSpeech? = null
+
+    private var bookCover: Bitmap? = null
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
+
             val result = tts!!.setLanguage(Locale.US)
 
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
@@ -97,11 +220,11 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             } else { // TESTING
                 tts!!.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onDone(utteranceId: String) {
-                        canSpeek = true
+                        canSpeak = true
                     }
 
                     override fun onError(utteranceId: String) {
-                        canSpeek = true
+                        canSpeak = true
                     }
 
                     override fun onStart(utteranceId: String) {
@@ -116,20 +239,34 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        val wasRunningTTS = isTTSRunning
         stopTTS()
         globalTTSLines.clear()
+
+        if (isHidden) {
+            hideSystemUI()
+        } else {
+            showSystemUI()
+        }
+
+        read_text.post {
+            loadTextLines()
+            if (wasRunningTTS) {
+                startTTS(readFromIndex)
+            }
+        }
     }
 
     private fun speakOut(msg: String) {
-        canSpeek = false
+        canSpeak = false
 
         if (msg.isEmpty() || msg.isBlank()) {
             showMessage("No data")
             return
         }
-        speekId++
+        speakId++
         if (tts != null) {
-            tts!!.speak(msg, TextToSpeech.QUEUE_FLUSH, null, speekId.toString())
+            tts!!.speak(msg, TextToSpeech.QUEUE_FLUSH, null, speakId.toString())
         }
     }
 
@@ -138,6 +275,7 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             tts!!.stop()
             tts!!.shutdown()
         }
+        mediaSession?.isActive = false
         super.onDestroy()
     }
 
@@ -146,34 +284,200 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     lateinit var path: String
-    /*
-    lateinit var read_text: TextView
-    lateinit var read_scroll: ScrollView
-    lateinit var read_time: TextView
-    lateinit var read_chapter_name: TextView*/
 
-    var canSpeek = true
-    var speekId = 0
-    var isTTSRunning = false
-    val lockTTS = true
+
+    var canSpeak = true
+    private var speakId = 0
+
+    enum class TTSStatus {
+        IsRunning,
+        IsPaused,
+        IsStopped,
+    }
+
+    private var _ttsStatus = TTSStatus.IsStopped
+    var mediaSession: MediaSessionCompat? = null
+
+    private val myAudioFocusListener =
+        AudioManager.OnAudioFocusChangeListener {
+            val pause =
+                when (it) {
+                    AudioManager.AUDIOFOCUS_GAIN -> false
+                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE -> false
+                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT -> false
+                    else -> true
+                }
+            if (pause && isTTSRunning) {
+                isTTSPaused = true
+            }
+        }
+    var focusRequest: AudioFocusRequest? = null
+
+    private fun initTTSSession() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).run {
+                setAudioAttributes(AudioAttributes.Builder().run {
+                    setUsage(AudioAttributes.USAGE_MEDIA)
+                    setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    build()
+                })
+                setAcceptsDelayedFocusGain(true)
+                setOnAudioFocusChangeListener(myAudioFocusListener)
+                build()
+            }
+        }
+
+        val receiver = ComponentName(packageName, RemoteTTSReceiver::class.java.name)
+        mediaSession = MediaSessionCompat(this, "PlayerService", receiver, null)
+            //MediaSessionCompat(applicationContext, "Text To Speech")
+            .apply {
+                setFlags(
+                    MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or
+                            MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS
+                )
+
+                setCallback(callbacks)
+                isActive = true
+            }
+        println("ACTIVE:::" + mediaSession?.isActive)
+    }
+
+
+    private fun createNotificationChannel() {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "Text To Speech"//getString(R.string.channel_name)
+            val descriptionText = "The TTS notification channel" //getString(R.string.channel_description)
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel(TTS_CHANNEL_ID, name, importance).apply {
+                description = descriptionText
+            }
+            // Register the channel with the system
+            val notificationManager: NotificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    var ttsStatus: TTSStatus
+        get() = _ttsStatus
+        set(value) {
+            _ttsStatus = value
+            if (value == TTSStatus.IsRunning) {
+                //   mediaSession?.isActive = true
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    requestAudioFocus(focusRequest)
+                }
+                try {
+                    registerReceiver(myNoisyAudioStreamReceiver, intentFilter)
+                } catch (e: Exception) {
+                    println(e)
+                }
+            } else if (value == TTSStatus.IsStopped) {
+                // mediaSession?.isActive = false
+                try {
+                    unregisterReceiver(myNoisyAudioStreamReceiver)
+                } catch (e: Exception) {
+                    println(e)
+                }
+            }
+
+            if (value == TTSStatus.IsStopped) {
+                with(NotificationManagerCompat.from(this)) {
+                    // notificationId is a unique int for each notification that you must define
+                    cancel(TTS_NOTIFICATION_ID)
+                }
+            } else {
+                val builder = NotificationCompat.Builder(this, TTS_CHANNEL_ID)
+                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .setContentTitle(book.title)
+                    .setContentText(chapterName)
+
+
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                    .setOnlyAlertOnce(true)
+                    .setOngoing(true)
+
+                if (book.coverImage != null && book.coverImage.data != null) {
+                    if (bookCover == null) {
+                        bookCover = BitmapFactory.decodeByteArray(book.coverImage.data, 0, book.coverImage.data.size)
+                    }
+                    builder.setLargeIcon(bookCover)
+                }
+
+
+
+                builder.setStyle(androidx.media.app.NotificationCompat.MediaStyle())
+                // .setMediaSession(mediaSession?.sessionToken))
+
+                val actionTypes: MutableList<TTSActionType> = ArrayList()
+
+                if (value == TTSStatus.IsPaused) {
+                    actionTypes.add(TTSActionType.Resume)
+                } else if (value == TTSStatus.IsRunning) {
+                    actionTypes.add(TTSActionType.Pause)
+                }
+                actionTypes.add(TTSActionType.Stop)
+
+                for ((index, i) in actionTypes.withIndex()) {
+                    val resultIntent = Intent(this, TTSPauseService::class.java)
+                    resultIntent.putExtra("id", i.ordinal)
+
+                    val pending: PendingIntent = PendingIntent.getService(
+                        this, 3337 + index,
+                        resultIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                    )
+
+
+                    builder.addAction(NotificationCompat.Action(
+                        when (i) {
+                            TTSActionType.Resume -> R.drawable.ic_baseline_play_arrow_24
+                            TTSActionType.Pause -> R.drawable.ic_baseline_pause_24
+                            TTSActionType.Stop -> R.drawable.ic_baseline_stop_24
+                        }, when (i) {
+                            TTSActionType.Resume -> "Resume"
+                            TTSActionType.Pause -> "Pause"
+                            TTSActionType.Stop -> "Stop"
+                        }, pending
+                    ))
+                }
+
+
+                with(NotificationManagerCompat.from(this)) {
+                    // notificationId is a unique int for each notification that you must define
+                    notify(TTS_NOTIFICATION_ID, builder.build())
+                }
+            }
+
+            read_action_tts?.setImageResource(
+                when (value) {
+                    TTSStatus.IsPaused -> R.drawable.ic_baseline_play_arrow_24
+                    TTSStatus.IsStopped -> R.drawable.ic_baseline_volume_up_24
+                    TTSStatus.IsRunning -> R.drawable.ic_baseline_stop_24
+                })
+        }
+
+    var isTTSRunning: Boolean
+        get() = ttsStatus != TTSStatus.IsStopped
+        set(running) {
+            ttsStatus = if (running) TTSStatus.IsRunning else TTSStatus.IsStopped
+        }
+
+    var isTTSPaused: Boolean
+        get() = ttsStatus == TTSStatus.IsPaused
+        set(paused) {
+            ttsStatus = if (paused) TTSStatus.IsPaused else TTSStatus.IsRunning
+            if (paused) {
+                readFromIndex--
+                interuptTTS()
+            }
+        }
+
+    private val lockTTS = true
     var minScroll = 0
     var maxScroll = 0
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        // if (hasFocus) hideSystemUI()
-    }
-
-    fun changeStatusBarState(hide: Boolean) {
-        /* if (hide) {
-              window?.setFlags(
-                  WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                  WindowManager.LayoutParams.FLAG_FULLSCREEN
-              )
-          } else {
-              window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-          }*/
-    }
 
     var isHidden = true
 
@@ -191,7 +495,6 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 // Hide the nav bar and status bar
                 or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 or View.SYSTEM_UI_FLAG_FULLSCREEN)
-        changeStatusBarState(true)
 
         reader_bottom_view.translationY = 0f
         ObjectAnimator.ofFloat(reader_bottom_view, "translationY", reader_bottom_view.height.toFloat()).apply {
@@ -213,10 +516,14 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 // except for the ones that make the content appear under the system bars.
     private fun showSystemUI() {
         isHidden = false
-        window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                /* or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION*/
-                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
-        changeStatusBarState(false)
+        if (this.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+        } else {
+            window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+        }
 
         read_toolbar_holder.visibility = View.VISIBLE
         reader_bottom_view.visibility = View.VISIBLE
@@ -231,10 +538,9 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             duration = 200
             start()
         }
-
     }
 
-    fun updateTimeText() {
+    private fun updateTimeText() {
         val currentTime: String = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
         if (read_time != null) {
             read_time.text = currentTime
@@ -242,7 +548,7 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
-    private fun loadNextChapter() : Boolean {
+    private fun loadNextChapter(): Boolean {
         return if (currentChapter >= maxChapter - 1) {
             Toast.makeText(this, "No more chapters", Toast.LENGTH_SHORT).show()
             false
@@ -253,7 +559,7 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
-    private fun loadPrevChapter() : Boolean {
+    private fun loadPrevChapter(): Boolean {
         return if (currentChapter <= 0) {
             false
             //Toast.makeText(this, "No more chapters", Toast.LENGTH_SHORT).show()
@@ -269,10 +575,9 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             if (textLines != null) {
                 val readHeight = read_scroll.height - read_overlay.height
                 if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-                    if(isTTSRunning) {
+                    if (isTTSRunning) {
                         nextTTSLine()
-                    }
-                    else {
+                    } else {
                         if (read_scroll.scrollY >= getScrollRange()) {
                             loadNextChapter()
                         } else {
@@ -287,10 +592,9 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                         }
                     }
                 } else {
-                    if(isTTSRunning) {
+                    if (isTTSRunning) {
                         prevTTSLine()
-                    }
-                    else {
+                    } else {
                         if (read_scroll.scrollY <= 0) {
                             loadPrevChapter()
                         } else {
@@ -428,7 +732,7 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
             globalTTSLines.clear()
             interuptTTS()
-            if(isTTSRunning) {
+            if (isTTSRunning) {
                 startTTS(true)
             }
         }
@@ -454,7 +758,7 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         if (tts != null) {
             tts!!.stop()
         }
-        canSpeek = true
+        canSpeak = true
     }
 
     private fun nextTTSLine() {
@@ -467,10 +771,12 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         interuptTTS()
     }
 
-    private fun stopTTS() {
-        isTTSRunning = false
-        clearTextViewOfSpans(read_text)
-        interuptTTS()
+    fun stopTTS() {
+        runOnUiThread {
+            isTTSRunning = false
+            clearTextViewOfSpans(read_text)
+            interuptTTS()
+        }
     }
 
     data class TTSLine(
@@ -621,16 +927,15 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private var readFromIndex = 0
-    private fun runTTS(fromStart: Boolean = false) {
+    private fun runTTS(index: Int? = null) {
         isTTSRunning = true
 
         val job = Job()
         val uiScope = CoroutineScope(Dispatchers.Main + job)
         uiScope.launch {
-            if(fromStart) {
-                readFromIndex = 0
-            }
-            else {
+            if (index != null) {
+                readFromIndex = index
+            } else {
                 for ((startIndex, line) in globalTTSLines.withIndex()) {
                     if (read_scroll.scrollY + read_title_text.height - 10 <= line.minScroll) {
                         readFromIndex = startIndex
@@ -642,20 +947,22 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             while (true) {
                 try {
                     if (!isTTSRunning) return@launch
-                    if(globalTTSLines.size == 0) return@launch
-                    if(readFromIndex < 0) {
-                        if(!loadPrevChapter()) {
+                    while (isTTSPaused) {
+                        delay(50)
+                    }
+                    if (globalTTSLines.size == 0) return@launch
+                    if (readFromIndex < 0) {
+                        if (!loadPrevChapter()) {
+                            stopTTS()
+                        }
+                        return@launch
+                    } else if (readFromIndex >= globalTTSLines.size) {
+                        if (!loadNextChapter()) {
                             stopTTS()
                         }
                         return@launch
                     }
-                    else if(readFromIndex >= globalTTSLines.size) {
-                        if(!loadNextChapter()) {
-                            stopTTS()
-                        }
-                        return@launch
-                    }
-                    println("INDEX::: " + globalTTSLines.size + "||" + readFromIndex)
+
                     val line = globalTTSLines[readFromIndex]
 
                     setHighLightedText(read_text, line.startIndex, line.endIndex)
@@ -673,9 +980,9 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
                     if (msg.isEmpty()) {
                         delay(500)
-                        canSpeek = true
+                        canSpeak = true
                     }
-                    while (!canSpeek) {
+                    while (!canSpeak) {
                         delay(10)
                         if (!isTTSRunning) return@launch
                     }
@@ -688,27 +995,30 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
-    private fun startTTS(fromStart : Boolean = false) {
+    private fun startTTS(fromStart: Boolean = false) {
+        startTTS(if (fromStart) 0 else null)
+    }
+
+    private fun startTTS(fromIndex: Int?) {
         if (globalTTSLines.size <= 0) {
             prepareTTS {
                 if (it) {
-                    runTTS(fromStart)
+                    runTTS(fromIndex)
                 } else {
                     Toast.makeText(this, "Error parsing text", Toast.LENGTH_SHORT).show()
                 }
             }
         } else {
-            runTTS(fromStart)
+            runTTS(fromIndex)
         }
     }
 
     private fun checkTTSRange(scrollY: Int, scrollToTop: Boolean = false) {
         if (lockTTS && isTTSRunning) {
-            if (read_scroll.height + scrollY - read_title_text.height -10.toPx <= minScroll) { // FOR WHEN THE TEXT IS ON THE BOTTOM OF THE SCREEN
-                if(scrollToTop) {
+            if (read_scroll.height + scrollY - read_title_text.height - 10.toPx <= minScroll) { // FOR WHEN THE TEXT IS ON THE BOTTOM OF THE SCREEN
+                if (scrollToTop) {
                     read_scroll.scrollTo(0, maxScroll + read_title_text.height)
-                }
-                else {
+                } else {
                     read_scroll.scrollTo(0, minScroll - read_scroll.height + read_title_text.height + 10.toPx)
                 }
                 read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
@@ -728,20 +1038,20 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         arrayAdapter.addAll(chapterTitles)
 
-        builderSingle.setNegativeButton("Cancel",
-            DialogInterface.OnClickListener { dialog, which -> dialog.dismiss() })
+        builderSingle.setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
 
-        builderSingle.setAdapter(arrayAdapter, DialogInterface.OnClickListener { dialog, which ->
-            val strName = arrayAdapter.getItem(which)
-            val builderInner: AlertDialog.Builder = AlertDialog.Builder(this)
+        builderSingle.setAdapter(arrayAdapter) { _, which ->
             loadChapter(which, true)
-            /*  builderInner.setMessage(strName)
-              builderInner.setTitle("Your Selected Item is")
-              builderInner.setPositiveButton("Ok",
-                  DialogInterface.OnClickListener { dialog, which -> dialog.dismiss() })
-              builderInner.show()*/
-        })
+        }
 
+        /*
+              val strName = arrayAdapter.getItem(which)
+        val builderInner: AlertDialog.Builder = AlertDialog.Builder(this)
+         builderInner.setMessage(strName)
+          builderInner.setTitle("Your Selected Item is")
+          builderInner.setPositiveButton("Ok",
+              DialogInterface.OnClickListener { dialog, which -> dialog.dismiss() })
+          builderInner.show()*/
         val dialog = builderSingle.create()
         dialog.setOnShowListener {
             //dialog.listView.smoothScrollToPositionFromTop(100,0,0)
@@ -749,7 +1059,6 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 dialog.listView.requestFocusFromTouch()
                 dialog.listView.setSelection(currentChapter)
             }
-
             //dialog.listView.setSelection(-1)
         }
 
@@ -766,31 +1075,17 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         return scrollRange
     }
 
-    /*
-    private fun setViewerFlags(flag: Int, mask: Int) {
-        viewer_flags = viewer_flags and mask.inv() or (flag and mask)
-    }*/
-
-    //var viewer_flags: Int = 0
     var orientationType: Int = OrientationType.DEFAULT.prefValue
-    /*
-    var orientationType: Int
-        get() = viewer_flags and OrientationType.MASK
-        set(rotationType) = setViewerFlags(rotationType, OrientationType.MASK)*/
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        initTTSSession()
+
+        createNotificationChannel()
         setContentView(R.layout.read_main)
         read_title_text.minHeight = read_toolbar.height
 
-        //read_text = findViewById(R.id.read_text)
-        //read_scroll = findViewById(R.id.read_scroll)
-        //read_chapter_name = findViewById(R.id.read_chapter_name)
-        //read_time = findViewById(R.id.read_time)
-        //val read_topmargin = findViewById<View>(R.id.read_topmargin)
-
-        // hideSystemUI()
         fixPaddingStatusbar(read_toolbar)
 
         //<editor-fold desc="Screen Rotation">
@@ -812,9 +1107,6 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
         }
 
-            //read_text.marg(read_text.left, read_toolbar_holder.height, read_text.right, read_text.bottom)
-
-
         setRot(OrientationType.fromSpinner(DataStore.getKey(EPUB_LOCK_ROTATION,
             OrientationType.DEFAULT.prefValue)))
         //</editor-fold>
@@ -824,22 +1116,12 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
 
         read_action_tts.setOnClickListener {
-            if (isTTSRunning) {
-                stopTTS()
-            } else {
-                startTTS()
+            when (ttsStatus) {
+                TTSStatus.IsStopped -> startTTS()
+                TTSStatus.IsRunning -> stopTTS()
+                TTSStatus.IsPaused -> isTTSPaused = false
             }
         }
-
-        /*
-        read_text.setOnClickListener {
-            if(isHidden) {
-                showSystemUI()
-            }
-            else {
-                hideSystemUI()
-            }
-        }*/
 
         hideSystemUI()
 
@@ -868,7 +1150,9 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val epubReader = EpubReader()
         book = epubReader.readEpub(FileInputStream(path))
         maxChapter = book.tableOfContents.tocReferences.size
-        loadChapter(DataStore.getKey<Int>(EPUB_CURRENT_POSITION, book.title) ?: 0, true, true)
+        loadChapter(DataStore.getKey(EPUB_CURRENT_POSITION, book.title) ?: 0,
+            scrollToTop = true,
+            scrollToRemember = true)
         updateTimeText()
         read_scroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->
             checkTTSRange(scrollY)
@@ -965,174 +1249,5 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         read_overlay.setOnClickListener {
             selectChapter()
         }
-
-        //val text = read_text.text
-        //println("TEXT:" + book.contents[0].reader.readText())
-/*
-        read_scroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->
-            if (lockTTS && isTTSRunning) {
-                if (read_scroll.height + scrollY <= minScroll) {
-                    read_scroll.scrollTo(0, minScroll - read_scroll.height)
-                    read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
-                } else if (scrollY >= maxScroll) {
-                    read_scroll.scrollTo(0, maxScroll)
-                    read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
-                }
-            }
-        }
-
-        read_text.post {
-            /*
-           val startLines: ArrayList<Int> = ArrayList()
-           for (i in 0..read_text.layout.lineCount) {
-               startLines.add(read_text.layout.getLineStart(i))
-           }
-           return@post
-
-           thread {
-               isTTSRunning = true
-               var index = 0
-               while (true) {
-                   val invalidStartChars =
-                       arrayOf(' ', '.', ',', '\n', '\"',
-                           '\'', '’', '‘', '“', '”', '«', '»', '「', '」', '…')
-                   while (invalidStartChars.contains(read_text.text[index])) {
-                       index++
-                       if (index >= read_text.text.length) {
-                           return@thread //TODO NEXT CHAPTER
-                       }
-                   }
-
-                   var endIndex = Int.MAX_VALUE
-                   for (a in arrayOf(".", "\n", ";", "?", ":")) {
-                       val indexEnd = read_text.text.indexOf(a, index)
-                       if (indexEnd == -1) continue
-                       /*while (true) {
-                           if (indexEnd + 1 < read_text.text.length) {
-                               if (read_text.text[indexEnd + 1] == '.') {
-                                   indexEnd++
-                                   continue
-                               }
-                           }
-                           break
-                       }*/
-
-                       if (indexEnd < endIndex) {
-                           endIndex = indexEnd + 1
-                       }
-                   }
-
-
-                   if (endIndex > read_text.text.length) {
-                       endIndex = read_text.text.length
-                   }
-                   if (index >= read_text.text.length) {
-                       return@thread //TODO NEXT CHAPTER
-                   }
-
-                   val invalidEndChars =
-                       arrayOf('\n')
-                   while (true) {
-                       var containsInvalidEndChar = false
-                       for (a in invalidEndChars) {
-                           if (endIndex <= 0 || endIndex > read_text.text.length) break
-                           if (read_text.text[endIndex - 1] == a) {
-                               containsInvalidEndChar = true
-                               endIndex--
-                           }
-                       }
-                       if (!containsInvalidEndChar) {
-                           break
-                       }
-                   }
-
-
-                   try {
-                       // THIS PART IF FOR THE SPEAK PART, REMOVING STUFF THAT IS WACK
-                       val message = read_text.text.substring(index, endIndex)
-                       var msg = message//Regex("\\p{L}").replace(message,"")
-                       val invalidChars =
-                           arrayOf("-", "<", ">", "_", "^", "\'", "«", "»", "「", "」", "—", "¿")
-                       for (c in invalidChars) {
-                           msg = msg.replace(c, "")
-                       }
-                       msg = msg.replace("...", ",")
-                       /*.replace("…", ",")*/
-
-                       if (msg
-                               .replace("\n", "")
-                               .replace("\t", "")
-                               .replace(".", "").isNotEmpty()
-                       ) {
-                           canSpeek = false
-
-                           readActivity.runOnUiThread {
-                               for (s in 0..startLines.size) {
-                                   if (startLines[s] > index) {
-                                       for (e in s..startLines.size) {
-                                           if (startLines[e] > endIndex) {
-                                               if (read_text.layout == null) return@runOnUiThread
-                                               maxScroll = read_text.layout.getLineTop(s)
-                                               minScroll = read_text.layout.getLineBottom(e)
-                                               if (read_scroll.height + read_scroll.scrollY < minScroll ||
-                                                   read_scroll.scrollY > maxScroll
-                                               ) {
-                                                   read_scroll.scrollTo(0, read_text.layout.getLineTop(s))
-                                               }
-                                               break
-                                           }
-                                       }
-                                       //read_scroll.scrollTo(0, read_text.layout.getLineTop(i) - 200) // SKIP SNAP SETTING
-
-                                       break
-                                   }
-                               }
-                               setHighLightedText(read_text, index, endIndex)
-                               if (msg.isNotEmpty()) {
-                                   speakOut(msg)
-                               }
-                           }
-                           sleep(1000)
-                           if (msg.isEmpty()) {
-                               sleep(500)
-                               canSpeek = true
-                           }
-                           while (!canSpeek) {
-                               sleep(1)
-                           }
-                           //sleep(500)
-                       }
-                   } catch (e: Exception) {
-                       println(e)
-                       return@thread
-                   }
-                   index = endIndex + 1
-               }
-           }*/
-
-            /*
-            val lineCount = read_text.layout.lineCount
-            thread {
-                for (i in 0..lineCount) {
-                    try {
-                        ReadActivity.readActivity.runOnUiThread {
-                            try {
-                                if (read_text.layout == null) return@runOnUiThread
-                                val start = read_text.layout.getLineStart(i)
-                                val end = read_text.layout.getLineEnd(i)
-                                val read = text.substring(start, end)
-                                println("TEXT:" + read) // TTS
-                                setHighLightedText(read_text, read)
-                            } catch (e: Exception) {
-                                return@runOnUiThread
-                            }
-                        }
-                        sleep(800)
-                    } catch (e: Exception) {
-                        break
-                    }
-                }
-            }*/
-        }*/
     }
 }
