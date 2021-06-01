@@ -89,10 +89,11 @@ object BookDownloader {
 
     private const val reservedChars = "|\\?*<\":>+[]/'"
     private fun sanitizeFilename(name: String): String {
+        var tempName = name
         for (c in reservedChars) {
-            name.replace(c, ' ')
+            tempName = tempName.replace(c, ' ')
         }
-        return name.replace("  ", " ")
+        return tempName.replace("  ", " ")
     }
 
     private val fs = File.separatorChar

@@ -2,7 +2,10 @@ package com.lagradost.quicknovel
 
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
-import android.app.*
+import android.app.IntentService
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.*
 import android.content.res.Configuration
 import android.graphics.Bitmap
@@ -11,10 +14,8 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Build
-import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
-import android.support.v4.media.session.MediaSessionCompat
 import android.text.Spannable
 import android.text.SpannableString
 import android.view.KeyEvent
@@ -25,7 +26,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.doOnEnd
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -48,7 +48,12 @@ import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.sqrt
-
+import android.content.ComponentName
+import android.content.Intent
+import android.os.Bundle
+import android.support.v4.media.session.MediaSessionCompat
+import androidx.appcompat.app.AppCompatActivity
+import androidx.media.session.MediaButtonReceiver
 
 const val OVERFLOW_NEXT_CHAPTER_DELTA = 600
 const val OVERFLOW_NEXT_CHAPTER_SHOW_PROCENTAGE = 10
@@ -93,25 +98,6 @@ private class BecomingNoisyReceiver : BroadcastReceiver() {
         if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
             if (ReadActivity.readActivity.ttsStatus == ReadActivity.TTSStatus.IsRunning) {
                 ReadActivity.readActivity.isTTSPaused = true
-            }
-        }
-    }
-}
-
-class RemoteTTSReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-        println("ONRECIVE")
-        if (Intent.ACTION_MEDIA_BUTTON == intent.action) {
-            val event = intent.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT)
-            if (event != null && ReadActivity.readActivity != null) {
-                when (event.keyCode) {
-                    KeyEvent.KEYCODE_MEDIA_PAUSE -> ReadActivity.readActivity.callOnPause()
-                    KeyEvent.KEYCODE_MEDIA_PLAY -> ReadActivity.readActivity.callOnPlay()
-                    KeyEvent.KEYCODE_MEDIA_STOP -> ReadActivity.readActivity.callOnStop()
-                    //KeyEvent.KEYCODE_MEDIA_SKIP_FORWARD -> onPlayerEvent.invoke(PlayerEventType.SeekForward)
-                    //KeyEvent.KEYCODE_MEDIA_SKIP_BACKWARD -> onPlayerEvent.invoke(PlayerEventType.SeekBack)
-                    KeyEvent.KEYCODE_HEADSETHOOK -> ReadActivity.readActivity.callOnPause()
-                }
             }
         }
     }
@@ -162,44 +148,6 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     fun callOnStop() {
         if (isTTSRunning) {
             isTTSRunning = true
-        }
-    }
-
-    private val callbacks = object : MediaSessionCompat.Callback() {
-        override fun onMediaButtonEvent(mediaButtonEvent: Intent?): Boolean {
-            println("EVENT TAKEN")
-            if (mediaButtonEvent != null) {
-
-                val event = mediaButtonEvent.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT) as KeyEvent
-                println("EVENT: " + event.keyCode)
-                when (event.keyCode) {
-                    KeyEvent.KEYCODE_MEDIA_PAUSE -> callOnPause()
-                    KeyEvent.KEYCODE_MEDIA_PLAY -> callOnPlay()
-                    KeyEvent.KEYCODE_MEDIA_STOP -> callOnStop()
-                    //KeyEvent.KEYCODE_MEDIA_SKIP_FORWARD -> onPlayerEvent.invoke(PlayerEventType.SeekForward)
-                    //KeyEvent.KEYCODE_MEDIA_SKIP_BACKWARD -> onPlayerEvent.invoke(PlayerEventType.SeekBack)
-                    KeyEvent.KEYCODE_HEADSETHOOK -> callOnPause()
-                }
-            }
-            return super.onMediaButtonEvent(mediaButtonEvent)
-        }
-
-        override fun onPlay() {
-            println("EVENT TAKEN1")
-
-            callOnPlay()
-        }
-
-        override fun onPause() {
-            println("EVENT TAKEN2")
-
-            callOnPause()
-        }
-
-        override fun onStop() {
-            println("EVENT TAKEN3")
-
-            callOnStop()
         }
     }
 
@@ -275,7 +223,8 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             tts!!.stop()
             tts!!.shutdown()
         }
-        mediaSession?.isActive = false
+        mMediaSessionCompat.release()
+
         super.onDestroy()
     }
 
@@ -296,7 +245,6 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private var _ttsStatus = TTSStatus.IsStopped
-    var mediaSession: MediaSessionCompat? = null
 
     private val myAudioFocusListener =
         AudioManager.OnAudioFocusChangeListener {
@@ -326,20 +274,6 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 build()
             }
         }
-
-        val receiver = ComponentName(packageName, RemoteTTSReceiver::class.java.name)
-        mediaSession = MediaSessionCompat(this, "PlayerService", receiver, null)
-            //MediaSessionCompat(applicationContext, "Text To Speech")
-            .apply {
-                setFlags(
-                    MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or
-                            MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS
-                )
-
-                setCallback(callbacks)
-                isActive = true
-            }
-        println("ACTIVE:::" + mediaSession?.isActive)
     }
 
 
@@ -1077,13 +1011,30 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     var orientationType: Int = OrientationType.DEFAULT.prefValue
 
-    @SuppressLint("ClickableViewAccessibility")
+    private lateinit var mMediaSessionCompat: MediaSessionCompat
+    private val mMediaSessionCallback: MediaSessionCompat.Callback = object : MediaSessionCompat.Callback() {
+        override fun onMediaButtonEvent(mediaButtonEvent: Intent): Boolean {
+            println("FATAL SUCESS:::")
+            return super.onMediaButtonEvent(mediaButtonEvent)
+        }
+    }
+
+    private fun Context.initMediaSession() {
+        val mediaButtonReceiver = ComponentName(this, MediaButtonReceiver::class.java)
+        mMediaSessionCompat = MediaSessionCompat(this, "Tag", mediaButtonReceiver, null)
+        mMediaSessionCompat.setCallback(mMediaSessionCallback)
+        mMediaSessionCompat.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        initMediaSession()
+        setContentView(R.layout.read_main)
+
+        return
         initTTSSession()
 
         createNotificationChannel()
-        setContentView(R.layout.read_main)
         read_title_text.minHeight = read_toolbar.height
 
         fixPaddingStatusbar(read_toolbar)
@@ -1133,7 +1084,6 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         readActivity = this
         tts = TextToSpeech(this, this)
-
 
         val parameter = read_topmargin.layoutParams as LinearLayout.LayoutParams
         parameter.setMargins(parameter.leftMargin,

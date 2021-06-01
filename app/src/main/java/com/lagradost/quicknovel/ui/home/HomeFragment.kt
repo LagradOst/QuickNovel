@@ -1,17 +1,19 @@
 package com.lagradost.quicknovel.ui.home
 
+import android.content.Intent
+import android.content.IntentFilter
+import android.media.AudioManager
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.lagradost.quicknovel.BrowseAdapter
-import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity
-import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.*
 import kotlinx.android.synthetic.main.fragment_home.*
+
 
 class HomeFragment : Fragment() {
     override fun onCreateView(
@@ -40,7 +42,6 @@ class HomeFragment : Fragment() {
         home_browselist.adapter = adapter
         home_browselist.layoutManager = GridLayoutManager(context, 1)
         MainActivity.fixPaddingStatusbar(homeRoot)
-
 /*
         home_toolbar.setOnMenuItemClickListener {
             when (it.itemId) {
