@@ -34,4 +34,19 @@
         <item>Dark</item>
         <item>Light</item>
     </string-array>
+
+    <array name="readerBgColors">
+        <item>@color/readerBackground</item>
+        <item>#2B2C30</item>
+        <item>#F7DFC6</item>
+        <item>#000</item>
+        <item>#FFF</item>
+    </array>
+    <array name="readerTextColors">
+        <item>@color/readerTextColor</item>
+        <item>@color/readerTextColor</item>
+        <item>#593100</item>
+        <item>@color/readerTextColor</item>
+        <item>#111</item>
+    </array>
 </resources>

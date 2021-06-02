@@ -19,6 +19,10 @@ const val EPUB_CURRENT_POSITION_SCROLL: String = "reader_epub_position_scroll"
 const val DOWNLOAD_SORTING_METHOD: String = "download_sorting"
 const val DOWNLOAD_SETTINGS: String = "download_settings"
 const val EPUB_LOCK_ROTATION: String = "reader_epub_rotation"
+const val EPUB_TEXT_SIZE: String = "reader_epub_text_size"
+const val EPUB_SCROLL_VOL: String = "reader_epub_scroll_volume"
+const val EPUB_BG_COLOR: String = "reader_epub_bg_color"
+const val EPUB_TEXT_COLOR: String = "reader_epub_text_color"
 
 @SuppressLint("StaticFieldLeak")
 object DataStore {

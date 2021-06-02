@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+        xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:orientation="vertical"
+        android:id="@+id/read_settings_root"
+        android:layout_width="match_parent"
+        android:background="@null"
+        android:layout_height="match_parent">
+    <androidx.cardview.widget.CardView
+            app:cardCornerRadius="10dp"
+            android:backgroundTint="?attr/boxItemBackground"
+            android:layout_width="match_parent" android:layout_height="wrap_content">
+        <TextView
+                style="@style/AppTextViewStyle"
+                android:gravity="center_vertical"
+
+                android:paddingTop="5dp"
+                android:paddingBottom="5dp"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
+                android:layout_gravity="center_vertical"
+                android:text="@string/read_display_settings" android:textColor="?attr/textColor" android:textSize="18sp"
+                android:layout_width="wrap_content" android:layout_height="55dp"
+        >
+        </TextView>
+    </androidx.cardview.widget.CardView>
+
+    <LinearLayout android:layout_margin="20dp"
+                  android:orientation="vertical"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content">
+
+        <TextView
+                android:text="@string/general_settings"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+        </TextView>
+        <com.google.android.material.checkbox.MaterialCheckBox
+                android:layout_marginTop="20dp"
+                android:id="@+id/read_settings_scroll_vol"
+                android:text="@string/scroll_with_volume_keys"
+                android:textColor="?attr/textColor"
+                app:buttonTint="@color/colorPrimary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+        </com.google.android.material.checkbox.MaterialCheckBox>
+        <com.google.android.material.checkbox.MaterialCheckBox
+                android:text="@string/lock_tts"
+                android:id="@+id/read_settings_lock_tts"
+                android:textColor="?attr/textColor"
+                app:buttonTint="@color/colorPrimary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+        </com.google.android.material.checkbox.MaterialCheckBox>
+        <TextView
+                android:layout_marginTop="20dp"
+                android:text="@string/read_text_size"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+        </TextView>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_marginTop="20dp"
+
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="20dp">
+            <ImageView
+                    app:layout_constraintEnd_toStartOf="@id/read_settings_text_size"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    android:src="@drawable/smaller_font"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center_vertical"
+                    android:layout_width="wrap_content" android:contentDescription="@string/smaller_font"/>
+            <SeekBar
+                    android:id="@+id/read_settings_text_size"
+                    app:layout_constraintTop_toTopOf="parent"
+                    android:thumbTint="@color/colorPrimary"
+                    android:progressTint="@color/colorPrimary"
+
+                    android:progress="4"
+                    android:max="10"
+                    android:layout_marginStart="30dp"
+                    android:layout_marginEnd="30dp"
+                    android:layout_gravity="center_vertical"
+                    app:thumbRadius="5dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+            </SeekBar>
+            <ImageView
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/read_settings_text_size"
+                    app:layout_constraintTop_toTopOf="parent"
+                    android:src="@drawable/bigger_font"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center_vertical"
+                    android:layout_width="wrap_content" android:contentDescription="@string/bigger_font"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+        <TextView
+                android:layout_marginTop="20dp"
+                android:text="@string/read_color"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+        </TextView>
+        <HorizontalScrollView
+                android:layout_marginTop="20dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+            <LinearLayout
+                    android:id="@+id/read_settings_colors"
+                    android:orientation="horizontal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="70dp">
+            </LinearLayout>
+        </HorizontalScrollView>
+    </LinearLayout>
+</LinearLayout>

@@ -7,9 +7,11 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.*
+import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -21,13 +23,11 @@ import android.speech.tts.UtteranceProgressListener
 import android.support.v4.media.session.MediaSessionCompat
 import android.text.Spannable
 import android.text.SpannableString
+import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
-import android.widget.ArrayAdapter
-import android.widget.LinearLayout
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.doOnEnd
@@ -36,6 +36,8 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.text.HtmlCompat
 import androidx.core.text.getSpans
 import androidx.media.session.MediaButtonReceiver
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.checkbox.MaterialCheckBox
 import com.lagradost.quicknovel.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.UIHelper.popupMenu
@@ -48,6 +50,7 @@ import nl.siegmann.epublib.epub.EpubReader
 import org.jsoup.Jsoup
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
@@ -235,7 +238,6 @@ class ReadActivity : AppCompatActivity() {
 
     lateinit var path: String
 
-
     var canSpeak = true
     private var speakId = 0
 
@@ -276,7 +278,6 @@ class ReadActivity : AppCompatActivity() {
             }
         }
     }
-
 
     private fun createNotificationChannel() {
         // Create the NotificationChannel, but only on API 26+ because
@@ -411,8 +412,9 @@ class ReadActivity : AppCompatActivity() {
             }
         }
 
-    private val lockTTS = true
+    private var lockTTS = true
     private val lockTTSOnPaused = false
+    private var scrollWithVol = true
     var minScroll = 0
     var maxScroll = 0
 
@@ -507,8 +509,7 @@ class ReadActivity : AppCompatActivity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        //TODO SETTING VOLUME KEYS
-        return if (isHidden && (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP)) {
+        return if (scrollWithVol && isHidden && (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP)) {
             if (textLines != null) {
                 val readHeight = read_scroll.height - read_overlay.height
                 if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
@@ -520,7 +521,7 @@ class ReadActivity : AppCompatActivity() {
                         } else {
                             for (t in textLines!!) {
                                 if (t.topPosition > mainScrollY + readHeight) {
-                                    read_scroll.scrollTo(0, t.topPosition)
+                                    read_scroll.scrollTo(0, t.topPosition - 7.toPx)
                                     read_scroll.fling(0)
                                     return true
                                 }
@@ -537,7 +538,7 @@ class ReadActivity : AppCompatActivity() {
                         } else {
                             for (t in textLines!!) {
                                 if (t.topPosition > mainScrollY - read_scroll.height) {
-                                    read_scroll.scrollTo(0, t.topPosition)
+                                    read_scroll.scrollTo(0, t.topPosition - 7.toPx)
                                     read_scroll.fling(0)
                                     return true
                                 }
@@ -889,7 +890,7 @@ class ReadActivity : AppCompatActivity() {
 
                     val msg = line.speakOutMsg
                     if (msg.isNotEmpty() && msg.isNotBlank()) {
-                    //    println("SPEAKOUTMS " + System.currentTimeMillis())
+                        //    println("SPEAKOUTMS " + System.currentTimeMillis())
                         speakOut(msg, nextLine?.speakOutMsg)
                     }
 
@@ -1030,9 +1031,64 @@ class ReadActivity : AppCompatActivity() {
         mMediaSessionCompat.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS)
     }
 
+    fun setTextFontSize(size: Int) {
+        DataStore.setKey(EPUB_TEXT_SIZE, size)
+        read_text?.setTextSize(TypedValue.COMPLEX_UNIT_SP, size.toFloat())
+        read_title_text?.setTextSize(TypedValue.COMPLEX_UNIT_SP, size.toFloat() + 2f)
+    }
+
+    private fun getCurrentFontSize(): Int {
+        return DataStore.getKey(EPUB_TEXT_SIZE, 14)!!
+    }
+
+    fun getScrollWithVol(): Boolean {
+        scrollWithVol = DataStore.getKey(EPUB_SCROLL_VOL, true)!!
+        return scrollWithVol
+    }
+
+    private fun setScrollWithVol(scroll: Boolean) {
+        scrollWithVol = scroll
+        DataStore.setKey(EPUB_SCROLL_VOL, scroll)
+    }
+
+
+    private fun getLockTTS(): Boolean {
+        lockTTS = DataStore.getKey(EPUB_SCROLL_VOL, true)!!
+        return lockTTS
+    }
+
+    private fun setLockTTS(scroll: Boolean) {
+        lockTTS = scroll
+        DataStore.setKey(EPUB_SCROLL_VOL, scroll)
+    }
+
+    private fun setBackgroundColor(color: Int) {
+        reader_container?.setBackgroundColor(color)
+        DataStore.setKey(EPUB_BG_COLOR, color)
+    }
+
+    private fun setTextColor(color: Int) {
+        read_text?.setTextColor(color)
+        DataStore.setKey(EPUB_TEXT_COLOR, color)
+    }
+
+    private fun getTextColor(): Int {
+        val color = DataStore.getKey(EPUB_TEXT_COLOR, getColor(R.color.readerTextColor))!!
+        read_text?.setTextColor(color)
+        return color
+    }
+
+    private fun getBackgroundColor(): Int {
+        val color = DataStore.getKey(EPUB_BG_COLOR, getColor(R.color.readerBackground))!!
+        reader_container?.setBackgroundColor(color)
+        return color
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        DataStore.init(this)
+
         val data = intent.data
         if (data == null) {
             finish()
@@ -1048,7 +1104,12 @@ class ReadActivity : AppCompatActivity() {
 
         initMediaSession()
         setContentView(R.layout.read_main)
+        setTextFontSize(getCurrentFontSize())
         initTTSSession()
+        getLockTTS()
+        getScrollWithVol()
+        getBackgroundColor()
+        getTextColor()
 
         createNotificationChannel()
         read_title_text.minHeight = read_toolbar.height
@@ -1072,6 +1133,89 @@ class ReadActivity : AppCompatActivity() {
                 DataStore.setKey(EPUB_LOCK_ROTATION, itemId)
                 setRot(org)
             }
+        }
+
+        read_action_settings.setOnClickListener {
+            val bottomSheetDialog = BottomSheetDialog(this)
+            bottomSheetDialog.setContentView(R.layout.read_bottom_settings)
+            val read_settings_text_size = bottomSheetDialog.findViewById<SeekBar>(R.id.read_settings_text_size)!!
+            val read_settings_scroll_vol =
+                bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_scroll_vol)!!
+            val read_settings_lock_tts = bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_lock_tts)!!
+
+            read_settings_scroll_vol.isChecked = scrollWithVol
+            read_settings_scroll_vol.setOnCheckedChangeListener { _, checked ->
+                setScrollWithVol(checked)
+            }
+
+            read_settings_lock_tts.isChecked = lockTTS
+            read_settings_lock_tts.setOnCheckedChangeListener { _, checked ->
+                setLockTTS(checked)
+            }
+            val root = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_root)!!
+            val horizontal_colors = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_colors)!!
+            val bgColors = resources.getIntArray(R.array.readerBgColors)
+            val textColors = resources.getIntArray(R.array.readerTextColors)
+
+            val images = ArrayList<ImageView>()
+            fun updateImages() {
+                val color = getBackgroundColor()
+                val colorPrimary = getColor(R.color.colorPrimary)
+                val colorPrim = ColorStateList.valueOf(colorPrimary)
+                val colorTrans = ColorStateList.valueOf(Color.TRANSPARENT)
+                for ((index, img) in images.withIndex()) {
+                    if (color == bgColors[index]) {
+                        img.foregroundTintList = colorPrim
+                        img.imageAlpha = 200
+                    } else {
+                        img.foregroundTintList = colorTrans
+                        img.imageAlpha = 0
+                    }
+                }
+            }
+
+            for ((index, backgroundColor) in bgColors.withIndex()) {
+                val textColor = textColors[index]
+
+                val imageHolder = layoutInflater.inflate(R.layout.color_round_checkmark, null) //color_round_checkmark
+                val image = imageHolder.findViewById<ImageView>(R.id.image1)
+                image.backgroundTintList = ColorStateList.valueOf(backgroundColor)
+                image.setOnClickListener {
+                    setBackgroundColor(backgroundColor)
+                    setTextColor(textColor)
+                    updateImages()
+                }
+                images.add(image)
+                horizontal_colors.addView(imageHolder)
+                //  image.backgroundTintList = ColorStateList.valueOf(c)// ContextCompat.getColorStateList(this, c)
+            }
+            updateImages()
+
+            read_settings_text_size.max = 10
+            val offsetSize = 10
+            var updateAllTextOnDismiss = false
+            read_settings_text_size.progress = getCurrentFontSize() - offsetSize
+            read_settings_text_size.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    if (fromUser) {
+                        setTextFontSize(progress + offsetSize)
+                        stopTTS()
+
+                        updateAllTextOnDismiss = true
+                    }
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+            bottomSheetDialog.setOnDismissListener {
+                if (updateAllTextOnDismiss) {
+                    loadTextLines()
+                    globalTTSLines.clear()
+                }
+            }
+            bottomSheetDialog.show()
         }
 
         setRot(OrientationType.fromSpinner(DataStore.getKey(EPUB_LOCK_ROTATION,
@@ -1104,7 +1248,7 @@ class ReadActivity : AppCompatActivity() {
                                 //MIGHT BE INTERESTING https://stackoverflow.com/questions/44461533/android-o-new-texttospeech-onrangestart-callback
                                 override fun onDone(utteranceId: String) {
                                     canSpeak = true
-                                  //  println("ENDMS: " + System.currentTimeMillis())
+                                    //  println("ENDMS: " + System.currentTimeMillis())
                                 }
 
                                 override fun onError(utteranceId: String) {
@@ -1112,7 +1256,7 @@ class ReadActivity : AppCompatActivity() {
                                 }
 
                                 override fun onStart(utteranceId: String) {
-                                  //  println("STARTMS: " + System.currentTimeMillis())
+                                    //  println("STARTMS: " + System.currentTimeMillis())
                                 }
                             })
                             readTTSClick()

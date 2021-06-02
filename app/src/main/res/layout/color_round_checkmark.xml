@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="70dp" android:layout_height="70dp">
+    <ImageView
+            android:layout_margin="10dp"
+            android:id="@+id/image1"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:foreground="@drawable/color_selection_check"
+            android:foregroundGravity="center"
+            android:foregroundTint="?attr/colorPrimary"
+            android:background="@drawable/color_selection"
+            android:backgroundTint="#141414"
+            android:src="@drawable/color_selection_outline"
+            android:contentDescription="@string/reading_color" xmlns:app="http://schemas.android.com/apk/res-auto">
+    </ImageView>
+</FrameLayout>
+

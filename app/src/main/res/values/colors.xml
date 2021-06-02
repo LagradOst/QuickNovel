@@ -23,7 +23,7 @@
     <color name="white">#FFF</color>
     <color name="readerBackground">#292832</color> <!--3c3c3c-->
     <color name="readerTextColor">#cccccc</color>
-    <color name="readerHightlightedTextColor">#206f96</color>
+    <color name="readerHightlightedTextColor">#6600ABFF</color>
     <color name="readerHightlightedMetaInfo">#191919</color>
     <color name="roundedTextBorder">#DD0277BD</color>
 
