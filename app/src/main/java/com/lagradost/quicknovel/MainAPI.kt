@@ -50,6 +50,13 @@ fun MainAPI.fixUrl(url: String): String {
     return url
 }
 
+
+val String?.textClean: String?
+    get() = (this
+        ?.replace("\\.([^-\\s])".toRegex(), "$1")
+        ?.replace("\\+([^-\\s])".toRegex(), "$1")
+            )
+
 fun stripHtml(txt: String, chapterName: String? = null, chapterIndex: Int? = null): String {
     val document = Jsoup.parse(txt)
     if (chapterName != null && chapterIndex != null) {

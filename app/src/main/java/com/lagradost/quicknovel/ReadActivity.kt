@@ -162,8 +162,7 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         if (isTTSRunning) {
             nextTTSLine()
             return true
-        }
-        else if(isTTSPaused) {
+        } else if (isTTSPaused) {
             isTTSRunning = true
             nextTTSLine()
             return true
@@ -748,6 +747,8 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val job = Job()
         val uiScope = CoroutineScope(Dispatchers.Main + job)
         uiScope.launch {
+            val text =  read_text.text
+            val cleanText = text.replace("\\.([^-\\s])".toRegex(),",$1")
             val ttsLines = ArrayList<TTSLine>()
 
             var index = 0
@@ -755,9 +756,9 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 val invalidStartChars =
                     arrayOf(' ', '.', ',', '\n', '\"',
                         '\'', '’', '‘', '“', '”', '«', '»', '「', '」', '…')
-                while (invalidStartChars.contains(read_text.text[index])) {
+                while (invalidStartChars.contains(text[index])) {
                     index++
-                    if (index >= read_text.text.length) {
+                    if (index >= text.length) {
                         globalTTSLines = ttsLines
                         callback.invoke(true)
                         return@launch //TODO NEXT CHAPTER
@@ -766,17 +767,9 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
                 var endIndex = Int.MAX_VALUE
                 for (a in arrayOf(".", "\n", ";", "?", ":")) {
-                    val indexEnd = read_text.text.indexOf(a, index)
+                    val indexEnd = cleanText.indexOf(a, index)
+
                     if (indexEnd == -1) continue
-                    /*while (true) {
-                        if (indexEnd + 1 < read_text.text.length) {
-                            if (read_text.text[indexEnd + 1] == '.') {
-                                indexEnd++
-                                continue
-                            }
-                        }
-                        break
-                    }*/
 
                     if (indexEnd < endIndex) {
                         endIndex = indexEnd + 1
@@ -784,10 +777,10 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 }
 
 
-                if (endIndex > read_text.text.length) {
-                    endIndex = read_text.text.length
+                if (endIndex > text.length) {
+                    endIndex = text.length
                 }
-                if (index >= read_text.text.length) {
+                if (index >= text.length) {
                     globalTTSLines = ttsLines
                     callback.invoke(true)
                     return@launch //TODO NEXT CHAPTER
@@ -798,8 +791,8 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 while (true) {
                     var containsInvalidEndChar = false
                     for (a in invalidEndChars) {
-                        if (endIndex <= 0 || endIndex > read_text.text.length) break
-                        if (read_text.text[endIndex - 1] == a) {
+                        if (endIndex <= 0 || endIndex > text.length) break
+                        if (text[endIndex - 1] == a) {
                             containsInvalidEndChar = true
                             endIndex--
                         }
@@ -811,10 +804,10 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
                 try {
                     // THIS PART IF FOR THE SPEAK PART, REMOVING STUFF THAT IS WACK
-                    val message = read_text.text.substring(index, endIndex)
+                    val message = text.substring(index, endIndex)
                     var msg = message//Regex("\\p{L}").replace(message,"")
                     val invalidChars =
-                        arrayOf("-", "<", ">", "_", "^", "\'", "«", "»", "「", "」", "—", "¿")
+                        arrayOf("-", "<", ">", "_", "^", "«", "»", "「", "」", "—", "¿","*") // "\'", //Don't ect
                     for (c in invalidChars) {
                         msg = msg.replace(c, " ")
                     }
@@ -827,29 +820,9 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                             .replace("\t", "")
                             .replace(".", "").isNotEmpty()
                     ) {
-                        /*for (s in 0..startLines.size) {
-                                   if (startLines[s] > index) {
-                                       for (e in s..startLines.size) {
-                                           if (startLines[e] > endIndex) {
-                                               if (read_text.layout == null) return@runOnUiThread
-                                               maxScroll = read_text.layout.getLineTop(s)
-                                               minScroll = read_text.layout.getLineBottom(e)
-                                               if (read_scroll.height + read_scroll.scrollY < minScroll ||
-                                                   read_scroll.scrollY > maxScroll
-                                               ) {
-                                                   read_scroll.scrollTo(0, read_text.layout.getLineTop(s))
-                                               }
-                                               break
-                                           }
-                                       }
-                                       //read_scroll.scrollTo(0, read_text.layout.getLineTop(i) - 200) // SKIP SNAP SETTING
-
-                                       break
-                                   }
-                               }*/
                         if (textLines == null)
                             return@launch
-                        for (s in 0..(textLines?.size ?: 0)) {
+                        for (s in 0..(textLines?.size ?: 0)) { // SET UP MAX SCROLL
                             val start = textLines?.get(s) ?: return@launch
 
                             if (start.startIndex > index) {
@@ -857,14 +830,9 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                                     val end = textLines?.get(e) ?: return@launch
                                     if (end.startIndex > endIndex) {
                                         if (read_text.layout == null) return@launch
-                                        maxScroll = start.topPosition//read_text.layout.getLineTop(s)
-                                        minScroll = end.bottomPosition // read_text.layout.getLineBottom(e)
+                                        maxScroll = start.topPosition
+                                        minScroll = end.bottomPosition
                                         ttsLines.add(TTSLine(msg, index, endIndex, minScroll, maxScroll))
-                                        /*if (read_scroll.height + read_scroll.scrollY < minScroll ||
-                                            read_scroll.scrollY > maxScroll
-                                        ) {
-                                            read_scroll.scrollTo(0, read_text.layout.getLineTop(s))
-                                        }*/
                                         break
                                     }
                                 }
@@ -890,6 +858,10 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val job = Job()
         val uiScope = CoroutineScope(Dispatchers.Main + job)
         uiScope.launch {
+            while (tts == null) {
+                if (!isTTSRunning) return@launch
+                delay(50)
+            }
             if (index != null) {
                 readFromIndex = index
             } else {
@@ -1040,7 +1012,7 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         override fun onMediaButtonEvent(mediaButtonEvent: Intent): Boolean {
             val keyEvent = mediaButtonEvent.getParcelableExtra(Intent.EXTRA_KEY_EVENT) as KeyEvent?
             if (keyEvent != null) {
-                if(keyEvent.action == KeyEvent.ACTION_DOWN) { // NO DOUBLE SKIP
+                if (keyEvent.action == KeyEvent.ACTION_DOWN) { // NO DOUBLE SKIP
                     val consumed = when (keyEvent.keyCode) {
                         KeyEvent.KEYCODE_MEDIA_PAUSE -> callOnPause()
                         KeyEvent.KEYCODE_MEDIA_PLAY -> callOnPlay()
@@ -1111,6 +1083,10 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
 
         read_action_tts.setOnClickListener {
+            if (tts == null) {
+                tts = TextToSpeech(this, this)
+            }
+
             when (ttsStatus) {
                 TTSStatus.IsStopped -> startTTS()
                 TTSStatus.IsRunning -> stopTTS()
@@ -1127,7 +1103,6 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         read_overflow_progress.max = OVERFLOW_NEXT_CHAPTER_DELTA
 
         readActivity = this
-        tts = TextToSpeech(this, this)
 
         val parameter = read_topmargin.layoutParams as LinearLayout.LayoutParams
         parameter.setMargins(parameter.leftMargin,

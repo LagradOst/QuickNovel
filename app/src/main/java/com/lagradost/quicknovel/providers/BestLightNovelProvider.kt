@@ -1,19 +1,10 @@
 package com.lagradost.quicknovel.providers
 
-import com.lagradost.quicknovel.ChapterData
-import com.lagradost.quicknovel.LoadResponse
-import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.*
 import org.jsoup.Jsoup
 import java.lang.Exception
 import java.util.*
 import kotlin.collections.ArrayList
-
-val String?.textClean: String?
-    get() = (this
-        ?.replace("\\.([^-\\s])".toRegex(), "$1")
-        ?.replace("\\+([^-\\s])".toRegex(), "$1")
-            )
 
 class BestLightNovelProvider : MainAPI() {
     override val name: String get() = "BestLightNovel"
