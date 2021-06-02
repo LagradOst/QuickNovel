@@ -69,5 +69,7 @@
     <string name="general_settings">General</string>
     <string name="lock_tts">Lock TTS scroll area</string>
     <string name="reading_color">Reading Color</string>
-    <string name="read_color">Reader Color</string>
+    <string name="read_color">Color</string>
+    <string name="show_battery">Show Battery</string>
+    <string name="show_time">Show Time</string>
 </resources>

@@ -63,26 +63,38 @@
     </LinearLayout>
 
     <FrameLayout
-            android:visibility="gone"
+            android:visibility="visible"
             android:id="@+id/read_overlay"
             android:orientation="horizontal"
             android:layout_gravity="bottom"
             android:layout_width="match_parent"
             android:paddingLeft="10dp"
             android:paddingRight="10dp"
-            android:background="@color/readerHightlightedMetaInfo"
+            android:background="@color/transparent"
 
             android:layout_height="25dp">
         <TextView
                 tools:text="20:35"
                 android:textStyle="bold"
-                android:gravity="center"
+                android:layout_marginStart="20dp"
+                android:gravity="center_vertical"
                 android:id="@+id/read_time"
                 android:textSize="11sp"
                 android:textColor="@color/readerTextColor"
-                android:layout_width="50dp" android:layout_height="match_parent" tools:ignore="SmallSp">
+                android:layout_width="match_parent" android:layout_height="match_parent" tools:ignore="SmallSp">
         </TextView>
         <TextView
+                tools:text="20:35"
+                android:textStyle="bold"
+                android:gravity="center_vertical|end"
+                android:id="@+id/read_battery"
+                android:textSize="11sp"
+                android:layout_marginEnd="20dp"
+                android:textColor="@color/readerTextColor"
+                android:layout_width="match_parent" android:layout_height="match_parent" tools:ignore="SmallSp">
+        </TextView>
+        <TextView
+                android:visibility="gone"
                 android:layout_marginLeft="50dp"
                 android:layout_marginRight="50dp"
                 android:textSize="10sp"
@@ -131,6 +143,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:layout_gravity="bottom"
+            tools:visibility="gone"
             android:background="?attr/grayBackground">
 
         <ImageButton

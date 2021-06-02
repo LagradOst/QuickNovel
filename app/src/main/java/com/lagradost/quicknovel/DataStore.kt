@@ -23,6 +23,8 @@ const val EPUB_TEXT_SIZE: String = "reader_epub_text_size"
 const val EPUB_SCROLL_VOL: String = "reader_epub_scroll_volume"
 const val EPUB_BG_COLOR: String = "reader_epub_bg_color"
 const val EPUB_TEXT_COLOR: String = "reader_epub_text_color"
+const val EPUB_HAS_BATTERY: String = "reader_epub_has_battery"
+const val EPUB_HAS_TIME: String = "reader_epub_has_time"
 
 @SuppressLint("StaticFieldLeak")
 object DataStore {

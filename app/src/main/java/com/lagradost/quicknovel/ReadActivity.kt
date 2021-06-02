@@ -16,6 +16,7 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
+import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
@@ -479,7 +480,24 @@ class ReadActivity : AppCompatActivity() {
         }
     }
 
+    var batteryStatus: Intent? = null
+
+    @SuppressLint("SetTextI18n")
+    fun updateBatteryText() {
+        val batteryPct: Float? = batteryStatus?.let { intent ->
+            val level: Int = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+            val scale: Int = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+            level * 100 / scale.toFloat()
+        }
+        if (batteryPct == null) {
+            read_battery.text = ""
+        } else {
+            read_battery.text = "${batteryPct.toInt()}%"
+        }
+    }
+
     private fun updateTimeText() {
+        updateBatteryText()
         val currentTime: String = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
         if (read_time != null) {
             read_time.text = currentTime
@@ -1069,12 +1087,40 @@ class ReadActivity : AppCompatActivity() {
 
     private fun setTextColor(color: Int) {
         read_text?.setTextColor(color)
+        read_battery?.setTextColor(color)
+        read_time?.setTextColor(color)
+        read_title_text?.setTextColor(color)
         DataStore.setKey(EPUB_TEXT_COLOR, color)
+    }
+
+    private fun updateHasBattery(status: Boolean? = null): Boolean {
+        val set = if (status != null) {
+            DataStore.setKey(EPUB_HAS_BATTERY, status)
+            status
+        } else {
+            DataStore.getKey(EPUB_HAS_BATTERY, true)!!
+        }
+        read_battery?.visibility = if (set) View.VISIBLE else View.GONE
+        return set
+    }
+
+    private fun updateHasTime(status: Boolean? = null): Boolean {
+        val set = if (status != null) {
+            DataStore.setKey(EPUB_HAS_TIME, status)
+            status
+        } else {
+            DataStore.getKey(EPUB_HAS_TIME, true)!!
+        }
+        read_time?.visibility = if (set) View.VISIBLE else View.GONE
+        return set
     }
 
     private fun getTextColor(): Int {
         val color = DataStore.getKey(EPUB_TEXT_COLOR, getColor(R.color.readerTextColor))!!
         read_text?.setTextColor(color)
+        read_battery?.setTextColor(color)
+        read_time?.setTextColor(color)
+        read_title_text?.setTextColor(color)
         return color
     }
 
@@ -1088,6 +1134,10 @@ class ReadActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         DataStore.init(this)
+
+        batteryStatus = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { ifilter ->
+            this.registerReceiver(null, ifilter)
+        }
 
         val data = intent.data
         if (data == null) {
@@ -1110,6 +1160,8 @@ class ReadActivity : AppCompatActivity() {
         getScrollWithVol()
         getBackgroundColor()
         getTextColor()
+        updateHasTime()
+        updateHasBattery()
 
         createNotificationChannel()
         read_title_text.minHeight = read_toolbar.height
@@ -1142,7 +1194,12 @@ class ReadActivity : AppCompatActivity() {
             val read_settings_scroll_vol =
                 bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_scroll_vol)!!
             val read_settings_lock_tts = bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_lock_tts)!!
+            val show_time = bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_time)!!
+            val show_battery = bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_battery)!!
 
+            val root = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_root)!!
+            val horizontal_colors = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_colors)!!
+            
             read_settings_scroll_vol.isChecked = scrollWithVol
             read_settings_scroll_vol.setOnCheckedChangeListener { _, checked ->
                 setScrollWithVol(checked)
@@ -1152,8 +1209,17 @@ class ReadActivity : AppCompatActivity() {
             read_settings_lock_tts.setOnCheckedChangeListener { _, checked ->
                 setLockTTS(checked)
             }
-            val root = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_root)!!
-            val horizontal_colors = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_colors)!!
+
+            show_time.isChecked = updateHasTime()
+            show_time.setOnCheckedChangeListener { _, checked ->
+                updateHasTime(checked)
+            }
+
+            show_battery.isChecked = updateHasBattery()
+            show_battery.setOnCheckedChangeListener { _, checked ->
+                updateHasBattery(checked)
+            }
+
             val bgColors = resources.getIntArray(R.array.readerBgColors)
             val textColors = resources.getIntArray(R.array.readerTextColors)
 
