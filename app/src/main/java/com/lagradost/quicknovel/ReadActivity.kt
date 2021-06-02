@@ -132,7 +132,7 @@ enum class TTSActionType {
     Stop,
 }
 
-class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
+class ReadActivity : AppCompatActivity() {
     companion object {
         lateinit var readActivity: ReadActivity
     }
@@ -179,33 +179,6 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private var tts: TextToSpeech? = null
 
     private var bookCover: Bitmap? = null
-
-    override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-
-            val result = tts!!.setLanguage(Locale.US)
-
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                showMessage("This Language is not supported")
-            } else { // TESTING
-                tts!!.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                    override fun onDone(utteranceId: String) {
-                        canSpeak = true
-                    }
-
-                    override fun onError(utteranceId: String) {
-                        canSpeak = true
-                    }
-
-                    override fun onStart(utteranceId: String) {
-
-                    }
-                })
-            }
-        } else {
-            showMessage("Initialization Failed!")
-        }
-    }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
@@ -1050,14 +1023,14 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val data = intent.data
-        if(data == null) {
+        if (data == null) {
             finish()
             return
         }
 
         // THIS WAY YOU CAN OPEN FROM FILE OR FROM APP
         val input = contentResolver.openInputStream(data)
-        if(input == null) {
+        if (input == null) {
             finish()
             return
         }
@@ -1099,14 +1072,44 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
 
         read_action_tts.setOnClickListener {
-            if (tts == null) {
-                tts = TextToSpeech(this, this)
+            fun readTTSClick() {
+                when (ttsStatus) {
+                    TTSStatus.IsStopped -> startTTS()
+                    TTSStatus.IsRunning -> stopTTS()
+                    TTSStatus.IsPaused -> isTTSPaused = false
+                }
             }
 
-            when (ttsStatus) {
-                TTSStatus.IsStopped -> startTTS()
-                TTSStatus.IsRunning -> stopTTS()
-                TTSStatus.IsPaused -> isTTSPaused = false
+            // DON'T INIT TTS UNTIL IT IS NECESSARY
+            if (tts == null) {
+                tts = TextToSpeech(this) { status ->
+                    if (status == TextToSpeech.SUCCESS) {
+                        val result = tts!!.setLanguage(Locale.US)
+
+                        if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                            showMessage("This Language is not supported")
+                        } else {
+                            tts!!.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                                override fun onDone(utteranceId: String) {
+                                    canSpeak = true
+                                }
+
+                                override fun onError(utteranceId: String) {
+                                    canSpeak = true
+                                }
+
+                                override fun onStart(utteranceId: String) {
+
+                                }
+                            })
+                            readTTSClick()
+                        }
+                    } else {
+                        showMessage("Initialization Failed!")
+                    }
+                }
+            } else {
+                readTTSClick()
             }
         }
 
@@ -1220,10 +1223,6 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             return@setOnTouchListener false
         }
 
-        chapterTitles = ArrayList()
-        for ((index, chapter) in book.tableOfContents.tocReferences.withIndex()) {
-            chapterTitles.add(chapter.title ?: "Chapter ${index + 1}")
-        }
         read_overlay.setOnClickListener {
             selectChapter()
         }
@@ -1235,5 +1234,10 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             scrollToTop = true,
             scrollToRemember = true)
         updateTimeText()
+
+        chapterTitles = ArrayList()
+        for ((index, chapter) in book.tableOfContents.tocReferences.withIndex()) {
+            chapterTitles.add(chapter.title ?: "Chapter ${index + 1}")
+        }
     }
 }
