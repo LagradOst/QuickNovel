@@ -8,14 +8,20 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.*
 import android.content.res.Configuration
+import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
+import android.media.MediaPlayer
+import android.net.Uri
 import android.os.Build
+import android.os.Bundle
+import android.provider.MediaStore
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.support.v4.media.session.MediaSessionCompat
 import android.text.Spannable
 import android.text.SpannableString
 import android.view.KeyEvent
@@ -26,11 +32,14 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.doOnEnd
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.net.toFile
 import androidx.core.text.HtmlCompat
 import androidx.core.text.getSpans
+import androidx.media.session.MediaButtonReceiver
 import com.lagradost.quicknovel.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.UIHelper.popupMenu
@@ -48,13 +57,7 @@ import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.sqrt
-import android.content.ComponentName
-import android.content.Intent
-import android.media.MediaPlayer
-import android.os.Bundle
-import android.support.v4.media.session.MediaSessionCompat
-import androidx.appcompat.app.AppCompatActivity
-import androidx.media.session.MediaButtonReceiver
+
 
 const val OVERFLOW_NEXT_CHAPTER_DELTA = 600
 const val OVERFLOW_NEXT_CHAPTER_SHOW_PROCENTAGE = 10
@@ -152,7 +155,7 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     fun callOnStop(): Boolean {
         if (isTTSRunning) {
-            isTTSRunning = true
+            stopTTS()
             return true
         }
         return false
@@ -747,8 +750,8 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val job = Job()
         val uiScope = CoroutineScope(Dispatchers.Main + job)
         uiScope.launch {
-            val text =  read_text.text
-            val cleanText = text.replace("\\.([^-\\s])".toRegex(),",$1")
+            val text = read_text.text
+            val cleanText = text.replace("\\.([^-\\s])".toRegex(), ",$1")
             val ttsLines = ArrayList<TTSLine>()
 
             var index = 0
@@ -807,7 +810,7 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     val message = text.substring(index, endIndex)
                     var msg = message//Regex("\\p{L}").replace(message,"")
                     val invalidChars =
-                        arrayOf("-", "<", ">", "_", "^", "«", "»", "「", "」", "—", "¿","*") // "\'", //Don't ect
+                        arrayOf("-", "<", ">", "_", "^", "«", "»", "「", "」", "—", "¿", "*") // "\'", //Don't ect
                     for (c in invalidChars) {
                         msg = msg.replace(c, " ")
                     }
@@ -1046,6 +1049,19 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val data = intent.data
+        if(data == null) {
+            finish()
+            return
+        }
+
+        // THIS WAY YOU CAN OPEN FROM FILE OR FROM APP
+        val input = contentResolver.openInputStream(data)
+        if(input == null) {
+            finish()
+            return
+        }
+
         initMediaSession()
         setContentView(R.layout.read_main)
         initTTSSession()
@@ -1113,16 +1129,6 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         window.navigationBarColor =
             colorFromAttribute(R.attr.grayBackground) //getColor(R.color.readerHightlightedMetaInfo)
 
-        val intent = intent
-        path = intent.getStringExtra("path")!!
-
-        val epubReader = EpubReader()
-        book = epubReader.readEpub(FileInputStream(path))
-        maxChapter = book.tableOfContents.tocReferences.size
-        loadChapter(DataStore.getKey(EPUB_CURRENT_POSITION, book.title) ?: 0,
-            scrollToTop = true,
-            scrollToRemember = true)
-        updateTimeText()
         read_scroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->
             checkTTSRange(scrollY)
 
@@ -1218,5 +1224,13 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         read_overlay.setOnClickListener {
             selectChapter()
         }
+
+        val epubReader = EpubReader()
+        book = epubReader.readEpub(input)
+        maxChapter = book.tableOfContents.tocReferences.size
+        loadChapter(DataStore.getKey(EPUB_CURRENT_POSITION, book.title) ?: 0,
+            scrollToTop = true,
+            scrollToRemember = true)
+        updateTimeText()
     }
 }

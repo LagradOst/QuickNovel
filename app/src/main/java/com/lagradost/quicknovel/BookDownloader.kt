@@ -31,6 +31,7 @@ import android.content.Intent.*
 import android.webkit.MimeTypeMap
 
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import androidx.preference.PreferenceManager
 import com.lagradost.quicknovel.UIHelper.colorFromAttribute
 
@@ -229,7 +230,7 @@ object BookDownloader {
                 File(android.os.Environment.getExternalStorageDirectory().path +
                         "${fs}Download${fs}Epub${fs}",
                     "${sanitizeFilename(name)}.epub")
-            myIntent.putExtra("path", bookFile.path) //Optional parameters
+            myIntent.setDataAndType(bookFile.toUri(),"application/epub+zip")
 
             MainActivity.activity.startActivity(myIntent)
 
