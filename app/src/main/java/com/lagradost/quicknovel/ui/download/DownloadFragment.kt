@@ -45,7 +45,7 @@ class DownloadFragment : Fragment() {
                 res.data.size) // FIX BUG WHEN DOWNLOAD IS OVER TOTAL
 
             DataStore.setKey(DOWNLOAD_FOLDER, BookDownloader.generateId(res, api).toString(),
-                DownloadFragment.DownloadData(source,
+                DownloadData(source,
                     res.name,
                     res.author,
                     res.posterUrl,
@@ -67,7 +67,7 @@ class DownloadFragment : Fragment() {
             }
         }
 
-        fun updateDownloadFromCard(card: DownloadFragment.DownloadDataLoaded, pauseOngoing: Boolean = false) {
+        fun updateDownloadFromCard(card: DownloadDataLoaded, pauseOngoing: Boolean = false) {
             thread {
                 val api = MainActivity.getApiFromName(card.apiName)
                 val res =
@@ -152,15 +152,15 @@ class DownloadFragment : Fragment() {
         super.onDestroy()
     }
 
-    fun updateDownloadInfo(info: BookDownloader.DownloadNotification) {
+    private fun updateDownloadInfo(info: BookDownloader.DownloadNotification) {
         viewModel.updateDownloadInfo(info)
     }
 
-    fun removeAction(id: Int) {
+    private fun removeAction(id: Int) {
         viewModel.removeActon(id)
     }
 
-    fun updateData(data: ArrayList<DownloadFragment.DownloadDataLoaded>) {
+    private fun updateData(data: ArrayList<DownloadDataLoaded>) {
         (download_cardSpace.adapter as DloadAdapter).cardList = data
         (download_cardSpace.adapter as DloadAdapter).notifyDataSetChanged()
     }
@@ -189,7 +189,7 @@ class DownloadFragment : Fragment() {
                     res.adapter = arrayAdapter
                     res.setItemChecked(sotringMethods.indexOfFirst { t -> t.id == viewModel.currentSortingMethod.value },
                         true)
-                    res.setOnItemClickListener { parent, view, position, id ->
+                    res.setOnItemClickListener { _, _, position, _ ->
                         val sel = sotringMethods[position].id
                         DataStore.setKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, sel)
                         viewModel.sortData(sel)
@@ -222,7 +222,6 @@ class DownloadFragment : Fragment() {
             dialog.show()
         }*/
 
-
         swipe_container.setProgressBackgroundColorSchemeColor(requireContext().colorFromAttribute(R.attr.darkBackground))
         swipe_container.setColorSchemeColors(requireContext().colorFromAttribute(R.attr.colorPrimary))
         swipe_container.setOnRefreshListener {
@@ -237,7 +236,7 @@ class DownloadFragment : Fragment() {
         val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = context?.let {
             DloadAdapter(
                 it,
-                ArrayList<DownloadDataLoaded>(),
+                ArrayList(),
                 download_cardSpace,
             )
         }
@@ -246,9 +245,8 @@ class DownloadFragment : Fragment() {
         download_cardSpace.adapter = adapter
         val animator: ItemAnimator = download_cardSpace.getItemAnimator()!!
         if (animator is SimpleItemAnimator) {
-            (animator as SimpleItemAnimator).supportsChangeAnimations = false
+            animator.supportsChangeAnimations = false
         }
-
 
         download_cardSpace.layoutManager = GridLayoutManager(context, 1)
 

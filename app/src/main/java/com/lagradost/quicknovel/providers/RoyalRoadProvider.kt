@@ -321,7 +321,9 @@ class RoyalRoadProvider : MainAPI() {
                 }
             }
 
-            return LoadResponse(name,
+            return LoadResponse(
+                url,
+                name,
                 data,
                 author,
                 fixUrl(posterUrl),

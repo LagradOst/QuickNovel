@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel
 
 import org.jsoup.Jsoup
+import java.security.CodeSource
 
 abstract class MainAPI {
     open val name = "NONE"
@@ -111,6 +112,7 @@ data class SearchResponse(
 )
 
 data class LoadResponse(
+    val source: String,
     val name: String,
     val data: ArrayList<ChapterData>,
     val author: String?,

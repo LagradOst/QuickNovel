@@ -1114,6 +1114,9 @@ class ReadActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         read_toolbar.setNavigationIcon(R.drawable.ic_baseline_arrow_back_24)
         read_toolbar.setNavigationOnClickListener {
+            with(NotificationManagerCompat.from(this)) { // KILLS NOTIFICATION
+                cancel(TTS_NOTIFICATION_ID)
+            }
             finish() // KILLS ACTIVITY
         }
         read_overflow_progress.max = OVERFLOW_NEXT_CHAPTER_DELTA

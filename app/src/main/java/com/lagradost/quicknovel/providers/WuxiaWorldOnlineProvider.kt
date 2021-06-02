@@ -85,7 +85,13 @@ class WuxiaWorldOnlineProvider : MainAPI() {
                 val posterUrl = a.selectFirst("> img").attr("src")
 
                 val latestChap = h.select("> ul > li")[1].selectFirst("> span > a").text()
-                returnValue.add(MainPageResponse(name, fixUrl(url), fixUrl(posterUrl), null, latestChap, this.name, ArrayList()))
+                returnValue.add(MainPageResponse(name,
+                    fixUrl(url),
+                    fixUrl(posterUrl),
+                    null,
+                    latestChap,
+                    this.name,
+                    ArrayList()))
             }
             return HeadMainPageResponse(url, returnValue)
         } catch (e: Exception) {
@@ -223,7 +229,18 @@ class WuxiaWorldOnlineProvider : MainAPI() {
                     else -> 0
                 }
 
-            return LoadResponse(name, data, author, fixUrl(posterUrl), rating, peopleVoted, views, synopsis, tags, status)
+            return LoadResponse(
+                url,
+                name,
+                data,
+                author,
+                fixUrl(posterUrl),
+                rating,
+                peopleVoted,
+                views,
+                synopsis,
+                tags,
+                status)
         } catch (e: Exception) {
             return null
         }

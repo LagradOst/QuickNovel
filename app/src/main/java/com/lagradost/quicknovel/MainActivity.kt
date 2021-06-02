@@ -130,7 +130,7 @@ class MainActivity : AppCompatActivity() {
             return getGridFormat() != "grid"
         }
 
-        fun loadResutFromUrl(url: String?) {
+        fun loadResultFromUrl(url: String?) {
             if (url == null) return
             for (api in apis) {
                 if (url.contains(api.mainUrl)) {
@@ -243,7 +243,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent?) {
         val data: String? = intent?.data?.toString()
-        loadResutFromUrl(data)
+        loadResultFromUrl(data)
         super.onNewIntent(intent)
     }
 
@@ -264,7 +264,6 @@ class MainActivity : AppCompatActivity() {
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
 
         val navView: BottomNavigationView = findViewById(R.id.nav_view)
 
@@ -329,7 +328,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val data: String? = intent?.data?.toString()
-        loadResutFromUrl(data)
+        loadResultFromUrl(data)
 
         if (!BookDownloader.checkWrite()) {
             BookDownloader.requestRW()

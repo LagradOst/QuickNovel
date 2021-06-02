@@ -11,12 +11,15 @@ class DownloadViewModel : ViewModel() {
     }
     val standardSotringMethod = LAST_ACCES_SORT
     var currentSortingMethod: MutableLiveData<Int> =
-        MutableLiveData<Int>(DataStore.getKey(DOWNLOAD_SETTINGS,DOWNLOAD_SORTING_METHOD, standardSotringMethod)
+        MutableLiveData<Int>(DataStore.getKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, standardSotringMethod)
             ?: standardSotringMethod)
 
-    fun sortArray(arry: ArrayList<DownloadFragment.DownloadDataLoaded>, sortMethod: Int? = null): ArrayList<DownloadFragment.DownloadDataLoaded> {
+    fun sortArray(
+        arry: ArrayList<DownloadFragment.DownloadDataLoaded>,
+        sortMethod: Int? = null,
+    ): ArrayList<DownloadFragment.DownloadDataLoaded> {
 
-        if(sortMethod != null) {
+        if (sortMethod != null) {
             currentSortingMethod.postValue(sortMethod)
         }
 
@@ -58,13 +61,20 @@ class DownloadViewModel : ViewModel() {
     fun loadData() {
         val arry = ArrayList<DownloadFragment.DownloadDataLoaded>()
         val keys = DataStore.getKeys(DOWNLOAD_FOLDER)
+        val added = HashMap<String, Boolean>()
+
         for (k in keys) {
             val res =
                 DataStore.getKey<DownloadFragment.DownloadData>(k) // THIS SHIT LAGS THE APPLICATION IF ON MAIN THREAD (IF NOT WARMED UP BEFOREHAND, SEE @WARMUP)
+
             if (res != null) {
                 val localId = BookDownloader.generateId(res.apiName, res.author, res.name)
                 val info = BookDownloader.downloadInfo(res.author, res.name, 100000, res.apiName)
+
                 if (info != null && info.progress > 0) {
+                    if (added.containsKey(res.source)) continue // PREVENTS DUPLICATES
+                    added[res.source] = true
+
                     val state =
                         (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped)!!
                     arry.add(DownloadFragment.DownloadDataLoaded(
@@ -92,14 +102,14 @@ class DownloadViewModel : ViewModel() {
         cards.postValue(sortArray(arry))
     }
 
-    fun sortData(sortMethod : Int? = null) {
+    fun sortData(sortMethod: Int? = null) {
         if (cards.value != null) {
-            cards.postValue(sortArray(cards.value!!,sortMethod))
+            cards.postValue(sortArray(cards.value!!, sortMethod))
         }
     }
 
-    fun removeActon(id : Int) {
-        if(cards.value == null) return
+    fun removeActon(id: Int) {
+        if (cards.value == null) return
         val arry = cards.value!!
         var index = 0
         for (res in arry) {
@@ -113,7 +123,7 @@ class DownloadViewModel : ViewModel() {
     }
 
     fun updateDownloadInfo(info: BookDownloader.DownloadNotification) {
-        if(cards.value == null) return
+        if (cards.value == null) return
         val arry = cards.value!!
         var index = 0
         for (res in arry) {

@@ -91,7 +91,13 @@ class NovelPassionProvider : MainAPI() {
 
                 val rating = (h.selectFirst("> p.g_star_num > small").text()!!.toFloat() * 200).toInt()
                 val latestChapter = h.selectFirst("> div > div.dab > a").attr("title")
-                returnValue.add(MainPageResponse(name,fixUrl(url), posterUrl, rating, latestChapter, this.name, ArrayList()))
+                returnValue.add(MainPageResponse(name,
+                    fixUrl(url),
+                    posterUrl,
+                    rating,
+                    latestChapter,
+                    this.name,
+                    ArrayList()))
             }
             return HeadMainPageResponse(url, returnValue)
         } catch (e: Exception) {
@@ -202,7 +208,7 @@ class NovelPassionProvider : MainAPI() {
                 }
             }
 
-            return LoadResponse(name, data, author, posterUrl, rating, peopleVoted, views, synopsis, tags, status)
+            return LoadResponse(url, name, data, author, posterUrl, rating, peopleVoted, views, synopsis, tags, status)
         } catch (e: Exception) {
             return null
         }

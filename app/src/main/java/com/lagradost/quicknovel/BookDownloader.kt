@@ -7,33 +7,30 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.Intent.*
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.os.Build
+import android.webkit.MimeTypeMap
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.bumptech.glide.Glide
-import com.lagradost.quicknovel.BookDownloader.updateDownload
-import nl.siegmann.epublib.domain.Author
-import java.io.File
-import java.lang.Exception
-import java.lang.Thread.sleep
-import nl.siegmann.epublib.domain.Book
-import nl.siegmann.epublib.domain.MediaType
-import nl.siegmann.epublib.domain.Resource
-import nl.siegmann.epublib.service.MediatypeService
-import java.io.FileOutputStream
-
-import nl.siegmann.epublib.epub.EpubWriter
-import android.content.pm.PackageManager
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import android.content.Intent.*
-import android.webkit.MimeTypeMap
-
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.preference.PreferenceManager
+import com.bumptech.glide.Glide
+import com.lagradost.quicknovel.BookDownloader.updateDownload
 import com.lagradost.quicknovel.UIHelper.colorFromAttribute
+import nl.siegmann.epublib.domain.Author
+import nl.siegmann.epublib.domain.Book
+import nl.siegmann.epublib.domain.MediaType
+import nl.siegmann.epublib.domain.Resource
+import nl.siegmann.epublib.epub.EpubWriter
+import nl.siegmann.epublib.service.MediatypeService
+import java.io.File
+import java.io.FileOutputStream
+import java.lang.Thread.sleep
 
 
 const val CHANNEL_ID = "epubdownloader.general"
@@ -120,7 +117,7 @@ object BookDownloader {
 
         val not = cachedNotifications[id]
         if (not != null) {
-            createNotification(not.id, not.load, not.progress, not.total, not.eta, state, true)
+            createNotification(not.source, not.id, not.load, not.progress, not.total, not.eta, state, true)
         }
     }
 
@@ -230,7 +227,7 @@ object BookDownloader {
                 File(android.os.Environment.getExternalStorageDirectory().path +
                         "${fs}Download${fs}Epub${fs}",
                     "${sanitizeFilename(name)}.epub")
-            myIntent.setDataAndType(bookFile.toUri(),"application/epub+zip")
+            myIntent.setDataAndType(bookFile.toUri(), "application/epub+zip")
 
             MainActivity.activity.startActivity(myIntent)
 
@@ -426,7 +423,7 @@ object BookDownloader {
 
                     val dloadTime = System.currentTimeMillis() / 1000.0
                     timePerLoad = (dloadTime - lastTime) * 0.05 + timePerLoad * 0.95 // rolling avrage
-                    createAndStoreNotification(NotificationData(id,
+                    createAndStoreNotification(NotificationData(load.source, id,
                         load,
                         index + 1,
                         total,
@@ -435,7 +432,9 @@ object BookDownloader {
                     lastIndex = index + 1
                 }
                 if (lastIndex == total) {
-                    createAndStoreNotification(NotificationData(id,
+                    createAndStoreNotification(NotificationData(
+                        load.source,
+                        id,
                         load,
                         lastIndex,
                         total,
@@ -452,6 +451,7 @@ object BookDownloader {
     }
 
     data class NotificationData(
+        val source: String,
         val id: Int,
         val load: LoadResponse,
         val progress: Int,
@@ -460,14 +460,15 @@ object BookDownloader {
         val _state: DownloadType,
     )
 
-    val cachedNotifications = hashMapOf<Int, NotificationData>()
+    private val cachedNotifications = hashMapOf<Int, NotificationData>()
 
-    fun createAndStoreNotification(data: NotificationData, show: Boolean = true) {
+    private fun createAndStoreNotification(data: NotificationData, show: Boolean = true) {
         cachedNotifications[data.id] = data
-        createNotification(data.id, data.load, data.progress, data.total, data.eta, data._state, show)
+        createNotification(data.source, data.id, data.load, data.progress, data.total, data.eta, data._state, show)
     }
 
-    fun createNotification(
+    private fun createNotification(
+        source: String,
         id: Int,
         load: LoadResponse,
         progress: Int,
@@ -509,10 +510,11 @@ object BookDownloader {
 
         if (showNotification) {
             val intent = Intent(MainActivity.activity, MainActivity::class.java).apply {
+                data = source.toUri()
                 flags = FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TASK
             }
-            val pendingIntent: PendingIntent = PendingIntent.getActivity(MainActivity.activity, 0, intent, 0)
 
+            val pendingIntent: PendingIntent = PendingIntent.getActivity(MainActivity.activity, 0, intent, 0)
             val builder = NotificationCompat.Builder(MainActivity.activity, CHANNEL_ID)
                 .setAutoCancel(true)
                 .setColorized(true)
@@ -555,7 +557,7 @@ object BookDownloader {
             }
 
             if ((state == DownloadType.IsDownloading || state == DownloadType.IsPaused) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val actionTypes: MutableList<DownloadActionType> = ArrayList<DownloadActionType>()
+                val actionTypes: MutableList<DownloadActionType> = ArrayList()
                 // INIT
                 if (state == DownloadType.IsDownloading) {
                     actionTypes.add(DownloadActionType.Pause)

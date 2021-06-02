@@ -110,7 +110,7 @@ class BestLightNovelProvider : MainAPI() {
                 else -> 0
             }
 
-            return LoadResponse(name, data, author, posterUrl, rating, peopleVoted, views, synopsis, tags, status)
+            return LoadResponse(url, name, data, author, posterUrl, rating, peopleVoted, views, synopsis, tags, status)
         } catch (e: Exception) {
             return null
         }

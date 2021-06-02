@@ -222,7 +222,9 @@ class ReadLightNovelProvider : MainAPI() {
                 else -> 0
             }
 
-            return LoadResponse(name,
+            return LoadResponse(
+                url,
+                name,
                 data,
                 author,
                 fixUrl(posterUrl),
