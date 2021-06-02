@@ -8,17 +8,14 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.*
 import android.content.res.Configuration
-import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.support.v4.media.session.MediaSessionCompat
@@ -36,7 +33,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.doOnEnd
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.net.toFile
 import androidx.core.text.HtmlCompat
 import androidx.core.text.getSpans
 import androidx.media.session.MediaButtonReceiver
@@ -50,7 +46,6 @@ import kotlinx.coroutines.*
 import nl.siegmann.epublib.domain.Book
 import nl.siegmann.epublib.epub.EpubReader
 import org.jsoup.Jsoup
-import java.io.FileInputStream
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.abs
@@ -200,16 +195,27 @@ class ReadActivity : AppCompatActivity() {
         }
     }
 
-    private fun speakOut(msg: String) {
+    // USING Queue system because it is faster by about 0.2s
+    var currentTTSQueue: String? = null
+    private fun speakOut(msg: String, msgQueue: String? = null) {
         canSpeak = false
-
+        //println("GOT $msg | ${msgQueue ?: "NULL"}")
         if (msg.isEmpty() || msg.isBlank()) {
             showMessage("No data")
             return
         }
-        speakId++
         if (tts != null) {
-            tts!!.speak(msg, TextToSpeech.QUEUE_FLUSH, null, speakId.toString())
+            if (currentTTSQueue != msg) {
+                speakId++
+                tts!!.speak(msg, TextToSpeech.QUEUE_FLUSH, null, speakId.toString())
+                //println("FLUSH $msg")
+            }
+            if (msgQueue != null) {
+                speakId++
+                tts!!.speak(msgQueue, TextToSpeech.QUEUE_ADD, null, speakId.toString())
+                currentTTSQueue = msgQueue
+                //println("ADD $msgQueue")
+            }
         }
     }
 
@@ -399,7 +405,7 @@ class ReadActivity : AppCompatActivity() {
             ttsStatus = if (paused) TTSStatus.IsPaused else TTSStatus.IsRunning
             if (paused) {
                 readFromIndex--
-                interuptTTS()
+                interruptTTS()
             } else {
                 playDummySound() // FUCK ANDROID
             }
@@ -661,7 +667,7 @@ class ReadActivity : AppCompatActivity() {
             read_text.alpha = 1f
 
             globalTTSLines.clear()
-            interuptTTS()
+            interruptTTS()
             if (isTTSRunning || isTTSPaused) { // or Paused because it will fuck up otherwise
                 startTTS(true)
             }
@@ -684,7 +690,8 @@ class ReadActivity : AppCompatActivity() {
         }
     }
 
-    private fun interuptTTS() {
+    private fun interruptTTS() {
+        currentTTSQueue = null
         if (tts != null) {
             tts!!.stop()
         }
@@ -693,19 +700,19 @@ class ReadActivity : AppCompatActivity() {
 
     private fun nextTTSLine() {
         //readFromIndex++
-        interuptTTS()
+        interruptTTS()
     }
 
     private fun prevTTSLine() {
         readFromIndex -= 2
-        interuptTTS()
+        interruptTTS()
     }
 
     fun stopTTS() {
         runOnUiThread {
             isTTSRunning = false
             clearTextViewOfSpans(read_text)
-            interuptTTS()
+            interruptTTS()
         }
     }
 
@@ -869,6 +876,8 @@ class ReadActivity : AppCompatActivity() {
                     }
 
                     val line = globalTTSLines[readFromIndex]
+                    val nextLine =
+                        if (readFromIndex + 1 >= globalTTSLines.size) null else globalTTSLines[readFromIndex + 1]
 
                     setHighLightedText(read_text, line.startIndex, line.endIndex)
                     minScroll = line.minScroll
@@ -880,7 +889,8 @@ class ReadActivity : AppCompatActivity() {
 
                     val msg = line.speakOutMsg
                     if (msg.isNotEmpty() && msg.isNotBlank()) {
-                        speakOut(msg)
+                    //    println("SPEAKOUTMS " + System.currentTimeMillis())
+                        speakOut(msg, nextLine?.speakOutMsg)
                     }
 
                     if (msg.isEmpty()) {
@@ -891,6 +901,7 @@ class ReadActivity : AppCompatActivity() {
                         delay(10)
                         if (!isTTSRunning) return@launch
                     }
+                    //println("NEXTENDEDMS " + System.currentTimeMillis())
                     readFromIndex++
                 } catch (e: Exception) {
                     println(e)
@@ -1090,8 +1101,10 @@ class ReadActivity : AppCompatActivity() {
                             showMessage("This Language is not supported")
                         } else {
                             tts!!.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                                //MIGHT BE INTERESTING https://stackoverflow.com/questions/44461533/android-o-new-texttospeech-onrangestart-callback
                                 override fun onDone(utteranceId: String) {
                                     canSpeak = true
+                                  //  println("ENDMS: " + System.currentTimeMillis())
                                 }
 
                                 override fun onError(utteranceId: String) {
@@ -1099,7 +1112,7 @@ class ReadActivity : AppCompatActivity() {
                                 }
 
                                 override fun onStart(utteranceId: String) {
-
+                                  //  println("STARTMS: " + System.currentTimeMillis())
                                 }
                             })
                             readTTSClick()
