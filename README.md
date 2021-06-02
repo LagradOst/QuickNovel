@@ -23,4 +23,4 @@ Adfree FOSS Android app for downloading novels.
 
 **Screenshoots:**
 
-<img src="./.github/home.jpg" height="400"/><img src="./.github/search.jpg" height="400"/><img src="./.github/downloads.jpg" height="400"/><img src="./.github/result.jpg" height="400"/>
+<img src="./.github/home.jpg" height="400"/><img src="./.github/search.jpg" height="400"/><img src="./.github/downloads.jpg" height="400"/><img src="./.github/result.jpg" height="400"/><img src="./.github/reader.jpg" height="400"/>
