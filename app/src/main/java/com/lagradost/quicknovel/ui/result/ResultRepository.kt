@@ -1,33 +1,25 @@
 package com.lagradost.quicknovel.ui.result
 
-import android.os.Handler
 import com.lagradost.quicknovel.LoadResponse
-import com.lagradost.quicknovel.MainActivity
-import com.lagradost.quicknovel.threadPoolExecutor
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.flow
-import java.util.concurrent.Flow
-import kotlin.coroutines.CoroutineContext
+import com.lagradost.quicknovel.MainAPI
+import com.lagradost.quicknovel.UserReview
+import com.lagradost.quicknovel.mvvm.Resource
+import com.lagradost.quicknovel.mvvm.safeApiCall
 
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
-import kotlin.concurrent.thread
-
-class ResultRepository {
-    fun load(apiName: String, url: String, callback: (LoadResponse?) -> Unit) {
-        threadPoolExecutor.execute {
-            val data = MainActivity.getApiFromName(apiName).load(url)
-            callback(data)
+class ResultRepository(val api: MainAPI) {
+    suspend fun load(url: String): Resource<LoadResponse> {
+        return safeApiCall {
+            api.load(url)
         }
     }
 
-    companion object {
-        // Singleton instantiation you already know and love
-        @Volatile private var instance: ResultRepository? = null
-
-        fun getInstance() =
-            instance ?: synchronized(this) {
-                instance ?: ResultRepository().also { instance = it }
-            }
+    suspend fun loadReviews(
+        url: String,
+        page: Int,
+        showSpoilers: Boolean = false,
+    ): Resource<ArrayList<UserReview>> {
+        return safeApiCall {
+            api.loadReviews(url, page, showSpoilers)
+        }
     }
 }

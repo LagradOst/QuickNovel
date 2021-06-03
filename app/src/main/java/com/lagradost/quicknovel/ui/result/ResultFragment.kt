@@ -17,10 +17,8 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getColor
 import androidx.core.content.ContextCompat.getColorStateList
-import androidx.core.content.res.ResourcesCompat
 import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProviders
@@ -32,17 +30,26 @@ import com.bumptech.glide.request.RequestOptions.bitmapTransform
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayout
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.BookDownloader.hasEpub
+import com.lagradost.quicknovel.BookDownloader.openEpub
+import com.lagradost.quicknovel.BookDownloader.remove
 import com.lagradost.quicknovel.BookDownloader.turnToEpub
-import com.lagradost.quicknovel.UIHelper.colorFromAttribute
+import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.observe
-import com.lagradost.quicknovel.ui.download.DownloadFragment.Companion.updateDownloadFromResult
+import com.lagradost.quicknovel.ui.download.DownloadHelper
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
+import com.lagradost.quicknovel.util.Coroutines
+import com.lagradost.quicknovel.util.SettingsHelper.getRating
+import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
+import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
+import com.lagradost.quicknovel.util.UIHelper.getStatusBarHeight
+import com.lagradost.quicknovel.util.UIHelper.humanReadableByteCountSI
+import com.lagradost.quicknovel.util.toPx
 import jp.wasabeef.glide.transformations.BlurTransformation
 import kotlinx.android.synthetic.main.fragment_result.*
-import java.text.CharacterIterator
-import java.text.StringCharacterIterator
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlin.concurrent.thread
-import kotlin.math.max
 
 const val MAX_SYNO_LENGH = 300
 
@@ -58,21 +65,7 @@ class ResultFragment : Fragment() {
 
     private lateinit var viewModel: ResultViewModel
 
-    var resultUrl = ""
-    lateinit var api: MainAPI
-
-    fun humanReadableByteCountSI(bytes: Int): String {
-        var bytes = bytes
-        if (-1000 < bytes && bytes < 1000) {
-            return "$bytes"
-        }
-        val ci: CharacterIterator = StringCharacterIterator("kMGTPE")
-        while (bytes <= -999950 || bytes >= 999950) {
-            bytes /= 1000
-            ci.next()
-        }
-        return String.format("%.1f%c", bytes / 1000.0, ci.current()).replace(',', '.')
-    }
+    val api get() = viewModel.api
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -87,37 +80,36 @@ class ResultFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_result, container, false)
     }
 
-    val factory = InjectorUtils.provideResultViewModelFactory()
+    lateinit var apiName: String
+    lateinit var url: String
+    private var tid: Int = -1
+
     override fun onAttach(context: Context) {
         super.onAttach(context)
         arguments?.getString("url")?.let {
-            resultUrl = it
+            url = it
         }
         arguments?.getString("apiName")?.let {
-            api = MainActivity.getApiFromName(it)
+            apiName = it
         }
     }
 
-    override fun onActivityCreated(savedInstanceState: Bundle?) {
-        super.onActivityCreated(savedInstanceState)
-    }
-
-    fun getReviews(data: ArrayList<UserReview>) {
+    private fun getReviews(data: ArrayList<UserReview>) {
         (result_reviews.adapter as ReviewAdapter).cardList = data
         (result_reviews.adapter as ReviewAdapter).notifyDataSetChanged()
         isLoadingReviews = false
     }
 
-    var isLoadingReviews = false
-    fun loadReviews() {
+    private var isLoadingReviews = false
+    private fun loadReviews() {
         if (isLoadingReviews) return
         isLoadingReviews = true
-        viewModel.loadMoreReviews()
+        viewModel.loadMoreReviews(url)
     }
 
-    var generateEpub = false
-    var lastProgress: Int = 0
-    fun updateGenerateBtt(progress: Int?) {
+    private var generateEpub = false
+    private var lastProgress: Int = 0
+    private fun updateGenerateBtt(progress: Int?) {
         if (viewModel.loadResponse.value != null) {
             generateEpub =
                 DataStore.getKey(DOWNLOAD_EPUB_SIZE, viewModel.id.value.toString(), 0) != (progress ?: lastProgress)
@@ -168,7 +160,7 @@ class ResultFragment : Fragment() {
     }
 
     private fun updateScrollHeight() {
-        if(result_novelholder == null) return
+        if (result_novelholder == null) return
         val displayMetrics = requireContext().resources.displayMetrics
         val height = result_download_card.height
         val total = displayMetrics.heightPixels - height
@@ -222,275 +214,288 @@ class ResultFragment : Fragment() {
 
     override fun onDestroy() {
         //BookDownloader.downloadNotification -= ::updateDownloadInfo
-        MainActivity.activity.window.navigationBarColor =
+        activity?.window?.navigationBarColor =
             requireContext().colorFromAttribute(R.attr.darkBackground)
         super.onDestroy()
     }
 
-    fun newIsFailed(failed: Boolean) {
-        val isLoaded = viewModel.isLoaded.value ?: false
-        val validState = isLoaded && viewModel.loadResponse.value != null
-        result_loading.visibility = if (validState || failed) View.GONE else View.VISIBLE
-        result_reload_connectionerror.visibility = if (failed) View.VISIBLE else View.GONE
-    }
+    lateinit var load: Resource<LoadResponse>
 
-    fun newState(loadResponse: LoadResponse?) {
-        val isLoaded = viewModel.isLoaded.value ?: false
-        val validState = isLoaded && loadResponse != null
+    @SuppressLint("CutPasteId")
+    fun newState(loadResponse: Resource<LoadResponse>) {
+        load = loadResponse
 
-        /*
-        if (mainStore.state.resultState.downloadNotification == null) mainStore.dispatch(
-            LoadDownloadData())*/
+        activity?.window?.navigationBarColor =
+            requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground)
 
-        if (validState) {
-            val res = loadResponse!!
-            result_title.text = res.name
-            result_author.text = res.author ?: getString(R.string.no_author)
-
-            result_openinbrower_text.text = api.name //""// resultUrl
-            result_openinbrower.setOnClickListener {
-                val i = Intent(Intent.ACTION_VIEW)
-                i.data = Uri.parse(resultUrl)
-                startActivity(i)
+        when (loadResponse) {
+            is Resource.Failure -> {
+                result_loading.visibility = View.GONE
+                result_reload_connectionerror.visibility = View.VISIBLE
+                result_holder.visibility = View.GONE
             }
-
-            result_tabs.removeAllTabs()
-            result_tabs.visibility = if (api.hasReviews) View.VISIBLE else View.GONE
-            if (api.hasReviews) {
-                result_tabs.addTab(result_tabs.newTab().setText("Novel"))
-                result_tabs.addTab(result_tabs.newTab().setText("Reviews"))
-                val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = context?.let {
-                    ReviewAdapter(
-                        it,
-                        ArrayList(),
-                        result_reviews,
-                    )
-                }
-                result_reviews.adapter = adapter
-                result_reviews.layoutManager = GridLayoutManager(context, 1)
+            is Resource.Loading -> {
+                result_loading.visibility = View.VISIBLE
+                result_reload_connectionerror.visibility = View.GONE
+                result_holder.visibility = View.GONE
             }
+            is Resource.Success -> {
+                val res = loadResponse.value
 
-            result_tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-                override fun onTabSelected(tab: TabLayout.Tab?) {
-                    val pos = tab?.position
-                    viewModel.currentTabIndex.postValue(pos)
+                // LOAD IMAGES FIRST TO GIVE IT A BIT OF TIME
+                if(res.posterUrl != null) {
+                    val glideUrl =
+                        GlideUrl(res.posterUrl)
+                    requireContext().let {
+                        Glide.with(it)
+                            .load(glideUrl)
+                            .into(result_poster)
+
+                        Glide.with(it)
+                            .load(glideUrl)
+                            .apply(bitmapTransform(BlurTransformation(100, 3)))
+                            .into(result_poster_blur)
+                    }
                 }
 
-                override fun onTabUnselected(tab: TabLayout.Tab?) {}
+                // SET TEXT
+                result_title.text = res.name
+                result_author.text = res.author ?: getString(R.string.no_author)
 
-                override fun onTabReselected(tab: TabLayout.Tab?) {}
-            })
+                result_openinbrower_text.text = apiName //""// resultUrl
 
-            download_delete_trash_from_result.setOnClickListener {
-                val dialogClickListener =
-                    DialogInterface.OnClickListener { dialog, which ->
-                        when (which) {
-                            DialogInterface.BUTTON_POSITIVE -> {
-                                BookDownloader.remove(loadResponse.author,
-                                    loadResponse.name,
-                                    viewModel.apiName.value ?: "")
-                                var curren_value = viewModel.downloadNotification.value!!
+                result_openinbrower.setOnClickListener {
+                    val i = Intent(Intent.ACTION_VIEW)
+                    i.data = Uri.parse(url)
+                    startActivity(i)
+                }
 
-                                viewModel.downloadNotification.postValue(BookDownloader.DownloadNotification(0,
-                                    curren_value.total,
-                                    curren_value.id,
-                                    "",
-                                    BookDownloader.DownloadType.IsStopped))
-                            }
-                            DialogInterface.BUTTON_NEGATIVE -> {
+                result_rating_voted_count.text = getString(R.string.no_data)
+
+                if (res.rating != null) {
+                    result_rating.text = requireContext().getRating(res.rating)
+                    if (res.peopleVoted != null) {
+                        result_rating_voted_count.text = "${res.peopleVoted} Votes"
+                    }
+                }
+
+                result_views.text =
+                    if (res.views != null) humanReadableByteCountSI(res.views) else getString(R.string.no_data)
+
+                result_back.setColorFilter(Color.WHITE)
+
+                // SET TABS
+                result_tabs.removeAllTabs()
+                result_tabs.visibility = if (api.hasReviews) View.VISIBLE else View.GONE
+                if (api.hasReviews) {
+                    result_tabs.addTab(result_tabs.newTab().setText("Novel"))
+                    result_tabs.addTab(result_tabs.newTab().setText("Reviews"))
+                    val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = context?.let {
+                        ReviewAdapter(
+                            it,
+                            ArrayList(),
+                            result_reviews,
+                        )
+                    }
+                    result_reviews.adapter = adapter
+                    result_reviews.layoutManager = GridLayoutManager(context, 1)
+                }
+
+                result_tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+                    override fun onTabSelected(tab: TabLayout.Tab?) {
+                        val pos = tab?.position
+                        viewModel.currentTabIndex.postValue(pos)
+                    }
+
+                    override fun onTabUnselected(tab: TabLayout.Tab?) {}
+
+                    override fun onTabReselected(tab: TabLayout.Tab?) {}
+                })
+
+                download_delete_trash_from_result.setOnClickListener {
+                    val dialogClickListener =
+                        DialogInterface.OnClickListener { dialog, which ->
+                            when (which) {
+                                DialogInterface.BUTTON_POSITIVE -> {
+                                    requireContext().remove(res.author,
+                                        res.name,
+                                        apiName)
+                                    val currentValue = viewModel.downloadNotification.value!!
+
+                                    viewModel.downloadNotification.postValue(BookDownloader.DownloadNotification(0,
+                                        currentValue.total,
+                                        currentValue.id,
+                                        "",
+                                        BookDownloader.DownloadType.IsStopped))
+                                }
+                                DialogInterface.BUTTON_NEGATIVE -> {
+                                }
                             }
                         }
-                    }
-                val builder: AlertDialog.Builder = AlertDialog.Builder(this.requireContext())
-                builder.setMessage("This will permanently delete ${loadResponse.name}.\nAre you sure?")
-                    .setTitle("Delete")
-                    .setPositiveButton("Delete", dialogClickListener)
-                    .setNegativeButton("Cancel", dialogClickListener)
-                    .show()
-            }
-
-            result_rating_voted_count.text = getString(R.string.no_data)
-            if (res.rating != null) {
-                result_rating.text = MainActivity.getRating(res.rating)
-                if (res.peopleVoted != null) {
-                    result_rating_voted_count.text = "${res.peopleVoted} Votes"
-                }
-            }
-
-            // === TAGS ===
-            result_tag.removeAllViews()
-            if (res.tags == null && (res.status == null || res.status <= 0)) {
-                result_tag_holder.visibility = View.GONE
-            } else {
-                result_tag_holder.visibility = View.VISIBLE
-
-                var index = 0
-                if (res.status != null && res.status > 0) {
-                    val viewBtt = layoutInflater.inflate(R.layout.result_tag, null)
-                    val mat = viewBtt.findViewById<MaterialButton>(R.id.result_tag_card)
-                    mat.strokeColor = getColorStateList(requireContext(), R.color.colorOngoing)
-                    mat.setTextColor(getColor(requireContext(), R.color.colorOngoing))
-                    mat.rippleColor = getColorStateList(requireContext(), R.color.colorOngoing)
-                    val status = when (res.status) {
-                        1 -> "Ongoing"
-                        2 -> "Completed"
-                        3 -> "Paused"
-                        4 -> "Dropped"
-                        else -> "ERROR"
-                    }
-                    mat.text = status
-                    result_tag.addView(viewBtt, index)
-                    index++
-
-                    for ((orderindex, apiOrder) in api.orderBys.withIndex()) {
-                        if (apiOrder.first == status) {
-                            mat.setOnClickListener {
-                                MainActivity.activity.supportFragmentManager.beginTransaction()
-                                    .setCustomAnimations(
-                                        R.anim.enter_anim,
-                                        R.anim.exit_anim,
-                                        R.anim.pop_enter,
-                                        R.anim.pop_exit)
-                                    .add(R.id.homeRoot, MainPageFragment().newInstance(api.name, orderBy = orderindex))
-                                    .commit()
-                            }
-                            break
-                        }
-                    }
+                    val builder: AlertDialog.Builder = AlertDialog.Builder(this.requireContext())
+                    builder.setMessage("This will permanently delete ${res.name}.\nAre you sure?")
+                        .setTitle("Delete")
+                        .setPositiveButton("Delete", dialogClickListener)
+                        .setNegativeButton("Cancel", dialogClickListener)
+                        .show()
                 }
 
-                if (res.tags != null) {
-                    for (tag in res.tags) {
+                // === TAGS ===
+                result_tag.removeAllViews()
+                if (res.tags == null && (res.status == null || res.status <= 0)) {
+                    result_tag_holder.visibility = View.GONE
+                } else {
+                    result_tag_holder.visibility = View.VISIBLE
+
+                    var index = 0
+                    if (res.status != null && res.status > 0) {
                         val viewBtt = layoutInflater.inflate(R.layout.result_tag, null)
-                        val btt = viewBtt.findViewById<MaterialButton>(R.id.result_tag_card)
-                        btt.text = tag
+                        val mat = viewBtt.findViewById<MaterialButton>(R.id.result_tag_card)
+                        mat.strokeColor = getColorStateList(requireContext(), R.color.colorOngoing)
+                        mat.setTextColor(getColor(requireContext(), R.color.colorOngoing))
+                        mat.rippleColor = getColorStateList(requireContext(), R.color.colorOngoing)
+                        val status = when (res.status) {
+                            1 -> "Ongoing"
+                            2 -> "Completed"
+                            3 -> "Paused"
+                            4 -> "Dropped"
+                            else -> "ERROR"
+                        }
+                        mat.text = status
+                        result_tag.addView(viewBtt, index)
+                        index++
 
-                        for ((tagindex, apiTag) in api.tags.withIndex()) {
-                            if (apiTag.first == tag) {
-                                btt.setOnClickListener {
-                                    MainActivity.activity.supportFragmentManager.beginTransaction()
+                        for ((orderindex, apiOrder) in api.orderBys.withIndex()) {
+                            if (apiOrder.first == status) {
+                                mat.setOnClickListener {
+                                    requireActivity().supportFragmentManager.beginTransaction()
                                         .setCustomAnimations(
                                             R.anim.enter_anim,
                                             R.anim.exit_anim,
                                             R.anim.pop_enter,
                                             R.anim.pop_exit)
-                                        .add(R.id.homeRoot, MainPageFragment().newInstance(api.name, tag = tagindex))
+                                        .add(R.id.homeRoot,
+                                            MainPageFragment().newInstance(api.name, orderBy = orderindex))
                                         .commit()
                                 }
                                 break
                             }
                         }
+                    }
 
-                        result_tag.addView(viewBtt, index)
-                        index++
+                    if (res.tags != null) {
+                        for (tag in res.tags) {
+                            val viewBtt = layoutInflater.inflate(R.layout.result_tag, null)
+                            val btt = viewBtt.findViewById<MaterialButton>(R.id.result_tag_card)
+                            btt.text = tag
+
+                            for ((tagindex, apiTag) in api.tags.withIndex()) {
+                                if (apiTag.first == tag) {
+                                    btt.setOnClickListener {
+                                        requireActivity().supportFragmentManager.beginTransaction()
+                                            .setCustomAnimations(
+                                                R.anim.enter_anim,
+                                                R.anim.exit_anim,
+                                                R.anim.pop_enter,
+                                                R.anim.pop_exit)
+                                            .add(R.id.homeRoot,
+                                                MainPageFragment().newInstance(api.name, tag = tagindex))
+                                            .commit()
+                                    }
+                                    break
+                                }
+                            }
+
+                            result_tag.addView(viewBtt, index)
+                            index++
+                        }
                     }
                 }
-            }
 
-            /*
-            if(res.status != null && res.status > 0) {
-                result_status.text = when(res.status) {
-                    1 -> "Ongoing"
-                    2 -> "Complete"
-                    3 -> "Pause"
-                    else -> "ERROR"
+                if (res.synopsis != null) {
+                    var syno = res.synopsis
+                    if (syno.length > MAX_SYNO_LENGH) {
+                        syno = syno.substring(0, MAX_SYNO_LENGH) + "..."
+                    }
+                    result_synopsis_text.setOnClickListener {
+                        val builder: AlertDialog.Builder = AlertDialog.Builder(requireContext())
+                        builder.setMessage(res.synopsis).setTitle("Synopsis")
+                            .show()
+                    }
+                    result_synopsis_text.text = syno
+                } else {
+                    result_synopsis_text.text = "..."
+                }
+
+                if (res.data.size > 0) {
+                    val last = res.data.last()
+                    result_total_chapters.text = "Latest: " + last.name //+ " " + last.dateOfRelease
+                } else {
+                    result_total_chapters.text = getString(R.string.no_chapters)
+                }
+
+                val localId = viewModel.id.value!!
+
+                DataStore.setKey(DOWNLOAD_TOTAL, localId.toString(), res.data.size)
+
+                /*
+                val start = BookDownloader.downloadInfo(res.author, res.name, res.data.size, api.name)
+                result_download_progress_text_eta.text = ""
+                if (start != null) {
+                    updateGenerateBtt(start.progress)
+                    result_download_progress_text.text = "${start.progress}/${start.total}"
+
+                    result_download_progress_bar.max = start.total * 100
+                    result_download_progress_bar.progress = start.progress * 100
+                    val state =
+                        if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped
+                    updateDownloadButtons(start.progress, start.total, state!!)
+                } else {
+                    result_download_progress_bar.progress = 0
+                }*/
+
+                result_container.setBackgroundColor(getColor(requireContext(),
+                    R.color.bitDarkerGrayBackground))
+
+                result_loading.visibility = View.GONE
+                result_reload_connectionerror.visibility = View.GONE
+                result_holder.visibility = View.VISIBLE
+                result_holder.post {
+                    updateScrollHeight()
                 }
             }
-            else {
-                result_status.visibility = View.GONE
-            }*/
-
-
-            result_views.text =
-                if (res.views != null) humanReadableByteCountSI(res.views) else getString(R.string.no_data)
-
-            result_back.setColorFilter(Color.WHITE)
-
-            if (res.synopsis != null) {
-                var syno = res.synopsis
-                if (syno.length > MAX_SYNO_LENGH) {
-                    syno = syno.substring(0, MAX_SYNO_LENGH) + "..."
-                }
-                result_synopsis_text.setOnClickListener {
-                    val builder: AlertDialog.Builder = AlertDialog.Builder(requireContext())
-                    builder.setMessage(res.synopsis).setTitle("Synopsis")
-                        .show()
-                }
-                result_synopsis_text.text = syno
-            } else {
-                result_synopsis_text.text = "..."
-            }
-
-            if (res.data.size > 0) {
-                val last = res.data.last()
-                result_total_chapters.text = "Latest: " + last.name //+ " " + last.dateOfRelease
-            } else {
-                result_total_chapters.text = getString(R.string.no_chapters)
-            }
-
-            val localId = viewModel.id.value!!
-
-            DataStore.setKey(DOWNLOAD_TOTAL, localId.toString(), res.data.size)
-
-            /*
-            val start = BookDownloader.downloadInfo(res.author, res.name, res.data.size, api.name)
-            result_download_progress_text_eta.text = ""
-            if (start != null) {
-                updateGenerateBtt(start.progress)
-                result_download_progress_text.text = "${start.progress}/${start.total}"
-
-                result_download_progress_bar.max = start.total * 100
-                result_download_progress_bar.progress = start.progress * 100
-                val state =
-                    if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped
-                updateDownloadButtons(start.progress, start.total, state!!)
-            } else {
-                result_download_progress_bar.progress = 0
-            }*/
-
-            val glideUrl =
-                GlideUrl(res.posterUrl)
-            requireContext().let {
-                Glide.with(it)
-                    .load(glideUrl)
-                    .into(result_poster)
-
-                Glide.with(it)
-                    .load(glideUrl)
-                    .apply(bitmapTransform(BlurTransformation(100, 3)))
-                    .into(result_poster_blur)
-            }
-
-            result_container.setBackgroundColor(ContextCompat.getColor(requireContext(),R.color.bitDarkerGrayBackground))
-        }
-
-        // TO FIX 1 FRAME WACK
-        result_holder.visibility = if (isLoaded) View.VISIBLE else View.GONE
-        result_loading.visibility = if (validState) View.GONE else View.VISIBLE
-
-        result_download_card.post {
-            updateScrollHeight()
         }
     }
 
+    private var currentTabIndex = 0
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        val factory = provideResultViewModelFactory(apiName)
         viewModel = ViewModelProviders.of(this, factory)
             .get(ResultViewModel::class.java)
 
         if (viewModel.loadResponse.value == null)
-            viewModel.initState(resultUrl, api.name)
+            viewModel.initState(requireContext(), url)
 
         result_reload_connectionerror.setOnClickListener {
-            viewModel.initState(resultUrl, api.name)
+            viewModel.initState(requireContext(), url)
         }
 
-        result_container.setBackgroundColor(requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground) )
+        result_container.setBackgroundColor(requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground))
 
         observe(viewModel.downloadNotification, ::updateDownloadInfo)
         observe(viewModel.loadResponse, ::newState)
-        observe(viewModel.isFailedConnection, ::newIsFailed)
         observe(viewModel.reviews, ::getReviews)
+        observe(viewModel.currentTabIndex) {
+            currentTabIndex = it
+        }
+
+        observe(viewModel.id) {
+            tid = it
+            DataStore.setKey(DOWNLOAD_EPUB_LAST_ACCESS, tid.toString(), System.currentTimeMillis())
+        }
 
         observe(viewModel.currentTabIndex) { pos ->
             fun setVis(v: View, lpos: Int) {
@@ -507,24 +512,8 @@ class ResultFragment : Fragment() {
             }
         }
 
-        /*
-        storeSubscription =
-            mainStore.subscribe { activity?.runOnUiThread { newState(mainStore.state.resultState.loadResponse) } }
-        storeSubscription =
-            mainStore.subscribe {
-                if (mainStore.state.resultState.downloadNotification != null) {
-                    activity?.runOnUiThread {
-                        updateDownloadInfo(mainStore.state.resultState.downloadNotification!!)
-                    }
-                }
-            }*/
-
-
-        MainActivity.activity.window.navigationBarColor =
-            requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground)
-
-        result_holder.visibility = View.GONE
-        result_loading.visibility = View.VISIBLE
+        //result_holder.visibility = View.GONE
+        // result_loading.visibility = View.VISIBLE
         //  result_mainscroll.scrollTo(100.toPx, 0)
         result_mainscroll.setOnScrollChangeListener { v: NestedScrollView, _, scrollY, _, oldScrollY ->
             if (result_info_header == null) return@setOnScrollChangeListener // CRASH IF PERFECTLY TIMED
@@ -543,7 +532,7 @@ class ResultFragment : Fragment() {
             if (dy > 0) { //check for scroll down
                 //TODO OBSERVE
                 val max = (v.getChildAt(0).measuredHeight - v.measuredHeight)
-                if (viewModel.currentTabIndex.value == 1 &&
+                if (currentTabIndex == 1 &&
                     scrollY >= max
                 ) {
                     loadReviews()
@@ -551,32 +540,29 @@ class ResultFragment : Fragment() {
             }
         }
 
-        // TRANSPARENT STATUSBAR
-        result_info_header.setPadding(0, MainActivity.statusBarHeight, 0, 0)
-        //result_back.setPadding(0, MainActivity.statusBarHeight, 0, 0)
+        activity?.fixPaddingStatusbar(result_info_header)
 
         val parameter = result_empty_view.layoutParams as LinearLayout.LayoutParams
         parameter.setMargins(parameter.leftMargin,
-            parameter.topMargin + MainActivity.statusBarHeight,
+            parameter.topMargin + requireActivity().getStatusBarHeight(),
             parameter.rightMargin,
             parameter.bottomMargin)
         result_empty_view.layoutParams = parameter
 
-        val back_parameter = result_back.layoutParams as FrameLayout.LayoutParams
-        back_parameter.setMargins(back_parameter.leftMargin,
-            back_parameter.topMargin + MainActivity.statusBarHeight,
-            back_parameter.rightMargin,
-            back_parameter.bottomMargin)
-        result_back.layoutParams = back_parameter
+        val backParameter = result_back.layoutParams as FrameLayout.LayoutParams
+        backParameter.setMargins(backParameter.leftMargin,
+            backParameter.topMargin + requireActivity().getStatusBarHeight(),
+            backParameter.rightMargin,
+            backParameter.bottomMargin)
+        result_back.layoutParams = backParameter
 
         result_download_btt.setOnClickListener {
             thread {
-                if (viewModel.loadResponse.value != null && viewModel.id.value != null && viewModel.apiName.value != null && viewModel.resultUrl.value != null) {
-                    updateDownloadFromResult(
-                        viewModel.loadResponse.value!!,
-                        viewModel.id.value!!,
-                        viewModel.apiName.value!!,
-                        viewModel.resultUrl.value!!,
+                if (load is Resource.Success) {
+                    DownloadHelper.updateDownloadFromResult(requireContext(),
+                        (load as Resource.Success<LoadResponse>).value,
+                        tid,
+                        apiName,
                         true)
                 }
             }
@@ -587,31 +573,30 @@ class ResultFragment : Fragment() {
         }
 
         result_download_generate_epub.setOnClickListener {
-            if (generateEpub) {
-                if (viewModel.loadResponse.value != null) {
-                    thread {
-                        val l = viewModel.loadResponse.value!!
-                        val done = turnToEpub(l.author, l.name, api.name)
-                        MainActivity.activity.runOnUiThread {
-                            updateGenerateBtt(null)
-                            if (done) {
-                                Toast.makeText(context, "Created ${l.name}", Toast.LENGTH_LONG).show()
-                            } else {
-                                Toast.makeText(context, "Error creating the Epub", Toast.LENGTH_LONG).show()
-                            }
+            if (load is Resource.Success) {
+                if (generateEpub) {
+                    Coroutines.main {
+                        val l = (load as Resource.Success<LoadResponse>).value
+                        val done = withContext(Dispatchers.IO) {
+                            requireActivity().turnToEpub(l.author, l.name, api.name)
+                        }
+
+                        updateGenerateBtt(null)
+                        if (done) {
+                            Toast.makeText(context, "Created ${l.name}", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(context, "Error creating the Epub", Toast.LENGTH_LONG).show()
                         }
                     }
-                }
-            } else {
-                if (viewModel.loadResponse.value != null) {
-                    thread {
-                        val card = viewModel.loadResponse.value!!
-                        if (!BookDownloader.hasEpub(card.name)) {
-                            BookDownloader.turnToEpub(card.author, card.name, api.name)
+                } else {
+                    Coroutines.main {
+                        val card = (load as Resource.Success<LoadResponse>).value
+                        withContext(Dispatchers.IO) {
+                            if (!requireActivity().hasEpub(card.name)) {
+                                requireActivity().turnToEpub(card.author, card.name, api.name)
+                            }
                         }
-                        MainActivity.activity.runOnUiThread {
-                            BookDownloader.openEpub(card.name)
-                        }
+                        requireActivity().openEpub(card.name)
                     }
                 }
             }

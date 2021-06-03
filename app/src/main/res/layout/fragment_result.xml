@@ -308,13 +308,13 @@ Translator: Rainbow Turtle"
                                     android:textStyle="normal"
                                     android:textColor="?attr/textColor"
                             />
-                            <com.lagradost.quicknovel.MyFlowLayout
+                            <com.lagradost.quicknovel.widget.MyFlowLayout
                                     android:id="@+id/result_tag"
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
                                     android:orientation="horizontal">
 
-                            </com.lagradost.quicknovel.MyFlowLayout>
+                            </com.lagradost.quicknovel.widget.MyFlowLayout>
                             <!--
                             <HorizontalScrollView android:id="@+id/result_tag_holder" android:layout_width="wrap_content" android:layout_height="wrap_content">
                                 <LinearLayout

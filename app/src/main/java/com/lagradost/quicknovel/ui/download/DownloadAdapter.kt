@@ -1,7 +1,8 @@
-package com.lagradost.quicknovel
+package com.lagradost.quicknovel.ui.download
 
 import android.animation.ObjectAnimator
-import android.content.Context
+import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.DialogInterface
 import android.view.LayoutInflater
 import android.view.View
@@ -12,30 +13,30 @@ import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.model.GlideUrl
-import com.lagradost.quicknovel.MainActivity.Companion.activity
-import com.lagradost.quicknovel.MainActivity.Companion.getApiFromName
-import com.lagradost.quicknovel.ui.download.DownloadFragment
-import com.lagradost.quicknovel.ui.download.DownloadFragment.Companion.updateDownloadFromCard
+import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.BookDownloader.hasEpub
+import com.lagradost.quicknovel.BookDownloader.openEpub
+import com.lagradost.quicknovel.BookDownloader.remove
+import com.lagradost.quicknovel.BookDownloader.turnToEpub
+import com.lagradost.quicknovel.ui.download.DownloadHelper.updateDownloadFromCard
+import com.lagradost.quicknovel.util.Coroutines
 import kotlinx.android.synthetic.main.download_result_compact.view.*
-import kotlin.concurrent.thread
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-
-class DloadAdapter(
-    context: Context,
-    animeList: ArrayList<DownloadFragment.DownloadDataLoaded>,
-    resView: RecyclerView,
+class DownloadAdapter(
+    val activity: Activity,
+    var cardList: ArrayList<DownloadFragment.DownloadDataLoaded>,
+    private val resView: RecyclerView,
 ) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-    var cardList = animeList
-    var context: Context? = context
-    var resView: RecyclerView? = resView
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val layout = R.layout.download_result_compact
         return DownloadCardViewHolder(
             LayoutInflater.from(parent.context).inflate(layout, parent, false),
-            context!!,
-            resView!!
+            activity,
+            resView
         )
     }
 
@@ -61,34 +62,35 @@ class DloadAdapter(
     }*/
 
     class DownloadCardViewHolder
-    constructor(itemView: View, _context: Context, resView: RecyclerView) : RecyclerView.ViewHolder(itemView) {
-        val context = _context
+    constructor(itemView: View, activity: Activity, resView: RecyclerView) : RecyclerView.ViewHolder(itemView) {
+        private val localActivity = activity
         val cardView: ImageView = itemView.imageView
-        val cardText: TextView = itemView.imageText
-        val download_progress_text: TextView = itemView.download_progress_text
-        val download_progressbar: ProgressBar = itemView.download_progressbar
-        val download_update: ImageView = itemView.download_update
-        val download_open_btt: LinearLayout = itemView.download_open_btt
-        val download_progressbar_indeterment: ProgressBar = itemView.download_progressbar_indeterment
-        val download_delete_trash: ImageView = itemView.download_delete_trash
-        val imageTextMore: TextView = itemView.imageTextMore
+        private val cardText = itemView.imageText
+        private val downloadProgressText = itemView.download_progress_text
+        private val downloadProgressbar = itemView.download_progressbar
+        private val downloadUpdate = itemView.download_update
+        private val downloadOpenBtt: LinearLayout = itemView.download_open_btt
+        private val downloadProgressbarIndeterminate: ProgressBar = itemView.download_progressbar_indeterment
+        private val downloadDeleteTrash: ImageView = itemView.download_delete_trash
+        private val imageTextMore: TextView = itemView.imageTextMore
 
-        //        val cardTextExtra: TextView = itemView.imageTextExtra
-        val bg = itemView.backgroundCard
+        // val cardTextExtra: TextView = itemView.imageTextExtra
+        // val bg = itemView.backgroundCard
+        @SuppressLint("SetTextI18n")
         fun bind(card: DownloadFragment.DownloadDataLoaded) {
-            val api = getApiFromName(card.apiName)
+           // val api = getApiFromName(card.apiName)
 
             cardText.text = card.name
-            download_progress_text.text =
+            downloadProgressText.text =
                 "${card.downloadedCount}/${card.downloadedTotal}" + if (card.ETA == "") "" else " - ${card.ETA}"
 
             // ANIMATION PROGRESSBAR
-            download_progressbar.max = card.downloadedTotal * 100
+            downloadProgressbar.max = card.downloadedTotal * 100
 
-            if (download_progressbar.progress != 0) {
-                val animation: ObjectAnimator = ObjectAnimator.ofInt(download_progressbar,
+            if (downloadProgressbar.progress != 0) {
+                val animation: ObjectAnimator = ObjectAnimator.ofInt(downloadProgressbar,
                     "progress",
-                    download_progressbar.progress,
+                    downloadProgressbar.progress,
                     card.downloadedCount * 100)
 
                 animation.duration = 500
@@ -96,31 +98,30 @@ class DloadAdapter(
                 animation.interpolator = DecelerateInterpolator()
                 animation.start()
             } else {
-                download_progressbar.progress = card.downloadedCount * 100
+                downloadProgressbar.progress = card.downloadedCount * 100
             }
             //download_progressbar.progress = card.downloadedCount
-            download_progressbar.alpha = if (card.downloadedCount >= card.downloadedTotal) 0f else 1f
+            downloadProgressbar.alpha = if (card.downloadedCount >= card.downloadedTotal) 0f else 1f
 
             var realState = card.state
             if (card.downloadedCount >= card.downloadedTotal && card.updated) {
-                download_update.alpha = 0.5f
-                download_update.isEnabled = false
+                downloadUpdate.alpha = 0.5f
+                downloadUpdate.isEnabled = false
                 realState = BookDownloader.DownloadType.IsDone
-            }
-            else {
-                download_update.alpha = 1f
-                download_update.isEnabled = true
+            } else {
+                downloadUpdate.alpha = 1f
+                downloadUpdate.isEnabled = true
             }
 
             val glideUrl =
                 GlideUrl(card.posterUrl)
-            context.let {
+            localActivity.let {
                 Glide.with(it)
                     .load(glideUrl)
                     .into(cardView)
             }
 
-            download_update.contentDescription = when (realState) {
+            downloadUpdate.contentDescription = when (realState) {
                 BookDownloader.DownloadType.IsDone -> "Done"
                 BookDownloader.DownloadType.IsDownloading -> "Pause"
                 BookDownloader.DownloadType.IsPaused -> "Resume"
@@ -128,18 +129,17 @@ class DloadAdapter(
                 BookDownloader.DownloadType.IsStopped -> "Update"
             }
 
-            download_update.setImageResource(when (realState) {
+            downloadUpdate.setImageResource(when (realState) {
                 BookDownloader.DownloadType.IsDownloading -> R.drawable.ic_baseline_pause_24
                 BookDownloader.DownloadType.IsPaused -> R.drawable.netflix_play
                 BookDownloader.DownloadType.IsStopped -> R.drawable.ic_baseline_autorenew_24
                 BookDownloader.DownloadType.IsFailed -> R.drawable.ic_baseline_autorenew_24
                 BookDownloader.DownloadType.IsDone -> R.drawable.ic_baseline_check_24
-                else -> R.drawable.netflix_download
             })
 
             fun getDiff(): Int {
-                val dloaded = DataStore.getKey(DOWNLOAD_EPUB_SIZE, card.id.toString(), 0)!!
-                return card.downloadedCount - dloaded
+                val downloaded = DataStore.getKey(DOWNLOAD_EPUB_SIZE, card.id.toString(), 0)!!
+                return card.downloadedCount - downloaded
             }
 
             fun getEpub(): Boolean {
@@ -156,75 +156,77 @@ class DloadAdapter(
 
             fun updateBar(isGenerating: Boolean? = null) {
                 val isIndeterminate = isGenerating ?: BookDownloader.isTurningIntoEpub.containsKey(card.id)
-                download_progressbar.visibility = if (!isIndeterminate) View.VISIBLE else View.INVISIBLE
-                download_progressbar_indeterment.visibility = if (isIndeterminate) View.VISIBLE else View.INVISIBLE
+                downloadProgressbar.visibility = if (!isIndeterminate) View.VISIBLE else View.INVISIBLE
+                downloadProgressbarIndeterminate.visibility = if (isIndeterminate) View.VISIBLE else View.INVISIBLE
             }
 
             fun updateEpub() {
                 val generateEpub = getEpub()
                 if (generateEpub) {
                     //  download_open_btt.setImageResource(R.drawable.ic_baseline_create_24)
-                    download_open_btt.contentDescription = "Generate"
+                    downloadOpenBtt.contentDescription = "Generate"
                 } else {
                     //  download_open_btt.setImageResource(R.drawable.ic_baseline_menu_book_24)
-                    download_open_btt.contentDescription = "Read"
+                    downloadOpenBtt.contentDescription = "Read"
                 }
             }
             updateEpub()
             updateBar(null)
 
-            download_open_btt.setOnClickListener {
+            downloadOpenBtt.setOnClickListener {
                 if (getEpub()) {
                     updateBar(true)
-                    thread {
-                        val done = BookDownloader.turnToEpub(card.author, card.name, card.apiName)
-                        activity.runOnUiThread {
-                            if (done) {
-                                //Toast.makeText(context, "Created ${card.name}", Toast.LENGTH_LONG).show()
-                            } else {
-                                Toast.makeText(context, "Error creating the Epub", Toast.LENGTH_LONG).show()
-                            }
-                            updateEpub()
-                            updateBar(null)
-                            DataStore.setKey(DOWNLOAD_EPUB_LAST_ACCESS, card.id.toString(), System.currentTimeMillis())
-                            BookDownloader.openEpub(card.name)
-                            updateTxtDiff()
+                    Coroutines.main {
+                        val done = withContext(Dispatchers.IO) {
+                            localActivity.turnToEpub(card.author, card.name, card.apiName)
                         }
+
+                        if (done) {
+                            //Toast.makeText(context, "Created ${card.name}", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(localActivity, "Error creating the Epub", Toast.LENGTH_LONG).show()
+                        }
+                        updateEpub()
+                        updateBar(null)
+                        DataStore.setKey(DOWNLOAD_EPUB_LAST_ACCESS, card.id.toString(), System.currentTimeMillis())
+                        localActivity.openEpub(card.name)
+                        updateTxtDiff()
                     }
                 } else {
-                    thread {
-                        if (!BookDownloader.hasEpub(card.name)) {
-                            BookDownloader.turnToEpub(card.author, card.name, card.apiName)
+                    Coroutines.main {
+                        withContext(Dispatchers.IO) {
+                            if (!localActivity.hasEpub(card.name)) {
+                                localActivity.turnToEpub(card.author, card.name, card.apiName)
+                            }
                         }
-                        activity.runOnUiThread {
-                            DataStore.setKey(DOWNLOAD_EPUB_LAST_ACCESS, card.id.toString(), System.currentTimeMillis())
-                            BookDownloader.openEpub(card.name)
-                            updateTxtDiff()
-                        }
+
+                        DataStore.setKey(DOWNLOAD_EPUB_LAST_ACCESS, card.id.toString(), System.currentTimeMillis())
+                        localActivity.openEpub(card.name)
+                        updateTxtDiff()
                     }
                 }
             }
 
-            download_update.setOnClickListener {
-                updateDownloadFromCard(card,true)
+            downloadUpdate.setOnClickListener {
+                updateDownloadFromCard(localActivity, card, true)
             }
 
             cardView.setOnClickListener {
                 MainActivity.loadResult(card.source, card.apiName)
             }
 
-            download_delete_trash.setOnClickListener {
+            downloadDeleteTrash.setOnClickListener {
                 val dialogClickListener =
                     DialogInterface.OnClickListener { dialog, which ->
                         when (which) {
                             DialogInterface.BUTTON_POSITIVE -> {
-                                BookDownloader.remove(card.author, card.name, card.apiName)
+                                localActivity.remove(card.author, card.name, card.apiName)
                             }
                             DialogInterface.BUTTON_NEGATIVE -> {
                             }
                         }
                     }
-                val builder: AlertDialog.Builder = AlertDialog.Builder(context)
+                val builder: AlertDialog.Builder = AlertDialog.Builder(localActivity)
                 builder.setMessage("This will permanently delete ${card.name}.\nAre you sure?").setTitle("Delete")
                     .setPositiveButton("Delete", dialogClickListener)
                     .setNegativeButton("Cancel", dialogClickListener)

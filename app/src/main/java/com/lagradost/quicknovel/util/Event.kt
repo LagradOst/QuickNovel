@@ -1,4 +1,4 @@
-package com.lagradost.quicknovel
+package com.lagradost.quicknovel.util
 
 class Event<T> {
     private val observers = mutableSetOf<(T) -> Unit>()

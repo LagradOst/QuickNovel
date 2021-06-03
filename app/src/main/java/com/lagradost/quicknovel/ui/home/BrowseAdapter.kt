@@ -15,12 +15,9 @@ import kotlinx.android.synthetic.main.browse_list_compact.view.*
 class BrowseAdapter(
     val context: Context,
     var cardList: ArrayList<MainAPI>,
-    val resView: RecyclerView,
+    private val resView: RecyclerView,
 ) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-   // var cardList = animeList
-  //  var context: Context? = context
-   // var resView: RecyclerView? = resView
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val layout = R.layout.browse_list_compact
@@ -51,17 +48,17 @@ class BrowseAdapter(
     constructor(itemView: View, _context: Context, resView: RecyclerView) : RecyclerView.ViewHolder(itemView) {
         val context = _context
         val cardView: CardView = itemView.browse_background
-        val browse_icon_background: CardView = itemView.browse_icon_background
-        val browse_icon: ImageView = itemView.browse_icon
-        val browse_text: TextView = itemView.browse_text
+        private val browseIconBackground: CardView = itemView.browse_icon_background
+        private val browseIcon: ImageView = itemView.browse_icon
+        private val browseText: TextView = itemView.browse_text
 
         fun bind(api: MainAPI) {
-            browse_text.text = api.name
+            browseText.text = api.name
             val icon = api.iconId
             if (icon != null) {
-                browse_icon.setImageResource(icon)
+                browseIcon.setImageResource(icon)
             }
-            browse_icon_background.setCardBackgroundColor(context.getColor(api.iconBackgroundId))
+            browseIconBackground.setCardBackgroundColor(context.getColor(api.iconBackgroundId))
 
             cardView.setOnClickListener {
                 val navController = MainActivity.activity.findNavController(R.id.nav_host_fragment)

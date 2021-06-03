@@ -1,46 +1,44 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.pmap
-import java.util.concurrent.locks.ReentrantLock
+import com.lagradost.quicknovel.util.Apis.Companion.apis
 
 class AllProvider : MainAPI() {
     override val name: String
         get() = "All Sources"
-    private val mutex = ReentrantLock()
 
-    public var providersActive = HashSet<String>()
+    var providersActive = HashSet<String>()
 
-    override fun search(query: String): ArrayList<SearchResponse>? {
-        val list = MainActivity.apis.filter { a ->
+    override fun search(query: String): ArrayList<SearchResponse> {
+        val list = apis.filter { a ->
             a.name != this.name && (providersActive.size == 0 || providersActive.contains(a.name))
         }.pmap { a ->
-            a.search(query)
+            try {
+                a.search(query)
+            } catch (e : Exception) {
+                null
+            }
         }
 
         var maxCount = 0
         var providerCount = 0
         for (res in list) {
-            if (res != null) {
-                if (res.size > maxCount) {
-                    maxCount = res.size
-                }
-                providerCount++
+            if (res != null && res.size > maxCount) {
+                maxCount = res.size
             }
+            providerCount++
         }
 
-        if (providerCount == 0) return null
+        if (providerCount == 0) throw Exception()
         if (maxCount == 0) return ArrayList()
 
         val result = ArrayList<SearchResponse>()
         for (i in 0..maxCount) {
             for (res in list) {
-                if (res != null) {
-                    if (i < res.size) {
-                        result.add(res[i])
-                    }
+                if (res != null && i < res.size) {
+                    result.add(res[i])
                 }
             }
         }

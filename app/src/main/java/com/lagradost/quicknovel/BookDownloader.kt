@@ -1,10 +1,7 @@
 package com.lagradost.quicknovel
 
 import android.Manifest
-import android.app.IntentService
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
+import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.*
@@ -20,8 +17,9 @@ import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.preference.PreferenceManager
 import com.bumptech.glide.Glide
-import com.lagradost.quicknovel.BookDownloader.updateDownload
-import com.lagradost.quicknovel.UIHelper.colorFromAttribute
+import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
+import com.lagradost.quicknovel.services.DownloadService
+import com.lagradost.quicknovel.util.Event
 import nl.siegmann.epublib.domain.Author
 import nl.siegmann.epublib.domain.Book
 import nl.siegmann.epublib.domain.MediaType
@@ -36,25 +34,6 @@ import java.lang.Thread.sleep
 const val CHANNEL_ID = "epubdownloader.general"
 const val CHANNEL_NAME = "Downloads"
 const val CHANNEL_DESCRIPT = "The download notification channel"
-
-// USED TO STOP, CANCEL AND RESUME FROM ACTION IN NOTIFICATION
-class DownloadService : IntentService("DownloadService") {
-    override fun onHandleIntent(intent: Intent?) {
-        if (intent != null) {
-            val id = intent.getIntExtra("id", -1)
-            val type = intent.getStringExtra("type")
-            if (id != -1 && type != null) {
-                val state = when (type) {
-                    "resume" -> BookDownloader.DownloadType.IsDownloading
-                    "pause" -> BookDownloader.DownloadType.IsPaused
-                    "stop" -> BookDownloader.DownloadType.IsStopped
-                    else -> BookDownloader.DownloadType.IsDownloading
-                }
-                updateDownload(id, state)
-            }
-        }
-    }
-}
 
 object BookDownloader {
     data class DownloadResponse(
@@ -106,7 +85,7 @@ object BookDownloader {
 
     private val cachedBitmaps = hashMapOf<String, Bitmap>()
 
-    fun updateDownload(id: Int, state: DownloadType) {
+    fun Context.updateDownload(id: Int, state: DownloadType) {
         if (state == DownloadType.IsStopped || state == DownloadType.IsFailed || state == DownloadType.IsDone) {
             if (isRunning.containsKey(id)) {
                 isRunning.remove(id)
@@ -121,12 +100,12 @@ object BookDownloader {
         }
     }
 
-    private fun getImageBitmapFromUrl(url: String): Bitmap? {
+    private fun Context.getImageBitmapFromUrl(url: String): Bitmap? {
         if (cachedBitmaps.containsKey(url)) {
             return cachedBitmaps[url]
         }
 
-        val bitmap = Glide.with(MainActivity.activity)
+        val bitmap = Glide.with(this)
             .asBitmap()
             .load(url).into(720, 720)
             .get()
@@ -142,8 +121,8 @@ object BookDownloader {
     val downloadNotification = Event<DownloadNotification>()
     val downloadRemove = Event<Int>()
 
-    fun generateId(load: LoadResponse, api: MainAPI): Int {
-        return generateId(api.name, load.author, load.name)
+    fun generateId(load: LoadResponse, apiName: String): Int {
+        return generateId(apiName, load.author, load.name)
     }
 
     fun generateId(apiName: String, author: String?, name: String): Int {
@@ -153,7 +132,13 @@ object BookDownloader {
         return "$sApiname$sAuthor$sName".hashCode()
     }
 
-    fun downloadInfo(author: String?, name: String, total: Int, apiName: String, start: Int = -1): DownloadResponse? {
+    fun Context.downloadInfo(
+        author: String?,
+        name: String,
+        total: Int,
+        apiName: String,
+        start: Int = -1,
+    ): DownloadResponse? {
         try {
             val sApiname = sanitizeFilename(apiName)
             val sAuthor = if (author == null) "" else sanitizeFilename(author)
@@ -168,8 +153,8 @@ object BookDownloader {
             var count = sStart
             for (index in sStart..total) {
                 val filepath =
-                    MainActivity.activity.filesDir.toString() + getFilename(sApiname, sAuthor, sName, index)
-                val rFile: File = File(filepath)
+                    filesDir.toString() + getFilename(sApiname, sAuthor, sName, index)
+                val rFile = File(filepath)
                 if (rFile.exists() && rFile.length() > 10) {
                     count++
                 } else {
@@ -187,14 +172,14 @@ object BookDownloader {
         }
     }
 
-    fun checkWrite(): Boolean {
-        return (ContextCompat.checkSelfPermission(MainActivity.activity,
+    fun Context.checkWrite(): Boolean {
+        return (ContextCompat.checkSelfPermission(this,
             Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 == PackageManager.PERMISSION_GRANTED)
     }
 
-    fun requestRW() {
-        ActivityCompat.requestPermissions(MainActivity.activity,
+    fun Activity.requestRW() {
+        ActivityCompat.requestPermissions(this,
             arrayOf(
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 Manifest.permission.READ_EXTERNAL_STORAGE
@@ -202,7 +187,7 @@ object BookDownloader {
             1337)
     }
 
-    fun hasEpub(name: String): Boolean {
+    fun Activity.hasEpub(name: String): Boolean {
         if (!checkWrite()) {
             requestRW()
             if (!checkWrite()) return false
@@ -215,13 +200,13 @@ object BookDownloader {
         return bookFile.exists()
     }
 
-    fun openEpub(name: String, openInApp: Boolean? = null): Boolean {
-        val settingsManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
+    fun Activity.openEpub(name: String, openInApp: Boolean? = null): Boolean {
+        val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
 
-        if (openInApp ?: !(settingsManager.getBoolean(MainActivity.activity.getString(R.string.external_reader_key),
+        if (openInApp ?: !(settingsManager.getBoolean(this.getString(R.string.external_reader_key),
                 true))
         ) {
-            val myIntent = Intent(MainActivity.activity, ReadActivity::class.java)
+            val myIntent = Intent(this, ReadActivity::class.java)
 
             val bookFile =
                 File(android.os.Environment.getExternalStorageDirectory().path +
@@ -229,8 +214,7 @@ object BookDownloader {
                     "${sanitizeFilename(name)}.epub")
             myIntent.setDataAndType(bookFile.toUri(), "application/epub+zip")
 
-            MainActivity.activity.startActivity(myIntent)
-
+            startActivity(myIntent)
             return true
         }
 
@@ -254,18 +238,18 @@ object BookDownloader {
             val ext: String = bookFile.name.substring(bookFile.name.lastIndexOf(".") + 1)
             val type = mime.getMimeTypeFromExtension(ext)
 
-            intent.setDataAndType(FileProvider.getUriForFile(MainActivity.activity,
-                MainActivity.activity.applicationContext.packageName + ".provider",
+            intent.setDataAndType(FileProvider.getUriForFile(this,
+                this.applicationContext.packageName + ".provider",
                 bookFile), type) // THIS IS NEEDED BECAUSE A REGULAR INTENT WONT OPEN MOONREADER
-            MainActivity.activity.startActivity(intent)
-            //MainActivity.activity.startActivityForResult(intent,1337) // SEE @moonreader
+            this.startActivity(intent)
+            //this.startActivityForResult(intent,1337) // SEE @moonreader
         } catch (e: Exception) {
             return false
         }
         return true
     }
 
-    fun turnToEpub(author: String?, name: String, apiName: String): Boolean {
+    fun Activity.turnToEpub(author: String?, name: String, apiName: String): Boolean {
         if (!checkWrite()) {
             requestRW()
             if (!checkWrite()) return false
@@ -285,19 +269,19 @@ object BookDownloader {
         metadata.addTitle(name)
 
         val poster_filepath =
-            MainActivity.activity.filesDir.toString() + getFilenameIMG(sApiName, sAuthor, sName)
+            filesDir.toString() + getFilenameIMG(sApiName, sAuthor, sName)
         val pFile = File(poster_filepath)
         if (pFile.exists()) {
             book.coverImage = Resource(pFile.readBytes(), MediaType("cover", ".jpg"))
         }
-        val settingsManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
+        val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
 
         val stripHtml =
-            (settingsManager.getBoolean(MainActivity.activity.getString(R.string.remove_external_key), true))
+            (settingsManager.getBoolean(this.getString(R.string.remove_external_key), true))
         var index = 0
         while (true) {
             val filepath =
-                MainActivity.activity.filesDir.toString() + getFilename(sApiName, sAuthor, sName, index)
+                filesDir.toString() + getFilename(sApiName, sAuthor, sName, index)
             val rFile = File(filepath)
             if (rFile.exists()) {
                 val text = rFile.readText()
@@ -328,7 +312,7 @@ object BookDownloader {
         return true
     }
 
-    fun remove(author: String?, name: String, apiName: String) {
+    fun Context.remove(author: String?, name: String, apiName: String) {
         try {
             val sApiName = sanitizeFilename(apiName)
             val sAuthor = if (author == null) "" else sanitizeFilename(author)
@@ -340,7 +324,7 @@ object BookDownloader {
             }
 
             val dir =
-                File(MainActivity.activity.filesDir.toString() + "$fs$sApiName$fs$sAuthor$fs$sName".replace("$fs$fs",
+                File(filesDir.toString() + "$fs$sApiName$fs$sAuthor$fs$sName".replace("$fs$fs",
                     "$fs"))
             if (dir.isDirectory) {
                 val children = dir.list()
@@ -357,13 +341,13 @@ object BookDownloader {
         }
     }
 
-    fun download(load: LoadResponse, api: MainAPI) {
+    fun Context.download(load: LoadResponse, api: MainAPI) {
         try {
             val sApiName = sanitizeFilename(api.name)
             val sAuthor = if (load.author == null) "" else sanitizeFilename(load.author)
             val sName = sanitizeFilename(load.name)
 
-            val id = generateId(load, api)
+            val id = generateId(load, api.name)
             if (isRunning.containsKey(id)) return // prevent multidownload of same files
 
             isRunning[id] = DownloadType.IsDownloading
@@ -373,7 +357,7 @@ object BookDownloader {
             try {
                 if (load.posterUrl != null) {
                     val posterFilepath =
-                        MainActivity.activity.filesDir.toString() + getFilenameIMG(sApiName, sAuthor, sName)
+                        filesDir.toString() + getFilenameIMG(sApiName, sAuthor, sName)
                     val get = khttp.get(load.posterUrl)
                     val bytes = get.content
 
@@ -397,8 +381,8 @@ object BookDownloader {
                     val lastTime = System.currentTimeMillis() / 1000.0
 
                     val filepath =
-                        MainActivity.activity.filesDir.toString() + getFilename(sApiName, sAuthor, sName, index)
-                    val rFile: File = File(filepath)
+                        filesDir.toString() + getFilename(sApiName, sAuthor, sName, index)
+                    val rFile = File(filepath)
                     if (rFile.exists()) {
                         if (rFile.length() > 10) { // TO PREVENT INVALID FILE FROM HAVING TO REMOVE EVERYTHING
                             lastIndex = index + 1
@@ -462,12 +446,12 @@ object BookDownloader {
 
     private val cachedNotifications = hashMapOf<Int, NotificationData>()
 
-    private fun createAndStoreNotification(data: NotificationData, show: Boolean = true) {
+    private fun Context.createAndStoreNotification(data: NotificationData, show: Boolean = true) {
         cachedNotifications[data.id] = data
         createNotification(data.source, data.id, data.load, data.progress, data.total, data.eta, data._state, show)
     }
 
-    private fun createNotification(
+    private fun Context.createNotification(
         source: String,
         id: Int,
         load: LoadResponse,
@@ -490,7 +474,7 @@ object BookDownloader {
             val seconds: Int = eta_int % 60
             timeformat = String.format("%02d h %02d min %02d s", hours, minutes, seconds)
             if (minutes <= 0 && hours <= 0) {
-                timeformat = String.format("%02d s", seconds);
+                timeformat = String.format("%02d s", seconds)
             } else if (hours <= 0) {
                 timeformat = String.format("%02d min %02d s", minutes, seconds)
             }
@@ -509,19 +493,19 @@ object BookDownloader {
         downloadNotification.invoke(not)
 
         if (showNotification) {
-            val intent = Intent(MainActivity.activity, MainActivity::class.java).apply {
+            val intent = Intent(this, MainActivity::class.java).apply {
                 data = source.toUri()
                 flags = FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TASK
             }
 
-            val pendingIntent: PendingIntent = PendingIntent.getActivity(MainActivity.activity, 0, intent, 0)
-            val builder = NotificationCompat.Builder(MainActivity.activity, CHANNEL_ID)
+            val pendingIntent: PendingIntent = PendingIntent.getActivity(this, 0, intent, 0)
+            val builder = NotificationCompat.Builder(this, CHANNEL_ID)
                 .setAutoCancel(true)
                 .setColorized(true)
                 .setAutoCancel(true)
                 .setOnlyAlertOnce(true)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setColor(MainActivity.activity.colorFromAttribute(R.attr.colorPrimary))
+                .setColor(this.colorFromAttribute(R.attr.colorPrimary))
                 .setContentText(
                     when (state) {
                         DownloadType.IsDone -> "Download Done - ${load.name}"
@@ -571,7 +555,7 @@ object BookDownloader {
 
                 // ADD ACTIONS
                 for ((index, i) in actionTypes.withIndex()) {
-                    val _resultIntent = Intent(MainActivity.activity, DownloadService::class.java)
+                    val _resultIntent = Intent(this, DownloadService::class.java)
 
                     _resultIntent.putExtra(
                         "type", when (i) {
@@ -584,7 +568,7 @@ object BookDownloader {
                     _resultIntent.putExtra("id", id)
 
                     val pending: PendingIntent = PendingIntent.getService(
-                        MainActivity.activity, 4337 + index + id,
+                        this, 4337 + index + id,
                         _resultIntent,
                         PendingIntent.FLAG_UPDATE_CURRENT
                     )
@@ -605,18 +589,20 @@ object BookDownloader {
                 }
             }
 
-            with(NotificationManagerCompat.from(MainActivity.activity)) {
+            if (!hasCreatedNotChanel) {
+                createNotificationChannel()
+            }
+
+            with(NotificationManagerCompat.from(this)) {
                 // notificationId is a unique int for each notification that you must define
                 notify(id, builder.build())
             }
         }
     }
 
-    fun init() {
-        createNotificationChannel()
-    }
-
-    private fun createNotificationChannel() {
+    private var hasCreatedNotChanel = false
+    private fun Context.createNotificationChannel() {
+        hasCreatedNotChanel = true
         // Create the NotificationChannel, but only on API 26+ because
         // the NotificationChannel class is new and not in the support library
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -628,7 +614,7 @@ object BookDownloader {
             }
             // Register the channel with the system
             val notificationManager: NotificationManager =
-                MainActivity.activity.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                this.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
         }
     }

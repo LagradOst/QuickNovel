@@ -108,7 +108,7 @@
     </FrameLayout>
 
 
-    <com.lagradost.quicknovel.ui.AutofitRecyclerView
+    <com.lagradost.quicknovel.widget.AutofitRecyclerView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:clipToPadding="false"
@@ -119,5 +119,5 @@
             android:id="@+id/cardSpace"
             android:orientation="vertical"
     >
-    </com.lagradost.quicknovel.ui.AutofitRecyclerView>
+    </com.lagradost.quicknovel.widget.AutofitRecyclerView>
 </LinearLayout>

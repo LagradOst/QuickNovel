@@ -2,26 +2,28 @@ package com.lagradost.quicknovel.ui.mainpage
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity
-import com.lagradost.quicknovel.MainPageResponse
-import com.lagradost.quicknovel.ui.download.DownloadFragment
+import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.mvvm.Resource
+import kotlinx.coroutines.launch
 
-class MainPageViewModel : ViewModel() {
-    val cards: MutableLiveData<ArrayList<MainPageResponse>> by lazy {
-        MutableLiveData<ArrayList<MainPageResponse>>()
+class MainPageViewModel(private val repo: MainPageRepository) : ViewModel() {
+    val api: MainAPI get() = repo.api
+
+    /*private val searchCards: MutableLiveData<ArrayList<SearchResponse>> by lazy {
+        MutableLiveData<ArrayList<SearchResponse>>()
+    }*/
+
+    private val infCards: MutableLiveData<ArrayList<SearchResponse>> by lazy {
+        MutableLiveData<ArrayList<SearchResponse>>()
     }
 
-    val api: MutableLiveData<MainAPI> by lazy {
-        for (api in MainActivity.apis) {
-            if (api.hasMainPage) {
-                return@lazy MutableLiveData<MainAPI>(api)
-            }
-        }
-        return@lazy MutableLiveData<MainAPI>()
+    val currentCards: MutableLiveData<ArrayList<SearchResponse>> by lazy {
+        MutableLiveData<ArrayList<SearchResponse>>()
     }
 
-    val currentPage: MutableLiveData<Int> by lazy {
+    private val currentPage: MutableLiveData<Int> by lazy {
         MutableLiveData<Int>()
     }
 
@@ -39,33 +41,28 @@ class MainPageViewModel : ViewModel() {
         MutableLiveData<String>(null)
     }
 
+
     val isInSearch: MutableLiveData<Boolean> by lazy {
         MutableLiveData<Boolean>(false)
     }
 
-    val isSearchResults: MutableLiveData<Boolean> by lazy {
-        MutableLiveData<Boolean>(false)
+    fun search(query: String) {
+       // searchCards.postValue(ArrayList())
+        currentCards.postValue(ArrayList())
+        currentPage.postValue(0)
+        isInSearch.postValue(true)
+        viewModelScope.launch {
+            val res = repo.search(query)
+            if (res is Resource.Success) {
+               // searchCards.postValue(res.value)
+                currentCards.postValue(res.value)
+            }
+        }
     }
 
-    fun search(query: String) {
-        cards.postValue(ArrayList())
-        currentPage.postValue(0)
-        val api = api.value
-        if (api != null) {
-            isInSearch.postValue(true)
-            cards.postValue(
-                ArrayList(api.search(query)?.map { t ->
-                    MainPageResponse(t.name,
-                        t.url,
-                        t.posterUrl,
-                        t.rating,
-                        t.latestChapter,
-                        t.apiName,
-                        ArrayList())
-                } ?: ArrayList())
-            )
-            isSearchResults.postValue(true)
-        }
+    fun switchToMain() {
+        currentCards.postValue(infCards.value)
+        isInSearch.postValue(false)
     }
 
     fun load(
@@ -75,36 +72,43 @@ class MainPageViewModel : ViewModel() {
         tag: Int?,
     ) {
         val cPage = page ?: ((currentPage.value ?: 0) + 1)
-        if (cPage == 0)
-            cards.postValue(ArrayList())
+        if (cPage == 0) {
+            infCards.postValue(ArrayList())
+            currentCards.postValue(ArrayList())
+        }
 
-        val api = api.value
-        if (api != null) {
-            isInSearch.postValue(false)
-            val load = api.loadMainPage(cPage + 1, // cPage starts at 0, load starts at 1
-                if (mainCategory != null) api.mainCategories[mainCategory].second else null,
-                if (orderBy != null) api.orderBys[orderBy].second else null,
-                if (tag != null) api.tags[tag].second else null)
-            val list = load?.response
+        isInSearch.postValue(false)
 
-            val copy = if (cPage == 0) ArrayList() else cards.value
+        viewModelScope.launch {
+            //val copy = if (cPage == 0) ArrayList() else cards.value
+            val res = repo.loadMainPage(cPage + 1, mainCategory, orderBy, tag)
+            val copy = infCards.value ?: ArrayList()
 
-            if (list != null && copy != null) {
-                for (i in list) {
-                    copy.add(i)
+            when (res) {
+                is Resource.Success -> {
+                    val response = res.value
+                    currentUrl.postValue(response.url)
+                    val list = response.list
+                    for (i in list) {
+                        copy.add(i)
+                    }
+                    infCards.postValue(copy)
+                    currentCards.postValue(copy)
+                }
+                is Resource.Failure -> {
+                    infCards.postValue(copy)
+                    currentCards.postValue(copy)
+                    // TODO SHOW UI
+                }
+                is Resource.Loading -> {
+                    //NOTHING
                 }
             }
 
-            if (load != null && list != null && list.size > 0) {
-                currentUrl.postValue(load.url)
-            }
-            cards.postValue(copy)
+            currentPage.postValue(cPage)
+            currentTag.postValue(tag)
+            currentOrderBy.postValue(orderBy)
+            currentMainCategory.postValue(mainCategory)
         }
-
-        isSearchResults.postValue(false)
-        currentPage.postValue(cPage)
-        currentTag.postValue(tag)
-        currentOrderBy.postValue(orderBy)
-        currentMainCategory.postValue(mainCategory)
     }
 }

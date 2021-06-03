@@ -70,8 +70,7 @@ class WuxiaWorldSiteProvider : MainAPI() {
         mainCategory: String?,
         orderBy: String?,
         tag: String?,
-    ): HeadMainPageResponse? {
-
+    ): HeadMainPageResponse {
         val order = when (tag) {
             "" -> "novel-list"
             null -> "novel-list"
@@ -80,34 +79,30 @@ class WuxiaWorldSiteProvider : MainAPI() {
         }
         val url = "$mainUrl/$order/page/$page/${if (orderBy == null || orderBy == "") "" else "?m_orderby=$orderBy"}"
 
-        try {
-            val response = khttp.get(url)
+        val response = khttp.get(url)
 
-            val document = Jsoup.parse(response.text)
-            //""div.page-content-listing > div.page-listing-item > div > div > div.page-item-detail"
-            val headers = document.select("div.page-item-detail")
-            if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
+        val document = Jsoup.parse(response.text)
+        //""div.page-content-listing > div.page-listing-item > div > div > div.page-item-detail"
+        val headers = document.select("div.page-item-detail")
+        if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
 
-            val returnValue: ArrayList<MainPageResponse> = ArrayList()
-            for (h in headers) {
-                val imageHeader = h.selectFirst("div.item-thumb > a")
-                val name = imageHeader.attr("title")
-                if (name.contains("Comic")) continue // I DON'T WANT MANGA!
+        val returnValue: ArrayList<SearchResponse> = ArrayList()
+        for (h in headers) {
+            val imageHeader = h.selectFirst("div.item-thumb > a")
+            val name = imageHeader.attr("title")
+            if (name.contains("Comic")) continue // I DON'T WANT MANGA!
 
-                val url = imageHeader.attr("href")
-                val posterUrl = imageHeader.selectFirst("> img").attr("src")
-                val sum = h.selectFirst("div.item-summary")
-                val rating =
-                    (sum.selectFirst("> div.rating > div.post-total-rating > span.score").text()
-                        .toFloat() * 200).toInt()
-                val latestChap = sum.selectFirst("> div.list-chapter > div.chapter-item > span > a").text()
-                returnValue.add(MainPageResponse(name, url, posterUrl, rating, latestChap, this.name, ArrayList()))
-            }
-
-            return HeadMainPageResponse(url, returnValue)
-        } catch (e: Exception) {
-            return null
+            val cUrl = imageHeader.attr("href")
+            val posterUrl = imageHeader.selectFirst("> img").attr("src")
+            val sum = h.selectFirst("div.item-summary")
+            val rating =
+                (sum.selectFirst("> div.rating > div.post-total-rating > span.score").text()
+                    .toFloat() * 200).toInt()
+            val latestChap = sum.selectFirst("> div.list-chapter > div.chapter-item > span > a").text()
+            returnValue.add(SearchResponse(name, cUrl, posterUrl, rating, latestChap, this.name))
         }
+
+        return HeadMainPageResponse(url, returnValue)
     }
 
     override fun loadHtml(url: String): String? {
@@ -126,119 +121,112 @@ class WuxiaWorldSiteProvider : MainAPI() {
         }
     }
 
-    override fun search(query: String): ArrayList<SearchResponse>? {
-        try {
-            val response = khttp.get("$mainUrl/?s=$query&post_type=wp-manga")
+    override fun search(query: String): ArrayList<SearchResponse> {
+        val response = khttp.get("$mainUrl/?s=$query&post_type=wp-manga")
 
-            val document = Jsoup.parse(response.text)
-            val headers = document.select("div.c-tabs-item > div.c-tabs-item__content")
-            if (headers.size <= 0) return ArrayList()
-            val returnValue: ArrayList<SearchResponse> = ArrayList()
-            for (h in headers) {
-                val head = h.selectFirst("> div > div.tab-summary")
-                val title = head.selectFirst("> div.post-title > h3 > a")
-                val name = title.text()
+        val document = Jsoup.parse(response.text)
+        val headers = document.select("div.c-tabs-item > div.c-tabs-item__content")
+        if (headers.size <= 0) return ArrayList()
+        val returnValue: ArrayList<SearchResponse> = ArrayList()
+        for (h in headers) {
+            val head = h.selectFirst("> div > div.tab-summary")
+            val title = head.selectFirst("> div.post-title > h3 > a")
+            val name = title.text()
 
-                if (name.contains("Comic")) continue // I DON'T WANT MANGA!
+            if (name.contains("Comic")) continue // I DON'T WANT MANGA!
 
-                val url = title.attr("href")
+            val url = title.attr("href")
 
-                val posterUrl = h.selectFirst("> div > div.tab-thumb > a > img").attr("src")
+            val posterUrl = h.selectFirst("> div > div.tab-thumb > a > img").attr("src")
 
-                val meta = h.selectFirst("> div > div.tab-meta")
+            val meta = h.selectFirst("> div > div.tab-meta")
 
-                val ratingTxt = meta.selectFirst("> div.rating > div.post-total-rating > span.total_votes").text()
+            val ratingTxt = meta.selectFirst("> div.rating > div.post-total-rating > span.total_votes").text()
 
-                val rating = if (ratingTxt != null) {
-                    (ratingTxt.toFloat() * 200).toInt()
-                } else {
-                    null
-                }
-
-                val latestChapter = meta.selectFirst("> div.latest-chap > span.chapter > a").text()
-                returnValue.add(SearchResponse(name, url, posterUrl, rating, latestChapter, this.name))
+            val rating = if (ratingTxt != null) {
+                (ratingTxt.toFloat() * 200).toInt()
+            } else {
+                null
             }
-            return returnValue
-        } catch (e: Exception) {
-            return null
+
+            val latestChapter = meta.selectFirst("> div.latest-chap > span.chapter > a").text()
+            returnValue.add(SearchResponse(name, url, posterUrl, rating, latestChapter, this.name))
         }
+        return returnValue
+
     }
 
-    override fun load(url: String): LoadResponse? {
-        try {
-            val response = khttp.get(url)
+    override fun load(url: String): LoadResponse {
+        val response = khttp.get(url)
 
-            val document = Jsoup.parse(response.text)
+        val document = Jsoup.parse(response.text)
 
-            val name = document.selectFirst("div.post-title > h1").text().replace("  ", " ").replace("\n", "")
-                .replace("\t", "")
-            val authors = document.select("div.author-content > a")
-            var author = ""
-            for (a in authors) {
-                val atter = a.attr("href")
-                if (atter.length > "$mainUrl/manga-author/".length && atter.startsWith("$mainUrl/manga-author/")) {
-                    author = a.text()
-                    break
-                }
+        val name = document.selectFirst("div.post-title > h1").text().replace("  ", " ").replace("\n", "")
+            .replace("\t", "")
+        val authors = document.select("div.author-content > a")
+        var author = ""
+        for (a in authors) {
+            val atter = a.attr("href")
+            if (atter.length > "$mainUrl/manga-author/".length && atter.startsWith("$mainUrl/manga-author/")) {
+                author = a.text()
+                break
             }
-
-            val posterUrl = document.select("div.summary_image > a > img").attr("src")
-
-            val tags: ArrayList<String> = ArrayList()
-            val tagsHeader = document.select("div.genres-content > a")
-            for (t in tagsHeader) {
-                tags.add(t.text())
-            }
-
-            var synopsis = ""
-            val synoParts = document.select("div.summary__content > p")
-            for (s in synoParts) {
-                if (s.hasText() && !s.text().toLowerCase(Locale.getDefault()).contains("wuxiaworld.site")) { // FUCK ADS
-                    synopsis += s.text()!! + "\n\n"
-                }
-            }
-
-            val data: ArrayList<ChapterData> = ArrayList()
-            val chapterHeaders = document.select("ul.version-chap > li.wp-manga-chapter")
-            for (c in chapterHeaders) {
-                val header = c.selectFirst("> a")
-                val url = header.attr("href")
-                val name = header.text().replace("  ", " ").replace("\n", "")
-                    .replace("\t", "")
-                val added = c.selectFirst("> span.chapter-release-date > i").text()
-                data.add(ChapterData(name, url, added, 0))
-            }
-            data.reverse()
-
-            val rating = ((document.selectFirst("span#averagerate")?.text()?.toFloat() ?: 0f) * 200).toInt()
-            val peopleVoted = document.selectFirst("span#countrate")?.text()?.toInt() ?: 0
-
-            val views = null
-
-            val aHeaders = document.select("div.post-status > div.post-content_item > div.summary-content")
-            val aHeader = aHeaders.last()
-
-            val status = when (aHeader.text().toLowerCase(Locale.getDefault())) {
-                "ongoing" -> 1
-                "completed" -> 2
-                else -> 0
-            }
-
-            return LoadResponse(
-                url,
-                name,
-                data,
-                author,
-                posterUrl,
-                rating,
-                peopleVoted,
-                views,
-                synopsis,
-                tags,
-                status
-            )
-        } catch (e: Exception) {
-            return null
         }
+
+        val posterUrl = document.select("div.summary_image > a > img").attr("src")
+
+        val tags: ArrayList<String> = ArrayList()
+        val tagsHeader = document.select("div.genres-content > a")
+        for (t in tagsHeader) {
+            tags.add(t.text())
+        }
+
+        var synopsis = ""
+        val synoParts = document.select("div.summary__content > p")
+        for (s in synoParts) {
+            if (s.hasText() && !s.text().toLowerCase(Locale.getDefault()).contains("wuxiaworld.site")) { // FUCK ADS
+                synopsis += s.text()!! + "\n\n"
+            }
+        }
+
+        val data: ArrayList<ChapterData> = ArrayList()
+        val chapterHeaders = document.select("ul.version-chap > li.wp-manga-chapter")
+        for (c in chapterHeaders) {
+            val header = c.selectFirst("> a")
+            val cUrl = header.attr("href")
+            val cName = header.text().replace("  ", " ").replace("\n", "")
+                .replace("\t", "")
+            val added = c.selectFirst("> span.chapter-release-date > i").text()
+            data.add(ChapterData(cName, cUrl, added, 0))
+        }
+        data.reverse()
+
+        val rating = ((document.selectFirst("span#averagerate")?.text()?.toFloat() ?: 0f) * 200).toInt()
+        val peopleVoted = document.selectFirst("span#countrate")?.text()?.toInt() ?: 0
+
+        val views = null
+
+        val aHeaders = document.select("div.post-status > div.post-content_item > div.summary-content")
+        val aHeader = aHeaders.last()
+
+        val status = when (aHeader.text().toLowerCase(Locale.getDefault())) {
+            "ongoing" -> 1
+            "completed" -> 2
+            else -> 0
+        }
+
+        return LoadResponse(
+            url,
+            name,
+            data,
+            author,
+            posterUrl,
+            rating,
+            peopleVoted,
+            views,
+            synopsis,
+            tags,
+            status
+        )
     }
 }

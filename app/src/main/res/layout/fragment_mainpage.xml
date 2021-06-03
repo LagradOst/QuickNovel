@@ -3,7 +3,7 @@
         xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
         android:id="@+id/mainpageRoot"
-        android:layout_height="match_parent" xmlns:tools="http://schemas.android.com/tools"
+        android:layout_height="match_parent"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         android:background="?attr/grayBackground"
 >
@@ -31,7 +31,7 @@
                 android:layout_width="match_parent" android:layout_height="wrap_content">
         </com.google.android.material.appbar.MaterialToolbar>
     </com.google.android.material.appbar.AppBarLayout>
-        <com.lagradost.quicknovel.ui.AutofitRecyclerView
+        <com.lagradost.quicknovel.widget.AutofitRecyclerView
                 app:layout_behavior="@string/appbar_scrolling_view_behavior"
 
                 android:layout_width="match_parent"

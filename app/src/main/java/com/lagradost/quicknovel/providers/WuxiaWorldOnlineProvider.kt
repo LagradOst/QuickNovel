@@ -67,36 +67,31 @@ class WuxiaWorldOnlineProvider : MainAPI() {
             Pair("Lastest Releases", "date_added"),
         )
 
-    override fun loadMainPage(page: Int, mainCategory: String?, orderBy: String?, tag: String?): HeadMainPageResponse? {
+    override fun loadMainPage(page: Int, mainCategory: String?, orderBy: String?, tag: String?): HeadMainPageResponse {
         val url = "$mainUrl/wuxia-list?sort=$orderBy&genres_include=$tag&page=$page" // TAGS
-        try {
-            val response = khttp.get(url)
+        val response = khttp.get(url)
 
-            val document = Jsoup.parse(response.text)
+        val document = Jsoup.parse(response.text)
 
-            val headers = document.select("div.manga-grid > div.itemupdate")
-            if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
-            val returnValue: ArrayList<MainPageResponse> = ArrayList()
-            for (h in headers) {
-                val a = h.selectFirst("> a")
-                val url = a.attr("href")
+        val headers = document.select("div.manga-grid > div.itemupdate")
+        if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
+        val returnValue: ArrayList<SearchResponse> = ArrayList()
+        for (h in headers) {
+            val a = h.selectFirst("> a")
+            val cUrl = a.attr("href")
 
-                val name = a.attr("title")
-                val posterUrl = a.selectFirst("> img").attr("src")
+            val name = a.attr("title")
+            val posterUrl = a.selectFirst("> img").attr("src")
 
-                val latestChap = h.select("> ul > li")[1].selectFirst("> span > a").text()
-                returnValue.add(MainPageResponse(name,
-                    fixUrl(url),
-                    fixUrl(posterUrl),
-                    null,
-                    latestChap,
-                    this.name,
-                    ArrayList()))
-            }
-            return HeadMainPageResponse(url, returnValue)
-        } catch (e: Exception) {
-            return null
+            val latestChap = h.select("> ul > li")[1].selectFirst("> span > a").text()
+            returnValue.add(SearchResponse(name,
+                fixUrl(cUrl),
+                fixUrl(posterUrl),
+                null,
+                latestChap,
+                this.name))
         }
+        return HeadMainPageResponse(url, returnValue)
     }
 
     override fun loadHtml(url: String): String? {
@@ -113,136 +108,128 @@ class WuxiaWorldOnlineProvider : MainAPI() {
         }
     }
 
-    override fun search(query: String): ArrayList<SearchResponse>? {
-        try {
-            val response =
-                khttp.get("https://wuxiaworld.online/search.ajax?type=&query=$query") // AJAX, TODO MIGHT ADD QUICK SEARCH
+    override fun search(query: String): ArrayList<SearchResponse> {
+        val response =
+            khttp.get("https://wuxiaworld.online/search.ajax?type=&query=$query") // AJAX, MIGHT ADD QUICK SEARCH
 
-            val document = Jsoup.parse(response.text)
-            val headers = document.select("ul > li")
-            if (headers.size <= 0) return ArrayList()
-            val returnValue: ArrayList<SearchResponse> = ArrayList()
-            for (h in headers) {
-                val hInfo = h.selectFirst("> span > a")
+        val document = Jsoup.parse(response.text)
+        val headers = document.select("ul > li")
+        if (headers.size <= 0) return ArrayList()
+        val returnValue: ArrayList<SearchResponse> = ArrayList()
+        for (h in headers) {
+            val hInfo = h.selectFirst("> span > a")
 
-                val name = hInfo.text()
-                val url = hInfo.attr("href")
+            val name = hInfo.text()
+            val url = hInfo.attr("href")
 
-                val posterUrl = h.selectFirst("> img").attr("src")
+            val posterUrl = h.selectFirst("> img").attr("src")
 
-                val latestChapter = h.selectFirst("> span > a > span").text()
-                returnValue.add(SearchResponse(name, url, fixUrl(posterUrl), null, latestChapter, this.name))
-            }
-            return returnValue
-        } catch (e: Exception) {
-            return null
+            val latestChapter = h.selectFirst("> span > a > span").text()
+            returnValue.add(SearchResponse(name, url, fixUrl(posterUrl), null, latestChapter, this.name))
         }
+        return returnValue
     }
 
-    override fun load(url: String): LoadResponse? {
-        try {
-            val response = khttp.get(url)
+    override fun load(url: String): LoadResponse {
+        val response = khttp.get(url)
 
-            val document = Jsoup.parse(response.text)
-            val infoHeaders = document.select("ul.truyen_info_right > li")
-            fun getInfoHeader(startWidth: String): Element? {
-                for (a in infoHeaders) {
-                    val sel = a.selectFirst("> span")
-                    if (sel != null && sel.hasText() && sel.text().startsWith(startWidth)) return a
-                }
-                return null
+        val document = Jsoup.parse(response.text)
+        val infoHeaders = document.select("ul.truyen_info_right > li")
+        fun getInfoHeader(startWidth: String): Element? {
+            for (a in infoHeaders) {
+                val sel = a.selectFirst("> span")
+                if (sel != null && sel.hasText() && sel.text().startsWith(startWidth)) return a
             }
-
-            val name = document.selectFirst("li > h1.entry-title").text()
-
-            val auth = getInfoHeader("Author")
-            var author: String? = null
-
-            if (auth != null) {
-                author = auth.selectFirst("a").text()
-            }
-
-            val posterUrl = document.select("span.info_image > img").attr("src")
-
-            val tags: ArrayList<String> = ArrayList()
-
-            val gen = getInfoHeader("Genres")
-            if (gen != null) {
-                val tagsHeader = gen.select("> a")
-                for (t in tagsHeader) {
-                    tags.add(t.text())
-                }
-            }
-
-            val synopsis = document.select("div.entry-header > div")[1].text()
-
-            val data: ArrayList<ChapterData> = ArrayList()
-            val chapterHeaders = document.select("div.chapter-list > div")
-            for (c in chapterHeaders) {
-                val spans = c.select("> span")
-                val text = spans[0].selectFirst("> a")
-                val url = text.attr("href")
-                val name = text.text()
-                val added = spans[1].text()
-                val views = null
-                data.add(ChapterData(name, url, added, views))
-            }
-            data.reverse()
-
-            var rating = 0
-            var peopleVoted = 0
-            try {
-                rating = (document.selectFirst("span#averagerate").text().toFloat() * 200).toInt()
-
-                peopleVoted = document.selectFirst("span#countrate").text().toInt()
-            } catch (e: Exception) {
-                // NO RATING
-            }
-
-            val viewHeader = getInfoHeader("Views")
-            var views: Int? = null
-
-            if (viewHeader != null) {
-                var hString = viewHeader.text().replace(",", ".")
-                    .replace("\"", "")
-                    .substring("View : ".length).toLowerCase(Locale.getDefault())
-
-                var multi = 1
-                if (hString.contains('k')) { // YE THIS CAN BE IMPROVED
-                    multi = 1000
-                    hString = hString.substring(0, hString.indexOf('k') - 1)
-                }
-                if (hString.contains('m')) {
-                    multi = 1000000
-                    hString = hString.substring(0, hString.indexOf('m') - 1)
-                }
-
-                views = (hString.toFloat() * multi).toInt()
-            }
-
-            val statusHeader = getInfoHeader("Status")
-            val status = if (statusHeader == null) null else
-                when (statusHeader.selectFirst("> a").text()
-                    .toLowerCase(Locale.getDefault())) {
-                    "ongoing" -> 1
-                    "completed" -> 2
-                    else -> 0
-                }
-
-            return LoadResponse(
-                url,
-                name,
-                data,
-                author,
-                fixUrl(posterUrl),
-                rating,
-                peopleVoted,
-                views,
-                synopsis,
-                tags,
-                status)
-        } catch (e: Exception) {
             return null
         }
+
+        val name = document.selectFirst("li > h1.entry-title").text()
+
+        val auth = getInfoHeader("Author")
+        var author: String? = null
+
+        if (auth != null) {
+            author = auth.selectFirst("a").text()
+        }
+
+        val posterUrl = document.select("span.info_image > img").attr("src")
+
+        val tags: ArrayList<String> = ArrayList()
+
+        val gen = getInfoHeader("Genres")
+        if (gen != null) {
+            val tagsHeader = gen.select("> a")
+            for (t in tagsHeader) {
+                tags.add(t.text())
+            }
+        }
+
+        val synopsis = document.select("div.entry-header > div")[1].text()
+
+        val data: ArrayList<ChapterData> = ArrayList()
+        val chapterHeaders = document.select("div.chapter-list > div")
+        for (c in chapterHeaders) {
+            val spans = c.select("> span")
+            val text = spans[0].selectFirst("> a")
+            val cUrl = text.attr("href")
+            val cName = text.text()
+            val added = spans[1].text()
+            val views = null
+            data.add(ChapterData(cName, cUrl, added, views))
+        }
+        data.reverse()
+
+        var rating = 0
+        var peopleVoted = 0
+        try {
+            rating = (document.selectFirst("span#averagerate").text().toFloat() * 200).toInt()
+
+            peopleVoted = document.selectFirst("span#countrate").text().toInt()
+        } catch (e: Exception) {
+            // NO RATING
+        }
+
+        val viewHeader = getInfoHeader("Views")
+        var views: Int? = null
+
+        if (viewHeader != null) {
+            var hString = viewHeader.text().replace(",", ".")
+                .replace("\"", "")
+                .substring("View : ".length).toLowerCase(Locale.getDefault())
+
+            var multi = 1
+            if (hString.contains('k')) { // YE THIS CAN BE IMPROVED
+                multi = 1000
+                hString = hString.substring(0, hString.indexOf('k') - 1)
+            }
+            if (hString.contains('m')) {
+                multi = 1000000
+                hString = hString.substring(0, hString.indexOf('m') - 1)
+            }
+
+            views = (hString.toFloat() * multi).toInt()
+        }
+
+        val statusHeader = getInfoHeader("Status")
+        val status = if (statusHeader == null) null else
+            when (statusHeader.selectFirst("> a").text()
+                .toLowerCase(Locale.getDefault())) {
+                "ongoing" -> 1
+                "completed" -> 2
+                else -> 0
+            }
+
+        return LoadResponse(
+            url,
+            name,
+            data,
+            author,
+            fixUrl(posterUrl),
+            rating,
+            peopleVoted,
+            views,
+            synopsis,
+            tags,
+            status)
     }
 }

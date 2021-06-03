@@ -15,79 +15,14 @@ import androidx.recyclerview.widget.RecyclerView.ItemAnimator
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.lagradost.quicknovel.*
-import com.lagradost.quicknovel.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.mvvm.observe
+import com.lagradost.quicknovel.ui.download.DownloadHelper.updateDownloadFromCard
+import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
+import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import kotlinx.android.synthetic.main.fragment_downloads.*
 import kotlin.concurrent.thread
 
-const val DEFAULT_SORT = 0
-const val ALPHA_SORT = 1
-const val REVERSE_ALPHA_SORT = 2
-const val DOWNLOADSIZE_SORT = 3
-const val REVERSE_DOWNLOADSIZE_SORT = 4
-const val DOWNLOADPRECENTAGE_SORT = 5
-const val REVERSE_DOWNLOADPRECENTAGE_SORT = 6
-const val LAST_ACCES_SORT = 7
-const val REVERSE_LAST_ACCES_SORT = 8
-
 class DownloadFragment : Fragment() {
-    companion object {
-        fun updateDownloadFromResult(
-            res: LoadResponse,
-            localId: Int,
-            apiName: String,
-            source: String,
-            pauseOngoing: Boolean = false,
-        ) {
-            val api = MainActivity.getApiFromName(apiName)
-            DataStore.setKey(DOWNLOAD_TOTAL,
-                localId.toString(),
-                res.data.size) // FIX BUG WHEN DOWNLOAD IS OVER TOTAL
-
-            DataStore.setKey(DOWNLOAD_FOLDER, BookDownloader.generateId(res, api).toString(),
-                DownloadData(source,
-                    res.name,
-                    res.author,
-                    res.posterUrl,
-                    res.rating,
-                    res.peopleVoted,
-                    res.views,
-                    res.synopsis,
-                    res.tags,
-                    api.name
-                ))
-            when (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped) {
-                BookDownloader.DownloadType.IsFailed -> BookDownloader.download(res, api)
-                BookDownloader.DownloadType.IsStopped -> BookDownloader.download(res, api)
-                BookDownloader.DownloadType.IsDownloading -> BookDownloader.updateDownload(localId,
-                    if (pauseOngoing) BookDownloader.DownloadType.IsPaused else BookDownloader.DownloadType.IsDownloading)
-                BookDownloader.DownloadType.IsPaused -> BookDownloader.updateDownload(localId,
-                    BookDownloader.DownloadType.IsDownloading)
-                else -> println("ERROR")
-            }
-        }
-
-        fun updateDownloadFromCard(card: DownloadDataLoaded, pauseOngoing: Boolean = false) {
-            thread {
-                val api = MainActivity.getApiFromName(card.apiName)
-                val res =
-                    /*if (DloadAdapter.cachedLoadResponse.containsKey(card.id))
-                        DloadAdapter.cachedLoadResponse[card.id] else*/
-                    api.load(card.source)
-                if (res == null) {
-                    /*MainActivity.activity.runOnUiThread {
-                        Toast.makeText(context, "Error loading", Toast.LENGTH_SHORT).show()
-                    }*/
-                } else {
-                    //DloadAdapter.cachedLoadResponse[card.id] = res
-                    val localId = card.id//BookDownloader.generateId(res, MainActivity.api)
-                    updateDownloadFromResult(res, localId, card.apiName, card.source, pauseOngoing)
-                }
-            }
-        }
-
-    }
-
     private lateinit var viewModel: DownloadViewModel
 
     data class DownloadData(
@@ -161,19 +96,19 @@ class DownloadFragment : Fragment() {
     }
 
     private fun updateData(data: ArrayList<DownloadDataLoaded>) {
-        (download_cardSpace.adapter as DloadAdapter).cardList = data
-        (download_cardSpace.adapter as DloadAdapter).notifyDataSetChanged()
+        (download_cardSpace.adapter as DownloadAdapter).cardList = data
+        (download_cardSpace.adapter as DownloadAdapter).notifyDataSetChanged()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        MainActivity.fixPaddingStatusbar(downloadRoot)
+        activity?.fixPaddingStatusbar(downloadRoot)
 
         viewModel = ViewModelProviders.of(MainActivity.activity).get(DownloadViewModel::class.java)
 
         observe(viewModel.cards, ::updateData)
         thread {
-            viewModel.loadData()
+            viewModel.loadData(requireContext())
         }
 
         download_toolbar.setOnMenuItemClickListener {
@@ -225,16 +160,16 @@ class DownloadFragment : Fragment() {
         swipe_container.setProgressBackgroundColorSchemeColor(requireContext().colorFromAttribute(R.attr.darkBackground))
         swipe_container.setColorSchemeColors(requireContext().colorFromAttribute(R.attr.colorPrimary))
         swipe_container.setOnRefreshListener {
-            for (card in (download_cardSpace.adapter as DloadAdapter).cardList) {
+            for (card in (download_cardSpace.adapter as DownloadAdapter).cardList) {
                 if ((card.downloadedCount * 100 / card.downloadedTotal) > 90) {
-                    updateDownloadFromCard(card)
+                    updateDownloadFromCard(requireContext(), card)
                 }
             }
             swipe_container.isRefreshing = false
         }
 
-        val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = context?.let {
-            DloadAdapter(
+        val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = activity?.let {
+            DownloadAdapter(
                 it,
                 ArrayList(),
                 download_cardSpace,
@@ -243,7 +178,7 @@ class DownloadFragment : Fragment() {
 
         adapter?.setHasStableIds(true)
         download_cardSpace.adapter = adapter
-        val animator: ItemAnimator = download_cardSpace.getItemAnimator()!!
+        val animator: ItemAnimator = download_cardSpace.itemAnimator!!
         if (animator is SimpleItemAnimator) {
             animator.supportsChangeAnimations = false
         }

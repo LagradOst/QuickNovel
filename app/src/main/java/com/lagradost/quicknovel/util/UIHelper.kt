@@ -1,8 +1,10 @@
-package com.lagradost.quicknovel
+package com.lagradost.quicknovel.util
 
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
+import android.content.res.Resources
+import android.graphics.Color
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Build
@@ -10,14 +12,58 @@ import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import androidx.annotation.AttrRes
+import androidx.annotation.ColorInt
 import androidx.annotation.MenuRes
 import androidx.appcompat.view.menu.MenuBuilder
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.alpha
+import androidx.core.graphics.blue
+import androidx.core.graphics.green
+import androidx.core.graphics.red
 import androidx.core.view.forEach
-import com.lagradost.quicknovel.MainActivity.Companion.getResourceColor
+import androidx.fragment.app.FragmentActivity
+import com.lagradost.quicknovel.R
+import java.text.CharacterIterator
+import java.text.StringCharacterIterator
+import kotlin.math.roundToInt
+
+val Int.toPx: Int get() = (this * Resources.getSystem().displayMetrics.density).toInt()
+val Float.toPx: Float get() = (this * Resources.getSystem().displayMetrics.density)
+val Int.toDp: Int get() = (this / Resources.getSystem().displayMetrics.density).toInt()
+val Float.toDp: Float get() = (this / Resources.getSystem().displayMetrics.density)
 
 object UIHelper {
+    fun humanReadableByteCountSI(bytes: Int): String {
+        if (-1000 < bytes && bytes < 1000) {
+            return "$bytes"
+        }
+        val ci: CharacterIterator = StringCharacterIterator("kMGTPE")
+        var currentBytes = bytes
+        while (currentBytes <= -999950 || currentBytes >= 999950) {
+            currentBytes /= 1000
+            ci.next()
+        }
+        return String.format("%.1f%c", currentBytes / 1000.0, ci.current()).replace(',', '.')
+    }
+
+    fun FragmentActivity.popCurrentPage() {
+        val currentFragment = supportFragmentManager.fragments.lastOrNull {
+            it.isVisible
+        } ?: return
+
+        supportFragmentManager.beginTransaction()
+            .setCustomAnimations(
+                R.anim.enter_anim,
+                R.anim.exit_anim,
+                R.anim.pop_enter,
+                R.anim.pop_exit
+            )
+            .remove(currentFragment)
+            .commitAllowingStateLoss()
+    }
+
     fun Context.dimensionFromAttribute(attribute: Int): Int {
         val attributes = obtainStyledAttributes(intArrayOf(attribute))
         val dimension = attributes.getDimensionPixelSize(0, 0)
@@ -60,6 +106,20 @@ object UIHelper {
         }
     }
 
+    @ColorInt
+    fun Context.getResourceColor(@AttrRes resource: Int, alphaFactor: Float = 1f): Int {
+        val typedArray = obtainStyledAttributes(intArrayOf(resource))
+        val color = typedArray.getColor(0, 0)
+        typedArray.recycle()
+
+        if (alphaFactor < 1f) {
+            val alpha = (color.alpha * alphaFactor).roundToInt()
+            return Color.argb(alpha, color.red, color.green, color.blue)
+        }
+
+        return color
+    }
+
     /**
      * Shows a popup menu on top of this view.
      *
@@ -70,7 +130,7 @@ object UIHelper {
     inline fun View.popupMenu(
         @MenuRes menuRes: Int,
         noinline initMenu: (Menu.() -> Unit)? = null,
-        noinline onMenuItemClick: MenuItem.() -> Unit
+        noinline onMenuItemClick: MenuItem.() -> Unit,
     ): PopupMenu {
         val popup = PopupMenu(context, this, Gravity.NO_GRAVITY, R.attr.actionOverflowMenuStyle, 0)
         popup.menuInflater.inflate(menuRes, popup.menu)
@@ -99,9 +159,10 @@ object UIHelper {
     inline fun View.popupMenu(
         items: List<Pair<Int, Int>>,
         selectedItemId: Int? = null,
-        noinline onMenuItemClick: MenuItem.() -> Unit
+        noinline onMenuItemClick: MenuItem.() -> Unit,
     ): PopupMenu {
-        val popup = PopupMenu(context, this, Gravity.NO_GRAVITY, R.attr.actionOverflowMenuStyle, R.style.AppTheme_Toolbar)
+        val popup =
+            PopupMenu(context, this, Gravity.NO_GRAVITY, R.attr.actionOverflowMenuStyle, R.style.AppTheme_Toolbar)
         items.forEach { (id, stringRes) ->
             popup.menu.add(0, id, 0, stringRes)
         }

@@ -1,10 +1,11 @@
-package com.lagradost.quicknovel;
+package com.lagradost.quicknovel.widget;
 
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
+import com.lagradost.quicknovel.R;
 
 public class MyFlowLayout extends ViewGroup {
 

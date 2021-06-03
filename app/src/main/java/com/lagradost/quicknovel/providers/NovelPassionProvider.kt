@@ -73,36 +73,33 @@ class NovelPassionProvider : MainAPI() {
             Pair("Completed", "3"),
         )
 
-    override fun loadMainPage(page: Int, mainCategory: String?, orderBy: String?, tag: String?): HeadMainPageResponse? {
+    override fun loadMainPage(page: Int, mainCategory: String?, orderBy: String?, tag: String?): HeadMainPageResponse {
         val url = "$mainUrl/category/$tag?p=$page&s=$mainCategory&f=$orderBy"
-        try {
-            val response = khttp.get(url)
 
-            val document = Jsoup.parse(response.text)
-            val headers = document.select("div.lh1d5")
-            if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
-            val returnValue: ArrayList<MainPageResponse> = ArrayList()
-            for (h in headers) {
-                val head = h.selectFirst("> a.c_000")
-                val name = head.attr("title")
-                val url = head.attr("href")
-                var posterUrl = head.selectFirst("> i.oh > img").attr("src")
-                if (posterUrl != null) posterUrl = mainUrl + posterUrl
+        val response = khttp.get(url)
 
-                val rating = (h.selectFirst("> p.g_star_num > small").text()!!.toFloat() * 200).toInt()
-                val latestChapter = h.selectFirst("> div > div.dab > a").attr("title")
-                returnValue.add(MainPageResponse(name,
-                    fixUrl(url),
-                    posterUrl,
-                    rating,
-                    latestChapter,
-                    this.name,
-                    ArrayList()))
-            }
-            return HeadMainPageResponse(url, returnValue)
-        } catch (e: Exception) {
-            return null
+        val document = Jsoup.parse(response.text)
+        val headers = document.select("div.lh1d5")
+        if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
+        val returnValue: ArrayList<SearchResponse> = ArrayList()
+        for (h in headers) {
+            val head = h.selectFirst("> a.c_000")
+            val name = head.attr("title")
+            val cUrl = head.attr("href")
+            var posterUrl = head.selectFirst("> i.oh > img").attr("src")
+            if (posterUrl != null) posterUrl = mainUrl + posterUrl
+
+            val rating = (h.selectFirst("> p.g_star_num > small").text()!!.toFloat() * 200).toInt()
+            val latestChapter = h.selectFirst("> div > div.dab > a").attr("title")
+            returnValue.add(SearchResponse(name,
+                fixUrl(cUrl),
+                posterUrl,
+                rating,
+                latestChapter,
+                this.name,
+                )) //ArrayList()
         }
+        return HeadMainPageResponse(url, returnValue)
     }
 
     override fun loadHtml(url: String): String? {
@@ -127,90 +124,84 @@ class NovelPassionProvider : MainAPI() {
         }
     }
 
-    override fun search(query: String): ArrayList<SearchResponse>? {
-        try {
-            val response = khttp.get("$mainUrl/search?keyword=$query")
+    override fun search(query: String): ArrayList<SearchResponse> {
 
-            val document = Jsoup.parse(response.text)
-            val headers = document.select("div.lh1d5")
-            if (headers.size <= 0) return ArrayList()
-            val returnValue: ArrayList<SearchResponse> = ArrayList()
-            for (h in headers) {
-                val head = h.selectFirst("> a.c_000")
-                val name = head.attr("title")
-                val url = mainUrl + head.attr("href")
+        val response = khttp.get("$mainUrl/search?keyword=$query")
 
-                var posterUrl = head.selectFirst("> i.oh > img").attr("src")
-                if (posterUrl != null) posterUrl = mainUrl + posterUrl
+        val document = Jsoup.parse(response.text)
+        val headers = document.select("div.lh1d5")
+        if (headers.size <= 0) return ArrayList()
+        val returnValue: ArrayList<SearchResponse> = ArrayList()
+        for (h in headers) {
+            val head = h.selectFirst("> a.c_000")
+            val name = head.attr("title")
+            val url = mainUrl + head.attr("href")
 
-                val rating = (h.selectFirst("> p.g_star_num > small").text()!!.toFloat() * 200).toInt()
-                val latestChapter = h.selectFirst("> div > div.dab > a").attr("title")
-                returnValue.add(SearchResponse(name, url, posterUrl, rating, latestChapter, this.name))
-            }
-            return returnValue
-        } catch (e: Exception) {
-            return null
+            var posterUrl = head.selectFirst("> i.oh > img").attr("src")
+            if (posterUrl != null) posterUrl = mainUrl + posterUrl
+
+            val rating = (h.selectFirst("> p.g_star_num > small").text()!!.toFloat() * 200).toInt()
+            val latestChapter = h.selectFirst("> div > div.dab > a").attr("title")
+            returnValue.add(SearchResponse(name, url, posterUrl, rating, latestChapter, this.name))
         }
+        return returnValue
     }
 
-    override fun load(url: String): LoadResponse? {
-        try {
-            val response = khttp.get(url)
+    override fun load(url: String): LoadResponse {
+        val response = khttp.get(url)
 
-            val document = Jsoup.parse(response.text)
-            val name = document.selectFirst("h2.pt4").text()!!
-            val author = document.selectFirst("a.stq").text()!!
-            val posterUrl = mainUrl + document.select("i.g_thumb > img").attr("src")
-            val tags: ArrayList<String> = ArrayList()
+        val document = Jsoup.parse(response.text)
+        val name = document.selectFirst("h2.pt4").text()!!
+        val author = document.selectFirst("a.stq").text()!!
+        val posterUrl = mainUrl + document.select("i.g_thumb > img").attr("src")
+        val tags: ArrayList<String> = ArrayList()
 
-            val rating = (document.select("strong.vam").text().toFloat() * 200).toInt()
-            var synopsis = ""
-            val synoParts = document.select("div.g_txt_over > div.c_000 > p")
-            for (s in synoParts) {
-                synopsis += s.text()!! + "\n\n"
-            }
-
-            val infoheader =
-                document.select("div.psn > address.lh20 > div.dns") // 0 = Author, 1 = Tags
-
-            val tagsHeader = infoheader[1].select("a.stq")
-            for (t in tagsHeader) {
-                tags.add(t.text())
-            }
-
-            val data: ArrayList<ChapterData> = ArrayList()
-            val chapterHeaders = document.select("ol.content-list > li > a")
-            for (c in chapterHeaders) {
-                val url = mainUrl + c.attr("href")
-                val name = c.select("span.sp1").text()
-                val added = c.select("i.sp2").text()
-                val views = c.select("i.sp3").text().toInt()
-                data.add(ChapterData(name, url, added, views))
-            }
-            data.reverse()
-
-            val peopleVotedText = document.selectFirst("small.fs16").text()!!
-            val peopleVoted = peopleVotedText.substring(1, peopleVotedText.length - 9).toInt()
-            val views = document.selectFirst("address > p > span").text().replace(",", "").toInt()
-
-            val statusTxt =
-                document.select("div.psn > address.lh20 > p.ell > a") // 0 = Author, 1 = Tags
-
-            var status = 0
-            for (s in statusTxt) {
-                if (s.hasText()) {
-                    status = when (s.text()) {
-                        "Ongoing" -> 1
-                        "Completed" -> 2
-                        else -> 0
-                    }
-                    if (status > 0) break
-                }
-            }
-
-            return LoadResponse(url, name, data, author, posterUrl, rating, peopleVoted, views, synopsis, tags, status)
-        } catch (e: Exception) {
-            return null
+        val rating = (document.select("strong.vam").text().toFloat() * 200).toInt()
+        var synopsis = ""
+        val synoParts = document.select("div.g_txt_over > div.c_000 > p")
+        for (s in synoParts) {
+            synopsis += s.text()!! + "\n\n"
         }
+
+        val infoheader =
+            document.select("div.psn > address.lh20 > div.dns") // 0 = Author, 1 = Tags
+
+        val tagsHeader = infoheader[1].select("a.stq")
+        for (t in tagsHeader) {
+            tags.add(t.text())
+        }
+
+        val data: ArrayList<ChapterData> = ArrayList()
+        val chapterHeaders = document.select("ol.content-list > li > a")
+        for (c in chapterHeaders) {
+            val cUrl = mainUrl + c.attr("href")
+            val cName = c.select("span.sp1").text()
+            val added = c.select("i.sp2").text()
+            val views = c.select("i.sp3").text().toInt()
+            data.add(ChapterData(cName, cUrl, added, views))
+        }
+        data.reverse()
+
+        val peopleVotedText = document.selectFirst("small.fs16").text()!!
+        val peopleVoted = peopleVotedText.substring(1, peopleVotedText.length - 9).toInt()
+        val views = document.selectFirst("address > p > span").text().replace(",", "").toInt()
+
+        val statusTxt =
+            document.select("div.psn > address.lh20 > p.ell > a") // 0 = Author, 1 = Tags
+
+        var status = 0
+        for (s in statusTxt) {
+            if (s.hasText()) {
+                status = when (s.text()) {
+                    "Ongoing" -> 1
+                    "Completed" -> 2
+                    else -> 0
+                }
+                if (status > 0) break
+            }
+        }
+
+        return LoadResponse(url, name, data, author, posterUrl, rating, peopleVoted, views, synopsis, tags, status)
+
     }
 }

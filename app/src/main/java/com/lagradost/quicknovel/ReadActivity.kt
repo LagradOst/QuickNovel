@@ -2,7 +2,6 @@ package com.lagradost.quicknovel
 
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
-import android.app.IntentService
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -39,11 +38,15 @@ import androidx.core.text.getSpans
 import androidx.media.session.MediaButtonReceiver
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.checkbox.MaterialCheckBox
-import com.lagradost.quicknovel.UIHelper.colorFromAttribute
-import com.lagradost.quicknovel.UIHelper.fixPaddingStatusbar
-import com.lagradost.quicknovel.UIHelper.popupMenu
-import com.lagradost.quicknovel.UIHelper.requestAudioFocus
+import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
+import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
+import com.lagradost.quicknovel.util.UIHelper.popupMenu
+import com.lagradost.quicknovel.util.UIHelper.requestAudioFocus
+import com.lagradost.quicknovel.receivers.BecomingNoisyReceiver
+import com.lagradost.quicknovel.services.TTSPauseService
 import com.lagradost.quicknovel.ui.OrientationType
+import com.lagradost.quicknovel.util.toDp
+import com.lagradost.quicknovel.util.toPx
 import kotlinx.android.synthetic.main.read_main.*
 import kotlinx.coroutines.*
 import nl.siegmann.epublib.domain.Book
@@ -93,35 +96,6 @@ fun setHighLightedText(tv: TextView, start: Int, end: Int): Boolean {
         return true
     } catch (e: Exception) {
         return false
-    }
-}
-
-private class BecomingNoisyReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
-            if (ReadActivity.readActivity.ttsStatus == ReadActivity.TTSStatus.IsRunning) {
-                ReadActivity.readActivity.isTTSPaused = true
-            }
-        }
-    }
-}
-
-class TTSPauseService : IntentService("TTSPauseService") {
-    override fun onHandleIntent(intent: Intent?) {
-        if (intent != null) {
-            val id = intent.getIntExtra("id", -1)
-            when (id) {
-                TTSActionType.Pause.ordinal -> {
-                    ReadActivity.readActivity.isTTSPaused = true
-                }
-                TTSActionType.Resume.ordinal -> {
-                    ReadActivity.readActivity.isTTSPaused = false
-                }
-                TTSActionType.Stop.ordinal -> {
-                    ReadActivity.readActivity.stopTTS()
-                }
-            }
-        }
     }
 }
 
@@ -610,22 +584,19 @@ class ReadActivity : AppCompatActivity() {
         DataStore.setKey(EPUB_CURRENT_POSITION, book.title, chapterIndex)
 
         fun scroll() {
-            readActivity.runOnUiThread {
-                if (scrollToRemember) {
-                    val scrollToY = DataStore.getKey<Int>(EPUB_CURRENT_POSITION_SCROLL, book.title, null)
-                    if (scrollToY != null) {
-                        read_scroll.scrollTo(0, scrollToY)
-                        read_scroll.fling(0)
-                        return@runOnUiThread
-                    }
+            if (scrollToRemember) {
+                val scrollToY = DataStore.getKey<Int>(EPUB_CURRENT_POSITION_SCROLL, book.title, null)
+                if (scrollToY != null) {
+                    read_scroll.scrollTo(0, scrollToY)
+                    read_scroll.fling(0)
+                    return
                 }
-
-                val scrollToY = if (scrollToTop) 0 else getScrollRange()
-                read_scroll.scrollTo(0, scrollToY)
-                read_scroll.fling(0)
-                updateChapterName(scrollToY)
-
             }
+
+            val scrollToY = if (scrollToTop) 0 else getScrollRange()
+            read_scroll.scrollTo(0, scrollToY)
+            read_scroll.fling(0)
+            updateChapterName(scrollToY)
         }
         read_text.alpha = 0f
 
@@ -763,7 +734,7 @@ class ReadActivity : AppCompatActivity() {
                     if (index >= text.length) {
                         globalTTSLines = ttsLines
                         callback.invoke(true)
-                        return@launch //TODO NEXT CHAPTER
+                        return@launch
                     }
                 }
 
@@ -785,7 +756,7 @@ class ReadActivity : AppCompatActivity() {
                 if (index >= text.length) {
                     globalTTSLines = ttsLines
                     callback.invoke(true)
-                    return@launch //TODO NEXT CHAPTER
+                    return@launch
                 }
 
                 val invalidEndChars =
@@ -1190,33 +1161,33 @@ class ReadActivity : AppCompatActivity() {
         read_action_settings.setOnClickListener {
             val bottomSheetDialog = BottomSheetDialog(this)
             bottomSheetDialog.setContentView(R.layout.read_bottom_settings)
-            val read_settings_text_size = bottomSheetDialog.findViewById<SeekBar>(R.id.read_settings_text_size)!!
-            val read_settings_scroll_vol =
+            val readSettingsTextSize = bottomSheetDialog.findViewById<SeekBar>(R.id.read_settings_text_size)!!
+            val readSettingsScrollVol =
                 bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_scroll_vol)!!
-            val read_settings_lock_tts = bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_lock_tts)!!
-            val show_time = bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_time)!!
-            val show_battery = bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_battery)!!
+            val readSettingsLockTts = bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_lock_tts)!!
+            val showTime = bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_time)!!
+            val showBattery = bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_battery)!!
 
             val root = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_root)!!
-            val horizontal_colors = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_colors)!!
-            
-            read_settings_scroll_vol.isChecked = scrollWithVol
-            read_settings_scroll_vol.setOnCheckedChangeListener { _, checked ->
+            val horizontalColors = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_colors)!!
+
+            readSettingsScrollVol.isChecked = scrollWithVol
+            readSettingsScrollVol.setOnCheckedChangeListener { _, checked ->
                 setScrollWithVol(checked)
             }
 
-            read_settings_lock_tts.isChecked = lockTTS
-            read_settings_lock_tts.setOnCheckedChangeListener { _, checked ->
+            readSettingsLockTts.isChecked = lockTTS
+            readSettingsLockTts.setOnCheckedChangeListener { _, checked ->
                 setLockTTS(checked)
             }
 
-            show_time.isChecked = updateHasTime()
-            show_time.setOnCheckedChangeListener { _, checked ->
+            showTime.isChecked = updateHasTime()
+            showTime.setOnCheckedChangeListener { _, checked ->
                 updateHasTime(checked)
             }
 
-            show_battery.isChecked = updateHasBattery()
-            show_battery.setOnCheckedChangeListener { _, checked ->
+            showBattery.isChecked = updateHasBattery()
+            showBattery.setOnCheckedChangeListener { _, checked ->
                 updateHasBattery(checked)
             }
 
@@ -1252,16 +1223,16 @@ class ReadActivity : AppCompatActivity() {
                     updateImages()
                 }
                 images.add(image)
-                horizontal_colors.addView(imageHolder)
+                horizontalColors.addView(imageHolder)
                 //  image.backgroundTintList = ColorStateList.valueOf(c)// ContextCompat.getColorStateList(this, c)
             }
             updateImages()
 
-            read_settings_text_size.max = 10
+            readSettingsTextSize.max = 10
             val offsetSize = 10
             var updateAllTextOnDismiss = false
-            read_settings_text_size.progress = getCurrentFontSize() - offsetSize
-            read_settings_text_size.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            readSettingsTextSize.progress = getCurrentFontSize() - offsetSize
+            readSettingsTextSize.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                     if (fromUser) {
                         setTextFontSize(progress + offsetSize)
@@ -1349,12 +1320,8 @@ class ReadActivity : AppCompatActivity() {
 
         readActivity = this
 
-        val parameter = read_topmargin.layoutParams as LinearLayout.LayoutParams
-        parameter.setMargins(parameter.leftMargin,
-            parameter.topMargin + MainActivity.statusBarHeight,
-            parameter.rightMargin,
-            parameter.bottomMargin)
-        read_topmargin.layoutParams = parameter
+        fixPaddingStatusbar(read_topmargin)
+
         window.navigationBarColor =
             colorFromAttribute(R.attr.grayBackground) //getColor(R.color.readerHightlightedMetaInfo)
 

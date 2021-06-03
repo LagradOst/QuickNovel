@@ -13,7 +13,7 @@
             android:background="@drawable/color_selection"
             android:backgroundTint="#141414"
             android:src="@drawable/color_selection_outline"
-            android:contentDescription="@string/reading_color" xmlns:app="http://schemas.android.com/apk/res-auto">
+            android:contentDescription="@string/reading_color">
     </ImageView>
 </FrameLayout>
 

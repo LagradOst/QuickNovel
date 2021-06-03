@@ -1,7 +1,9 @@
 package com.lagradost.quicknovel
 
 import org.jsoup.Jsoup
-import java.security.CodeSource
+
+const val USER_AGENT =
+    "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
 
 abstract class MainAPI {
     open val name = "NONE"
@@ -22,21 +24,21 @@ abstract class MainAPI {
         mainCategory: String?,
         orderBy: String?,
         tag: String?,
-    ): HeadMainPageResponse? {
-        return null
+    ): HeadMainPageResponse {
+        throw NotImplementedError()
     }
 
     open val hasReviews : Boolean = false
-    open fun loadReviews(url : String, page: Int, showSpoilers : Boolean = false): ArrayList<UserReview>? {
-        return null
+    open fun loadReviews(url : String, page: Int, showSpoilers : Boolean = false): ArrayList<UserReview> {
+        throw NotImplementedError()
     }
 
-    open fun search(query: String): ArrayList<SearchResponse>? {
-        return null
+    open fun search(query: String): ArrayList<SearchResponse> {
+        throw NotImplementedError()
     }
 
-    open fun load(url: String): LoadResponse? {
-        return null
+    open fun load(url: String): LoadResponse {
+        throw NotImplementedError()
     }
 
     open fun loadHtml(url: String): String? {
@@ -79,7 +81,7 @@ fun stripHtml(txt: String, chapterName: String? = null, chapterIndex: Int? = nul
 
 data class HeadMainPageResponse(
     val url: String,
-    val response: ArrayList<MainPageResponse>?,
+    val list: ArrayList<SearchResponse>,
 )
 
 data class UserReview(
@@ -91,7 +93,7 @@ data class UserReview(
     val rating: Int?,
     val ratings: ArrayList<Pair<Int, String>>?,
 )
-
+/*
 data class MainPageResponse(
     val name: String,
     val url: String,
@@ -100,7 +102,7 @@ data class MainPageResponse(
     val latestChapter: String?,
     val apiName: String,
     val tags: ArrayList<String>,
-)
+)*/
 
 data class SearchResponse(
     val name: String,

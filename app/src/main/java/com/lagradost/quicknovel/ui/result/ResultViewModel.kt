@@ -1,28 +1,30 @@
 package com.lagradost.quicknovel.ui.result
 
+import android.content.Context
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.lagradost.quicknovel.*
-import kotlin.concurrent.thread
+import androidx.lifecycle.viewModelScope
+import com.lagradost.quicknovel.BookDownloader
+import com.lagradost.quicknovel.BookDownloader.downloadInfo
+import com.lagradost.quicknovel.LoadResponse
+import com.lagradost.quicknovel.UserReview
+import com.lagradost.quicknovel.mvvm.Resource
+import kotlinx.coroutines.launch
 
-class ResultViewModel(val repo: ResultRepository) : ViewModel() {
+class ResultViewModel(private val repo: ResultRepository) : ViewModel() {
     var id: MutableLiveData<Int> = MutableLiveData<Int>(-1)
 
-    val resultUrl: MutableLiveData<String> by lazy {
-        MutableLiveData<String>()
-    }
-    val apiName: MutableLiveData<String> by lazy {
-        MutableLiveData<String>()
-    }
+    val api get() = repo.api
+    val apiName get() = api.name
+
     val currentTabIndex: MutableLiveData<Int> by lazy {
         MutableLiveData<Int>(0)
     }
 
-    val isFailedConnection: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
-    val isLoaded: MutableLiveData<Boolean> = MutableLiveData<Boolean>(false)
-    val loadResponse: MutableLiveData<LoadResponse?> by lazy {
-        MutableLiveData<LoadResponse?>()
+    val loadResponse: MutableLiveData<Resource<LoadResponse>> by lazy {
+        MutableLiveData<Resource<LoadResponse>>()
     }
+
     val downloadNotification: MutableLiveData<BookDownloader.DownloadNotification?> by lazy {
         MutableLiveData<BookDownloader.DownloadNotification?>()
     }
@@ -30,53 +32,43 @@ class ResultViewModel(val repo: ResultRepository) : ViewModel() {
     val reviews: MutableLiveData<ArrayList<UserReview>> by lazy {
         MutableLiveData<ArrayList<UserReview>>()
     }
-    val reviewPage: MutableLiveData<Int> by lazy {
+    private val reviewPage: MutableLiveData<Int> by lazy {
         MutableLiveData<Int>(0)
     }
 
-    fun loadMoreReviews() {
-        thread {
+    fun loadMoreReviews(url : String) {
+        viewModelScope.launch {
             val loadPage = (reviewPage.value ?: 0) + 1
-            val api = MainActivity.getApiFromName(apiName.value!!)
-            val moreReviews = api.loadReviews(resultUrl.value!!,
-                loadPage,
-                false) // API STARTS AT 0, BUT REQUEST STARTS AT 1
-            if (moreReviews != null) {
-                val merged = ArrayList<UserReview>()
-                merged.addAll(reviews.value ?: ArrayList())
-                merged.addAll(moreReviews)
-                reviews.postValue(merged)
-                reviewPage.postValue(loadPage)
+            when (val data = repo.loadReviews(url, loadPage, false)) {
+                is Resource.Success -> {
+                    val moreReviews = data.value
+                    val merged = ArrayList<UserReview>()
+                    merged.addAll(reviews.value ?: ArrayList())
+                    merged.addAll(moreReviews)
+                    reviews.postValue(merged)
+                    reviewPage.postValue(loadPage)
+                }
             }
         }
     }
 
-    fun initState(url: String, apiName: String) {
-        this.resultUrl.value = url
-        this.apiName.value = apiName
-        isFailedConnection.postValue(false)
-
+    fun initState(context: Context, url: String) {
         BookDownloader.downloadNotification += {
             if (it.id == id.value)
                 downloadNotification.postValue(it)
         }
 
-        thread {
-            repo.load(this.apiName.value!!, this.resultUrl.value!!
-            ) { res ->
-                isLoaded.postValue(true)
-                loadResponse.postValue(res)
-                if (res == null) {
-                    isFailedConnection.postValue(true)
-                } else {
-                    isFailedConnection.postValue(false)
-                    val tid = BookDownloader.generateId(this.apiName.value!!,
-                        res.author,
-                        res.name)
+        viewModelScope.launch {
+            loadResponse.postValue(Resource.Loading(url))
+            val data = repo.load(url)
+            loadResponse.postValue(data)
+            when (data) {
+                is Resource.Success -> {
+                    val res = data.value
+                    val tid = BookDownloader.generateId(res, apiName)
                     id.postValue(tid)
-                    DataStore.setKey(DOWNLOAD_EPUB_LAST_ACCESS, tid.toString(), System.currentTimeMillis())
 
-                    val start = BookDownloader.downloadInfo(res.author, res.name, res.data.size, apiName)
+                    val start = context.downloadInfo(res.author, res.name, res.data.size, apiName)
                     if (start != null) {
                         downloadNotification.postValue(
                             BookDownloader.DownloadNotification(start.progress,

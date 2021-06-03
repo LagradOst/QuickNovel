@@ -1,4 +1,4 @@
-package com.lagradost.quicknovel
+package com.lagradost.quicknovel.ui.mainpage
 
 import android.content.Context
 import android.view.LayoutInflater
@@ -10,29 +10,29 @@ import android.widget.*
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.model.GlideUrl
-import com.lagradost.quicknovel.ui.AutofitRecyclerView
-import com.lagradost.quicknovel.ui.search.SearchFragment
+import com.lagradost.quicknovel.MainActivity
+import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.widget.AutofitRecyclerView
+import com.lagradost.quicknovel.util.SettingsHelper.getGridFormatId
+import com.lagradost.quicknovel.util.SettingsHelper.getGridIsCompact
+import com.lagradost.quicknovel.util.toPx
 import kotlinx.android.synthetic.main.search_result_super_compact.view.*
 import kotlin.math.roundToInt
 
 
 class MainAdapter(
-    context: Context,
-    animeList: ArrayList<MainPageResponse>,
-    resView: AutofitRecyclerView,
+    val context: Context,
+    var cardList: ArrayList<SearchResponse>,
+    private val resView: AutofitRecyclerView,
 ) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-    var cardList = animeList
-    var context: Context? = context
-    var resView: AutofitRecyclerView? = resView
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
 
-        val layout = MainActivity.getGridFormatId()
+        val layout = context.getGridFormatId()
         return MainCardViewHolder(
             LayoutInflater.from(parent.context).inflate(layout, parent, false),
-            context!!,
-            resView!!
+            context,
+            resView
         )
     }
 
@@ -59,10 +59,10 @@ class MainAdapter(
         /*
 
         val imageTextProvider: TextView = itemView.imageTextProvider*/
-        val compactView = MainActivity.getGridIsCompact()
+        val compactView = context.getGridIsCompact()
         private val coverHeight: Int = if (compactView) 80.toPx else (resView.itemWidth / 0.68).roundToInt()
         val bg = itemView.backgroundCard
-        fun bind(card: MainPageResponse) {
+        fun bind(card: SearchResponse) {
 
             cardView.apply {
                 layoutParams = FrameLayout.LayoutParams(
@@ -87,6 +87,8 @@ class MainAdapter(
 
             val glideUrl =
                 GlideUrl(card.posterUrl)
+
+            cardView.setLayerType(View.LAYER_TYPE_SOFTWARE, null) // HALF IMAGE DISPLAYING FIX
             context.let {
                 Glide.with(it)
                     .load(glideUrl)

@@ -1,4 +1,4 @@
-package com.lagradost.quicknovel.ui
+package com.lagradost.quicknovel.widget
 
 import android.content.Context
 import android.util.AttributeSet

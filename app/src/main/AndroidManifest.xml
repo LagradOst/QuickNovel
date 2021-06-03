@@ -53,12 +53,12 @@
         </activity>
 
         <service
-                android:name=".DownloadService"
+                android:name=".services.DownloadService"
                 android:enabled="true"
                 android:exported="false">
         </service>
         <service
-                android:name=".TTSPauseService"
+                android:name=".services.TTSPauseService"
                 android:enabled="true"
                 android:exported="false">
         </service>

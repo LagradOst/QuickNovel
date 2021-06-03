@@ -1,7 +1,6 @@
-package com.lagradost.quicknovel
+package com.lagradost.quicknovel.util
 
-import android.app.Dialog
-import android.content.Context
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -15,8 +14,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.lagradost.quicknovel.MainActivity.Companion.activity
-import com.lagradost.quicknovel.ui.result.ResultFragment
+import com.lagradost.quicknovel.BuildConfig
+import com.lagradost.quicknovel.R
 import java.io.*
 import java.net.URL
 import java.net.URLConnection
@@ -51,7 +50,7 @@ class InAppUpdater {
         private val mapper = JsonMapper.builder().addModule(KotlinModule())
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build()
 
-        fun getAppUpdate(): Update {
+        private fun Activity.getAppUpdate(): Update {
             try {
                 val url = "https://api.github.com/repos/LagradOst/QuickNovel/releases"
                 val headers = mapOf("Accept" to "application/vnd.github.v3+json")
@@ -77,8 +76,8 @@ class InAppUpdater {
                             }
                     }).toList().lastOrNull()
                 val foundAsset = found?.assets?.getOrNull(0)
-                val currentVersion = activity.packageName?.let {
-                    activity.packageManager.getPackageInfo(it,
+                val currentVersion = packageName?.let {
+                    packageManager.getPackageInfo(it,
                         0)
                 }
 
@@ -98,12 +97,12 @@ class InAppUpdater {
             }
         }
 
-        fun downloadUpdate(url: String, localContext: Context): Boolean {
+        private fun Activity.downloadUpdate(url: String): Boolean {
             println("DOWNLOAD UPDATE $url")
             var fullResume = false // IF FULL RESUME
             try {
                 // =================== DOWNLOAD POSTERS AND SETUP PATH ===================
-                val path = activity.filesDir.toString() +
+                val path = filesDir.toString() +
                         "/Download/apk/update.apk"
 
                 // =================== MAKE DIRS ===================
@@ -131,8 +130,8 @@ class InAppUpdater {
                     }
                 } catch (e: Exception) {
                     println(e)
-                    activity.runOnUiThread {
-                        Toast.makeText(localContext, "Permission error", Toast.LENGTH_SHORT).show()
+                    runOnUiThread {
+                        Toast.makeText(this, "Permission error", Toast.LENGTH_SHORT).show()
                     }
                     return false
                 }
@@ -185,7 +184,7 @@ class InAppUpdater {
                 }
 
                 if (fullResume) { // IF FULL RESUME DELETE CURRENT AND DONT SHOW DONE
-                    with(NotificationManagerCompat.from(localContext)) {
+                    with(NotificationManagerCompat.from(this)) {
                         cancel(-1)
                     }
                 }
@@ -196,7 +195,7 @@ class InAppUpdater {
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     val contentUri = FileProvider.getUriForFile(
-                        localContext,
+                        this,
                         BuildConfig.APPLICATION_ID + ".provider",
                         rFile
                     )
@@ -205,7 +204,7 @@ class InAppUpdater {
                     install.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
                     install.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
                     install.data = contentUri
-                    activity.startActivity(install)
+                    startActivity(install)
                     return true
                 } else {
                     val apkUri = Uri.fromFile(rFile)
@@ -215,7 +214,7 @@ class InAppUpdater {
                         apkUri,
                         "application/vnd.android.package-archive"
                     )
-                    activity.startActivity(install)
+                    startActivity(install)
                     return true
                 }
 
@@ -225,31 +224,32 @@ class InAppUpdater {
             }
         }
 
-        fun runAutoUpdate(localContext: Context, checkAutoUpdate: Boolean = true): Boolean {
-            val settingsManager = PreferenceManager.getDefaultSharedPreferences(activity)
+        fun Activity.runAutoUpdate(checkAutoUpdate: Boolean = true): Boolean {
+            val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
 
-            if (!checkAutoUpdate || settingsManager.getBoolean(localContext.getString(R.string.auto_update_key), true)
+            if (!checkAutoUpdate || settingsManager.getBoolean(getString(R.string.auto_update_key), true)
             ) {
                 val update = getAppUpdate()
                 if (update.shouldUpdate && update.updateURL != null) {
-                    activity.runOnUiThread {
-                        val currentVersion = activity.packageName?.let {
-                            activity.packageManager.getPackageInfo(it,
+                    runOnUiThread {
+                        val currentVersion = packageName?.let {
+                            packageManager.getPackageInfo(it,
                                 0)
                         }
 
-                        val builder: AlertDialog.Builder = AlertDialog.Builder(localContext)
+                        val builder: AlertDialog.Builder = AlertDialog.Builder(this)
                         builder.setTitle("New update found!\n${currentVersion?.versionName} -> ${update.updateVersion}")
                         builder.setMessage("${update.changelog}")
 
+                        val context = this
                         builder.apply {
                             setPositiveButton("Update") { _, _ ->
-                                Toast.makeText(activity, "Download started", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, "Download started", Toast.LENGTH_LONG).show()
                                 thread {
-                                    val downloadStatus = downloadUpdate(update.updateURL, localContext)
+                                    val downloadStatus = context.downloadUpdate(update.updateURL)
                                     if (!downloadStatus) {
-                                        activity.runOnUiThread {
-                                            Toast.makeText(localContext,
+                                        runOnUiThread {
+                                            Toast.makeText(context,
                                                 "Download Failed",
                                                 Toast.LENGTH_LONG).show()
                                         }

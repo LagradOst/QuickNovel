@@ -1,21 +1,22 @@
 package com.lagradost.quicknovel.ui.download
 
+import android.content.Context
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.lagradost.quicknovel.*
-import kotlinx.android.synthetic.main.fragment_downloads.*
+import com.lagradost.quicknovel.BookDownloader.downloadInfo
 
 class DownloadViewModel : ViewModel() {
     val cards: MutableLiveData<ArrayList<DownloadFragment.DownloadDataLoaded>> by lazy {
         MutableLiveData<ArrayList<DownloadFragment.DownloadDataLoaded>>()
     }
-    val standardSotringMethod = LAST_ACCES_SORT
-    var currentSortingMethod: MutableLiveData<Int> =
-        MutableLiveData<Int>(DataStore.getKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, standardSotringMethod)
-            ?: standardSotringMethod)
 
-    fun sortArray(
-        arry: ArrayList<DownloadFragment.DownloadDataLoaded>,
+    var currentSortingMethod: MutableLiveData<Int> =
+        MutableLiveData<Int>(DataStore.getKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, LAST_ACCES_SORT)
+            ?: LAST_ACCES_SORT)
+
+    private fun sortArray(
+        currentArray: ArrayList<DownloadFragment.DownloadDataLoaded>,
         sortMethod: Int? = null,
     ): ArrayList<DownloadFragment.DownloadDataLoaded> {
 
@@ -24,42 +25,42 @@ class DownloadViewModel : ViewModel() {
         }
 
         return when (sortMethod ?: currentSortingMethod.value) {
-            DEFAULT_SORT -> arry
+            DEFAULT_SORT -> currentArray
             ALPHA_SORT -> {
-                arry.sortBy { t -> t.name }
-                arry
+                currentArray.sortBy { t -> t.name }
+                currentArray
             }
             REVERSE_ALPHA_SORT -> {
-                arry.sortBy { t -> t.name }
-                arry.reverse()
-                arry
+                currentArray.sortBy { t -> t.name }
+                currentArray.reverse()
+                currentArray
             }
             DOWNLOADSIZE_SORT -> {
-                arry.sortBy { t -> -t.downloadedCount }
-                arry
+                currentArray.sortBy { t -> -t.downloadedCount }
+                currentArray
             }
             REVERSE_DOWNLOADSIZE_SORT -> {
-                arry.sortBy { t -> t.downloadedCount }
-                arry
+                currentArray.sortBy { t -> t.downloadedCount }
+                currentArray
             }
             DOWNLOADPRECENTAGE_SORT -> {
-                arry.sortBy { t -> -t.downloadedCount.toFloat() / t.downloadedTotal }
-                arry
+                currentArray.sortBy { t -> -t.downloadedCount.toFloat() / t.downloadedTotal }
+                currentArray
             }
             REVERSE_DOWNLOADPRECENTAGE_SORT -> {
-                arry.sortBy { t -> t.downloadedCount.toFloat() / t.downloadedTotal }
-                arry
+                currentArray.sortBy { t -> t.downloadedCount.toFloat() / t.downloadedTotal }
+                currentArray
             }
             LAST_ACCES_SORT -> {
-                arry.sortBy { t -> -(DataStore.getKey<Long>(DOWNLOAD_EPUB_LAST_ACCESS, t.id.toString(), 0)!!) }
-                arry
+                currentArray.sortBy { t -> -(DataStore.getKey<Long>(DOWNLOAD_EPUB_LAST_ACCESS, t.id.toString(), 0)!!) }
+                currentArray
             }
-            else -> arry
+            else -> currentArray
         }
     }
 
-    fun loadData() {
-        val arry = ArrayList<DownloadFragment.DownloadDataLoaded>()
+    fun loadData(context: Context) {
+        val newArray = ArrayList<DownloadFragment.DownloadDataLoaded>()
         val keys = DataStore.getKeys(DOWNLOAD_FOLDER)
         val added = HashMap<String, Boolean>()
 
@@ -69,7 +70,7 @@ class DownloadViewModel : ViewModel() {
 
             if (res != null) {
                 val localId = BookDownloader.generateId(res.apiName, res.author, res.name)
-                val info = BookDownloader.downloadInfo(res.author, res.name, 100000, res.apiName)
+                val info = context.downloadInfo(res.author, res.name, 100000, res.apiName)
 
                 if (info != null && info.progress > 0) {
                     if (added.containsKey(res.source)) continue // PREVENTS DUPLICATES
@@ -77,7 +78,7 @@ class DownloadViewModel : ViewModel() {
 
                     val state =
                         (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped)!!
-                    arry.add(DownloadFragment.DownloadDataLoaded(
+                    newArray.add(DownloadFragment.DownloadDataLoaded(
                         res.source,
                         res.name,
                         res.author,
@@ -99,23 +100,20 @@ class DownloadViewModel : ViewModel() {
                 }
             }
         }
-        cards.postValue(sortArray(arry))
+        cards.postValue(sortArray(newArray))
     }
 
     fun sortData(sortMethod: Int? = null) {
-        if (cards.value != null) {
-            cards.postValue(sortArray(cards.value!!, sortMethod))
-        }
+        cards.postValue(sortArray(cards.value ?: return, sortMethod))
     }
 
     fun removeActon(id: Int) {
-        if (cards.value == null) return
-        val arry = cards.value!!
+        val copy = cards.value ?: return
         var index = 0
-        for (res in arry) {
+        for (res in copy) {
             if (res.id == id) {
-                arry.removeAt(index)
-                cards.postValue(arry)
+                copy.removeAt(index)
+                cards.postValue(copy)
                 break
             }
             index++
@@ -123,12 +121,11 @@ class DownloadViewModel : ViewModel() {
     }
 
     fun updateDownloadInfo(info: BookDownloader.DownloadNotification) {
-        if (cards.value == null) return
-        val arry = cards.value!!
+        val copy = cards.value ?: return
         var index = 0
-        for (res in arry) {
+        for (res in copy) {
             if (res.id == info.id) {
-                arry[index] =
+                copy[index] =
                     DownloadFragment.DownloadDataLoaded(
                         res.source,
                         res.name,
@@ -147,7 +144,7 @@ class DownloadViewModel : ViewModel() {
                         info.state,
                         res.id,
                     )
-                cards.postValue(arry)
+                cards.postValue(copy)
                 break
             }
             index++
