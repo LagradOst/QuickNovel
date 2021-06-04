@@ -174,10 +174,12 @@ class ResultFragment : Fragment() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        updateScrollHeight()
+        result_holder.post { // BUG FIX
+            updateScrollHeight()
+        }
     }
 
-    fun updateDownloadButtons(progress: Int, total: Int, state: BookDownloader.DownloadType) {
+    private fun updateDownloadButtons(progress: Int, total: Int, state: BookDownloader.DownloadType) {
         val ePubGeneration = progress > 0
         if (result_download_generate_epub.isClickable != ePubGeneration) {
             result_download_generate_epub.isClickable = ePubGeneration

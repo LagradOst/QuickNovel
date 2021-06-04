@@ -52,16 +52,16 @@ class MainAdapter(
     class MainCardViewHolder
     constructor(itemView: View, _context: Context, resView: AutofitRecyclerView) : RecyclerView.ViewHolder(itemView) {
         val context = _context
-        val cardText: TextView = itemView.imageText
-        val cardTextExtra: TextView? = itemView.imageTextExtra
+        private val cardText: TextView = itemView.imageText
+        private val cardTextExtra: TextView? = itemView.imageTextExtra
         val cardView: ImageView = itemView.imageView
 
         /*
 
         val imageTextProvider: TextView = itemView.imageTextProvider*/
-        val compactView = context.getGridIsCompact()
+        private val compactView = context.getGridIsCompact()
         private val coverHeight: Int = if (compactView) 80.toPx else (resView.itemWidth / 0.68).roundToInt()
-        val bg = itemView.backgroundCard
+        private val bg = itemView.backgroundCard
         fun bind(card: SearchResponse) {
 
             cardView.apply {
