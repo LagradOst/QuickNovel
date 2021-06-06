@@ -52,6 +52,7 @@ class RoyalRoadProvider : MainAPI() {
             Pair("Male Lead", "male_lead"),
             Pair("Female Lead", "female_lead"),
             Pair("Portal Fantasy / Isekai", "summoned_hero"),
+            Pair("Reincarnation", "reincarnation"),
             Pair("High Fantasy", "high_fantasy"),
             Pair("Harem", "harem"),
             Pair("Gender Bender", "gender_bender"),
@@ -304,6 +305,7 @@ class RoyalRoadProvider : MainAPI() {
                     "COMPLETED" -> 2
                     "HIATUS" -> 3
                     "STUB" -> 4
+                    "DROPPED" -> 4
                     else -> 0
                 }
                 if (status > 0) break

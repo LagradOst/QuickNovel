@@ -90,13 +90,24 @@
                 <TextView
                         android:layout_marginTop="10dp"
                         android:id="@+id/result_author"
+                        android:textStyle="bold"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="@color/colorAccent"
-                        android:textSize="15sp"
+                        android:textSize="14sp"
+                        android:text="@string/no_data"/>
+                <TextView
+                        android:layout_marginTop="10dp"
+                        android:id="@+id/result_status"
+                        android:textStyle="bold"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/textColor"
+                        android:textSize="14sp"
                         android:text="@string/no_data"/>
 
                 <TextView
+                        android:visibility="visible"
                         android:layout_marginTop="10dp"
                         android:id="@+id/result_total_chapters"
                         android:layout_width="wrap_content"

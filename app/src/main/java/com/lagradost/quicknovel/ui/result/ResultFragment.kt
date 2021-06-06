@@ -223,7 +223,7 @@ class ResultFragment : Fragment() {
 
     lateinit var load: Resource<LoadResponse>
 
-    @SuppressLint("CutPasteId")
+    @SuppressLint("CutPasteId", "SetTextI18n")
     fun newState(loadResponse: Resource<LoadResponse>) {
         load = loadResponse
 
@@ -245,7 +245,7 @@ class ResultFragment : Fragment() {
                 val res = loadResponse.value
 
                 // LOAD IMAGES FIRST TO GIVE IT A BIT OF TIME
-                if(res.posterUrl != null) {
+                if (res.posterUrl != null) {
                     val glideUrl =
                         GlideUrl(res.posterUrl)
                     requireContext().let {
@@ -343,46 +343,56 @@ class ResultFragment : Fragment() {
                 }
 
                 // === TAGS ===
+                result_status.text = when (res.status) {
+                    1 -> "Ongoing"
+                    2 -> "Completed"
+                    3 -> "Paused"
+                    4 -> "Dropped"
+                    else -> ""
+                } //+ if (res.data.size > 0) res.data.last().name else ""
+
                 result_tag.removeAllViews()
                 if (res.tags == null && (res.status == null || res.status <= 0)) {
                     result_tag_holder.visibility = View.GONE
                 } else {
                     result_tag_holder.visibility = View.VISIBLE
-
                     var index = 0
-                    if (res.status != null && res.status > 0) {
-                        val viewBtt = layoutInflater.inflate(R.layout.result_tag, null)
-                        val mat = viewBtt.findViewById<MaterialButton>(R.id.result_tag_card)
-                        mat.strokeColor = getColorStateList(requireContext(), R.color.colorOngoing)
-                        mat.setTextColor(getColor(requireContext(), R.color.colorOngoing))
-                        mat.rippleColor = getColorStateList(requireContext(), R.color.colorOngoing)
-                        val status = when (res.status) {
-                            1 -> "Ongoing"
-                            2 -> "Completed"
-                            3 -> "Paused"
-                            4 -> "Dropped"
-                            else -> "ERROR"
-                        }
-                        mat.text = status
-                        result_tag.addView(viewBtt, index)
-                        index++
 
-                        for ((orderindex, apiOrder) in api.orderBys.withIndex()) {
-                            if (apiOrder.first == status) {
-                                mat.setOnClickListener {
-                                    requireActivity().supportFragmentManager.beginTransaction()
-                                        .setCustomAnimations(
-                                            R.anim.enter_anim,
-                                            R.anim.exit_anim,
-                                            R.anim.pop_enter,
-                                            R.anim.pop_exit)
-                                        .add(R.id.homeRoot,
-                                            MainPageFragment().newInstance(api.name, orderBy = orderindex))
-                                        .commit()
-                                }
-                                break
-                            }
-                        }
+                    if (res.status != null && res.status > 0) {
+
+                        /*
+                       val viewBtt = layoutInflater.inflate(R.layout.result_tag, null)
+                       val mat = viewBtt.findViewById<MaterialButton>(R.id.result_tag_card)
+                       mat.strokeColor = getColorStateList(requireContext(), R.color.colorOngoing)
+                       mat.setTextColor(getColor(requireContext(), R.color.colorOngoing))
+                       mat.rippleColor = getColorStateList(requireContext(), R.color.colorOngoing)
+                       val status = when (res.status) {
+                           1 -> "Ongoing"
+                           2 -> "Completed"
+                           3 -> "Paused"
+                           4 -> "Dropped"
+                           else -> "ERROR"
+                       }
+                       mat.text = status
+                       result_tag.addView(viewBtt, index)
+                       index++
+
+                       for ((orderindex, apiOrder) in api.orderBys.withIndex()) {
+                           if (apiOrder.first == status) {
+                               mat.setOnClickListener {
+                                   requireActivity().supportFragmentManager.beginTransaction()
+                                       .setCustomAnimations(
+                                           R.anim.enter_anim,
+                                           R.anim.exit_anim,
+                                           R.anim.pop_enter,
+                                           R.anim.pop_exit)
+                                       .add(R.id.homeRoot,
+                                           MainPageFragment().newInstance(api.name, orderBy = orderindex))
+                                       .commit()
+                               }
+                               break
+                           }
+                       }*/
                     }
 
                     if (res.tags != null) {
