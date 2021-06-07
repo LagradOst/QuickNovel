@@ -38,6 +38,8 @@ import androidx.core.text.getSpans
 import androidx.media.session.MediaButtonReceiver
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.checkbox.MaterialCheckBox
+import com.lagradost.quicknovel.DataStore.getKey
+import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
@@ -580,12 +582,12 @@ class ReadActivity : AppCompatActivity() {
         read_chapter_name.text = "${chapterName!!} (${currentChapter + 1}/${chaptersTotal + 1})"
     }
 
-    private fun loadChapter(chapterIndex: Int, scrollToTop: Boolean, scrollToRemember: Boolean = false) {
-        DataStore.setKey(EPUB_CURRENT_POSITION, book.title, chapterIndex)
+    private fun Context.loadChapter(chapterIndex: Int, scrollToTop: Boolean, scrollToRemember: Boolean = false) {
+        setKey(EPUB_CURRENT_POSITION, book.title, chapterIndex)
 
         fun scroll() {
             if (scrollToRemember) {
-                val scrollToY = DataStore.getKey<Int>(EPUB_CURRENT_POSITION_SCROLL, book.title, null)
+                val scrollToY = getKey<Int>(EPUB_CURRENT_POSITION_SCROLL, book.title, null)
                 if (scrollToY != null) {
                     read_scroll.scrollTo(0, scrollToY)
                     read_scroll.fling(0)
@@ -1020,74 +1022,74 @@ class ReadActivity : AppCompatActivity() {
         mMediaSessionCompat.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS)
     }
 
-    fun setTextFontSize(size: Int) {
-        DataStore.setKey(EPUB_TEXT_SIZE, size)
+    fun Context.setTextFontSize(size: Int) {
+        setKey(EPUB_TEXT_SIZE, size)
         read_text?.setTextSize(TypedValue.COMPLEX_UNIT_SP, size.toFloat())
         read_title_text?.setTextSize(TypedValue.COMPLEX_UNIT_SP, size.toFloat() + 2f)
     }
 
-    private fun getCurrentFontSize(): Int {
-        return DataStore.getKey(EPUB_TEXT_SIZE, 14)!!
+    private fun Context.getCurrentFontSize(): Int {
+        return getKey(EPUB_TEXT_SIZE, 14)!!
     }
 
-    fun getScrollWithVol(): Boolean {
-        scrollWithVol = DataStore.getKey(EPUB_SCROLL_VOL, true)!!
+    private fun Context.getScrollWithVol(): Boolean {
+        scrollWithVol = getKey(EPUB_SCROLL_VOL, true)!!
         return scrollWithVol
     }
 
-    private fun setScrollWithVol(scroll: Boolean) {
+    private fun Context.setScrollWithVol(scroll: Boolean) {
         scrollWithVol = scroll
-        DataStore.setKey(EPUB_SCROLL_VOL, scroll)
+        setKey(EPUB_SCROLL_VOL, scroll)
     }
 
 
-    private fun getLockTTS(): Boolean {
-        lockTTS = DataStore.getKey(EPUB_SCROLL_VOL, true)!!
+    private fun Context.getLockTTS(): Boolean {
+        lockTTS = getKey(EPUB_SCROLL_VOL, true)!!
         return lockTTS
     }
 
-    private fun setLockTTS(scroll: Boolean) {
+    private fun Context.setLockTTS(scroll: Boolean) {
         lockTTS = scroll
-        DataStore.setKey(EPUB_SCROLL_VOL, scroll)
+        setKey(EPUB_SCROLL_VOL, scroll)
     }
 
-    private fun setBackgroundColor(color: Int) {
+    private fun Context.setBackgroundColor(color: Int) {
         reader_container?.setBackgroundColor(color)
-        DataStore.setKey(EPUB_BG_COLOR, color)
+        setKey(EPUB_BG_COLOR, color)
     }
 
-    private fun setTextColor(color: Int) {
+    private fun Context.setTextColor(color: Int) {
         read_text?.setTextColor(color)
         read_battery?.setTextColor(color)
         read_time?.setTextColor(color)
         read_title_text?.setTextColor(color)
-        DataStore.setKey(EPUB_TEXT_COLOR, color)
+        setKey(EPUB_TEXT_COLOR, color)
     }
 
-    private fun updateHasBattery(status: Boolean? = null): Boolean {
+    private fun Context.updateHasBattery(status: Boolean? = null): Boolean {
         val set = if (status != null) {
-            DataStore.setKey(EPUB_HAS_BATTERY, status)
+            setKey(EPUB_HAS_BATTERY, status)
             status
         } else {
-            DataStore.getKey(EPUB_HAS_BATTERY, true)!!
+            getKey(EPUB_HAS_BATTERY, true)!!
         }
         read_battery?.visibility = if (set) View.VISIBLE else View.GONE
         return set
     }
 
-    private fun updateHasTime(status: Boolean? = null): Boolean {
+    private fun Context.updateHasTime(status: Boolean? = null): Boolean {
         val set = if (status != null) {
-            DataStore.setKey(EPUB_HAS_TIME, status)
+            setKey(EPUB_HAS_TIME, status)
             status
         } else {
-            DataStore.getKey(EPUB_HAS_TIME, true)!!
+            getKey(EPUB_HAS_TIME, true)!!
         }
         read_time?.visibility = if (set) View.VISIBLE else View.GONE
         return set
     }
 
-    private fun getTextColor(): Int {
-        val color = DataStore.getKey(EPUB_TEXT_COLOR, getColor(R.color.readerTextColor))!!
+    private fun Context.getTextColor(): Int {
+        val color = getKey(EPUB_TEXT_COLOR, getColor(R.color.readerTextColor))!!
         read_text?.setTextColor(color)
         read_battery?.setTextColor(color)
         read_time?.setTextColor(color)
@@ -1095,8 +1097,8 @@ class ReadActivity : AppCompatActivity() {
         return color
     }
 
-    private fun getBackgroundColor(): Int {
-        val color = DataStore.getKey(EPUB_BG_COLOR, getColor(R.color.readerBackground))!!
+    private fun Context.getBackgroundColor(): Int {
+        val color = getKey(EPUB_BG_COLOR, getColor(R.color.readerBackground))!!
         reader_container?.setBackgroundColor(color)
         return color
     }
@@ -1104,7 +1106,6 @@ class ReadActivity : AppCompatActivity() {
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        DataStore.init(this)
 
         batteryStatus = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { ifilter ->
             this.registerReceiver(null, ifilter)
@@ -1153,7 +1154,7 @@ class ReadActivity : AppCompatActivity() {
                 //   ?: preferences.defaultOrientationType(),
             ) {
                 val org = OrientationType.fromSpinner(itemId)
-                DataStore.setKey(EPUB_LOCK_ROTATION, itemId)
+                setKey(EPUB_LOCK_ROTATION, itemId)
                 setRot(org)
             }
         }
@@ -1255,7 +1256,7 @@ class ReadActivity : AppCompatActivity() {
             bottomSheetDialog.show()
         }
 
-        setRot(OrientationType.fromSpinner(DataStore.getKey(EPUB_LOCK_ROTATION,
+        setRot(OrientationType.fromSpinner(getKey(EPUB_LOCK_ROTATION,
             OrientationType.DEFAULT.prefValue)))
         //</editor-fold>
 
@@ -1328,7 +1329,7 @@ class ReadActivity : AppCompatActivity() {
         read_scroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->
             checkTTSRange(scrollY)
 
-            DataStore.setKey(EPUB_CURRENT_POSITION_SCROLL, book.title, scrollY)
+            setKey(EPUB_CURRENT_POSITION_SCROLL, book.title, scrollY)
 
             mainScrollY = scrollY
             updateChapterName(scrollY)
@@ -1420,7 +1421,7 @@ class ReadActivity : AppCompatActivity() {
         val epubReader = EpubReader()
         book = epubReader.readEpub(input)
         maxChapter = book.tableOfContents.tocReferences.size
-        loadChapter(DataStore.getKey(EPUB_CURRENT_POSITION, book.title) ?: 0,
+        loadChapter(getKey(EPUB_CURRENT_POSITION, book.title) ?: 0,
             scrollToTop = true,
             scrollToRemember = true)
         updateTimeText()

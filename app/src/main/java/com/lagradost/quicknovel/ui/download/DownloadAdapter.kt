@@ -3,6 +3,7 @@ package com.lagradost.quicknovel.ui.download
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Context
 import android.content.DialogInterface
 import android.view.LayoutInflater
 import android.view.View
@@ -18,6 +19,8 @@ import com.lagradost.quicknovel.BookDownloader.hasEpub
 import com.lagradost.quicknovel.BookDownloader.openEpub
 import com.lagradost.quicknovel.BookDownloader.remove
 import com.lagradost.quicknovel.BookDownloader.turnToEpub
+import com.lagradost.quicknovel.DataStore.getKey
+import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.ui.download.DownloadHelper.updateDownloadFromCard
 import com.lagradost.quicknovel.util.Coroutines
 import kotlinx.android.synthetic.main.download_result_compact.view.*
@@ -78,7 +81,7 @@ class DownloadAdapter(
         // val bg = itemView.backgroundCard
         @SuppressLint("SetTextI18n")
         fun bind(card: DownloadFragment.DownloadDataLoaded) {
-           // val api = getApiFromName(card.apiName)
+            // val api = getApiFromName(card.apiName)
 
             cardText.text = card.name
             downloadProgressText.text =
@@ -138,7 +141,7 @@ class DownloadAdapter(
             })
 
             fun getDiff(): Int {
-                val downloaded = DataStore.getKey(DOWNLOAD_EPUB_SIZE, card.id.toString(), 0)!!
+                val downloaded = localActivity.getKey(DOWNLOAD_EPUB_SIZE, card.id.toString(), 0)!!
                 return card.downloadedCount - downloaded
             }
 
@@ -152,7 +155,7 @@ class DownloadAdapter(
                 else ""
             }
 
-            updateTxtDiff()
+              updateTxtDiff()
 
             fun updateBar(isGenerating: Boolean? = null) {
                 val isIndeterminate = isGenerating ?: BookDownloader.isTurningIntoEpub.containsKey(card.id)
@@ -188,7 +191,7 @@ class DownloadAdapter(
                         }
                         updateEpub()
                         updateBar(null)
-                        DataStore.setKey(DOWNLOAD_EPUB_LAST_ACCESS, card.id.toString(), System.currentTimeMillis())
+                        localActivity.setKey(DOWNLOAD_EPUB_LAST_ACCESS, card.id.toString(), System.currentTimeMillis())
                         localActivity.openEpub(card.name)
                         updateTxtDiff()
                     }
@@ -200,7 +203,7 @@ class DownloadAdapter(
                             }
                         }
 
-                        DataStore.setKey(DOWNLOAD_EPUB_LAST_ACCESS, card.id.toString(), System.currentTimeMillis())
+                        localActivity.setKey(DOWNLOAD_EPUB_LAST_ACCESS, card.id.toString(), System.currentTimeMillis())
                         localActivity.openEpub(card.name)
                         updateTxtDiff()
                     }

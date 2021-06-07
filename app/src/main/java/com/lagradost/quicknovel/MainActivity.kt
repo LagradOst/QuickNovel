@@ -12,6 +12,8 @@ import androidx.preference.PreferenceManager
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.lagradost.quicknovel.BookDownloader.checkWrite
 import com.lagradost.quicknovel.BookDownloader.requestRW
+import com.lagradost.quicknovel.DataStore.getKey
+import com.lagradost.quicknovel.DataStore.getKeys
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.result.ResultFragment
 import com.lagradost.quicknovel.util.Apis.Companion.allApi
@@ -175,8 +177,6 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        DataStore.init(this)
-
         val apiNames = getApiSettings()
         allApi.providersActive = apiNames
         val edit = settingsManager.edit()
@@ -190,9 +190,9 @@ class MainActivity : AppCompatActivity() {
         edit.apply()*/
 
         thread { // IDK, WARMUP OR SMTH, THIS WILL JUST REDUCE THE INITIAL LOADING TIME FOR DOWNLOADS, NO REAL USAGE, SEE @WARMUP
-            val keys = DataStore.getKeys(DOWNLOAD_FOLDER)
+            val keys = getKeys(DOWNLOAD_FOLDER)
             for (k in keys) {
-                DataStore.getKey<DownloadFragment.DownloadData>(k)
+                getKey<DownloadFragment.DownloadData>(k)
             }
         }
 

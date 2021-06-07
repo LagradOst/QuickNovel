@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView.ItemAnimator
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.download.DownloadHelper.updateDownloadFromCard
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
@@ -126,8 +127,8 @@ class DownloadFragment : Fragment() {
                         true)
                     res.setOnItemClickListener { _, _, position, _ ->
                         val sel = sotringMethods[position].id
-                        DataStore.setKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, sel)
-                        viewModel.sortData(sel)
+                        requireContext().setKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, sel)
+                        viewModel.sortData(requireContext(), sel)
                         bottomSheetDialog.dismiss()
                     }
                     bottomSheetDialog.show()

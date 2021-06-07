@@ -1,7 +1,6 @@
 package com.lagradost.quicknovel.ui.result
 
 import android.animation.ObjectAnimator
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
@@ -18,7 +17,6 @@ import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat.getColor
-import androidx.core.content.ContextCompat.getColorStateList
 import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProviders
@@ -34,6 +32,8 @@ import com.lagradost.quicknovel.BookDownloader.hasEpub
 import com.lagradost.quicknovel.BookDownloader.openEpub
 import com.lagradost.quicknovel.BookDownloader.remove
 import com.lagradost.quicknovel.BookDownloader.turnToEpub
+import com.lagradost.quicknovel.DataStore.getKey
+import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.download.DownloadHelper
@@ -50,6 +50,7 @@ import kotlinx.android.synthetic.main.fragment_result.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.concurrent.thread
+import android.annotation.SuppressLint as SuppressLint1
 
 const val MAX_SYNO_LENGH = 300
 
@@ -109,10 +110,10 @@ class ResultFragment : Fragment() {
 
     private var generateEpub = false
     private var lastProgress: Int = 0
-    private fun updateGenerateBtt(progress: Int?) {
+    private fun Context.updateGenerateBtt(progress: Int?) {
         if (viewModel.loadResponse.value != null) {
             generateEpub =
-                DataStore.getKey(DOWNLOAD_EPUB_SIZE, viewModel.id.value.toString(), 0) != (progress ?: lastProgress)
+                getKey(DOWNLOAD_EPUB_SIZE, viewModel.id.value.toString(), 0) != (progress ?: lastProgress)
             if (progress != null) lastProgress = progress
             if (result_download_generate_epub != null) {
                 if (generateEpub) {
@@ -126,7 +127,7 @@ class ResultFragment : Fragment() {
         }
     }
 
-    @SuppressLint("SetTextI18n")
+    @SuppressLint1("SetTextI18n")
     fun updateDownloadInfo(info: BookDownloader.DownloadNotification?) {
         if (info == null) return
         if (result_download_progress_text != null) {
@@ -155,7 +156,7 @@ class ResultFragment : Fragment() {
 
             result_download_progress_text_eta.text = info.ETA
             updateDownloadButtons(info.progress, info.total, info.state)
-            updateGenerateBtt(info.progress)
+            requireContext().updateGenerateBtt(info.progress)
         }
     }
 
@@ -223,7 +224,7 @@ class ResultFragment : Fragment() {
 
     lateinit var load: Resource<LoadResponse>
 
-    @SuppressLint("CutPasteId", "SetTextI18n")
+    @SuppressLint1("CutPasteId", "SetTextI18n")
     fun newState(loadResponse: Resource<LoadResponse>) {
         load = loadResponse
 
@@ -358,9 +359,9 @@ class ResultFragment : Fragment() {
                     result_tag_holder.visibility = View.VISIBLE
                     var index = 0
 
-                    if (res.status != null && res.status > 0) {
+                    /* if (res.status != null && res.status > 0) {
 
-                        /*
+
                        val viewBtt = layoutInflater.inflate(R.layout.result_tag, null)
                        val mat = viewBtt.findViewById<MaterialButton>(R.id.result_tag_card)
                        mat.strokeColor = getColorStateList(requireContext(), R.color.colorOngoing)
@@ -392,8 +393,8 @@ class ResultFragment : Fragment() {
                                }
                                break
                            }
-                       }*/
-                    }
+                       }
+                    }*/
 
                     if (res.tags != null) {
                         for (tag in res.tags) {
@@ -401,7 +402,7 @@ class ResultFragment : Fragment() {
                             val btt = viewBtt.findViewById<MaterialButton>(R.id.result_tag_card)
                             btt.text = tag
 
-                            for ((tagindex, apiTag) in api.tags.withIndex()) {
+                            for ((tagIndex, apiTag) in api.tags.withIndex()) {
                                 if (apiTag.first == tag) {
                                     btt.setOnClickListener {
                                         requireActivity().supportFragmentManager.beginTransaction()
@@ -411,7 +412,7 @@ class ResultFragment : Fragment() {
                                                 R.anim.pop_enter,
                                                 R.anim.pop_exit)
                                             .add(R.id.homeRoot,
-                                                MainPageFragment().newInstance(api.name, tag = tagindex))
+                                                MainPageFragment().newInstance(api.name, tag = tagIndex))
                                             .commit()
                                     }
                                     break
@@ -448,7 +449,7 @@ class ResultFragment : Fragment() {
 
                 val localId = viewModel.id.value!!
 
-                DataStore.setKey(DOWNLOAD_TOTAL, localId.toString(), res.data.size)
+                requireContext().setKey(DOWNLOAD_TOTAL, localId.toString(), res.data.size)
 
                 /*
                 val start = BookDownloader.downloadInfo(res.author, res.name, res.data.size, api.name)
@@ -506,7 +507,7 @@ class ResultFragment : Fragment() {
 
         observe(viewModel.id) {
             tid = it
-            DataStore.setKey(DOWNLOAD_EPUB_LAST_ACCESS, tid.toString(), System.currentTimeMillis())
+            context?.setKey(DOWNLOAD_EPUB_LAST_ACCESS, tid.toString(), System.currentTimeMillis())
         }
 
         observe(viewModel.currentTabIndex) { pos ->
@@ -593,7 +594,7 @@ class ResultFragment : Fragment() {
                             requireActivity().turnToEpub(l.author, l.name, api.name)
                         }
 
-                        updateGenerateBtt(null)
+                        requireContext().updateGenerateBtt(null)
                         if (done) {
                             Toast.makeText(context, "Created ${l.name}", Toast.LENGTH_LONG).show()
                         } else {

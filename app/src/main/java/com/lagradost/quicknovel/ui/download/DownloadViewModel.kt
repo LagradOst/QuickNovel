@@ -5,6 +5,8 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.BookDownloader.downloadInfo
+import com.lagradost.quicknovel.DataStore.getKey
+import com.lagradost.quicknovel.DataStore.getKeys
 
 class DownloadViewModel : ViewModel() {
     val cards: MutableLiveData<ArrayList<DownloadFragment.DownloadDataLoaded>> by lazy {
@@ -12,10 +14,9 @@ class DownloadViewModel : ViewModel() {
     }
 
     var currentSortingMethod: MutableLiveData<Int> =
-        MutableLiveData<Int>(DataStore.getKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, LAST_ACCES_SORT)
-            ?: LAST_ACCES_SORT)
+        MutableLiveData<Int>()
 
-    private fun sortArray(
+    private fun Context.sortArray(
         currentArray: ArrayList<DownloadFragment.DownloadDataLoaded>,
         sortMethod: Int? = null,
     ): ArrayList<DownloadFragment.DownloadDataLoaded> {
@@ -52,7 +53,7 @@ class DownloadViewModel : ViewModel() {
                 currentArray
             }
             LAST_ACCES_SORT -> {
-                currentArray.sortBy { t -> -(DataStore.getKey<Long>(DOWNLOAD_EPUB_LAST_ACCESS, t.id.toString(), 0)!!) }
+                currentArray.sortBy { t -> -(getKey<Long>(DOWNLOAD_EPUB_LAST_ACCESS, t.id.toString(), 0)!!) }
                 currentArray
             }
             else -> currentArray
@@ -60,13 +61,16 @@ class DownloadViewModel : ViewModel() {
     }
 
     fun loadData(context: Context) {
+        currentSortingMethod.postValue(context.getKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, LAST_ACCES_SORT)
+            ?: LAST_ACCES_SORT)
+
         val newArray = ArrayList<DownloadFragment.DownloadDataLoaded>()
-        val keys = DataStore.getKeys(DOWNLOAD_FOLDER)
+        val keys = context.getKeys(DOWNLOAD_FOLDER)
         val added = HashMap<String, Boolean>()
 
         for (k in keys) {
             val res =
-                DataStore.getKey<DownloadFragment.DownloadData>(k) // THIS SHIT LAGS THE APPLICATION IF ON MAIN THREAD (IF NOT WARMED UP BEFOREHAND, SEE @WARMUP)
+                context.getKey<DownloadFragment.DownloadData>(k) // THIS SHIT LAGS THE APPLICATION IF ON MAIN THREAD (IF NOT WARMED UP BEFOREHAND, SEE @WARMUP)
 
             if (res != null) {
                 val localId = BookDownloader.generateId(res.apiName, res.author, res.name)
@@ -91,7 +95,7 @@ class DownloadViewModel : ViewModel() {
                         res.apiName,
                         info.progress,
                         maxOf(info.progress,
-                            DataStore.getKey(DOWNLOAD_TOTAL, localId.toString(), info.progress)!!), //IDK Bug fix ?
+                            context.getKey(DOWNLOAD_TOTAL, localId.toString(), info.progress)!!), //IDK Bug fix ?
                         false,
                         "",
                         state,
@@ -100,11 +104,11 @@ class DownloadViewModel : ViewModel() {
                 }
             }
         }
-        cards.postValue(sortArray(newArray))
+        cards.postValue(context.sortArray(newArray))
     }
 
-    fun sortData(sortMethod: Int? = null) {
-        cards.postValue(sortArray(cards.value ?: return, sortMethod))
+    fun sortData(context: Context, sortMethod: Int? = null) {
+        cards.postValue(context.sortArray(cards.value ?: return, sortMethod))
     }
 
     fun removeActon(id: Int) {

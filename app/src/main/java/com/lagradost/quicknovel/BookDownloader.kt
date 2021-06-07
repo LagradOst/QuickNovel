@@ -17,6 +17,9 @@ import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.preference.PreferenceManager
 import com.bumptech.glide.Glide
+import com.lagradost.quicknovel.DataStore.getKey
+import com.lagradost.quicknovel.DataStore.removeKey
+import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.services.DownloadService
 import com.lagradost.quicknovel.util.Event
@@ -147,7 +150,7 @@ object BookDownloader {
 
             var sStart = start
             if (sStart == -1) { // CACHE DATA
-                sStart = maxOf(DataStore.getKey(DOWNLOAD_SIZE, id.toString(), 0)!! - 1, 0)
+                sStart = maxOf(getKey(DOWNLOAD_SIZE, id.toString(), 0)!! - 1, 0)
             }
 
             var count = sStart
@@ -165,7 +168,7 @@ object BookDownloader {
             if (sStart == count && start > 0) {
                 return downloadInfo(author, name, total, apiName, maxOf(sStart - 100, 0))
             }
-            DataStore.setKey(DOWNLOAD_SIZE, id.toString(), count)
+            setKey(DOWNLOAD_SIZE, id.toString(), count)
             return DownloadResponse(count, total, id)
         } catch (e: Exception) {
             return null
@@ -306,7 +309,7 @@ object BookDownloader {
                 "${sanitizeFilename(name)}.epub")
         bookFile.parentFile.mkdirs()
         bookFile.createNewFile()
-        DataStore.setKey(DOWNLOAD_EPUB_SIZE, id.toString(), book.contents.size)
+        setKey(DOWNLOAD_EPUB_SIZE, id.toString(), book.contents.size)
         epubWriter.write(book, FileOutputStream(bookFile))
         isTurningIntoEpub.remove(id)
         return true
@@ -333,8 +336,8 @@ object BookDownloader {
                 }
             }
 
-            DataStore.removeKey(DOWNLOAD_SIZE, id.toString())
-            DataStore.removeKey(DOWNLOAD_TOTAL, id.toString())
+            removeKey(DOWNLOAD_SIZE, id.toString())
+            removeKey(DOWNLOAD_TOTAL, id.toString())
             downloadRemove.invoke(id)
         } catch (e: Exception) {
             println(e)

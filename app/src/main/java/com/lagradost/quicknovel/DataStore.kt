@@ -26,48 +26,41 @@ const val EPUB_TEXT_COLOR: String = "reader_epub_text_color"
 const val EPUB_HAS_BATTERY: String = "reader_epub_has_battery"
 const val EPUB_HAS_TIME: String = "reader_epub_has_time"
 
-@SuppressLint("StaticFieldLeak")
 object DataStore {
 
     val mapper = JsonMapper.builder().addModule(KotlinModule())
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build()
 
-    private fun getPreferences(context: Context): SharedPreferences {
-        return context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+    private fun Context.getPreferences(): SharedPreferences {
+        return getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
     }
 
-    private var localContext: Context? = null
-
-    fun getSharedPrefs(): SharedPreferences {
-        return getPreferences(localContext!!)
-    }
-
-    fun init(_context: Context) {
-        localContext = _context
+    fun Context.getSharedPrefs(): SharedPreferences {
+        return getPreferences()
     }
 
     fun getFolderName(folder: String, path: String): String {
         return "${folder}/${path}"
     }
 
-    fun getKeys(folder: String): List<String> {
+    fun Context.getKeys(folder: String): List<String> {
         return getSharedPrefs().all.keys.filter { it.startsWith(folder) }
     }
 
-    fun removeKey(folder: String, path: String) {
+    fun Context.removeKey(folder: String, path: String) {
         removeKey(getFolderName(folder, path))
     }
 
-    fun containsKey(folder: String, path: String): Boolean {
+    fun Context.containsKey(folder: String, path: String): Boolean {
         return containsKey(getFolderName(folder, path))
     }
 
-    fun containsKey(path: String): Boolean {
+    fun Context.containsKey(path: String): Boolean {
         val prefs = getSharedPrefs()
         return prefs.contains(path)
     }
 
-    fun removeKey(path: String) {
+    fun Context.removeKey(path: String) {
         val prefs = getSharedPrefs()
         if (prefs.contains(path)) {
             val editor: SharedPreferences.Editor = prefs.edit()
@@ -76,7 +69,7 @@ object DataStore {
         }
     }
 
-    fun removeKeys(folder: String): Int {
+    fun Context.removeKeys(folder: String): Int {
         val keys = getKeys(folder)
         keys.forEach { value ->
             removeKey(value)
@@ -84,13 +77,13 @@ object DataStore {
         return keys.size
     }
 
-    fun <T> setKey(path: String, value: T) {
+    fun <T> Context.setKey(path: String, value: T) {
         val editor: SharedPreferences.Editor = getSharedPrefs().edit()
         editor.putString(path, mapper.writeValueAsString(value))
         editor.apply()
     }
 
-    fun <T> setKey(folder: String, path: String, value: T) {
+    fun <T> Context.setKey(folder: String, path: String, value: T) {
         setKey(getFolderName(folder, path), value)
     }
 
@@ -99,7 +92,7 @@ object DataStore {
     }
 
     // GET KEY GIVEN PATH AND DEFAULT VALUE, NULL IF ERROR
-    inline fun <reified T : Any> getKey(path: String, defVal: T?): T? {
+    inline fun <reified T : Any> Context.getKey(path: String, defVal: T?): T? {
         try {
             val json: String = getSharedPrefs().getString(path, null) ?: return defVal
             return json.toKotlinObject()
@@ -108,15 +101,15 @@ object DataStore {
         }
     }
 
-    inline fun <reified T : Any> getKey(path: String): T? {
+    inline fun <reified T : Any> Context.getKey(path: String): T? {
         return getKey(path, null)
     }
 
-    inline fun <reified T : Any> getKey(folder: String, path: String): T? {
+    inline fun <reified T : Any> Context.getKey(folder: String, path: String): T? {
         return getKey(getFolderName(folder, path), null)
     }
 
-    inline fun <reified T : Any> getKey(folder: String, path: String, defVal: T?): T? {
+    inline fun <reified T : Any> Context.getKey(folder: String, path: String, defVal: T?): T? {
         return getKey(getFolderName(folder, path), defVal)
     }
 }

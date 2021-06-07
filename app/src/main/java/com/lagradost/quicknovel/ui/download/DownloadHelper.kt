@@ -4,6 +4,7 @@ import android.content.Context
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.BookDownloader.download
 import com.lagradost.quicknovel.BookDownloader.updateDownload
+import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.safeApiCall
 import com.lagradost.quicknovel.util.Apis
@@ -29,11 +30,11 @@ object DownloadHelper {
         apiName: String,
         pauseOngoing: Boolean = false,
     ) {
-        DataStore.setKey(DOWNLOAD_TOTAL,
+        context.setKey(DOWNLOAD_TOTAL,
             localId.toString(),
             res.data.size) // FIX BUG WHEN DOWNLOAD IS OVER TOTAL
 
-        DataStore.setKey(DOWNLOAD_FOLDER, BookDownloader.generateId(res, apiName).toString(),
+        context.setKey(DOWNLOAD_FOLDER, BookDownloader.generateId(res, apiName).toString(),
             DownloadFragment.DownloadData(res.source,
                 res.name,
                 res.author,
