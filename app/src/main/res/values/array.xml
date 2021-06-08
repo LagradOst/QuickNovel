@@ -24,6 +24,15 @@
         <item>compact_list</item>
     </string-array>
 
+    <string-array name="DownloadGridFormat">
+        <item>Grid</item>
+        <item>List</item>
+    </string-array>
+    <string-array name="DownloadGridFormatData">
+        <item>grid</item>
+        <item>list</item>
+    </string-array>
+
     <string-array name="ThemesNames">
         <item>Black</item>
         <item>Dark</item>

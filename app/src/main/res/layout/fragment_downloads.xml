@@ -16,7 +16,7 @@
                 android:id="@+id/download_toolbar"
                 app:menu="@menu/download_actionbar"
                 android:paddingTop="@dimen/navbarHeight"
-                app:title="My Downloads"
+                app:title="My Library"
                 android:background="?attr/grayBackground"
                 app:navigationIconTint="?attr/iconColor"
                 app:titleTextColor="?attr/textColor"
@@ -33,7 +33,8 @@
             app:layout_behavior="@string/appbar_scrolling_view_behavior"
             android:layout_height="match_parent">
 
-        <androidx.recyclerview.widget.RecyclerView
+        <com.lagradost.quicknovel.widget.AutofitRecyclerView
+                app:spanCount="3"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:clipToPadding="false"
@@ -41,6 +42,6 @@
                 android:id="@+id/download_cardSpace"
                 android:orientation="vertical">
 
-        </androidx.recyclerview.widget.RecyclerView>
+        </com.lagradost.quicknovel.widget.AutofitRecyclerView>
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -3,7 +3,7 @@
             xmlns:app="http://schemas.android.com/apk/res-auto"
             xmlns:tools="http://schemas.android.com/tools"
             android:id="@+id/mobile_navigation"
-            app:startDestination="@+id/navigation_homepage">
+            app:startDestination="@+id/navigation_download">
     <fragment
             android:id="@+id/navigation_homepage"
             android:name="com.lagradost.quicknovel.ui.home.HomeFragment"

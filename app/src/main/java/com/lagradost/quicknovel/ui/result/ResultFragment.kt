@@ -273,6 +273,14 @@ class ResultFragment : Fragment() {
                     startActivity(i)
                 }
 
+                result_share.setOnClickListener {
+                    val i = Intent(Intent.ACTION_SEND)
+                    i.type = "text/plain"
+                    i.putExtra(Intent.EXTRA_SUBJECT, res.name)
+                    i.putExtra(Intent.EXTRA_TEXT, url)
+                    startActivity(Intent.createChooser(i, res.name))
+                }
+
                 result_rating_voted_count.text = getString(R.string.no_data)
 
                 if (res.rating != null) {

@@ -189,4 +189,26 @@ object UIHelper {
         popup.show()
         return popup
     }
+
+    @SuppressLint("RestrictedApi")
+    inline fun View.popupMenu(
+        items: List<Triple<Int, Int, Int>>,
+        noinline onMenuItemClick: MenuItem.() -> Unit,
+    ): PopupMenu {
+        val popup =
+            PopupMenu(context, this, Gravity.NO_GRAVITY, R.attr.actionOverflowMenuStyle, R.style.AppTheme_Toolbar)
+        items.forEach { (id, icon, stringRes) ->
+            popup.menu.add(0, id, 0, stringRes).setIcon(icon)
+        }
+
+        (popup.menu as? MenuBuilder)?.setOptionalIconsVisible(true)
+
+        popup.setOnMenuItemClickListener {
+            it.onMenuItemClick()
+            true
+        }
+
+        popup.show()
+        return popup
+    }
 }

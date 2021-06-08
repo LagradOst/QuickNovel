@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.ui.download
 
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -18,9 +19,12 @@ import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.download.DownloadHelper.updateDownloadFromCard
+import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
+import com.lagradost.quicknovel.util.SettingsHelper.getGridIsCompact
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import kotlinx.android.synthetic.main.fragment_downloads.*
+import kotlinx.android.synthetic.main.fragment_search.*
 import kotlin.concurrent.thread
 
 class DownloadFragment : Fragment() {
@@ -101,6 +105,24 @@ class DownloadFragment : Fragment() {
         (download_cardSpace.adapter as DownloadAdapter).notifyDataSetChanged()
     }
 
+    private fun setupGridView() {
+        val compactView = requireContext().getDownloadIsCompact()
+        val spanCountLandscape = if (compactView) 2 else 6
+        val spanCountPortrait = if (compactView) 1 else 3
+        val orientation = resources.configuration.orientation
+        if(download_cardSpace == null) return
+        if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            download_cardSpace.spanCount = spanCountLandscape
+        } else {
+            download_cardSpace.spanCount = spanCountPortrait
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        setupGridView()
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         activity?.fixPaddingStatusbar(downloadRoot)
@@ -169,6 +191,7 @@ class DownloadFragment : Fragment() {
             swipe_container.isRefreshing = false
         }
 
+        setupGridView()
         val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = activity?.let {
             DownloadAdapter(
                 it,
@@ -183,8 +206,6 @@ class DownloadFragment : Fragment() {
         if (animator is SimpleItemAnimator) {
             animator.supportsChangeAnimations = false
         }
-
-        download_cardSpace.layoutManager = GridLayoutManager(context, 1)
 
         BookDownloader.downloadNotification += ::updateDownloadInfo
         BookDownloader.downloadRemove += ::removeAction

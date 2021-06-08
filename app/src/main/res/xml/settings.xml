@@ -39,6 +39,15 @@
                 android:entries="@array/GridFormat"
                 android:entryValues="@array/GridFormatData"
         />
+        <ListPreference
+                app:icon="@drawable/ic_baseline_grid_view_24"
+                android:key="@string/download_format_key"
+                android:title="Library Display Mode"
+                app:defaultValue="list"
+                app:useSimpleSummaryProvider="true"
+                android:entries="@array/DownloadGridFormat"
+                android:entryValues="@array/DownloadGridFormatData"
+        />
         <SwitchPreference
                 app:key="@string/auto_update_key"
                 android:title="Show app updates"

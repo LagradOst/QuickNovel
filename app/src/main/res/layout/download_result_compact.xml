@@ -157,7 +157,7 @@
                         android:layout_height="wrap_content"
                         android:gravity="end"
 
-                        android:textColor="@color/colorPrimary"
+                        android:textColor="?attr/colorPrimary"
                         android:id="@+id/imageTextMore"
                         android:textStyle="bold"
                         android:ellipsize="end"

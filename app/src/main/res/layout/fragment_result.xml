@@ -259,6 +259,8 @@
                                             android:textColor="?attr/grayTextColor"
                                             android:id="@+id/result_openinbrower_text"
                                             android:gravity="center"
+                                            android:layout_marginRight="5dp"
+                                            android:layout_marginLeft="5dp"
                                             android:text="@string/open_in_browser"
                                             android:layout_width="wrap_content" android:layout_height="match_parent">
                                     </TextView>
@@ -271,6 +273,18 @@
                                             android:layout_margin="5dp"
                                             app:tint="?attr/iconColor"
                                             android:contentDescription="@string/open_in_browser">
+                                    </ImageView>
+                                    <ImageView
+                                            android:id="@+id/result_share"
+                                            android:layout_width="25dp"
+                                            android:layout_height="25dp"
+                                            android:layout_marginRight="5dp"
+                                            android:layout_marginLeft="5dp"
+                                            android:elevation="10dp"
+                                            app:tint="?attr/iconColor"
+                                            android:background="?android:attr/selectableItemBackgroundBorderless"
+                                            android:src="@drawable/ic_outline_share_24"
+                                            android:layout_gravity="center" android:contentDescription="@string/result_share">
                                     </ImageView>
                                 </LinearLayout>
                                 <!--<ImageView
