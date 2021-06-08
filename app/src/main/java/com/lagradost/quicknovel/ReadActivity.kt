@@ -47,6 +47,7 @@ import com.lagradost.quicknovel.util.UIHelper.requestAudioFocus
 import com.lagradost.quicknovel.receivers.BecomingNoisyReceiver
 import com.lagradost.quicknovel.services.TTSPauseService
 import com.lagradost.quicknovel.ui.OrientationType
+import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.toDp
 import com.lagradost.quicknovel.util.toPx
 import kotlinx.android.synthetic.main.read_main.*
@@ -392,8 +393,8 @@ class ReadActivity : AppCompatActivity() {
     private var lockTTS = true
     private val lockTTSOnPaused = false
     private var scrollWithVol = true
-    var minScroll = 0
-    var maxScroll = 0
+    var minScroll: Int? = 0
+    var maxScroll: Int? = 0
 
     var isHidden = true
 
@@ -550,7 +551,12 @@ class ReadActivity : AppCompatActivity() {
         }
     }
 
-    data class TextLine(val startIndex: Int, val endIndex: Int, val topPosition: Int, val bottomPosition: Int)
+    data class TextLine(
+        val startIndex: Int,
+        val endIndex: Int,
+        val topPosition: Int,
+        val bottomPosition: Int,
+    )
 
     lateinit var book: Book
     lateinit var chapterTitles: ArrayList<String>
@@ -582,6 +588,7 @@ class ReadActivity : AppCompatActivity() {
         read_chapter_name.text = "${chapterName!!} (${currentChapter + 1}/${chaptersTotal + 1})"
     }
 
+    var currentText = ""
     private fun Context.loadChapter(chapterIndex: Int, scrollToTop: Boolean, scrollToRemember: Boolean = false) {
         setKey(EPUB_CURRENT_POSITION, book.title, chapterIndex)
 
@@ -653,6 +660,8 @@ class ReadActivity : AppCompatActivity() {
             , HtmlCompat.FROM_HTML_MODE_LEGACY)
         println("TEXT:" + document.html())
         read_text.text = spanned
+        currentText = spanned.toString()
+
         read_text.post {
             loadTextLines()
             scroll()
@@ -712,18 +721,18 @@ class ReadActivity : AppCompatActivity() {
         val speakOutMsg: String,
         val startIndex: Int,
         val endIndex: Int,
+        /*
         val minScroll: Int,
-        val maxScroll: Int,
+        val maxScroll: Int,*/
     )
 
     var globalTTSLines = ArrayList<TTSLine>()
 
-    private fun prepareTTS(callback: (Boolean) -> Unit) {
+    private fun prepareTTS(text: String, callback: (Boolean) -> Unit) {
         val job = Job()
         val uiScope = CoroutineScope(Dispatchers.Main + job)
         uiScope.launch {
-            val text = read_text.text
-            val cleanText = text.replace("\\.([^-\\s])".toRegex(), ",$1")
+            val cleanText = text.replace("\\.([A-z])".toRegex(), ",$1") //\.([A-z]) \.([^-\s])
             val ttsLines = ArrayList<TTSLine>()
 
             var index = 0
@@ -788,7 +797,21 @@ class ReadActivity : AppCompatActivity() {
                     val message = text.substring(index, endIndex)
                     var msg = message//Regex("\\p{L}").replace(message,"")
                     val invalidChars =
-                        arrayOf("-", "<", ">", "_", "^", "«", "»", "「", "」", "—", "¿", "*") // "\'", //Don't ect
+                        arrayOf(
+                            "-",
+                            "<",
+                            ">",
+                            "_",
+                            "^",
+                            "«",
+                            "»",
+                            "「",
+                            "」",
+                            "—",
+                            "–",
+                            "¿",
+                            "*",
+                            "~") // "\'", //Don't ect
                     for (c in invalidChars) {
                         msg = msg.replace(c, " ")
                     }
@@ -801,13 +824,16 @@ class ReadActivity : AppCompatActivity() {
                             .replace("\t", "")
                             .replace(".", "").isNotEmpty()
                     ) {
+
+                        ttsLines.add(TTSLine(msg, index, endIndex))
                         if (textLines == null)
                             return@launch
-                        for (s in 0..(textLines?.size ?: 0)) { // SET UP MAX SCROLL
+                        /*
+                        for (s in 0 until (textLines?.size ?: 0)) { // SET UP MAX SCROLL
                             val start = textLines?.get(s) ?: return@launch
 
                             if (start.startIndex > index) {
-                                for (e in s..(textLines?.size ?: 0)) {
+                                for (e in s until (textLines?.size ?: 0)) {
                                     val end = textLines?.get(e) ?: return@launch
                                     if (end.startIndex > endIndex) {
                                         if (read_text.layout == null) return@launch
@@ -819,7 +845,7 @@ class ReadActivity : AppCompatActivity() {
                                 }
                                 break
                             }
-                        }
+                        }*/
                     }
                 } catch (e: Exception) {
                     println(e)
@@ -830,7 +856,31 @@ class ReadActivity : AppCompatActivity() {
         }
     }
 
+    data class ScrollLine(val min: Int, val max: Int)
+
+    private fun getMinMax(startIndex: Int, endIndex: Int): ScrollLine? {
+        if (textLines == null || textLines?.size == 0) {
+            loadTextLines()
+        }
+        if (textLines == null) return null
+        val text = textLines!!
+        var start: Int? = null
+        var end: Int? = null
+        for (t in text) {
+            if (t.startIndex > startIndex && start == null) {
+                start = t.topPosition
+            }
+            if (t.endIndex > endIndex && end == null) {
+                end = t.bottomPosition
+            }
+            if (start != null && end != null) return ScrollLine(end + (read_overlay?.height ?: 0), start)
+        }
+        return null
+    }
+
     private var readFromIndex = 0
+    var currentTTSRangeStartIndex = 0
+    var currentTTSRangeEndIndex = 0
     private fun runTTS(index: Int? = null) {
         isTTSRunning = true
 
@@ -847,7 +897,7 @@ class ReadActivity : AppCompatActivity() {
                 readFromIndex = index
             } else {
                 for ((startIndex, line) in globalTTSLines.withIndex()) {
-                    if (read_scroll.scrollY <= line.maxScroll) {
+                    if (read_scroll.scrollY <= getMinMax(line.startIndex, line.endIndex)?.max ?: 0) {
                         readFromIndex = startIndex
                         break
                     }
@@ -877,13 +927,16 @@ class ReadActivity : AppCompatActivity() {
                     val nextLine =
                         if (readFromIndex + 1 >= globalTTSLines.size) null else globalTTSLines[readFromIndex + 1]
 
-                    setHighLightedText(read_text, line.startIndex, line.endIndex)
-                    minScroll = line.minScroll
-                    maxScroll = line.maxScroll
-
+                    currentTTSRangeStartIndex = line.startIndex
+                    currentTTSRangeEndIndex = line.endIndex
                     if (read_scroll != null) {
+                        val textLine = getMinMax(line.startIndex, line.endIndex)
+                        minScroll = textLine?.min
+                        maxScroll = textLine?.max
                         checkTTSRange(read_scroll.scrollY, true)
                     }
+
+                    setHighLightedText(read_text, line.startIndex, line.endIndex)
 
                     val msg = line.speakOutMsg
                     if (msg.isNotEmpty() && msg.isNotBlank()) {
@@ -915,7 +968,7 @@ class ReadActivity : AppCompatActivity() {
 
     private fun startTTS(fromIndex: Int?) {
         if (globalTTSLines.size <= 0) {
-            prepareTTS {
+            prepareTTS(currentText) {
                 if (it) {
                     runTTS(fromIndex)
                 } else {
@@ -928,23 +981,48 @@ class ReadActivity : AppCompatActivity() {
     }
 
     private fun checkTTSRange(scrollY: Int, scrollToTop: Boolean = false) {
-        if (!lockTTSOnPaused && isTTSPaused) return
-        if (lockTTS && isTTSRunning) {
-            if (read_scroll.height + scrollY - read_title_text.height - 10.toPx <= minScroll) { // FOR WHEN THE TEXT IS ON THE BOTTOM OF THE SCREEN
-                if (scrollToTop) {
-                    read_scroll.scrollTo(0, maxScroll + read_title_text.height)
-                } else {
-                    read_scroll.scrollTo(0, minScroll - read_scroll.height + read_title_text.height + 10.toPx)
+        try {
+            if (!lockTTSOnPaused && isTTSPaused) return
+            if (maxScroll == null || minScroll == null) return
+            val min = minScroll!!
+            val max = maxScroll!!
+            if (lockTTS && isTTSRunning) {
+                if (read_scroll.height + scrollY - read_title_text.height - 0.toPx <= min) { // FOR WHEN THE TEXT IS ON THE BOTTOM OF THE SCREEN
+                    if (scrollToTop) {
+                        read_scroll.scrollTo(0, max + read_title_text.height)
+                    } else {
+                        read_scroll.scrollTo(0, min - read_scroll.height + read_title_text.height + 0.toPx)
+                    }
+                    read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
+                } else if (scrollY - read_title_text.height >= max) { // WHEN TEXT IS ON TOP
+                    read_scroll.scrollTo(0, max + read_title_text.height)
+                    read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
                 }
-                read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
-            } else if (scrollY - read_title_text.height >= maxScroll) { // WHEN TEXT IS ON TOP
-                read_scroll.scrollTo(0, maxScroll + read_title_text.height)
-                read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
+            }
+        } catch (e: Exception) {
+            println("WHAT THE FUCK HAPPENED HERE? : $e")
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        main {
+            if (read_scroll == null) return@main
+            if (!lockTTSOnPaused && isTTSPaused) return@main
+            if (!lockTTS || !isTTSRunning) return@main
+
+            val textLine = getMinMax(currentTTSRangeStartIndex, currentTTSRangeEndIndex)
+            minScroll = textLine?.min
+            maxScroll = textLine?.max
+            val scroll = read_scroll?.scrollY
+            if (scroll != null) { // JUST TO BE 100% SURE THAT ANDROID DOES NOT FUCK YOU OVER
+                checkTTSRange(scroll, true)
             }
         }
     }
 
-    fun selectChapter() {
+    private fun selectChapter() {
         val builderSingle: AlertDialog.Builder = AlertDialog.Builder(this)
         //builderSingle.setIcon(R.drawable.ic_launcher)
         builderSingle.setTitle(chapterTitles[currentChapter]) //  "Select Chapter"

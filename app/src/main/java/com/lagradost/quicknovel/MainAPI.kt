@@ -53,11 +53,11 @@ fun MainAPI.fixUrl(url: String): String {
     return url
 }
 
-
+//\.([A-z]) instead of \.([^-\s]) to preserve numbers like 17.4
 val String?.textClean: String?
     get() = (this
-        ?.replace("\\.([^-\\s])".toRegex(), "$1")
-        ?.replace("\\+([^-\\s])".toRegex(), "$1")
+        ?.replace("\\.([A-z])".toRegex(), "$1") //\.([^-\s])
+        ?.replace("\\+([A-z])".toRegex(), "$1") //\+([^-\s])
             )
 
 fun stripHtml(txt: String, chapterName: String? = null, chapterIndex: Int? = null): String {
