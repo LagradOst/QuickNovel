@@ -404,7 +404,7 @@ Translator: Rainbow Turtle"
 
                                     <com.google.android.material.button.MaterialButton
                                             android:layout_columnWeight="1"
-                                            android:gravity="center" android:layout_height="match_parent"
+                                            android:gravity="center" android:layout_height="45dp"
                                             android:layout_marginRight="5dp"
 
                                             app:icon="@drawable/ic_baseline_create_24"
@@ -426,9 +426,7 @@ Translator: Rainbow Turtle"
                                     <com.google.android.material.button.MaterialButton
                                             android:layout_columnWeight="1"
                                             android:layout_marginStart="5dp"
-
-
-                                            android:gravity="center" android:layout_height="match_parent"
+                                            android:gravity="center" android:layout_height="45dp"
 
                                             android:id="@+id/result_download_btt"
                                             android:text="@string/download_text"
