@@ -728,6 +728,12 @@ class ReadActivity : AppCompatActivity() {
 
             var index = 0
             while (true) {
+                if (index >= text.length) {
+                    globalTTSLines = ttsLines
+                    callback.invoke(true)
+                    return@launch
+                }
+
                 val invalidStartChars =
                     arrayOf(' ', '.', ',', '\n', '\"',
                         '\'', '’', '‘', '“', '”', '«', '»', '「', '」', '…')
@@ -841,7 +847,7 @@ class ReadActivity : AppCompatActivity() {
                 readFromIndex = index
             } else {
                 for ((startIndex, line) in globalTTSLines.withIndex()) {
-                    if (read_scroll.scrollY + read_title_text.height - 10 <= line.minScroll) {
+                    if (read_scroll.scrollY <= line.maxScroll) {
                         readFromIndex = startIndex
                         break
                     }
