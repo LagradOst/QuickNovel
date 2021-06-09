@@ -35,6 +35,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.doOnEnd
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
 import androidx.core.text.getSpans
 import androidx.media.session.MediaButtonReceiver
@@ -1416,7 +1417,7 @@ class ReadActivity : AppCompatActivity() {
                 val colorPrim = ColorStateList.valueOf(colorPrimary)
                 val colorTrans = ColorStateList.valueOf(Color.TRANSPARENT)
                 for ((index, img) in images.withIndex()) {
-                    if (color == bgColors[index]) {
+                    if (index == 5 || color == bgColors[index]) {
                         img.foregroundTintList = colorPrim
                         img.imageAlpha = 200
                     } else {
@@ -1441,6 +1442,17 @@ class ReadActivity : AppCompatActivity() {
                 horizontalColors.addView(imageHolder)
                 //  image.backgroundTintList = ColorStateList.valueOf(c)// ContextCompat.getColorStateList(this, c)
             }
+
+            val imageHolder = layoutInflater.inflate(R.layout.color_round_checkmark,
+ null)
+            val image = imageHolder.findViewById<ImageView>(R.id.image1)
+            image.setForeground(ContextCompat.getDrawable(this, R.drawable.ic_baseline_add_24))
+            image.setOnClickListener {
+                android.widget.Toast.makeText(this, "test", 5).show()
+                updateImages()
+            }
+            images.add(image)
+            horizontalColors.addView(imageHolder)
             updateImages()
 
             readSettingsTextSize.max = 10
