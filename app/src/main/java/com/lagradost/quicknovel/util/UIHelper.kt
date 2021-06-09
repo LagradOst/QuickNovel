@@ -15,6 +15,7 @@ import android.view.View
 import androidx.annotation.AttrRes
 import androidx.annotation.ColorInt
 import androidx.annotation.MenuRes
+import androidx.appcompat.view.ContextThemeWrapper
 import androidx.appcompat.view.menu.MenuBuilder
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
@@ -28,6 +29,7 @@ import com.lagradost.quicknovel.R
 import java.text.CharacterIterator
 import java.text.StringCharacterIterator
 import kotlin.math.roundToInt
+
 
 val Int.toPx: Int get() = (this * Resources.getSystem().displayMetrics.density).toInt()
 val Float.toPx: Float get() = (this * Resources.getSystem().displayMetrics.density)
@@ -161,8 +163,9 @@ object UIHelper {
         selectedItemId: Int? = null,
         noinline onMenuItemClick: MenuItem.() -> Unit,
     ): PopupMenu {
-        val popup =
-            PopupMenu(context, this, Gravity.NO_GRAVITY, R.attr.actionOverflowMenuStyle, R.style.AppTheme_Toolbar)
+        val ctw = ContextThemeWrapper(context, R.style.PopupMenu)
+        val popup = PopupMenu(ctw, this, Gravity.NO_GRAVITY, R.attr.actionOverflowMenuStyle, 0)
+
         items.forEach { (id, stringRes) ->
             popup.menu.add(0, id, 0, stringRes)
         }
@@ -195,8 +198,9 @@ object UIHelper {
         items: List<Triple<Int, Int, Int>>,
         noinline onMenuItemClick: MenuItem.() -> Unit,
     ): PopupMenu {
-        val popup =
-            PopupMenu(context, this, Gravity.NO_GRAVITY, R.attr.actionOverflowMenuStyle, R.style.AppTheme_Toolbar)
+        val ctw = ContextThemeWrapper(context, R.style.PopupMenu)
+        val popup = PopupMenu(ctw, this, Gravity.NO_GRAVITY, R.attr.actionOverflowMenuStyle, 0)
+
         items.forEach { (id, icon, stringRes) ->
             popup.menu.add(0, id, 0, stringRes).setIcon(icon)
         }

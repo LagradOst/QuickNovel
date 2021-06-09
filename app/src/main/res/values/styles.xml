@@ -19,8 +19,6 @@
         <item name="android:windowTranslucentStatus">true</item> <!--true-->
         <item name="android:windowTranslucentNavigation">false</item>
         <item name="alertDialogTheme">@style/Theme.AlertDialog</item>
-        <item name="popupMenuStyle">@style/PopupMenu</item>
-        <item name="android:popupMenuStyle">@style/PopupMenu</item>
 
         <item name="android:textViewStyle">@style/AppTextViewStyle</item>
         <item name="android:buttonStyle">@style/AppButtonStyle</item>
@@ -56,22 +54,9 @@
         <item name="white">#FFF</item>
     </style>
 
-    <style name="PopupMenu" parent="ThemeOverlay.AppCompat.Dark">
-        <item name="android:popupBackground">@color/colorPrimary</item>
+    <style name="PopupMenu" parent="@android:style/Widget.PopupMenu">
+        <item name="android:backgroundTint">?attr/darkBackground</item>
     </style>
-
-    <style name="PopupOverlay" parent="ThemeOverlay.AppCompat.Dark">
-        <!-- changes the background of the Toolbar's popup -->
-        <item name="android:colorBackground">@color/colorPrimary</item>
-    </style>
-
-    <style name="AppTheme.Toolbar" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
-        <item name="android:textColorPrimary">@color/colorPrimary</item>
-        <item name="actionMenuTextColor">@color/colorPrimary</item>
-        <item name="android:textColorSecondary">@color/colorPrimary</item>
-        <item name="android:background">@color/colorPrimary</item>
-    </style>
-
 
     <style name="PreferencesTheme" parent="@style/Base.Theme.AppCompat">
         <item name="android:textColorPrimary">?attr/textColor</item>

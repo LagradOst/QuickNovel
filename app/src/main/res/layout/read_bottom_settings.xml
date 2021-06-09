@@ -3,6 +3,7 @@
         xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
         android:orientation="vertical"
         android:id="@+id/read_settings_root"
+
         android:layout_width="match_parent"
         android:background="@null"
         android:layout_height="match_parent">
@@ -25,10 +26,16 @@
         </TextView>
     </androidx.cardview.widget.CardView>
 
-    <LinearLayout android:layout_margin="20dp"
-                  android:orientation="vertical"
-                  android:layout_width="match_parent"
-                  android:layout_height="wrap_content">
+    <LinearLayout
+            android:background="?attr/darkBackground"
+            android:layout_marginTop="-10dp"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:paddingBottom="20dp"
+            android:paddingTop="30dp"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
         <TextView
                 android:text="@string/general_settings"
                 android:textSize="18sp"

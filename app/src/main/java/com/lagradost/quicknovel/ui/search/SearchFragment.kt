@@ -83,7 +83,7 @@ class SearchFragment : Fragment() {
         activity?.fixPaddingStatusbar(searchRoot)
 
         setupGridView()
-        val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = context?.let {
+        val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = activity?.let {
             ResAdapter(
                 it,
                 ArrayList(),

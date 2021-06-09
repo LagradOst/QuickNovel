@@ -8,6 +8,7 @@ import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.NavOptions
 import androidx.navigation.findNavController
+import androidx.navigation.fragment.NavHostFragment
 import androidx.preference.PreferenceManager
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.lagradost.quicknovel.BookDownloader.checkWrite
@@ -15,6 +16,7 @@ import com.lagradost.quicknovel.BookDownloader.requestRW
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
 import com.lagradost.quicknovel.ui.download.DownloadFragment
+import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.ui.result.ResultFragment
 import com.lagradost.quicknovel.util.Apis.Companion.allApi
 import com.lagradost.quicknovel.util.Apis.Companion.apis
@@ -31,16 +33,16 @@ class MainActivity : AppCompatActivity() {
 
         lateinit var navOptions: NavOptions
 
-        fun loadResult(url: String, apiName: String) {
-            activity.runOnUiThread {
-                activity.supportFragmentManager.beginTransaction()
+        fun AppCompatActivity.loadResult(url: String, apiName: String) {
+            runOnUiThread {
+                supportFragmentManager.beginTransaction()
                     .setCustomAnimations(R.anim.enter_anim, R.anim.exit_anim, R.anim.pop_enter, R.anim.pop_exit)
                     .add(R.id.homeRoot, ResultFragment().newInstance(url, apiName))
                     .commit()
             }
         }
 
-        fun loadResultFromUrl(url: String?) {
+        fun AppCompatActivity.loadResultFromUrl(url: String?) {
             if (url == null) return
             for (api in apis) {
                 if (url.contains(api.mainUrl)) {
@@ -50,17 +52,33 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        fun backPressed(): Boolean {
-            val currentFragment = activity.supportFragmentManager.fragments.last {
+        fun AppCompatActivity.backPressed(): Boolean {
+            val currentFragment = supportFragmentManager.fragments.last {
                 it.isVisible
             }
 
-            if (currentFragment != null && activity.supportFragmentManager.fragments.size > 2) {
+            if (currentFragment is NavHostFragment) {
+                val child = currentFragment.childFragmentManager.fragments.last {
+                    it.isVisible
+                }
+                if (child is MainPageFragment) {
+                    val navController = findNavController(R.id.nav_host_fragment)
+                    navController.navigate(R.id.navigation_homepage, Bundle(), navOptions)
+                    return true
+                }
+            }
+
+            if (currentFragment != null && supportFragmentManager.fragments.size > 2) {
+                if(supportFragmentManager.fragments.size == 3) {
+                    window?.navigationBarColor =
+                        colorFromAttribute(R.attr.darkBackground)
+                }
                 //MainActivity.showNavbar()
-                activity.supportFragmentManager.beginTransaction()
+                supportFragmentManager.beginTransaction()
                     .setCustomAnimations(R.anim.enter_anim, R.anim.exit_anim, R.anim.pop_enter, R.anim.pop_exit)
                     .remove(currentFragment)
                     .commitAllowingStateLoss()
+                supportFragmentManager
                 return true
             }
             return false
@@ -137,7 +155,8 @@ class MainActivity : AppCompatActivity() {
         }
         //val isLightTheme = themeName == "Light"
 
-        theme.applyStyle(currentTheme, true) // THEME IS SET BEFORE VIEW IS CREATED TO APPLY THE THEME TO THE MAIN VIEW
+        theme.applyStyle(currentTheme,
+            true) // THEME IS SET BEFORE VIEW IS CREATED TO APPLY THE THEME TO THE MAIN VIEW
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)

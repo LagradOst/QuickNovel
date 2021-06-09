@@ -1,16 +1,20 @@
 package com.lagradost.quicknovel.ui.search
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.model.GlideUrl
 import com.lagradost.quicknovel.MainActivity
+import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.widget.AutofitRecyclerView
 import com.lagradost.quicknovel.util.SettingsHelper.getGridFormatId
@@ -21,7 +25,7 @@ import kotlin.math.roundToInt
 
 
 class ResAdapter(
-    val context: Context,
+    val activity: Activity,
     var cardList: ArrayList<SearchResponse>,
     private val resView: AutofitRecyclerView,
 ) :
@@ -29,10 +33,10 @@ class ResAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
 
-        val layout = context.getGridFormatId()
+        val layout = activity.getGridFormatId()
         return CardViewHolder(
             LayoutInflater.from(parent.context).inflate(layout, parent, false),
-            context,
+            activity,
             resView
         )
     }
@@ -50,15 +54,15 @@ class ResAdapter(
     }
 
     class CardViewHolder
-    constructor(itemView: View, _context: Context, resView: AutofitRecyclerView) : RecyclerView.ViewHolder(itemView) {
-        val context = _context
+    constructor(itemView: View, val activity: Activity, resView: AutofitRecyclerView) : RecyclerView.ViewHolder(itemView) {
+
         val cardView: ImageView = itemView.imageView
-        val cardText: TextView = itemView.imageText
-        val cardTextExtra: TextView? = itemView.imageTextExtra
+        private val cardText: TextView = itemView.imageText
+        private val cardTextExtra: TextView? = itemView.imageTextExtra
 
         //val imageTextProvider: TextView? = itemView.imageTextProvider
         val bg = itemView.backgroundCard
-        val compactView = context.getGridIsCompact()
+        private val compactView = activity.getGridIsCompact()
         private val coverHeight: Int = if (compactView) 80.toPx else (resView.itemWidth / 0.68).roundToInt()
 
         @SuppressLint("SetTextI18n")
@@ -109,14 +113,14 @@ class ResAdapter(
                 GlideUrl(card.posterUrl)
 
             cardView.setLayerType(View.LAYER_TYPE_SOFTWARE, null) // HALF IMAGE DISPLAYING FIX
-            context.let {
+            activity.let {
                 Glide.with(it)
                     .load(glideUrl)
                     .into(cardView)
             }
 
             bg.setOnClickListener {
-                MainActivity.loadResult(card.url, card.apiName)
+                (activity as AppCompatActivity).loadResult(card.url, card.apiName)
             }
         }
     }

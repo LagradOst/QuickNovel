@@ -36,18 +36,19 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.text.HtmlCompat
 import androidx.core.text.getSpans
 import androidx.media.session.MediaButtonReceiver
+import androidx.preference.PreferenceManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.checkbox.MaterialCheckBox
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.setKey
-import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
-import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
-import com.lagradost.quicknovel.util.UIHelper.popupMenu
-import com.lagradost.quicknovel.util.UIHelper.requestAudioFocus
 import com.lagradost.quicknovel.receivers.BecomingNoisyReceiver
 import com.lagradost.quicknovel.services.TTSPauseService
 import com.lagradost.quicknovel.ui.OrientationType
 import com.lagradost.quicknovel.util.Coroutines.main
+import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
+import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
+import com.lagradost.quicknovel.util.UIHelper.popupMenu
+import com.lagradost.quicknovel.util.UIHelper.requestAudioFocus
 import com.lagradost.quicknovel.util.toDp
 import com.lagradost.quicknovel.util.toPx
 import kotlinx.android.synthetic.main.read_main.*
@@ -57,7 +58,6 @@ import nl.siegmann.epublib.epub.EpubReader
 import org.jsoup.Jsoup
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.collections.ArrayList
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
@@ -457,24 +457,7 @@ class ReadActivity : AppCompatActivity() {
         }
     }
 
-    var batteryStatus: Intent? = null
-
-    @SuppressLint("SetTextI18n")
-    fun updateBatteryText() {
-        val batteryPct: Float? = batteryStatus?.let { intent ->
-            val level: Int = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-            val scale: Int = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-            level * 100 / scale.toFloat()
-        }
-        if (batteryPct == null) {
-            read_battery.text = ""
-        } else {
-            read_battery.text = "${batteryPct.toInt()}%"
-        }
-    }
-
     private fun updateTimeText() {
-        updateBatteryText()
         val currentTime: String = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
         if (read_time != null) {
             read_time.text = currentTime
@@ -1189,10 +1172,33 @@ class ReadActivity : AppCompatActivity() {
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
+        val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
+        val themeName = settingsManager.getString("theme", "Dark")
+        val currentTheme = when (themeName) {
+            "Black" -> R.style.AppTheme
+            "Dark" -> R.style.DarkAlternative
+            "Light" -> R.style.LightMode
+            else -> R.style.AppTheme
+        }
+
+        theme.applyStyle(currentTheme,
+            true) // THEME IS SET BEFORE VIEW IS CREATED TO APPLY THE THEME TO THE MAIN VIEW
+
         super.onCreate(savedInstanceState)
 
-        batteryStatus = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { ifilter ->
-            this.registerReceiver(null, ifilter)
+        val mBatInfoReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+            @SuppressLint("SetTextI18n")
+            override fun onReceive(ctxt: Context?, intent: Intent) {
+                val batteryPct: Float = intent.let { intent ->
+                    val level: Int = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+                    val scale: Int = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+                    level * 100 / scale.toFloat()
+                }
+                read_battery?.text = "${batteryPct.toInt()}%"
+            }
+        }
+        IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { ifilter ->
+            this.registerReceiver(mBatInfoReceiver, ifilter)
         }
 
         val data = intent.data
@@ -1291,7 +1297,7 @@ class ReadActivity : AppCompatActivity() {
                         img.imageAlpha = 200
                     } else {
                         img.foregroundTintList = colorTrans
-                        img.imageAlpha = 0
+                        img.imageAlpha = 50
                     }
                 }
             }

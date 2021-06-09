@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -21,6 +22,7 @@ import com.lagradost.quicknovel.BookDownloader.remove
 import com.lagradost.quicknovel.BookDownloader.turnToEpub
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.setKey
+import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.ui.download.DownloadHelper.updateDownloadFromCard
 import com.lagradost.quicknovel.util.Coroutines
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
@@ -234,7 +236,7 @@ class DownloadAdapter(
             }
 
             fun handleSource() {
-                MainActivity.loadResult(card.source, card.apiName)
+                (localActivity as AppCompatActivity).loadResult(card.source, card.apiName)
             }
 
             fun handleUpdate() {
@@ -243,7 +245,7 @@ class DownloadAdapter(
 
             fun handleDelete() {
                 val dialogClickListener =
-                    DialogInterface.OnClickListener { dialog, which ->
+                    DialogInterface.OnClickListener { _, which ->
                         when (which) {
                             DialogInterface.BUTTON_POSITIVE -> {
                                 localActivity.remove(card.author, card.name, card.apiName)

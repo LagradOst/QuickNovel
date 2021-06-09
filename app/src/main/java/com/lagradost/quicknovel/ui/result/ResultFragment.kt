@@ -16,6 +16,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat.getColor
 import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
@@ -34,6 +35,7 @@ import com.lagradost.quicknovel.BookDownloader.remove
 import com.lagradost.quicknovel.BookDownloader.turnToEpub
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.setKey
+import com.lagradost.quicknovel.MainActivity.Companion.backPressed
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.download.DownloadHelper
@@ -215,13 +217,6 @@ class ResultFragment : Fragment() {
         })
     }
 
-    override fun onDestroy() {
-        //BookDownloader.downloadNotification -= ::updateDownloadInfo
-        activity?.window?.navigationBarColor =
-            requireContext().colorFromAttribute(R.attr.darkBackground)
-        super.onDestroy()
-    }
-
     lateinit var load: Resource<LoadResponse>
 
     @SuppressLint1("CutPasteId", "SetTextI18n")
@@ -325,7 +320,7 @@ class ResultFragment : Fragment() {
 
                 download_delete_trash_from_result.setOnClickListener {
                     val dialogClickListener =
-                        DialogInterface.OnClickListener { dialog, which ->
+                        DialogInterface.OnClickListener { _, which ->
                             when (which) {
                                 DialogInterface.BUTTON_POSITIVE -> {
                                     requireContext().remove(res.author,
@@ -590,7 +585,7 @@ class ResultFragment : Fragment() {
         }
 
         result_back.setOnClickListener {
-            MainActivity.backPressed()
+            (requireActivity() as AppCompatActivity).backPressed()
         }
 
         result_download_generate_epub.setOnClickListener {

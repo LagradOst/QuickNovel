@@ -14,10 +14,12 @@ import android.widget.TextView
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProviders
+import androidx.navigation.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
+import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.mvvm.observe
@@ -118,9 +120,12 @@ class MainPageFragment : Fragment() {
 
         mainpage_toolbar.setNavigationIcon(R.drawable.ic_baseline_arrow_back_24)
         mainpage_toolbar.setNavigationOnClickListener {
-            //activity?.popCurrentPage()
+            //val navController = requireActivity().findNavController(R.id.nav_host_fragment)
+            //navController.navigate(R.id.navigation_homepage, Bundle(), MainActivity.navOptions)
+           // activity?.popCurrentPage()
             activity?.onBackPressed()
         }
+
         mainpage_toolbar.setOnMenuItemClickListener {
             when (it.itemId) {
                 R.id.action_open_in_browser -> {
@@ -172,7 +177,7 @@ class MainPageFragment : Fragment() {
 
         setupGridView()
 
-        val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = context?.let {
+        val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = activity?.let {
             MainAdapter(
                 it,
                 ArrayList(),
