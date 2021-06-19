@@ -1072,7 +1072,7 @@ class ReadActivity : AppCompatActivity() {
             dialog.listView.post {
                 dialog.listView.requestFocusFromTouch()
                 dialog.listView.setSelection(currentChapter)
-              //  window?.decorView?.clearFocus()
+                //  window?.decorView?.clearFocus()
             }
         }
 
@@ -1587,7 +1587,8 @@ class ReadActivity : AppCompatActivity() {
         val epubReader = EpubReader()
         book = epubReader.readEpub(input)
         maxChapter = book.tableOfContents.tocReferences.size
-        loadChapter(getKey(EPUB_CURRENT_POSITION, book.title) ?: 0,
+        loadChapter(
+            minOf(getKey(EPUB_CURRENT_POSITION, book.title) ?: 0, maxChapter - 1), // CRASH FIX IF YOU SOMEHOW TRY TO LOAD ANOTHER EPUB WITH THE SAME NAME
             scrollToTop = true,
             scrollToRemember = true)
         updateTimeText()
