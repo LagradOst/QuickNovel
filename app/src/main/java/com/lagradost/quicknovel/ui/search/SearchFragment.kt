@@ -1,14 +1,22 @@
 package com.lagradost.quicknovel.ui.search
 
+import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
+import android.transition.ChangeBounds
+import android.transition.Transition
+import android.transition.TransitionManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
+import android.widget.LinearLayout
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.widget.LinearLayoutCompat
 import androidx.appcompat.widget.SearchView
+import androidx.core.view.setMargins
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProviders
 import androidx.preference.PreferenceManager
@@ -21,6 +29,7 @@ import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.util.SettingsHelper.getGridIsCompact
+import com.lagradost.quicknovel.util.toPx
 import kotlinx.android.synthetic.main.fragment_search.*
 
 class SearchFragment : Fragment() {
@@ -42,7 +51,7 @@ class SearchFragment : Fragment() {
         val spanCountLandscape = if (compactView) 2 else 6
         val spanCountPortrait = if (compactView) 1 else 3
         val orientation = resources.configuration.orientation
-        if(cardSpace == null) return
+        if (cardSpace == null) return
         if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
             cardSpace.spanCount = spanCountLandscape
         } else {
@@ -58,8 +67,8 @@ class SearchFragment : Fragment() {
     private lateinit var viewModel: SearchViewModel
     private val factory = provideSearchViewModelFactory()
 
-    lateinit var searchExitIcon : ImageView
-    lateinit var searchMagIcon : ImageView
+    lateinit var searchExitIcon: ImageView
+    lateinit var searchMagIcon: ImageView
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -67,7 +76,7 @@ class SearchFragment : Fragment() {
             .get(SearchViewModel::class.java)
 
         observe(viewModel.searchResults) { data ->
-            when(data) {
+            when (data) {
                 is Resource.Success -> {
                     searchExitIcon.alpha = 1f
                     search_loading_bar.alpha = 0f
@@ -141,6 +150,16 @@ class SearchFragment : Fragment() {
             }
         })
 
+        main_search.setOnQueryTextFocusChangeListener { view, b ->
+            if (b) {
+                // https://stackoverflow.com/questions/12022715/unable-to-show-keyboard-automatically-in-the-searchview
+                view.postDelayed({
+                    val imm: InputMethodManager? =
+                        requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager?
+                    imm?.showSoftInput(view.findFocus(), 0)
+                }, 200)
+            }
+        }
         main_search.onActionViewExpanded()
 
         /*

@@ -31,9 +31,9 @@
             android:textSize="15sp"
             app:cornerRadius="5dp"
             app:strokeWidth="2dp"
-            app:strokeColor="@color/colorAccent"
+            app:strokeColor="?attr/colorAccent"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            app:rippleColor="@color/colorPrimary"
+            app:rippleColor="?attr/colorPrimary"
             android:layout_width="wrap_content"
             android:minWidth="200dp"
     >
@@ -93,7 +93,7 @@
                         android:textStyle="bold"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/colorAccent"
+                        android:textColor="?attr/colorAccent"
                         android:textSize="14sp"
                         android:text="@string/no_data"/>
                 <TextView
@@ -399,14 +399,14 @@ Translator: Rainbow Turtle"
                                 </LinearLayout>
 
                                 <androidx.core.widget.ContentLoadingProgressBar
-                                        android:progressTint="@color/colorPrimary"
+                                        android:progressTint="?attr/colorPrimary"
                                         android:id="@+id/result_download_progress_bar"
                                         android:layout_width="match_parent"
                                         android:indeterminate="false"
                                         tools:progress="50"
                                         android:layout_marginTop="10dp"
                                         android:layout_marginBottom="10dp"
-                                        android:progressBackgroundTint="@color/colorPrimary"
+                                        android:progressBackgroundTint="?attr/colorPrimary"
                                         style="@android:style/Widget.Material.ProgressBar.Horizontal"
                                         android:layout_height="wrap_content">
                                 </androidx.core.widget.ContentLoadingProgressBar>
@@ -429,9 +429,9 @@ Translator: Rainbow Turtle"
                                             android:textSize="15sp"
                                             app:cornerRadius="5dp"
                                             app:strokeWidth="2dp"
-                                            app:strokeColor="@color/colorAccent"
+                                            app:strokeColor="?attr/colorAccent"
                                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                                            app:rippleColor="@color/colorPrimary"
+                                            app:rippleColor="?attr/colorPrimary"
                                             android:layout_width="50dp">
                                     </com.google.android.material.button.MaterialButton>
                                     <!--
@@ -447,9 +447,9 @@ Translator: Rainbow Turtle"
                                             android:textAllCaps="false"
                                             android:textSize="15sp"
                                             app:strokeWidth="2dp"
-                                            app:strokeColor="@color/colorAccent"
+                                            app:strokeColor="?attr/colorAccent"
                                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                                            app:rippleColor="@color/colorPrimary"
+                                            app:rippleColor="?attr/colorPrimary"
                                             android:layout_width="50dp">
                                     </com.google.android.material.button.MaterialButton>
                                 </GridLayout>

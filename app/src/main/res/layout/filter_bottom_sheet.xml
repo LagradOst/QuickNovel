@@ -39,10 +39,10 @@
                     android:textSize="15sp"
                     app:cornerRadius="5dp"
                     app:strokeWidth="2dp"
-                    android:textColor="@color/colorPrimary"
-                    app:strokeColor="@color/colorAccent"
+                    android:textColor="?attr/colorOnPrimary"
+                    app:strokeColor="?attr/colorOnPrimary"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    app:rippleColor="@color/colorPrimary"
+                    app:rippleColor="?attr/colorOnPrimary"
             >
             </com.google.android.material.button.MaterialButton>
         </FrameLayout>

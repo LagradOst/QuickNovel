@@ -12,6 +12,7 @@ import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import androidx.annotation.AttrRes
 import androidx.annotation.ColorInt
 import androidx.annotation.MenuRes
@@ -24,8 +25,10 @@ import androidx.core.graphics.blue
 import androidx.core.graphics.green
 import androidx.core.graphics.red
 import androidx.core.view.forEach
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.util.UIHelper.hideKeyboard
 import java.text.CharacterIterator
 import java.text.StringCharacterIterator
 import kotlin.math.roundToInt
@@ -214,5 +217,18 @@ object UIHelper {
 
         popup.show()
         return popup
+    }
+
+    fun Fragment.hideKeyboard() {
+        view.let {
+            if (it != null) {
+                activity?.hideKeyboard(it)
+            }
+        }
+    }
+
+    fun Context.hideKeyboard(view: View) {
+        val inputMethodManager = getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
+        inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
     }
 }

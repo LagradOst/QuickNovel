@@ -79,6 +79,16 @@
                 android:entries="@array/ThemesNames"
                 android:entryValues="@array/ThemesValues"
         />
+        <ListPreference
+                app:key="color_theme"
+                android:title="Main Color"
+                android:icon="@drawable/ic_baseline_color_lens_24"
+                app:useSimpleSummaryProvider="true"
+                app:defaultValue="Normal"
+                android:entries="@array/ThemesOverlayNames"
+                android:entryValues="@array/ThemesOverlayValues"
+        />
+
         <Preference
                 android:title="Check for Update"
                 app:key="@string/manual_check_update_key"

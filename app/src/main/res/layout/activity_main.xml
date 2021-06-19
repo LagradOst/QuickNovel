@@ -22,7 +22,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:background="?attr/darkBackground"
-                    app:itemRippleColor="@color/colorRipple"
+                    app:itemRippleColor="?attr/colorPrimary"
                     app:labelVisibilityMode="labeled"
                     app:itemTextColor="@color/item_select_color"
                     app:itemIconTint="@color/item_select_color"

@@ -49,4 +49,11 @@
     <color name="lightTextColor">#202125</color>
     <color name="lightGrayTextColor">#5f6267</color>
     <color name="lightIconColor">#5f6267</color>
+
+    <!--Other Colors -->
+    <color name="colorPrimaryBlue">#5664B7</color>
+    <color name="colorPrimaryRed">#FA3D3D</color>
+    <color name="colorPrimaryPurple">#6200EA</color> <!-- Burple-->
+    <color name="colorPrimaryGreen">#00BFA5</color>
+    <color name="colorPrimaryGreenApple">#48E484</color>
 </resources>

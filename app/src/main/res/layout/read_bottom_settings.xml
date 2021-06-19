@@ -51,7 +51,7 @@
                 android:id="@+id/read_settings_scroll_vol"
                 android:text="@string/scroll_with_volume_keys"
                 android:textColor="?attr/textColor"
-                app:buttonTint="@color/colorPrimary"
+                app:buttonTint="?attr/colorOnPrimary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
@@ -64,7 +64,7 @@
                 android:text="@string/lock_tts"
                 android:id="@+id/read_settings_lock_tts"
                 android:textColor="?attr/textColor"
-                app:buttonTint="@color/colorPrimary"
+                app:buttonTint="?attr/colorOnPrimary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
         </com.google.android.material.checkbox.MaterialCheckBox>
@@ -76,7 +76,7 @@
                 android:text="@string/show_time"
                 android:id="@+id/read_settings_show_time"
                 android:textColor="?attr/textColor"
-                app:buttonTint="@color/colorPrimary"
+                app:buttonTint="?attr/colorOnPrimary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
         </com.google.android.material.checkbox.MaterialCheckBox>
@@ -88,7 +88,7 @@
                 android:text="@string/show_battery"
                 android:id="@+id/read_settings_show_battery"
                 android:textColor="?attr/textColor"
-                app:buttonTint="@color/colorPrimary"
+                app:buttonTint="?attr/colorOnPrimary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
         </com.google.android.material.checkbox.MaterialCheckBox>
@@ -118,8 +118,8 @@
             <SeekBar
                     android:id="@+id/read_settings_text_size"
                     app:layout_constraintTop_toTopOf="parent"
-                    android:thumbTint="@color/colorPrimary"
-                    android:progressTint="@color/colorPrimary"
+                    android:thumbTint="?attr/colorOnPrimary"
+                    android:progressTint="?attr/colorOnPrimary"
 
                     android:progress="4"
                     android:max="10"

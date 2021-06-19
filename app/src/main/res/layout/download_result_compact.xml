@@ -44,23 +44,23 @@
             <androidx.core.widget.ContentLoadingProgressBar
                     style="@android:style/Widget.Material.ProgressBar.Horizontal"
                     android:layout_gravity="center"
-                    android:progressBackgroundTint="@color/colorPrimary"
+                    android:progressBackgroundTint="?attr/colorPrimary"
                     android:id="@+id/download_progressbar"
                     android:layout_width="match_parent"
                     android:layout_marginTop="4dp"
-                    android:progressTint="@color/colorPrimary"
+                    android:progressTint="?attr/colorPrimary"
                     android:layout_height="4dp">
             </androidx.core.widget.ContentLoadingProgressBar>
             <androidx.core.widget.ContentLoadingProgressBar
                     android:indeterminate="true"
                     style="@android:style/Widget.Material.ProgressBar.Horizontal"
                     android:layout_gravity="center"
-                    android:indeterminateTint="@color/colorPrimary"
+                    android:indeterminateTint="?attr/colorPrimary"
                     android:id="@+id/download_progressbar_indeterment"
                     android:layout_width="match_parent"
                     tools:progress="10"
                     android:layout_marginTop="4dp"
-                    android:progressTint="@color/colorPrimary"
+                    android:progressTint="?attr/colorPrimary"
                     android:layout_height="15dp">
             </androidx.core.widget.ContentLoadingProgressBar>
         </FrameLayout>

@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel
 
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.View
 import android.view.Window
@@ -69,7 +70,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             if (currentFragment != null && supportFragmentManager.fragments.size > 2) {
-                if(supportFragmentManager.fragments.size == 3) {
+                if (supportFragmentManager.fragments.size == 3) {
                     window?.navigationBarColor =
                         colorFromAttribute(R.attr.darkBackground)
                 }
@@ -144,8 +145,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         activity = this
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
+
 
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
+
         val themeName = settingsManager.getString("theme", "Dark")
         val currentTheme = when (themeName) {
             "Black" -> R.style.AppTheme
@@ -153,10 +157,22 @@ class MainActivity : AppCompatActivity() {
             "Light" -> R.style.LightMode
             else -> R.style.AppTheme
         }
+
+        val themeOverlayName = settingsManager.getString("color_theme", "Blue")
+        val currentOverlayTheme = when (themeOverlayName) {
+            "Normal" -> R.style.OverlayPrimaryColorNormal
+            "Blue" -> R.style.OverlayPrimaryColorBlue
+            "Purple" -> R.style.OverlayPrimaryColorPurple
+            "Green" -> R.style.OverlayPrimaryColorGreen
+            "GreenApple" -> R.style.OverlayPrimaryColorGreenApple
+            "Red" -> R.style.OverlayPrimaryColorRed
+            else -> R.style.OverlayPrimaryColorNormal
+        }
         //val isLightTheme = themeName == "Light"
 
         theme.applyStyle(currentTheme,
             true) // THEME IS SET BEFORE VIEW IS CREATED TO APPLY THE THEME TO THE MAIN VIEW
+        theme.applyStyle(currentOverlayTheme, true)
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -195,6 +211,8 @@ class MainActivity : AppCompatActivity() {
             }
             true
         }
+
+        navView.itemRippleColor = ColorStateList.valueOf(getResourceColor(R.attr.colorPrimary, 0.1f))
 
         val apiNames = getApiSettings()
         allApi.providersActive = apiNames

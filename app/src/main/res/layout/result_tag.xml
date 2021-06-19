@@ -18,7 +18,7 @@
             app:cornerRadius="100dp"
             app:strokeWidth="2dp"
             tools:text="Test"
-            app:strokeColor="@color/colorAccent"
+            app:strokeColor="?attr/colorAccent"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:id="@+id/result_tag_card">
 

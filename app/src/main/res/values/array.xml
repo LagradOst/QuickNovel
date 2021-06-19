@@ -58,4 +58,21 @@
         <item>@color/readerTextColor</item>
         <item>#111</item>
     </array>
+
+    <string-array name="ThemesOverlayNames">
+        <item>Normal</item>
+        <item>Cool</item>
+        <item>Fire</item>
+        <!-- <item>Burple</item>-->
+        <item>Green</item>
+        <item>Apple</item>
+    </string-array>
+    <string-array name="ThemesOverlayValues">
+        <item>Normal</item>
+        <item>Blue</item>
+        <item>Red</item>
+        <!--   <item>Purple</item> -->
+        <item>Green</item>
+        <item>GreenApple</item>
+    </string-array>
 </resources>

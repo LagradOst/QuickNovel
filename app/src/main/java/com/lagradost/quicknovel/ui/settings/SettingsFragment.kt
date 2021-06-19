@@ -44,6 +44,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
             return@setOnPreferenceChangeListener true
         }
 
+        findPreference<ListPreference>("color_theme")?.setOnPreferenceChangeListener { _, _ ->
+            activity?.recreate()
+            return@setOnPreferenceChangeListener true
+        }
+
         /*
         val listPreference = findPreference<ListPreference>("provider_list")!!
 

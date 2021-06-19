@@ -2,6 +2,7 @@ package com.lagradost.quicknovel
 
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -1071,6 +1072,7 @@ class ReadActivity : AppCompatActivity() {
             dialog.listView.post {
                 dialog.listView.requestFocusFromTouch()
                 dialog.listView.setSelection(currentChapter)
+              //  window?.decorView?.clearFocus()
             }
         }
 
@@ -1217,8 +1219,21 @@ class ReadActivity : AppCompatActivity() {
             else -> R.style.AppTheme
         }
 
+        val themeOverlayName = settingsManager.getString("color_theme", "Blue")
+        val currentOverlayTheme = when (themeOverlayName) {
+            "Normal" -> R.style.OverlayPrimaryColorNormal
+            "Blue" -> R.style.OverlayPrimaryColorBlue
+            "Purple" -> R.style.OverlayPrimaryColorPurple
+            "Green" -> R.style.OverlayPrimaryColorGreen
+            "GreenApple" -> R.style.OverlayPrimaryColorGreenApple
+            "Red" -> R.style.OverlayPrimaryColorRed
+            else -> R.style.OverlayPrimaryColorNormal
+        }
+        //val isLightTheme = themeName == "Light"
+
         theme.applyStyle(currentTheme,
             true) // THEME IS SET BEFORE VIEW IS CREATED TO APPLY THE THEME TO THE MAIN VIEW
+        theme.applyStyle(currentOverlayTheme, true)
 
         super.onCreate(savedInstanceState)
 
@@ -1284,9 +1299,12 @@ class ReadActivity : AppCompatActivity() {
                 setRot(org)
             }
         }
+        val colorPrimary = colorFromAttribute(R.attr.colorPrimary)//   getColor(R.color.colorPrimary)
+
 
         read_action_settings.setOnClickListener {
             val bottomSheetDialog = BottomSheetDialog(this)
+
             bottomSheetDialog.setContentView(R.layout.read_bottom_settings)
             val readSettingsTextSize = bottomSheetDialog.findViewById<SeekBar>(R.id.read_settings_text_size)!!
             val readSettingsScrollVol =
@@ -1324,7 +1342,6 @@ class ReadActivity : AppCompatActivity() {
             val images = ArrayList<ImageView>()
             fun updateImages() {
                 val color = getBackgroundColor()
-                val colorPrimary = getColor(R.color.colorPrimary)
                 val colorPrim = ColorStateList.valueOf(colorPrimary)
                 val colorTrans = ColorStateList.valueOf(Color.TRANSPARENT)
                 for ((index, img) in images.withIndex()) {
