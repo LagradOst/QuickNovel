@@ -46,6 +46,7 @@ import com.lagradost.quicknovel.services.TTSPauseService
 import com.lagradost.quicknovel.ui.OrientationType
 import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
+import com.lagradost.quicknovel.util.UIHelper.dimensionFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.requestAudioFocus
@@ -200,7 +201,35 @@ class ReadActivity : AppCompatActivity() {
         }
     }
 
+    fun getCurrentTTSLineScroll(): Int? {
+        if (ttsStatus == TTSStatus.IsRunning || ttsStatus == TTSStatus.IsPaused) {
+            try {
+                if (readFromIndex >= 0 && readFromIndex < globalTTSLines.size) {
+                    val line = globalTTSLines[readFromIndex]
+                    val textLine = getMinMax(line.startIndex, line.endIndex)
+                    if (textLine != null) {
+
+                        return textLine.max + (read_title_text?.height
+                            ?: 0) - (read_toolbar_holder?.height ?: 0)//dimensionFromAttribute(R.attr.actionBarSize))
+                    }
+                }
+            } catch (e: Exception) {
+                //IDK SMTH HAPPEND
+            }
+        }
+        return null
+    }
+
     public override fun onDestroy() {
+        val scroll = getCurrentTTSLineScroll()
+        if (scroll != null) {
+            setKey(
+                EPUB_CURRENT_POSITION_SCROLL,
+                book.title, scroll
+            )
+        }
+
+
         if (tts != null) {
             tts!!.stop()
             tts!!.shutdown()
@@ -361,8 +390,8 @@ class ReadActivity : AppCompatActivity() {
                 }
             }
 
-            reader_bottom_view_tts.visibility = if(isTTSRunning) View.VISIBLE else View.GONE
-            reader_bottom_view.visibility = if(isTTSRunning) View.GONE else View.VISIBLE
+            reader_bottom_view_tts.visibility = if (isTTSRunning) View.VISIBLE else View.GONE
+            reader_bottom_view.visibility = if (isTTSRunning) View.GONE else View.VISIBLE
 
             tts_action_pause_play?.setImageResource(
                 when (value) {
@@ -416,7 +445,7 @@ class ReadActivity : AppCompatActivity() {
                 or View.SYSTEM_UI_FLAG_FULLSCREEN)
 
 
-        fun lowerBottomNav(v : View) {
+        fun lowerBottomNav(v: View) {
             v.translationY = 0f
             ObjectAnimator.ofFloat(v, "translationY", v.height.toFloat()).apply {
                 duration = 200
@@ -453,10 +482,10 @@ class ReadActivity : AppCompatActivity() {
 
         read_toolbar_holder.visibility = View.VISIBLE
 
-        reader_bottom_view.visibility = if(isTTSRunning) View.GONE else View.VISIBLE
-        reader_bottom_view_tts.visibility = if(isTTSRunning) View.VISIBLE else View.GONE
+        reader_bottom_view.visibility = if (isTTSRunning) View.GONE else View.VISIBLE
+        reader_bottom_view_tts.visibility = if (isTTSRunning) View.VISIBLE else View.GONE
 
-        fun higherBottomNavView(v : View) {
+        fun higherBottomNavView(v: View) {
             v.translationY = v.height.toFloat()
             ObjectAnimator.ofFloat(v, "translationY", 0f).apply {
                 duration = 200
@@ -712,6 +741,10 @@ class ReadActivity : AppCompatActivity() {
 
     fun stopTTS() {
         runOnUiThread {
+            val scroll = getCurrentTTSLineScroll()
+            if (scroll != null) {
+                read_scroll?.scrollTo(0, scroll)
+            }
             clearTextViewOfSpans(read_text)
             interruptTTS()
             ttsStatus = TTSStatus.IsStopped
@@ -829,7 +862,7 @@ class ReadActivity : AppCompatActivity() {
                             .replace("\t", "")
                             .replace(".", "").isNotEmpty()
                     ) {
-                        if(isValidSpeakOutMsg(msg)) {
+                        if (isValidSpeakOutMsg(msg)) {
                             ttsLines.add(TTSLine(msg, index, endIndex))
                         }
                         if (textLines == null)
@@ -866,8 +899,8 @@ class ReadActivity : AppCompatActivity() {
         return null
     }
 
-    private fun isValidSpeakOutMsg(msg : String) : Boolean {
-        if(msg.matches("\\?+".toRegex())) {
+    private fun isValidSpeakOutMsg(msg: String): Boolean {
+        if (msg.matches("\\?+".toRegex())) {
             return false
         }
         return msg.isNotEmpty() && msg.isNotBlank()
@@ -1379,13 +1412,13 @@ class ReadActivity : AppCompatActivity() {
         }
 
         read_action_tts.setOnClickListener {
-           /* fun readTTSClick() {
-                when (ttsStatus) {
-                    TTSStatus.IsStopped -> startTTS()
-                    TTSStatus.IsRunning -> stopTTS()
-                    TTSStatus.IsPaused -> isTTSPaused = false
-                }
-            }*/
+            /* fun readTTSClick() {
+                 when (ttsStatus) {
+                     TTSStatus.IsStopped -> startTTS()
+                     TTSStatus.IsRunning -> stopTTS()
+                     TTSStatus.IsPaused -> isTTSPaused = false
+                 }
+             }*/
 
             // DON'T INIT TTS UNTIL IT IS NECESSARY
             if (tts == null) {
@@ -1420,7 +1453,7 @@ class ReadActivity : AppCompatActivity() {
                 }
             } else {
                 startTTS()
-               // readTTSClick()
+                // readTTSClick()
             }
         }
 
