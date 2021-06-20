@@ -35,6 +35,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.doOnEnd
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
 import androidx.core.text.getSpans
 import androidx.media.session.MediaButtonReceiver
@@ -42,6 +43,8 @@ import androidx.preference.PreferenceManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.checkbox.MaterialCheckBox
+import com.jaredrummler.android.colorpicker.ColorPickerDialog
+import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.receivers.BecomingNoisyReceiver
@@ -114,9 +117,10 @@ enum class TTSActionType {
     Stop,
 }
 
-class ReadActivity : AppCompatActivity() {
+class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     companion object {
         lateinit var readActivity: ReadActivity
+        lateinit var images: ArrayList<ImageView>
 
         var defFont: Typeface? = null
         fun getAllFonts(): Array<File>? {
@@ -213,6 +217,17 @@ class ReadActivity : AppCompatActivity() {
     private var tts: TextToSpeech? = null
 
     private var bookCover: Bitmap? = null
+
+    override fun onColorSelected(dialog: Int, color: Int) {
+        when (dialog) {
+            0 -> setBackgroundColor(color)
+            1 -> setTextColor(color)
+        }
+    }
+
+    override fun onDialogDismissed(dialog: Int) {
+        updateImages()
+    }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
@@ -1264,6 +1279,24 @@ class ReadActivity : AppCompatActivity() {
         return color
     }
 
+    fun updateImages() {
+        val bgColors = resources.getIntArray(R.array.readerBgColors)
+        val textColors = resources.getIntArray(R.array.readerTextColors)
+        val color = getBackgroundColor()
+        val colorPrimary = colorFromAttribute(R.attr.colorPrimary)
+        val colorPrim = ColorStateList.valueOf(colorPrimary)
+        val colorTrans = ColorStateList.valueOf(Color.TRANSPARENT)
+        for ((index, img) in images.withIndex()) {
+            if (index == 5 || (color == bgColors[index] && getTextColor() == textColors[index])) {
+                img.foregroundTintList = colorPrim
+                img.imageAlpha = 200
+            } else {
+                img.foregroundTintList = colorTrans
+                img.imageAlpha = 50
+            }
+        }
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
@@ -1366,7 +1399,6 @@ class ReadActivity : AppCompatActivity() {
         }
         val colorPrimary = colorFromAttribute(R.attr.colorPrimary)//   getColor(R.color.colorPrimary)
 
-
         read_action_settings.setOnClickListener {
             val bottomSheetDialog = BottomSheetDialog(this)
 
@@ -1410,21 +1442,7 @@ class ReadActivity : AppCompatActivity() {
             val bgColors = resources.getIntArray(R.array.readerBgColors)
             val textColors = resources.getIntArray(R.array.readerTextColors)
 
-            val images = ArrayList<ImageView>()
-            fun updateImages() {
-                val color = getBackgroundColor()
-                val colorPrim = ColorStateList.valueOf(colorPrimary)
-                val colorTrans = ColorStateList.valueOf(Color.TRANSPARENT)
-                for ((index, img) in images.withIndex()) {
-                    if (color == bgColors[index]) {
-                        img.foregroundTintList = colorPrim
-                        img.imageAlpha = 200
-                    } else {
-                        img.foregroundTintList = colorTrans
-                        img.imageAlpha = 50
-                    }
-                }
-            }
+            images = ArrayList<ImageView>()
 
             for ((index, backgroundColor) in bgColors.withIndex()) {
                 val textColor = textColors[index]
@@ -1441,6 +1459,45 @@ class ReadActivity : AppCompatActivity() {
                 horizontalColors.addView(imageHolder)
                 //  image.backgroundTintList = ColorStateList.valueOf(c)// ContextCompat.getColorStateList(this, c)
             }
+
+            val imageHolder = layoutInflater.inflate(R.layout.color_round_checkmark,
+ null)
+            val image = imageHolder.findViewById<ImageView>(R.id.image1)
+            image.setForeground(ContextCompat.getDrawable(this, R.drawable.ic_baseline_add_24))
+            image.setOnClickListener {
+                val builder: AlertDialog.Builder = AlertDialog.Builder(this)
+                builder.setTitle(getString(R.string.reading_color))
+
+                val colorAdapter = ArrayAdapter<String>(this, R.layout.chapter_select_dialog)
+                val array = arrayListOf(
+                    getString(R.string.background_color),
+                    getString(R.string.text_color
+                ))
+                colorAdapter.addAll(array)
+
+                builder.setPositiveButton("OK") { dialog, _ -> 
+                    dialog.dismiss()
+                    updateImages()
+                }
+
+                builder.setAdapter(colorAdapter) { _, which ->
+                    ColorPickerDialog.newBuilder()
+                        .setDialogId(which)
+                        .setColor(
+                            when(which) {
+                                0 -> getBackgroundColor()
+                                1 -> getTextColor()
+                                else -> 0
+                            }
+                        )
+                        .show(this)
+                }
+
+                builder.show()
+                updateImages()
+            }
+            images.add(image)
+            horizontalColors.addView(imageHolder)
             updateImages()
 
             readSettingsTextSize.max = 10
