@@ -31,6 +31,7 @@ class FontAdapter(val context: Context, private val checked: Int?, private val f
         view.text = (font?.name ?: "Default")
             .replace('-',' ')
             .replace(".ttf","")
+            .replace(".ttc","")
             .replace(".otf","")
             .replace(".otc","")
         view.isChecked = position == checked
