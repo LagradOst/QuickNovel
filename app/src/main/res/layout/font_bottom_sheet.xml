@@ -19,7 +19,7 @@
                 android:paddingLeft="20dp"
                 android:paddingRight="20dp"
                 android:layout_gravity="center_vertical"
-                android:text="@string/filter_dialog_sort_by" android:textColor="?attr/textColor" android:textSize="18sp"
+                android:text="@string/font" android:textColor="?attr/textColor" android:textSize="18sp"
                 android:layout_width="wrap_content" android:layout_height="55dp"
         >
         </TextView>

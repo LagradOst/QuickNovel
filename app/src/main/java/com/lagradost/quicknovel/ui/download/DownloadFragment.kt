@@ -140,7 +140,7 @@ class DownloadFragment : Fragment() {
                     val bottomSheetDialog = BottomSheetDialog(requireContext())
                     bottomSheetDialog.setContentView(R.layout.sort_bottom_sheet)
                     val res = bottomSheetDialog.findViewById<ListView>(R.id.sort_click)!!
-                    val arrayAdapter = ArrayAdapter<String>(requireContext(), R.layout.checkmark_select_dialog)
+                    val arrayAdapter = ArrayAdapter<String>(requireContext(), R.layout.sort_bottom_single_choice) // checkmark_select_dialog
                     arrayAdapter.addAll(ArrayList(sotringMethods.map { t -> t.name }))
 
                     res.choiceMode = CHOICE_MODE_SINGLE

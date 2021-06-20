@@ -2,7 +2,6 @@ package com.lagradost.quicknovel
 
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -12,6 +11,8 @@ import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.fonts.FontFamily
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -39,6 +40,7 @@ import androidx.core.text.getSpans
 import androidx.media.session.MediaButtonReceiver
 import androidx.preference.PreferenceManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.checkbox.MaterialCheckBox
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.setKey
@@ -47,7 +49,6 @@ import com.lagradost.quicknovel.services.TTSPauseService
 import com.lagradost.quicknovel.ui.OrientationType
 import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
-import com.lagradost.quicknovel.util.UIHelper.dimensionFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.requestAudioFocus
@@ -57,9 +58,12 @@ import kotlinx.android.synthetic.main.read_main.*
 import kotlinx.coroutines.*
 import nl.siegmann.epublib.domain.Book
 import nl.siegmann.epublib.epub.EpubReader
+import org.json.JSONObject
 import org.jsoup.Jsoup
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
@@ -113,7 +117,59 @@ enum class TTSActionType {
 class ReadActivity : AppCompatActivity() {
     companion object {
         lateinit var readActivity: ReadActivity
+
+        var defFont: Typeface? = null
+        fun getAllFonts(): Array<File>? {
+            val path = "/system/fonts"
+            val file = File(path)
+            return file.listFiles()
+        }
     }
+
+    private fun TextView.setFont(file: File?) {
+        if (file == null) {
+            this.typeface = defFont
+        } else {
+            this.typeface = Typeface.createFromFile(file)
+        }
+    }
+
+    private fun setReadTextFont(file: File?) {
+        if (defFont == null) defFont = read_text?.typeface
+        setKey(EPUB_FONT, file?.name ?: "")
+        read_text?.setFont(file)
+        read_title_text?.setFont(file)
+        read_title_text?.setTypeface(read_title_text?.typeface, Typeface.BOLD)
+    }
+
+    private fun showFonts() {
+        val bottomSheetDialog = BottomSheetDialog(this)
+        bottomSheetDialog.setContentView(R.layout.font_bottom_sheet)
+        val res = bottomSheetDialog.findViewById<ListView>(R.id.sort_click)!!
+
+        val fonts = getAllFonts() ?: return
+        val items = fonts.toMutableList() as ArrayList<File?>
+        items.add(0, null)
+
+        val currentName = getKey(EPUB_FONT) ?: ""
+        val sotringIndex = items.indexOfFirst { it?.name ?: "" == currentName }
+
+        /* val arrayAdapter = ArrayAdapter<String>(this, R.layout.sort_bottom_single_choice)
+         arrayAdapter.addAll(sortingMethods.toMutableList())
+
+         res.choiceMode = AbsListView.CHOICE_MODE_SINGLE
+         res.adapter = arrayAdapter
+         res.setItemChecked(sotringIndex, true)*/
+        val adapter = FontAdapter(this, sotringIndex, items)
+
+        res.adapter = adapter
+        res.setOnItemClickListener { _, _, which, _ ->
+            setReadTextFont(items[which])
+            bottomSheetDialog.dismiss()
+        }
+        bottomSheetDialog.show()
+    }
+
 
     fun callOnPause(): Boolean {
         if (!isTTSPaused) {
@@ -202,7 +258,7 @@ class ReadActivity : AppCompatActivity() {
         }
     }
 
-    fun getCurrentTTSLineScroll(): Int? {
+    private fun getCurrentTTSLineScroll(): Int? {
         if (ttsStatus == TTSStatus.IsRunning || ttsStatus == TTSStatus.IsPaused) {
             try {
                 if (readFromIndex >= 0 && readFromIndex < globalTTSLines.size) {
@@ -1276,6 +1332,15 @@ class ReadActivity : AppCompatActivity() {
         updateHasTime()
         updateHasBattery()
 
+        val fonts = getAllFonts()
+        if (fonts == null) {
+            setReadTextFont(null)
+        } else {
+            val index = fonts.map { it.name }.indexOf(getKey<String>(EPUB_FONT) ?: "")
+            setReadTextFont(if (index > 0) fonts[index] else null)
+        }
+
+
         createNotificationChannel()
         read_title_text.minHeight = read_toolbar.height
 
@@ -1315,6 +1380,12 @@ class ReadActivity : AppCompatActivity() {
 
             val root = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_root)!!
             val horizontalColors = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_colors)!!
+
+            val readShowFonts = bottomSheetDialog.findViewById<MaterialButton>(R.id.read_show_fonts)
+
+            readShowFonts?.setOnClickListener {
+                showFonts()
+            }
 
             readSettingsScrollVol.isChecked = scrollWithVol
             readSettingsScrollVol.setOnCheckedChangeListener { _, checked ->
@@ -1588,7 +1659,8 @@ class ReadActivity : AppCompatActivity() {
         book = epubReader.readEpub(input)
         maxChapter = book.tableOfContents.tocReferences.size
         loadChapter(
-            minOf(getKey(EPUB_CURRENT_POSITION, book.title) ?: 0, maxChapter - 1), // CRASH FIX IF YOU SOMEHOW TRY TO LOAD ANOTHER EPUB WITH THE SAME NAME
+            minOf(getKey(EPUB_CURRENT_POSITION, book.title) ?: 0,
+                maxChapter - 1), // CRASH FIX IF YOU SOMEHOW TRY TO LOAD ANOTHER EPUB WITH THE SAME NAME
             scrollToTop = true,
             scrollToRemember = true)
         updateTimeText()

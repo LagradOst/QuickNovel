@@ -25,6 +25,7 @@ const val EPUB_BG_COLOR: String = "reader_epub_bg_color"
 const val EPUB_TEXT_COLOR: String = "reader_epub_text_color"
 const val EPUB_HAS_BATTERY: String = "reader_epub_has_battery"
 const val EPUB_HAS_TIME: String = "reader_epub_has_time"
+const val EPUB_FONT: String = "reader_epub_font"
 
 object DataStore {
 

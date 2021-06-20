@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
         xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
         android:orientation="vertical"
         android:id="@+id/read_settings_root"
 
@@ -101,8 +102,32 @@
                 android:layout_height="wrap_content">
         </TextView>
 
+        <com.google.android.material.button.MaterialButton
+                android:layout_marginTop="10dp"
+
+                android:visibility="visible"
+                android:layout_gravity="center_vertical"
+                app:cornerRadius="4dp"
+                android:id="@+id/read_show_fonts"
+
+                android:text="@string/reader_font"
+
+                app:rippleColor="?attr/colorPrimary"
+                android:textColor="?attr/textColor"
+                app:iconTint="?attr/textColor"
+                app:iconPadding="10dp"
+                android:textAllCaps="false"
+                app:iconGravity="textStart"
+                app:icon="@drawable/ic_baseline_font_download_24"
+                android:backgroundTint="@color/transparent"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="45dp">
+        </com.google.android.material.button.MaterialButton>
+
+
         <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="15dp"
 
                 android:orientation="horizontal"
                 android:layout_width="match_parent"
