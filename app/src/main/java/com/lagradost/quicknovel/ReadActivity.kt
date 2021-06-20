@@ -12,7 +12,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Typeface
-import android.graphics.fonts.FontFamily
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -61,17 +60,14 @@ import kotlinx.android.synthetic.main.read_main.*
 import kotlinx.coroutines.*
 import nl.siegmann.epublib.domain.Book
 import nl.siegmann.epublib.epub.EpubReader
-import org.json.JSONObject
 import org.jsoup.Jsoup
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.collections.ArrayList
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.sqrt
-
 
 const val OVERFLOW_NEXT_CHAPTER_DELTA = 600
 const val OVERFLOW_NEXT_CHAPTER_SHOW_PROCENTAGE = 10
@@ -301,6 +297,10 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             )
         }
 
+        with(NotificationManagerCompat.from(this)) {
+            // notificationId is a unique int for each notification that you must define
+            cancel(TTS_NOTIFICATION_ID)
+        }
 
         if (tts != null) {
             tts!!.stop()
@@ -1279,20 +1279,35 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         return color
     }
 
-    fun updateImages() {
+    private fun updateImages() {
         val bgColors = resources.getIntArray(R.array.readerBgColors)
         val textColors = resources.getIntArray(R.array.readerTextColors)
         val color = getBackgroundColor()
         val colorPrimary = colorFromAttribute(R.attr.colorPrimary)
         val colorPrim = ColorStateList.valueOf(colorPrimary)
         val colorTrans = ColorStateList.valueOf(Color.TRANSPARENT)
+        var foundCurrentColor = false
+        val fullAlpha = 200
+        val fadedAlpha = 50
+
         for ((index, img) in images.withIndex()) {
-            if (index == 5 || (color == bgColors[index] && getTextColor() == textColors[index])) {
+            if (index == bgColors.size) { // CUSTOM COLOR
                 img.foregroundTintList = colorPrim
-                img.imageAlpha = 200
+                img.imageAlpha = if (foundCurrentColor) fadedAlpha else fullAlpha
+                img.backgroundTintList =
+                    ColorStateList.valueOf(if (foundCurrentColor) Color.parseColor("#161616") else color)
+                img.foreground = ContextCompat.getDrawable(this,
+                    if (foundCurrentColor) R.drawable.ic_baseline_add_24 else R.drawable.ic_baseline_check_24)
+                continue
+            }
+
+            if ((color == bgColors[index] && getTextColor() == textColors[index])) {
+                foundCurrentColor = true
+                img.foregroundTintList = colorPrim
+                img.imageAlpha = fullAlpha
             } else {
                 img.foregroundTintList = colorTrans
-                img.imageAlpha = 50
+                img.imageAlpha = fadedAlpha
             }
         }
     }
@@ -1410,7 +1425,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             val showTime = bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_time)!!
             val showBattery = bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_battery)!!
 
-            val root = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_root)!!
+            //val root = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_root)!!
             val horizontalColors = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_colors)!!
 
             val readShowFonts = bottomSheetDialog.findViewById<MaterialButton>(R.id.read_show_fonts)
@@ -1460,10 +1475,9 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 //  image.backgroundTintList = ColorStateList.valueOf(c)// ContextCompat.getColorStateList(this, c)
             }
 
-            val imageHolder = layoutInflater.inflate(R.layout.color_round_checkmark,
- null)
+            val imageHolder = layoutInflater.inflate(R.layout.color_round_checkmark, null)
             val image = imageHolder.findViewById<ImageView>(R.id.image1)
-            image.setForeground(ContextCompat.getDrawable(this, R.drawable.ic_baseline_add_24))
+            image.foreground = ContextCompat.getDrawable(this, R.drawable.ic_baseline_add_24)
             image.setOnClickListener {
                 val builder: AlertDialog.Builder = AlertDialog.Builder(this)
                 builder.setTitle(getString(R.string.reading_color))
@@ -1472,10 +1486,10 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 val array = arrayListOf(
                     getString(R.string.background_color),
                     getString(R.string.text_color
-                ))
+                    ))
                 colorAdapter.addAll(array)
 
-                builder.setPositiveButton("OK") { dialog, _ -> 
+                builder.setPositiveButton("OK") { dialog, _ ->
                     dialog.dismiss()
                     updateImages()
                 }
@@ -1484,7 +1498,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                     ColorPickerDialog.newBuilder()
                         .setDialogId(which)
                         .setColor(
-                            when(which) {
+                            when (which) {
                                 0 -> getBackgroundColor()
                                 1 -> getTextColor()
                                 else -> 0
@@ -1496,6 +1510,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 builder.show()
                 updateImages()
             }
+
             images.add(image)
             horizontalColors.addView(imageHolder)
             updateImages()
@@ -1518,6 +1533,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
                 override fun onStopTrackingTouch(seekBar: SeekBar?) {}
             })
+
             bottomSheetDialog.setOnDismissListener {
                 if (updateAllTextOnDismiss) {
                     loadTextLines()
@@ -1712,19 +1728,40 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             selectChapter()
         }
 
-        val epubReader = EpubReader()
-        book = epubReader.readEpub(input)
-        maxChapter = book.tableOfContents.tocReferences.size
-        loadChapter(
-            minOf(getKey(EPUB_CURRENT_POSITION, book.title) ?: 0,
-                maxChapter - 1), // CRASH FIX IF YOU SOMEHOW TRY TO LOAD ANOTHER EPUB WITH THE SAME NAME
-            scrollToTop = true,
-            scrollToRemember = true)
-        updateTimeText()
+        main { // THIS IS USED FOR INSTANT LOAD
+            read_loading.postDelayed({
+                if (!this::chapterTitles.isInitialized) {
+                    read_loading?.visibility = View.VISIBLE
+                }
+            }, 200) // I DON'T WANT TO SHOW THIS IN THE BEGINNING, IN CASE IF SMALL LOAD TIME
 
-        chapterTitles = ArrayList()
-        for ((index, chapter) in book.tableOfContents.tocReferences.withIndex()) {
-            chapterTitles.add(chapter.title ?: "Chapter ${index + 1}")
+            withContext(Dispatchers.IO) {
+                val epubReader = EpubReader()
+                book = epubReader.readEpub(input)
+            }
+
+            maxChapter = book.tableOfContents.tocReferences.size
+            loadChapter(
+                minOf(getKey(EPUB_CURRENT_POSITION, book.title) ?: 0,
+                    maxChapter - 1), // CRASH FIX IF YOU SOMEHOW TRY TO LOAD ANOTHER EPUB WITH THE SAME NAME
+                scrollToTop = true,
+                scrollToRemember = true)
+            updateTimeText()
+
+            chapterTitles = ArrayList()
+            for ((index, chapter) in book.tableOfContents.tocReferences.withIndex()) {
+                chapterTitles.add(chapter.title ?: "Chapter ${index + 1}")
+            }
+
+            if(read_loading != null) { // IDK, android might be weird and kill before load, not tested tho
+                read_loading.visibility = View.GONE
+                read_normal_layout.alpha = 0.01f
+
+                ObjectAnimator.ofFloat(read_normal_layout, "alpha", 1f).apply {
+                    duration = 300
+                    start()
+                }
+            }
         }
     }
 }

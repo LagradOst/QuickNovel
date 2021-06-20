@@ -1,7 +1,5 @@
 package com.lagradost.quicknovel
 
-
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import com.fasterxml.jackson.databind.DeserializationFeature
@@ -28,7 +26,6 @@ const val EPUB_HAS_TIME: String = "reader_epub_has_time"
 const val EPUB_FONT: String = "reader_epub_font"
 
 object DataStore {
-
     val mapper = JsonMapper.builder().addModule(KotlinModule())
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build()
 
