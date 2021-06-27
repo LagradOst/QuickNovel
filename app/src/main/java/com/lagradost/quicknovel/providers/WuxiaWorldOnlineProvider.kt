@@ -99,10 +99,17 @@ class WuxiaWorldOnlineProvider : MainAPI() {
             val response = khttp.get(url)
             val document = Jsoup.parse(response.text)
             val res = document.selectFirst("div.content-area")
+            for (i in res.allElements) {
+                val style = i.attr("style")
+                if (style.contains("display:none")) { // FUCKERS ADDS BLOAT TO SITE BUT DOES NOT DISPLAY IT
+                    i.remove()
+                }
+            }
+
             if (res.html() == "") {
                 return null
             }
-            res.html()
+            res.html().replace("~wuxiaworld.online~", "")
         } catch (e: Exception) {
             null
         }

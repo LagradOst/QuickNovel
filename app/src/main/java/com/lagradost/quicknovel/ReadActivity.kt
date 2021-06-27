@@ -462,8 +462,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 }
             }
 
-            reader_bottom_view_tts.visibility = if (isTTSRunning) View.VISIBLE else View.GONE
-            reader_bottom_view.visibility = if (isTTSRunning) View.GONE else View.VISIBLE
+            reader_bottom_view_tts?.visibility = if (isTTSRunning && !isHidden) View.VISIBLE else View.GONE
+            reader_bottom_view?.visibility = if (!isTTSRunning && !isHidden) View.VISIBLE else View.GONE
 
             tts_action_pause_play?.setImageResource(
                 when (value) {
@@ -1753,7 +1753,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 chapterTitles.add(chapter.title ?: "Chapter ${index + 1}")
             }
 
-            if(read_loading != null) { // IDK, android might be weird and kill before load, not tested tho
+            if (read_loading != null) { // IDK, android might be weird and kill before load, not tested tho
                 read_loading.visibility = View.GONE
                 read_normal_layout.alpha = 0.01f
 
