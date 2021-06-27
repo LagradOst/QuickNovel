@@ -842,6 +842,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             val cleanText = text
                 .replace("\\.([A-z])".toRegex(), ",$1")//\.([A-z]) \.([^-\s])
                 .replace("([0-9])\\.([0-9])".toRegex(), "$1,$2") // GOOD FOR DECIMALS
+                .replace(" (Dr|Mr)\\. ([A-Z])".toRegex(), " $1, $2") // Doctor or Mister
 
             val ttsLines = ArrayList<TTSLine>()
 
@@ -975,7 +976,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         if (msg.matches("\\?+".toRegex())) {
             return false
         }
-        return msg.isNotEmpty() && msg.isNotBlank()
+        return msg.isNotEmpty() && msg.isNotBlank() && msg.contains("[A-z0-9]".toRegex())
     }
 
     private var readFromIndex = 0

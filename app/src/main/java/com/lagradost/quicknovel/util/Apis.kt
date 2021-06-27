@@ -7,6 +7,7 @@ import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.providers.*
 
 const val defProvider = 3
+
 class Apis {
     companion object {
         val apis: Array<MainAPI> = arrayOf(
@@ -18,6 +19,7 @@ class Apis {
             WuxiaWorldSiteProvider(),
             ReadLightNovelProvider(),
             BoxNovelProvider(),
+            ComrademaoProvider(),
         )
 
         val allApi: AllProvider = AllProvider()
