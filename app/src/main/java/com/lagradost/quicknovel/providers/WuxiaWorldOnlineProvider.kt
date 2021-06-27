@@ -109,7 +109,12 @@ class WuxiaWorldOnlineProvider : MainAPI() {
             if (res.html() == "") {
                 return null
             }
-            res.html().replace("~wuxiaworld.online~", "")
+
+            // FUCK ADS
+            res.html()
+                .replace("(~|)( |)wuxiaworld\\.online( |)(~|)".toRegex(), "")
+                .replace("UU reading www.uukanshu.com", "")
+                .replace("Do you like this site? Donate here:", "")
         } catch (e: Exception) {
             null
         }

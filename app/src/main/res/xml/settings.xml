@@ -94,12 +94,26 @@
                 app:key="@string/manual_check_update_key"
                 app:icon="@drawable/ic_baseline_system_update_24"
         />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+            android:key="extra"
+            android:title="Info"
+            app:isPreferenceVisible="true"
+    >
         <Preference
                 android:title="Github"
                 android:icon="@drawable/ic_github_logo"
                 app:summary="https://github.com/LagradOst/QuickNovel">
             <intent android:action="android.intent.action.VIEW"
                     android:data="https://github.com/LagradOst/QuickNovel"/>
+        </Preference>
+        <Preference
+                android:title="Anime app by the same devs"
+                android:icon="@drawable/shiro_icon"
+                app:summary="https://github.com/Blatzar/shiro-app">
+            <intent android:action="android.intent.action.VIEW"
+                    android:data="https://github.com/Blatzar/shiro-app"/>
         </Preference>
         <Preference
                 android:title="Join Discord"

@@ -133,7 +133,7 @@ class SearchFragment : Fragment() {
                 allApi.providersActive = apiNamesSettingLocal
             }
             builder.setTitle("Search Providers")
-            builder.setNegativeButton("Cancel") { _, _ -> }
+            builder.setNegativeButton("Ok") { _, _ -> }
             builder.show()
         }
 
