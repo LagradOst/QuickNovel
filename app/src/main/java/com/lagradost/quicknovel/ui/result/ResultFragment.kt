@@ -243,6 +243,8 @@ class ResultFragment : Fragment() {
                 result_holder.visibility = View.GONE
             }
             is Resource.Success -> {
+                download_warning?.visibility = if (api.rateLimitTime > 1000) View.VISIBLE else View.GONE
+
                 val res = loadResponse.value
 
                 // LOAD IMAGES FIRST TO GIVE IT A BIT OF TIME

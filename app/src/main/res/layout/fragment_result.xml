@@ -396,9 +396,18 @@ Translator: Rainbow Turtle"
                                             android:textStyle="normal"
                                             android:textColor="?attr/textColor"
                                     />
-
                                 </LinearLayout>
-
+                                <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/long_download_time"
+                                        android:textSize="17sp"
+                                        android:id="@+id/download_warning"
+                                        android:layout_marginTop="10dp"
+                                        android:layout_marginBottom="10dp"
+                                        android:textStyle="normal"
+                                        android:textColor="@color/colorPrimaryRed"
+                                />
                                 <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
                                               android:layout_height="wrap_content">
 
