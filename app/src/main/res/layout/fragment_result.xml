@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
+<androidx.coordinatorlayout.widget.CoordinatorLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
         android:id="@+id/result_container"
@@ -22,6 +22,7 @@
             android:layout_columnWeight="1"
             android:layout_gravity="center"
             android:layout_height="50dp"
+            android:layout_marginBottom="50dp"
 
             app:icon="@drawable/ic_baseline_autorenew_24"
             app:iconSize="20dp"
@@ -31,9 +32,30 @@
             android:textSize="15sp"
             app:cornerRadius="5dp"
             app:strokeWidth="2dp"
-            app:strokeColor="?attr/colorAccent"
+            app:strokeColor="@color/colorAccent"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            app:rippleColor="?attr/colorPrimary"
+            app:rippleColor="@color/colorPrimary"
+            android:layout_width="wrap_content"
+            android:minWidth="200dp"
+    >
+    </com.google.android.material.button.MaterialButton>
+    <com.google.android.material.button.MaterialButton
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:layout_height="50dp"
+            android:layout_marginTop="50dp"
+
+            app:icon="@drawable/ic_baseline_public_24"
+            app:iconSize="20dp"
+            android:text="@string/open_in_browser"
+            android:id="@+id/result_reload_connection_open_in_browser"
+            android:textAllCaps="false"
+            android:textSize="15sp"
+            app:cornerRadius="5dp"
+            app:strokeWidth="2dp"
+            app:strokeColor="@color/colorAccent"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            app:rippleColor="@color/colorPrimary"
             android:layout_width="wrap_content"
             android:minWidth="200dp"
     >
@@ -474,4 +496,4 @@ Translator: Rainbow Turtle"
             android:src="@drawable/ic_sharp_clear_24"
             android:contentDescription="@string/back_to_search">
     </ImageView>
-</FrameLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

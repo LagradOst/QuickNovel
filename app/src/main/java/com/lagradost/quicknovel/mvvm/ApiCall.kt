@@ -15,6 +15,23 @@ sealed class Resource<out T> {
     ) : Resource<Nothing>()
 }
 
+fun logError(throwable: Throwable) {
+    Log.d("ApiError", "-------------------------------------------------------------------")
+    Log.d("ApiError", "safeApiCall: " + throwable.localizedMessage)
+    Log.d("ApiError", "safeApiCall: " + throwable.message)
+    throwable.printStackTrace()
+    Log.d("ApiError", "-------------------------------------------------------------------")
+}
+
+fun<T> normalSafeApiCall(apiCall : () -> T) : T? {
+    return try {
+        apiCall.invoke()
+    } catch (throwable: Throwable) {
+        logError(throwable)
+        return null
+    }
+}
+
 suspend fun <T> safeApiCall(
     apiCall: suspend () -> T,
 ): Resource<T> {
@@ -22,10 +39,7 @@ suspend fun <T> safeApiCall(
         try {
             Resource.Success(apiCall.invoke())
         } catch (throwable: Throwable) {
-            Log.d("ApiError", "-------------------------------------------------------------------")
-            Log.d("ApiError", "safeApiCall: " + throwable.localizedMessage)
-            Log.d("ApiError", "safeApiCall: " + throwable.message)
-            Log.d("ApiError", "-------------------------------------------------------------------")
+            logError(throwable)
             when (throwable) {
                 /*is HttpException -> {
                     Resource.Failure(false, throwable.code(), throwable.response()?.errorBody(), throwable.localizedMessage)

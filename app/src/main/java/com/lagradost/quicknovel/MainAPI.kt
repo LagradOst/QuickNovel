@@ -9,6 +9,8 @@ abstract class MainAPI {
     open val name = "NONE"
     open val mainUrl = "NONE"
 
+    open val rateLimitTime : Long = 0
+
     // DECLARE HAS ACCESS TO MAIN PAGE INFORMATION
     open val hasMainPage = false
 
@@ -47,10 +49,19 @@ abstract class MainAPI {
 }
 
 fun MainAPI.fixUrl(url: String): String {
-    if (url.startsWith('/')) {
-        return mainUrl + url
+    if (url.startsWith("http")) {
+        return url
     }
-    return url
+
+    val startsWithNoHttp = url.startsWith("//")
+    if (startsWithNoHttp) {
+        return "https:$url"
+    } else {
+        if (url.startsWith('/')) {
+            return mainUrl + url
+        }
+        return "$mainUrl/$url"
+    }
 }
 
 //\.([A-z]) instead of \.([^-\s]) to preserve numbers like 17.4

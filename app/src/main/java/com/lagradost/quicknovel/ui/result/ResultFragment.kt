@@ -18,6 +18,7 @@ import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat.getColor
 import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
@@ -232,11 +233,13 @@ class ResultFragment : Fragment() {
             is Resource.Failure -> {
                 result_loading.visibility = View.GONE
                 result_reload_connectionerror.visibility = View.VISIBLE
+                result_reload_connection_open_in_browser.visibility = View.VISIBLE
                 result_holder.visibility = View.GONE
             }
             is Resource.Loading -> {
                 result_loading.visibility = View.VISIBLE
                 result_reload_connectionerror.visibility = View.GONE
+                result_reload_connection_open_in_browser.visibility = View.GONE
                 result_holder.visibility = View.GONE
             }
             is Resource.Success -> {
@@ -477,6 +480,7 @@ class ResultFragment : Fragment() {
 
                 result_loading.visibility = View.GONE
                 result_reload_connectionerror.visibility = View.GONE
+                result_reload_connection_open_in_browser.visibility = View.GONE
                 result_holder.visibility = View.VISIBLE
                 result_holder.post {
                     updateScrollHeight()
@@ -502,6 +506,12 @@ class ResultFragment : Fragment() {
 
         result_reload_connectionerror.setOnClickListener {
             viewModel.initState(requireContext(), url)
+        }
+
+        result_reload_connection_open_in_browser.setOnClickListener {
+            val i = Intent(Intent.ACTION_VIEW)
+            i.data = Uri.parse(url)
+            startActivity(i)
         }
 
         result_container.setBackgroundColor(requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground))
@@ -570,7 +580,7 @@ class ResultFragment : Fragment() {
             parameter.bottomMargin)
         result_empty_view.layoutParams = parameter
 
-        val backParameter = result_back.layoutParams as FrameLayout.LayoutParams
+        val backParameter = result_back.layoutParams as CoordinatorLayout.LayoutParams
         backParameter.setMargins(backParameter.leftMargin,
             backParameter.topMargin + requireActivity().getStatusBarHeight(),
             backParameter.rightMargin,

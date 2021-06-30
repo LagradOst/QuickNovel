@@ -398,6 +398,9 @@ object BookDownloader {
                     var page: String? = null
                     while (page == null) {
                         page = api.loadHtml(d.url)
+                        if (api.rateLimitTime > 0) {
+                            sleep(api.rateLimitTime)
+                        }
                         if (!isRunning.containsKey(id)) return
 
                         if (page != null) {

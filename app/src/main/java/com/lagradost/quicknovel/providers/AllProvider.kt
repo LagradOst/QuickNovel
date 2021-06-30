@@ -2,6 +2,7 @@ package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.mvvm.normalSafeApiCall
 import com.lagradost.quicknovel.pmap
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 
@@ -15,10 +16,8 @@ class AllProvider : MainAPI() {
         val list = apis.filter { a ->
             a.name != this.name && (providersActive.size == 0 || providersActive.contains(a.name))
         }.pmap { a ->
-            try {
+            normalSafeApiCall {
                 a.search(query)
-            } catch (e : Exception) {
-                null
             }
         }
 

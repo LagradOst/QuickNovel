@@ -38,6 +38,8 @@
                 <data android:scheme="https" android:host="wuxiaworld.site" android:pathPrefix="/"/>
                 <data android:scheme="https" android:host="www.readlightnovel.org" android:pathPrefix="/"/>
                 <data android:scheme="https" android:host="boxnovel.com" android:pathPrefix="/novel/"/>
+                <data android:scheme="https" android:host="comrademao.com" android:pathPrefix="/novel/"/>
+                <data android:scheme="https" android:host="www.lightnovelpub.com" android:pathPrefix="/novel/"/>
             </intent-filter>
         </activity>
 
