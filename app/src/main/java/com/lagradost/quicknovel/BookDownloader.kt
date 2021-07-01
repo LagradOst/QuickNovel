@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.Intent.*
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Build
 import android.webkit.MimeTypeMap
 import androidx.core.app.ActivityCompat
@@ -18,11 +19,12 @@ import androidx.core.net.toUri
 import androidx.preference.PreferenceManager
 import com.bumptech.glide.Glide
 import com.lagradost.quicknovel.DataStore.getKey
+import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.DataStore.removeKey
 import com.lagradost.quicknovel.DataStore.setKey
-import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.services.DownloadService
 import com.lagradost.quicknovel.util.Event
+import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import nl.siegmann.epublib.domain.Author
 import nl.siegmann.epublib.domain.Book
 import nl.siegmann.epublib.domain.MediaType
@@ -252,6 +254,33 @@ object BookDownloader {
         return true
     }
 
+    data class QuickStreamData(
+        val author: String?,
+        val name: String,
+        val apiName: String,
+        val data: ArrayList<ChapterData>,
+    )
+
+    fun Activity.createQuickStream(data: QuickStreamData): Uri? {
+        try {
+            if (!checkWrite()) {
+                requestRW()
+                if (!checkWrite()) return null
+            }
+            val outputDir: File = this.cacheDir
+            val fileName = getFilename(sanitizeFilename(data.apiName),
+                if (data.author == null) "" else sanitizeFilename(data.author),
+                sanitizeFilename(data.name),
+                -1).replace("$fs", ".")
+            val outputFile = File(outputDir, fileName)
+            outputFile.createNewFile()
+            outputFile.writeText(mapper.writeValueAsString(data))
+            return outputFile.toUri()
+        } catch (e: Exception) {
+            return null
+        }
+    }
+
     fun Activity.turnToEpub(author: String?, name: String, apiName: String): Boolean {
         if (!checkWrite()) {
             requestRW()
@@ -271,9 +300,9 @@ object BookDownloader {
         }
         metadata.addTitle(name)
 
-        val poster_filepath =
+        val posterFilepath =
             filesDir.toString() + getFilenameIMG(sApiName, sAuthor, sName)
-        val pFile = File(poster_filepath)
+        val pFile = File(posterFilepath)
         if (pFile.exists()) {
             book.coverImage = Resource(pFile.readBytes(), MediaType("cover", ".jpg"))
         }
