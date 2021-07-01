@@ -33,7 +33,7 @@ class ReadNovelFullProvider : MainAPI() {
         return try {
             val response = khttp.get(url)
             val document = Jsoup.parse(response.text)
-            document.selectFirst("div#chr-content").html()
+            document.selectFirst("div#chr-content").html().textClean
         } catch (e: Exception) {
             null
         }
