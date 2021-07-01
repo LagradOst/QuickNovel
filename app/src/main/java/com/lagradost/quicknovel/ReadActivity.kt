@@ -94,10 +94,12 @@ fun setHighLightedText(tv: TextView, start: Int, end: Int): Boolean {
         for (s in spans) {
             wordToSpan.removeSpan(s)
         }
-        wordToSpan.setSpan(android.text.Annotation("", "rounded"),
+        wordToSpan.setSpan(
+            android.text.Annotation("", "rounded"),
             start,
             end,
-            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
 
         tv.setText(wordToSpan, TextView.BufferType.SPANNABLE)
 
@@ -246,7 +248,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     // USING Queue system because it is faster by about 0.2s
-    var currentTTSQueue: String? = null
+    private var currentTTSQueue: String? = null
     private fun speakOut(msg: String, msgQueue: String? = null) {
         canSpeak = false
         //println("GOT $msg | ${msgQueue ?: "NULL"}")
@@ -442,17 +444,19 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         PendingIntent.FLAG_UPDATE_CURRENT
                     )
 
-                    builder.addAction(NotificationCompat.Action(
-                        when (i) {
-                            TTSActionType.Resume -> R.drawable.ic_baseline_play_arrow_24
-                            TTSActionType.Pause -> R.drawable.ic_baseline_pause_24
-                            TTSActionType.Stop -> R.drawable.ic_baseline_stop_24
-                        }, when (i) {
-                            TTSActionType.Resume -> "Resume"
-                            TTSActionType.Pause -> "Pause"
-                            TTSActionType.Stop -> "Stop"
-                        }, pending
-                    ))
+                    builder.addAction(
+                        NotificationCompat.Action(
+                            when (i) {
+                                TTSActionType.Resume -> R.drawable.ic_baseline_play_arrow_24
+                                TTSActionType.Pause -> R.drawable.ic_baseline_pause_24
+                                TTSActionType.Stop -> R.drawable.ic_baseline_stop_24
+                            }, when (i) {
+                                TTSActionType.Resume -> "Resume"
+                                TTSActionType.Pause -> "Pause"
+                                TTSActionType.Stop -> "Stop"
+                            }, pending
+                        )
+                    )
                 }
 
 
@@ -472,7 +476,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                     else -> { // IDK SHOULD BE AN INVALID STATE
                         R.drawable.ic_baseline_play_arrow_24
                     }
-                })
+                }
+            )
         }
 
     private var isTTSRunning: Boolean
@@ -690,7 +695,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         read_chapter_name.text = "${chapterName!!} (${currentChapter + 1}/${chaptersTotal + 1})"
     }
 
-    var currentText = ""
+    private var currentText = ""
     private fun Context.loadChapter(chapterIndex: Int, scrollToTop: Boolean, scrollToRemember: Boolean = false) {
         setKey(EPUB_CURRENT_POSITION, book.title, chapterIndex)
 
@@ -759,7 +764,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 .replace("...", "…") // MAKES EASIER TO WORK WITH
                 .replace("<p>.*<strong>Translator:.*?Editor:.*>".toRegex(), "") // FUCK THIS, LEGIT IN EVERY CHAPTER
                 .replace("<.*?Translator:.*?Editor:.*?>".toRegex(), "") // FUCK THIS, LEGIT IN EVERY CHAPTER
-            , HtmlCompat.FROM_HTML_MODE_LEGACY)
+            , HtmlCompat.FROM_HTML_MODE_LEGACY
+        )
         //println("TEXT:" + document.html())
         read_text.text = spanned
         currentText = spanned.toString()
@@ -783,10 +789,14 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         for (i in 0..lay.lineCount) {
             try {
                 if (lay == null) return
-                textLines?.add(TextLine(lay.getLineStart(i),
-                    lay.getLineEnd(i),
-                    lay.getLineTop(i),
-                    lay.getLineBottom(i)))
+                textLines?.add(
+                    TextLine(
+                        lay.getLineStart(i),
+                        lay.getLineEnd(i),
+                        lay.getLineTop(i),
+                        lay.getLineBottom(i)
+                    )
+                )
             } catch (e: Exception) {
                 println("EX: $e")
             }
@@ -855,8 +865,10 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 }
 
                 val invalidStartChars =
-                    arrayOf(' ', '.', ',', '\n', '\"',
-                        '\'', '’', '‘', '“', '”', '«', '»', '「', '」', '…')
+                    arrayOf(
+                        ' ', '.', ',', '\n', '\"',
+                        '\'', '’', '‘', '“', '”', '«', '»', '「', '」', '…'
+                    )
                 while (invalidStartChars.contains(text[index])) {
                     index++
                     if (index >= text.length) {
@@ -922,7 +934,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                             "–",
                             "¿",
                             "*",
-                            "~") // "\'", //Don't ect
+                            "~"
+                        ) // "\'", //Don't ect
                     for (c in invalidChars) {
                         msg = msg.replace(c, " ")
                     }
@@ -980,8 +993,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     private var readFromIndex = 0
-    var currentTTSRangeStartIndex = 0
-    var currentTTSRangeEndIndex = 0
+    private var currentTTSRangeStartIndex = 0
+    private var currentTTSRangeEndIndex = 0
     private fun runTTS(index: Int? = null) {
         isTTSRunning = true
 
@@ -1155,8 +1168,10 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         var scrollRange = 0
         if (read_scroll.childCount > 0) {
             val child: View = read_scroll.getChildAt(0)
-            scrollRange = max(0,
-                child.height - (read_scroll.height - read_scroll.paddingBottom - read_scroll.paddingTop))
+            scrollRange = max(
+                0,
+                child.height - (read_scroll.height - read_scroll.paddingBottom - read_scroll.paddingTop)
+            )
         }
         return scrollRange
     }
@@ -1297,8 +1312,10 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 img.imageAlpha = if (foundCurrentColor) fadedAlpha else fullAlpha
                 img.backgroundTintList =
                     ColorStateList.valueOf(if (foundCurrentColor) Color.parseColor("#161616") else color)
-                img.foreground = ContextCompat.getDrawable(this,
-                    if (foundCurrentColor) R.drawable.ic_baseline_add_24 else R.drawable.ic_baseline_check_24)
+                img.foreground = ContextCompat.getDrawable(
+                    this,
+                    if (foundCurrentColor) R.drawable.ic_baseline_add_24 else R.drawable.ic_baseline_check_24
+                )
                 continue
             }
 
@@ -1336,8 +1353,10 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         }
         //val isLightTheme = themeName == "Light"
 
-        theme.applyStyle(currentTheme,
-            true) // THEME IS SET BEFORE VIEW IS CREATED TO APPLY THE THEME TO THE MAIN VIEW
+        theme.applyStyle(
+            currentTheme,
+            true
+        ) // THEME IS SET BEFORE VIEW IS CREATED TO APPLY THE THEME TO THE MAIN VIEW
         theme.applyStyle(currentOverlayTheme, true)
 
         super.onCreate(savedInstanceState)
@@ -1486,8 +1505,10 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 val colorAdapter = ArrayAdapter<String>(this, R.layout.chapter_select_dialog)
                 val array = arrayListOf(
                     getString(R.string.background_color),
-                    getString(R.string.text_color
-                    ))
+                    getString(
+                        R.string.text_color
+                    )
+                )
                 colorAdapter.addAll(array)
 
                 builder.setPositiveButton("OK") { dialog, _ ->
@@ -1544,8 +1565,14 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             bottomSheetDialog.show()
         }
 
-        setRot(OrientationType.fromSpinner(getKey(EPUB_LOCK_ROTATION,
-            OrientationType.DEFAULT.prefValue)))
+        setRot(
+            OrientationType.fromSpinner(
+                getKey(
+                    EPUB_LOCK_ROTATION,
+                    OrientationType.DEFAULT.prefValue
+                )
+            )
+        )
         //</editor-fold>
 
         read_action_chapters.setOnClickListener {
@@ -1610,7 +1637,20 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                             //readTTSClick()
                         }
                     } else {
-                        showMessage("Initialization Failed!")
+                        val errorMSG = when (status) {
+                            TextToSpeech.ERROR -> "ERROR"
+                            TextToSpeech.ERROR_INVALID_REQUEST -> "ERROR_INVALID_REQUEST"
+                            TextToSpeech.ERROR_NETWORK -> "ERROR_NETWORK"
+                            TextToSpeech.ERROR_NETWORK_TIMEOUT -> "ERROR_NETWORK_TIMEOUT"
+                            TextToSpeech.ERROR_NOT_INSTALLED_YET -> "ERROR_NOT_INSTALLED_YET"
+                            TextToSpeech.ERROR_OUTPUT -> "ERROR_OUTPUT"
+                            TextToSpeech.ERROR_SYNTHESIS -> "ERROR_SYNTHESIS"
+                            TextToSpeech.ERROR_SERVICE -> "ERROR_SERVICE"
+                            else -> status.toString()
+                        }
+
+                        showMessage("Initialization Failed! Error $errorMSG")
+                        tts = null
                     }
                 }
             } else {
@@ -1684,8 +1724,12 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                             read_overflow_progress.progress =
                                 minOf(scrollYOverflow.toInt(), OVERFLOW_NEXT_CHAPTER_DELTA)*/
 
-                            read_text.translationY = (if (overflowDown) -1f else 1f) * sqrt(minOf(scrollYOverflow,
-                                OVERFLOW_NEXT_CHAPTER_DELTA.toFloat())) * 4 // *4 is the amount the page moves when you overload it
+                            read_text.translationY = (if (overflowDown) -1f else 1f) * sqrt(
+                                minOf(
+                                    scrollYOverflow,
+                                    OVERFLOW_NEXT_CHAPTER_DELTA.toFloat()
+                                )
+                            ) * 4 // *4 is the amount the page moves when you overload it
 
                         }
                     }
@@ -1743,10 +1787,13 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
             maxChapter = book.tableOfContents.tocReferences.size
             loadChapter(
-                minOf(getKey(EPUB_CURRENT_POSITION, book.title) ?: 0,
-                    maxChapter - 1), // CRASH FIX IF YOU SOMEHOW TRY TO LOAD ANOTHER EPUB WITH THE SAME NAME
+                minOf(
+                    getKey(EPUB_CURRENT_POSITION, book.title) ?: 0,
+                    maxChapter - 1
+                ), // CRASH FIX IF YOU SOMEHOW TRY TO LOAD ANOTHER EPUB WITH THE SAME NAME
                 scrollToTop = true,
-                scrollToRemember = true)
+                scrollToRemember = true
+            )
             updateTimeText()
 
             chapterTitles = ArrayList()
