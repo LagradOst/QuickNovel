@@ -99,6 +99,16 @@ class ReadLightNovelProvider : MainAPI() {
             content.select("iframe").remove()
             content.select("small.ads-title").remove()
             content.select("script").remove()
+            content.select("div").remove()
+
+            for (i in content.allElements) {
+                if (i.tagName() == "p" && i.text().contains("lightnovelpub")) {
+                    i.remove()
+                }
+                else if(i.classNames().contains("hidden")) {
+                    i.remove()
+                }
+            }
 
             content.html()
         } catch (e: Exception) {
