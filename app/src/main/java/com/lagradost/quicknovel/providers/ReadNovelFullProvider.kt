@@ -4,7 +4,7 @@ import com.lagradost.quicknovel.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
-class ReadnovelfullProvider : MainAPI() {
+class ReadNovelFullProvider : MainAPI() {
     override val mainUrl: String
         get() = "https://readnovelfull.com"
     override val name: String

@@ -21,7 +21,7 @@ class Apis {
             BoxNovelProvider(),
             ComrademaoProvider(),
             LightNovelPubProvider(),
-            ReadnovelfullProvider(),
+            ReadNovelFullProvider(),
         )
 
         val allApi: AllProvider = AllProvider()
