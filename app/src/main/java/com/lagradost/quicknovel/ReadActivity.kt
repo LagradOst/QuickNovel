@@ -39,12 +39,18 @@ import androidx.core.text.HtmlCompat
 import androidx.core.text.getSpans
 import androidx.media.session.MediaButtonReceiver
 import androidx.preference.PreferenceManager
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.json.JsonMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.checkbox.MaterialCheckBox
 import com.jaredrummler.android.colorpicker.ColorPickerDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
+import com.lagradost.quicknovel.BookDownloader.getQuickChapter
 import com.lagradost.quicknovel.DataStore.getKey
+import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.receivers.BecomingNoisyReceiver
 import com.lagradost.quicknovel.services.TTSPauseService
@@ -127,6 +133,81 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             return file.listFiles()
         }
     }
+
+    var isFromEpub = true
+    lateinit var book: Book
+    lateinit var quickdata: BookDownloader.QuickStreamData
+
+    private fun getBookSize(): Int {
+        return if (isFromEpub) book.tableOfContents.tocReferences.size else quickdata.data.size
+    }
+
+    private fun getBookTitle(): String {
+        return if (isFromEpub) book.title else quickdata.meta.name
+    }
+
+    private fun getBookBitmap(): Bitmap? {
+        if (bookCover == null) {
+            val byteArray: ByteArray? = if (isFromEpub) {
+                if (book.coverImage != null && book.coverImage.data != null)
+                    book.coverImage.data
+                else
+                    null
+            } else {
+                val poster = quickdata.poster
+                if (poster != null) {
+                    try {
+                        khttp.get(poster).content
+                    } catch (e: Exception) {
+
+                    }
+                }
+                null
+            }
+            if (byteArray != null)
+                bookCover = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+        }
+        return bookCover
+    }
+
+    private fun getChapterName(index: Int): String {
+        return if (isFromEpub) book.tableOfContents.tocReferences?.get(index)?.title
+            ?: "Chapter ${index + 1}" else quickdata.data[index].name
+    }
+
+    private fun Context.getChapterData(index: Int): String? {
+        val text =
+            (if (isFromEpub) book.tableOfContents.tocReferences[index].resource.reader.readText() else getQuickChapter(
+                quickdata.meta,
+                quickdata.data[index],
+                index
+            )?.html ?: return null)
+        val document = Jsoup.parse(text)
+
+        // REMOVE USELESS STUFF THAT WONT BE USED IN A NORMAL TXT
+        document.select("style").remove()
+        document.select("script").remove()
+
+        for (a in document.allElements) {
+            if (a != null && a.hasText() &&
+                (a.text() == chapterName || (a.tagName() == "h3" && a.text().startsWith("Chapter ${index + 1}")))
+            ) { // IDK, SOME MIGHT PREFER THIS SETTING??
+                a.remove() // THIS REMOVES THE TITLE
+                break
+            }
+        }
+
+        return document.html()
+            .replace("<tr>", "<div style=\"text-align: center\">")
+            .replace("</tr>", "</div>")
+            .replace("<td>", "")
+            .replace("</td>", " ")
+            //.replace("\n\n", "\n") // REMOVES EMPTY SPACE
+            .replace("...", "…") // MAKES EASIER TO WORK WITH
+            .replace("<p>.*<strong>Translator:.*?Editor:.*>".toRegex(), "") // FUCK THIS, LEGIT IN EVERY CHAPTER
+            .replace("<.*?Translator:.*?Editor:.*?>".toRegex(), "") // FUCK THIS, LEGIT IN EVERY CHAPTER
+    }
+
 
     private fun TextView.setFont(file: File?) {
         if (file == null) {
@@ -295,7 +376,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         if (scroll != null) {
             setKey(
                 EPUB_CURRENT_POSITION_SCROLL,
-                book.title, scroll
+                getBookTitle(), scroll
             )
         }
 
@@ -408,19 +489,15 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             } else {
                 val builder = NotificationCompat.Builder(this, TTS_CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_baseline_volume_up_24) //TODO NICE ICON
-                    .setContentTitle(book.title)
+                    .setContentTitle(getBookTitle())
                     .setContentText(chapterName)
 
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .setOnlyAlertOnce(true)
                     .setOngoing(true)
 
-                if (book.coverImage != null && book.coverImage.data != null) {
-                    if (bookCover == null) {
-                        bookCover = BitmapFactory.decodeByteArray(book.coverImage.data, 0, book.coverImage.data.size)
-                    }
-                    builder.setLargeIcon(bookCover)
-                }
+                val icon = getBookBitmap()
+                if (icon != null) builder.setLargeIcon(icon)
 
                 builder.setStyle(androidx.media.app.NotificationCompat.MediaStyle())
                 // .setMediaSession(mediaSession?.sessionToken))
@@ -665,7 +742,6 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         val bottomPosition: Int,
     )
 
-    lateinit var book: Book
     lateinit var chapterTitles: ArrayList<String>
     var maxChapter: Int = 0
 
@@ -697,88 +773,70 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
     private var currentText = ""
     private fun Context.loadChapter(chapterIndex: Int, scrollToTop: Boolean, scrollToRemember: Boolean = false) {
-        setKey(EPUB_CURRENT_POSITION, book.title, chapterIndex)
-
-        fun scroll() {
-            if (scrollToRemember) {
-                val scrollToY = getKey<Int>(EPUB_CURRENT_POSITION_SCROLL, book.title, null)
-                if (scrollToY != null) {
-                    read_scroll.scrollTo(0, scrollToY)
-                    read_scroll.fling(0)
-                    return
+        main {
+            setKey(EPUB_CURRENT_POSITION, getBookTitle(), chapterIndex)
+            val txt = if (isFromEpub) {
+                getChapterData(chapterIndex)
+            } else {
+                read_loading?.visibility = View.VISIBLE
+                read_normal_layout?.alpha = 0f
+                withContext(Dispatchers.IO) {
+                    getChapterData(chapterIndex)
                 }
             }
 
-            val scrollToY = if (scrollToTop) 0 else getScrollRange()
-            read_scroll.scrollTo(0, scrollToY)
-            read_scroll.fling(0)
-            updateChapterName(scrollToY)
-        }
-        read_text.alpha = 0f
+            if (!isFromEpub)
+                fadeInText()
 
-        val chapter = book.tableOfContents.tocReferences[chapterIndex]
-        chapterName = chapter.title ?: "Chapter ${chapterIndex + 1}"
-        currentChapter = chapterIndex
-
-        read_toolbar.title = book.title
-        read_toolbar.subtitle = chapterName
-        read_title_text.text = chapterName
-
-        updateChapterName(0)
-
-        val txt = chapter.resource.reader.readText()
-            //TODO NICE TABLE
-            .replace("<tr>", "<div style=\"text-align: center\">")
-            .replace("</tr>", "</div>")
-            .replace("<td>", "")
-            .replace("</td>", " ")
-        val document = Jsoup.parse(txt)
-
-        // REMOVE USELESS STUFF THAT WONT BE USED IN A NORMAL TXT
-        document.select("style").remove()
-        document.select("script").remove()
-
-        for (a in document.allElements) {
-            if (a != null && a.hasText() &&
-                (a.text() == chapterName || (a.tagName() == "h3" && a.text().startsWith("Chapter ${chapterIndex + 1}")))
-            ) { // IDK, SOME MIGHT PREFER THIS SETTING??
-                a.remove() // THIS REMOVES THE TITLE
-                break
+            if (txt == null) {
+                Toast.makeText(this, "Error loading chapter", Toast.LENGTH_SHORT).show()
+                return@main // TODO FIX REAL INTERACT BUTTON
             }
-        }
 
-        /*
-          var lastBr = false
-        lastBr = if (a.tagName() == "br") { // REMOVE DUPLICATE br, SO NO LONG LINE BREAKS
-            if (lastBr) {
-                a.remove()
+            fun scroll() {
+                if (scrollToRemember) {
+                    val scrollToY = getKey<Int>(EPUB_CURRENT_POSITION_SCROLL, getBookTitle(), null)
+                    if (scrollToY != null) {
+                        read_scroll.scrollTo(0, scrollToY)
+                        read_scroll.fling(0)
+                        return
+                    }
+                }
+
+                val scrollToY = if (scrollToTop) 0 else getScrollRange()
+                read_scroll.scrollTo(0, scrollToY)
+                read_scroll.fling(0)
+                updateChapterName(scrollToY)
             }
-            true
-        } else {
-            false
-        }*/
+            read_text.alpha = 0f
 
-        val spanned = HtmlCompat.fromHtml(
-            document.html()
-                //.replace("\n\n", "\n") // REMOVES EMPTY SPACE
-                .replace("...", "…") // MAKES EASIER TO WORK WITH
-                .replace("<p>.*<strong>Translator:.*?Editor:.*>".toRegex(), "") // FUCK THIS, LEGIT IN EVERY CHAPTER
-                .replace("<.*?Translator:.*?Editor:.*?>".toRegex(), "") // FUCK THIS, LEGIT IN EVERY CHAPTER
-            , HtmlCompat.FROM_HTML_MODE_LEGACY
-        )
-        //println("TEXT:" + document.html())
-        read_text.text = spanned
-        currentText = spanned.toString()
+            chapterName = getChapterName(chapterIndex)
 
-        read_text.post {
-            loadTextLines()
-            scroll()
-            read_text.alpha = 1f
+            currentChapter = chapterIndex
 
-            globalTTSLines.clear()
-            interruptTTS()
-            if (isTTSRunning || isTTSPaused) { // or Paused because it will fuck up otherwise
-                startTTS(true)
+            read_toolbar.title = getBookTitle()
+            read_toolbar.subtitle = chapterName
+            read_title_text.text = chapterName
+
+            updateChapterName(0)
+
+            val spanned = HtmlCompat.fromHtml(
+                txt, HtmlCompat.FROM_HTML_MODE_LEGACY
+            )
+            //println("TEXT:" + document.html())
+            read_text.text = spanned
+            currentText = spanned.toString()
+
+            read_text.post {
+                loadTextLines()
+                scroll()
+                read_text.alpha = 1f
+
+                globalTTSLines.clear()
+                interruptTTS()
+                if (isTTSRunning || isTTSPaused) { // or Paused because it will fuck up otherwise
+                    startTTS(true)
+                }
             }
         }
     }
@@ -1330,6 +1388,18 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         }
     }
 
+    private fun fadeInText() {
+        if (read_loading != null) { // IDK, android might be weird and kill before load, not tested tho
+            read_loading?.visibility = View.GONE
+            read_normal_layout?.alpha = 0.01f
+
+            ObjectAnimator.ofFloat(read_normal_layout, "alpha", 1f).apply {
+                duration = 300
+                start()
+            }
+        }
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
@@ -1377,6 +1447,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         }
 
         val data = intent.data
+
         if (data == null) {
             finish()
             return
@@ -1388,6 +1459,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             finish()
             return
         }
+
+        isFromEpub = intent.type == "application/epub+zip"
 
         initMediaSession()
         setContentView(R.layout.read_main)
@@ -1680,7 +1753,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         read_scroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->
             checkTTSRange(scrollY)
 
-            setKey(EPUB_CURRENT_POSITION_SCROLL, book.title, scrollY)
+            setKey(EPUB_CURRENT_POSITION_SCROLL, getBookTitle(), scrollY)
 
             mainScrollY = scrollY
             updateChapterName(scrollY)
@@ -1781,14 +1854,18 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             }, 200) // I DON'T WANT TO SHOW THIS IN THE BEGINNING, IN CASE IF SMALL LOAD TIME
 
             withContext(Dispatchers.IO) {
-                val epubReader = EpubReader()
-                book = epubReader.readEpub(input)
+                if (isFromEpub) {
+                    val epubReader = EpubReader()
+                    book = epubReader.readEpub(input)
+                } else {
+                    quickdata = mapper.readValue(input.reader().readText())
+                }
             }
 
-            maxChapter = book.tableOfContents.tocReferences.size
+            maxChapter = getBookSize()
             loadChapter(
                 minOf(
-                    getKey(EPUB_CURRENT_POSITION, book.title) ?: 0,
+                    getKey(EPUB_CURRENT_POSITION, getBookTitle()) ?: 0,
                     maxChapter - 1
                 ), // CRASH FIX IF YOU SOMEHOW TRY TO LOAD ANOTHER EPUB WITH THE SAME NAME
                 scrollToTop = true,
@@ -1797,19 +1874,11 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             updateTimeText()
 
             chapterTitles = ArrayList()
-            for ((index, chapter) in book.tableOfContents.tocReferences.withIndex()) {
-                chapterTitles.add(chapter.title ?: "Chapter ${index + 1}")
+            for (i in 0 until maxChapter) {
+                chapterTitles.add(getChapterName(i))
             }
 
-            if (read_loading != null) { // IDK, android might be weird and kill before load, not tested tho
-                read_loading.visibility = View.GONE
-                read_normal_layout.alpha = 0.01f
-
-                ObjectAnimator.ofFloat(read_normal_layout, "alpha", 1f).apply {
-                    duration = 300
-                    start()
-                }
-            }
+            fadeInText()
         }
     }
 }

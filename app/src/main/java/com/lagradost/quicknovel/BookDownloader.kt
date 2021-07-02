@@ -18,11 +18,14 @@ import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.preference.PreferenceManager
 import com.bumptech.glide.Glide
+import com.lagradost.quicknovel.BookDownloader.getQuickChapter
+import com.lagradost.quicknovel.BookDownloader.turnToEpub
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.DataStore.removeKey
 import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.services.DownloadService
+import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
 import com.lagradost.quicknovel.util.Event
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import nl.siegmann.epublib.domain.Author
@@ -178,18 +181,22 @@ object BookDownloader {
     }
 
     fun Context.checkWrite(): Boolean {
-        return (ContextCompat.checkSelfPermission(this,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        return (ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+        )
                 == PackageManager.PERMISSION_GRANTED)
     }
 
     fun Activity.requestRW() {
-        ActivityCompat.requestPermissions(this,
+        ActivityCompat.requestPermissions(
+            this,
             arrayOf(
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 Manifest.permission.READ_EXTERNAL_STORAGE
             ),
-            1337)
+            1337
+        )
     }
 
     fun Activity.hasEpub(name: String): Boolean {
@@ -199,24 +206,38 @@ object BookDownloader {
         }
 
         val bookFile =
-            File(android.os.Environment.getExternalStorageDirectory().path +
-                    "${fs}Download${fs}Epub${fs}",
-                "${sanitizeFilename(name)}.epub")
+            File(
+                android.os.Environment.getExternalStorageDirectory().path +
+                        "${fs}Download${fs}Epub${fs}",
+                "${sanitizeFilename(name)}.epub"
+            )
         return bookFile.exists()
+    }
+
+    fun Activity.openQuickStream(uri: Uri?) {
+        if (uri == null) return
+        val myIntent = Intent(this, ReadActivity::class.java)
+        myIntent.setDataAndType(uri, "quickstream")
+
+        startActivity(myIntent)
     }
 
     fun Activity.openEpub(name: String, openInApp: Boolean? = null): Boolean {
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
 
-        if (openInApp ?: !(settingsManager.getBoolean(this.getString(R.string.external_reader_key),
-                true))
+        if (openInApp ?: !(settingsManager.getBoolean(
+                this.getString(R.string.external_reader_key),
+                true
+            ))
         ) {
             val myIntent = Intent(this, ReadActivity::class.java)
 
             val bookFile =
-                File(android.os.Environment.getExternalStorageDirectory().path +
-                        "${fs}Download${fs}Epub${fs}",
-                    "${sanitizeFilename(name)}.epub")
+                File(
+                    android.os.Environment.getExternalStorageDirectory().path +
+                            "${fs}Download${fs}Epub${fs}",
+                    "${sanitizeFilename(name)}.epub"
+                )
             myIntent.setDataAndType(bookFile.toUri(), "application/epub+zip")
 
             startActivity(myIntent)
@@ -229,9 +250,11 @@ object BookDownloader {
         }
 
         val bookFile =
-            File(android.os.Environment.getExternalStorageDirectory().path +
-                    "${fs}Download${fs}Epub${fs}",
-                "${sanitizeFilename(name)}.epub")
+            File(
+                android.os.Environment.getExternalStorageDirectory().path +
+                        "${fs}Download${fs}Epub${fs}",
+                "${sanitizeFilename(name)}.epub"
+            )
         try {
             val intent = Intent()
             intent.action = ACTION_VIEW
@@ -243,9 +266,13 @@ object BookDownloader {
             val ext: String = bookFile.name.substring(bookFile.name.lastIndexOf(".") + 1)
             val type = mime.getMimeTypeFromExtension(ext)
 
-            intent.setDataAndType(FileProvider.getUriForFile(this,
-                this.applicationContext.packageName + ".provider",
-                bookFile), type) // THIS IS NEEDED BECAUSE A REGULAR INTENT WONT OPEN MOONREADER
+            intent.setDataAndType(
+                FileProvider.getUriForFile(
+                    this,
+                    this.applicationContext.packageName + ".provider",
+                    bookFile
+                ), type
+            ) // THIS IS NEEDED BECAUSE A REGULAR INTENT WONT OPEN MOONREADER
             this.startActivity(intent)
             //this.startActivityForResult(intent,1337) // SEE @moonreader
         } catch (e: Exception) {
@@ -254,12 +281,55 @@ object BookDownloader {
         return true
     }
 
-    data class QuickStreamData(
+    data class QuickStreamMetaData(
         val author: String?,
         val name: String,
         val apiName: String,
+    )
+
+    data class QuickStreamData(
+        val meta: QuickStreamMetaData,
+        val poster : String?,
         val data: ArrayList<ChapterData>,
     )
+
+    data class LoadedChapter(val title: String, val html: String)
+
+    private fun getChapter(filepath: String, index: Int, stripHtml: Boolean): LoadedChapter? {
+        val rFile = File(filepath)
+        if (rFile.exists()) {
+            val text = rFile.readText()
+            val firstChar = text.indexOf('\n')
+            if (firstChar == -1) {
+                return null
+            } // Invalid File
+            val title = text.substring(0, firstChar)
+            val data = text.substring(firstChar + 1)
+            val html = (if (stripHtml) stripHtml(data, title, index) else data)
+            return LoadedChapter(title, html)
+        }
+        return null
+    }
+
+    private fun Context.getFilePath(meta: QuickStreamMetaData, index: Int): String {
+        return filesDir.toString() + getFilename(
+            sanitizeFilename(meta.apiName),
+            if (meta.author == null) "" else sanitizeFilename(meta.author),
+            sanitizeFilename(meta.name),
+            index
+        )
+    }
+
+    private fun Context.getStripHtml(): Boolean {
+        val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
+        return (settingsManager.getBoolean(this.getString(R.string.remove_external_key), true))
+    }
+
+    fun Context.getQuickChapter(meta: QuickStreamMetaData, chapter: ChapterData, index: Int): LoadedChapter? {
+        val path = getFilePath(meta, index)
+        downloadIndividualChapter(path, getApiFromName(meta.apiName), chapter, null)
+        return getChapter(path, index, getStripHtml())
+    }
 
     fun Activity.createQuickStream(data: QuickStreamData): Uri? {
         try {
@@ -268,11 +338,10 @@ object BookDownloader {
                 if (!checkWrite()) return null
             }
             val outputDir: File = this.cacheDir
-            val fileName = getFilename(sanitizeFilename(data.apiName),
-                if (data.author == null) "" else sanitizeFilename(data.author),
-                sanitizeFilename(data.name),
-                -1).replace("$fs", ".")
+            val fileName = getFilePath(data.meta, -1)
+
             val outputFile = File(outputDir, fileName)
+            outputFile.parentFile.mkdirs()
             outputFile.createNewFile()
             outputFile.writeText(mapper.writeValueAsString(data))
             return outputFile.toUri()
@@ -306,36 +375,24 @@ object BookDownloader {
         if (pFile.exists()) {
             book.coverImage = Resource(pFile.readBytes(), MediaType("cover", ".jpg"))
         }
-        val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
 
-        val stripHtml =
-            (settingsManager.getBoolean(this.getString(R.string.remove_external_key), true))
+        val stripHtml = getStripHtml()
         var index = 0
         while (true) {
             val filepath =
                 filesDir.toString() + getFilename(sApiName, sAuthor, sName, index)
-            val rFile = File(filepath)
-            if (rFile.exists()) {
-                val text = rFile.readText()
-                val firstChar = text.indexOf('\n')
-                if (firstChar == -1) {
-                    break
-                } // Invalid File
-                val title = text.substring(0, firstChar)
-                val data = text.substring(firstChar + 1)
-                val bytes = (if (stripHtml) stripHtml(data, title, index) else data).toByteArray()
-                val chapter = Resource("id$index", bytes, "chapter$index.html", MediatypeService.XHTML)
-                book.addSection(title, chapter)
-                index++
-            } else {
-                break
-            }
+            val chap = getChapter(filepath, index, stripHtml) ?: break
+            val chapter = Resource("id$index", chap.html.toByteArray(), "chapter$index.html", MediatypeService.XHTML)
+            book.addSection(chap.title, chapter)
+            index++
         }
         val epubWriter = EpubWriter()
         val bookFile =
-            File(android.os.Environment.getExternalStorageDirectory().path +
-                    "${fs}Download${fs}Epub${fs}",
-                "${sanitizeFilename(name)}.epub")
+            File(
+                android.os.Environment.getExternalStorageDirectory().path +
+                        "${fs}Download${fs}Epub${fs}",
+                "${sanitizeFilename(name)}.epub"
+            )
         bookFile.parentFile.mkdirs()
         bookFile.createNewFile()
         setKey(DOWNLOAD_EPUB_SIZE, id.toString(), book.contents.size)
@@ -356,8 +413,12 @@ object BookDownloader {
             }
 
             val dir =
-                File(filesDir.toString() + "$fs$sApiName$fs$sAuthor$fs$sName".replace("$fs$fs",
-                    "$fs"))
+                File(
+                    filesDir.toString() + "$fs$sApiName$fs$sAuthor$fs$sName".replace(
+                        "$fs$fs",
+                        "$fs"
+                    )
+                )
             if (dir.isDirectory) {
                 val children = dir.list()
                 for (i in children.indices) {
@@ -371,6 +432,34 @@ object BookDownloader {
         } catch (e: Exception) {
             println(e)
         }
+    }
+
+    // 0 = FILE EXITS, 1 = SUCCESS, -1 = STOPPED
+    private fun downloadIndividualChapter(filepath: String, api: MainAPI, data: ChapterData, runningId: Int?): Int {
+        val rFile = File(filepath)
+        if (rFile.exists()) {
+            return 0
+        }
+        rFile.parentFile.mkdirs()
+        if (rFile.isDirectory) rFile.delete()
+        rFile.createNewFile()
+        var page: String? = null
+        while (page == null) {
+            page = api.loadHtml(data.url)
+            if (api.rateLimitTime > 0) {
+                sleep(api.rateLimitTime)
+            }
+
+            if (runningId != null) if (!isRunning.containsKey(runningId)) return -1
+
+            if (page != null) {
+                rFile.writeText("${data.name}\n${page}")
+                return 1
+            } else {
+                sleep(5000) // ERROR
+            }
+        }
+        return -2 // THIS SHOULD NOT HAPPEND
     }
 
     fun Context.download(load: LoadResponse, api: MainAPI) {
@@ -421,44 +510,38 @@ object BookDownloader {
                             continue
                         }
                     }
-                    rFile.parentFile.mkdirs()
-                    if (rFile.isDirectory) rFile.delete()
-                    rFile.createNewFile()
-                    var page: String? = null
-                    while (page == null) {
-                        page = api.loadHtml(d.url)
-                        if (api.rateLimitTime > 0) {
-                            sleep(api.rateLimitTime)
-                        }
-                        if (!isRunning.containsKey(id)) return
 
-                        if (page != null) {
-                            rFile.writeText("${d.name}\n${page}")
-                            downloadCount++
-                        } else {
-                            sleep(5000) // ERROR
-                        }
+                    when (downloadIndividualChapter(filepath, api, d, id)) {
+                        -1 -> return
+                        1 -> downloadCount++
                     }
 
                     val dloadTime = System.currentTimeMillis() / 1000.0
                     timePerLoad = (dloadTime - lastTime) * 0.05 + timePerLoad * 0.95 // rolling avrage
-                    createAndStoreNotification(NotificationData(load.source, id,
-                        load,
-                        index + 1,
-                        total,
-                        timePerLoad * (total - index),
-                        isRunning[id] ?: DownloadType.IsDownloading))
+                    createAndStoreNotification(
+                        NotificationData(
+                            load.source, id,
+                            load,
+                            index + 1,
+                            total,
+                            timePerLoad * (total - index),
+                            isRunning[id] ?: DownloadType.IsDownloading
+                        )
+                    )
                     lastIndex = index + 1
                 }
                 if (lastIndex == total) {
-                    createAndStoreNotification(NotificationData(
-                        load.source,
-                        id,
-                        load,
-                        lastIndex,
-                        total,
-                        0.0,
-                        DownloadType.IsDone), downloadCount > 0)
+                    createAndStoreNotification(
+                        NotificationData(
+                            load.source,
+                            id,
+                            load,
+                            lastIndex,
+                            total,
+                            0.0,
+                            DownloadType.IsDone
+                        ), downloadCount > 0
+                    )
                 }
             } catch (e: Exception) {
                 println(e)
@@ -548,7 +631,8 @@ object BookDownloader {
                         DownloadType.IsPaused -> "Paused ${load.name} - $progress/$total"
                         DownloadType.IsFailed -> "Error ${load.name} - $progress/$total"
                         DownloadType.IsStopped -> "Stopped ${load.name} - $progress/$total"
-                    })
+                    }
+                )
                 .setSmallIcon(
                     when (state) {
                         DownloadType.IsDone -> R.drawable.rddone

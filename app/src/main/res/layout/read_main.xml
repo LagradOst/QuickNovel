@@ -72,7 +72,7 @@
                             android:paddingTop="25dp"
                             android:fontFamily="serif"
                             android:lineSpacingExtra="3sp"
-                            android:text="@string/exampleTXT"
+                            tools:text="@string/exampleTXT"
                             android:textColor="@color/readerTextColor"
                             android:clickable="false"
                             android:focusable="false"

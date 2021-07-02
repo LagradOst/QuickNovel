@@ -31,8 +31,10 @@ import com.bumptech.glide.request.RequestOptions.bitmapTransform
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayout
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.BookDownloader.createQuickStream
 import com.lagradost.quicknovel.BookDownloader.hasEpub
 import com.lagradost.quicknovel.BookDownloader.openEpub
+import com.lagradost.quicknovel.BookDownloader.openQuickStream
 import com.lagradost.quicknovel.BookDownloader.remove
 import com.lagradost.quicknovel.BookDownloader.turnToEpub
 import com.lagradost.quicknovel.DataStore.getKey
@@ -146,10 +148,12 @@ class ResultFragment : Fragment() {
             result_download_progress_bar.max = info.total * 100
 
             if (result_download_progress_bar.progress != 0) {
-                val animation: ObjectAnimator = ObjectAnimator.ofInt(result_download_progress_bar,
+                val animation: ObjectAnimator = ObjectAnimator.ofInt(
+                    result_download_progress_bar,
                     "progress",
                     result_download_progress_bar.progress,
-                    info.progress * 100)
+                    info.progress * 100
+                )
 
                 animation.duration = 500
                 animation.setAutoCancel(true)
@@ -175,7 +179,8 @@ class ResultFragment : Fragment() {
             result_novelholder.paddingLeft,
             result_novelholder.paddingTop,
             result_novelholder.paddingRight,
-            maxOf(0, total))// - MainActivity.activity.nav_view.height
+            maxOf(0, total)
+        )// - MainActivity.activity.nav_view.height
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -211,13 +216,15 @@ class ResultFragment : Fragment() {
         }
 
         result_download_btt.iconSize = 30.toPx
-        result_download_btt.setIconResource(when (loadlState) {
-            BookDownloader.DownloadType.IsDownloading -> R.drawable.ic_baseline_pause_24
-            BookDownloader.DownloadType.IsPaused -> R.drawable.netflix_play
-            BookDownloader.DownloadType.IsFailed -> R.drawable.ic_baseline_autorenew_24
-            BookDownloader.DownloadType.IsDone -> R.drawable.ic_baseline_check_24
-            else -> R.drawable.netflix_download
-        })
+        result_download_btt.setIconResource(
+            when (loadlState) {
+                BookDownloader.DownloadType.IsDownloading -> R.drawable.ic_baseline_pause_24
+                BookDownloader.DownloadType.IsPaused -> R.drawable.netflix_play
+                BookDownloader.DownloadType.IsFailed -> R.drawable.ic_baseline_autorenew_24
+                BookDownloader.DownloadType.IsDone -> R.drawable.ic_baseline_check_24
+                else -> R.drawable.netflix_download
+            }
+        )
     }
 
     lateinit var load: Resource<LoadResponse>
@@ -330,16 +337,22 @@ class ResultFragment : Fragment() {
                         DialogInterface.OnClickListener { _, which ->
                             when (which) {
                                 DialogInterface.BUTTON_POSITIVE -> {
-                                    requireContext().remove(res.author,
+                                    requireContext().remove(
+                                        res.author,
                                         res.name,
-                                        apiName)
+                                        apiName
+                                    )
                                     val currentValue = viewModel.downloadNotification.value!!
 
-                                    viewModel.downloadNotification.postValue(BookDownloader.DownloadNotification(0,
-                                        currentValue.total,
-                                        currentValue.id,
-                                        "",
-                                        BookDownloader.DownloadType.IsStopped))
+                                    viewModel.downloadNotification.postValue(
+                                        BookDownloader.DownloadNotification(
+                                            0,
+                                            currentValue.total,
+                                            currentValue.id,
+                                            "",
+                                            BookDownloader.DownloadType.IsStopped
+                                        )
+                                    )
                                 }
                                 DialogInterface.BUTTON_NEGATIVE -> {
                                 }
@@ -420,9 +433,12 @@ class ResultFragment : Fragment() {
                                                 R.anim.enter_anim,
                                                 R.anim.exit_anim,
                                                 R.anim.pop_enter,
-                                                R.anim.pop_exit)
-                                            .add(R.id.homeRoot,
-                                                MainPageFragment().newInstance(api.name, tag = tagIndex))
+                                                R.anim.pop_exit
+                                            )
+                                            .add(
+                                                R.id.homeRoot,
+                                                MainPageFragment().newInstance(api.name, tag = tagIndex)
+                                            )
                                             .commit()
                                     }
                                     break
@@ -477,8 +493,12 @@ class ResultFragment : Fragment() {
                     result_download_progress_bar.progress = 0
                 }*/
 
-                result_container.setBackgroundColor(getColor(requireContext(),
-                    R.color.bitDarkerGrayBackground))
+                result_container.setBackgroundColor(
+                    getColor(
+                        requireContext(),
+                        R.color.bitDarkerGrayBackground
+                    )
+                )
 
                 result_loading.visibility = View.GONE
                 result_reload_connectionerror.visibility = View.GONE
@@ -576,33 +596,57 @@ class ResultFragment : Fragment() {
         activity?.fixPaddingStatusbar(result_info_header)
 
         val parameter = result_empty_view.layoutParams as LinearLayout.LayoutParams
-        parameter.setMargins(parameter.leftMargin,
+        parameter.setMargins(
+            parameter.leftMargin,
             parameter.topMargin + requireActivity().getStatusBarHeight(),
             parameter.rightMargin,
-            parameter.bottomMargin)
+            parameter.bottomMargin
+        )
         result_empty_view.layoutParams = parameter
 
         val backParameter = result_back.layoutParams as CoordinatorLayout.LayoutParams
-        backParameter.setMargins(backParameter.leftMargin,
+        backParameter.setMargins(
+            backParameter.leftMargin,
             backParameter.topMargin + requireActivity().getStatusBarHeight(),
             backParameter.rightMargin,
-            backParameter.bottomMargin)
+            backParameter.bottomMargin
+        )
         result_back.layoutParams = backParameter
 
         result_download_btt.setOnClickListener {
             thread {
                 if (load is Resource.Success) {
-                    DownloadHelper.updateDownloadFromResult(requireContext(),
+                    DownloadHelper.updateDownloadFromResult(
+                        requireContext(),
                         (load as Resource.Success<LoadResponse>).value,
                         tid,
                         apiName,
-                        true)
+                        true
+                    )
                 }
             }
         }
 
         result_back.setOnClickListener {
             (requireActivity() as AppCompatActivity).backPressed()
+        }
+
+        result_quickstream.setOnClickListener {
+            if (load is Resource.Success) {
+                val card = (load as Resource.Success<LoadResponse>).value
+                val uri = activity?.createQuickStream(
+                    BookDownloader.QuickStreamData(
+                        BookDownloader.QuickStreamMetaData(
+                            card.author,
+                            card.name,
+                            api.name
+                        ),
+                        card.posterUrl,
+                        card.data
+                    )
+                )
+                activity?.openQuickStream(uri)
+            }
         }
 
         result_download_generate_epub.setOnClickListener {
@@ -614,7 +658,10 @@ class ResultFragment : Fragment() {
                             requireActivity().turnToEpub(l.author, l.name, api.name)
                         }
 
-                        requireContext().updateGenerateBtt(null)
+                        if (result_download_generate_epub != null) {
+                            requireContext().updateGenerateBtt(null)
+                        }
+
                         if (done) {
                             Toast.makeText(context, "Created ${l.name}", Toast.LENGTH_LONG).show()
                         } else {
@@ -629,7 +676,7 @@ class ResultFragment : Fragment() {
                                 requireActivity().turnToEpub(card.author, card.name, api.name)
                             }
                         }
-                        requireActivity().openEpub(card.name)
+                        activity?.openEpub(card.name)
                     }
                 }
             }

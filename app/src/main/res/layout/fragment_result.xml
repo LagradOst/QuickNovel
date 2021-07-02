@@ -308,7 +308,8 @@
                                             app:tint="?attr/iconColor"
                                             android:background="?android:attr/selectableItemBackgroundBorderless"
                                             android:src="@drawable/ic_outline_share_24"
-                                            android:layout_gravity="center" android:contentDescription="@string/result_share">
+                                            android:layout_gravity="center"
+                                            android:contentDescription="@string/result_share">
                                     </ImageView>
                                 </LinearLayout>
                                 <!--<ImageView
@@ -486,6 +487,20 @@ Translator: Rainbow Turtle"
                                             android:layout_width="50dp">
                                     </com.google.android.material.button.MaterialButton>
                                 </GridLayout>
+                                <com.google.android.material.button.MaterialButton
+                                        android:layout_marginTop="5dp"
+                                        android:gravity="center" android:layout_height="45dp"
+                                        app:iconSize="20dp"
+                                        android:text="@string/quickstream_novel_text"
+                                        android:id="@+id/result_quickstream"
+                                        android:textAllCaps="false"
+                                        android:textSize="15sp"
+                                        app:strokeWidth="2dp"
+                                        app:strokeColor="?attr/colorAccent"
+                                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                        app:rippleColor="?attr/colorPrimary"
+                                        android:layout_width="match_parent">
+                                </com.google.android.material.button.MaterialButton>
                             </LinearLayout>
                         </LinearLayout>
                     </LinearLayout>

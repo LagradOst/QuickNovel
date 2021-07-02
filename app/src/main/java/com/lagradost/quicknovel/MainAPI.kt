@@ -139,7 +139,7 @@ data class LoadResponse(
     val status: Int?, // 0 = null - implemented but not found, 1 = Ongoing, 2 = Complete, 3 = Pause/HIATUS, 4 = Dropped
 )
 
-data class ChapterData(
+data class  ChapterData(
     val name: String,
     val url: String,
     val dateOfRelease: String?,
