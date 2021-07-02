@@ -148,22 +148,22 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
     private fun getBookBitmap(): Bitmap? {
         if (bookCover == null) {
-            val byteArray: ByteArray? = if (isFromEpub) {
+            var byteArray: ByteArray? = null
+
+            if (isFromEpub) {
                 if (book.coverImage != null && book.coverImage.data != null)
-                    book.coverImage.data
-                else
-                    null
+                    byteArray = book.coverImage.data
             } else {
                 val poster = quickdata.poster
                 if (poster != null) {
                     try {
-                        khttp.get(poster).content
+                        byteArray = khttp.get(poster).content
                     } catch (e: Exception) {
-
+                        println("BITMAP ERROR: $e")
                     }
                 }
-                null
             }
+
             if (byteArray != null)
                 bookCover = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
         }
@@ -487,59 +487,62 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                     cancel(TTS_NOTIFICATION_ID)
                 }
             } else {
-                val builder = NotificationCompat.Builder(this, TTS_CHANNEL_ID)
-                    .setSmallIcon(R.drawable.ic_baseline_volume_up_24) //TODO NICE ICON
-                    .setContentTitle(getBookTitle())
-                    .setContentText(chapterName)
+                main {
+                    val builder = NotificationCompat.Builder(this, TTS_CHANNEL_ID)
+                        .setSmallIcon(R.drawable.ic_baseline_volume_up_24) //TODO NICE ICON
+                        .setContentTitle(getBookTitle())
+                        .setContentText(chapterName)
 
-                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                    .setOnlyAlertOnce(true)
-                    .setOngoing(true)
+                        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                        .setOnlyAlertOnce(true)
+                        .setOngoing(true)
 
-                val icon = getBookBitmap()
-                if (icon != null) builder.setLargeIcon(icon)
 
-                builder.setStyle(androidx.media.app.NotificationCompat.MediaStyle())
-                // .setMediaSession(mediaSession?.sessionToken))
+                    val icon = withContext(Dispatchers.IO) { getBookBitmap() }
+                    if (icon != null) builder.setLargeIcon(icon)
 
-                val actionTypes: MutableList<TTSActionType> = ArrayList()
+                    builder.setStyle(androidx.media.app.NotificationCompat.MediaStyle())
+                    // .setMediaSession(mediaSession?.sessionToken))
 
-                if (value == TTSStatus.IsPaused) {
-                    actionTypes.add(TTSActionType.Resume)
-                } else if (value == TTSStatus.IsRunning) {
-                    actionTypes.add(TTSActionType.Pause)
-                }
-                actionTypes.add(TTSActionType.Stop)
+                    val actionTypes: MutableList<TTSActionType> = ArrayList()
 
-                for ((index, i) in actionTypes.withIndex()) {
-                    val resultIntent = Intent(this, TTSPauseService::class.java)
-                    resultIntent.putExtra("id", i.ordinal)
+                    if (value == TTSStatus.IsPaused) {
+                        actionTypes.add(TTSActionType.Resume)
+                    } else if (value == TTSStatus.IsRunning) {
+                        actionTypes.add(TTSActionType.Pause)
+                    }
+                    actionTypes.add(TTSActionType.Stop)
 
-                    val pending: PendingIntent = PendingIntent.getService(
-                        this, 3337 + index,
-                        resultIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT
-                    )
+                    for ((index, i) in actionTypes.withIndex()) {
+                        val resultIntent = Intent(this, TTSPauseService::class.java)
+                        resultIntent.putExtra("id", i.ordinal)
 
-                    builder.addAction(
-                        NotificationCompat.Action(
-                            when (i) {
-                                TTSActionType.Resume -> R.drawable.ic_baseline_play_arrow_24
-                                TTSActionType.Pause -> R.drawable.ic_baseline_pause_24
-                                TTSActionType.Stop -> R.drawable.ic_baseline_stop_24
-                            }, when (i) {
-                                TTSActionType.Resume -> "Resume"
-                                TTSActionType.Pause -> "Pause"
-                                TTSActionType.Stop -> "Stop"
-                            }, pending
+                        val pending: PendingIntent = PendingIntent.getService(
+                            this, 3337 + index,
+                            resultIntent,
+                            PendingIntent.FLAG_UPDATE_CURRENT
                         )
-                    )
-                }
+
+                        builder.addAction(
+                            NotificationCompat.Action(
+                                when (i) {
+                                    TTSActionType.Resume -> R.drawable.ic_baseline_play_arrow_24
+                                    TTSActionType.Pause -> R.drawable.ic_baseline_pause_24
+                                    TTSActionType.Stop -> R.drawable.ic_baseline_stop_24
+                                }, when (i) {
+                                    TTSActionType.Resume -> "Resume"
+                                    TTSActionType.Pause -> "Pause"
+                                    TTSActionType.Stop -> "Stop"
+                                }, pending
+                            )
+                        )
+                    }
 
 
-                with(NotificationManagerCompat.from(this)) {
-                    // notificationId is a unique int for each notification that you must define
-                    notify(TTS_NOTIFICATION_ID, builder.build())
+                    with(NotificationManagerCompat.from(this)) {
+                        // notificationId is a unique int for each notification that you must define
+                        notify(TTS_NOTIFICATION_ID, builder.build())
+                    }
                 }
             }
 
