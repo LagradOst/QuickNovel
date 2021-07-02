@@ -895,9 +895,6 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         val speakOutMsg: String,
         val startIndex: Int,
         val endIndex: Int,
-        /*
-        val minScroll: Int,
-        val maxScroll: Int,*/
     )
 
     var globalTTSLines = ArrayList<TTSLine>()
@@ -1211,15 +1208,11 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         }
 
         val dialog = builderSingle.create()
-        dialog.setOnShowListener {
-            dialog.listView.post {
-                dialog.listView.requestFocusFromTouch()
-                dialog.listView.setSelection(currentChapter)
-                //  window?.decorView?.clearFocus()
-            }
-        }
-
         dialog.show()
+
+        dialog.listView.choiceMode = AbsListView.CHOICE_MODE_SINGLE
+        dialog.listView.setSelection(currentChapter)
+        dialog.listView.setItemChecked(currentChapter, true)
     }
 
     private fun getScrollRange(): Int {
@@ -1578,9 +1571,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 val colorAdapter = ArrayAdapter<String>(this, R.layout.chapter_select_dialog)
                 val array = arrayListOf(
                     getString(R.string.background_color),
-                    getString(
-                        R.string.text_color
-                    )
+                    getString(R.string.text_color)
                 )
                 colorAdapter.addAll(array)
 
