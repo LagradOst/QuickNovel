@@ -205,6 +205,9 @@ class MainActivity : AppCompatActivity() {
                 R.id.navigation_download -> {
                     navController.navigate(R.id.navigation_download, null, navOptions)
                 }
+                R.id.navigation_history -> {
+                    navController.navigate(R.id.navigation_history, null, navOptions)
+                }
                 R.id.navigation_settings -> {
                     navController.navigate(R.id.navigation_settings, null, navOptions)
                 }

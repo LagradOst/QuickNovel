@@ -36,7 +36,7 @@
         <item name="android:textColorHint">?attr/grayTextColor</item>
         <item name="android:editTextColor">?attr/textColor</item>
         <item name="android:colorForeground">?attr/textColor</item>
-        <item name="android:colorControlHighlight">?attr/textColor</item>
+        <item name="android:colorControlHighlight">?attr/iconRipple</item>
 
         <item name="android:windowAllowReturnTransitionOverlap">true</item>
         <item name="android:windowAllowEnterTransitionOverlap">true</item>
@@ -52,6 +52,7 @@
         <item name="boxItemBackground">@color/itemBackground</item>
         <item name="iconColor">@color/iconColor</item>
         <item name="white">#FFF</item>
+        <item name="iconRipple">@color/whiteRipple</item>
     </style>
 
     <style name="PopupMenu" parent="@android:style/Widget.PopupMenu">
@@ -135,6 +136,7 @@
         <item name="grayBackground">@color/darkGrayBackground</item>
         <item name="boxItemBackground">@color/darkItemBackground</item>
         <item name="white">#FFF</item>
+        <item name="iconRipple">@color/whiteRipple</item>
     </style>
     <style name="LightMode">
         <item name="darkBackground">@color/lightDarkBackground</item>
@@ -144,6 +146,7 @@
         <item name="textColor">@color/lightTextColor</item>
         <item name="grayTextColor">@color/lightGrayTextColor</item>
         <item name="white">#000</item>
+        <item name="iconRipple">@color/blackRipple</item>
     </style>
 
     <style name="OverlayPrimaryColorNormal">

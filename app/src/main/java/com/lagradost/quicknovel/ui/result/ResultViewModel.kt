@@ -6,13 +6,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lagradost.quicknovel.BookDownloader
 import com.lagradost.quicknovel.BookDownloader.downloadInfo
+import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.LoadResponse
+import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.mvvm.Resource
+import com.lagradost.quicknovel.ui.ReadType
 import kotlinx.coroutines.launch
 
 class ResultViewModel(private val repo: ResultRepository) : ViewModel() {
     var id: MutableLiveData<Int> = MutableLiveData<Int>(-1)
+    var readState: MutableLiveData<ReadType> = MutableLiveData<ReadType>(ReadType.NONE)
 
     val api get() = repo.api
     val apiName get() = api.name
@@ -36,7 +40,7 @@ class ResultViewModel(private val repo: ResultRepository) : ViewModel() {
         MutableLiveData<Int>(0)
     }
 
-    fun loadMoreReviews(url : String) {
+    fun loadMoreReviews(url: String) {
         viewModelScope.launch {
             val loadPage = (reviewPage.value ?: 0) + 1
             when (val data = repo.loadReviews(url, loadPage, false)) {
@@ -66,18 +70,29 @@ class ResultViewModel(private val repo: ResultRepository) : ViewModel() {
                 is Resource.Success -> {
                     val res = data.value
                     val tid = BookDownloader.generateId(res, apiName)
+                    readState.postValue(
+                        ReadType.fromSpinner(
+                            context.getKey(
+                                RESULT_BOOKMARK_STATE,
+                                tid.toString()
+                            )
+                        )
+                    )
+
                     id.postValue(tid)
 
                     val start = context.downloadInfo(res.author, res.name, res.data.size, apiName)
                     if (start != null) {
                         downloadNotification.postValue(
-                            BookDownloader.DownloadNotification(start.progress,
+                            BookDownloader.DownloadNotification(
+                                start.progress,
                                 start.total,
                                 tid,
                                 "",
                                 (if (BookDownloader.isRunning.containsKey(tid)) BookDownloader.isRunning[tid] else BookDownloader.DownloadType.IsStopped)
                                     ?: BookDownloader.DownloadType.IsStopped
-                            ))
+                            )
+                        )
                     }
                 }
             }

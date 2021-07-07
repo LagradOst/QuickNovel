@@ -16,7 +16,7 @@
                 android:id="@+id/download_toolbar"
                 app:menu="@menu/download_actionbar"
                 android:paddingTop="@dimen/navbarHeight"
-                app:title="My Library"
+                app:title="Library"
                 android:background="?attr/grayBackground"
                 app:navigationIconTint="?attr/iconColor"
                 app:titleTextColor="?attr/textColor"

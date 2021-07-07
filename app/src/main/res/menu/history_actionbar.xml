@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+            android:id="@+id/action_history_more"
+            android:icon="@drawable/ic_baseline_more_vert_24"
+            app:showAsAction="always"
+            app:iconTint="?attr/iconColor"
+            android:title="@string/clear_history"/>
+</menu>

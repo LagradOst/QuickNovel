@@ -34,6 +34,9 @@
     <color name="readLightNovelColor">#FFF</color>
     <color name="boxNovelColor">#eb3349</color>
 
+    <color name="whiteRipple">#33FFFFFF</color>
+    <color name="blackRipple">#33000000</color>
+
     <!--Alt Dark Mode -->
     <color name="darkDarkBackground">#2B2C30</color> <!--0f0f10 0E0E10 303135 2B2C30-->
     <color name="darkBitDarkerGrayBackground">#1C1C20</color> <!--191a1f 19181E 202125 1C1C20-->

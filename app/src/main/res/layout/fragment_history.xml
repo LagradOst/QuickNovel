@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        xmlns:app="http://schemas.android.com/apk/res-auto" xmlns:tools="http://schemas.android.com/tools"
+        android:background="?attr/grayBackground"
+        android:id="@+id/historyRoot"
+        android:orientation="vertical">
+
+    <com.google.android.material.appbar.AppBarLayout
+            android:background="@android:color/transparent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/history_toolbar"
+                app:menu="@menu/history_actionbar"
+                android:paddingTop="@dimen/navbarHeight"
+                app:title="History"
+                android:background="?attr/grayBackground"
+                app:navigationIconTint="?attr/iconColor"
+                app:titleTextColor="?attr/textColor"
+                app:layout_scrollFlags="scroll|enterAlways"
+                android:layout_width="match_parent" android:layout_height="wrap_content">
+        </com.google.android.material.appbar.MaterialToolbar>
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <FrameLayout
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"
+            android:visibility="gone"
+            tools:visibility="visible"
+            android:id="@+id/history_nothing_holder"
+            android:layout_width="match_parent" android:layout_height="match_parent">
+        <ImageView
+                android:src="@drawable/monke_eating"
+                android:layout_gravity="center"
+                android:layout_marginBottom="25dp"
+                android:layout_width="100dp" android:layout_height="100dp"
+                android:contentDescription="@string/monke_eating">
+        </ImageView>
+        <TextView
+                android:layout_marginTop="25dp"
+                android:textColor="@color/grayTextColor"
+                android:textStyle="bold"
+                android:text="@string/nothing_read_recently"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:layout_width="match_parent" android:layout_height="match_parent">
+        </TextView>
+    </FrameLayout>
+
+    <com.lagradost.quicknovel.widget.AutofitRecyclerView
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"
+            app:spanCount="3"
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingTop="5dp"
+            android:id="@+id/history_cardSpace"
+            android:orientation="vertical">
+    </com.lagradost.quicknovel.widget.AutofitRecyclerView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

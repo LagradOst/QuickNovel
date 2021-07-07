@@ -11,9 +11,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
-import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -42,15 +40,18 @@ import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.MainActivity.Companion.backPressed
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.observe
+import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.download.DownloadHelper
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.util.Coroutines
+import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getRating
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.util.UIHelper.getStatusBarHeight
 import com.lagradost.quicknovel.util.UIHelper.hideKeyboard
 import com.lagradost.quicknovel.util.UIHelper.humanReadableByteCountSI
+import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.toPx
 import jp.wasabeef.glide.transformations.BlurTransformation
 import kotlinx.android.synthetic.main.fragment_result.*
@@ -91,6 +92,7 @@ class ResultFragment : Fragment() {
     lateinit var apiName: String
     lateinit var url: String
     private var tid: Int = -1
+    private var readState = ReadType.NONE
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -117,6 +119,8 @@ class ResultFragment : Fragment() {
 
     private var generateEpub = false
     private var lastProgress: Int = 0
+
+    @android.annotation.SuppressLint("SetTextI18n")
     private fun Context.updateGenerateBtt(progress: Int?) {
         if (viewModel.loadResponse.value != null) {
             generateEpub =
@@ -227,26 +231,21 @@ class ResultFragment : Fragment() {
         )
     }
 
-    lateinit var load: Resource<LoadResponse>
-
     @SuppressLint1("CutPasteId", "SetTextI18n")
     fun newState(loadResponse: Resource<LoadResponse>) {
-        load = loadResponse
-
         activity?.window?.navigationBarColor =
             requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground)
 
         when (loadResponse) {
             is Resource.Failure -> {
                 result_loading.visibility = View.GONE
-                result_reload_connectionerror.visibility = View.VISIBLE
-                result_reload_connection_open_in_browser.visibility = View.VISIBLE
+                result_loading_error.visibility = View.VISIBLE
                 result_holder.visibility = View.GONE
+                result_error_text.text = loadResponse.errorString
             }
             is Resource.Loading -> {
                 result_loading.visibility = View.VISIBLE
-                result_reload_connectionerror.visibility = View.GONE
-                result_reload_connection_open_in_browser.visibility = View.GONE
+                result_loading_error.visibility = View.GONE
                 result_holder.visibility = View.GONE
             }
             is Resource.Success -> {
@@ -332,6 +331,39 @@ class ResultFragment : Fragment() {
                     override fun onTabReselected(tab: TabLayout.Tab?) {}
                 })
 
+                result_bookmark.setOnClickListener {
+                    result_bookmark.popupMenu(
+                        ReadType.values().map { Pair(it.prefValue, it.stringRes) },
+                        selectedItemId = readState.prefValue
+                    ) {
+                        context?.let { ctx ->
+                            ctx.setKey(
+                                RESULT_BOOKMARK_STATE,
+                                tid.toString(), itemId
+                            )
+
+                            ctx.setKey(
+                                RESULT_BOOKMARK,
+                                tid.toString(),
+                                ResultCached(
+                                    url,
+                                    res.name,
+                                    apiName,
+                                    tid,
+                                    res.author,
+                                    res.posterUrl,
+                                    res.tags,
+                                    res.rating,
+                                    res.data.size,
+                                    System.currentTimeMillis()
+                                )
+                            )
+                        }
+
+                        viewModel.readState.postValue(ReadType.fromSpinner(itemId))
+                    }
+                }
+
                 download_delete_trash_from_result.setOnClickListener {
                     val dialogClickListener =
                         DialogInterface.OnClickListener { _, which ->
@@ -365,6 +397,86 @@ class ResultFragment : Fragment() {
                         .setNegativeButton("Cancel", dialogClickListener)
                         .show()
                 }
+
+                fun addToHistory() {
+                    context?.setKey(
+                        HISTORY_FOLDER,
+                        tid.toString(),
+                        ResultCached(
+                            url,
+                            res.name,
+                            apiName,
+                            tid,
+                            res.author,
+                            res.posterUrl,
+                            res.tags,
+                            res.rating,
+                            res.data.size,
+                            System.currentTimeMillis()
+                        )
+                    )
+                }
+
+                result_quickstream.setOnClickListener {
+                    addToHistory()
+                    val uri = activity?.createQuickStream(
+                        BookDownloader.QuickStreamData(
+                            BookDownloader.QuickStreamMetaData(
+                                res.author,
+                                res.name,
+                                api.name
+                            ),
+                            res.posterUrl,
+                            res.data
+                        )
+                    )
+                    activity?.openQuickStream(uri)
+                }
+
+
+                result_download_generate_epub.setOnClickListener {
+                    addToHistory()
+                    if (generateEpub) {
+                        Coroutines.main {
+                            val done = withContext(Dispatchers.IO) {
+                                requireActivity().turnToEpub(res.author, res.name, api.name)
+                            }
+                            context?.let { ctx ->
+                                if (result_download_generate_epub != null) {
+                                    ctx.updateGenerateBtt(null)
+                                }
+
+                                if (done) {
+                                    Toast.makeText(ctx, "Created ${res.name}", Toast.LENGTH_LONG).show()
+                                } else {
+                                    Toast.makeText(ctx, "Error creating the Epub", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        }
+                    } else {
+                        Coroutines.main {
+                            withContext(Dispatchers.IO) {
+                                if (!requireActivity().hasEpub(res.name)) {
+                                    requireActivity().turnToEpub(res.author, res.name, api.name)
+                                }
+                            }
+                            activity?.openEpub(res.name)
+                        }
+                    }
+                }
+
+                result_download_btt.setOnClickListener {
+                    thread {
+                        DownloadHelper.updateDownloadFromResult(
+                            requireContext(),
+                            res,
+                            tid,
+                            apiName,
+                            true
+                        )
+                    }
+                }
+
 
                 // === TAGS ===
                 result_status.text = when (res.status) {
@@ -501,8 +613,7 @@ class ResultFragment : Fragment() {
                 )
 
                 result_loading.visibility = View.GONE
-                result_reload_connectionerror.visibility = View.GONE
-                result_reload_connection_open_in_browser.visibility = View.GONE
+                result_loading_error.visibility = View.GONE
                 result_holder.visibility = View.VISIBLE
                 result_holder.post {
                     updateScrollHeight()
@@ -565,9 +676,6 @@ class ResultFragment : Fragment() {
             }
         }
 
-        //result_holder.visibility = View.GONE
-        // result_loading.visibility = View.VISIBLE
-        //  result_mainscroll.scrollTo(100.toPx, 0)
         result_mainscroll.setOnScrollChangeListener { v: NestedScrollView, _, scrollY, _, oldScrollY ->
             if (result_info_header == null) return@setOnScrollChangeListener // CRASH IF PERFECTLY TIMED
 
@@ -604,6 +712,11 @@ class ResultFragment : Fragment() {
         )
         result_empty_view.layoutParams = parameter
 
+        observe(viewModel.readState) {
+            readState = it
+            result_bookmark.setImageResource(if (it == ReadType.NONE) R.drawable.ic_baseline_bookmark_border_24 else R.drawable.ic_baseline_bookmark_24)
+        }
+
         val backParameter = result_back.layoutParams as CoordinatorLayout.LayoutParams
         backParameter.setMargins(
             backParameter.leftMargin,
@@ -613,73 +726,8 @@ class ResultFragment : Fragment() {
         )
         result_back.layoutParams = backParameter
 
-        result_download_btt.setOnClickListener {
-            thread {
-                if (load is Resource.Success) {
-                    DownloadHelper.updateDownloadFromResult(
-                        requireContext(),
-                        (load as Resource.Success<LoadResponse>).value,
-                        tid,
-                        apiName,
-                        true
-                    )
-                }
-            }
-        }
-
         result_back.setOnClickListener {
             (requireActivity() as AppCompatActivity).backPressed()
-        }
-
-        result_quickstream.setOnClickListener {
-            if (load is Resource.Success) {
-                val card = (load as Resource.Success<LoadResponse>).value
-                val uri = activity?.createQuickStream(
-                    BookDownloader.QuickStreamData(
-                        BookDownloader.QuickStreamMetaData(
-                            card.author,
-                            card.name,
-                            api.name
-                        ),
-                        card.posterUrl,
-                        card.data
-                    )
-                )
-                activity?.openQuickStream(uri)
-            }
-        }
-
-        result_download_generate_epub.setOnClickListener {
-            if (load is Resource.Success) {
-                if (generateEpub) {
-                    Coroutines.main {
-                        val l = (load as Resource.Success<LoadResponse>).value
-                        val done = withContext(Dispatchers.IO) {
-                            requireActivity().turnToEpub(l.author, l.name, api.name)
-                        }
-
-                        if (result_download_generate_epub != null) {
-                            requireContext().updateGenerateBtt(null)
-                        }
-
-                        if (done) {
-                            Toast.makeText(context, "Created ${l.name}", Toast.LENGTH_LONG).show()
-                        } else {
-                            Toast.makeText(context, "Error creating the Epub", Toast.LENGTH_LONG).show()
-                        }
-                    }
-                } else {
-                    Coroutines.main {
-                        val card = (load as Resource.Success<LoadResponse>).value
-                        withContext(Dispatchers.IO) {
-                            if (!requireActivity().hasEpub(card.name)) {
-                                requireActivity().turnToEpub(card.author, card.name, api.name)
-                            }
-                        }
-                        activity?.openEpub(card.name)
-                    }
-                }
-            }
         }
     }
 }

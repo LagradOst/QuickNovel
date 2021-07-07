@@ -42,5 +42,6 @@
         <attr name="grayTextColor" format="color"/>
         <attr name="iconColor" format="color"/>
         <attr name="white" format="color"/>
+        <attr name="iconRipple" format="color"/>
     </declare-styleable>
 </resources>

@@ -12,8 +12,6 @@ const val DOWNLOAD_SIZE: String = "downloads_size"
 const val DOWNLOAD_TOTAL: String = "downloads_total"
 const val DOWNLOAD_EPUB_SIZE: String = "downloads_epub_size"
 const val DOWNLOAD_EPUB_LAST_ACCESS: String = "downloads_epub_last_access"
-const val EPUB_CURRENT_POSITION: String = "reader_epub_position"
-const val EPUB_CURRENT_POSITION_SCROLL: String = "reader_epub_position_scroll"
 const val DOWNLOAD_SORTING_METHOD: String = "download_sorting"
 const val DOWNLOAD_SETTINGS: String = "download_settings"
 const val EPUB_LOCK_ROTATION: String = "reader_epub_rotation"
@@ -24,9 +22,14 @@ const val EPUB_TEXT_COLOR: String = "reader_epub_text_color"
 const val EPUB_HAS_BATTERY: String = "reader_epub_has_battery"
 const val EPUB_HAS_TIME: String = "reader_epub_has_time"
 const val EPUB_FONT: String = "reader_epub_font"
+const val EPUB_CURRENT_POSITION: String = "reader_epub_position"
+const val EPUB_CURRENT_POSITION_SCROLL: String = "reader_epub_position_scroll"
+const val RESULT_BOOKMARK : String = "result_bookmarked"
+const val RESULT_BOOKMARK_STATE : String = "result_bookmarked_state"
+const val HISTORY_FOLDER : String = "result_history"
 
 object DataStore {
-    val mapper = JsonMapper.builder().addModule(KotlinModule())
+    val mapper: JsonMapper = JsonMapper.builder().addModule(KotlinModule())
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build()
 
     private fun Context.getPreferences(): SharedPreferences {
