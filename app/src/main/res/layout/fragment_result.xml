@@ -89,10 +89,12 @@
             android:layout_height="match_parent"
             android:id="@+id/result_holder">
 
-        <LinearLayout android:id="@+id/result_info_header" android:orientation="horizontal"
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
-                      android:layout_margin="10dp"
+        <LinearLayout
+                android:id="@+id/result_info_header"
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
         >
             <androidx.cardview.widget.CardView
                     android:layout_width="100dp"
@@ -111,8 +113,11 @@
                         android:contentDescription="@string/novel_imagecover_descript"/>
             </androidx.cardview.widget.CardView>
 
-            <LinearLayout android:orientation="vertical" android:layout_marginLeft="10dp"
-                          android:layout_width="wrap_content" android:layout_height="match_parent">
+            <LinearLayout
+                    android:orientation="vertical"
+                    android:layout_marginLeft="10dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent">
                 <TextView
                         android:id="@+id/result_title"
                         tools:text="The Beginning After The End The Beginning After The End"
@@ -161,8 +166,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
         >
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                          android:orientation="vertical"
+            <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
             >
                 <View
                         android:focusable="false"
@@ -188,7 +195,6 @@
                             android:paddingRight="10dp"
                             android:id="@+id/result_scroll_padding"
                             android:paddingBottom="0dp"
-
                     >
 
                         <androidx.cardview.widget.CardView
@@ -197,13 +203,11 @@
                                 android:layout_height="60dp"
                                 android:elevation="0dp"
                                 android:backgroundTint="?attr/boxItemBackground"
-
                         >
                             <GridLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="match_parent"
                                     android:orientation="horizontal"
-
                             >
                                 <LinearLayout
                                         android:gravity="center"
@@ -253,9 +257,7 @@
                                             android:layout_height="wrap_content">
                                     </TextView>
                                 </LinearLayout>
-
                             </GridLayout>
-
                         </androidx.cardview.widget.CardView>
 
                         <com.google.android.material.tabs.TabLayout
@@ -268,10 +270,8 @@
                         >
                             <com.google.android.material.tabs.TabItem
                                     tools:text="TEST"
-
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content">
-
                             </com.google.android.material.tabs.TabItem>
                         </com.google.android.material.tabs.TabLayout>
                         <FrameLayout
@@ -285,13 +285,13 @@
                                     android:id="@+id/result_reviews"
                                     android:layout_width="match_parent"
                                     android:layout_height="match_parent">
+
                             </androidx.recyclerview.widget.RecyclerView>
                         </FrameLayout>
                         <LinearLayout
-                                android:id="@+id/result_novelholder"
+                                android:id="@+id/result_novel_holder"
                                 android:orientation="vertical" android:layout_width="match_parent"
                                 android:layout_height="wrap_content">
-
                             <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content">
                                 <LinearLayout android:layout_gravity="end|center_vertical"
                                               android:orientation="horizontal" android:layout_width="wrap_content"
@@ -390,13 +390,13 @@ Translator: Rainbow Turtle"
                                     android:textStyle="normal"
                                     android:textColor="?attr/textColor"
                             />
-                            <com.lagradost.quicknovel.widget.MyFlowLayout
+                            <com.lagradost.quicknovel.widget.FlowLayout
                                     android:id="@+id/result_tag"
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
                                     android:orientation="horizontal">
 
-                            </com.lagradost.quicknovel.widget.MyFlowLayout>
+                            </com.lagradost.quicknovel.widget.FlowLayout>
                             <!--
                             <HorizontalScrollView android:id="@+id/result_tag_holder" android:layout_width="wrap_content" android:layout_height="wrap_content">
                                 <LinearLayout
@@ -405,10 +405,15 @@ Translator: Rainbow Turtle"
                                         android:layout_height="match_parent"
                                 />
                             </HorizontalScrollView>-->
-                            <LinearLayout android:layout_margin="0dp" android:layout_gravity="bottom"
-                                          android:orientation="vertical" android:layout_width="match_parent"
-                                          android:layout_height="wrap_content">
-                                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+                            <LinearLayout
+                                    android:layout_margin="0dp"
+                                    android:layout_gravity="bottom"
+                                    android:orientation="vertical"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content">
+                                <LinearLayout
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content">
                                     <ImageView
                                             android:id="@+id/download_delete_trash_from_result"
                                             android:background="?selectableItemBackgroundBorderless"
@@ -484,7 +489,8 @@ Translator: Rainbow Turtle"
 
                                     <com.google.android.material.button.MaterialButton
                                             android:layout_columnWeight="1"
-                                            android:gravity="center" android:layout_height="45dp"
+                                            android:gravity="center"
+                                            android:layout_height="45dp"
                                             android:layout_marginRight="5dp"
 
                                             app:icon="@drawable/ic_baseline_create_24"
@@ -506,7 +512,8 @@ Translator: Rainbow Turtle"
                                     <com.google.android.material.button.MaterialButton
                                             android:layout_columnWeight="1"
                                             android:layout_marginStart="5dp"
-                                            android:gravity="center" android:layout_height="45dp"
+                                            android:gravity="center"
+                                            android:layout_height="45dp"
 
                                             android:id="@+id/result_download_btt"
                                             android:text="@string/download_text"
@@ -521,7 +528,8 @@ Translator: Rainbow Turtle"
                                 </GridLayout>
                                 <com.google.android.material.button.MaterialButton
                                         android:layout_marginTop="5dp"
-                                        android:gravity="center" android:layout_height="45dp"
+                                        android:gravity="center"
+                                        android:layout_height="45dp"
                                         app:iconSize="20dp"
                                         android:text="@string/quickstream_novel_text"
                                         android:id="@+id/result_quickstream"
@@ -552,4 +560,22 @@ Translator: Rainbow Turtle"
             android:src="@drawable/ic_sharp_clear_24"
             android:contentDescription="@string/back_to_search">
     </ImageView>
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            android:id="@+id/reviews_fab"
+            android:visibility="gone"
+            android:alpha="0"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|bottom"
+            app:elevation="0dp"
+            android:textStyle="bold"
+
+            app:backgroundTint="?attr/darkBackground"
+            app:tint="?attr/colorPrimary"
+            android:textColor="?attr/colorPrimary"
+            app:iconTint="?attr/colorPrimary"
+            app:icon="@drawable/ic_baseline_arrow_upward_24"
+
+            android:contentDescription="@string/reviews_to_top"
+            android:layout_margin="16dp"/>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

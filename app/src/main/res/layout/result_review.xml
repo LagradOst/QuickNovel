@@ -51,12 +51,12 @@
                             android:layout_width="match_parent" android:layout_height="wrap_content">
                     </TextView>
                 </LinearLayout>
-                <com.lagradost.quicknovel.widget.MyFlowLayout
+                <com.lagradost.quicknovel.widget.FlowLayout
                         android:id="@+id/review_tags"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal">
-                </com.lagradost.quicknovel.widget.MyFlowLayout>
+                </com.lagradost.quicknovel.widget.FlowLayout>
             </LinearLayout>
         </LinearLayout>
         <TextView

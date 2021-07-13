@@ -10,21 +10,23 @@ import android.widget.ArrayAdapter
 import android.widget.ListView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProviders
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ItemAnimator
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.tabs.TabLayout
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.mvvm.observe
+import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.download.DownloadHelper.updateDownloadFromCard
+import com.lagradost.quicknovel.ui.history.HistoryAdapter
+import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
-import com.lagradost.quicknovel.util.SettingsHelper.getGridIsCompact
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import kotlinx.android.synthetic.main.fragment_downloads.*
-import kotlinx.android.synthetic.main.fragment_search.*
+import kotlinx.android.synthetic.main.fragment_result.*
 import kotlin.concurrent.thread
 
 class DownloadFragment : Fragment() {
@@ -64,17 +66,24 @@ class DownloadFragment : Fragment() {
         val id: Int,
     )
 
-    data class SotringMethod(val name: String, val id: Int)
+    data class SortingMethod(val name: String, val id: Int)
 
-    private val sotringMethods = arrayOf(
-        SotringMethod("Default", DEFAULT_SORT),
-        SotringMethod("Recently opened", LAST_ACCES_SORT),
-        SotringMethod("Alphabetical (A-Z)", ALPHA_SORT),
-        SotringMethod("Alphabetical (Z-A)", REVERSE_ALPHA_SORT),
-        SotringMethod("Download count (high to low)", DOWNLOADSIZE_SORT),
-        SotringMethod("Download count (low to high)", REVERSE_DOWNLOADSIZE_SORT),
-        SotringMethod("Download percentage (high to low)", DOWNLOADPRECENTAGE_SORT),
-        SotringMethod("Download percentage (low to high)", REVERSE_DOWNLOADPRECENTAGE_SORT),
+    private val sortingMethods = arrayOf(
+        SortingMethod("Default", DEFAULT_SORT),
+        SortingMethod("Recently opened", LAST_ACCES_SORT),
+        SortingMethod("Alphabetical (A-Z)", ALPHA_SORT),
+        SortingMethod("Alphabetical (Z-A)", REVERSE_ALPHA_SORT),
+        SortingMethod("Download count (high to low)", DOWNLOADSIZE_SORT),
+        SortingMethod("Download count (low to high)", REVERSE_DOWNLOADSIZE_SORT),
+        SortingMethod("Download percentage (high to low)", DOWNLOADPRECENTAGE_SORT),
+        SortingMethod("Download percentage (low to high)", REVERSE_DOWNLOADPRECENTAGE_SORT),
+    )
+
+    private val normalSortingMethods = arrayOf(
+        SortingMethod("Default", DEFAULT_SORT),
+        SortingMethod("Recently opened", LAST_ACCES_SORT),
+        SortingMethod("Alphabetical (A-Z)", ALPHA_SORT),
+        SortingMethod("Alphabetical (Z-A)", REVERSE_ALPHA_SORT),
     )
 
     override fun onCreateView(
@@ -101,8 +110,17 @@ class DownloadFragment : Fragment() {
     }
 
     private fun updateData(data: ArrayList<DownloadDataLoaded>) {
-        (download_cardSpace.adapter as DownloadAdapter).cardList = data
-        (download_cardSpace.adapter as DownloadAdapter).notifyDataSetChanged()
+        download_cardSpace?.let {
+            (it.adapter as DownloadAdapter).cardList = data
+            it.adapter?.notifyDataSetChanged()
+        }
+    }
+
+    private fun updateNormalData(data: ArrayList<ResultCached>) {
+        bookmark_cardSpace?.let {
+            (it.adapter as CachedAdapter).cardList = data
+            it.adapter?.notifyDataSetChanged()
+        }
     }
 
     private fun setupGridView() {
@@ -110,18 +128,31 @@ class DownloadFragment : Fragment() {
         val spanCountLandscape = if (compactView) 2 else 6
         val spanCountPortrait = if (compactView) 1 else 3
         val orientation = resources.configuration.orientation
-        if(download_cardSpace == null) return
-        if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            download_cardSpace.spanCount = spanCountLandscape
-        } else {
-            download_cardSpace.spanCount = spanCountPortrait
+
+        if (download_cardSpace != null) {
+            if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                download_cardSpace.spanCount = spanCountLandscape
+            } else {
+                download_cardSpace.spanCount = spanCountPortrait
+            }
         }
+        if (bookmark_cardSpace != null) {
+            if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                bookmark_cardSpace.spanCount = spanCountLandscape
+            } else {
+                bookmark_cardSpace.spanCount = spanCountPortrait
+            }
+        }
+
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         setupGridView()
     }
+
+    var isOnDownloads = true
+    var currentReadType: ReadType? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -130,9 +161,47 @@ class DownloadFragment : Fragment() {
         viewModel = ViewModelProviders.of(MainActivity.activity).get(DownloadViewModel::class.java)
 
         observe(viewModel.cards, ::updateData)
-        thread {
-            viewModel.loadData(requireContext())
+        observe(viewModel.normalCards, ::updateNormalData)
+
+        viewModel.loadData(requireContext())
+
+        observe(viewModel.isOnDownloads) {
+            isOnDownloads = it
+            bookmark_cardSpace?.visibility = if (!it) View.VISIBLE else View.GONE
+            swipe_container?.visibility = if (it) View.VISIBLE else View.GONE
         }
+
+
+        val readList = arrayListOf(
+            ReadType.READING,
+            ReadType.ON_HOLD,
+            ReadType.PLAN_TO_READ,
+            ReadType.COMPLETED,
+            ReadType.DROPPED,
+        )
+        bookmark_tabs.addTab(bookmark_tabs.newTab().setText(getString(R.string.tab_downloads)))
+        for (read in readList) {
+            bookmark_tabs.addTab(bookmark_tabs.newTab().setText(getString(read.stringRes)))
+        }
+
+        bookmark_tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                val pos = tab?.position
+                if (pos != null) {
+                    context?.let { ctx ->
+                        if (pos == 0) {
+                            viewModel.loadData(ctx)
+                        } else {
+                            viewModel.loadNormalData(ctx, readList[pos - 1])
+                        }
+                    }
+                }
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab?) {}
+
+            override fun onTabReselected(tab: TabLayout.Tab?) {}
+        })
 
         download_toolbar.setOnMenuItemClickListener {
             when (it.itemId) {
@@ -140,19 +209,47 @@ class DownloadFragment : Fragment() {
                     val bottomSheetDialog = BottomSheetDialog(requireContext())
                     bottomSheetDialog.setContentView(R.layout.sort_bottom_sheet)
                     val res = bottomSheetDialog.findViewById<ListView>(R.id.sort_click)!!
-                    val arrayAdapter = ArrayAdapter<String>(requireContext(), R.layout.sort_bottom_single_choice) // checkmark_select_dialog
-                    arrayAdapter.addAll(ArrayList(sotringMethods.map { t -> t.name }))
-
+                    val arrayAdapter = ArrayAdapter<String>(
+                        requireContext(),
+                        R.layout.sort_bottom_single_choice
+                    ) // checkmark_select_dialog
                     res.choiceMode = CHOICE_MODE_SINGLE
-                    res.adapter = arrayAdapter
-                    res.setItemChecked(sotringMethods.indexOfFirst { t -> t.id == viewModel.currentSortingMethod.value },
-                        true)
-                    res.setOnItemClickListener { _, _, position, _ ->
-                        val sel = sotringMethods[position].id
-                        requireContext().setKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, sel)
-                        viewModel.sortData(requireContext(), sel)
-                        bottomSheetDialog.dismiss()
+
+                    if (isOnDownloads) {
+                        arrayAdapter.addAll(ArrayList(sortingMethods.map { t -> t.name }))
+                        res.adapter = arrayAdapter
+
+                        res.setItemChecked(
+                            sortingMethods.indexOfFirst { t -> t.id == viewModel.currentSortingMethod.value },
+                            true
+                        )
+                        res.setOnItemClickListener { _, _, position, _ ->
+                            val sel = sortingMethods[position].id
+                            context?.let { ctx ->
+                                ctx.setKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, sel)
+                                viewModel.sortData(ctx, sel)
+                            }
+                            bottomSheetDialog.dismiss()
+                        }
+                    } else {
+                        arrayAdapter.addAll(ArrayList(normalSortingMethods.map { t -> t.name }))
+                        res.adapter = arrayAdapter
+
+                        res.setItemChecked(
+                            normalSortingMethods.indexOfFirst { t -> t.id == viewModel.currentNormalSortingMethod.value },
+                            true
+                        )
+                        res.setOnItemClickListener { _, _, position, _ ->
+                            val sel = normalSortingMethods[position].id
+
+                            context?.let { ctx ->
+                                ctx.setKey(DOWNLOAD_SETTINGS, DOWNLOAD_NORMAL_SORTING_METHOD, sel)
+                                viewModel.sortNormalData(ctx, sel)
+                            }
+                            bottomSheetDialog.dismiss()
+                        }
                     }
+
                     bottomSheetDialog.show()
                 }
                 else -> {
@@ -200,11 +297,37 @@ class DownloadFragment : Fragment() {
             )
         }
 
+        observe(viewModel.currentReadType) {
+            currentReadType = it
+        }
+
+        val normalAdapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = activity?.let {
+            CachedAdapter(
+                it,
+                ArrayList(),
+                download_cardSpace,
+            ) {
+                val type = currentReadType
+                if (type != null) {
+                    context?.let { ctx ->
+                        viewModel.loadNormalData(ctx, type)
+                    }
+                }
+            }
+        }
+
         adapter?.setHasStableIds(true)
+        normalAdapter?.setHasStableIds(true)
         download_cardSpace.adapter = adapter
+        bookmark_cardSpace.adapter = normalAdapter
         val animator: ItemAnimator = download_cardSpace.itemAnimator!!
         if (animator is SimpleItemAnimator) {
             animator.supportsChangeAnimations = false
+        }
+
+        val normalAnimator: ItemAnimator = bookmark_cardSpace.itemAnimator!!
+        if (normalAnimator is SimpleItemAnimator) {
+            normalAnimator.supportsChangeAnimations = false
         }
 
         BookDownloader.downloadNotification += ::updateDownloadInfo

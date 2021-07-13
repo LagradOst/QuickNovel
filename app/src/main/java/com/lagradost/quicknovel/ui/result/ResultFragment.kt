@@ -12,6 +12,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -111,6 +112,7 @@ class ResultFragment : Fragment() {
     }
 
     private var isLoadingReviews = false
+    private var isInReviews = false
     private fun loadReviews() {
         if (isLoadingReviews) return
         isLoadingReviews = true
@@ -174,15 +176,22 @@ class ResultFragment : Fragment() {
     }
 
     private fun updateScrollHeight() {
-        if (result_novelholder == null) return
+        if (result_novel_holder == null) return
         val displayMetrics = requireContext().resources.displayMetrics
         val height = result_download_card.height
         val total = displayMetrics.heightPixels - height
-        //result_reviewsholder.minimumHeight = displayMetrics.heightPixels
-        result_novelholder.setPadding(
-            result_novelholder.paddingLeft,
-            result_novelholder.paddingTop,
-            result_novelholder.paddingRight,
+
+        /*
+        val layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            displayMetrics.heightPixels
+        )
+
+        result_reviewsholder.layoutParams = layoutParams*/
+        result_novel_holder.setPadding(
+            result_novel_holder.paddingLeft,
+            result_novel_holder.paddingTop,
+            result_novel_holder.paddingRight,
             maxOf(0, total)
         )// - MainActivity.activity.nav_view.height
     }
@@ -665,8 +674,11 @@ class ResultFragment : Fragment() {
             fun setVis(v: View, lpos: Int) {
                 v.visibility = if (lpos == pos) View.VISIBLE else View.GONE
             }
-            setVis(result_novelholder, 0)
+            setVis(result_novel_holder, 0)
             setVis(result_reviewsholder, 1)
+
+            isInReviews = pos == 1
+            reviews_fab.visibility = if (isInReviews) View.VISIBLE else View.GONE
 
             if (pos == 1 && (result_reviews.adapter as ReviewAdapter).cardList.size <= 0) {
                 loadReviews()
@@ -676,8 +688,17 @@ class ResultFragment : Fragment() {
             }
         }
 
+        reviews_fab.setOnClickListener {
+            result_reviews?.smoothScrollToPosition(0) // NEEDS THIS TO RESET VELOCITY
+            result_mainscroll?.smoothScrollTo(0, 0)
+        }
+
         result_mainscroll.setOnScrollChangeListener { v: NestedScrollView, _, scrollY, _, oldScrollY ->
             if (result_info_header == null) return@setOnScrollChangeListener // CRASH IF PERFECTLY TIMED
+
+            if (isInReviews) {
+                reviews_fab.alpha = scrollY / 50.toPx.toFloat()
+            }
 
             val scrollFade = maxOf(0f, 1 - scrollY / 170.toPx.toFloat())
             result_info_header.alpha = scrollFade
