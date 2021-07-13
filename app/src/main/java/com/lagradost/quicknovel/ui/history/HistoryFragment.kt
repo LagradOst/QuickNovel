@@ -66,6 +66,7 @@ class HistoryFragment : Fragment() {
                     list.add(res)
                 }
             }
+            list.sortBy { -it.cachedTime }
             val adapter = history_cardSpace?.adapter
             if (adapter is HistoryAdapter) {
                 adapter.cardList = list
