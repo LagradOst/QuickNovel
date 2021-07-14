@@ -7,19 +7,25 @@ Adfree FOSS Android app for downloading novels.
 
 **Providers used:** 
 
-- https://bestlightnovel.com
-
 - https://www.novelpassion.com
 
-- https://www.royalroad.com
+- https://bestlightnovel.com
 
 - https://wuxiaworld.online
+
+- https://www.royalroad.com
 
 - https://wuxiaworld.site
 
 - https://www.readlightnovel.org
 
 - https://boxnovel.com
+
+- https://comrademao.com
+
+- https://www.lightnovelpub.com
+
+- https://readnovelfull.com
 
 **Screenshoots:**
 
