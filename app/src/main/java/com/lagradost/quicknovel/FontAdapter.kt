@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.CheckedTextView
+import com.lagradost.quicknovel.util.UIHelper.parseFontFileName
 import java.io.File
 
 class FontAdapter(val context: Context, private val checked: Int?, private val fonts: ArrayList<File?>) : BaseAdapter() {
@@ -28,12 +29,7 @@ class FontAdapter(val context: Context, private val checked: Int?, private val f
                 .inflate(R.layout.sort_bottom_single_choice, parent, false)) as CheckedTextView
 
         val font = fonts[position]
-        view.text = (font?.name ?: "Default")
-            .replace('-',' ')
-            .replace(".ttf","")
-            .replace(".ttc","")
-            .replace(".otf","")
-            .replace(".otc","")
+        view.text = parseFontFileName(font?.name)
         view.isChecked = position == checked
         if (font != null) {
             view.typeface = Typeface.createFromFile(font)

@@ -125,6 +125,15 @@ object UIHelper {
         return color
     }
 
+    fun parseFontFileName(name : String?) : String {
+        return (if(name.isNullOrEmpty()) "Default" else name)
+            .replace('-',' ')
+            .replace(".ttf","")
+            .replace(".ttc","")
+            .replace(".otf","")
+            .replace(".otc","")
+    }
+
     /**
      * Shows a popup menu on top of this view.
      *

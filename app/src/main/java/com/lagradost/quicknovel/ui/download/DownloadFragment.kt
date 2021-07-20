@@ -137,13 +137,15 @@ class DownloadFragment : Fragment() {
             }
         }
         if (bookmark_cardSpace != null) {
+            val compactBookmarkView = true
+            val bookmarkSpanCountLandscape = if (compactBookmarkView) 2 else 6
+            val bookmarkSpanCountPortrait = if (compactBookmarkView) 1 else 3
             if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                bookmark_cardSpace.spanCount = spanCountLandscape
+                bookmark_cardSpace.spanCount = bookmarkSpanCountLandscape
             } else {
-                bookmark_cardSpace.spanCount = spanCountPortrait
+                bookmark_cardSpace.spanCount = bookmarkSpanCountPortrait
             }
         }
-
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

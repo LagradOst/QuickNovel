@@ -90,7 +90,7 @@
     <string name="general_settings">General</string>
     <string name="lock_tts">Lock TTS scroll area</string>
     <string name="reading_color">Reading Color</string>
-    <string name="read_color">Color</string>
+    <string name="read_color">Reader Theme</string>
     <string name="show_battery">Show Battery</string>
     <string name="show_time">Show Time</string>
     <string name="result_share">Share</string>
@@ -107,4 +107,8 @@
     <string name="monke_eating">Monke Eating</string>
     <string name="tab_downloads">Downloads</string>
     <string name="reviews_to_top">To top</string>
+    <string name="text_size">Text Size</string>
+    <string name="text_padding">Text Margin</string>
+    <string name="reset_value">Reset to default</string>
+    <string name="text_font">Text Font</string>
 </resources>

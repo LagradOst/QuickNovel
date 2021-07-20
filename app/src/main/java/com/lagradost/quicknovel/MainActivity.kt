@@ -22,6 +22,7 @@ import com.lagradost.quicknovel.ui.result.ResultFragment
 import com.lagradost.quicknovel.util.Apis.Companion.allApi
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
+import com.lagradost.quicknovel.util.Apis.Companion.printProviders
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.getResourceColor
@@ -246,6 +247,8 @@ class MainActivity : AppCompatActivity() {
         if (!checkWrite()) {
             requestRW()
         }
+
+        printProviders()
         //loadResult("https://www.novelpassion.com/novel/battle-frenzy")
         //loadResult("https://www.royalroad.com/fiction/40182/only-villains-do-that", MainActivity.activeAPI.name)
     }

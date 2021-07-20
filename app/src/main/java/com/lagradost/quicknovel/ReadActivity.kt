@@ -39,9 +39,6 @@ import androidx.core.text.HtmlCompat
 import androidx.core.text.getSpans
 import androidx.media.session.MediaButtonReceiver
 import androidx.preference.PreferenceManager
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.json.JsonMapper
-import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
@@ -51,11 +48,13 @@ import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
 import com.lagradost.quicknovel.BookDownloader.getQuickChapter
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.mapper
+import com.lagradost.quicknovel.DataStore.removeKey
 import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.receivers.BecomingNoisyReceiver
 import com.lagradost.quicknovel.services.TTSPauseService
 import com.lagradost.quicknovel.ui.OrientationType
 import com.lagradost.quicknovel.util.Coroutines.main
+import com.lagradost.quicknovel.util.UIHelper
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
@@ -70,6 +69,7 @@ import org.jsoup.Jsoup
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
@@ -217,15 +217,16 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         }
     }
 
-    private fun setReadTextFont(file: File?) {
+    private fun setReadTextFont(file: File?, nameCallback: ((String) -> Unit)? = null) {
         if (defFont == null) defFont = read_text?.typeface
         setKey(EPUB_FONT, file?.name ?: "")
         read_text?.setFont(file)
         read_title_text?.setFont(file)
         read_title_text?.setTypeface(read_title_text?.typeface, Typeface.BOLD)
+        nameCallback?.invoke(UIHelper.parseFontFileName(file?.name))
     }
 
-    private fun showFonts() {
+    private fun showFonts(nameCallback: (String) -> Unit) {
         val bottomSheetDialog = BottomSheetDialog(this)
         bottomSheetDialog.setContentView(R.layout.font_bottom_sheet)
         val res = bottomSheetDialog.findViewById<ListView>(R.id.sort_click)!!
@@ -247,7 +248,10 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
         res.adapter = adapter
         res.setOnItemClickListener { _, _, which, _ ->
-            setReadTextFont(items[which])
+            setReadTextFont(items[which], nameCallback)
+            stopTTS()
+            loadTextLines()
+            globalTTSLines.clear()
             bottomSheetDialog.dismiss()
         }
         bottomSheetDialog.show()
@@ -1274,7 +1278,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         read_title_text?.setTextSize(TypedValue.COMPLEX_UNIT_SP, size.toFloat() + 2f)
     }
 
-    private fun Context.getCurrentFontSize(): Int {
+    private fun Context.getTextFontSize(): Int {
         return getKey(EPUB_TEXT_SIZE, 14)!!
     }
 
@@ -1343,6 +1347,22 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         return color
     }
 
+    // In DP
+    private fun Context.getTextPadding(): Int {
+        return getKey(EPUB_TEXT_PADDING, 20)!!
+    }
+
+    // In DP
+    private fun Context.setTextPadding(padding: Int) {
+        setKey(EPUB_TEXT_PADDING, padding)
+        read_text?.setPadding(
+            padding.toPx,
+            read_text?.paddingTop ?: 25.toPx,
+            padding.toPx,
+            read_text?.paddingBottom ?: 25.toPx
+        )
+    }
+
     private fun Context.getBackgroundColor(): Int {
         val color = getKey(EPUB_BG_COLOR, getColor(R.color.readerBackground))!!
         reader_container?.setBackgroundColor(color)
@@ -1399,16 +1419,14 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
-        val themeName = settingsManager.getString("theme", "Dark")
-        val currentTheme = when (themeName) {
+        val currentTheme = when (settingsManager.getString("theme", "Dark")) {
             "Black" -> R.style.AppTheme
             "Dark" -> R.style.DarkAlternative
             "Light" -> R.style.LightMode
             else -> R.style.AppTheme
         }
 
-        val themeOverlayName = settingsManager.getString("color_theme", "Blue")
-        val currentOverlayTheme = when (themeOverlayName) {
+        val currentOverlayTheme = when (settingsManager.getString("color_theme", "Blue")) {
             "Normal" -> R.style.OverlayPrimaryColorNormal
             "Blue" -> R.style.OverlayPrimaryColorBlue
             "Purple" -> R.style.OverlayPrimaryColorPurple
@@ -1460,7 +1478,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
         initMediaSession()
         setContentView(R.layout.read_main)
-        setTextFontSize(getCurrentFontSize())
+        setTextFontSize(getTextFontSize())
+        setTextPadding(getTextPadding())
         initTTSSession()
         getLockTTS()
         getScrollWithVol()
@@ -1473,8 +1492,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         if (fonts == null) {
             setReadTextFont(null)
         } else {
-            val index = fonts.map { it.name }.indexOf(getKey<String>(EPUB_FONT) ?: "")
-            setReadTextFont(if (index > 0) fonts[index] else null)
+            val index = fonts.map { it.name }.indexOf(getKey(EPUB_FONT) ?: "")
+            setReadTextFont(if (index > 0) fonts[index] else null, null)
         }
 
 
@@ -1508,19 +1527,29 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
             bottomSheetDialog.setContentView(R.layout.read_bottom_settings)
             val readSettingsTextSize = bottomSheetDialog.findViewById<SeekBar>(R.id.read_settings_text_size)!!
+            val readSettingsTextPadding = bottomSheetDialog.findViewById<SeekBar>(R.id.read_settings_text_padding)!!
+
             val readSettingsScrollVol =
                 bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_scroll_vol)!!
             val readSettingsLockTts = bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_lock_tts)!!
             val showTime = bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_time)!!
             val showBattery = bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_battery)!!
+            val readSettingsTextPaddingText =
+                bottomSheetDialog.findViewById<TextView>(R.id.read_settings_text_padding_text)!!
+            val readSettingsTextSizeText =
+                bottomSheetDialog.findViewById<TextView>(R.id.read_settings_text_size_text)!!
+            val readSettingsTextFontText = bottomSheetDialog.findViewById<TextView>(R.id.read_settings_text_font_text)!!
 
             //val root = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_root)!!
             val horizontalColors = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_colors)!!
 
             val readShowFonts = bottomSheetDialog.findViewById<MaterialButton>(R.id.read_show_fonts)
+            readShowFonts?.text = UIHelper.parseFontFileName(getKey(EPUB_FONT))
 
             readShowFonts?.setOnClickListener {
-                showFonts()
+                showFonts {
+                    readShowFonts?.text = it
+                }
             }
 
             readSettingsScrollVol.isChecked = scrollWithVol
@@ -1546,7 +1575,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             val bgColors = resources.getIntArray(R.array.readerBgColors)
             val textColors = resources.getIntArray(R.array.readerTextColors)
 
-            images = ArrayList<ImageView>()
+            images = ArrayList()
 
             for ((index, backgroundColor) in bgColors.withIndex()) {
                 val textColor = textColors[index]
@@ -1607,21 +1636,74 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             readSettingsTextSize.max = 10
             val offsetSize = 10
             var updateAllTextOnDismiss = false
-            readSettingsTextSize.progress = getCurrentFontSize() - offsetSize
+            readSettingsTextSize.progress = getTextFontSize() - offsetSize
             readSettingsTextSize.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                    if (fromUser) {
-                        setTextFontSize(progress + offsetSize)
-                        stopTTS()
+                    setTextFontSize(progress + offsetSize)
+                    stopTTS()
 
-                        updateAllTextOnDismiss = true
-                    }
+                    updateAllTextOnDismiss = true
                 }
 
                 override fun onStartTrackingTouch(seekBar: SeekBar?) {}
 
                 override fun onStopTrackingTouch(seekBar: SeekBar?) {}
             })
+
+            readSettingsTextPadding.max = 50
+            readSettingsTextPadding.progress = getTextPadding()
+            readSettingsTextPadding.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    setTextPadding(progress)
+                    stopTTS()
+
+                    updateAllTextOnDismiss = true
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+
+            readSettingsTextPaddingText.setOnLongClickListener {
+                it.popupMenu(items = listOf(Pair(R.string.reset_value, 0)), selectedItemId = null) {
+                    if (itemId == 0) {
+                        it.context?.removeKey(EPUB_TEXT_PADDING)
+                        readSettingsTextPadding.progress = getTextPadding()
+                    }
+                }
+                return@setOnLongClickListener true
+            }
+
+            readSettingsTextPaddingText.setOnClickListener {
+                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
+                    if (itemId == 1) {
+                        it.context?.removeKey(EPUB_TEXT_PADDING)
+                        readSettingsTextPadding?.progress = getTextPadding()
+                    }
+                }
+            }
+
+            readSettingsTextSizeText.setOnClickListener {
+                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
+                    if (itemId == 1) {
+                        it.context?.removeKey(EPUB_TEXT_SIZE)
+                        readSettingsTextSize?.progress = getTextFontSize() - offsetSize
+                    }
+                }
+            }
+
+            readSettingsTextFontText.setOnClickListener {
+                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
+                    if (itemId == 1) {
+                        setReadTextFont(null) { fileName ->
+                            readShowFonts?.text = fileName
+                        }
+                        stopTTS()
+                        updateAllTextOnDismiss = true
+                    }
+                }
+            }
 
             bottomSheetDialog.setOnDismissListener {
                 if (updateAllTextOnDismiss) {
@@ -1836,9 +1918,9 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             return@setOnTouchListener false
         }
 
-        read_overlay.setOnClickListener {
-            selectChapter()
-        }
+//        read_overlay.setOnClickListener {
+//            selectChapter()
+//        }
 
         main { // THIS IS USED FOR INSTANT LOAD
             read_loading.postDelayed({

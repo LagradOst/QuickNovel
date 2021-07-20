@@ -37,15 +37,7 @@
             android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
-        <TextView
-                android:text="@string/general_settings"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
-        </TextView>
         <com.google.android.material.checkbox.MaterialCheckBox
-                android:layout_marginTop="20dp"
                 android:paddingStart="5dp"
                 android:paddingEnd="5dp"
                 android:textSize="16sp"
@@ -93,18 +85,18 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
         </com.google.android.material.checkbox.MaterialCheckBox>
+
         <TextView
-                android:layout_marginTop="20dp"
-                android:text="@string/read_text_size"
-                android:textSize="18sp"
-                android:textStyle="bold"
+                android:id="@+id/read_settings_text_font_text"
+                android:layout_marginTop="15dp"
+                android:text="@string/text_font"
+                android:textSize="16sp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content">
         </TextView>
 
         <com.google.android.material.button.MaterialButton
                 android:layout_marginTop="10dp"
-
                 android:visibility="visible"
                 android:layout_gravity="center_vertical"
                 app:cornerRadius="4dp"
@@ -118,14 +110,20 @@
                 app:iconPadding="10dp"
                 android:textAllCaps="false"
                 app:iconGravity="textStart"
-                app:icon="@drawable/ic_baseline_font_download_24"
                 android:backgroundTint="@color/transparent"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="45dp">
         </com.google.android.material.button.MaterialButton>
 
-
+        <TextView
+                android:id="@+id/read_settings_text_size_text"
+                android:layout_marginTop="15dp"
+                android:text="@string/text_size"
+                android:textSize="16sp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+        </TextView>
         <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_marginTop="15dp"
 
@@ -165,10 +163,56 @@
                     android:layout_width="wrap_content" android:contentDescription="@string/bigger_font"/>
         </androidx.constraintlayout.widget.ConstraintLayout>
         <TextView
-                android:layout_marginTop="20dp"
+                android:id="@+id/read_settings_text_padding_text"
+                android:layout_marginTop="15dp"
+                android:text="@string/text_padding"
+                android:textSize="16sp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+        </TextView>
+        <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_marginTop="15dp"
+
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="20dp">
+            <ImageView
+                    app:layout_constraintEnd_toStartOf="@id/read_settings_text_padding"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    android:src="@drawable/format_padding_decrease_white_24dp"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center_vertical"
+                    android:layout_width="wrap_content" android:contentDescription="@string/smaller_font"/>
+            <SeekBar
+                    android:id="@+id/read_settings_text_padding"
+                    app:layout_constraintTop_toTopOf="parent"
+                    android:thumbTint="?attr/colorOnPrimary"
+                    android:progressTint="?attr/colorOnPrimary"
+
+                    android:progress="4"
+                    android:max="10"
+                    android:layout_marginStart="30dp"
+                    android:layout_marginEnd="30dp"
+                    android:layout_gravity="center_vertical"
+                    app:thumbRadius="5dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+            </SeekBar>
+            <ImageView
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/read_settings_text_padding"
+                    app:layout_constraintTop_toTopOf="parent"
+                    android:src="@drawable/format_padding_increase_white_24dp"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center_vertical"
+                    android:layout_width="wrap_content" android:contentDescription="@string/bigger_font"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <TextView
+                android:layout_marginTop="15dp"
                 android:text="@string/read_color"
-                android:textSize="18sp"
-                android:textStyle="bold"
+                android:textSize="16sp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content">
         </TextView>
