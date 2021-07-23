@@ -427,6 +427,11 @@ class ResultFragment : Fragment() {
                 }
 
                 result_quickstream.setOnClickListener {
+                    if (res.data.size <= 0) {
+                        Toast.makeText(context, R.string.no_chapters_found, Toast.LENGTH_SHORT).show()
+                        return@setOnClickListener
+                    }
+
                     addToHistory()
                     val uri = activity?.createQuickStream(
                         BookDownloader.QuickStreamData(

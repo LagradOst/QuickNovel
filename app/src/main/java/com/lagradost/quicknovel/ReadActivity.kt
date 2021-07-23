@@ -1938,6 +1938,12 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 }
             }
 
+            if(!isFromEpub && quickdata.data.size <= 0) {
+                Toast.makeText(this, R.string.no_chapters_found,Toast.LENGTH_SHORT).show()
+                finish()
+                return@main
+            }
+
             maxChapter = getBookSize()
             loadChapter(
                 minOf(

@@ -111,4 +111,5 @@
     <string name="text_padding">Text Margin</string>
     <string name="reset_value">Reset to default</string>
     <string name="text_font">Text Font</string>
+    <string name="no_chapters_found">No Chapters Found</string>
 </resources>

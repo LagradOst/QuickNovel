@@ -333,6 +333,10 @@ object BookDownloader {
 
     fun Activity.createQuickStream(data: QuickStreamData): Uri? {
         try {
+            if(data.data.size <= 0) {
+                return null
+            }
+
             if (!checkWrite()) {
                 requestRW()
                 if (!checkWrite()) return null

@@ -108,15 +108,22 @@ class HistoryAdapter(
 
             fun handleRead() {
                 main {
-                    withContext(Dispatchers.IO) {
+                    val data = withContext(Dispatchers.IO) {
                         val api = Apis.getApiFromName(card.apiName)
-                        val data = safeApiCall {
+                        safeApiCall {
                             api.load(card.source)
                         }
+                    }
+                    if (data is Resource.Success) {
+                        val res = data.value
 
-                        if (data is Resource.Success) {
-                            val res = data.value
-                            val uri = localActivity?.createQuickStream(
+                        if (res.data.size <= 0) {
+                            Toast.makeText(localActivity, R.string.no_chapters_found, Toast.LENGTH_SHORT).show()
+                            return@main
+                        }
+
+                        val uri = withContext(Dispatchers.IO) {
+                            localActivity?.createQuickStream(
                                 BookDownloader.QuickStreamData(
                                     BookDownloader.QuickStreamMetaData(
                                         res.author,
@@ -127,11 +134,11 @@ class HistoryAdapter(
                                     res.data
                                 )
                             )
-                            localActivity?.openQuickStream(uri)
-                        } else {
-                            localActivity?.let { ctx ->
-                                Toast.makeText(ctx, "Error Loading Novel", Toast.LENGTH_SHORT).show()
-                            }
+                        }
+                        localActivity?.openQuickStream(uri)
+                    } else {
+                        localActivity?.let { ctx ->
+                            Toast.makeText(ctx, "Error Loading Novel", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
