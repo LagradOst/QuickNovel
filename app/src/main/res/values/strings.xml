@@ -108,8 +108,9 @@
     <string name="tab_downloads">Downloads</string>
     <string name="reviews_to_top">To top</string>
     <string name="text_size">Text Size</string>
-    <string name="text_padding">Text Margin</string>
+    <string name="text_padding">Text Side Margin</string>
     <string name="reset_value">Reset to default</string>
     <string name="text_font">Text Font</string>
     <string name="no_chapters_found">No Chapters Found</string>
+    <string name="text_padding_top">Text Top Margin</string>
 </resources>

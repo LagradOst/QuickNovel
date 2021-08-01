@@ -26,7 +26,6 @@
             android:id="@+id/read_normal_layout" android:layout_width="match_parent"
             android:layout_height="match_parent">
 
-
         <LinearLayout
                 android:id="@+id/reader_lin_container"
                 android:layout_width="match_parent"
@@ -45,45 +44,101 @@
                     android:clickable="false"
                     android:focusable="false"
                     android:layout_height="wrap_content">
+
+                <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <View
+                            android:visibility="gone"
+                            android:id="@+id/line_top"
+                            android:layout_height="1dp"
+                            android:layout_width="match_parent"
+                            android:background="@color/purple">
+                    </View>
+
+                    <View
+                            android:visibility="gone"
+                            android:id="@+id/line_top_extra"
+                            android:layout_height="3dp"
+                            android:layout_width="match_parent"
+                            android:background="@color/colorPrimaryGreen">
+                    </View>
+                    <View
+                            android:visibility="gone"
+                            android:id="@+id/line_accent"
+                            android:layout_height="1dp"
+                            android:layout_width="match_parent"
+                            android:background="@color/teal">
+                    </View>
+                    <View
+                            android:visibility="gone"
+                            android:id="@+id/line_baseline"
+                            android:layout_height="1dp"
+                            android:layout_width="match_parent"
+                            android:background="@color/red">
+                    </View>
+                    <View
+                            android:visibility="gone"
+                            android:id="@+id/line_descent"
+                            android:layout_height="1dp"
+                            android:layout_width="match_parent"
+                            android:background="@color/blue">
+                    </View>
+                    <View
+                            android:visibility="gone"
+                            android:id="@+id/line_bottom"
+                            android:layout_height="1dp"
+                            android:layout_width="match_parent"
+                            android:background="@color/orange">
+                    </View>
+
+                    <LinearLayout
+                            android:orientation="vertical"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content">
+                        <TextView
+                                android:gravity="center_vertical"
+                                android:id="@+id/read_title_text"
+                                android:layout_gravity="center_vertical"
+                                android:fontFamily="serif"
+                                android:textColor="@color/readerTextColor"
+                                android:textSize="15sp"
+                                android:paddingLeft="20dp"
+                                android:paddingRight="20dp"
+                                android:paddingTop="20dp"
+                                android:paddingBottom="20dp"
+                                android:textStyle="bold"
+                                tools:text="TEST CHAPTER"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content">
+                        </TextView>
+                        <com.lagradost.quicknovel.ui.roundedbg.RoundedBgTextView
+                                android:id="@+id/read_text"
+                                android:paddingLeft="20dp"
+                                android:paddingRight="20dp"
+                                android:paddingBottom="25dp"
+                                android:paddingTop="25dp"
+                                android:fontFamily="serif"
+                                android:lineSpacingExtra="3sp"
+                                tools:text="@string/exampleTXT"
+                                android:textColor="@color/readerTextColor"
+                                android:clickable="false"
+                                android:focusable="false"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content">
+                        </com.lagradost.quicknovel.ui.roundedbg.RoundedBgTextView>
+                    </LinearLayout>
+                </FrameLayout>
                 <!-- android:textSize="10sp" -->
-                <LinearLayout android:orientation="vertical" android:layout_width="match_parent"
-                              android:layout_height="wrap_content">
-                    <TextView
-                            android:gravity="center_vertical"
-                            android:id="@+id/read_title_text"
-                            android:layout_gravity="center_vertical"
-                            android:fontFamily="serif"
-                            android:textColor="@color/readerTextColor"
-                            android:textSize="15sp"
-                            android:paddingLeft="20dp"
-                            android:paddingRight="20dp"
-                            android:paddingTop="20dp"
-                            android:paddingBottom="20dp"
-                            android:textStyle="bold"
-                            tools:text="TEST CHAPTER"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content">
-                    </TextView>
-                    <com.lagradost.quicknovel.ui.roundedbg.RoundedBgTextView
-                            android:id="@+id/read_text"
-                            android:paddingLeft="20dp"
-                            android:paddingRight="20dp"
-                            android:paddingBottom="25dp"
-                            android:paddingTop="25dp"
-                            android:fontFamily="serif"
-                            android:lineSpacingExtra="3sp"
-                            tools:text="@string/exampleTXT"
-                            android:textColor="@color/readerTextColor"
-                            android:clickable="false"
-                            android:focusable="false"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content">
-                    </com.lagradost.quicknovel.ui.roundedbg.RoundedBgTextView>
-                </LinearLayout>
 
             </ScrollView>
         </LinearLayout>
-
+        <View
+                android:visibility="gone"
+                android:id="@+id/read_temp_bottom_margin"
+                android:layout_gravity="bottom"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:background="@color/transparent">
+        </View>
         <FrameLayout
                 android:visibility="visible"
                 android:id="@+id/read_overlay"

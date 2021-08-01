@@ -210,6 +210,53 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <TextView
+                android:id="@+id/read_settings_text_padding_text_top"
+                android:layout_marginTop="15dp"
+                android:text="@string/text_padding_top"
+                android:textSize="16sp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+        </TextView>
+        <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_marginTop="15dp"
+
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="20dp">
+            <ImageView
+                    app:layout_constraintEnd_toStartOf="@id/read_settings_text_padding_top"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    android:src="@drawable/text_top_bottom_margin"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center_vertical"
+                    android:layout_width="wrap_content" android:contentDescription="@string/smaller_font"/>
+            <SeekBar
+                    android:id="@+id/read_settings_text_padding_top"
+                    app:layout_constraintTop_toTopOf="parent"
+                    android:thumbTint="?attr/colorOnPrimary"
+                    android:progressTint="?attr/colorOnPrimary"
+
+                    android:progress="4"
+                    android:max="10"
+                    android:layout_marginStart="30dp"
+                    android:layout_marginEnd="30dp"
+                    android:layout_gravity="center_vertical"
+                    app:thumbRadius="5dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+            </SeekBar>
+            <ImageView
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/read_settings_text_padding_top"
+                    app:layout_constraintTop_toTopOf="parent"
+                    android:src="@drawable/text_top_bottom_margin_expand"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center_vertical"
+                    android:layout_width="wrap_content" android:contentDescription="@string/bigger_font"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <TextView
                 android:layout_marginTop="15dp"
                 android:text="@string/read_color"
                 android:textSize="16sp"

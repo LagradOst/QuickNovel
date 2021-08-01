@@ -59,4 +59,11 @@
     <color name="colorPrimaryPurple">#6200EA</color> <!-- Burple-->
     <color name="colorPrimaryGreen">#00BFA5</color>
     <color name="colorPrimaryGreenApple">#48E484</color>
+
+    <!--Debugging Colors -->
+    <color name="purple">#FF6200EE</color>
+    <color name="teal">#FF03DAC5</color>
+    <color name="red">#FD0000</color>
+    <color name="blue">#0048FD</color>
+    <color name="orange">#FD6E00</color>
 </resources>

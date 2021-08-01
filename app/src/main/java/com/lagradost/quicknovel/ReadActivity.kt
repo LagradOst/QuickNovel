@@ -25,6 +25,7 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.text.Spannable
 import android.text.SpannableString
 import android.util.TypedValue
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
@@ -37,6 +38,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
 import androidx.core.text.getSpans
+import androidx.core.view.marginBottom
 import androidx.media.session.MediaButtonReceiver
 import androidx.preference.PreferenceManager
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -53,6 +55,7 @@ import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.receivers.BecomingNoisyReceiver
 import com.lagradost.quicknovel.services.TTSPauseService
 import com.lagradost.quicknovel.ui.OrientationType
+import com.lagradost.quicknovel.ui.roundedbg.getLineHeight
 import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.UIHelper
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
@@ -83,6 +86,8 @@ const val TOGGLE_DISTANCE = 20f
 
 const val TTS_CHANNEL_ID = "QuickNovelTTS"
 const val TTS_NOTIFICATION_ID = 133742
+
+const val DEBUGGING = false
 
 fun clearTextViewOfSpans(tv: TextView) {
     val wordToSpan: Spannable = SpannableString(tv.text)
@@ -711,52 +716,141 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         }
     }
 
+    /*if (read_scroll.height + scrollY - read_title_text.height - 0 <= min) { // FOR WHEN THE TEXT IS ON THE BOTTOM OF THE SCREEN
+                    if (scrollToTop) {
+                        read_scroll.scrollTo(0, max + read_title_text.height)
+                    } else {
+                        read_scroll.scrollTo(0, min - read_scroll.height + read_title_text.height + 0)
+                    }
+                    read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
+                } else if (scrollY - read_title_text.height >= max) { // WHEN TEXT IS ON TOP
+                    read_scroll.scrollTo(0, max + read_title_text.height)
+                    read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
+                }*/
+/*    val textLine = getMinMax(currentTTSRangeStartIndex, currentTTSRangeEndIndex)
+            minScroll = textLine?.min
+            maxScroll = textLine?.max*/
+    private fun getPosition(line: TextLine): Int {
+        return line.bottomPosition//+ line.lineHight / 8
+    }
+
+
+    private fun View.fixLine(offset: Int) {
+        // this.setPadding(0, 200, 0, 0)
+        val layoutParams =
+            this.layoutParams as FrameLayout.LayoutParams// FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,offset)
+        layoutParams.setMargins(0, offset, 0, 0)
+        this.layoutParams = layoutParams
+    }
+
+    private fun getLineOffset(): Int {
+        return (read_title_text?.height ?: 0) + (read_text?.paddingTop ?: 0)
+    }
+
+    var lastChange: TextLine? = null
+
+    private fun createTempBottomPadding(size: Int) {
+        val parms = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, size)
+        parms.gravity = Gravity.BOTTOM
+        read_temp_bottom_margin?.visibility = View.VISIBLE
+        read_temp_bottom_margin?.layoutParams = parms
+    }
+
+    private fun changeLine(line: TextLine) {//, moveToTextBottom: Boolean) {
+        val offset = getLineOffset()
+
+        read_scroll?.let {
+            it.scrollTo(0, line.topPosition + offset)
+            for (tLine in textLines!!) {
+                if (tLine.bottomPosition + offset > mainScrollY + it.height) {
+                    val size = (mainScrollY + it.height) - (tLine.topPosition + offset) + (read_overlay?.height ?: 0)
+                    createTempBottomPadding(size)
+                    if (DEBUGGING) {
+                        read_temp_bottom_margin?.setBackgroundResource(R.color.colorPrimary)
+                        line_top_extra.fixLine(tLine.topPosition + offset)
+                    }
+                    break
+                }
+            }
+        }
+
+        if (DEBUGGING) {
+            line_top.visibility = View.VISIBLE
+            line_bottom.visibility = View.VISIBLE
+            line_top_extra.visibility = View.VISIBLE
+
+            line_top.fixLine(line.topPosition + offset)
+            line_bottom.fixLine(line.bottomPosition + offset)
+
+            if (lastChange != null) {
+                setHighLightedText(read_text, lastChange!!.startIndex, lastChange!!.endIndex)
+            } else {
+                setHighLightedText(read_text, line.startIndex, line.endIndex)
+            }
+            lastChange = line
+        }
+    }
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        return if (scrollWithVol && isHidden && (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP)) {
-            if (textLines != null) {
-                val readHeight = read_scroll.height - read_overlay.height
-                if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+        if (scrollWithVol && isHidden && (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP)) {
+            val offset = getLineOffset()
+            when (keyCode) {
+                KeyEvent.KEYCODE_VOLUME_DOWN -> {
                     if (isTTSRunning) {
                         nextTTSLine()
-                    } else {
-                        if (read_scroll.scrollY >= getScrollRange()) {
-                            loadNextChapter()
-                        } else {
-                            for (t in textLines!!) {
-                                if (t.topPosition > mainScrollY + readHeight) {
-                                    read_scroll.scrollTo(0, t.topPosition - 6.toPx)
-                                    read_scroll.fling(0)
-                                    return true
-                                }
+                        return true
+                    }
+
+                    if (read_scroll.scrollY >= getScrollRange()) {
+                        loadNextChapter()
+                    }
+                    for (t in textLines!!) {
+                        if (t.bottomPosition + offset > mainScrollY + read_scroll.height) {
+                            val str = try {
+                                read_text?.text?.substring(t.startIndex, t.endIndex) ?: "valid"
+                            } catch (e: Exception) {
+                                "valid"
                             }
-                            loadNextChapter()
+                            if (str.isBlank()) { // skips black areas
+                                continue
+                            }
+                            changeLine(t)
+                            read_scroll.fling(0)
+                            return true
                         }
                     }
-                } else {
+                    loadNextChapter()
+                }
+                KeyEvent.KEYCODE_VOLUME_UP -> {
                     if (isTTSRunning) {
                         prevTTSLine()
-                    } else {
-                        if (read_scroll.scrollY <= 0) {
-                            loadPrevChapter()
-                        } else {
-                            for (t in textLines!!) {
-                                if (t.topPosition > mainScrollY - read_scroll.height) {
-                                    read_scroll.scrollTo(0, t.topPosition - 6.toPx)
+                    }
+
+                    if (read_scroll.scrollY <= 0) {
+                        loadPrevChapter()
+                    }
+                    for ((index, textLine) in textLines!!.withIndex()) {
+                        if (textLine.topPosition + offset >= mainScrollY) { // finds current top
+                            if (index == 0) {
+                                loadPrevChapter()
+                                return true
+                            }
+                            for (returnIndex in index downTo 0) {
+                                val returnLine = textLines!![returnIndex]
+                                if (textLine.bottomPosition - returnLine.topPosition > read_scroll.height) {
+                                    changeLine(returnLine)
                                     read_scroll.fling(0)
                                     return true
                                 }
                             }
-                            loadPrevChapter()
                         }
                     }
+                    loadPrevChapter()
                 }
-
-                return true
             }
-            super.onKeyDown(keyCode, event)
-        } else {
-            super.onKeyDown(keyCode, event)
+            return true
         }
+        return false
     }
 
     data class TextLine(
@@ -764,24 +858,24 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         val endIndex: Int,
         val topPosition: Int,
         val bottomPosition: Int,
+        val lineIndex: Int,
     )
 
-    lateinit var chapterTitles: ArrayList<String>
-    var maxChapter: Int = 0
+    private lateinit var chapterTitles: ArrayList<String>
+    private var maxChapter: Int = 0
 
-    var currentChapter = 0
-    var textLines: ArrayList<TextLine>? = null
-    var mainScrollY = 0
-    var scrollYOverflow = 0f
+    private var currentChapter = 0
+    private var textLines: ArrayList<TextLine>? = null
+    private var mainScrollY = 0
+    private var scrollYOverflow = 0f
 
+    private var startY: Float? = null
+    private var scrollStartY: Float = 0f
+    private var scrollStartX: Float = 0f
+    private var scrollDistance: Float = 0f
 
-    var startY: Float? = null
-    var scrollStartY: Float = 0f
-    var scrollStartX: Float = 0f
-    var scrollDistance: Float = 0f
-
-    var overflowDown: Boolean = true
-    var chapterName: String? = null
+    private var overflowDown: Boolean = true
+    private var chapterName: String? = null
 
     @SuppressLint("SetTextI18n")
     fun updateChapterName(scrollX: Int) {
@@ -876,7 +970,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         lay.getLineStart(i),
                         lay.getLineEnd(i),
                         lay.getLineTop(i),
-                        lay.getLineBottom(i)
+                        lay.getLineBottom(i),
+                        i,
                     )
                 )
             } catch (e: Exception) {
@@ -1050,16 +1145,16 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         }
         if (textLines == null) return null
         val text = textLines!!
-        var start: Int? = null
-        var end: Int? = null
+        var max: Int? = null
+        var min: Int? = null
         for (t in text) {
-            if (t.startIndex > startIndex && start == null) {
-                start = t.topPosition
+            if (t.startIndex > startIndex && max == null) {
+                max = t.topPosition
             }
-            if (t.endIndex > endIndex && end == null) {
-                end = t.bottomPosition
+            if (t.endIndex > endIndex && min == null) {
+                min = t.bottomPosition
             }
-            if (start != null && end != null) return ScrollLine(end + (read_overlay?.height ?: 0), start)
+            if (max != null && min != null) return ScrollLine(min + (read_overlay?.height ?: 0), max)
         }
         return null
     }
@@ -1139,7 +1234,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         delay(10)
                         if (!isTTSRunning) return@launch
                     }
-                    //println("NEXTENDEDMS " + System.currentTimeMillis())
+
                     readFromIndex++
                     if (speakId == latestTTSSpeakOutId) {
                         readFromIndex++
@@ -1177,11 +1272,11 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             val min = minScroll!!
             val max = maxScroll!!
             if (lockTTS && isTTSRunning) {
-                if (read_scroll.height + scrollY - read_title_text.height - 0.toPx <= min) { // FOR WHEN THE TEXT IS ON THE BOTTOM OF THE SCREEN
+                if (read_scroll.height + scrollY - read_title_text.height - 0 <= min) { // FOR WHEN THE TEXT IS ON THE BOTTOM OF THE SCREEN
                     if (scrollToTop) {
                         read_scroll.scrollTo(0, max + read_title_text.height)
                     } else {
-                        read_scroll.scrollTo(0, min - read_scroll.height + read_title_text.height + 0.toPx)
+                        read_scroll.scrollTo(0, min - read_scroll.height + read_title_text.height + 0)
                     }
                     read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
                 } else if (scrollY - read_title_text.height >= max) { // WHEN TEXT IS ON TOP
@@ -1318,6 +1413,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
     private fun Context.setBackgroundColor(color: Int) {
         reader_container?.setBackgroundColor(color)
+        read_temp_bottom_margin?.setBackgroundColor(color)
         setKey(EPUB_BG_COLOR, color)
     }
 
@@ -1360,12 +1456,28 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         return color
     }
 
-    // In DP
+    /** In DP **/
     private fun Context.getTextPadding(): Int {
         return getKey(EPUB_TEXT_PADDING, 20)!!
     }
 
-    // In DP
+    /** In DP **/
+    private fun Context.getTextPaddingTop(): Int {
+        return getKey(EPUB_TEXT_PADDING_TOP, 0)!!
+    }
+
+    /** In DP **/
+    private fun Context.setTextPaddingTop(padding: Int) {
+        setKey(EPUB_TEXT_PADDING_TOP, padding)
+        reader_lin_container?.setPadding(
+            reader_lin_container?.paddingLeft ?: 0,
+            padding.toPx,
+            reader_lin_container?.paddingRight ?: 0,
+            0,//padding.toPx,
+        )
+    }
+
+    /** In DP **/
     private fun Context.setTextPadding(padding: Int) {
         setKey(EPUB_TEXT_PADDING, padding)
         read_text?.setPadding(
@@ -1378,7 +1490,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
     private fun Context.getBackgroundColor(): Int {
         val color = getKey(EPUB_BG_COLOR, getColor(R.color.readerBackground))!!
-        reader_container?.setBackgroundColor(color)
+        setBackgroundColor(color)
         return color
     }
 
@@ -1495,6 +1607,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         setContentView(R.layout.read_main)
         setTextFontSize(getTextFontSize())
         setTextPadding(getTextPadding())
+        setTextPaddingTop(getTextPaddingTop())
         initTTSSession()
         getLockTTS()
         getScrollWithVol()
@@ -1543,6 +1656,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             bottomSheetDialog.setContentView(R.layout.read_bottom_settings)
             val readSettingsTextSize = bottomSheetDialog.findViewById<SeekBar>(R.id.read_settings_text_size)!!
             val readSettingsTextPadding = bottomSheetDialog.findViewById<SeekBar>(R.id.read_settings_text_padding)!!
+            val readSettingsTextPaddingTop =
+                bottomSheetDialog.findViewById<SeekBar>(R.id.read_settings_text_padding_top)!!
 
             val readSettingsScrollVol =
                 bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_scroll_vol)!!
@@ -1551,6 +1666,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             val showBattery = bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_battery)!!
             val readSettingsTextPaddingText =
                 bottomSheetDialog.findViewById<TextView>(R.id.read_settings_text_padding_text)!!
+            val readSettingsTextPaddingTextTop =
+                bottomSheetDialog.findViewById<TextView>(R.id.read_settings_text_padding_text_top)!!
             val readSettingsTextSizeText =
                 bottomSheetDialog.findViewById<TextView>(R.id.read_settings_text_size_text)!!
             val readSettingsTextFontText = bottomSheetDialog.findViewById<TextView>(R.id.read_settings_text_font_text)!!
@@ -1680,11 +1797,26 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 override fun onStopTrackingTouch(seekBar: SeekBar?) {}
             })
 
-            readSettingsTextPaddingText.setOnLongClickListener {
+            readSettingsTextPaddingTop.max = 50
+            readSettingsTextPaddingTop.progress = getTextPaddingTop()
+            readSettingsTextPaddingTop.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    setTextPaddingTop(progress)
+                    stopTTS()
+
+                    updateAllTextOnDismiss = true
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+
+            readSettingsTextPaddingTextTop.setOnLongClickListener {
                 it.popupMenu(items = listOf(Pair(R.string.reset_value, 0)), selectedItemId = null) {
                     if (itemId == 0) {
-                        it.context?.removeKey(EPUB_TEXT_PADDING)
-                        readSettingsTextPadding.progress = getTextPadding()
+                        it.context?.removeKey(EPUB_TEXT_PADDING_TOP)
+                        readSettingsTextPadding.progress = getTextPaddingTop()
                     }
                 }
                 return@setOnLongClickListener true
@@ -1856,6 +1988,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
         read_scroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->
             checkTTSRange(scrollY)
+            read_temp_bottom_margin?.visibility = View.GONE
 
             setKey(EPUB_CURRENT_POSITION_SCROLL, getBookTitle(), scrollY)
 
