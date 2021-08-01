@@ -332,26 +332,43 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         }
     }
 
+    private fun getSpeakIdFromIndex(id: Int, startIndex: Int, endIndex: Int): String {
+        return "$speakId|$startIndex:$endIndex"
+    }
+
+    private fun getSpeakIdFromLine(id: Int, line: TTSLine): String {
+        return getSpeakIdFromIndex(id, line.startIndex, line.endIndex)
+    }
+
     // USING Queue system because it is faster by about 0.2s
     private var currentTTSQueue: String? = null
-    private fun speakOut(msg: String, msgQueue: String? = null) {
+    private fun speakOut(
+        ttsLine: TTSLine,
+        ttsLineQueue: TTSLine?,
+    ) {
         canSpeak = false
-        //println("GOT $msg | ${msgQueue ?: "NULL"}")
-        if (msg.isEmpty() || msg.isBlank()) {
+        if (ttsLine.speakOutMsg.isEmpty() || ttsLine.speakOutMsg.isBlank()) {
             showMessage("No data")
             return
         }
         if (tts != null) {
-            if (currentTTSQueue != msg) {
+            if (currentTTSQueue != ttsLine.speakOutMsg) {
                 speakId++
-                tts!!.speak(msg, TextToSpeech.QUEUE_FLUSH, null, speakId.toString())
-                //println("FLUSH $msg")
+                tts!!.speak(
+                    ttsLine.speakOutMsg,
+                    TextToSpeech.QUEUE_FLUSH,
+                    null,
+                    getSpeakIdFromLine(speakId, ttsLine)
+                )
             }
-            if (msgQueue != null) {
-                speakId++
-                tts!!.speak(msgQueue, TextToSpeech.QUEUE_ADD, null, speakId.toString())
-                currentTTSQueue = msgQueue
-                //println("ADD $msgQueue")
+            if (ttsLineQueue != null) {
+                tts!!.speak(
+                    ttsLineQueue.speakOutMsg,
+                    TextToSpeech.QUEUE_ADD,
+                    null,
+                    getSpeakIdFromLine(speakId + 1, ttsLineQueue)
+                )
+                currentTTSQueue = ttsLineQueue.speakOutMsg
             }
         }
     }
@@ -707,7 +724,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         } else {
                             for (t in textLines!!) {
                                 if (t.topPosition > mainScrollY + readHeight) {
-                                    read_scroll.scrollTo(0, t.topPosition - 7.toPx)
+                                    read_scroll.scrollTo(0, t.topPosition - 6.toPx)
                                     read_scroll.fling(0)
                                     return true
                                 }
@@ -724,7 +741,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         } else {
                             for (t in textLines!!) {
                                 if (t.topPosition > mainScrollY - read_scroll.height) {
-                                    read_scroll.scrollTo(0, t.topPosition - 7.toPx)
+                                    read_scroll.scrollTo(0, t.topPosition - 6.toPx)
                                     read_scroll.fling(0)
                                     return true
                                 }
@@ -913,8 +930,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             // CLEAN TEXT IS JUST TO MAKE SURE THAT THE TTS SPEAKER DOES NOT SPEAK WRONG, MUST BE SAME LENGTH
             val cleanText = text
                 .replace("\\.([A-z])".toRegex(), ",$1")//\.([A-z]) \.([^-\s])
-                .replace("([0-9])\\.([0-9])".toRegex(), "$1,$2") // GOOD FOR DECIMALS
-                .replace(" (Dr|Mr)\\. ([A-Z])".toRegex(), " $1, $2") // Doctor or Mister
+                .replace("([0-9])([.:])([0-9])".toRegex(), "$1,$3") // GOOD FOR DECIMALS
+                .replace("([ \"“‘'])(Dr|Mr|Mrs)\\. ([A-Z])".toRegex(), "$1$2, $3") // Doctor or Mister
 
             val ttsLines = ArrayList<TTSLine>()
 
@@ -1048,9 +1065,6 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     private fun isValidSpeakOutMsg(msg: String): Boolean {
-        if (msg.matches("\\?+".toRegex())) {
-            return false
-        }
         return msg.isNotEmpty() && msg.isNotBlank() && msg.contains("[A-z0-9]".toRegex())
     }
 
@@ -1113,24 +1127,23 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         checkTTSRange(read_scroll.scrollY, true)
                     }
 
-                    setHighLightedText(read_text, line.startIndex, line.endIndex)
+                    if (isValidSpeakOutMsg(line.speakOutMsg)) {
+                        read_text?.let {
+                            setHighLightedText(it, line.startIndex, line.endIndex)
+                        }
 
-                    val msg = line.speakOutMsg
-                    if (isValidSpeakOutMsg(msg)) {
-                        //    println("SPEAKOUTMS " + System.currentTimeMillis())
-                        speakOut(msg, nextLine?.speakOutMsg)
+                        speakOut(line, nextLine)
                     }
 
-                    if (msg.isEmpty()) {
-                        delay(500)
-                        canSpeak = true
-                    }
                     while (!canSpeak) {
                         delay(10)
                         if (!isTTSRunning) return@launch
                     }
                     //println("NEXTENDEDMS " + System.currentTimeMillis())
                     readFromIndex++
+                    if (speakId == latestTTSSpeakOutId) {
+                        readFromIndex++
+                    }
                 } catch (e: Exception) {
                     println(e)
                     return@launch
@@ -1415,6 +1428,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             }
         }
     }
+
+    var latestTTSSpeakOutId = Int.MIN_VALUE
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -1779,7 +1794,20 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                                 }
 
                                 override fun onStart(utteranceId: String) {
-                                    //  println("STARTMS: " + System.currentTimeMillis())
+                                    val highlightResult = Regex("([0-9]*)|([0-9]*):([0-9]*)").matchEntire(utteranceId)
+                                    if (highlightResult == null || (highlightResult.groupValues.size < 4)) return
+                                    try {
+                                        latestTTSSpeakOutId = highlightResult.groupValues[1].toIntOrNull() ?: return
+                                        val startIndex = highlightResult.groupValues[2].toIntOrNull() ?: return
+                                        val endIndex = highlightResult.groupValues[3].toIntOrNull() ?: return
+                                        runOnUiThread {
+                                            read_text?.let {
+                                                setHighLightedText(it, startIndex, endIndex)
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
                                 }
                             })
                             startTTS()
@@ -1938,8 +1966,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 }
             }
 
-            if(!isFromEpub && quickdata.data.size <= 0) {
-                Toast.makeText(this, R.string.no_chapters_found,Toast.LENGTH_SHORT).show()
+            if (!isFromEpub && quickdata.data.size <= 0) {
+                Toast.makeText(this, R.string.no_chapters_found, Toast.LENGTH_SHORT).show()
                 finish()
                 return@main
             }

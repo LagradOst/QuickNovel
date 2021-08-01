@@ -148,7 +148,6 @@ class MainActivity : AppCompatActivity() {
         activity = this
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
 
-
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
 
         val themeName = settingsManager.getString("theme", "Dark")
