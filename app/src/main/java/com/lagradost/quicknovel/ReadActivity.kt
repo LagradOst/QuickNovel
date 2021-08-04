@@ -791,7 +791,23 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         }
     }
 
+    override fun onBackPressed() {
+        super.onBackPressed()
+        kill()
+    }
+
+    private fun kill() {
+        with(NotificationManagerCompat.from(this)) { // KILLS NOTIFICATION
+            cancel(TTS_NOTIFICATION_ID)
+        }
+        finish()
+    }
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            kill()
+            return true
+        }
         if (scrollWithVol && isHidden && (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP)) {
             val offset = getLineOffset()
             when (keyCode) {
@@ -803,6 +819,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
                     if (read_scroll.scrollY >= getScrollRange()) {
                         loadNextChapter()
+                        return true
                     }
                     for (t in textLines!!) {
                         if (t.bottomPosition + offset > mainScrollY + read_scroll.height) {
@@ -820,14 +837,17 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         }
                     }
                     loadNextChapter()
+                    return true
                 }
                 KeyEvent.KEYCODE_VOLUME_UP -> {
                     if (isTTSRunning) {
                         prevTTSLine()
+                        return true
                     }
 
                     if (read_scroll.scrollY <= 0) {
                         loadPrevChapter()
+                        return true
                     }
                     for ((index, textLine) in textLines!!.withIndex()) {
                         if (textLine.topPosition + offset >= mainScrollY) { // finds current top
@@ -846,9 +866,9 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         }
                     }
                     loadPrevChapter()
+                    return true
                 }
             }
-            return true
         }
         return false
     }
@@ -1143,18 +1163,18 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         if (textLines == null || textLines?.size == 0) {
             loadTextLines()
         }
-        if (textLines == null) return null
-        val text = textLines!!
+        val text = textLines ?: return null
+
         var max: Int? = null
         var min: Int? = null
         for (t in text) {
-            if (t.startIndex > startIndex && max == null) {
+            if (t.endIndex > startIndex && max == null) {
                 max = t.topPosition
             }
             if (t.endIndex > endIndex && min == null) {
                 min = t.bottomPosition
             }
-            if (max != null && min != null) return ScrollLine(min + (read_overlay?.height ?: 0), max)
+            if (max != null && min != null) return ScrollLine(min, max)
         }
         return null
     }
@@ -1268,19 +1288,21 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     private fun checkTTSRange(scrollY: Int, scrollToTop: Boolean = false) {
         try {
             if (!lockTTSOnPaused && isTTSPaused) return
-            if (maxScroll == null || minScroll == null) return
-            val min = minScroll!!
-            val max = maxScroll!!
+            val min = minScroll
+            val max = maxScroll
+            if (min == null || max == null) return
+            val offset = getLineOffset()
+
             if (lockTTS && isTTSRunning) {
-                if (read_scroll.height + scrollY - read_title_text.height - 0 <= min) { // FOR WHEN THE TEXT IS ON THE BOTTOM OF THE SCREEN
+                if (read_scroll.height + scrollY - offset - 0 <= min) { // FOR WHEN THE TEXT IS ON THE BOTTOM OF THE SCREEN
                     if (scrollToTop) {
-                        read_scroll.scrollTo(0, max + read_title_text.height)
+                        read_scroll.scrollTo(0, max + offset)
                     } else {
-                        read_scroll.scrollTo(0, min - read_scroll.height + read_title_text.height + 0)
+                        read_scroll.scrollTo(0, min - read_scroll.height + offset + 0)
                     }
                     read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
-                } else if (scrollY - read_title_text.height >= max) { // WHEN TEXT IS ON TOP
-                    read_scroll.scrollTo(0, max + read_title_text.height)
+                } else if (scrollY - offset >= max) { // WHEN TEXT IS ON TOP
+                    read_scroll.scrollTo(0, max + offset)
                     read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
                 }
             }
@@ -1590,14 +1612,14 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         val data = intent.data
 
         if (data == null) {
-            finish()
+            kill()
             return
         }
 
         // THIS WAY YOU CAN OPEN FROM FILE OR FROM APP
         val input = contentResolver.openInputStream(data)
         if (input == null) {
-            finish()
+            kill()
             return
         }
 
@@ -1812,14 +1834,13 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 override fun onStopTrackingTouch(seekBar: SeekBar?) {}
             })
 
-            readSettingsTextPaddingTextTop.setOnLongClickListener {
-                it.popupMenu(items = listOf(Pair(R.string.reset_value, 0)), selectedItemId = null) {
-                    if (itemId == 0) {
+            readSettingsTextPaddingTextTop.setOnClickListener {
+                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
+                    if (itemId == 1) {
                         it.context?.removeKey(EPUB_TEXT_PADDING_TOP)
-                        readSettingsTextPadding.progress = getTextPaddingTop()
+                        readSettingsTextPaddingTop?.progress = getTextPaddingTop()
                     }
                 }
-                return@setOnLongClickListener true
             }
 
             readSettingsTextPaddingText.setOnClickListener {
@@ -1972,10 +1993,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
         read_toolbar.setNavigationIcon(R.drawable.ic_baseline_arrow_back_24)
         read_toolbar.setNavigationOnClickListener {
-            with(NotificationManagerCompat.from(this)) { // KILLS NOTIFICATION
-                cancel(TTS_NOTIFICATION_ID)
-            }
-            finish() // KILLS ACTIVITY
+            kill() // KILLS ACTIVITY
         }
         read_overflow_progress.max = OVERFLOW_NEXT_CHAPTER_DELTA
 
@@ -2101,7 +2119,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
             if (!isFromEpub && quickdata.data.size <= 0) {
                 Toast.makeText(this, R.string.no_chapters_found, Toast.LENGTH_SHORT).show()
-                finish()
+                kill()
                 return@main
             }
 
