@@ -385,9 +385,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                     val line = globalTTSLines[readFromIndex]
                     val textLine = getMinMax(line.startIndex, line.endIndex)
                     if (textLine != null) {
-
-                        return textLine.max + (read_title_text?.height
-                            ?: 0) - (read_toolbar_holder?.height ?: 0)//dimensionFromAttribute(R.attr.actionBarSize))
+                        return textLine.max + getLineOffset() - (read_toolbar_holder?.height
+                            ?: 0)//dimensionFromAttribute(R.attr.actionBarSize))
                     }
                 }
             } catch (e: Exception) {
@@ -519,8 +518,9 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         .setContentTitle(getBookTitle())
                         .setContentText(chapterName)
 
-                        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                        .setPriority(NotificationCompat.PRIORITY_LOW)
                         .setOnlyAlertOnce(true)
+                        .setShowWhen(false)
                         .setOngoing(true)
 
 
@@ -1201,8 +1201,12 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             if (index != null) {
                 readFromIndex = index
             } else {
+                val offset = getLineOffset()
+                val height = (read_toolbar_holder?.height ?: 0)
                 for ((startIndex, line) in globalTTSLines.withIndex()) {
-                    if (read_scroll.scrollY <= getMinMax(line.startIndex, line.endIndex)?.max ?: 0) {
+                    if (read_scroll.scrollY <= (getMinMax(line.startIndex, line.endIndex)?.max
+                            ?: 0) + offset - height
+                    ) {
                         readFromIndex = startIndex
                         break
                     }

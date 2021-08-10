@@ -100,12 +100,13 @@ class ReadLightNovelProvider : MainAPI() {
             content.select("small.ads-title").remove()
             content.select("script").remove()
             content.select("div").remove()
+            content.select("p.hid").remove()
 
             for (i in content.allElements) {
-                if (i.tagName() == "p" && i.text().contains("lightnovelpub")) {
+                if (i.tagName() == "p" && (i.text().contains("lightnovelpub") || i.text().contains("readlightnovel"))) {
                     i.remove()
                 }
-                else if(i.classNames().contains("hidden")) {
+                else if(i.classNames().contains("hidden") || i.classNames().contains("hid")) {
                     i.remove()
                 }
             }

@@ -1,15 +1,19 @@
 package com.lagradost.quicknovel
 
 import android.Manifest
-import android.app.*
-import android.content.Context
-import android.content.Intent
+import android.app.Activity
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.*
 import android.content.Intent.*
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
-import android.webkit.MimeTypeMap
+import android.os.Environment
+import android.provider.MediaStore
+import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -18,8 +22,6 @@ import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.preference.PreferenceManager
 import com.bumptech.glide.Glide
-import com.lagradost.quicknovel.BookDownloader.getQuickChapter
-import com.lagradost.quicknovel.BookDownloader.turnToEpub
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.DataStore.removeKey
@@ -36,6 +38,7 @@ import nl.siegmann.epublib.epub.EpubWriter
 import nl.siegmann.epublib.service.MediatypeService
 import java.io.File
 import java.io.FileOutputStream
+import java.io.OutputStream
 import java.lang.Thread.sleep
 
 
@@ -204,14 +207,24 @@ object BookDownloader {
             requestRW()
             if (!checkWrite()) return false
         }
+        val context = this
 
-        val bookFile =
-            File(
-                android.os.Environment.getExternalStorageDirectory().path +
-                        "${fs}Download${fs}Epub${fs}",
-                "${sanitizeFilename(name)}.epub"
-            )
-        return bookFile.exists()
+        val relativePath = (Environment.DIRECTORY_DOWNLOADS + "${fs}Epub${fs}")
+        val displayName = "${sanitizeFilename(name)}.epub"
+
+        if (isScopedStorage()) {
+            val cr = context.contentResolver ?: return false
+            val fileUri =
+                cr.getExistingDownloadUriOrNullQ(relativePath, displayName) ?: return false
+            val fileLength = cr.getFileLength(fileUri) ?: return false
+            if (fileLength == 0L) return false
+            return true
+        } else {
+            val normalPath = "${Environment.getExternalStorageDirectory()}${fs}$relativePath$displayName"
+
+            val bookFile = File(normalPath)
+            return bookFile.exists()
+        }
     }
 
     fun Activity.openQuickStream(uri: Uri?) {
@@ -232,13 +245,21 @@ object BookDownloader {
         ) {
             val myIntent = Intent(this, ReadActivity::class.java)
 
-            val bookFile =
-                File(
-                    android.os.Environment.getExternalStorageDirectory().path +
-                            "${fs}Download${fs}Epub${fs}",
-                    "${sanitizeFilename(name)}.epub"
-                )
-            myIntent.setDataAndType(bookFile.toUri(), "application/epub+zip")
+            val relativePath = (Environment.DIRECTORY_DOWNLOADS + "${fs}Epub${fs}")
+            val displayName = "${sanitizeFilename(name)}.epub"
+
+            val context = this
+
+            val fileUri = if (isScopedStorage()) {
+                val cr = context.contentResolver ?: return false
+                cr.getExistingDownloadUriOrNullQ(relativePath, displayName) ?: return false
+            } else {
+                val normalPath = "${Environment.getExternalStorageDirectory()}${fs}$relativePath$displayName"
+
+                val bookFile = File(normalPath)
+                bookFile.toUri()
+            }
+            myIntent.setDataAndType(fileUri, "application/epub+zip")
 
             startActivity(myIntent)
             return true
@@ -249,12 +270,11 @@ object BookDownloader {
             if (!checkWrite()) return false
         }
 
-        val bookFile =
-            File(
-                android.os.Environment.getExternalStorageDirectory().path +
-                        "${fs}Download${fs}Epub${fs}",
-                "${sanitizeFilename(name)}.epub"
-            )
+        val context = this
+
+        val relativePath = (Environment.DIRECTORY_DOWNLOADS + "${fs}Epub${fs}")
+        val displayName = "${sanitizeFilename(name)}.epub"
+
         try {
             val intent = Intent()
             intent.action = ACTION_VIEW
@@ -262,17 +282,31 @@ object BookDownloader {
             intent.addFlags(FLAG_GRANT_PREFIX_URI_PERMISSION)
             intent.addFlags(FLAG_GRANT_READ_URI_PERMISSION)
             intent.addFlags(FLAG_GRANT_WRITE_URI_PERMISSION)
-            val mime = MimeTypeMap.getSingleton()
-            val ext: String = bookFile.name.substring(bookFile.name.lastIndexOf(".") + 1)
-            val type = mime.getMimeTypeFromExtension(ext)
+            // val mime = MimeTypeMap.getSingleton()
+            //  val ext: String = ".epub" //bookFile.name.substring(bookFile.name.lastIndexOf(".") + 1)
+            val type = "application/epub+zip"//mime.getMimeTypeFromExtension(ext)
 
-            intent.setDataAndType(
-                FileProvider.getUriForFile(
-                    this,
-                    this.applicationContext.packageName + ".provider",
-                    bookFile
-                ), type
-            ) // THIS IS NEEDED BECAUSE A REGULAR INTENT WONT OPEN MOONREADER
+            if (isScopedStorage()) {
+                val cr = context.contentResolver ?: return false
+
+                val fileUri = cr.getExistingDownloadUriOrNullQ(relativePath, displayName) ?: return false
+                intent.setDataAndType(
+                    fileUri, type
+                )
+            } else {
+                val normalPath = "${Environment.getExternalStorageDirectory()}${fs}$relativePath$displayName"
+
+                val bookFile = File(normalPath)
+
+                intent.setDataAndType(
+                    FileProvider.getUriForFile(
+                        this,
+                        this.applicationContext.packageName + ".provider",
+                        bookFile
+                    ), type
+                ) // THIS IS NEEDED BECAUSE A REGULAR INTENT WONT OPEN MOONREADER
+            }
+
             this.startActivity(intent)
             //this.startActivityForResult(intent,1337) // SEE @moonreader
         } catch (e: Exception) {
@@ -289,7 +323,7 @@ object BookDownloader {
 
     data class QuickStreamData(
         val meta: QuickStreamMetaData,
-        val poster : String?,
+        val poster: String?,
         val data: ArrayList<ChapterData>,
     )
 
@@ -333,7 +367,7 @@ object BookDownloader {
 
     fun Activity.createQuickStream(data: QuickStreamData): Uri? {
         try {
-            if(data.data.size <= 0) {
+            if (data.data.size <= 0) {
                 return null
             }
 
@@ -345,7 +379,7 @@ object BookDownloader {
             val fileName = getFilePath(data.meta, -1)
 
             val outputFile = File(outputDir, fileName)
-            outputFile.parentFile.mkdirs()
+            outputFile.parentFile?.mkdirs()
             outputFile.createNewFile()
             outputFile.writeText(mapper.writeValueAsString(data))
             return outputFile.toUri()
@@ -354,55 +388,157 @@ object BookDownloader {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun ContentResolver.getExistingDownloadUriOrNullQ(relativePath: String, displayName: String): Uri? {
+        try {
+            val projection = arrayOf(
+                MediaStore.MediaColumns._ID,
+                //MediaStore.MediaColumns.DISPLAY_NAME,   // unused (for verification use only)
+                //MediaStore.MediaColumns.RELATIVE_PATH,  // unused (for verification use only)
+            )
+
+            val selection =
+                "${MediaStore.MediaColumns.RELATIVE_PATH}='$relativePath' AND " + "${MediaStore.MediaColumns.DISPLAY_NAME}='$displayName'"
+
+            val result = this.query(
+                MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                projection, selection, null, null
+            )
+
+            result.use { c ->
+                if (c != null && c.count >= 1) {
+                    c.moveToFirst().let {
+                        val id = c.getLong(c.getColumnIndexOrThrow(MediaStore.MediaColumns._ID))
+                        /*
+                        val cDisplayName = c.getString(c.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME))
+                        val cRelativePath = c.getString(c.getColumnIndexOrThrow(MediaStore.MediaColumns.RELATIVE_PATH))*/
+
+                        return ContentUris.withAppendedId(
+                            MediaStore.Downloads.EXTERNAL_CONTENT_URI, id
+                        )
+                    }
+                }
+            }
+            return null
+        } catch (e: Exception) {
+            return null
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    fun ContentResolver.getFileLength(fileUri: Uri): Long? {
+        return try {
+            this.openFileDescriptor(fileUri, "r")
+                .use { it?.statSize ?: 0 }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun isScopedStorage(): Boolean {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+    }
+
     fun Activity.turnToEpub(author: String?, name: String, apiName: String): Boolean {
         if (!checkWrite()) {
             requestRW()
             if (!checkWrite()) return false
         }
 
-        val sApiName = sanitizeFilename(apiName)
-        val sAuthor = if (author == null) "" else sanitizeFilename(author)
-        val sName = sanitizeFilename(name)
-        val id = "$sApiName$sAuthor$sName".hashCode()
-        if (isTurningIntoEpub.containsKey(id)) return false
-        isTurningIntoEpub[id] = true
-        val book = Book()
-        val metadata = book.metadata
-        if (author != null) {
-            metadata.addAuthor(Author(author))
-        }
-        metadata.addTitle(name)
+        try {
+            val sApiName = sanitizeFilename(apiName)
+            val sAuthor = if (author == null) "" else sanitizeFilename(author)
+            val sName = sanitizeFilename(name)
+            val id = "$sApiName$sAuthor$sName".hashCode()
+            if (isTurningIntoEpub.containsKey(id)) return false
+            isTurningIntoEpub[id] = true
+            val book = Book()
+            val metadata = book.metadata
+            if (author != null) {
+                metadata.addAuthor(Author(author))
+            }
+            metadata.addTitle(name)
 
-        val posterFilepath =
-            filesDir.toString() + getFilenameIMG(sApiName, sAuthor, sName)
-        val pFile = File(posterFilepath)
-        if (pFile.exists()) {
-            book.coverImage = Resource(pFile.readBytes(), MediaType("cover", ".jpg"))
-        }
+            val posterFilepath =
+                filesDir.toString() + getFilenameIMG(sApiName, sAuthor, sName)
+            val pFile = File(posterFilepath)
+            if (pFile.exists()) {
+                book.coverImage = Resource(pFile.readBytes(), MediaType("cover", ".jpg"))
+            }
 
-        val stripHtml = getStripHtml()
-        var index = 0
-        while (true) {
-            val filepath =
-                filesDir.toString() + getFilename(sApiName, sAuthor, sName, index)
-            val chap = getChapter(filepath, index, stripHtml) ?: break
-            val chapter = Resource("id$index", chap.html.toByteArray(), "chapter$index.html", MediatypeService.XHTML)
-            book.addSection(chap.title, chapter)
-            index++
+            val stripHtml = getStripHtml()
+            var index = 0
+            while (true) {
+                val filepath =
+                    filesDir.toString() + getFilename(sApiName, sAuthor, sName, index)
+                val chap = getChapter(filepath, index, stripHtml) ?: break
+                val chapter =
+                    Resource("id$index", chap.html.toByteArray(), "chapter$index.html", MediatypeService.XHTML)
+                book.addSection(chap.title, chapter)
+                index++
+            }
+
+            val epubWriter = EpubWriter()
+
+            val fileStream: OutputStream
+
+            val relativePath = (Environment.DIRECTORY_DOWNLOADS + "${fs}Epub${fs}")
+            val displayName = "${sanitizeFilename(name)}.epub"
+
+            val context = this
+            if (isScopedStorage()) {
+                val cr = context.contentResolver ?: return false
+
+                val currentExistingFile =
+                    cr.getExistingDownloadUriOrNullQ(relativePath, displayName) // CURRENT FILE WITH THE SAME PATH
+
+                if (currentExistingFile != null) { // DELETE FILE IF FILE EXITS AND NOT RESUME
+                    val rowsDeleted = context.contentResolver.delete(currentExistingFile, null, null)
+                    if (rowsDeleted < 1) {
+                        println("ERROR DELETING FILE!!!")
+                    }
+                }
+
+                val contentUri =
+                    MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY) // USE INSTEAD OF MediaStore.Downloads.EXTERNAL_CONTENT_URI
+
+                val newFile = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
+                    put(MediaStore.MediaColumns.TITLE, name)
+                    put(MediaStore.MediaColumns.MIME_TYPE, "application/epub+zip")
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, relativePath)
+                }
+
+                val newFileUri = cr.insert(
+                    contentUri,
+                    newFile
+                ) ?: return false
+
+                fileStream = cr.openOutputStream(newFileUri, "w")
+                    ?: return false
+            } else {
+                val normalPath = "${Environment.getExternalStorageDirectory()}${fs}$relativePath$displayName"
+
+                // NORMAL NON SCOPED STORAGE FILE CREATION
+                val rFile = File(normalPath)
+                if (!rFile.exists()) {
+                    rFile.parentFile?.mkdirs()
+                    if (!rFile.createNewFile()) return false
+                } else {
+                    rFile.parentFile?.mkdirs()
+                    if (!rFile.delete()) return false
+                    if (!rFile.createNewFile()) return false
+                }
+                fileStream = FileOutputStream(rFile, false)
+            }
+
+            setKey(DOWNLOAD_EPUB_SIZE, id.toString(), book.contents.size)
+            epubWriter.write(book, fileStream)
+            isTurningIntoEpub.remove(id)
+            return true
+        } catch (e: Exception) {
+            return false
         }
-        val epubWriter = EpubWriter()
-        val bookFile =
-            File(
-                android.os.Environment.getExternalStorageDirectory().path +
-                        "${fs}Download${fs}Epub${fs}",
-                "${sanitizeFilename(name)}.epub"
-            )
-        bookFile.parentFile.mkdirs()
-        bookFile.createNewFile()
-        setKey(DOWNLOAD_EPUB_SIZE, id.toString(), book.contents.size)
-        epubWriter.write(book, FileOutputStream(bookFile))
-        isTurningIntoEpub.remove(id)
-        return true
     }
 
     fun Context.remove(author: String?, name: String, apiName: String) {
@@ -423,16 +559,17 @@ object BookDownloader {
                         "$fs"
                     )
                 )
-            if (dir.isDirectory) {
-                val children = dir.list()
-                for (i in children.indices) {
-                    File(dir, children[i]).delete()
-                }
-            }
 
             removeKey(DOWNLOAD_SIZE, id.toString())
             removeKey(DOWNLOAD_TOTAL, id.toString())
             downloadRemove.invoke(id)
+
+            if (dir.isDirectory) {
+                val children = dir.list() ?: return
+                for (i in children.indices) {
+                    File(dir, children[i]).delete()
+                }
+            }
         } catch (e: Exception) {
             println(e)
         }
@@ -444,7 +581,7 @@ object BookDownloader {
         if (rFile.exists()) {
             return 0
         }
-        rFile.parentFile.mkdirs()
+        rFile.parentFile?.mkdirs()
         if (rFile.isDirectory) rFile.delete()
         rFile.createNewFile()
         var page: String? = null
@@ -487,7 +624,7 @@ object BookDownloader {
                     val bytes = get.content
 
                     val pFile = File(posterFilepath)
-                    pFile.parentFile.mkdirs()
+                    pFile.parentFile?.mkdirs()
                     pFile.writeBytes(bytes)
                 }
             } catch (e: Exception) {
