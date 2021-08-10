@@ -386,7 +386,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                     val textLine = getMinMax(line.startIndex, line.endIndex)
                     if (textLine != null) {
                         return textLine.max + getLineOffset() - (read_toolbar_holder?.height
-                            ?: 0)//dimensionFromAttribute(R.attr.actionBarSize))
+                            ?: 0) + (reader_lin_container?.paddingTop ?: 0)//dimensionFromAttribute(R.attr.actionBarSize))
                     }
                 }
             } catch (e: Exception) {
@@ -522,7 +522,6 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         .setOnlyAlertOnce(true)
                         .setShowWhen(false)
                         .setOngoing(true)
-
 
                     val icon = withContext(Dispatchers.IO) { getBookBitmap() }
                     if (icon != null) builder.setLargeIcon(icon)
@@ -715,25 +714,6 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             true
         }
     }
-
-    /*if (read_scroll.height + scrollY - read_title_text.height - 0 <= min) { // FOR WHEN THE TEXT IS ON THE BOTTOM OF THE SCREEN
-                    if (scrollToTop) {
-                        read_scroll.scrollTo(0, max + read_title_text.height)
-                    } else {
-                        read_scroll.scrollTo(0, min - read_scroll.height + read_title_text.height + 0)
-                    }
-                    read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
-                } else if (scrollY - read_title_text.height >= max) { // WHEN TEXT IS ON TOP
-                    read_scroll.scrollTo(0, max + read_title_text.height)
-                    read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
-                }*/
-/*    val textLine = getMinMax(currentTTSRangeStartIndex, currentTTSRangeEndIndex)
-            minScroll = textLine?.min
-            maxScroll = textLine?.max*/
-    private fun getPosition(line: TextLine): Int {
-        return line.bottomPosition//+ line.lineHight / 8
-    }
-
 
     private fun View.fixLine(offset: Int) {
         // this.setPadding(0, 200, 0, 0)
@@ -1202,10 +1182,12 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 readFromIndex = index
             } else {
                 val offset = getLineOffset()
-                val height = (read_toolbar_holder?.height ?: 0)
+                val topPadding = reader_lin_container?.paddingTop ?: 0
+                val height = read_toolbar_holder?.height ?: 0
+
                 for ((startIndex, line) in globalTTSLines.withIndex()) {
                     if (read_scroll.scrollY <= (getMinMax(line.startIndex, line.endIndex)?.max
-                            ?: 0) + offset - height
+                            ?: 0) + offset - height + topPadding
                     ) {
                         readFromIndex = startIndex
                         break
