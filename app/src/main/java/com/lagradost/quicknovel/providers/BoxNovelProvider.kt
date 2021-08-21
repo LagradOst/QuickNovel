@@ -20,8 +20,8 @@ class BoxNovelProvider : MainAPI() {
     override val iconBackgroundId: Int
         get() = R.color.boxNovelColor
 
-    override val tags: ArrayList<Pair<String, String>>
-        get() = arrayListOf(
+    override val tags: List<Pair<String, String>>
+        get() = listOf(
             Pair("All", ""),
             Pair("Completed", "completed"),
             Pair("Action", "action"),
@@ -55,8 +55,8 @@ class BoxNovelProvider : MainAPI() {
             Pair("Xuanhuan", "xuanhuan"),
         )
 
-    override val orderBys: ArrayList<Pair<String, String>>
-        get() = arrayListOf(
+    override val orderBys: List<Pair<String, String>>
+        get() = listOf(
             Pair("Nothing", ""),
             Pair("New", "new-manga"),
             Pair("Most Views", "views"),
@@ -108,23 +108,22 @@ class BoxNovelProvider : MainAPI() {
     }
 
     override fun loadHtml(url: String): String? {
-        return try {
-            val response = khttp.get(url)
-            val document = Jsoup.parse(response.text)
-            val res = document.selectFirst("div.text-left")
-            if (res.html() == "") {
-                return null
-            }
-            res.html()
-                .replace("(adsbygoogle = window.adsbygoogle || []).push({});", "")
-                .replace("Read latest Chapters at BoxNovel.Com Only",
-                    "") // HAVE NOT TESTED THIS ONE, COPY FROM WUXIAWORLD
-        } catch (e: Exception) {
-            null
+        val response = khttp.get(url)
+        val document = Jsoup.parse(response.text)
+        val res = document.selectFirst("div.text-left")
+        if (res.html() == "") {
+            return null
         }
+        return res.html()
+            .replace("(adsbygoogle = window.adsbygoogle || []).push({});", "")
+            .replace(
+                "Read latest Chapters at BoxNovel.Com Only",
+                ""
+            ) // HAVE NOT TESTED THIS ONE, COPY FROM WUXIAWORLD
+
     }
 
-    override fun search(query: String): ArrayList<SearchResponse> {
+    override fun search(query: String): List<SearchResponse> {
         val response = khttp.get("$mainUrl/?s=$query&post_type=wp-manga")
 
         val document = Jsoup.parse(response.text)

@@ -6,6 +6,35 @@
 >
     <PreferenceCategory />
     <PreferenceCategory
+            android:key="search"
+            android:title="Search"
+            app:isPreferenceVisible="true"
+    >
+        <SwitchPreference
+                android:icon="@drawable/search_icon_white"
+                app:key="advanced_search"
+                android:title="Advanced Search"
+                android:summary="Gives you the search results separated by provider"
+                app:defaultValue="true"
+        />
+        <MultiSelectListPreference
+                app:icon="@drawable/ic_baseline_cloud_24"
+                android:key="@string/search_providers_list_key"
+                android:title="Search Providers"
+                app:useSimpleSummaryProvider="true" />
+        <ListPreference
+                app:icon="@drawable/ic_baseline_grid_view_24"
+                android:key="@string/grid_format_key"
+                android:title="Display Mode"
+                app:defaultValue="grid"
+                app:useSimpleSummaryProvider="true"
+                android:entries="@array/GridFormat"
+                android:entryValues="@array/GridFormatData"
+        />
+    </PreferenceCategory>
+
+
+    <PreferenceCategory
             android:key="general"
             android:title="General"
             app:isPreferenceVisible="true"
@@ -16,11 +45,6 @@
                 android:key="@string/provider_list_key"
                 android:title="Active Provider"
                 app:useSimpleSummaryProvider="true" />-->
-        <MultiSelectListPreference
-                app:icon="@drawable/ic_baseline_cloud_24"
-                android:key="@string/search_providers_list_key"
-                android:title="Search Providers"
-                app:useSimpleSummaryProvider="true" />
         <ListPreference
                 app:icon="@drawable/ic_baseline_star_24"
                 android:key="@string/rating_format_key"
@@ -29,15 +53,6 @@
                 app:useSimpleSummaryProvider="true"
                 android:entries="@array/RatingFormat"
                 android:entryValues="@array/RatingFormatData"
-        />
-        <ListPreference
-                app:icon="@drawable/ic_baseline_grid_view_24"
-                android:key="@string/grid_format_key"
-                android:title="Display Mode"
-                app:defaultValue="grid"
-                app:useSimpleSummaryProvider="true"
-                android:entries="@array/GridFormat"
-                android:entryValues="@array/GridFormatData"
         />
         <ListPreference
                 app:icon="@drawable/ic_baseline_grid_view_24"
@@ -114,6 +129,13 @@
                 app:summary="https://github.com/Blatzar/shiro-app">
             <intent android:action="android.intent.action.VIEW"
                     android:data="https://github.com/Blatzar/shiro-app"/>
+        </Preference>
+        <Preference
+                android:title="Anime and Movie app by the same devs"
+                android:icon="@drawable/cs3_cloud"
+                app:summary="https://github.com/LagradOst/CloudStream-3">
+            <intent android:action="android.intent.action.VIEW"
+                    android:data="https://github.com/LagradOst/CloudStream-3"/>
         </Preference>
         <Preference
                 android:title="Join Discord"

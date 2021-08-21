@@ -18,14 +18,14 @@ class ReadLightNovelProvider : MainAPI() {
     override val iconBackgroundId: Int
         get() = R.color.readLightNovelColor
 
-    override val orderBys: ArrayList<Pair<String, String>>
-        get() = arrayListOf(
+    override val orderBys: List<Pair<String, String>>
+        get() = listOf(
             Pair("Top Rated", "top_rated"),
             Pair("Most Viewed", "view")
         )
 
-    override val tags: ArrayList<Pair<String, String>>
-        get() = arrayListOf(
+    override val tags: List<Pair<String, String>>
+        get() = listOf(
             Pair("All", ""),
             Pair("Action", "action"),
             Pair("Adventure", "adventure"),
@@ -80,45 +80,41 @@ class ReadLightNovelProvider : MainAPI() {
             val cUrl = nameHeader.attr("href")
             val name = nameHeader.text()
             val posterUrl = content.selectFirst("> div.top-novel-cover > a > img").attr("src")
-           /* val tags = ArrayList(
-                content.select("> div.top-novel-body > div.novel-item > div.content")
-                    .last().select("> ul > li > a").map { t -> t.text() })*/
+            /* val tags = ArrayList(
+                 content.select("> div.top-novel-body > div.novel-item > div.content")
+                     .last().select("> ul > li > a").map { t -> t.text() })*/
             returnValue.add(SearchResponse(name, fixUrl(cUrl), fixUrl(posterUrl), null, null, this.name)) //tags
         }
         return HeadMainPageResponse(url, returnValue)
     }
 
     override fun loadHtml(url: String): String? {
-        return try {
-            val response = khttp.get(url)
-            val document = Jsoup.parse(response.text)
-            val content = document.selectFirst("div.chapter-content3 > div.desc")
-            //content.select("div").remove()
-            content.select("div.alert").remove()
-            content.select("#podium-spot").remove()
-            content.select("iframe").remove()
-            content.select("small.ads-title").remove()
-            content.select("script").remove()
-            content.select("div").remove()
-            content.select("p.hid").remove()
+        val response = khttp.get(url)
+        val document = Jsoup.parse(response.text)
+        val content = document.selectFirst("div.chapter-content3 > div.desc")
+        //content.select("div").remove()
+        content.select("div.alert").remove()
+        content.select("#podium-spot").remove()
+        content.select("iframe").remove()
+        content.select("small.ads-title").remove()
+        content.select("script").remove()
+        content.select("div").remove()
+        content.select("p.hid").remove()
 
-            for (i in content.allElements) {
-                if (i.tagName() == "p" && (i.text().contains("lightnovelpub") || i.text().contains("readlightnovel"))) {
-                    i.remove()
-                }
-                else if(i.classNames().contains("hidden") || i.classNames().contains("hid")) {
-                    i.remove()
-                }
+        for (i in content.allElements) {
+            if (i.tagName() == "p" && (i.text().contains("lightnovelpub") || i.text().contains("readlightnovel"))) {
+                i.remove()
+            } else if (i.classNames().contains("hidden") || i.classNames().contains("hid")) {
+                i.remove()
             }
-
-            content.html()
-        } catch (e: Exception) {
-            null
         }
+
+        return content.html()
     }
 
-    override fun search(query: String): ArrayList<SearchResponse> {
-        val response = khttp.post("$mainUrl/search/autocomplete",
+    override fun search(query: String): List<SearchResponse> {
+        val response = khttp.post(
+            "$mainUrl/search/autocomplete",
             headers = mapOf(
                 "referer" to mainUrl,
                 "x-requested-with" to "XMLHttpRequest",
@@ -126,7 +122,8 @@ class ReadLightNovelProvider : MainAPI() {
                 "accept" to "*/*",
                 "user-agent" to USER_AGENT
             ),
-            data = mapOf("q" to query))
+            data = mapOf("q" to query)
+        )
         val document = Jsoup.parse(response.text)
         val headers = document.select("li > a")
         if (headers.size <= 0) return ArrayList()
@@ -235,6 +232,7 @@ class ReadLightNovelProvider : MainAPI() {
             views,
             synopsis,
             tags,
-            status)
+            status
+        )
     }
 }

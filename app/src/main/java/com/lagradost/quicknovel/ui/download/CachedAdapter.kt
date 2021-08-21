@@ -110,14 +110,12 @@ class CachedAdapter(
                 main {
                     val data = withContext(Dispatchers.IO) {
                         val api = Apis.getApiFromName(card.apiName)
-                        safeApiCall {
-                            api.load(card.source)
-                        }
+                        api.load(card.source)
                     }
                     if (data is Resource.Success) {
                         val res = data.value
 
-                        if (res.data.size <= 0) {
+                        if (res.data.isEmpty()) {
                             Toast.makeText(localActivity, R.string.no_chapters_found, Toast.LENGTH_SHORT).show()
                             return@main
                         }

@@ -10,7 +10,7 @@ class ReadNovelFullProvider : MainAPI() {
     override val name: String
         get() = "ReadNovelFull"
 
-    override fun search(query: String): ArrayList<SearchResponse> {
+    override fun search(query: String): List<SearchResponse> {
         val response = khttp.get("$mainUrl/search?keyword=$query")
 
         val document = Jsoup.parse(response.text)
@@ -30,13 +30,9 @@ class ReadNovelFullProvider : MainAPI() {
     }
 
     override fun loadHtml(url: String): String? {
-        return try {
-            val response = khttp.get(url)
-            val document = Jsoup.parse(response.text)
-            document.selectFirst("div#chr-content").html().textClean
-        } catch (e: Exception) {
-            null
-        }
+        val response = khttp.get(url)
+        val document = Jsoup.parse(response.text)
+        return document.selectFirst("div#chr-content").html().textClean
     }
 
     override fun load(url: String): LoadResponse {
@@ -62,7 +58,7 @@ class ReadNovelFullProvider : MainAPI() {
 
         fun getData(valueId: String): Element? {
             for (i in infoMetas) {
-                if(i.selectFirst("> h3")?.text() == valueId) {
+                if (i.selectFirst("> h3")?.text() == valueId) {
                     return i
                 }
             }
@@ -87,14 +83,14 @@ class ReadNovelFullProvider : MainAPI() {
         return LoadResponse(
             url,
             title,
-            ArrayList(items),
+            items,
             author,
             poster,
             rating,
             votes,
             null,
             syno,
-            ArrayList(tags),
+            tags,
             status
         )
     }

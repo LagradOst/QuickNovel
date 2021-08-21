@@ -11,20 +11,16 @@ class BestLightNovelProvider : MainAPI() {
     override val mainUrl: String get() = "https://bestlightnovel.com"
 
     override fun loadHtml(url: String): String? {
-        return try {
-            val response = khttp.get(url)
-            val document = Jsoup.parse(response.text)
-            val res = document.selectFirst("div.vung_doc")
-            if (res.html() == "") {
-                return null
-            }
-            res.html().textClean
-        } catch (e: Exception) {
-            null
+        val response = khttp.get(url)
+        val document = Jsoup.parse(response.text)
+        val res = document.selectFirst("div.vung_doc")
+        if (res.html() == "") {
+            return null
         }
+        return res.html().textClean
     }
 
-    override fun search(query: String): ArrayList<SearchResponse> {
+    override fun search(query: String): List<SearchResponse> {
         val response = khttp.get("$mainUrl/search_novels/${query.replace(' ', '_')}")
 
         val document = Jsoup.parse(response.text)

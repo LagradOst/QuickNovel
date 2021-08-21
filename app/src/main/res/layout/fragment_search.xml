@@ -118,6 +118,11 @@
             android:paddingEnd="8dp"
             android:id="@+id/cardSpace"
             android:orientation="vertical"
-    >
-    </com.lagradost.quicknovel.widget.AutofitRecyclerView>
+    />
+    <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/search_master_recycler"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            tools:listitem="@layout/homepage_parent"
+    />
 </LinearLayout>

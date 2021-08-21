@@ -9,14 +9,14 @@ abstract class MainAPI {
     open val name = "NONE"
     open val mainUrl = "NONE"
 
-    open val rateLimitTime : Long = 0
+    open val rateLimitTime: Long = 0
 
     // DECLARE HAS ACCESS TO MAIN PAGE INFORMATION
     open val hasMainPage = false
 
-    open val mainCategories: ArrayList<Pair<String, String>> = ArrayList()
-    open val orderBys: ArrayList<Pair<String, String>> = ArrayList()
-    open val tags: ArrayList<Pair<String, String>> = ArrayList()
+    open val mainCategories: List<Pair<String, String>> = listOf()
+    open val orderBys: List<Pair<String, String>> = listOf()
+    open val tags: List<Pair<String, String>> = listOf()
 
     open val iconId: Int? = null
     open val iconBackgroundId: Int = R.color.darkBackground
@@ -30,12 +30,12 @@ abstract class MainAPI {
         throw NotImplementedError()
     }
 
-    open val hasReviews : Boolean = false
-    open fun loadReviews(url : String, page: Int, showSpoilers : Boolean = false): ArrayList<UserReview> {
+    open val hasReviews: Boolean = false
+    open fun loadReviews(url: String, page: Int, showSpoilers: Boolean = false): List<UserReview> {
         throw NotImplementedError()
     }
 
-    open fun search(query: String): ArrayList<SearchResponse> {
+    open fun search(query: String): List<SearchResponse> {
         throw NotImplementedError()
     }
 
@@ -47,6 +47,8 @@ abstract class MainAPI {
         return null
     }
 }
+
+class ErrorLoadingException(message: String? = null) : Exception(message)
 
 fun MainAPI.fixUrl(url: String): String {
     if (url.startsWith("http")) {
@@ -67,7 +69,10 @@ fun MainAPI.fixUrl(url: String): String {
 //\.([A-z]) instead of \.([^-\s]) to preserve numbers like 17.4
 val String?.textClean: String?
     get() = (this
-        ?.replace("\\.([A-z]|\\+)".toRegex(), "$1") //\.([^-\s]) BECAUSE + COMES AFTER YOU HAVE TO ADD \+ for stuff like shapes.h.i.+fted
+        ?.replace(
+            "\\.([A-z]|\\+)".toRegex(),
+            "$1"
+        ) //\.([^-\s]) BECAUSE + COMES AFTER YOU HAVE TO ADD \+ for stuff like shapes.h.i.+fted
         ?.replace("\\+([A-z])".toRegex(), "$1") //\+([^-\s])
             )
 
@@ -90,19 +95,24 @@ fun stripHtml(txt: String, chapterName: String? = null, chapterIndex: Int? = nul
 
 }
 
+class HomePageList(
+    val name: String,
+    val list: List<SearchResponse>
+)
+
 data class HeadMainPageResponse(
     val url: String,
-    val list: ArrayList<SearchResponse>,
+    val list: List<SearchResponse>,
 )
 
 data class UserReview(
-    val review : String,
-    val reviewTitle : String?,
+    val review: String,
+    val reviewTitle: String?,
     val username: String?,
     val reviewDate: String?,
     val avatarUrl: String?,
     val rating: Int?,
-    val ratings: ArrayList<Pair<Int, String>>?,
+    val ratings: List<Pair<Int, String>>?,
 )
 /*
 data class MainPageResponse(
@@ -127,7 +137,7 @@ data class SearchResponse(
 data class LoadResponse(
     val source: String,
     val name: String,
-    val data: ArrayList<ChapterData>,
+    val data: List<ChapterData>,
     val author: String?,
     val posterUrl: String?,
     //RATING IS FROM 0-1000
@@ -135,14 +145,15 @@ data class LoadResponse(
     val peopleVoted: Int?,
     val views: Int?,
     val synopsis: String?,
-    val tags: ArrayList<String>?,
+    val tags: List<String>?,
     val status: Int?, // 0 = null - implemented but not found, 1 = Ongoing, 2 = Complete, 3 = Pause/HIATUS, 4 = Dropped
 )
 
-data class  ChapterData(
+data class ChapterData(
     val name: String,
     val url: String,
     val dateOfRelease: String?,
     val views: Int?,
+    val regerer: String? = null
     //val index : Int,
 )

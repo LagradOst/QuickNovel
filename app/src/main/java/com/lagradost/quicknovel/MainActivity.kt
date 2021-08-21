@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel
 
+import android.app.Activity
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
@@ -12,6 +13,7 @@ import androidx.navigation.findNavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.preference.PreferenceManager
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.lagradost.quicknovel.APIRepository.Companion.providersActive
 import com.lagradost.quicknovel.BookDownloader.checkWrite
 import com.lagradost.quicknovel.BookDownloader.requestRW
 import com.lagradost.quicknovel.DataStore.getKey
@@ -19,7 +21,6 @@ import com.lagradost.quicknovel.DataStore.getKeys
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.ui.result.ResultFragment
-import com.lagradost.quicknovel.util.Apis.Companion.allApi
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.Apis.Companion.printProviders
@@ -35,13 +36,17 @@ class MainActivity : AppCompatActivity() {
 
         lateinit var navOptions: NavOptions
 
-        fun AppCompatActivity.loadResult(url: String, apiName: String) {
+        fun AppCompatActivity.loadResult(url: String, apiName: String, startAction: Int = 0) {
             runOnUiThread {
                 supportFragmentManager.beginTransaction()
                     .setCustomAnimations(R.anim.enter_anim, R.anim.exit_anim, R.anim.pop_enter, R.anim.pop_exit)
                     .add(R.id.homeRoot, ResultFragment().newInstance(url, apiName))
                     .commit()
             }
+        }
+
+        fun Activity?.loadSearchResult(card: SearchResponse, startAction: Int = 0) {
+            (this as AppCompatActivity?)?.loadResult(card.url, card.apiName, startAction)
         }
 
         fun AppCompatActivity.loadResultFromUrl(url: String?) {
@@ -218,9 +223,9 @@ class MainActivity : AppCompatActivity() {
         navView.itemRippleColor = ColorStateList.valueOf(getResourceColor(R.attr.colorPrimary, 0.1f))
 
         val apiNames = getApiSettings()
-        allApi.providersActive = apiNames
+        providersActive = apiNames
         val edit = settingsManager.edit()
-        edit.putStringSet(getString(R.string.search_providers_list_key), allApi.providersActive)
+        edit.putStringSet(getString(R.string.search_providers_list_key), providersActive)
         edit.apply()
         /*
         val apiName = settingsManager.getString(getString(R.string.provider_list_key), apis[0].name)

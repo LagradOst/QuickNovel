@@ -20,8 +20,8 @@ class RoyalRoadProvider : MainAPI() {
     override val iconBackgroundId: Int
         get() = R.color.royalRoadColor
 
-    override val orderBys: ArrayList<Pair<String, String>>
-        get() = arrayListOf(
+    override val orderBys: List<Pair<String, String>>
+        get() = listOf(
             Pair("Best Rated", "best-rated"),
             Pair("Ongoing", "active-popular"),
             Pair("Completed", "complete"),
@@ -30,8 +30,8 @@ class RoyalRoadProvider : MainAPI() {
             Pair("New Releases", "new-releases"),
             Pair("Trending", "trending"),
         )
-    override val tags: ArrayList<Pair<String, String>>
-        get() = arrayListOf(
+    override val tags: List<Pair<String, String>>
+        get() = listOf(
             Pair("All", ""),
             Pair("Action", "action"),
             Pair("Adventure", "adventure"),
@@ -85,8 +85,10 @@ class RoyalRoadProvider : MainAPI() {
 
             val scoreHeader = scoreContent.selectFirst("> div.scores > div")
             var overallScore =
-                parseScore(scoreHeader.selectFirst("> div.overall-score-container")
-                    .select("> div")[1].attr("aria-label"))
+                parseScore(
+                    scoreHeader.selectFirst("> div.overall-score-container")
+                        .select("> div")[1].attr("aria-label")
+                )
 
             if (overallScore < 0) { //SOMETHING WENT WRONG
                 val divHeader = scoreHeader.selectFirst("> div.overall-score-container")
@@ -157,14 +159,17 @@ class RoyalRoadProvider : MainAPI() {
             if (!showSpoilers) reviewContent.removeClass("spoiler")
             val reviewTxt = reviewContent.text()
 
-            returnValue.add(UserReview(
-                reviewTxt,
-                reviewTitle,
-                username,
-                reviewTime,
-                fixUrl(avatarUrl),
-                overallScore,
-                ArrayList(scoresData)))
+            returnValue.add(
+                UserReview(
+                    reviewTxt,
+                    reviewTitle,
+                    username,
+                    reviewTime,
+                    fixUrl(avatarUrl),
+                    overallScore,
+                    ArrayList(scoresData)
+                )
+            )
         }
         return returnValue
 
@@ -177,8 +182,10 @@ class RoyalRoadProvider : MainAPI() {
         tag: String?,
     ): HeadMainPageResponse {
         val url = "$mainUrl/fictions/$orderBy?page=$page${if (tag == null || tag == "") "" else "&genre=$tag"}"
-        if (page > 1 && orderBy == "trending") return HeadMainPageResponse(url,
-            ArrayList()) // TRENDING ONLY HAS 1 PAGE
+        if (page > 1 && orderBy == "trending") return HeadMainPageResponse(
+            url,
+            ArrayList()
+        ) // TRENDING ONLY HAS 1 PAGE
 
         val response = khttp.get(url)
 
@@ -215,19 +222,23 @@ class RoyalRoadProvider : MainAPI() {
             }
 
             //val tags = ArrayList(h.select("span.tags > a").map { t -> t.text() })
-            returnValue.add(SearchResponse(name,
-                fixUrl(cUrl),
-                fixUrl(posterUrl),
-                rating,
-                latestChapter,
-                this.name))
-                //tags))
+            returnValue.add(
+                SearchResponse(
+                    name,
+                    fixUrl(cUrl),
+                    fixUrl(posterUrl),
+                    rating,
+                    latestChapter,
+                    this.name
+                )
+            )
+            //tags))
         }
         return HeadMainPageResponse(url, returnValue)
     }
 
 
-    override fun search(query: String): ArrayList<SearchResponse> {
+    override fun search(query: String): List<SearchResponse> {
         val response = khttp.get("$mainUrl/fictions/search?title=$query")
 
         val document = Jsoup.parse(response.text)
@@ -323,16 +334,13 @@ class RoyalRoadProvider : MainAPI() {
             views,
             synopsis,
             tags,
-            status)
+            status
+        )
     }
 
     override fun loadHtml(url: String): String? {
-        return try {
-            val response = khttp.get(url)
-            val document = Jsoup.parse(response.text)
-            document.selectFirst("div.chapter-content").html()
-        } catch (e: Exception) {
-            null
-        }
+        val response = khttp.get(url)
+        val document = Jsoup.parse(response.text)
+        return document.selectFirst("div.chapter-content").html()
     }
 }

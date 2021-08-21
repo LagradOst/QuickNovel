@@ -19,8 +19,8 @@ class WuxiaWorldSiteProvider : MainAPI() {
     override val iconBackgroundId: Int
         get() = R.color.wuxiaWorldSiteColor
 
-    override val tags: ArrayList<Pair<String, String>>
-        get() = arrayListOf(
+    override val tags: List<Pair<String, String>>
+        get() = listOf(
             Pair("All", ""),
             Pair("Completed", "completed"),
             Pair("Action", "action"),
@@ -106,19 +106,16 @@ class WuxiaWorldSiteProvider : MainAPI() {
     }
 
     override fun loadHtml(url: String): String? {
-        return try {
-            val response = khttp.get(url)
-            val document = Jsoup.parse(response.text)
-            val res = document.selectFirst("div.text-left")
-            if (res.html() == "") {
-                return null
-            }
-            res.html()
-                .replace("(adsbygoogle = window.adsbygoogle || []).push({});", "")
-                .replace("Read latest Chapters at WuxiaWorld.Site Only", "") // FUCK ADS
-        } catch (e: Exception) {
-            null
+        val response = khttp.get(url)
+        val document = Jsoup.parse(response.text)
+        val res = document.selectFirst("div.text-left")
+        if (res.html() == "") {
+            return null
         }
+        res.select("script").remove()
+        return res.html()
+            .replace("(adsbygoogle = window.adsbygoogle || []).push({});", "")
+            .replace("Read latest Chapters at WuxiaWorld.Site Only", "") // FUCK ADS
     }
 
     override fun search(query: String): ArrayList<SearchResponse> {

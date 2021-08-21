@@ -6,8 +6,8 @@ import androidx.preference.ListPreference
 import androidx.preference.MultiSelectListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
+import com.lagradost.quicknovel.APIRepository.Companion.providersActive
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.util.Apis.Companion.allApi
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
 import kotlin.concurrent.thread
@@ -24,7 +24,9 @@ class SettingsFragment : PreferenceFragmentCompat() {
         multiPreference.entryValues = apiNames.toTypedArray()
 
         multiPreference.setOnPreferenceChangeListener { _, newValue ->
-            allApi.providersActive = newValue as HashSet<String>
+            (newValue as HashSet<String>?)?.let {
+                providersActive = it
+            }
             return@setOnPreferenceChangeListener true
         }
 

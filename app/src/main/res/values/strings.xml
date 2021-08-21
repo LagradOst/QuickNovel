@@ -113,4 +113,7 @@
     <string name="text_font">Text Font</string>
     <string name="no_chapters_found">No Chapters Found</string>
     <string name="text_padding_top">Text Top Margin</string>
+
+    <string name="home_more_info">More info</string>
+    <string name="home_expanded_hide">Hide</string>
 </resources>

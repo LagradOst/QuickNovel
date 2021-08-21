@@ -2,6 +2,7 @@ package com.lagradost.quicknovel.mvvm
 
 import android.util.Log
 import com.bumptech.glide.load.HttpException
+import com.lagradost.quicknovel.ErrorLoadingException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.SocketTimeoutException
@@ -52,6 +53,9 @@ suspend fun <T> safeApiCall(
                 }
                 is UnknownHostException -> {
                     Resource.Failure(true, null, null, "Cannot connect to server, try again later.")
+                }
+                is ErrorLoadingException -> {
+                    Resource.Failure(true, null, null, throwable.message ?: "Error loading, try again later.")
                 }
                 else -> {
                     val stackTraceMsg = throwable.localizedMessage + "\n\n" + throwable.stackTrace.joinToString(

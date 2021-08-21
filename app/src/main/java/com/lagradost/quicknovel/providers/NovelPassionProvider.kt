@@ -2,7 +2,6 @@ package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
 import org.jsoup.Jsoup
-import java.lang.Exception
 
 class NovelPassionProvider : MainAPI() {
     override val name: String get() = "Novel Passion"
@@ -15,8 +14,8 @@ class NovelPassionProvider : MainAPI() {
     override val iconBackgroundId: Int
         get() = R.color.novelPassionColor
 
-    override val tags: ArrayList<Pair<String, String>>
-        get() = arrayListOf(
+    override val tags: List<Pair<String, String>>
+        get() = listOf(
             Pair("All", "all"),
             Pair("Shounen", "shounen"),
             Pair("Harem", "harem"),
@@ -54,8 +53,8 @@ class NovelPassionProvider : MainAPI() {
             Pair("Shounen Ai", "shounen-ai"),
         )
 
-    override val orderBys: ArrayList<Pair<String, String>>
-        get() = arrayListOf(
+    override val orderBys: List<Pair<String, String>>
+        get() = listOf(
             Pair("Recently Updated", "1"),
             Pair("New Novel", "2"),
             Pair("Hot Novel", "3"),
@@ -66,8 +65,8 @@ class NovelPassionProvider : MainAPI() {
             Pair("Chapter Quantities", "8"),
         )
 
-    override val mainCategories: ArrayList<Pair<String, String>>
-        get() = arrayListOf(
+    override val mainCategories: List<Pair<String, String>>
+        get() = listOf(
             Pair("All", "1"),
             Pair("Ongoing", "2"),
             Pair("Completed", "3"),
@@ -91,41 +90,39 @@ class NovelPassionProvider : MainAPI() {
 
             val rating = (h.selectFirst("> p.g_star_num > small").text()!!.toFloat() * 200).toInt()
             val latestChapter = h.selectFirst("> div > div.dab > a").attr("title")
-            returnValue.add(SearchResponse(name,
-                fixUrl(cUrl),
-                posterUrl,
-                rating,
-                latestChapter,
-                this.name,
-                )) //ArrayList()
+            returnValue.add(
+                SearchResponse(
+                    name,
+                    fixUrl(cUrl),
+                    posterUrl,
+                    rating,
+                    latestChapter,
+                    this.name,
+                )
+            ) //ArrayList()
         }
         return HeadMainPageResponse(url, returnValue)
     }
 
     override fun loadHtml(url: String): String? {
-        return try {
-            val response = khttp.get(url)
-            val document = Jsoup.parse(response.text)
-            val res = document.selectFirst("div.cha-words")
-            if (res.html() == "") {
-                return null
-            }
-            res.html()
-                // FUCK ADS
-                .replace("( NovelFull )", "")
-                .replace("NiceNovel.com", "")
-                .replace("NovelsToday.com", "")
-                .replace("NovelsToday", "")
-                .replace("read online free", "")
-                .replace("NovelWell.com", "")
-                .textClean // FOR SOME REASON SOME WORDS HAVE DOTS IN THEM
-        } catch (e: Exception) {
-            null
+        val response = khttp.get(url)
+        val document = Jsoup.parse(response.text)
+        val res = document.selectFirst("div.cha-words")
+        if (res.html() == "") {
+            return null
         }
+        return res.html()
+            // FUCK ADS
+            .replace("( NovelFull )", "")
+            .replace("NiceNovel.com", "")
+            .replace("NovelsToday.com", "")
+            .replace("NovelsToday", "")
+            .replace("read online free", "")
+            .replace("NovelWell.com", "")
+            .textClean // FOR SOME REASON SOME WORDS HAVE DOTS IN THEM
     }
 
-    override fun search(query: String): ArrayList<SearchResponse> {
-
+    override fun search(query: String): List<SearchResponse> {
         val response = khttp.get("$mainUrl/search?keyword=$query")
 
         val document = Jsoup.parse(response.text)
@@ -202,6 +199,5 @@ class NovelPassionProvider : MainAPI() {
         }
 
         return LoadResponse(url, name, data, author, posterUrl, rating, peopleVoted, views, synopsis, tags, status)
-
     }
 }

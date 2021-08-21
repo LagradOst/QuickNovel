@@ -2,6 +2,7 @@ package com.lagradost.quicknovel.util
 
 import android.app.Activity
 import androidx.preference.PreferenceManager
+import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.providers.*
@@ -24,15 +25,13 @@ class Apis {
             ReadNovelFullProvider(),
         )
 
-        val allApi: AllProvider = AllProvider()
-
-        fun getApiFromName(name: String): MainAPI {
+        fun getApiFromName(name: String): APIRepository {
             for (a in apis) {
                 if (a.name == name) {
-                    return a
+                    return APIRepository(a)
                 }
             }
-            return apis[1]
+            return APIRepository(apis[1])
         }
 
         fun printProviders() {

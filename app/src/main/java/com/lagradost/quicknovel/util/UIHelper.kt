@@ -13,6 +13,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.inputmethod.InputMethodManager
+import android.widget.ImageView
 import androidx.annotation.AttrRes
 import androidx.annotation.ColorInt
 import androidx.annotation.MenuRes
@@ -27,12 +28,13 @@ import androidx.core.graphics.red
 import androidx.core.view.forEach
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.model.GlideUrl
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.util.UIHelper.hideKeyboard
 import java.text.CharacterIterator
 import java.text.StringCharacterIterator
 import kotlin.math.roundToInt
-
 
 val Int.toPx: Int get() = (this * Resources.getSystem().displayMetrics.density).toInt()
 val Float.toPx: Float get() = (this * Resources.getSystem().displayMetrics.density)
@@ -81,6 +83,17 @@ object UIHelper {
         val color = attributes.getColor(0, 0)
         attributes.recycle()
         return color
+    }
+
+    fun ImageView?.setImage(url : String?) {
+        if(this == null || url.isNullOrBlank()) return
+        try {
+            Glide.with(this.context)
+                .load(GlideUrl(url))
+                .into(this)
+        } catch (e : Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun Activity.getStatusBarHeight(): Int {

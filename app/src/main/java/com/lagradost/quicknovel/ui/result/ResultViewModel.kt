@@ -4,21 +4,21 @@ import android.content.Context
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lagradost.quicknovel.BookDownloader
+import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.BookDownloader.downloadInfo
 import com.lagradost.quicknovel.DataStore.getKey
-import com.lagradost.quicknovel.LoadResponse
-import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
-import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.ui.ReadType
+import com.lagradost.quicknovel.util.Apis
 import kotlinx.coroutines.launch
 
-class ResultViewModel(private val repo: ResultRepository) : ViewModel() {
+class ResultViewModel : ViewModel() {
+    lateinit var repo: APIRepository
+
     var id: MutableLiveData<Int> = MutableLiveData<Int>(-1)
     var readState: MutableLiveData<ReadType> = MutableLiveData<ReadType>(ReadType.NONE)
 
-    val api get() = repo.api
+    val api get() = repo
     val apiName get() = api.name
 
     val currentTabIndex: MutableLiveData<Int> by lazy {
@@ -56,7 +56,9 @@ class ResultViewModel(private val repo: ResultRepository) : ViewModel() {
         }
     }
 
-    fun initState(context: Context, url: String) {
+    fun initState(context: Context, apiName: String, url: String) {
+        repo = Apis.getApiFromName(apiName)
+
         BookDownloader.downloadNotification += {
             if (it.id == id.value)
                 downloadNotification.postValue(it)

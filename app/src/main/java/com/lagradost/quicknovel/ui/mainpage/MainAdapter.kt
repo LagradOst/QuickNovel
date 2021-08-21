@@ -25,7 +25,7 @@ import kotlin.math.roundToInt
 
 class MainAdapter(
     val activity: Activity,
-    var cardList: ArrayList<SearchResponse>,
+    var cardList: List<SearchResponse>,
     private val resView: AutofitRecyclerView,
 ) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {

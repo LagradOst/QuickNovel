@@ -67,9 +67,7 @@ object DownloadHelper {
     ) {
         Coroutines.main {
             val api = getApiFromName(card.apiName)
-            val data = safeApiCall {
-                api.load(card.source)
-            }
+            val data = api.load(card.source)
 
             if (data is Resource.Success) {
                 val res = data.value

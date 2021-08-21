@@ -21,6 +21,7 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat.getColor
 import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -44,6 +45,7 @@ import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.download.DownloadHelper
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
+import com.lagradost.quicknovel.ui.search.SearchViewModel
 import com.lagradost.quicknovel.util.Coroutines
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getRating
@@ -64,12 +66,13 @@ import android.annotation.SuppressLint as SuppressLint1
 const val MAX_SYNO_LENGH = 300
 
 class ResultFragment : Fragment() {
-    fun newInstance(url: String, apiName: String) =
+    fun newInstance(url: String, apiName: String, startAction: Int = 0) =
         ResultFragment().apply {
             arguments = Bundle().apply {
                 //println(data)
                 putString("url", url)
                 putString("apiName", apiName)
+                putInt("startAction", startAction)
             }
         }
 
@@ -82,7 +85,8 @@ class ResultFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View? {
-
+        viewModel =
+            ViewModelProvider(this).get(ResultViewModel::class.java)
         /*activity?.window?.setSoftInputMode(
             WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
         )*/
@@ -644,15 +648,11 @@ class ResultFragment : Fragment() {
         activity?.window?.decorView?.clearFocus()
         hideKeyboard()
 
-        val factory = provideResultViewModelFactory(apiName)
-        viewModel = ViewModelProviders.of(this, factory)
-            .get(ResultViewModel::class.java)
-
         if (viewModel.loadResponse.value == null)
-            viewModel.initState(requireContext(), url)
+            viewModel.initState(requireContext(), apiName, url)
 
         result_reload_connectionerror.setOnClickListener {
-            viewModel.initState(requireContext(), url)
+            viewModel.initState(requireContext(), apiName, url)
         }
 
         result_reload_connection_open_in_browser.setOnClickListener {

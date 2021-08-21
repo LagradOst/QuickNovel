@@ -19,8 +19,8 @@ class WuxiaWorldOnlineProvider : MainAPI() {
     override val iconBackgroundId: Int
         get() = R.color.wuxiaWorldOnlineColor
 
-    override val tags: ArrayList<Pair<String, String>>
-        get() = arrayListOf(
+    override val tags: List<Pair<String, String>>
+        get() = listOf(
             Pair("All", ""),
             Pair("Chinese", "Chinese"),
             Pair("Action", "Action"),
@@ -60,8 +60,8 @@ class WuxiaWorldOnlineProvider : MainAPI() {
             Pair("Cultivation", "Cultivation"),
         )
 
-    override val orderBys: ArrayList<Pair<String, String>>
-        get() = arrayListOf(
+    override val orderBys: List<Pair<String, String>>
+        get() = listOf(
             Pair("Recents Updated", "recents"),
             Pair("Most Viewed", "popularity"),
             Pair("Lastest Releases", "date_added"),
@@ -84,43 +84,43 @@ class WuxiaWorldOnlineProvider : MainAPI() {
             val posterUrl = a.selectFirst("> img").attr("src")
 
             val latestChap = h.select("> ul > li")[1].selectFirst("> span > a").text()
-            returnValue.add(SearchResponse(name,
-                fixUrl(cUrl),
-                fixUrl(posterUrl),
-                null,
-                latestChap,
-                this.name))
+            returnValue.add(
+                SearchResponse(
+                    name,
+                    fixUrl(cUrl),
+                    fixUrl(posterUrl),
+                    null,
+                    latestChap,
+                    this.name
+                )
+            )
         }
         return HeadMainPageResponse(url, returnValue)
     }
 
     override fun loadHtml(url: String): String? {
-        return try {
-            val response = khttp.get(url)
-            val document = Jsoup.parse(response.text)
-            val res = document.selectFirst("div.content-area")
-            for (i in res.allElements) {
-                val style = i.attr("style")
-                if (style.contains("display:none")) { // FUCKERS ADDS BLOAT TO SITE BUT DOES NOT DISPLAY IT
-                    i.remove()
-                }
+        val response = khttp.get(url)
+        val document = Jsoup.parse(response.text)
+        val res = document.selectFirst("div.content-area")
+        for (i in res.allElements) {
+            val style = i.attr("style")
+            if (style.contains("display:none")) { // FUCKERS ADDS BLOAT TO SITE BUT DOES NOT DISPLAY IT
+                i.remove()
             }
-
-            if (res.html() == "") {
-                return null
-            }
-
-            // FUCK ADS
-            res.html()
-                .replace("(~|)( |)wuxiaworld\\.online( |)(~|)".toRegex(), "")
-                .replace("UU reading www.uukanshu.com", "")
-                .replace("Do you like this site? Donate here:", "")
-        } catch (e: Exception) {
-            null
         }
+
+        if (res.html() == "") {
+            return null
+        }
+
+        // FUCK ADS
+        return res.html()
+            .replace("(~|)( |)wuxiaworld\\.online( |)(~|)".toRegex(), "")
+            .replace("UU reading www.uukanshu.com", "")
+            .replace("Do you like this site? Donate here:", "")
     }
 
-    override fun search(query: String): ArrayList<SearchResponse> {
+    override fun search(query: String): List<SearchResponse> {
         val response =
             khttp.get("https://wuxiaworld.online/search.ajax?type=&query=$query") // AJAX, MIGHT ADD QUICK SEARCH
 
@@ -242,6 +242,7 @@ class WuxiaWorldOnlineProvider : MainAPI() {
             views,
             synopsis,
             tags,
-            status)
+            status
+        )
     }
 }

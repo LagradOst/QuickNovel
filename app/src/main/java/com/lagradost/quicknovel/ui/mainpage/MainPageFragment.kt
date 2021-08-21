@@ -58,7 +58,7 @@ class MainPageFragment : Fragment() {
 
     private lateinit var viewModel: MainPageViewModel
 
-    private fun updateList(data: ArrayList<SearchResponse>) {
+    private fun updateList(data: List<SearchResponse>) {
         mainpage_loading.visibility = if (data.size > 0) View.GONE else View.VISIBLE
         //if (data.size > 0) MainActivity.semihideNavbar()
 
@@ -228,8 +228,8 @@ class MainPageFragment : Fragment() {
             val filterTagSpinner = bottomSheetDialog.findViewById<Spinner>(R.id.filter_tag_spinner)!!
             val filterButton = bottomSheetDialog.findViewById<MaterialButton>(R.id.filter_button)!!
 
-            fun setUp(data: ArrayList<Pair<String, String>>, txt: TextView, spinner: Spinner, startId: Int?) {
-                if (data.size == 0) {
+            fun setUp(data: List<Pair<String, String>>, txt: TextView, spinner: Spinner, startId: Int?) {
+                if (data.isEmpty()) {
                     txt.visibility = View.GONE
                     spinner.visibility = View.GONE
                 } else {

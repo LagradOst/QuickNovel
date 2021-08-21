@@ -3,24 +3,24 @@ package com.lagradost.quicknovel.ui.mainpage
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lagradost.quicknovel.MainAPI
+import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.mvvm.Resource
 import kotlinx.coroutines.launch
 
 class MainPageViewModel(private val repo: MainPageRepository) : ViewModel() {
-    val api: MainAPI get() = repo.api
+    val api: APIRepository get() = repo.api
 
     /*private val searchCards: MutableLiveData<ArrayList<SearchResponse>> by lazy {
         MutableLiveData<ArrayList<SearchResponse>>()
     }*/
 
-    private val infCards: MutableLiveData<ArrayList<SearchResponse>> by lazy {
-        MutableLiveData<ArrayList<SearchResponse>>()
+    private val infCards: MutableLiveData<List<SearchResponse>> by lazy {
+        MutableLiveData<List<SearchResponse>>()
     }
 
-    val currentCards: MutableLiveData<ArrayList<SearchResponse>> by lazy {
-        MutableLiveData<ArrayList<SearchResponse>>()
+    val currentCards: MutableLiveData<List<SearchResponse>> by lazy {
+        MutableLiveData<List<SearchResponse>>()
     }
 
     private val currentPage: MutableLiveData<Int> by lazy {
@@ -82,7 +82,7 @@ class MainPageViewModel(private val repo: MainPageRepository) : ViewModel() {
         viewModelScope.launch {
             //val copy = if (cPage == 0) ArrayList() else cards.value
             val res = repo.loadMainPage(cPage + 1, mainCategory, orderBy, tag)
-            val copy = infCards.value ?: ArrayList()
+            val copy = ArrayList(infCards.value ?: listOf())
 
             when (res) {
                 is Resource.Success -> {

@@ -42,7 +42,7 @@ class DownloadFragment : Fragment() {
         val peopleVoted: Int?,
         val views: Int?,
         val Synopsis: String?,
-        val tags: ArrayList<String>?,
+        val tags: List<String>?,
         val apiName: String,
     )
 
@@ -56,7 +56,7 @@ class DownloadFragment : Fragment() {
         val peopleVoted: Int?,
         val views: Int?,
         val Synopsis: String?,
-        val tags: ArrayList<String>?,
+        val tags: List<String>?,
         val apiName: String,
         val downloadedCount: Int,
         val downloadedTotal: Int,

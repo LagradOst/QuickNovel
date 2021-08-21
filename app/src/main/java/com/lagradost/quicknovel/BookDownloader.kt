@@ -324,7 +324,7 @@ object BookDownloader {
     data class QuickStreamData(
         val meta: QuickStreamMetaData,
         val poster: String?,
-        val data: ArrayList<ChapterData>,
+        val data: List<ChapterData>,
     )
 
     data class LoadedChapter(val title: String, val html: String)
@@ -576,7 +576,7 @@ object BookDownloader {
     }
 
     // 0 = FILE EXITS, 1 = SUCCESS, -1 = STOPPED
-    private fun downloadIndividualChapter(filepath: String, api: MainAPI, data: ChapterData, runningId: Int?): Int {
+    private fun downloadIndividualChapter(filepath: String, api: APIRepository, data: ChapterData, runningId: Int?): Int {
         val rFile = File(filepath)
         if (rFile.exists()) {
             return 0
@@ -603,7 +603,7 @@ object BookDownloader {
         return -2 // THIS SHOULD NOT HAPPEND
     }
 
-    fun Context.download(load: LoadResponse, api: MainAPI) {
+    fun Context.download(load: LoadResponse, api: APIRepository) {
         try {
             val sApiName = sanitizeFilename(api.name)
             val sAuthor = if (load.author == null) "" else sanitizeFilename(load.author)

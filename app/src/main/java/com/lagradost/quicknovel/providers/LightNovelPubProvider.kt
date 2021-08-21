@@ -27,20 +27,16 @@ class LightNovelPubProvider : MainAPI() {
     )
 
     override fun loadHtml(url: String): String? { // THEY RATE LIMIT THE FUCK ON THIS PROVIDER
-        return try {
-            val response = get(url)
-            val document = Jsoup.parse(response.text)
-            val items = document.selectFirst("div#chapter-container")
-            // THEY HAVE SHIT LIKE " <p class="kyzywl">The source of this content is lightnovelpub[.]com</p> " random class, no normal text has a class
-            for (i in items.allElements) {
-                if (i.tagName() == "p" && i.classNames().size > 0 && i.text().contains("lightnovelpub")) {
-                    i.remove()
-                }
+        val response = get(url)
+        val document = Jsoup.parse(response.text)
+        val items = document.selectFirst("div#chapter-container")
+        // THEY HAVE SHIT LIKE " <p class="kyzywl">The source of this content is lightnovelpub[.]com</p> " random class, no normal text has a class
+        for (i in items.allElements) {
+            if (i.tagName() == "p" && i.classNames().size > 0 && i.text().contains("lightnovelpub")) {
+                i.remove()
             }
-            items.html()
-        } catch (e : Exception) {
-            null
         }
+        return items.html()
     }
 
     private fun getChaps(document: Document): List<OrderedChapterData> {
@@ -98,8 +94,8 @@ class LightNovelPubProvider : MainAPI() {
             else -> 0
         }
 
-        val genres = ArrayList(novelInfo?.select("> div.categories > ul > li > a")?.map { it.text() })
-        val tags = ArrayList(document?.select("> div.tags > ul.content > li > a")?.map { it.text() })
+        val genres = ArrayList(novelInfo?.select("> div.categories > ul > li > a")?.map { it.text() } ?: listOf())
+        val tags = ArrayList(document?.select("> div.tags > ul.content > li > a")?.map { it.text() } ?: listOf())
         genres.addAll(tags)
         val synopsis = document.selectFirst("div.summary > div.content")?.text()
 
@@ -144,9 +140,10 @@ class LightNovelPubProvider : MainAPI() {
         }
         val data = chaps.sortedBy { it.orderno }.map { ChapterData(it.name, it.url, it.dateOfRelease, null) }
 
-        return LoadResponse(url,
+        return LoadResponse(
+            url,
             title,
-            ArrayList(data),
+            data,
             author,
             poster,
             rating,
@@ -154,10 +151,11 @@ class LightNovelPubProvider : MainAPI() {
             views,
             synopsis,
             genres,
-            status)
+            status
+        )
     }
 
-    override fun search(query: String): ArrayList<SearchResponse> {
+    override fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/lnwsearchlive?inputContent=$query"
         val response = khttp.get(url)
         val parse = response.text.toKotlinObject<SearchRoot>()
