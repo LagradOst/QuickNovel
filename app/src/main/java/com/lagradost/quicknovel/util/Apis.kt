@@ -23,6 +23,7 @@ class Apis {
             ComrademaoProvider(),
             LightNovelPubProvider(),
             ReadNovelFullProvider(),
+            ScribblehubProvider(),
         )
 
         fun getApiFromName(name: String): APIRepository {

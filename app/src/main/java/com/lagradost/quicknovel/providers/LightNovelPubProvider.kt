@@ -99,10 +99,13 @@ class LightNovelPubProvider : MainAPI() {
         genres.addAll(tags)
         val synopsis = document.selectFirst("div.summary > div.content")?.text()
 
-        val chaps = ArrayList(getChaps(document))
+        val chapsDocument = Jsoup.parse(get("$url/chapters").text)
 
-        val pages = document.select("ul.pagination > li > a").mapNotNull {
-            "(.*?page=)([0-9]*)".toRegex().find(it.attr("href"))
+        val chaps = ArrayList(getChaps(chapsDocument))
+
+        val pgs = chapsDocument.select("ul.pagination > li > a")
+        val pages = pgs.mapNotNull {
+            "(.*?page-)([0-9]*)".toRegex().find(it.attr("href"))
         }
 
         var highestPage = 0

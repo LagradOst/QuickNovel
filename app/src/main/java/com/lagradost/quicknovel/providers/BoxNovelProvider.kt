@@ -218,9 +218,9 @@ class BoxNovelProvider : MainAPI() {
         val aHeader = aHeaders.last()
 
         val status = when (aHeader.text().toLowerCase(Locale.getDefault())) {
-            "ongoing" -> 1
-            "completed" -> 2
-            else -> 0
+            "ongoing" -> STATUS_ONGOING
+            "completed" -> STATUS_COMPLETE
+            else -> STATUS_NULL
         }
 
         return LoadResponse(url, name, data, author, posterUrl, rating, peopleVoted, views, synopsis, tags, status)

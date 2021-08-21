@@ -6,8 +6,6 @@ import com.lagradost.quicknovel.BookDownloader.download
 import com.lagradost.quicknovel.BookDownloader.updateDownload
 import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.mvvm.Resource
-import com.lagradost.quicknovel.mvvm.safeApiCall
-import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
 import com.lagradost.quicknovel.util.Coroutines
 import kotlin.concurrent.thread
@@ -35,7 +33,7 @@ object DownloadHelper {
             res.data.size) // FIX BUG WHEN DOWNLOAD IS OVER TOTAL
 
         context.setKey(DOWNLOAD_FOLDER, BookDownloader.generateId(res, apiName).toString(),
-            DownloadFragment.DownloadData(res.source,
+            DownloadFragment.DownloadData(res.url,
                 res.name,
                 res.author,
                 res.posterUrl,

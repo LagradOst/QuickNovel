@@ -190,9 +190,9 @@ class NovelPassionProvider : MainAPI() {
         for (s in statusTxt) {
             if (s.hasText()) {
                 status = when (s.text()) {
-                    "Ongoing" -> 1
-                    "Completed" -> 2
-                    else -> 0
+                    "Ongoing" -> STATUS_ONGOING
+                    "Completed" -> STATUS_COMPLETE
+                    else -> STATUS_NULL
                 }
                 if (status > 0) break
             }

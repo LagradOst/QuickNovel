@@ -79,9 +79,9 @@ class ComrademaoProvider : MainAPI() {
 
 
         val statusInt = when (status) {
-            "On-going" -> 1
-            "Complete" -> 2
-            else -> 0
+            "On-going" -> STATUS_ONGOING
+            "Complete" -> STATUS_COMPLETE
+            else -> STATUS_NULL
         }
         val pages = document.select("nav.pagination > ul > li > a")
         var biggestPage = 0

@@ -216,9 +216,9 @@ class ReadLightNovelProvider : MainAPI() {
         val peopleRated = null
 
         val status = when (getIndex("Status").text()) {
-            "Ongoing" -> 1
-            "Completed" -> 2
-            else -> 0
+            "Ongoing" -> STATUS_ONGOING
+            "Completed" -> STATUS_COMPLETE
+            else -> STATUS_NULL
         }
 
         return LoadResponse(

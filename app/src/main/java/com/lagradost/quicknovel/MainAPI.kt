@@ -44,7 +44,7 @@ abstract class MainAPI {
     }
 
     open fun loadHtml(url: String): String? {
-        return null
+        throw NotImplementedError()
     }
 }
 
@@ -134,8 +134,14 @@ data class SearchResponse(
     val apiName: String,
 )
 
+const val STATUS_NULL = 0
+const val STATUS_ONGOING = 1
+const val STATUS_COMPLETE = 2
+const val STATUS_PAUSE = 3
+const val STATUS_DROPPED = 4
+
 data class LoadResponse(
-    val source: String,
+    val url: String,
     val name: String,
     val data: List<ChapterData>,
     val author: String?,

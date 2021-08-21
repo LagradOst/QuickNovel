@@ -27,6 +27,7 @@ import com.lagradost.quicknovel.util.Apis.Companion.printProviders
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.getResourceColor
+import org.jsoup.Jsoup
 import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
@@ -114,8 +115,10 @@ class MainActivity : AppCompatActivity() {
             val w: Window? = activity.window // in Activity's onCreate() for instance
             if (w != null) {
                 if (trans) {
-                    w.setFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS,
-                        WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+                    w.setFlags(
+                        WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS,
+                        WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
+                    )
                 } else {
                     w.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
                 }
@@ -175,8 +178,10 @@ class MainActivity : AppCompatActivity() {
         }
         //val isLightTheme = themeName == "Light"
 
-        theme.applyStyle(currentTheme,
-            true) // THEME IS SET BEFORE VIEW IS CREATED TO APPLY THE THEME TO THE MAIN VIEW
+        theme.applyStyle(
+            currentTheme,
+            true
+        ) // THEME IS SET BEFORE VIEW IS CREATED TO APPLY THE THEME TO THE MAIN VIEW
         theme.applyStyle(currentOverlayTheme, true)
 
         super.onCreate(savedInstanceState)
@@ -255,5 +260,12 @@ class MainActivity : AppCompatActivity() {
         printProviders()
         //loadResult("https://www.novelpassion.com/novel/battle-frenzy")
         //loadResult("https://www.royalroad.com/fiction/40182/only-villains-do-that", MainActivity.activeAPI.name)
+        thread {
+            test()
+        }
+    }
+
+    fun test() {
+
     }
 }

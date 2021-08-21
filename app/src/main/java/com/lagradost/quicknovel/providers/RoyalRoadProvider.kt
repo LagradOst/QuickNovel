@@ -312,12 +312,12 @@ class RoyalRoadProvider : MainAPI() {
         for (s in statusTxt) {
             if (s.hasText()) {
                 status = when (s.text()) {
-                    "ONGOING" -> 1
-                    "COMPLETED" -> 2
-                    "HIATUS" -> 3
-                    "STUB" -> 4
-                    "DROPPED" -> 4
-                    else -> 0
+                    "ONGOING" -> STATUS_ONGOING
+                    "COMPLETED" -> STATUS_COMPLETE
+                    "HIATUS" -> STATUS_PAUSE
+                    "STUB" -> STATUS_DROPPED
+                    "DROPPED" -> STATUS_DROPPED
+                    else -> STATUS_NULL
                 }
                 if (status > 0) break
             }

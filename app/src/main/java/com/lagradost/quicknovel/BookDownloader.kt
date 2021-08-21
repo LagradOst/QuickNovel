@@ -359,15 +359,20 @@ object BookDownloader {
         return (settingsManager.getBoolean(this.getString(R.string.remove_external_key), true))
     }
 
-    fun Context.getQuickChapter(meta: QuickStreamMetaData, chapter: ChapterData, index: Int): LoadedChapter? {
+    fun Context.getQuickChapter(
+        meta: QuickStreamMetaData,
+        chapter: ChapterData,
+        index: Int,
+        forceReload: Boolean
+    ): LoadedChapter? {
         val path = getFilePath(meta, index)
-        downloadIndividualChapter(path, getApiFromName(meta.apiName), chapter, null)
+        downloadIndividualChapter(path, getApiFromName(meta.apiName), chapter, null, forceReload)
         return getChapter(path, index, getStripHtml())
     }
 
     fun Activity.createQuickStream(data: QuickStreamData): Uri? {
         try {
-            if (data.data.size <= 0) {
+            if (data.data.isEmpty()) {
                 return null
             }
 
@@ -576,9 +581,15 @@ object BookDownloader {
     }
 
     // 0 = FILE EXITS, 1 = SUCCESS, -1 = STOPPED
-    private fun downloadIndividualChapter(filepath: String, api: APIRepository, data: ChapterData, runningId: Int?): Int {
+    private fun downloadIndividualChapter(
+        filepath: String,
+        api: APIRepository,
+        data: ChapterData,
+        runningId: Int?,
+        forceReload: Boolean = false,
+    ): Int {
         val rFile = File(filepath)
-        if (rFile.exists()) {
+        if (rFile.exists() && !forceReload) {
             return 0
         }
         rFile.parentFile?.mkdirs()
@@ -661,7 +672,7 @@ object BookDownloader {
                     timePerLoad = (dloadTime - lastTime) * 0.05 + timePerLoad * 0.95 // rolling avrage
                     createAndStoreNotification(
                         NotificationData(
-                            load.source, id,
+                            load.url, id,
                             load,
                             index + 1,
                             total,
@@ -674,7 +685,7 @@ object BookDownloader {
                 if (lastIndex == total) {
                     createAndStoreNotification(
                         NotificationData(
-                            load.source,
+                            load.url,
                             id,
                             load,
                             lastIndex,

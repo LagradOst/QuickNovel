@@ -226,9 +226,9 @@ class WuxiaWorldOnlineProvider : MainAPI() {
         val status = if (statusHeader == null) null else
             when (statusHeader.selectFirst("> a").text()
                 .toLowerCase(Locale.getDefault())) {
-                "ongoing" -> 1
-                "completed" -> 2
-                else -> 0
+                "ongoing" -> STATUS_ONGOING
+                "completed" -> STATUS_COMPLETE
+                else -> STATUS_NULL
             }
 
         return LoadResponse(

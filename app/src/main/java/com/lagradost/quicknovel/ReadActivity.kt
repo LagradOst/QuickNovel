@@ -180,12 +180,13 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             ?: "Chapter ${index + 1}" else quickdata.data[index].name
     }
 
-    private fun Context.getChapterData(index: Int): String? {
+    private fun Context.getChapterData(index: Int, forceReload: Boolean = false): String? {
         val text =
             (if (isFromEpub) book.tableOfContents.tocReferences[index].resource.reader.readText() else getQuickChapter(
                 quickdata.meta,
                 quickdata.data[index],
-                index
+                index,
+                forceReload
             )?.html ?: return null)
         val document = Jsoup.parse(text)
 
@@ -386,7 +387,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                     val textLine = getMinMax(line.startIndex, line.endIndex)
                     if (textLine != null) {
                         return textLine.max + getLineOffset() - (read_toolbar_holder?.height
-                            ?: 0) + (reader_lin_container?.paddingTop ?: 0)//dimensionFromAttribute(R.attr.actionBarSize))
+                            ?: 0) + (reader_lin_container?.paddingTop
+                            ?: 0)//dimensionFromAttribute(R.attr.actionBarSize))
                     }
                 }
             } catch (e: Exception) {
@@ -890,16 +892,21 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     private var currentText = ""
-    private fun Context.loadChapter(chapterIndex: Int, scrollToTop: Boolean, scrollToRemember: Boolean = false) {
+    private fun Context.loadChapter(
+        chapterIndex: Int,
+        scrollToTop: Boolean,
+        scrollToRemember: Boolean = false,
+        forceReload: Boolean = false
+    ) {
         main {
             setKey(EPUB_CURRENT_POSITION, getBookTitle(), chapterIndex)
             val txt = if (isFromEpub) {
-                getChapterData(chapterIndex)
+                getChapterData(chapterIndex, forceReload)
             } else {
                 read_loading?.visibility = View.VISIBLE
                 read_normal_layout?.alpha = 0f
                 withContext(Dispatchers.IO) {
-                    getChapterData(chapterIndex)
+                    getChapterData(chapterIndex, forceReload)
                 }
             }
 
@@ -908,6 +915,9 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
             if (txt == null) {
                 Toast.makeText(this, "Error loading chapter", Toast.LENGTH_SHORT).show()
+                if (!isFromEpub && !forceReload) {
+                    loadChapter(chapterIndex, scrollToTop, scrollToRemember, true)
+                }
                 return@main // TODO FIX REAL INTERACT BUTTON
             }
 
