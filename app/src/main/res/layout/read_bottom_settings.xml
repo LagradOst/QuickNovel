@@ -37,6 +37,26 @@
             android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
+        <com.google.android.material.button.MaterialButton
+                android:layout_marginTop="10dp"
+                android:visibility="visible"
+                android:layout_gravity="center_vertical"
+                app:cornerRadius="4dp"
+                android:id="@+id/hard_reset_stream"
+
+                android:text="@string/reload_chapter"
+
+                app:rippleColor="?attr/colorPrimary"
+                android:textColor="?attr/textColor"
+                app:iconTint="?attr/textColor"
+                app:iconPadding="10dp"
+                android:textAllCaps="false"
+                app:iconGravity="textStart"
+                android:backgroundTint="@color/transparent"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="45dp">
+        </com.google.android.material.button.MaterialButton>
         <com.google.android.material.checkbox.MaterialCheckBox
                 android:paddingStart="5dp"
                 android:paddingEnd="5dp"

@@ -1689,6 +1689,12 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             val readSettingsTextSizeText =
                 bottomSheetDialog.findViewById<TextView>(R.id.read_settings_text_size_text)!!
             val readSettingsTextFontText = bottomSheetDialog.findViewById<TextView>(R.id.read_settings_text_font_text)!!
+            val hardResetStream = bottomSheetDialog.findViewById<MaterialButton>(R.id.hard_reset_stream)!!
+
+            hardResetStream.visibility = if (isFromEpub) View.GONE else View.VISIBLE
+            hardResetStream.setOnClickListener {
+                loadChapter(currentChapter, scrollToTop = false, scrollToRemember = true, forceReload = true)
+            }
 
             //val root = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_root)!!
             val horizontalColors = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_colors)!!

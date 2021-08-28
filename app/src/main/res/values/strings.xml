@@ -116,4 +116,5 @@
 
     <string name="home_more_info">More info</string>
     <string name="home_expanded_hide">Hide</string>
+    <string name="reload_chapter">Reload Chapter</string>
 </resources>
