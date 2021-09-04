@@ -161,8 +161,8 @@ class BoxNovelProvider : MainAPI() {
         val response = khttp.get(url)
 
         val document = Jsoup.parse(response.text)
-
-        val name = document.selectFirst("div.post-title > h3").text().replace("  ", " ").replace("\n", "")
+        println(response.text)
+        val name = document.selectFirst("div.post-title > h1").text().replace("  ", " ").replace("\n", "")
             .replace("\t", "")
         val authors = document.select("div.author-content > a")
         var author = ""
@@ -192,25 +192,11 @@ class BoxNovelProvider : MainAPI() {
             }
         }
 
-        val data: ArrayList<ChapterData> = ArrayList()
-        val chapterHeaders = document.select("ul.version-chap > li.wp-manga-chapter")
-        for (c in chapterHeaders) {
-            val header = c.selectFirst("> a")
-            val cUrl = header.attr("href")
-            val cName = header.text().replace("  ", " ").replace("\n", "")
-                .replace("\t", "")
-            val added = c.selectFirst("> span.chapter-release-date > i").text()
-            data.add(ChapterData(cName, cUrl, added, 0))
-        }
-        data.reverse()
+        val id = WuxiaWorldSiteProvider.getId(response.text) ?: throw ErrorLoadingException("No id found")
+        val data = WuxiaWorldSiteProvider.getChapters(mainUrl, id)
 
-        val rRegex = "Average ([0-9.]*.) / 5 out of ([0-9]*) total votes".toRegex()
-
-        val rtxt = document.selectFirst("div.vote-details")
-        val rMatches = rRegex.findAll(rtxt.text()).toList()[0].groupValues
-
-        val rating = ((rMatches.get(1).toFloatOrNull() ?: 0f) * 200).toInt()
-        val peopleVoted = (rMatches.get(2).toIntOrNull() ?: 0)
+        val rating = ((document.selectFirst("span#averagerate")?.text()?.toFloat() ?: 0f) * 200).toInt()
+        val peopleVoted = document.selectFirst("span#countrate")?.text()?.toInt() ?: 0
 
         val views = null
 
