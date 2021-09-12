@@ -27,6 +27,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.model.GlideUrl
+import com.bumptech.glide.load.model.LazyHeaders
 import com.bumptech.glide.request.RequestOptions.bitmapTransform
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayout
@@ -269,7 +270,7 @@ class ResultFragment : Fragment() {
                 // LOAD IMAGES FIRST TO GIVE IT A BIT OF TIME
                 if (res.posterUrl != null) {
                     val glideUrl =
-                        GlideUrl(res.posterUrl)
+                        GlideUrl(res.posterUrl, LazyHeaders.Builder().addHeader("Referer", api.mainUrl).build())
                     requireContext().let {
                         Glide.with(it)
                             .load(glideUrl)

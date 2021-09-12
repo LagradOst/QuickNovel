@@ -9,7 +9,7 @@ class ReadLightNovelProvider : MainAPI() {
     override val name: String
         get() = "ReadLightNovel"
     override val mainUrl: String
-        get() = "https://www.readlightnovel.org"
+        get() = "https://www.readlightnovel.me"
     override val iconId: Int
         get() = R.drawable.big_icon_readlightnovel
     override val hasMainPage: Boolean
@@ -142,7 +142,7 @@ class ReadLightNovelProvider : MainAPI() {
     }
 
     override fun load(url: String): LoadResponse {
-        val response = khttp.get(url)
+        val response = khttp.get(url.replace("http://","https://"))
 
         val document = Jsoup.parse(response.text)
 

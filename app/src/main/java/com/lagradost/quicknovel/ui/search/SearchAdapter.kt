@@ -9,6 +9,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.SettingsHelper.getGridFormatId
 import com.lagradost.quicknovel.util.SettingsHelper.getGridIsCompact
 import com.lagradost.quicknovel.util.UIHelper.setImage
@@ -96,7 +97,7 @@ class SearchAdapter(
             }
 
             cardView.setLayerType(View.LAYER_TYPE_SOFTWARE, null) // HALF IMAGE DISPLAYING FIX
-            cardView.setImage(card.posterUrl)
+            cardView.setImage(card.posterUrl, Apis.getApiFromNameOrNull(card.apiName)?.mainUrl)
 
             bg.setOnClickListener {
                 clickCallback.invoke(SearchClickCallback(SEARCH_ACTION_LOAD, it, card))

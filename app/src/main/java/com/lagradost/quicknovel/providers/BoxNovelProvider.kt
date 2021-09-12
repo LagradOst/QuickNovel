@@ -132,7 +132,7 @@ class BoxNovelProvider : MainAPI() {
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
             val head = h.selectFirst("> div > div.tab-summary")
-            val title = head.selectFirst("> div.post-title > h4 > a")
+            val title = head.selectFirst("> div.post-title > h3 > a")
             val name = title.text()
 
             if (name.contains("Comic")) continue // I DON'T WANT MANGA!
@@ -192,8 +192,12 @@ class BoxNovelProvider : MainAPI() {
             }
         }
 
-        val id = WuxiaWorldSiteProvider.getId(response.text) ?: throw ErrorLoadingException("No id found")
-        val data = WuxiaWorldSiteProvider.getChapters(mainUrl, id)
+        //val id = WuxiaWorldSiteProvider.getId(response.text) ?: throw ErrorLoadingException("No id found")
+        //ajax/chapters/
+        val chapResponse = khttp.post(
+            "${url}ajax/chapters/",
+        )
+        val data = WuxiaWorldSiteProvider.getChapters(chapResponse.text)
 
         val rating = ((document.selectFirst("span#averagerate")?.text()?.toFloat() ?: 0f) * 200).toInt()
         val peopleVoted = document.selectFirst("span#countrate")?.text()?.toInt() ?: 0

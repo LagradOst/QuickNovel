@@ -30,11 +30,12 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.model.GlideUrl
+import com.bumptech.glide.load.model.LazyHeaders
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.util.UIHelper.hideKeyboard
 import java.text.CharacterIterator
 import java.text.StringCharacterIterator
 import kotlin.math.roundToInt
+
 
 val Int.toPx: Int get() = (this * Resources.getSystem().displayMetrics.density).toInt()
 val Float.toPx: Float get() = (this * Resources.getSystem().displayMetrics.density)
@@ -85,13 +86,18 @@ object UIHelper {
         return color
     }
 
-    fun ImageView?.setImage(url : String?) {
-        if(this == null || url.isNullOrBlank()) return
+    fun ImageView?.setImage(url: String?, referer: String? = null) {
+        if (this == null || url.isNullOrBlank()) return
         try {
             Glide.with(this.context)
-                .load(GlideUrl(url))
+                .load(
+                    if (referer == null) GlideUrl(url) else GlideUrl(
+                        url,
+                        LazyHeaders.Builder().addHeader("Referer", referer).build()
+                    )
+                )
                 .into(this)
-        } catch (e : Exception) {
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }
@@ -138,13 +144,13 @@ object UIHelper {
         return color
     }
 
-    fun parseFontFileName(name : String?) : String {
-        return (if(name.isNullOrEmpty()) "Default" else name)
-            .replace('-',' ')
-            .replace(".ttf","")
-            .replace(".ttc","")
-            .replace(".otf","")
-            .replace(".otc","")
+    fun parseFontFileName(name: String?): String {
+        return (if (name.isNullOrEmpty()) "Default" else name)
+            .replace('-', ' ')
+            .replace(".ttf", "")
+            .replace(".ttc", "")
+            .replace(".otf", "")
+            .replace(".otc", "")
     }
 
     /**

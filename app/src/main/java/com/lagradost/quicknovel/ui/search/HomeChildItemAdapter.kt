@@ -10,6 +10,7 @@ import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import kotlinx.android.synthetic.main.home_result_grid.view.*
 
@@ -52,7 +53,7 @@ class HomeChildItemAdapter(
             cardText.text = card.name
 
             //imageTextProvider.text = card.apiName
-            cardView.setImage(card.posterUrl)
+            cardView.setImage(card.posterUrl, Apis.getApiFromNameOrNull(card.apiName)?.mainUrl)
 
             bg.setOnClickListener {
                 clickCallback.invoke(SearchClickCallback(SEARCH_ACTION_LOAD, it, card))

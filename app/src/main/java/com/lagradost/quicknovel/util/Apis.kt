@@ -27,12 +27,16 @@ class Apis {
         )
 
         fun getApiFromName(name: String): APIRepository {
+            return getApiFromNameOrNull(name) ?: APIRepository(apis[1])
+        }
+
+        fun getApiFromNameOrNull(name: String): APIRepository? {
             for (a in apis) {
                 if (a.name == name) {
                     return APIRepository(a)
                 }
             }
-            return APIRepository(apis[1])
+            return null
         }
 
         fun printProviders() {

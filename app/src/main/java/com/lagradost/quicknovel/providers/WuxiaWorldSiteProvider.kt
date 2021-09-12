@@ -12,12 +12,8 @@ class WuxiaWorldSiteProvider : MainAPI() {
             return Regex("data-id=\"([0-9]*?)\"").find(document)?.groupValues?.lastOrNull()
         }
 
-        fun getChapters(mainUrl: String, id: String): List<ChapterData> {
-            val response = khttp.post(
-                "$mainUrl/wp-admin/admin-ajax.php",
-                data = mapOf("action" to "manga_get_chapters", "manga" to id)
-            )
-            val document = Jsoup.parse(response.text)
+        fun getChapters(text : String): List<ChapterData> {
+            val document = Jsoup.parse(text)
             val data: ArrayList<ChapterData> = ArrayList()
             val chapterHeaders = document.select("ul.version-chap > li.wp-manga-chapter")
             for (c in chapterHeaders) {
@@ -213,7 +209,11 @@ class WuxiaWorldSiteProvider : MainAPI() {
         }
 
         val id = getId(response.text) ?: throw ErrorLoadingException("No id found")
-        val data = getChapters(mainUrl, id)
+        val chapResponse = khttp.post(
+            "$mainUrl/wp-admin/admin-ajax.php",
+            data = mapOf("action" to "manga_get_chapters", "manga" to id)
+        )
+        val data = getChapters(chapResponse.text)
 
         val rating = ((document.selectFirst("span#averagerate")?.text()?.toFloat() ?: 0f) * 200).toInt()
         val peopleVoted = document.selectFirst("span#countrate")?.text()?.toInt() ?: 0
