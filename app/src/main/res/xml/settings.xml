@@ -124,13 +124,6 @@
                     android:data="https://github.com/LagradOst/QuickNovel"/>
         </Preference>
         <Preference
-                android:title="Anime app by the same devs"
-                android:icon="@drawable/shiro_icon"
-                app:summary="https://github.com/Blatzar/shiro-app">
-            <intent android:action="android.intent.action.VIEW"
-                    android:data="https://github.com/Blatzar/shiro-app"/>
-        </Preference>
-        <Preference
                 android:title="Anime and Movie app by the same devs"
                 android:icon="@drawable/cs3_cloud"
                 app:summary="https://github.com/LagradOst/CloudStream-3">
