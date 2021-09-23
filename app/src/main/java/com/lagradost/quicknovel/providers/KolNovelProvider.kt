@@ -2,7 +2,6 @@ package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
 import org.jsoup.Jsoup
-import java.lang.Exception
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -101,11 +100,12 @@ class KolNovelProvider : MainAPI() {
         for (h in headers) {
             val imageHeader = h.selectFirst("a.tip")
 
-            val cUrl = imageHeader.attr("href")
+            val cUrl = imageHeader.attr("abs:href")
             val posterUrl = imageHeader.selectFirst("div.limit img").attr("src")
             val name = imageHeader.select("div.tt span.ntitle").text()
-            val sum = h.selectFirst("div.item-summary")
-            val rating = null
+            val rating =
+                (imageHeader.selectFirst("> div.tt > div > div > div.numscore").text()
+                    .toFloat() * 100).toInt()
             val latestChap = h.selectFirst("a.tip div.tt span.nchapter").text()
             returnValue.add(SearchResponse(name, cUrl, posterUrl, rating, latestChap, this.name))
         }
@@ -129,7 +129,7 @@ class KolNovelProvider : MainAPI() {
         for (h in headers) {
             val head = h.selectFirst("a.tip")
 
-            val url = head.attr("href")
+            val url = head.attr("abs:href")
 
             val posterUrl = h.select("div.limit img").attr("src")
 
@@ -156,7 +156,7 @@ class KolNovelProvider : MainAPI() {
 
         val document = Jsoup.parse(response.text)
         println(response.text)
-        val name = document.select("h1.entry-title").text()
+        val name = document.select("div.thumb > img").attr("title")//select("h1.entry-title").text()
         val authors = document.select("div.spe span:contains(المؤلف) > a")
         var author = ""
         for (a in authors) {
@@ -175,7 +175,7 @@ class KolNovelProvider : MainAPI() {
             tags.add(t.text())
         }
 
-        var synopsis = document.select("div.entry-content p").text()
+        var synopsis = document.select("div.entry-content p:first-of-type").text()
 
         val data: ArrayList<ChapterData> = ArrayList()
         val chapterHeaders = document.select("li[data-id] > a")//.eplister ul
@@ -188,15 +188,14 @@ class KolNovelProvider : MainAPI() {
         }
         data.reverse()
 
-        val rating = ((document.selectFirst("div.rating > strong")?.text()?.replace("درجة", "")?.toFloat() ?: 0f) * 200).toInt()
+        val rating = ((document.selectFirst("div.rating > strong")?.text()?.replace("درجة", "")?.toFloat() ?: 0f) * 100).toInt()
         val peopleVoted = null
 
         val views = null
 
         val aHeaders = document.select("span:contains(الحالة)")
-        val aHeader = aHeaders.last()
 
-        val status = when (aHeaders.text().toLowerCase(Locale.getDefault())) {
+        val status = when (aHeaders.text().replace("الحالة: ", "").toLowerCase(Locale.getDefault())) {
             "ongoing" -> STATUS_ONGOING
             "completed" -> STATUS_COMPLETE
             else -> STATUS_NULL
