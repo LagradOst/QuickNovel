@@ -25,6 +25,7 @@ class Apis {
             ReadNovelFullProvider(),
             ScribblehubProvider(),
             KolNovelProvider(),
+            RewayatArProvider(),
         )
 
         fun getApiFromName(name: String): APIRepository {
