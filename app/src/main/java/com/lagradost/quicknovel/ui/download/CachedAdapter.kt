@@ -24,6 +24,7 @@ import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
+import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.util.toPx
 import com.lagradost.quicknovel.widget.AutofitRecyclerView
 import kotlinx.android.synthetic.main.history_result_compact.view.*
@@ -94,13 +95,7 @@ class CachedAdapter(
             cardText.text = card.name
             imageTextMore.text = "${card.totalChapters} Chapters"
 
-            val glideUrl =
-                GlideUrl(card.poster)
-            localActivity.let {
-                Glide.with(it)
-                    .load(glideUrl)
-                    .into(cardView)
-            }
+            cardView.setImage(card.poster)
 
             fun handleSource() {
                 (localActivity as AppCompatActivity).loadResult(card.source, card.apiName)

@@ -42,6 +42,7 @@ import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.MainActivity.Companion.backPressed
 import com.lagradost.quicknovel.mvvm.Resource
+import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.download.DownloadHelper
@@ -268,18 +269,22 @@ class ResultFragment : Fragment() {
                 val res = loadResponse.value
 
                 // LOAD IMAGES FIRST TO GIVE IT A BIT OF TIME
-                if (res.posterUrl != null) {
-                    val glideUrl =
-                        GlideUrl(res.posterUrl, LazyHeaders.Builder().addHeader("Referer", api.mainUrl).build())
-                    requireContext().let {
-                        Glide.with(it)
-                            .load(glideUrl)
-                            .into(result_poster)
+                if (!res.posterUrl.isNullOrEmpty()) {
+                    try {
+                        val glideUrl =
+                            GlideUrl(res.posterUrl, LazyHeaders.Builder().addHeader("Referer", api.mainUrl).build())
+                        requireContext().let {
+                            Glide.with(it)
+                                .load(glideUrl)
+                                .into(result_poster)
 
-                        Glide.with(it)
-                            .load(glideUrl)
-                            .apply(bitmapTransform(BlurTransformation(100, 3)))
-                            .into(result_poster_blur)
+                            Glide.with(it)
+                                .load(glideUrl)
+                                .apply(bitmapTransform(BlurTransformation(100, 3)))
+                                .into(result_poster_blur)
+                        }
+                    } catch (e : Exception) {
+                        logError(e)
                     }
                 }
 

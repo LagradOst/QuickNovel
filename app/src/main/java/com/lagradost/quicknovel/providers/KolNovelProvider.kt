@@ -19,67 +19,70 @@ class KolNovelProvider : MainAPI() {
     override val iconBackgroundId: Int
         get() = R.color.kolNovelColor
 
-        override val tags: List<Pair<String, String>>
-            get() = listOf(
-                Pair("أكشن", "action"),
-                Pair("أصلية", "original"),
-                Pair("إثارة", "excitement"),
-                Pair("إنتقال الى عالم أخر", "isekai"),
-                Pair("إيتشي", "etchi"),
-                Pair("بوليسي", "policy"),
-                Pair("تقمص شخصيات", "rpg"),
-                Pair("جريمة", "crime"),
-                Pair("سحر", "magic"),
-                Pair("سينن", "senen"),
-                Pair("شونين", "shonen"),
-                Pair("صيني", "chinese"),
-                Pair("غموض", "mysteries"),
-                Pair("قوى خارقة", "superpower"),
-                Pair("كوري", "korean"),
-                Pair("كوميدى", "comedy"),
-                Pair("ما بعد الكارثة", "after-the-disaster"),
-                Pair("مغامرة", "adventure"),
-                Pair("ميكا", "mechanical"),
-                Pair("ناض", "%d9%86%d8%a7%d8%b6"),
-                Pair("ناضج", "mature"),
-                Pair("ياباني", "japanese"),
-                Pair("دراما", "drama"),
-                Pair("خيالي", "fantasy"),
-                Pair("حريم", "harem"),
-                Pair("جوسى", "josei"),
-                Pair("فنون القتال", "martial-arts"),
-                Pair("تاريخي", "historical"),
-                Pair("رعب", "horror"),
-                Pair("نفسي", "psychological"),
-                Pair("رومانسي", "romantic"),
-                Pair("حياة مدرسية", "school-life"),
-                Pair("الخيال العلمي", "sci-fi"),
-                Pair("شريحة من الحياة", "slice-of-life"),
-                Pair("خارقة للطبيعة", "supernatural"),
-                Pair("مأساوي", "tragedy"),
-                Pair("Wuxia", "wuxia"),
-                Pair("Xianxia", "xianxia"),
-                Pair("Xuanhuan", "xuanhuan"),
-            )
+    override val lang: String
+        get() = "ar"
 
-        override val orderBys: List<Pair<String, String>>
-            get() = listOf(
-                Pair("إفتراضي", ""),
-                Pair("A-Z", "title"),
-                Pair("Z-A", "titlereverse"),
-                Pair("أخر التحديثات", "update"),
-                Pair("أخر الإضافات", "latest"),
-                Pair("رائج", "popular"),
-            )
+    override val tags: List<Pair<String, String>>
+        get() = listOf(
+            Pair("أكشن", "action"),
+            Pair("أصلية", "original"),
+            Pair("إثارة", "excitement"),
+            Pair("إنتقال الى عالم أخر", "isekai"),
+            Pair("إيتشي", "etchi"),
+            Pair("بوليسي", "policy"),
+            Pair("تقمص شخصيات", "rpg"),
+            Pair("جريمة", "crime"),
+            Pair("سحر", "magic"),
+            Pair("سينن", "senen"),
+            Pair("شونين", "shonen"),
+            Pair("صيني", "chinese"),
+            Pair("غموض", "mysteries"),
+            Pair("قوى خارقة", "superpower"),
+            Pair("كوري", "korean"),
+            Pair("كوميدى", "comedy"),
+            Pair("ما بعد الكارثة", "after-the-disaster"),
+            Pair("مغامرة", "adventure"),
+            Pair("ميكا", "mechanical"),
+            Pair("ناض", "%d9%86%d8%a7%d8%b6"),
+            Pair("ناضج", "mature"),
+            Pair("ياباني", "japanese"),
+            Pair("دراما", "drama"),
+            Pair("خيالي", "fantasy"),
+            Pair("حريم", "harem"),
+            Pair("جوسى", "josei"),
+            Pair("فنون القتال", "martial-arts"),
+            Pair("تاريخي", "historical"),
+            Pair("رعب", "horror"),
+            Pair("نفسي", "psychological"),
+            Pair("رومانسي", "romantic"),
+            Pair("حياة مدرسية", "school-life"),
+            Pair("الخيال العلمي", "sci-fi"),
+            Pair("شريحة من الحياة", "slice-of-life"),
+            Pair("خارقة للطبيعة", "supernatural"),
+            Pair("مأساوي", "tragedy"),
+            Pair("Wuxia", "wuxia"),
+            Pair("Xianxia", "xianxia"),
+            Pair("Xuanhuan", "xuanhuan"),
+        )
+
+    override val orderBys: List<Pair<String, String>>
+        get() = listOf(
+            Pair("إفتراضي", ""),
+            Pair("A-Z", "title"),
+            Pair("Z-A", "titlereverse"),
+            Pair("أخر التحديثات", "update"),
+            Pair("أخر الإضافات", "latest"),
+            Pair("رائج", "popular"),
+        )
 
 
-        override val mainCategories: List<Pair<String, String>>
-            get() = listOf(
-                Pair("الكل", ""),
-                Pair("Ongoing", "ongoing"),
-                Pair("Hiatus", "hiatus"),
-                Pair("Completed", "completed"),
-            )
+    override val mainCategories: List<Pair<String, String>>
+        get() = listOf(
+            Pair("الكل", ""),
+            Pair("Ongoing", "ongoing"),
+            Pair("Hiatus", "hiatus"),
+            Pair("Completed", "completed"),
+        )
 
     override fun loadMainPage(
         page: Int,
@@ -87,7 +90,6 @@ class KolNovelProvider : MainAPI() {
         orderBy: String?,
         tag: String?,
     ): HeadMainPageResponse {
-
         val url = "$mainUrl/series/?page=$page&genre[]=$tag&status=$mainCategory&order=$orderBy"
 
         val response = khttp.get(url)
@@ -188,7 +190,8 @@ class KolNovelProvider : MainAPI() {
         }
         data.reverse()
 
-        val rating = ((document.selectFirst("div.rating > strong")?.text()?.replace("درجة", "")?.toFloat() ?: 0f) * 100).toInt()
+        val rating =
+            ((document.selectFirst("div.rating > strong")?.text()?.replace("درجة", "")?.toFloat() ?: 0f) * 100).toInt()
         val peopleVoted = null
 
         val views = null

@@ -31,6 +31,11 @@
                 android:entries="@array/GridFormat"
                 android:entryValues="@array/GridFormatData"
         />
+        <Preference
+                android:icon="@drawable/ic_baseline_language_24"
+                android:key="@string/provider_lang_key"
+                android:title="@string/provider_lang_settings">
+        </Preference>
     </PreferenceCategory>
 
 

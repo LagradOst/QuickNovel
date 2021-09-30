@@ -2,14 +2,15 @@ package com.lagradost.quicknovel.ui.settings
 
 import android.os.Bundle
 import android.widget.Toast
-import androidx.preference.ListPreference
-import androidx.preference.MultiSelectListPreference
-import androidx.preference.Preference
-import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.*
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.util.Apis.Companion.apis
+import com.lagradost.quicknovel.util.Apis.Companion.getApiProviderLangSettings
+import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
+import com.lagradost.quicknovel.util.SingleSelectionHelper.showMultiDialog
+import com.lagradost.quicknovel.util.SubtitleHelper
 import kotlin.concurrent.thread
 
 class SettingsFragment : PreferenceFragmentCompat() {
@@ -17,6 +18,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         setPreferencesFromResource(R.xml.settings, rootKey)
         val multiPreference = findPreference<MultiSelectListPreference>(getString(R.string.search_providers_list_key))!!
         val updatePrefrence = findPreference<Preference>(getString(R.string.manual_check_update_key))!!
+        val providerLangPreference = findPreference<Preference>(getString(R.string.provider_lang_key))!!
 
         val apiNames = apis.map { it.name }
 
@@ -38,6 +40,46 @@ class SettingsFragment : PreferenceFragmentCompat() {
                     }
                 }
             }
+            return@setOnPreferenceClickListener true
+        }
+
+        providerLangPreference.setOnPreferenceClickListener {
+            val settingsManager = PreferenceManager.getDefaultSharedPreferences(context)
+
+            activity?.getApiProviderLangSettings()?.let { current ->
+                val allLangs = HashSet<String>()
+                for (api in apis) {
+                    allLangs.add(api.lang)
+                }
+
+                val currentList = ArrayList<Int>()
+                for (i in current) {
+                    currentList.add(allLangs.indexOf(i))
+                }
+
+                val names = allLangs.mapNotNull {
+                    val fullName = SubtitleHelper.fromTwoLettersToLanguage(it)
+                    if (fullName.isNullOrEmpty()) {
+                        return@mapNotNull null
+                    }
+
+                    Pair(it, fullName)
+                }
+
+                context?.showMultiDialog(
+                    names.map { it.second },
+                    currentList,
+                    getString(R.string.provider_lang_settings),
+                    {}) { selectedList ->
+                    settingsManager.edit().putStringSet(
+                        this.getString(R.string.provider_lang_key),
+                        selectedList.map { names[it].first }.toMutableSet()
+                    ).apply()
+
+                    providersActive = it.context.getApiSettings()
+                }
+            }
+
             return@setOnPreferenceClickListener true
         }
 

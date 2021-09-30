@@ -8,9 +8,9 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.util.Apis.Companion.apis
-import com.lagradost.quicknovel.BrowseAdapter
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.util.Apis.Companion.getApiProviderLangSettings
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import kotlinx.android.synthetic.main.fragment_home.*
 
@@ -26,8 +26,9 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val homeApis = ArrayList<MainAPI>()
+        val langs = context?.getApiProviderLangSettings()
         for (api in apis) {
-            if (api.hasMainPage) {
+            if (api.hasMainPage && (langs == null || langs.contains(api.lang))) {
                 homeApis.add(api)
             }
         }

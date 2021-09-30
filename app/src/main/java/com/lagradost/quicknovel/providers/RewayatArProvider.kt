@@ -17,54 +17,57 @@ class RewayatArProvider : MainAPI() {
     override val hasMainPage: Boolean
         get() = true
 
+    override val lang: String
+        get() = "ar"
+
     override val iconBackgroundId: Int
         get() = R.color.rewayatARlColor
 
-        override val tags: List<Pair<String, String>>
-            get() = listOf(
-                Pair("أكشن", "action"),
-                Pair("+18", "adult"),
-                Pair("إيتشي", "etchi"),
-                Pair("تاريخي", "historical"),
-                Pair("حريم", "harem"),
-                Pair("خيالي", "fantasy"),
-                Pair("دراما", "Drama"),
-                Pair("رعب", "horror"),
-                Pair("رومانسى", "romance"),
-                Pair("رياضة", "sports"),
-                Pair("شبه بشرية", "demi-human"),
-                Pair("صيني", "chiness"),
-                Pair("عربي", "Arabic"),
-                Pair("غموض", "mystrious"),
-                Pair("فان فيكشن", "fan-fiction"),
-                Pair("فنون القتال", "martial-arts"),
-                Pair("قوى خارقة", "super-natural"),
-                Pair("كوري", "korean"),
-                Pair("كوميدى", "comdy"),
-                Pair("مانهوا", "manhwa"),
-                Pair("مغامرة", "adventure"),
-                Pair("نظام", "%d9%86%d8%b8%d8%a7%d9%85"),
-                Pair("يابانى", "japaness"),
-            )
+    override val tags: List<Pair<String, String>>
+        get() = listOf(
+            Pair("أكشن", "action"),
+            Pair("+18", "adult"),
+            Pair("إيتشي", "etchi"),
+            Pair("تاريخي", "historical"),
+            Pair("حريم", "harem"),
+            Pair("خيالي", "fantasy"),
+            Pair("دراما", "Drama"),
+            Pair("رعب", "horror"),
+            Pair("رومانسى", "romance"),
+            Pair("رياضة", "sports"),
+            Pair("شبه بشرية", "demi-human"),
+            Pair("صيني", "chiness"),
+            Pair("عربي", "Arabic"),
+            Pair("غموض", "mystrious"),
+            Pair("فان فيكشن", "fan-fiction"),
+            Pair("فنون القتال", "martial-arts"),
+            Pair("قوى خارقة", "super-natural"),
+            Pair("كوري", "korean"),
+            Pair("كوميدى", "comdy"),
+            Pair("مانهوا", "manhwa"),
+            Pair("مغامرة", "adventure"),
+            Pair("نظام", "%d9%86%d8%b8%d8%a7%d9%85"),
+            Pair("يابانى", "japaness"),
+        )
 
-        override val orderBys: List<Pair<String, String>>
-            get() = listOf(
-                Pair("إفتراضي", ""),
-                Pair("A-Z", "title"),
-                Pair("Z-A", "titlereverse"),
-                Pair("أخر التحديثات", "update"),
-                Pair("أخر الإضافات", "latest"),
-                Pair("رائج", "popular"),
-            )
+    override val orderBys: List<Pair<String, String>>
+        get() = listOf(
+            Pair("إفتراضي", ""),
+            Pair("A-Z", "title"),
+            Pair("Z-A", "titlereverse"),
+            Pair("أخر التحديثات", "update"),
+            Pair("أخر الإضافات", "latest"),
+            Pair("رائج", "popular"),
+        )
 
 
-        override val mainCategories: List<Pair<String, String>>
-            get() = listOf(
-                Pair("الكل", ""),
-                Pair("Ongoing", "ongoing"),
-                Pair("Hiatus", "hiatus"),
-                Pair("Completed", "completed"),
-            )
+    override val mainCategories: List<Pair<String, String>>
+        get() = listOf(
+            Pair("الكل", ""),
+            Pair("Ongoing", "ongoing"),
+            Pair("Hiatus", "hiatus"),
+            Pair("Completed", "completed"),
+        )
 
     override fun loadMainPage(
         page: Int,
@@ -173,7 +176,8 @@ class RewayatArProvider : MainAPI() {
         }
         data.reverse()
 
-        val rating = ((document.selectFirst("div.rating > strong")?.text()?.replace("التقييم", "")?.toFloat() ?: 0f) * 100).toInt()
+        val rating = ((document.selectFirst("div.rating > strong")?.text()?.replace("التقييم", "")?.toFloat()
+            ?: 0f) * 100).toInt()
 
         val peopleVoted = null
         val views = null

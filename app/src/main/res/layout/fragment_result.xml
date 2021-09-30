@@ -497,12 +497,7 @@ Translator: Rainbow Turtle"
                                             app:iconSize="20dp"
                                             android:text="@string/generate_epub"
                                             android:id="@+id/result_download_generate_epub"
-                                            android:textAllCaps="false"
-                                            android:textSize="15sp"
-                                            app:cornerRadius="5dp"
-                                            app:strokeWidth="2dp"
-                                            app:strokeColor="?attr/colorAccent"
-                                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                            style="@style/NiceButton"
                                             app:rippleColor="?attr/colorPrimary"
                                             android:layout_width="50dp">
                                     </com.google.android.material.button.MaterialButton>
@@ -517,12 +512,7 @@ Translator: Rainbow Turtle"
 
                                             android:id="@+id/result_download_btt"
                                             android:text="@string/download_text"
-                                            android:textAllCaps="false"
-                                            android:textSize="15sp"
-                                            app:strokeWidth="2dp"
-                                            app:strokeColor="?attr/colorAccent"
-                                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                                            app:rippleColor="?attr/colorPrimary"
+                                            style="@style/NiceButton"
                                             android:layout_width="50dp">
                                     </com.google.android.material.button.MaterialButton>
                                 </GridLayout>
@@ -533,12 +523,7 @@ Translator: Rainbow Turtle"
                                         app:iconSize="20dp"
                                         android:text="@string/quickstream_novel_text"
                                         android:id="@+id/result_quickstream"
-                                        android:textAllCaps="false"
-                                        android:textSize="15sp"
-                                        app:strokeWidth="2dp"
-                                        app:strokeColor="?attr/colorAccent"
-                                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                                        app:rippleColor="?attr/colorPrimary"
+                                        style="@style/NiceButton"
                                         android:layout_width="match_parent">
                                 </com.google.android.material.button.MaterialButton>
                             </LinearLayout>

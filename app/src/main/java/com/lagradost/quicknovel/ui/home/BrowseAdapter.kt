@@ -1,4 +1,4 @@
-package com.lagradost.quicknovel
+package com.lagradost.quicknovel.ui.home
 
 import android.content.Context
 import android.os.Bundle
@@ -10,6 +10,9 @@ import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.navigation.findNavController
 import androidx.recyclerview.widget.RecyclerView
+import com.lagradost.quicknovel.MainAPI
+import com.lagradost.quicknovel.MainActivity
+import com.lagradost.quicknovel.R
 import kotlinx.android.synthetic.main.browse_list_compact.view.*
 
 class BrowseAdapter(

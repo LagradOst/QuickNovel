@@ -96,6 +96,35 @@
         <item name="textAllCaps">false</item>
     </style>
 
+    <style name="AlertDialogCustom" parent="Theme.AppCompat.Dialog.Alert">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:textColor">?attr/textColor</item>
+        <item name="android:textColorPrimary">?attr/textColor</item>
+        <!--<item name="android:background">@color/darkBackground</item>-->
+        <item name="android:textAllCaps">false</item>
+        <!--<item name="android:colorBackground">@color/darkBackground</item>-->
+        <item name="textColorAlertDialogListItem">?attr/textColor</item>
+        <item name="colorControlNormal">?attr/textColor</item>
+        <!-- colorPrimarySecond used because colorPrimary fails for no reason -->
+        <item name="colorControlActivated">?attr/colorPrimary</item>
+
+        <item name="android:windowMinWidthMajor">@android:dimen/dialog_min_width_major</item>
+        <item name="android:windowMinWidthMinor">@android:dimen/dialog_min_width_minor</item>
+        <item name="android:windowBackground">@drawable/dialog__window_background</item>
+    </style>
+    <style name="AlertDialogCustomTransparent" parent="Theme.AppCompat.Dialog.Alert">
+        <item name="android:windowBackground">@color/transparent</item>
+    </style>
+    <style name="AlertDialogCustomBlack" parent="Theme.AppCompat.Dialog.Alert">
+        <item name="android:windowBackground">?attr/darkBackground</item>
+        <item name="android:layout_width">fill_parent</item>
+        <item name="android:layout_height">fill_parent</item>
+        <!-- No backgrounds, titles or window float -->
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:navigationBarColor">?attr/darkBackground</item>
+    </style>
+
     <style name="RoundedBgTextView" parent="@android:style/Widget.TextView">
         <item name="roundedTextHorizontalPadding">2dp</item>
         <item name="roundedTextVerticalPadding">2dp</item>
@@ -103,6 +132,23 @@
         <item name="roundedTextDrawableLeft">@drawable/rounded_text_bg_left</item>
         <item name="roundedTextDrawableMid">@drawable/rounded_text_bg_mid</item>
         <item name="roundedTextDrawableRight">@drawable/rounded_text_bg_right</item>
+    </style>
+
+    <style name="NiceButton" parent="@style/Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:padding">5dp</item>
+        <item name="android:layout_marginStart">5dp</item>
+        <item name="android:layout_marginEnd">5dp</item>
+        <item name="android:layout_height">50dp</item>
+        <item name="android:gravity">center</item>
+        <item name="iconSize">20dp</item>
+        <item name="textAllCaps">false</item>
+        <item name="android:textSize">15sp</item>
+        <item name="cornerRadius">5dp</item>
+        <item name="cornerRadius">5dp</item>
+        <item name="strokeWidth">2dp</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
+        <item name="strokeColor">?attr/colorPrimary</item>
+        <item name="rippleColor">?attr/colorPrimary</item>
     </style>
 
     <style name="AppTextViewStyle" parent="android:Widget.TextView">

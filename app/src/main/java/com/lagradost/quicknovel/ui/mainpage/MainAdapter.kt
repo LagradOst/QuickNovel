@@ -18,6 +18,7 @@ import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.widget.AutofitRecyclerView
 import com.lagradost.quicknovel.util.SettingsHelper.getGridFormatId
 import com.lagradost.quicknovel.util.SettingsHelper.getGridIsCompact
+import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.util.toPx
 import kotlinx.android.synthetic.main.search_result_super_compact.view.*
 import kotlin.math.roundToInt
@@ -87,15 +88,8 @@ class MainAdapter(
             }*/
             //imageTextProvider.text = card.apiName
 
-            val glideUrl =
-                GlideUrl(card.posterUrl)
-
+            cardView.setImage(card.posterUrl)
             cardView.setLayerType(View.LAYER_TYPE_SOFTWARE, null) // HALF IMAGE DISPLAYING FIX
-            activity.let {
-                Glide.with(it)
-                    .load(glideUrl)
-                    .into(cardView)
-            }
 
             bg.setOnClickListener {
                 (activity as AppCompatActivity).loadResult(card.url, card.apiName)

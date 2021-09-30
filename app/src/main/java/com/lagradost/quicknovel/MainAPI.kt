@@ -9,6 +9,8 @@ abstract class MainAPI {
     open val name = "NONE"
     open val mainUrl = "NONE"
 
+    open val lang = "en" // ISO_639_1 check SubtitleHelper
+
     open val rateLimitTime: Long = 0
 
     // DECLARE HAS ACCESS TO MAIN PAGE INFORMATION

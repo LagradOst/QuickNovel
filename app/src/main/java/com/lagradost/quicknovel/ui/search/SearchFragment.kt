@@ -26,6 +26,7 @@ import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.search.SearchHelper.handleSearchClickCallback
 import com.lagradost.quicknovel.util.Apis.Companion.apis
+import com.lagradost.quicknovel.util.Apis.Companion.getApiProviderLangSettings
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.Event
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
@@ -180,12 +181,13 @@ class SearchFragment : Fragment() {
         searchMagIcon.scaleX = 0.65f
         searchMagIcon.scaleY = 0.65f
 
-        search_filter.setOnClickListener {
+        search_filter.setOnClickListener { view ->
             val builder: AlertDialog.Builder = AlertDialog.Builder(requireContext())
             //val settingsManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
-            val apiNamesSetting = requireActivity().getApiSettings()
+            val apiNamesSetting = view.context.getApiSettings()
 
-            val apiNames = apis.map { it.name }
+            val langs = view.context.getApiProviderLangSettings()
+            val apiNames = apis.mapNotNull { if(langs.contains(it.lang)) it.name else null }
 
             builder.setMultiChoiceItems(
                 apiNames.toTypedArray(),
@@ -204,7 +206,7 @@ class SearchFragment : Fragment() {
                     apiNames.filter { a -> apiNamesSettingLocal.contains(a) }.toSet()
                 )
                 edit.apply()
-                providersActive = apiNamesSettingLocal
+                providersActive = requireContext().getApiSettings()
             }
             builder.setTitle("Search Providers")
             builder.setNegativeButton("Ok") { _, _ -> }

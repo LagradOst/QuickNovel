@@ -6,6 +6,8 @@
     <string name="title_home">Explore</string>
     <string name="title_download">Library</string>
 
+    <string name="provider_lang_key" translatable="false">provider_lang_key</string>
+
     <string name="search_hint">Search Novels</string>
     <string name="synopsis">Synopsis</string>
     <string name="no_data">No Data</string>
@@ -117,4 +119,7 @@
     <string name="home_more_info">More info</string>
     <string name="home_expanded_hide">Hide</string>
     <string name="reload_chapter">Reload Chapter</string>
+    <string name="provider_lang_settings">Provider Languages</string>
+    <string name="sort_apply">Apply</string>
+    <string name="sort_cancel">Cancel</string>
 </resources>

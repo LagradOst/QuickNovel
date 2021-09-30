@@ -14,6 +14,7 @@ import com.google.android.material.button.MaterialButton
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.util.SettingsHelper.getRatingReview
+import com.lagradost.quicknovel.util.UIHelper.setImage
 import kotlinx.android.synthetic.main.result_review.view.*
 
 class ReviewAdapter(
@@ -82,13 +83,8 @@ class ReviewAdapter(
             reviewTime.text = card.reviewDate
             reviewAuthor.text = card.username
             println(card.avatarUrl)
-            val glideUrl =
-                GlideUrl(card.avatarUrl)
-            localContext.let {
-                Glide.with(it)
-                    .load(glideUrl)
-                    .into(reviewImage)
-            }
+
+            reviewImage.setImage(card.avatarUrl)
 
             reviewTags.removeAllViews()
             val inflater = localContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
