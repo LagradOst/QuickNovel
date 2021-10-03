@@ -7,28 +7,6 @@ import java.util.*
 import kotlin.collections.ArrayList
 
 class WuxiaWorldSiteProvider : MainAPI() {
-    companion object {
-        fun getId(document: String): String? {
-            return Regex("data-id=\"([0-9]*?)\"").find(document)?.groupValues?.lastOrNull()
-        }
-
-        fun getChapters(text : String): List<ChapterData> {
-            val document = Jsoup.parse(text)
-            val data: ArrayList<ChapterData> = ArrayList()
-            val chapterHeaders = document.select("ul.version-chap > li.wp-manga-chapter")
-            for (c in chapterHeaders) {
-                val header = c.selectFirst("> a")
-                val cUrl = header.attr("href")
-                val cName = header.text().replace("  ", " ").replace("\n", "")
-                    .replace("\t", "")
-                val added = c.selectFirst("> span.chapter-release-date > i").text()
-                data.add(ChapterData(cName, cUrl, added, 0))
-            }
-            data.reverse()
-            return data
-        }
-    }
-
     override val name: String get() = "WuxiaWorldSite"
     override val mainUrl: String get() = "https://wuxiaworld.site"
 
@@ -208,12 +186,17 @@ class WuxiaWorldSiteProvider : MainAPI() {
             }
         }
 
-        val id = getId(response.text) ?: throw ErrorLoadingException("No id found")
-        val chapResponse = khttp.post(
-            "$mainUrl/wp-admin/admin-ajax.php",
-            data = mapOf("action" to "manga_get_chapters", "manga" to id)
-        )
-        val data = getChapters(chapResponse.text)
+        val data: ArrayList<ChapterData> = ArrayList()
+        val chapterHeaders = document.select("ul.version-chap > li.wp-manga-chapter")
+        for (c in chapterHeaders) {
+            val header = c.selectFirst("> a")
+            val cUrl = header.attr("href")
+            val cName = header.text().replace("  ", " ").replace("\n", "")
+                .replace("\t", "")
+            val added = c.selectFirst("> span.chapter-release-date > i").text()
+            data.add(ChapterData(cName, cUrl, added, 0))
+        }
+        data.reverse()
 
         val rating = ((document.selectFirst("span#averagerate")?.text()?.toFloat() ?: 0f) * 200).toInt()
         val peopleVoted = document.selectFirst("span#countrate")?.text()?.toInt() ?: 0
