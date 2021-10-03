@@ -157,6 +157,22 @@ class BoxNovelProvider : MainAPI() {
         return returnValue
     }
 
+    fun getChapters(text: String): List<ChapterData> {
+        val document = Jsoup.parse(text)
+        val data: ArrayList<ChapterData> = ArrayList()
+        val chapterHeaders = document.select("ul.version-chap > li.wp-manga-chapter")
+        for (c in chapterHeaders) {
+            val header = c.selectFirst("> a")
+            val cUrl = header.attr("href")
+            val cName = header.text().replace("  ", " ").replace("\n", "")
+                .replace("\t", "")
+            val added = c.selectFirst("> span.chapter-release-date > i").text()
+            data.add(ChapterData(cName, cUrl, added, 0))
+        }
+        data.reverse()
+        return data
+    }
+
     override fun load(url: String): LoadResponse {
         val response = khttp.get(url)
 
@@ -197,7 +213,7 @@ class BoxNovelProvider : MainAPI() {
         val chapResponse = khttp.post(
             "${url}ajax/chapters/",
         )
-        val data = WuxiaWorldSiteProvider.getChapters(chapResponse.text)
+        val data = getChapters(chapResponse.text)
 
         val rating = ((document.selectFirst("span#averagerate")?.text()?.toFloat() ?: 0f) * 200).toInt()
         val peopleVoted = document.selectFirst("span#countrate")?.text()?.toInt() ?: 0
