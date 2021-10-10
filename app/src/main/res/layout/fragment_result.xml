@@ -25,50 +25,38 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
         <com.google.android.material.button.MaterialButton
+                android:id="@+id/result_reload_connectionerror"
+
                 android:layout_gravity="center"
-                android:layout_height="50dp"
-                android:layout_margin="5dp"
 
                 app:icon="@drawable/ic_baseline_autorenew_24"
                 app:iconSize="20dp"
                 android:text="@string/reload_error"
-                android:id="@+id/result_reload_connectionerror"
-                android:textAllCaps="false"
-                android:textSize="15sp"
-                app:cornerRadius="5dp"
-                app:strokeWidth="2dp"
-                app:strokeColor="@color/colorAccent"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                app:rippleColor="@color/colorPrimary"
+                style="@style/NiceButton"
+
                 android:layout_width="wrap_content"
                 android:minWidth="200dp"
         >
         </com.google.android.material.button.MaterialButton>
         <com.google.android.material.button.MaterialButton
+                android:id="@+id/result_reload_connection_open_in_browser"
+
                 android:layout_gravity="center"
-                android:layout_height="50dp"
-                android:layout_margin="5dp"
 
                 app:icon="@drawable/ic_baseline_public_24"
                 app:iconSize="20dp"
                 android:text="@string/open_in_browser"
-                android:id="@+id/result_reload_connection_open_in_browser"
-                android:textAllCaps="false"
-                android:textSize="15sp"
-                app:cornerRadius="5dp"
-                app:strokeWidth="2dp"
-                app:strokeColor="@color/colorAccent"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                app:rippleColor="@color/colorPrimary"
+                style="@style/NiceButton"
                 android:layout_width="wrap_content"
                 android:minWidth="200dp"
         >
         </com.google.android.material.button.MaterialButton>
         <TextView
+                android:id="@+id/result_error_text"
+
                 android:layout_margin="5dp"
                 android:gravity="center"
                 android:layout_gravity="center"
-                android:id="@+id/result_error_text"
                 android:textColor="?attr/colorPrimary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
