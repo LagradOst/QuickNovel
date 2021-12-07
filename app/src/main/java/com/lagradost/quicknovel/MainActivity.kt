@@ -258,6 +258,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         printProviders()
+
         //loadResult("https://www.novelpassion.com/novel/battle-frenzy")
         //loadResult("https://www.royalroad.com/fiction/40182/only-villains-do-that", MainActivity.activeAPI.name)
         thread {
@@ -266,6 +267,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun test() {
-
+       // val response = khttp.get("https://ranobes.net/up/a-bored-lich/936969-1.html")
+       // println(response.text)
     }
 }

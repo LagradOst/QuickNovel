@@ -40,6 +40,8 @@
                 <data android:scheme="https" android:host="boxnovel.com" android:pathPrefix="/novel/"/>
                 <data android:scheme="https" android:host="comrademao.com" android:pathPrefix="/novel/"/>
                 <data android:scheme="https" android:host="www.lightnovelpub.com" android:pathPrefix="/novel/"/>
+                <data android:scheme="https" android:host="www.scribblehub.com" android:pathPrefix="/series/"/>
+                <data android:scheme="https" android:host="www.readanybook.com" android:pathPrefix="/ebook/"/>
             </intent-filter>
         </activity>
 

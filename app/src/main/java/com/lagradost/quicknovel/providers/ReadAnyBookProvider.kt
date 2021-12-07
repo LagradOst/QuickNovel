@@ -3,8 +3,6 @@ package com.lagradost.quicknovel.providers
 import com.lagradost.quicknovel.*
 import khttp.get
 import org.jsoup.Jsoup
-import java.lang.StringBuilder
-import java.net.URI
 import kotlin.math.roundToInt
 
 class ReadAnyBookProvider : MainAPI() {
@@ -63,17 +61,17 @@ class ReadAnyBookProvider : MainAPI() {
             it.text()
         }
 
-        val chapterData = ChapterData(
+        /*val chapterData = ChapterData(
             name,
             data,
             null,
             null
-        )
+        )*/
 
         return LoadResponse(
             url,
             name,
-            listOf(chapterData),
+            getChapterData(data),//listOf(chapterData),
             authors,
             posterUrl,
             rating,
@@ -85,8 +83,7 @@ class ReadAnyBookProvider : MainAPI() {
         )
     }
 
-
-    private fun scrapeOPF(url: String): String? {
+   /* private fun scrapeOPF(url: String): String? {
         val html = get(url).text
         // Cuts off everything after the last "/"
         // Used for relative paths
@@ -148,10 +145,80 @@ class ReadAnyBookProvider : MainAPI() {
         }
 
         return string //.textClean.also { println(it?.substring(0, 1000)) }
+    }*/
+
+    private fun regexNames(name : String) : String {
+        return when(name) {
+            "cover" -> "Cover"
+            "toc" -> "Table of contents"
+            "cop" -> "Copyright"
+            "ded" -> "Dedication"
+            "ap1" -> "Appendix"
+            "nts" -> "Notes"
+            "aft" -> "Afterword"
+            "tp" -> "Title Poster"
+            else -> {
+                if (name.startsWith('c')) {
+                    val match = Regex("c([0-9]*)").find(name)
+                    val chapterNumber = match?.groupValues?.get(1)
+                    if(chapterNumber != null) {
+                        return "Chapter $chapterNumber"
+                    }
+                }
+                return name
+            }
+        }
     }
 
-    override fun loadHtml(url: String): String? {
+    private fun getChapterData(url: String) : List<ChapterData>{
         val container = get(url).text
+        val doc = Jsoup.parse(container)
+        val root = doc.select("rootfile[full-path]")
+
+        val rootPath = root.attr("full-path")
+
+        val mainUrl = url.removeSuffix(containerUrl)
+
+        return scrapeOPFList(mainUrl + rootPath)
+    }
+
+    private fun scrapeOPFList(url: String): List<ChapterData> {
+        val html = get(url).text
+        // Cuts off everything after the last "/"
+        // Used for relative paths
+        val mainPath = url.substring(0, url.lastIndexOf("/") + 1)
+
+        val doc = Jsoup.parse(html)
+        val spine = doc.select("spine > itemref")
+        val manifest = doc.select("manifest > item")
+
+        val list = ArrayList<ChapterData>()
+        // Uses spine order
+        spine.forEach {
+            val id = it.attr("idref")
+            val found = manifest.firstOrNull { it.attr("id") == id } ?: return@forEach
+
+            // Doesn't parse images
+            if (found.attr("media-type").contains("html")) {
+                val href = found.attr("href")
+                if (href.isNullOrBlank()) return@forEach
+
+                val pageUrl = if (href.startsWith("http") || href.startsWith("www.")) {
+                    href
+                } else mainPath + href
+
+                list.add(ChapterData(regexNames(id), pageUrl, dateOfRelease = null, views = null))
+            }
+        }
+
+        return list
+    }
+
+    override fun loadHtml(url: String): String {
+        //TODO Scrape images
+        return get(url).text
+
+        /*val container = get(url).text
         val doc = Jsoup.parse(container)
         val root = doc.select("rootfile[full-path]")
 
@@ -165,6 +232,6 @@ class ReadAnyBookProvider : MainAPI() {
         return scrapeOPF(mainUrl + rootPath)
 //        }
 
-//        return super.loadHtml(url)
+//        return super.loadHtml(url)*/
     }
 }
