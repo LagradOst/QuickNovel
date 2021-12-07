@@ -18,7 +18,9 @@ class Apis {
             BestLightNovelProvider(),
             WuxiaWorldOnlineProvider(),
             RoyalRoadProvider(),
-            WuxiaWorldSiteProvider(),
+
+            // chapter captcha
+//            WuxiaWorldSiteProvider(),
             ReadLightNovelProvider(),
             BoxNovelProvider(),
             ComrademaoProvider(),
@@ -27,6 +29,7 @@ class Apis {
             ScribblehubProvider(),
             KolNovelProvider(),
             RewayatArProvider(),
+            ReadAnyBookProvider()
         )
 
         fun getApiFromName(name: String): APIRepository {

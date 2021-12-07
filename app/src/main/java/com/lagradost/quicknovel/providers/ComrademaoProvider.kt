@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.util.pmap
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 

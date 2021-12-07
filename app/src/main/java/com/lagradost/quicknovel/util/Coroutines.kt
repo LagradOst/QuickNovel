@@ -10,4 +10,10 @@ object Coroutines {
             work()
         }
     }
+
+    fun ioThread(work: suspend (() -> Unit)) {
+        CoroutineScope(Dispatchers.IO).launch {
+            work()
+        }
+    }
 }

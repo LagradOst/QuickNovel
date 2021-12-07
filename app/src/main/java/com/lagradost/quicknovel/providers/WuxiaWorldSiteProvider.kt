@@ -2,7 +2,6 @@ package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
 import org.jsoup.Jsoup
-import java.lang.Exception
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -186,8 +185,13 @@ class WuxiaWorldSiteProvider : MainAPI() {
             }
         }
 
+        val chapterUrl = "${url}ajax/chapters/"
+        // CLOUDFLARE CAPTCHA
+        val chapterRes = khttp.post(chapterUrl).text
+        val chapterDoc = Jsoup.parse(chapterRes)
+
         val data: ArrayList<ChapterData> = ArrayList()
-        val chapterHeaders = document.select("ul.version-chap > li.wp-manga-chapter")
+        val chapterHeaders = chapterDoc.select("ul.version-chap > li.wp-manga-chapter")
         for (c in chapterHeaders) {
             val header = c.selectFirst("> a")
             val cUrl = header.attr("href")
