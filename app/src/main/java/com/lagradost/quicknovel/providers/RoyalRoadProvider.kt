@@ -8,63 +8,57 @@ import java.util.*
 import kotlin.collections.ArrayList
 
 class RoyalRoadProvider : MainAPI() {
-    override val name: String get() = "Royal Road"
-    override val mainUrl: String get() = "https://www.royalroad.com"
+    override val name = "Royal Road"
+    override val mainUrl = "https://www.royalroad.com"
 
-    override val hasMainPage: Boolean
-        get() = true
+    override val hasMainPage = true
 
-    override val iconId: Int
-        get() = R.drawable.big_icon_royalroad
+    override val iconId = R.drawable.big_icon_royalroad
 
-    override val iconBackgroundId: Int
-        get() = R.color.royalRoadColor
+    override val iconBackgroundId = R.color.royalRoadColor
 
-    override val orderBys: List<Pair<String, String>>
-        get() = listOf(
-            Pair("Best Rated", "best-rated"),
-            Pair("Ongoing", "active-popular"),
-            Pair("Completed", "complete"),
-            Pair("Popular this week", "weekly-popular"),
-            Pair("Latest Updates", "latest-updates"),
-            Pair("New Releases", "new-releases"),
-            Pair("Trending", "trending"),
-        )
-    override val tags: List<Pair<String, String>>
-        get() = listOf(
-            Pair("All", ""),
-            Pair("Action", "action"),
-            Pair("Adventure", "adventure"),
-            Pair("Comedy", "comedy"),
-            Pair("Contemporary", "contemporary"),
-            Pair("Drama", "drama"),
-            Pair("Fantasy", "fantasy"),
-            Pair("Historical", "historical"),
-            Pair("Horror", "horror"),
-            Pair("Mystery", "mystery"),
-            Pair("Psychological", "psychological"),
-            Pair("Romance", "romance"),
-            Pair("Satire", "satire"),
-            Pair("Sci-fi", "sci_fi"),
-            Pair("LitRPG", "litrpg"),
-            Pair("Magic", "magic"),
-            Pair("GameLit", "gamelit"),
-            Pair("Male Lead", "male_lead"),
-            Pair("Female Lead", "female_lead"),
-            Pair("Portal Fantasy / Isekai", "summoned_hero"),
-            Pair("Reincarnation", "reincarnation"),
-            Pair("High Fantasy", "high_fantasy"),
-            Pair("Harem", "harem"),
-            Pair("Gender Bender", "gender_bender"),
-            Pair("Anti-Hero Lead", "anti-hero_lead"),
-            Pair("Progression", "Progression"),
-            Pair("Strategy", "strategy"),
-            Pair("Short Story", "one_shot"),
-            Pair("Tragedy", "tragedy")
-        )
+    override val orderBys = listOf(
+        Pair("Best Rated", "best-rated"),
+        Pair("Ongoing", "active-popular"),
+        Pair("Completed", "complete"),
+        Pair("Popular this week", "weekly-popular"),
+        Pair("Latest Updates", "latest-updates"),
+        Pair("New Releases", "new-releases"),
+        Pair("Trending", "trending"),
+    )
+    override val tags = listOf(
+        Pair("All", ""),
+        Pair("Action", "action"),
+        Pair("Adventure", "adventure"),
+        Pair("Comedy", "comedy"),
+        Pair("Contemporary", "contemporary"),
+        Pair("Drama", "drama"),
+        Pair("Fantasy", "fantasy"),
+        Pair("Historical", "historical"),
+        Pair("Horror", "horror"),
+        Pair("Mystery", "mystery"),
+        Pair("Psychological", "psychological"),
+        Pair("Romance", "romance"),
+        Pair("Satire", "satire"),
+        Pair("Sci-fi", "sci_fi"),
+        Pair("LitRPG", "litrpg"),
+        Pair("Magic", "magic"),
+        Pair("GameLit", "gamelit"),
+        Pair("Male Lead", "male_lead"),
+        Pair("Female Lead", "female_lead"),
+        Pair("Portal Fantasy / Isekai", "summoned_hero"),
+        Pair("Reincarnation", "reincarnation"),
+        Pair("High Fantasy", "high_fantasy"),
+        Pair("Harem", "harem"),
+        Pair("Gender Bender", "gender_bender"),
+        Pair("Anti-Hero Lead", "anti-hero_lead"),
+        Pair("Progression", "Progression"),
+        Pair("Strategy", "strategy"),
+        Pair("Short Story", "one_shot"),
+        Pair("Tragedy", "tragedy")
+    )
 
-    override val hasReviews: Boolean
-        get() = true
+    override val hasReviews = true
 
     @SuppressLint("SimpleDateFormat")
     override fun loadReviews(url: String, page: Int, showSpoilers: Boolean): ArrayList<UserReview> {
@@ -138,10 +132,11 @@ class RoyalRoadProvider : MainAPI() {
             val avatarUrl = avatar.attr("src")
 
             val scores = scoreHeader.select("> div.advanced-score")
-            val scoresData = if (scores.size <= 0) ArrayList<Pair<Int, String>>() else scores.map { s ->
-                val divs = s.select("> div")
-                Pair(parseScore(divs[1].attr("aria-label")), divs[0].text())
-            }
+            val scoresData =
+                if (scores.size <= 0) ArrayList<Pair<Int, String>>() else scores.map { s ->
+                    val divs = s.select("> div")
+                    Pair(parseScore(divs[1].attr("aria-label")), divs[0].text())
+                }
 
             val reviewHeader = textContent.selectFirst("> div.review-header")
             val reviewMeta = reviewHeader.selectFirst("> div.review-meta")
@@ -151,7 +146,8 @@ class RoyalRoadProvider : MainAPI() {
             val username = reviewMeta.selectFirst("> span > a").text()
 
             val sdf = java.text.SimpleDateFormat("yyyy-MM-dd")
-            val date = Date(reviewMeta.selectFirst("> span > a > time").attr("unixtime").toLong() * 1000)
+            val date =
+                Date(reviewMeta.selectFirst("> span > a > time").attr("unixtime").toLong() * 1000)
 
             val reviewTime = sdf.format(date).toString()
 
@@ -181,7 +177,8 @@ class RoyalRoadProvider : MainAPI() {
         orderBy: String?,
         tag: String?,
     ): HeadMainPageResponse {
-        val url = "$mainUrl/fictions/$orderBy?page=$page${if (tag == null || tag == "") "" else "&genre=$tag"}"
+        val url =
+            "$mainUrl/fictions/$orderBy?page=$page${if (tag == null || tag == "") "" else "&genre=$tag"}"
         if (page > 1 && orderBy == "trending") return HeadMainPageResponse(
             url,
             ArrayList()
@@ -205,7 +202,8 @@ class RoyalRoadProvider : MainAPI() {
 
             val rating = try {
                 val ratingHead =
-                    head.selectFirst("> div.stats").select("> div")[1].selectFirst("> span").attr("title")
+                    head.selectFirst("> div.stats").select("> div")[1].selectFirst("> span")
+                        .attr("title")
                 (ratingHead.toFloat() * 200).toInt()
             } catch (e: Exception) {
                 null
@@ -254,10 +252,21 @@ class RoyalRoadProvider : MainAPI() {
 
             val posterUrl = h.selectFirst("> figure.text-center > a > img").attr("src")
 
-            val ratingHead = head.selectFirst("> div.stats").select("> div")[1].selectFirst("> span").attr("title")
+            val ratingHead =
+                head.selectFirst("> div.stats").select("> div")[1].selectFirst("> span")
+                    .attr("title")
             val rating = (ratingHead.toFloat() * 200).toInt()
             val latestChapter = h.select("div.stats > div.col-sm-6 > span")[4].text()
-            returnValue.add(SearchResponse(name, url, fixUrl(posterUrl), rating, latestChapter, this.name))
+            returnValue.add(
+                SearchResponse(
+                    name,
+                    url,
+                    fixUrl(posterUrl),
+                    rating,
+                    latestChapter,
+                    this.name
+                )
+            )
         }
         return returnValue
     }
@@ -298,7 +307,7 @@ class RoyalRoadProvider : MainAPI() {
             val views = null
             data.add(ChapterData(cName, fixUrl(cUrl), added, views))
         }
-        val posterUrl = document.selectFirst("div.fic-header > div > img").attr("src")
+        val posterUrl = document.selectFirst("div.fic-header > div > .cover-art-container > img").attr("src")
 
         val hStates = document.select("ul.list-unstyled")[1]
         val stats = hStates.select("> li")
