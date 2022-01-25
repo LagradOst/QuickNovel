@@ -95,12 +95,25 @@ class BestLightNovelProvider : MainAPI() {
             .replace(",", "")
             .replace("\"", "").substring("View : ".length).toInt()
 
-        val status = when (infoHeaders[3].selectFirst("> a").text().toLowerCase(Locale.getDefault())) {
-            "ongoing" -> STATUS_ONGOING
-            "completed" -> STATUS_COMPLETE
-            else -> STATUS_NULL
-        }
+        val status =
+            when (infoHeaders[3].selectFirst("> a").text().toLowerCase(Locale.getDefault())) {
+                "ongoing" -> STATUS_ONGOING
+                "completed" -> STATUS_COMPLETE
+                else -> STATUS_NULL
+            }
 
-        return LoadResponse(url, name, data, author, posterUrl, rating, peopleVoted, views, synopsis, tags, status)
+        return LoadResponse(
+            url,
+            name,
+            data,
+            author,
+            posterUrl,
+            rating,
+            peopleVoted,
+            views,
+            synopsis,
+            tags,
+            status
+        )
     }
 }

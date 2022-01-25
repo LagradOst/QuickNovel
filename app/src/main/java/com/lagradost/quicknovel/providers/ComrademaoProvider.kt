@@ -6,10 +6,8 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
 class ComrademaoProvider : MainAPI() {
-    override val name: String
-        get() = "Comrademao"
-    override val mainUrl: String
-        get() = "https://comrademao.com"
+    override val name = "Comrademao"
+    override val mainUrl = "https://comrademao.com"
 
     override fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/?s=$query&post_type=novel"

@@ -19,8 +19,8 @@ class MainPageViewModel(private val repo: MainPageRepository) : ViewModel() {
         MutableLiveData<List<SearchResponse>>()
     }
 
-    val currentCards: MutableLiveData<List<SearchResponse>> by lazy {
-        MutableLiveData<List<SearchResponse>>()
+    val currentCards: MutableLiveData<Resource<List<SearchResponse>>> by lazy {
+        MutableLiveData<Resource<List<SearchResponse>>>()
     }
 
     private val currentPage: MutableLiveData<Int> by lazy {
@@ -48,20 +48,19 @@ class MainPageViewModel(private val repo: MainPageRepository) : ViewModel() {
 
     fun search(query: String) {
        // searchCards.postValue(ArrayList())
-        currentCards.postValue(ArrayList())
+        currentCards.postValue(Resource.Loading())
         currentPage.postValue(0)
         isInSearch.postValue(true)
         viewModelScope.launch {
             val res = repo.search(query)
-            if (res is Resource.Success) {
-               // searchCards.postValue(res.value)
-                currentCards.postValue(res.value)
-            }
+            currentCards.postValue(res)
         }
     }
 
     fun switchToMain() {
-        currentCards.postValue(infCards.value)
+        infCards.value?.let {
+            currentCards.postValue(Resource.Success(it))
+        }
         isInSearch.postValue(false)
     }
 
@@ -74,7 +73,7 @@ class MainPageViewModel(private val repo: MainPageRepository) : ViewModel() {
         val cPage = page ?: ((currentPage.value ?: 0) + 1)
         if (cPage == 0) {
             infCards.postValue(ArrayList())
-            currentCards.postValue(ArrayList())
+            currentCards.postValue(Resource.Loading())
         }
 
         isInSearch.postValue(false)
@@ -93,11 +92,12 @@ class MainPageViewModel(private val repo: MainPageRepository) : ViewModel() {
                         copy.add(i)
                     }
                     infCards.postValue(copy)
-                    currentCards.postValue(copy)
+                    currentCards.postValue(Resource.Success(copy))
                 }
                 is Resource.Failure -> {
                     infCards.postValue(copy)
-                    currentCards.postValue(copy)
+                    val result : Resource<List<SearchResponse>> = Resource.Failure(res.isNetworkError, res.errorCode,res.errorResponse,res.errorString)
+                    currentCards.postValue(result)
                     // TODO SHOW UI
                 }
                 is Resource.Loading -> {

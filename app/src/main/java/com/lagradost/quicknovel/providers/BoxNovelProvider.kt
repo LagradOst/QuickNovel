@@ -7,21 +7,15 @@ import java.util.*
 import kotlin.collections.ArrayList
 
 class BoxNovelProvider : MainAPI() {
-    override val name: String
-        get() = "BoxNovel"
-    override val mainUrl: String
-        get() = "https://boxnovel.com"
-    override val iconId: Int
-        get() = R.drawable.big_icon_boxnovel
+    override val name = "BoxNovel"
+    override val mainUrl = "https://boxnovel.com"
+    override val iconId = R.drawable.big_icon_boxnovel
 
-    override val hasMainPage: Boolean
-        get() = true
+    override val hasMainPage = true
 
-    override val iconBackgroundId: Int
-        get() = R.color.boxNovelColor
+    override val iconBackgroundId = R.color.boxNovelColor
 
-    override val tags: List<Pair<String, String>>
-        get() = listOf(
+    override val tags = listOf(
             Pair("All", ""),
             Pair("Completed", "completed"),
             Pair("Action", "action"),

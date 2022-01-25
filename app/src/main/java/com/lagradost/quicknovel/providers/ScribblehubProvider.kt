@@ -4,10 +4,8 @@ import com.lagradost.quicknovel.*
 import org.jsoup.Jsoup
 
 class ScribblehubProvider : MainAPI() {
-    override val name: String
-        get() = "Scribblehub"
-    override val mainUrl: String
-        get() = "https://www.scribblehub.com"
+    override val name = "Scribblehub"
+    override val mainUrl = "https://www.scribblehub.com"
 
     override fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/?s=$query&post_type=fictionposts"
@@ -38,7 +36,11 @@ class ScribblehubProvider : MainAPI() {
 
         val listResponse = khttp.post(
             "https://www.scribblehub.com/wp-admin/admin-ajax.php",
-            data = mapOf("action" to "wi_getreleases_pagination", "pagenum" to "1", "mypostid" to "$id"),
+            data = mapOf(
+                "action" to "wi_getreleases_pagination",
+                "pagenum" to "1",
+                "mypostid" to "$id"
+            ),
             cookies = mapOf("toc_show" to "10000", "toc_sorder" to "asc")
         )
 
@@ -52,7 +54,7 @@ class ScribblehubProvider : MainAPI() {
             val date = it.selectFirst("> span").text()
             val chapterName = aHeader.ownText()
             ChapterData(
-                if(chapterName.isNullOrBlank()) "Chapter $index" else chapterName,
+                if (chapterName.isNullOrBlank()) "Chapter $index" else chapterName,
                 href,
                 date,
                 null
@@ -66,16 +68,30 @@ class ScribblehubProvider : MainAPI() {
         //val tags = document.select("span.wi_fic_showtags > span.wi_fic_showtags_inner > a").map { it.text() }
         val ratings = document.select("span#ratefic_user > span > span")
         val ratingEval = ratings.first()?.text()?.toFloatOrNull()?.times(200)?.toInt()
-        val ratingsTotal = ratings?.get(1)?.selectFirst("> span")?.text()?.replace(" ratings", "")?.toIntOrNull()
+        val ratingsTotal =
+            ratings?.get(1)?.selectFirst("> span")?.text()?.replace(" ratings", "")?.toIntOrNull()
         val author = document.selectFirst("span.auth_name_fic")?.text()
 
-        val statusSpan = document.selectFirst("ul.widget_fic_similar > li > span").lastElementSibling().ownText()
+        val statusSpan =
+            document.selectFirst("ul.widget_fic_similar > li > span").lastElementSibling().ownText()
         val status = when {
             statusSpan.contains("Hiatus") -> STATUS_PAUSE
             statusSpan.contains("Ongoing") -> STATUS_ONGOING
             else -> STATUS_NULL
         }
-        return LoadResponse(url, title, data, author, poster, ratingEval, ratingsTotal, null, synopsis, genres, status)
+        return LoadResponse(
+            url,
+            title,
+            data,
+            author,
+            poster,
+            ratingEval,
+            ratingsTotal,
+            null,
+            synopsis,
+            genres,
+            status
+        )
     }
 
     override fun loadHtml(url: String): String? {

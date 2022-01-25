@@ -10,17 +10,13 @@ import kotlin.collections.ArrayList
 class WuxiaWorldOnlineProvider : MainAPI() {
     override val mainUrl: String get() = "https://wuxiaworld.online"
     override val name: String get() = "WuxiaWorldOnline"
-    override val hasMainPage: Boolean
-        get() = true
+    override val hasMainPage = true
 
-    override val iconId: Int
-        get() = R.drawable.icon_wuxiaworldonline
+    override val iconId = R.drawable.icon_wuxiaworldonline
 
-    override val iconBackgroundId: Int
-        get() = R.color.wuxiaWorldOnlineColor
+    override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
 
-    override val tags: List<Pair<String, String>>
-        get() = listOf(
+    override val tags = listOf(
             Pair("All", ""),
             Pair("Chinese", "Chinese"),
             Pair("Action", "Action"),

@@ -307,7 +307,8 @@ class RoyalRoadProvider : MainAPI() {
             val views = null
             data.add(ChapterData(cName, fixUrl(cUrl), added, views))
         }
-        val posterUrl = document.selectFirst("div.fic-header > div > .cover-art-container > img").attr("src")
+        val posterUrl =
+            document.selectFirst("div.fic-header > div > .cover-art-container > img").attr("src")
 
         val hStates = document.select("ul.list-unstyled")[1]
         val stats = hStates.select("> li")

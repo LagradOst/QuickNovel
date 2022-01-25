@@ -6,52 +6,46 @@ import java.util.*
 import kotlin.collections.ArrayList
 
 class WuxiaWorldSiteProvider : MainAPI() {
-    override val name: String get() = "WuxiaWorldSite"
-    override val mainUrl: String get() = "https://wuxiaworld.site"
+    override val name = "WuxiaWorldSite"
+    override val mainUrl = "https://wuxiaworld.site"
 
-    override val hasMainPage: Boolean
-        get() = true
+    override val hasMainPage = true
+    override val iconId = R.drawable.big_icon_wuxiaworldsite
+    override val iconBackgroundId = R.color.wuxiaWorldSiteColor
 
-    override val iconId: Int
-        get() = R.drawable.big_icon_wuxiaworldsite
-
-    override val iconBackgroundId: Int
-        get() = R.color.wuxiaWorldSiteColor
-
-    override val tags: List<Pair<String, String>>
-        get() = listOf(
-            Pair("All", ""),
-            Pair("Completed", "completed"),
-            Pair("Action", "action"),
-            Pair("Adventure", "adventure"),
-            Pair("Comedy", "comedy"),
-            Pair("Drama", "genre"),
-            Pair("Ecchi", "ecchi"),
-            Pair("Fantasy", "fantasy"),
-            Pair("Harem", "harem"),
-            Pair("Josei", "josei"),
-            Pair("Martial Arts", "martial-arts"),
-            Pair("Gender Bender", "gender-bender"),
-            Pair("Historical", "historical"),
-            Pair("Horror", "horror"),
-            Pair("Mature", "mature"),
-            Pair("Mecha", "mecha"),
-            Pair("Mystery", "mystery"),
-            Pair("Psychological", "psychological"),
-            Pair("Romance", "romance"),
-            Pair("School Life", "school-life"),
-            Pair("Sci-fi", "sci-fi"),
-            Pair("Seinen", "seinen"),
-            Pair("Shoujo", "shoujo"),
-            Pair("Shounen", "shounen"),
-            Pair("Slice of Life", "slice-of-life"),
-            Pair("Sports", "sports"),
-            Pair("Supernatural", "supernatural"),
-            Pair("Tragedy", "tragedy"),
-            Pair("Wuxia", "wuxia"),
-            Pair("Xianxia", "xianxia"),
-            Pair("Xuanhuan", "xuanhuan"),
-        )
+    override val tags = listOf(
+        Pair("All", ""),
+        Pair("Completed", "completed"),
+        Pair("Action", "action"),
+        Pair("Adventure", "adventure"),
+        Pair("Comedy", "comedy"),
+        Pair("Drama", "genre"),
+        Pair("Ecchi", "ecchi"),
+        Pair("Fantasy", "fantasy"),
+        Pair("Harem", "harem"),
+        Pair("Josei", "josei"),
+        Pair("Martial Arts", "martial-arts"),
+        Pair("Gender Bender", "gender-bender"),
+        Pair("Historical", "historical"),
+        Pair("Horror", "horror"),
+        Pair("Mature", "mature"),
+        Pair("Mecha", "mecha"),
+        Pair("Mystery", "mystery"),
+        Pair("Psychological", "psychological"),
+        Pair("Romance", "romance"),
+        Pair("School Life", "school-life"),
+        Pair("Sci-fi", "sci-fi"),
+        Pair("Seinen", "seinen"),
+        Pair("Shoujo", "shoujo"),
+        Pair("Shounen", "shounen"),
+        Pair("Slice of Life", "slice-of-life"),
+        Pair("Sports", "sports"),
+        Pair("Supernatural", "supernatural"),
+        Pair("Tragedy", "tragedy"),
+        Pair("Wuxia", "wuxia"),
+        Pair("Xianxia", "xianxia"),
+        Pair("Xuanhuan", "xuanhuan"),
+    )
 
     override val orderBys: ArrayList<Pair<String, String>>
         get() = arrayListOf(
@@ -76,7 +70,8 @@ class WuxiaWorldSiteProvider : MainAPI() {
             "completed" -> "tag/$tag"
             else -> "genre/$tag"
         }
-        val url = "$mainUrl/$order/page/$page/${if (orderBy == null || orderBy == "") "" else "?m_orderby=$orderBy"}"
+        val url =
+            "$mainUrl/$order/page/$page/${if (orderBy == null || orderBy == "") "" else "?m_orderby=$orderBy"}"
 
         val response = khttp.get(url)
 
@@ -97,7 +92,8 @@ class WuxiaWorldSiteProvider : MainAPI() {
             val rating =
                 (sum.selectFirst("> div.rating > div.post-total-rating > span.score").text()
                     .toFloat() * 200).toInt()
-            val latestChap = sum.selectFirst("> div.list-chapter > div.chapter-item > span > a").text()
+            val latestChap =
+                sum.selectFirst("> div.list-chapter > div.chapter-item > span > a").text()
             returnValue.add(SearchResponse(name, cUrl, posterUrl, rating, latestChap, this.name))
         }
 
@@ -137,7 +133,8 @@ class WuxiaWorldSiteProvider : MainAPI() {
 
             val meta = h.selectFirst("> div > div.tab-meta")
 
-            val ratingTxt = meta.selectFirst("> div.rating > div.post-total-rating > span.total_votes").text()
+            val ratingTxt =
+                meta.selectFirst("> div.rating > div.post-total-rating > span.total_votes").text()
 
             val rating = if (ratingTxt != null) {
                 (ratingTxt.toFloat() * 200).toInt()
@@ -157,8 +154,9 @@ class WuxiaWorldSiteProvider : MainAPI() {
 
         val document = Jsoup.parse(response.text)
 
-        val name = document.selectFirst("div.post-title > h1").text().replace("  ", " ").replace("\n", "")
-            .replace("\t", "")
+        val name =
+            document.selectFirst("div.post-title > h1").text().replace("  ", " ").replace("\n", "")
+                .replace("\t", "")
         val authors = document.select("div.author-content > a")
         var author = ""
         for (a in authors) {
@@ -180,7 +178,9 @@ class WuxiaWorldSiteProvider : MainAPI() {
         var synopsis = ""
         val synoParts = document.select("div.summary__content > p")
         for (s in synoParts) {
-            if (s.hasText() && !s.text().toLowerCase(Locale.getDefault()).contains("wuxiaworld.site")) { // FUCK ADS
+            if (s.hasText() && !s.text().toLowerCase(Locale.getDefault())
+                    .contains("wuxiaworld.site")
+            ) { // FUCK ADS
                 synopsis += s.text()!! + "\n\n"
             }
         }
@@ -202,12 +202,14 @@ class WuxiaWorldSiteProvider : MainAPI() {
         }
         data.reverse()
 
-        val rating = ((document.selectFirst("span#averagerate")?.text()?.toFloat() ?: 0f) * 200).toInt()
+        val rating =
+            ((document.selectFirst("span#averagerate")?.text()?.toFloat() ?: 0f) * 200).toInt()
         val peopleVoted = document.selectFirst("span#countrate")?.text()?.toInt() ?: 0
 
         val views = null
 
-        val aHeaders = document.select("div.post-status > div.post-content_item > div.summary-content")
+        val aHeaders =
+            document.select("div.post-status > div.post-content_item > div.summary-content")
         val aHeader = aHeaders.last()
 
         val status = when (aHeader.text().toLowerCase(Locale.getDefault())) {

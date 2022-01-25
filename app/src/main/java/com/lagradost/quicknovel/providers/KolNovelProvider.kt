@@ -6,24 +6,15 @@ import java.util.*
 import kotlin.collections.ArrayList
 
 class KolNovelProvider : MainAPI() {
-    override val name: String
-        get() = "KolNovel"
-    override val mainUrl: String
-        get() = "https://kolnovel.com"
-    override val iconId: Int
-        get() = R.drawable.icon_kolnovel
+    override val name = "KolNovel"
+    override val mainUrl = "https://kolnovel.com"
+    override val iconId = R.drawable.icon_kolnovel
 
-    override val hasMainPage: Boolean
-        get() = true
+    override val hasMainPage = true
+    override val iconBackgroundId = R.color.kolNovelColor
+    override val lang = "ar"
 
-    override val iconBackgroundId: Int
-        get() = R.color.kolNovelColor
-
-    override val lang: String
-        get() = "ar"
-
-    override val tags: List<Pair<String, String>>
-        get() = listOf(
+    override val tags = listOf(
             Pair("أكشن", "action"),
             Pair("أصلية", "original"),
             Pair("إثارة", "excitement"),

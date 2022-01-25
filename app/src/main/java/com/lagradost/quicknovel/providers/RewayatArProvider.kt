@@ -7,48 +7,41 @@ import java.util.*
 import kotlin.collections.ArrayList
 
 class RewayatArProvider : MainAPI() {
-    override val name: String
-        get() = "RewayatAR"
-    override val mainUrl: String
-        get() = "https://rewayat-ar.site"
-    override val iconId: Int
-        get() = R.drawable.icon_rewayatar
+    override val name = "RewayatAR"
+    override val mainUrl = "https://rewayat-ar.site"
+    override val iconId = R.drawable.icon_rewayatar
 
-    override val hasMainPage: Boolean
-        get() = true
+    override val hasMainPage = true
 
-    override val lang: String
-        get() = "ar"
+    override val lang = "ar"
 
-    override val iconBackgroundId: Int
-        get() = R.color.rewayatARlColor
+    override val iconBackgroundId = R.color.rewayatARlColor
 
-    override val tags: List<Pair<String, String>>
-        get() = listOf(
-            Pair("أكشن", "action"),
-            Pair("+18", "adult"),
-            Pair("إيتشي", "etchi"),
-            Pair("تاريخي", "historical"),
-            Pair("حريم", "harem"),
-            Pair("خيالي", "fantasy"),
-            Pair("دراما", "Drama"),
-            Pair("رعب", "horror"),
-            Pair("رومانسى", "romance"),
-            Pair("رياضة", "sports"),
-            Pair("شبه بشرية", "demi-human"),
-            Pair("صيني", "chiness"),
-            Pair("عربي", "Arabic"),
-            Pair("غموض", "mystrious"),
-            Pair("فان فيكشن", "fan-fiction"),
-            Pair("فنون القتال", "martial-arts"),
-            Pair("قوى خارقة", "super-natural"),
-            Pair("كوري", "korean"),
-            Pair("كوميدى", "comdy"),
-            Pair("مانهوا", "manhwa"),
-            Pair("مغامرة", "adventure"),
-            Pair("نظام", "%d9%86%d8%b8%d8%a7%d9%85"),
-            Pair("يابانى", "japaness"),
-        )
+    override val tags = listOf(
+        Pair("أكشن", "action"),
+        Pair("+18", "adult"),
+        Pair("إيتشي", "etchi"),
+        Pair("تاريخي", "historical"),
+        Pair("حريم", "harem"),
+        Pair("خيالي", "fantasy"),
+        Pair("دراما", "Drama"),
+        Pair("رعب", "horror"),
+        Pair("رومانسى", "romance"),
+        Pair("رياضة", "sports"),
+        Pair("شبه بشرية", "demi-human"),
+        Pair("صيني", "chiness"),
+        Pair("عربي", "Arabic"),
+        Pair("غموض", "mystrious"),
+        Pair("فان فيكشن", "fan-fiction"),
+        Pair("فنون القتال", "martial-arts"),
+        Pair("قوى خارقة", "super-natural"),
+        Pair("كوري", "korean"),
+        Pair("كوميدى", "comdy"),
+        Pair("مانهوا", "manhwa"),
+        Pair("مغامرة", "adventure"),
+        Pair("نظام", "%d9%86%d8%b8%d8%a7%d9%85"),
+        Pair("يابانى", "japaness"),
+    )
 
     override val orderBys: List<Pair<String, String>>
         get() = listOf(
@@ -59,7 +52,6 @@ class RewayatArProvider : MainAPI() {
             Pair("أخر الإضافات", "latest"),
             Pair("رائج", "popular"),
         )
-
 
     override val mainCategories: List<Pair<String, String>>
         get() = listOf(
@@ -176,20 +168,34 @@ class RewayatArProvider : MainAPI() {
         }
         data.reverse()
 
-        val rating = ((document.selectFirst("div.rating > strong")?.text()?.replace("التقييم", "")?.toFloat()
-            ?: 0f) * 100).toInt()
+        val rating =
+            ((document.selectFirst("div.rating > strong")?.text()?.replace("التقييم", "")?.toFloat()
+                ?: 0f) * 100).toInt()
 
         val peopleVoted = null
         val views = null
 
         val aHeaders = document.select("span:contains(الحالة)")
 
-        val status = when (aHeaders.text().replace("الحالة: ", "").toLowerCase(Locale.getDefault())) {
-            "ongoing" -> STATUS_ONGOING
-            "completed" -> STATUS_COMPLETE
-            else -> STATUS_NULL
-        }
+        val status =
+            when (aHeaders.text().replace("الحالة: ", "").toLowerCase(Locale.getDefault())) {
+                "ongoing" -> STATUS_ONGOING
+                "completed" -> STATUS_COMPLETE
+                else -> STATUS_NULL
+            }
 
-        return LoadResponse(url, name, data, author, posterUrl, rating, peopleVoted, views, synopsis, tags, status)
+        return LoadResponse(
+            url,
+            name,
+            data,
+            author,
+            posterUrl,
+            rating,
+            peopleVoted,
+            views,
+            synopsis,
+            tags,
+            status
+        )
     }
 }

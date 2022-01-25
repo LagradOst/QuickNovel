@@ -6,11 +6,8 @@ import org.jsoup.Jsoup
 import kotlin.math.roundToInt
 
 class ReadAnyBookProvider : MainAPI() {
-
-    override val name: String
-        get() = "ReadAnyBook"
-    override val mainUrl: String
-        get() = "https://www.readanybook.com"
+    override val name = "ReadAnyBook"
+    override val mainUrl = "https://www.readanybook.com"
 
     private val containerUrl = "META-INF/container.xml"
 
@@ -83,72 +80,72 @@ class ReadAnyBookProvider : MainAPI() {
         )
     }
 
-   /* private fun scrapeOPF(url: String): String? {
-        val html = get(url).text
-        // Cuts off everything after the last "/"
-        // Used for relative paths
-        val mainPath = url.substring(0, url.lastIndexOf("/") + 1)
+    /* private fun scrapeOPF(url: String): String? {
+         val html = get(url).text
+         // Cuts off everything after the last "/"
+         // Used for relative paths
+         val mainPath = url.substring(0, url.lastIndexOf("/") + 1)
 
-        val totalHtml = StringBuilder()
+         val totalHtml = StringBuilder()
 
-        val doc = Jsoup.parse(html)
-        val spine = doc.select("spine > itemref")
-        val manifest = doc.select("manifest > item")
+         val doc = Jsoup.parse(html)
+         val spine = doc.select("spine > itemref")
+         val manifest = doc.select("manifest > item")
 
-        // Uses spine order
-        spine.forEach {
-            val id = it.attr("idref")
-            val found = manifest.firstOrNull { it.attr("id") == id } ?: return@forEach
+         // Uses spine order
+         spine.forEach {
+             val id = it.attr("idref")
+             val found = manifest.firstOrNull { it.attr("id") == id } ?: return@forEach
 
-            // Doesn't parse images
-            if (found.attr("media-type").contains("html")) {
-                val href = found.attr("href")
-                if (href.isNullOrBlank()) return@forEach
+             // Doesn't parse images
+             if (found.attr("media-type").contains("html")) {
+                 val href = found.attr("href")
+                 if (href.isNullOrBlank()) return@forEach
 
-                val pageUrl = if (href.startsWith("http") || href.startsWith("www.")) {
-                    href
-                } else mainPath + href
+                 val pageUrl = if (href.startsWith("http") || href.startsWith("www.")) {
+                     href
+                 } else mainPath + href
 
-                val subHtml = get(pageUrl).text
+                 val subHtml = get(pageUrl).text
 
-                totalHtml.append(subHtml)
-            }
-        }
+                 totalHtml.append(subHtml)
+             }
+         }
 
-        var string = totalHtml.toString()
+         var string = totalHtml.toString()
 
-        val whitelisted = listOf(
-            "image/",
-            "text/css",
-            "application/x-dtbncx+xml",
-            "application/vnd.adobe-page-template+xml",
-            "font/otf",
-            "application/vnd.ms-opentype"
-        )
-        // Adds images
-        manifest.forEach { element ->
-            if (whitelisted.any { element.attr("media-type").contains(it, ignoreCase = true) }) {
-                val href = element.attr("href")
-                if (href.isNullOrBlank() || href.startsWith("http") || href.startsWith("www.")) return@forEach
-//                println("REPLACE $href $mainPath")
-                string = string.replace(href, mainPath + href)
+         val whitelisted = listOf(
+             "image/",
+             "text/css",
+             "application/x-dtbncx+xml",
+             "application/vnd.adobe-page-template+xml",
+             "font/otf",
+             "application/vnd.ms-opentype"
+         )
+         // Adds images
+         manifest.forEach { element ->
+             if (whitelisted.any { element.attr("media-type").contains(it, ignoreCase = true) }) {
+                 val href = element.attr("href")
+                 if (href.isNullOrBlank() || href.startsWith("http") || href.startsWith("www.")) return@forEach
+ //                println("REPLACE $href $mainPath")
+                 string = string.replace(href, mainPath + href)
 
-                // Semi shitty solution
-                // images/image.jpg -> https://files.readanybook.com/992751/epub/need-to-know.epub/OEBPS/images/image.jpg
-                if (href.startsWith("OEBPS/")) {
-                    // " at start ensures the above replace doesn't get replaced again
-                    // src="images/image.jpg"
-                    string =
-                        string.replace("\"" + href.removePrefix("OEBPS/"), "\"" + mainPath + href)
-                }
-            }
-        }
+                 // Semi shitty solution
+                 // images/image.jpg -> https://files.readanybook.com/992751/epub/need-to-know.epub/OEBPS/images/image.jpg
+                 if (href.startsWith("OEBPS/")) {
+                     // " at start ensures the above replace doesn't get replaced again
+                     // src="images/image.jpg"
+                     string =
+                         string.replace("\"" + href.removePrefix("OEBPS/"), "\"" + mainPath + href)
+                 }
+             }
+         }
 
-        return string //.textClean.also { println(it?.substring(0, 1000)) }
-    }*/
+         return string //.textClean.also { println(it?.substring(0, 1000)) }
+     }*/
 
-    private fun regexNames(name : String) : String {
-        return when(name) {
+    private fun regexNames(name: String): String {
+        return when (name) {
             "cover" -> "Cover"
             "toc" -> "Table of contents"
             "cop" -> "Copyright"
@@ -161,7 +158,7 @@ class ReadAnyBookProvider : MainAPI() {
                 if (name.startsWith('c')) {
                     val match = Regex("c([0-9]*)").find(name)
                     val chapterNumber = match?.groupValues?.get(1)
-                    if(chapterNumber != null) {
+                    if (chapterNumber != null) {
                         return "Chapter $chapterNumber"
                     }
                 }
@@ -170,7 +167,7 @@ class ReadAnyBookProvider : MainAPI() {
         }
     }
 
-    private fun getChapterData(url: String) : List<ChapterData>{
+    private fun getChapterData(url: String): List<ChapterData> {
         val container = get(url).text
         val doc = Jsoup.parse(container)
         val root = doc.select("rootfile[full-path]")

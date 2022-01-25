@@ -11,13 +11,10 @@ import java.lang.Thread.sleep
 import java.util.*
 
 class LightNovelPubProvider : MainAPI() {
-    override val name: String
-        get() = "LightNovelPub"
-    override val mainUrl: String
-        get() = "https://www.lightnovelpub.com"
+    override val name = "LightNovelPub"
+    override val mainUrl = "https://www.lightnovelpub.com"
 
-    override val rateLimitTime: Long
-        get() = 5000
+    override val rateLimitTime: Long = 5000
 
     data class SearchRoot(
         @JsonProperty("\$id")
@@ -32,7 +29,9 @@ class LightNovelPubProvider : MainAPI() {
         val items = document.selectFirst("div#chapter-container")
         // THEY HAVE SHIT LIKE " <p class="kyzywl">The source of this content is lightnovelpub[.]com</p> " random class, no normal text has a class
         for (i in items.allElements) {
-            if (i.tagName() == "p" && i.classNames().size > 0 && i.text().contains("lightnovelpub")) {
+            if (i.tagName() == "p" && i.classNames().size > 0 && i.text()
+                    .contains("lightnovelpub")
+            ) {
                 i.remove()
             }
         }
@@ -69,7 +68,8 @@ class LightNovelPubProvider : MainAPI() {
         val title = mainHead.selectFirst("> h1.novel-title").text()
         val author = mainHead.selectFirst("> div.author > a > span")?.text()
         val rating =
-            mainHead.selectFirst("> div.rating > div.rating-star > p > strong")?.text()?.toFloatOrNull()?.times(200)
+            mainHead.selectFirst("> div.rating > div.rating-star > p > strong")?.text()
+                ?.toFloatOrNull()?.times(200)
                 ?.toInt()
 
         val headerStats = novelInfo.select("> div.header-stats > span > strong")
@@ -94,8 +94,11 @@ class LightNovelPubProvider : MainAPI() {
             else -> 0
         }
 
-        val genres = ArrayList(novelInfo?.select("> div.categories > ul > li > a")?.map { it.text() } ?: listOf())
-        val tags = ArrayList(document?.select("> div.tags > ul.content > li > a")?.map { it.text() } ?: listOf())
+        val genres =
+            ArrayList(novelInfo?.select("> div.categories > ul > li > a")?.map { it.text() }
+                ?: listOf())
+        val tags = ArrayList(document?.select("> div.tags > ul.content > li > a")?.map { it.text() }
+            ?: listOf())
         genres.addAll(tags)
         val synopsis = document.selectFirst("div.summary > div.content")?.text()
 
@@ -141,7 +144,8 @@ class LightNovelPubProvider : MainAPI() {
             }
 
         }
-        val data = chaps.sortedBy { it.orderno }.map { ChapterData(it.name, it.url, it.dateOfRelease, null) }
+        val data = chaps.sortedBy { it.orderno }
+            .map { ChapterData(it.name, it.url, it.dateOfRelease, null) }
 
         return LoadResponse(
             url,
@@ -172,10 +176,20 @@ class LightNovelPubProvider : MainAPI() {
             val title = item.attr("title")
             val href = item.attr("href")
             val poster = item.selectFirst("> div.cover-wrap > figure > img").attr("src")
-            val latestChap = "Chapter " + item.select("> div.item-body > div.novel-stats > span").last().text()
-                .replace("Chapters", "")
+            val latestChap =
+                "Chapter " + item.select("> div.item-body > div.novel-stats > span").last().text()
+                    .replace("Chapters", "")
 
-            returnValue.add(SearchResponse(title, fixUrl(href), poster, null, latestChap, this.name))
+            returnValue.add(
+                SearchResponse(
+                    title,
+                    fixUrl(href),
+                    poster,
+                    null,
+                    latestChap,
+                    this.name
+                )
+            )
         }
 
         return returnValue

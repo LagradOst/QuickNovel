@@ -1,25 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:id="@+id/mainpageRoot"
         android:layout_height="match_parent"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:background="?attr/grayBackground"
->
+        android:background="?attr/grayBackground">
+
     <ProgressBar
             android:id="@+id/mainpage_loading"
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:layout_gravity="center"
             android:indeterminate="true"
-            android:visibility="visible"
-    >
-    </ProgressBar>
+            android:visibility="visible" />
+
+    <LinearLayout
+            android:id="@+id/mainpage_loading_error"
+            android:orientation="vertical"
+            android:layout_gravity="center"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+        <com.google.android.material.button.MaterialButton
+                android:visibility="gone"
+                android:id="@+id/mainpage_reload_connectionerror"
+
+                android:layout_gravity="center"
+
+                app:icon="@drawable/ic_baseline_autorenew_24"
+                app:iconSize="20dp"
+                android:text="@string/reload_error"
+                style="@style/NiceButton"
+
+                android:layout_width="wrap_content"
+                android:minWidth="200dp" />
+
+        <com.google.android.material.button.MaterialButton
+                android:visibility="gone"
+                android:id="@+id/mainpage_reload_connection_open_in_browser"
+
+                android:layout_gravity="center"
+
+                app:icon="@drawable/ic_baseline_public_24"
+                app:iconSize="20dp"
+                android:text="@string/open_in_browser"
+                style="@style/NiceButton"
+                android:layout_width="wrap_content"
+                android:minWidth="200dp" />
+
+        <TextView
+                android:id="@+id/mainpage_error_text"
+
+                android:layout_margin="5dp"
+                android:gravity="center"
+                android:layout_gravity="center"
+                android:textColor="?attr/colorPrimary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+    </LinearLayout>
+
     <com.google.android.material.appbar.AppBarLayout
             android:background="@android:color/transparent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
+
         <com.google.android.material.appbar.MaterialToolbar
                 android:id="@+id/mainpage_toolbar"
                 app:menu="@menu/mainpage_actionbar"
@@ -28,22 +72,22 @@
                 app:titleTextColor="?attr/textColor"
                 android:background="?attr/grayBackground"
                 app:layout_scrollFlags="scroll|enterAlways"
-                android:layout_width="match_parent" android:layout_height="wrap_content">
-        </com.google.android.material.appbar.MaterialToolbar>
-    </com.google.android.material.appbar.AppBarLayout>
-        <com.lagradost.quicknovel.widget.AutofitRecyclerView
-                app:layout_behavior="@string/appbar_scrolling_view_behavior"
-
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:clipToPadding="false"
-                android:paddingStart="8dp"
-                android:paddingTop="5dp"
-                android:paddingEnd="8dp"
-                app:spanCount="3"
-                android:id="@+id/mainpage_list"
-                android:orientation="vertical"
-        />
+                android:layout_height="wrap_content"></com.google.android.material.appbar.MaterialToolbar>
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <com.lagradost.quicknovel.widget.AutofitRecyclerView
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"
+
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clipToPadding="false"
+            android:paddingStart="8dp"
+            android:paddingTop="5dp"
+            android:paddingEnd="8dp"
+            app:spanCount="3"
+            android:id="@+id/mainpage_list"
+            android:orientation="vertical" />
 
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
             android:id="@+id/mainpage_fab"
@@ -61,5 +105,5 @@
             android:text="@string/mainpage_sort_by_button_text"
 
             android:contentDescription="@string/mainpage_sort_by_button_text"
-            android:layout_margin="16dp"/>
+            android:layout_margin="16dp" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
