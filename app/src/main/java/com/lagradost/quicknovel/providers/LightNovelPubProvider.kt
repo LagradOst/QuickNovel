@@ -13,7 +13,6 @@ import java.util.*
 class LightNovelPubProvider : MainAPI() {
     override val name = "LightNovelPub"
     override val mainUrl = "https://www.lightnovelpub.com"
-
     override val rateLimitTime: Long = 5000
 
     data class SearchRoot(
@@ -163,8 +162,22 @@ class LightNovelPubProvider : MainAPI() {
     }
 
     override fun search(query: String): List<SearchResponse> {
-        val url = "$mainUrl/lnwsearchlive?inputContent=$query"
-        val response = khttp.get(url)
+        val searchRequest = get("$mainUrl/search")
+        val searchToken = Jsoup.parse(searchRequest.text)
+            .select("input[name='__LNRequestVerifyToken']").`val`()
+
+        val url = "$mainUrl/lnsearchlive"
+        // This fuckery because sometimes khttp fails to get cookies as it only uses lowercase
+        val cookie = Regex("""lncoreantifrg=.*?;""").find(searchRequest.headers.toString())?.groupValues?.get(0)
+        val response = khttp.post(
+            url,
+            data = mapOf("inputContent" to query),
+            headers = mapOf(
+                "LNRequestVerifyToken" to searchToken,
+                // Using cookies = searchRequest.cookies doesn't work
+                "cookie" to cookie
+            )
+        )
         val parse = response.text.toKotlinObject<SearchRoot>()
         val text = parse.resultview.replace("\\", "")
 
