@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel
 
+import com.lagradost.quicknovel.mvvm.logError
 import org.jsoup.Jsoup
 
 const val USER_AGENT =
@@ -80,15 +81,19 @@ val String?.textClean: String?
 
 fun stripHtml(txt: String, chapterName: String? = null, chapterIndex: Int? = null): String {
     val document = Jsoup.parse(txt)
-    if (chapterName != null && chapterIndex != null) {
-        for (a in document.allElements) {
-            if (a != null && a.hasText() &&
-                (a.text() == chapterName || (a.tagName() == "h3" && a.text().startsWith("Chapter ${chapterIndex + 1}")))
-            ) { // IDK, SOME MIGHT PREFER THIS SETTING??
-                a.remove() // THIS REMOVES THE TITLE
-                break
+    try {
+        if (chapterName != null && chapterIndex != null) {
+            for (a in document.allElements) {
+                if (a != null && a.hasText() &&
+                    (a.text() == chapterName || (a.tagName() == "h3" && a.text().startsWith("Chapter ${chapterIndex + 1}")))
+                ) { // IDK, SOME MIGHT PREFER THIS SETTING??
+                    a.remove() // THIS REMOVES THE TITLE
+                    break
+                }
             }
         }
+    } catch (e : Exception) {
+        logError(e)
     }
 
     return document.html()
