@@ -31,6 +31,8 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <category android:name="android.intent.category.DEFAULT"/>
 
+                <data android:scheme="https" android:host="www.reddit.com" android:pathPrefix="/r/"/>
+
                 <data android:scheme="https" android:host="bestlightnovel.com" android:pathPrefix="/"/>
                 <data android:scheme="https" android:host="www.novelpassion.com" android:pathPrefix="/novel"/>
                 <data android:scheme="https" android:host="www.royalroad.com" android:pathPrefix="/fiction"/>

@@ -50,6 +50,7 @@ class Apis {
                     return APIRepository(a)
                 }
             }
+            if(name == RedditProvider().name) return APIRepository(RedditProvider())
             return null
         }
 

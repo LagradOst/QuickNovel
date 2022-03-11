@@ -9,7 +9,7 @@ class ReadNovelFullProvider : MainAPI() {
     override val name = "ReadNovelFull"
 
     override fun search(query: String): List<SearchResponse> {
-        val response = khttp.get("$mainUrl/search?keyword=$query")
+        val response = khttp.get("$mainUrl/search?keyword=$query", headers = mapOf("User-Agent" to USER_AGENT))
 
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.col-novel-main > div.list-novel > div.row")

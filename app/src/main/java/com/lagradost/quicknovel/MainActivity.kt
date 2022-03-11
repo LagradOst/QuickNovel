@@ -15,19 +15,25 @@ import androidx.preference.PreferenceManager
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
 import com.lagradost.quicknovel.BookDownloader.checkWrite
+import com.lagradost.quicknovel.BookDownloader.createQuickStream
+import com.lagradost.quicknovel.BookDownloader.openQuickStream
 import com.lagradost.quicknovel.BookDownloader.requestRW
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
+import com.lagradost.quicknovel.mvvm.logError
+import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.ui.result.ResultFragment
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.Apis.Companion.printProviders
+import com.lagradost.quicknovel.util.Coroutines
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.getResourceColor
-import org.jsoup.Jsoup
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
@@ -40,7 +46,12 @@ class MainActivity : AppCompatActivity() {
         fun AppCompatActivity.loadResult(url: String, apiName: String, startAction: Int = 0) {
             runOnUiThread {
                 supportFragmentManager.beginTransaction()
-                    .setCustomAnimations(R.anim.enter_anim, R.anim.exit_anim, R.anim.pop_enter, R.anim.pop_exit)
+                    .setCustomAnimations(
+                        R.anim.enter_anim,
+                        R.anim.exit_anim,
+                        R.anim.pop_enter,
+                        R.anim.pop_exit
+                    )
                     .add(R.id.homeRoot, ResultFragment().newInstance(url, apiName))
                     .commit()
             }
@@ -56,6 +67,31 @@ class MainActivity : AppCompatActivity() {
                 if (url.contains(api.mainUrl)) {
                     loadResult(url, api.name)
                     break
+                }
+            }
+
+            // kinda dirty ik
+            val reddit = RedditProvider()
+            reddit.isValidLink(url)?.let { name ->
+                try {
+                    Coroutines.main {
+                        val uri = withContext(Dispatchers.IO) {
+                            activity.createQuickStream(
+                                BookDownloader.QuickStreamData(
+                                    BookDownloader.QuickStreamMetaData(
+                                        "Not found",
+                                        name,
+                                        reddit.name,
+                                    ),
+                                    null,
+                                    listOf(ChapterData("Single Post", url, null, null, null))
+                                )
+                            )
+                        }
+                        activity.openQuickStream(uri)
+                    }
+                } catch (e : Exception) {
+                    logError(e)
                 }
             }
         }
@@ -83,7 +119,12 @@ class MainActivity : AppCompatActivity() {
                 }
                 //MainActivity.showNavbar()
                 supportFragmentManager.beginTransaction()
-                    .setCustomAnimations(R.anim.enter_anim, R.anim.exit_anim, R.anim.pop_enter, R.anim.pop_exit)
+                    .setCustomAnimations(
+                        R.anim.enter_anim,
+                        R.anim.exit_anim,
+                        R.anim.pop_enter,
+                        R.anim.pop_exit
+                    )
                     .remove(currentFragment)
                     .commitAllowingStateLoss()
                 supportFragmentManager
@@ -225,7 +266,8 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        navView.itemRippleColor = ColorStateList.valueOf(getResourceColor(R.attr.colorPrimary, 0.1f))
+        navView.itemRippleColor =
+            ColorStateList.valueOf(getResourceColor(R.attr.colorPrimary, 0.1f))
 
         val apiNames = getApiSettings()
         providersActive = apiNames
@@ -267,7 +309,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun test() {
-       // val response = khttp.get("https://ranobes.net/up/a-bored-lich/936969-1.html")
-       // println(response.text)
+        // val response = khttp.get("https://ranobes.net/up/a-bored-lich/936969-1.html")
+        // println(response.text)
     }
 }
