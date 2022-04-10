@@ -56,6 +56,15 @@
     <color name="lightIconColor">#5f6267</color>
 
     <!--Other Colors -->
+    <color name="colorPrimaryCarnationPink">#BD5DA5</color>
+    <color name="colorPrimaryOrange">#CE8500</color>
+    <color name="colorPrimaryDarkGreen">#004500</color>
+    <color name="colorPrimaryMaroon">#451010</color>
+    <color name="colorPrimaryNavyBlue">#000080</color>
+    <color name="colorPrimaryGrey">#515151</color>
+    <color name="colorPrimaryWhite">#FFFFFF</color>
+    <color name="colorPrimaryBrown">#622C00</color>
+    <color name="colorPrimaryBanana">#E4D448</color>
     <color name="colorPrimaryBlue">#5664B7</color>
     <color name="colorPrimaryRed">#FA3D3D</color>
     <color name="colorPrimaryPurple">#6200EA</color> <!-- Burple-->
