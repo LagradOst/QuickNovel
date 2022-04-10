@@ -121,15 +121,33 @@
             android:title="Info"
             app:isPreferenceVisible="true"
     >
+
         <Preference
                 android:title="Github"
+                android:icon="@drawable/ic_github_logo"
+                app:summary="https://github.com/KillerDogeEmpire/QuickNovel">
+            <intent android:action="android.intent.action.VIEW"
+                    android:data="https://github.com/KillerDogeEmpire/QuickNovel"/>
+        </Preference>
+
+        <Preference
+                android:title="App original"
                 android:icon="@drawable/ic_github_logo"
                 app:summary="https://github.com/LagradOst/QuickNovel">
             <intent android:action="android.intent.action.VIEW"
                     android:data="https://github.com/LagradOst/QuickNovel"/>
         </Preference>
+
         <Preference
-                android:title="Anime and Movie app by the same devs"
+                android:title="Anime and Movie app fork made by me with some help from others"
+                android:icon="@drawable/cs3_cloud"
+                app:summary="https://github.com/KillerDogeEmpire/CloudStream-3">
+            <intent android:action="android.intent.action.VIEW"
+                    android:data="https://github.com/KillerDogeEmpire/CloudStream-3"/>
+        </Preference>
+
+        <Preference
+                android:title="App original Anime and Movie app by the same devs"
                 android:icon="@drawable/cs3_cloud"
                 app:summary="https://github.com/LagradOst/CloudStream-3">
             <intent android:action="android.intent.action.VIEW"
