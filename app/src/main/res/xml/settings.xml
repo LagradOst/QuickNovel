@@ -147,7 +147,7 @@
         </Preference>
 
         <Preference
-                android:title="App original Anime and Movie app by the same devs"
+                android:title="Original Anime and Movie app made by the same devs as the main QuickNovel"
                 android:icon="@drawable/cs3_cloud"
                 app:summary="https://github.com/LagradOst/CloudStream-3">
             <intent android:action="android.intent.action.VIEW"
