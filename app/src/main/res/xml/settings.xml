@@ -129,7 +129,7 @@
             <intent android:action="android.intent.action.VIEW"
                     android:data="https://github.com/LagradOst/QuickNovel"/>
         </Preference>
-        
+
         <Preference
                 android:title="Anime and Movie app by the same devs"
                 android:icon="@drawable/cs3_cloud"
