@@ -121,6 +121,7 @@
             android:title="Info"
             app:isPreferenceVisible="true"
     >
+
         <Preference
                 android:title="Github"
                 android:icon="@drawable/ic_github_logo"
@@ -128,6 +129,7 @@
             <intent android:action="android.intent.action.VIEW"
                     android:data="https://github.com/LagradOst/QuickNovel"/>
         </Preference>
+
         <Preference
                 android:title="Anime and Movie app by the same devs"
                 android:icon="@drawable/cs3_cloud"
@@ -135,6 +137,7 @@
             <intent android:action="android.intent.action.VIEW"
                     android:data="https://github.com/LagradOst/CloudStream-3"/>
         </Preference>
+
         <Preference
                 android:title="Join Discord"
                 android:icon="@drawable/ic_baseline_discord_24"

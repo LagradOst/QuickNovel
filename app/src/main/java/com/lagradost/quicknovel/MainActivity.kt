@@ -210,6 +210,15 @@ class MainActivity : AppCompatActivity() {
         val themeOverlayName = settingsManager.getString("color_theme", "Blue")
         val currentOverlayTheme = when (themeOverlayName) {
             "Normal" -> R.style.OverlayPrimaryColorNormal
+            "CarnationPink" -> R.style.OverlayPrimaryColorCarnationPink
+            "Orange" -> R.style.OverlayPrimaryColorOrange
+            "DarkGreen" -> R.style.OverlayPrimaryColorDarkGreen
+            "Maroon" -> R.style.OverlayPrimaryColorMaroon
+            "NavyBlue" -> R.style.OverlayPrimaryColorNavyBlue
+            "Grey" -> R.style.OverlayPrimaryColorGrey
+            "White" -> R.style.OverlayPrimaryColorWhite
+            "Brown" -> R.style.OverlayPrimaryColorBrown
+            "Banana" -> R.style.OverlayPrimaryColorBanana
             "Blue" -> R.style.OverlayPrimaryColorBlue
             "Purple" -> R.style.OverlayPrimaryColorPurple
             "Green" -> R.style.OverlayPrimaryColorGreen

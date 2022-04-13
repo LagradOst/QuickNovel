@@ -38,7 +38,6 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
 import androidx.core.text.getSpans
-import androidx.core.view.marginBottom
 import androidx.media.session.MediaButtonReceiver
 import androidx.preference.PreferenceManager
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -55,7 +54,6 @@ import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.receivers.BecomingNoisyReceiver
 import com.lagradost.quicknovel.services.TTSPauseService
 import com.lagradost.quicknovel.ui.OrientationType
-import com.lagradost.quicknovel.ui.roundedbg.getLineHeight
 import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.UIHelper
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
@@ -72,7 +70,6 @@ import org.jsoup.Jsoup
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.collections.ArrayList
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
@@ -196,7 +193,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
         for (a in document.allElements) {
             if (a != null && a.hasText() &&
-                (a.text() == chapterName || (a.tagName() == "h3" && a.text().startsWith("Chapter ${index + 1}")))
+                (a.text() == chapterName || (a.tagName() == "h3" && a.text()
+                    .startsWith("Chapter ${index + 1}")))
             ) { // IDK, SOME MIGHT PREFER THIS SETTING??
                 a.remove() // THIS REMOVES THE TITLE
                 break
@@ -210,8 +208,14 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             .replace("</td>", " ")
             //.replace("\n\n", "\n") // REMOVES EMPTY SPACE
             .replace("...", "…") // MAKES EASIER TO WORK WITH
-            .replace("<p>.*<strong>Translator:.*?Editor:.*>".toRegex(), "") // FUCK THIS, LEGIT IN EVERY CHAPTER
-            .replace("<.*?Translator:.*?Editor:.*?>".toRegex(), "") // FUCK THIS, LEGIT IN EVERY CHAPTER
+            .replace(
+                "<p>.*<strong>Translator:.*?Editor:.*>".toRegex(),
+                ""
+            ) // FUCK THIS, LEGIT IN EVERY CHAPTER
+            .replace(
+                "<.*?Translator:.*?Editor:.*?>".toRegex(),
+                ""
+            ) // FUCK THIS, LEGIT IN EVERY CHAPTER
     }
 
 
@@ -473,7 +477,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         // the NotificationChannel class is new and not in the support library
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = "Text To Speech"//getString(R.string.channel_name)
-            val descriptionText = "The TTS notification channel" //getString(R.string.channel_description)
+            val descriptionText =
+                "The TTS notification channel" //getString(R.string.channel_description)
             val importance = NotificationManager.IMPORTANCE_DEFAULT
             val channel = NotificationChannel(TTS_CHANNEL_ID, name, importance).apply {
                 description = descriptionText
@@ -573,8 +578,10 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 }
             }
 
-            reader_bottom_view_tts?.visibility = if (isTTSRunning && !isHidden) View.VISIBLE else View.GONE
-            reader_bottom_view?.visibility = if (!isTTSRunning && !isHidden) View.VISIBLE else View.GONE
+            reader_bottom_view_tts?.visibility =
+                if (isTTSRunning && !isHidden) View.VISIBLE else View.GONE
+            reader_bottom_view?.visibility =
+                if (!isTTSRunning && !isHidden) View.VISIBLE else View.GONE
 
             tts_action_pause_play?.setImageResource(
                 when (value) {
@@ -643,7 +650,11 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         lowerBottomNav(reader_bottom_view_tts)
 
         read_toolbar_holder.translationY = 0f
-        ObjectAnimator.ofFloat(read_toolbar_holder, "translationY", -read_toolbar_holder.height.toFloat()).apply {
+        ObjectAnimator.ofFloat(
+            read_toolbar_holder,
+            "translationY",
+            -read_toolbar_holder.height.toFloat()
+        ).apply {
             duration = 200
             start()
         }.doOnEnd {
@@ -745,7 +756,9 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             it.scrollTo(0, line.topPosition + offset)
             for (tLine in textLines!!) {
                 if (tLine.bottomPosition + offset > mainScrollY + it.height) {
-                    val size = (mainScrollY + it.height) - (tLine.topPosition + offset) + (read_overlay?.height ?: 0)
+                    val size =
+                        (mainScrollY + it.height) - (tLine.topPosition + offset) + (read_overlay?.height
+                            ?: 0)
                     createTempBottomPadding(size)
                     if (DEBUGGING) {
                         read_temp_bottom_margin?.setBackgroundResource(R.color.colorPrimary)
@@ -1036,7 +1049,10 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             val cleanText = text
                 .replace("\\.([A-z])".toRegex(), ",$1")//\.([A-z]) \.([^-\s])
                 .replace("([0-9])([.:])([0-9])".toRegex(), "$1,$3") // GOOD FOR DECIMALS
-                .replace("([ \"“‘'])(Dr|Mr|Mrs)\\. ([A-Z])".toRegex(), "$1$2, $3") // Doctor or Mister
+                .replace(
+                    "([ \"“‘'])(Dr|Mr|Mrs)\\. ([A-Z])".toRegex(),
+                    "$1$2, $3"
+                ) // Doctor or Mister
 
             val ttsLines = ArrayList<TTSLine>()
 
@@ -1363,25 +1379,27 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     private var orientationType: Int = OrientationType.DEFAULT.prefValue
 
     private lateinit var mMediaSessionCompat: MediaSessionCompat
-    private val mMediaSessionCallback: MediaSessionCompat.Callback = object : MediaSessionCompat.Callback() {
-        override fun onMediaButtonEvent(mediaButtonEvent: Intent): Boolean {
-            val keyEvent = mediaButtonEvent.getParcelableExtra(Intent.EXTRA_KEY_EVENT) as KeyEvent?
-            if (keyEvent != null) {
-                if (keyEvent.action == KeyEvent.ACTION_DOWN) { // NO DOUBLE SKIP
-                    val consumed = when (keyEvent.keyCode) {
-                        KeyEvent.KEYCODE_MEDIA_PAUSE -> callOnPause()
-                        KeyEvent.KEYCODE_MEDIA_PLAY -> callOnPlay()
-                        KeyEvent.KEYCODE_MEDIA_STOP -> callOnStop()
-                        KeyEvent.KEYCODE_MEDIA_NEXT -> callOnNext()
-                        else -> false
+    private val mMediaSessionCallback: MediaSessionCompat.Callback =
+        object : MediaSessionCompat.Callback() {
+            override fun onMediaButtonEvent(mediaButtonEvent: Intent): Boolean {
+                val keyEvent =
+                    mediaButtonEvent.getParcelableExtra(Intent.EXTRA_KEY_EVENT) as KeyEvent?
+                if (keyEvent != null) {
+                    if (keyEvent.action == KeyEvent.ACTION_DOWN) { // NO DOUBLE SKIP
+                        val consumed = when (keyEvent.keyCode) {
+                            KeyEvent.KEYCODE_MEDIA_PAUSE -> callOnPause()
+                            KeyEvent.KEYCODE_MEDIA_PLAY -> callOnPlay()
+                            KeyEvent.KEYCODE_MEDIA_STOP -> callOnStop()
+                            KeyEvent.KEYCODE_MEDIA_NEXT -> callOnNext()
+                            else -> false
+                        }
+                        if (consumed) return true
                     }
-                    if (consumed) return true
                 }
-            }
 
-            return super.onMediaButtonEvent(mediaButtonEvent)
+                return super.onMediaButtonEvent(mediaButtonEvent)
+            }
         }
-    }
 
     // FUCK ANDROID WITH ALL MY HEART
     // SEE https://stackoverflow.com/questions/45960265/android-o-oreo-8-and-higher-media-buttons-issue WHY
@@ -1466,7 +1484,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     private fun Context.getTextColor(): Int {
-        val color = getKey(EPUB_TEXT_COLOR, getColor(R.color.readerTextColor))!!
+        val color = getKey(EPUB_TEXT_COLOR, ContextCompat.getColor(this, R.color.readerTextColor))!!
         read_text?.setTextColor(color)
         read_battery?.setTextColor(color)
         read_time?.setTextColor(color)
@@ -1507,7 +1525,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     private fun Context.getBackgroundColor(): Int {
-        val color = getKey(EPUB_BG_COLOR, getColor(R.color.readerBackground))!!
+        val color = getKey(EPUB_BG_COLOR, ContextCompat.getColor(this, R.color.readerBackground))!!
         setBackgroundColor(color)
         return color
     }
@@ -1525,23 +1543,29 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
         for ((index, img) in images.withIndex()) {
             if (index == bgColors.size) { // CUSTOM COLOR
-                img.foregroundTintList = colorPrim
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    img.foregroundTintList = colorPrim
+                    img.foreground = ContextCompat.getDrawable(
+                        this,
+                        if (foundCurrentColor) R.drawable.ic_baseline_add_24 else R.drawable.ic_baseline_check_24
+                    )
+                }
                 img.imageAlpha = if (foundCurrentColor) fadedAlpha else fullAlpha
                 img.backgroundTintList =
                     ColorStateList.valueOf(if (foundCurrentColor) Color.parseColor("#161616") else color)
-                img.foreground = ContextCompat.getDrawable(
-                    this,
-                    if (foundCurrentColor) R.drawable.ic_baseline_add_24 else R.drawable.ic_baseline_check_24
-                )
                 continue
             }
 
             if ((color == bgColors[index] && getTextColor() == textColors[index])) {
                 foundCurrentColor = true
-                img.foregroundTintList = colorPrim
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    img.foregroundTintList = colorPrim
+                }
                 img.imageAlpha = fullAlpha
             } else {
-                img.foregroundTintList = colorTrans
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    img.foregroundTintList = colorTrans
+                }
                 img.imageAlpha = fadedAlpha
             }
         }
@@ -1666,38 +1690,52 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 setRot(org)
             }
         }
-        val colorPrimary = colorFromAttribute(R.attr.colorPrimary)//   getColor(R.color.colorPrimary)
+        val colorPrimary =
+            colorFromAttribute(R.attr.colorPrimary)//   getColor(R.color.colorPrimary)
 
         read_action_settings.setOnClickListener {
             val bottomSheetDialog = BottomSheetDialog(this)
 
             bottomSheetDialog.setContentView(R.layout.read_bottom_settings)
-            val readSettingsTextSize = bottomSheetDialog.findViewById<SeekBar>(R.id.read_settings_text_size)!!
-            val readSettingsTextPadding = bottomSheetDialog.findViewById<SeekBar>(R.id.read_settings_text_padding)!!
+            val readSettingsTextSize =
+                bottomSheetDialog.findViewById<SeekBar>(R.id.read_settings_text_size)!!
+            val readSettingsTextPadding =
+                bottomSheetDialog.findViewById<SeekBar>(R.id.read_settings_text_padding)!!
             val readSettingsTextPaddingTop =
                 bottomSheetDialog.findViewById<SeekBar>(R.id.read_settings_text_padding_top)!!
 
             val readSettingsScrollVol =
                 bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_scroll_vol)!!
-            val readSettingsLockTts = bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_lock_tts)!!
-            val showTime = bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_time)!!
-            val showBattery = bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_battery)!!
+            val readSettingsLockTts =
+                bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_lock_tts)!!
+            val showTime =
+                bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_time)!!
+            val showBattery =
+                bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_battery)!!
             val readSettingsTextPaddingText =
                 bottomSheetDialog.findViewById<TextView>(R.id.read_settings_text_padding_text)!!
             val readSettingsTextPaddingTextTop =
                 bottomSheetDialog.findViewById<TextView>(R.id.read_settings_text_padding_text_top)!!
             val readSettingsTextSizeText =
                 bottomSheetDialog.findViewById<TextView>(R.id.read_settings_text_size_text)!!
-            val readSettingsTextFontText = bottomSheetDialog.findViewById<TextView>(R.id.read_settings_text_font_text)!!
-            val hardResetStream = bottomSheetDialog.findViewById<MaterialButton>(R.id.hard_reset_stream)!!
+            val readSettingsTextFontText =
+                bottomSheetDialog.findViewById<TextView>(R.id.read_settings_text_font_text)!!
+            val hardResetStream =
+                bottomSheetDialog.findViewById<MaterialButton>(R.id.hard_reset_stream)!!
 
             hardResetStream.visibility = if (isFromEpub) View.GONE else View.VISIBLE
             hardResetStream.setOnClickListener {
-                loadChapter(currentChapter, scrollToTop = false, scrollToRemember = true, forceReload = true)
+                loadChapter(
+                    currentChapter,
+                    scrollToTop = false,
+                    scrollToRemember = true,
+                    forceReload = true
+                )
             }
 
             //val root = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_root)!!
-            val horizontalColors = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_colors)!!
+            val horizontalColors =
+                bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_colors)!!
 
             val readShowFonts = bottomSheetDialog.findViewById<MaterialButton>(R.id.read_show_fonts)
             readShowFonts?.text = UIHelper.parseFontFileName(getKey(EPUB_FONT))
@@ -1736,7 +1774,10 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             for ((index, backgroundColor) in bgColors.withIndex()) {
                 val textColor = textColors[index]
 
-                val imageHolder = layoutInflater.inflate(R.layout.color_round_checkmark, null) //color_round_checkmark
+                val imageHolder = layoutInflater.inflate(
+                    R.layout.color_round_checkmark,
+                    null
+                ) //color_round_checkmark
                 val image = imageHolder.findViewById<ImageView>(R.id.image1)
                 image.backgroundTintList = ColorStateList.valueOf(backgroundColor)
                 image.setOnClickListener {
@@ -1751,7 +1792,9 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
             val imageHolder = layoutInflater.inflate(R.layout.color_round_checkmark, null)
             val image = imageHolder.findViewById<ImageView>(R.id.image1)
-            image.foreground = ContextCompat.getDrawable(this, R.drawable.ic_baseline_add_24)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                image.foreground = ContextCompat.getDrawable(this, R.drawable.ic_baseline_add_24)
+            }
             image.setOnClickListener {
                 val builder: AlertDialog.Builder = AlertDialog.Builder(this)
                 builder.setTitle(getString(R.string.reading_color))
@@ -1793,8 +1836,13 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             val offsetSize = 10
             var updateAllTextOnDismiss = false
             readSettingsTextSize.progress = getTextFontSize() - offsetSize
-            readSettingsTextSize.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+            readSettingsTextSize.setOnSeekBarChangeListener(object :
+                SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(
+                    seekBar: SeekBar?,
+                    progress: Int,
+                    fromUser: Boolean
+                ) {
                     setTextFontSize(progress + offsetSize)
                     stopTTS()
 
@@ -1808,8 +1856,13 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
             readSettingsTextPadding.max = 50
             readSettingsTextPadding.progress = getTextPadding()
-            readSettingsTextPadding.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+            readSettingsTextPadding.setOnSeekBarChangeListener(object :
+                SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(
+                    seekBar: SeekBar?,
+                    progress: Int,
+                    fromUser: Boolean
+                ) {
                     setTextPadding(progress)
                     stopTTS()
 
@@ -1823,8 +1876,13 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
             readSettingsTextPaddingTop.max = 50
             readSettingsTextPaddingTop.progress = getTextPaddingTop()
-            readSettingsTextPaddingTop.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+            readSettingsTextPaddingTop.setOnSeekBarChangeListener(object :
+                SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(
+                    seekBar: SeekBar?,
+                    progress: Int,
+                    fromUser: Boolean
+                ) {
                     setTextPaddingTop(progress)
                     stopTTS()
 
@@ -1937,7 +1995,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                             showMessage("This Language is not supported")
                         } else {
-                            tts!!.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                            tts!!.setOnUtteranceProgressListener(object :
+                                UtteranceProgressListener() {
                                 //MIGHT BE INTERESTING https://stackoverflow.com/questions/44461533/android-o-new-texttospeech-onrangestart-callback
                                 override fun onDone(utteranceId: String) {
                                     canSpeak = true
@@ -1949,12 +2008,16 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                                 }
 
                                 override fun onStart(utteranceId: String) {
-                                    val highlightResult = Regex("([0-9]*)|([0-9]*):([0-9]*)").matchEntire(utteranceId)
+                                    val highlightResult =
+                                        Regex("([0-9]*)|([0-9]*):([0-9]*)").matchEntire(utteranceId)
                                     if (highlightResult == null || (highlightResult.groupValues.size < 4)) return
                                     try {
-                                        latestTTSSpeakOutId = highlightResult.groupValues[1].toIntOrNull() ?: return
-                                        val startIndex = highlightResult.groupValues[2].toIntOrNull() ?: return
-                                        val endIndex = highlightResult.groupValues[3].toIntOrNull() ?: return
+                                        latestTTSSpeakOutId =
+                                            highlightResult.groupValues[1].toIntOrNull() ?: return
+                                        val startIndex =
+                                            highlightResult.groupValues[2].toIntOrNull() ?: return
+                                        val endIndex =
+                                            highlightResult.groupValues[3].toIntOrNull() ?: return
                                         runOnUiThread {
                                             read_text?.let {
                                                 setHighLightedText(it, startIndex, endIndex)
@@ -2006,14 +2069,16 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         window.navigationBarColor =
             colorFromAttribute(R.attr.grayBackground) //getColor(R.color.readerHightlightedMetaInfo)
 
-        read_scroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->
-            checkTTSRange(scrollY)
-            read_temp_bottom_margin?.visibility = View.GONE
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            read_scroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+                checkTTSRange(scrollY)
+                read_temp_bottom_margin?.visibility = View.GONE
 
-            setKey(EPUB_CURRENT_POSITION_SCROLL, getBookTitle(), scrollY)
+                setKey(EPUB_CURRENT_POSITION_SCROLL, getBookTitle(), scrollY)
 
-            mainScrollY = scrollY
-            updateChapterName(scrollY)
+                mainScrollY = scrollY
+                updateChapterName(scrollY)
+            }
         }
 
         fun toggleShow() {
