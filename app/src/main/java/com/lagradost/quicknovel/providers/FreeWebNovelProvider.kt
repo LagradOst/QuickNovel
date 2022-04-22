@@ -55,8 +55,13 @@ class FreeWebNovelProvider : MainAPI() {
         Pair("Cultivation", "Cultivation"),
     )
 
-    override fun loadMainPage(page: Int, mainCategory: String?, orderBy: String?, tag: String?): HeadMainPageResponse {
-        val url = mainUrl+"genre/$tag"
+    override fun loadMainPage(
+        page: Int,
+        mainCategory: String?,
+        orderBy: String?,
+        tag: String?
+    ): HeadMainPageResponse {
+        val url = mainUrl + "genre/$tag"
         val response = khttp.get(url)
 
         val document = Jsoup.parse(response.text)
@@ -66,7 +71,7 @@ class FreeWebNovelProvider : MainAPI() {
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
             val h3 = h.selectFirst("h3.tit > a")
-            val cUrl = mainUrl.substringBeforeLast("/")+h3.attr("href")
+            val cUrl = mainUrl.substringBeforeLast("/") + h3.attr("href")
 
             val name = h3.attr("title")
             val posterUrl = h.selectFirst("div.pic > a > img").attr("src")
@@ -95,7 +100,7 @@ class FreeWebNovelProvider : MainAPI() {
 
     override fun search(query: String): List<SearchResponse> {
         val response = khttp.post(
-            mainUrl+"search/",
+            mainUrl + "search/",
             headers = mapOf(
                 "referer" to mainUrl,
                 "x-requested-with" to "XMLHttpRequest",
@@ -113,7 +118,7 @@ class FreeWebNovelProvider : MainAPI() {
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
             val h3 = h.selectFirst("h3.tit > a")
-            val cUrl = mainUrl.substringBeforeLast("/")+h3.attr("href")
+            val cUrl = mainUrl.substringBeforeLast("/") + h3.attr("href")
 
             val name = h3.attr("title")
             val posterUrl = h.selectFirst("div.pic > a > img").attr("src")
@@ -146,12 +151,13 @@ class FreeWebNovelProvider : MainAPI() {
             }
             return null
         }
+
         val auth = getInfoHeader("author")
         var author: String? = null
 
         if (auth != null) {
-            for (a in auth){
-                author += a.select("> div.right >a").text()+" "
+            for (a in auth) {
+                author += a.select("> div.right >a").text() + " "
             }
         }
 
@@ -172,36 +178,34 @@ class FreeWebNovelProvider : MainAPI() {
         val data: ArrayList<ChapterData> = ArrayList()
         val chapternumber0 = document.select("div.m-newest1 > ul.ul-list5 > li")[1]
         val chapternumber1 = chapternumber0.selectFirst("a").attr("href")
-        val chapternumber = chapternumber1.substringAfterLast("-").filter{ it.isDigit() }.toInt()
+        val chapternumber = chapternumber1.substringAfterLast("-").filter { it.isDigit() }.toInt()
 
 
-        for (c in 1..chapternumber) {
+        for (c in 1..chapternumber + 1) {
 
-            val cUrl = url.substringBeforeLast(".")+"/chapter-$c.html"
+            val cUrl = url.substringBeforeLast(".") + "/chapter-$c.html"
             val cName = "chapter $c"
             data.add(ChapterData(cName, cUrl, null, null))
         }
 
-
-
-
-
         val statusHeader0 = document.selectFirst("span.s1.s2")
         val statusHeader = document.selectFirst("span.s1.s3")
 
-        val status = if (statusHeader != null) {when (statusHeader.selectFirst("> a").text()
-            .toLowerCase(Locale.getDefault())) {
-            "OnGoing" -> STATUS_ONGOING
-            "Completed" -> STATUS_COMPLETE
-            else -> STATUS_NULL
-        }}
-        else
-        {when (statusHeader0.selectFirst("> a").text()
-            .toLowerCase(Locale.getDefault())) {
-            "OnGoing" -> STATUS_ONGOING
-            "Completed" -> STATUS_COMPLETE
-            else -> STATUS_NULL
-        }}
+        val status = if (statusHeader != null) {
+            when (statusHeader.selectFirst("> a").text()
+                .toLowerCase(Locale.getDefault())) {
+                "OnGoing" -> STATUS_ONGOING
+                "Completed" -> STATUS_COMPLETE
+                else -> STATUS_NULL
+            }
+        } else {
+            when (statusHeader0.selectFirst("> a").text()
+                .toLowerCase(Locale.getDefault())) {
+                "OnGoing" -> STATUS_ONGOING
+                "Completed" -> STATUS_COMPLETE
+                else -> STATUS_NULL
+            }
+        }
 
         return LoadResponse(
             url,
