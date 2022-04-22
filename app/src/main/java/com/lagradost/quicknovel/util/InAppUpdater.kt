@@ -52,7 +52,7 @@ class InAppUpdater {
 
         private fun Activity.getAppUpdate(): Update {
             try {
-                val url = "https://api.github.com/repos/KillerDogeEmpire/QuickNovel/releases/latest"
+                val url = "https://api.github.com/repos/LagradOst/QuickNovel/releases/latest"
                 val headers = mapOf("Accept" to "application/vnd.github.v3+json")
                 val response =
                     mapper.readValue<List<GithubRelease>>(khttp.get(url, headers = headers).text)
