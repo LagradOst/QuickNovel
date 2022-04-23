@@ -45,7 +45,7 @@ class FreeWebNovelProvider : MainAPI() {
         Pair("Shoujo", "Shoujo"),
         Pair("Shounen Ai", "Shounen+Ai"),
         Pair("Shounen", "Shounen"),
-        Pair("Slice of Life", "Sliceoflife"),
+        Pair("Slice of Life", "Slice+of+life"),
         Pair("Smut", "Smut"),
         Pair("Sports", "Sports"),
         Pair("Supernatural", "Supernatural"),
