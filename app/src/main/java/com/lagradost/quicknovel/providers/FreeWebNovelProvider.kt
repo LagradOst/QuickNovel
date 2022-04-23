@@ -1,8 +1,10 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.DataStore.toKotlinObject
 import org.jsoup.Jsoup
 import org.jsoup.select.Elements
+import java.lang.Exception
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -17,51 +19,47 @@ class FreeWebNovelProvider : MainAPI() {
 
     override val tags = listOf(
         Pair("All", ""),
-        Pair("Chinese", "Chinese"),
         Pair("Action", "Action"),
-        Pair("Adventure", "Adventure"),
-        Pair("Fantasy", "Fantasy"),
-        Pair("Martial Arts", "Martial Arts"),
-        Pair("Romance", "Romance"),
-        Pair("Xianxia", "Xianxia"),
-        //Pair("Editor's choice", "Editor's choice"),
-        Pair("Original", "Original"),
-        Pair("Korean", "Korean"),
+        Pair("Adult", "Adult"),
+        Pair("AdventCure", "AdventCure"),
         Pair("Comedy", "Comedy"),
-        Pair("Japanese", "Japanese"),
-        Pair("Xuanhuan", "Xuanhuan"),
-        Pair("Mystery", "Mystery"),
-        Pair("Supernatural", "Supernatural"),
         Pair("Drama", "Drama"),
+        Pair("Ecchi", "Ecchi"),
+        Pair("Fantasy", "Fantasy"),
+        //Pair("Editor's choice", "Editor's choice"),
+        Pair("Gender Bender","Gender+Bender"),
+        Pair("Harem", "Harem"),
         Pair("Historical", "Historical"),
         Pair("Horror", "Horror"),
-        Pair("Sci-Fi", "Sci-Fi"),
-        Pair("Thriller", "Thriller"),
-        Pair("Futuristic", "Futuristic"),
-        Pair("Academy", "Academy"),
-        Pair("Completed", "Completed"),
-        Pair("Harem", "Harem"),
-        Pair("School Life", "Schoollife"),
-        Pair("Martial Arts", "Martialarts"),
-        Pair("Slice of Life", "Sliceoflife"),
-        Pair("English", "English"),
-        Pair("Reincarnation", "Reincarnation"),
-        Pair("Psychological", "Psychological"),
-        Pair("Sci-fi", "Scifi"),
+        Pair("Josei", "Josei"),
+        Pair("Game", "Game"),
+        Pair("Martial Arts", "Martial+Art"),
         Pair("Mature", "Mature"),
-        Pair("Ghosts", "Ghosts"),
-        Pair("Demons", "Demons"),
-        Pair("Gods", "Gods"),
-        Pair("Cultivation", "Cultivation"),
+        Pair("Mecha", "Mecha"),
+        Pair("Mystery", "Mystery"),
+        Pair("Psychological", "Psychological"),
+        Pair("Romance", "Romance"),
+        Pair("School Life", "School+Life"),
+        Pair("Sci-fi", "Sci-fi"),
+        Pair("Seinen", "Seinen"),
+        Pair("Shoujo", "Shoujo"),
+        Pair("Shounen Ai", "Shounen+Ai"),
+        Pair("Shounen", "Shounen"),
+        Pair("Slice of Life", "Sliceoflife"),
+        Pair("Smut", "Smut"),
+        Pair("Sports", "Sports"),
+        Pair("Supernatural", "Supernatural"),
+        Pair("Tragedy", "Tragedy"),
+        Pair("Wuxia", "Wuxia"),
+        Pair("Xianxia", "Xianxia"),
+        Pair("Xuanhuan", "Xuanhuan"),
+        Pair("Yaoi", "Yaoi"),
+        Pair("Eastern", "Eastern"),
+        Pair("Reincarnation", "Reincarnation"),
     )
 
-    override fun loadMainPage(
-        page: Int,
-        mainCategory: String?,
-        orderBy: String?,
-        tag: String?
-    ): HeadMainPageResponse {
-        val url = mainUrl + "genre/$tag"
+    override fun loadMainPage(page: Int, mainCategory: String?, orderBy: String?, tag: String?): HeadMainPageResponse {
+        val url = mainUrl+"genre/$tag"
         val response = khttp.get(url)
 
         val document = Jsoup.parse(response.text)
@@ -71,7 +69,7 @@ class FreeWebNovelProvider : MainAPI() {
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
             val h3 = h.selectFirst("h3.tit > a")
-            val cUrl = mainUrl.substringBeforeLast("/") + h3.attr("href")
+            val cUrl = mainUrl.substringBeforeLast("/")+h3.attr("href")
 
             val name = h3.attr("title")
             val posterUrl = h.selectFirst("div.pic > a > img").attr("src")
@@ -100,7 +98,7 @@ class FreeWebNovelProvider : MainAPI() {
 
     override fun search(query: String): List<SearchResponse> {
         val response = khttp.post(
-            mainUrl + "search/",
+            mainUrl+"search/",
             headers = mapOf(
                 "referer" to mainUrl,
                 "x-requested-with" to "XMLHttpRequest",
@@ -118,7 +116,7 @@ class FreeWebNovelProvider : MainAPI() {
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
             val h3 = h.selectFirst("h3.tit > a")
-            val cUrl = mainUrl.substringBeforeLast("/") + h3.attr("href")
+            val cUrl = mainUrl.substringBeforeLast("/")+h3.attr("href")
 
             val name = h3.attr("title")
             val posterUrl = h.selectFirst("div.pic > a > img").attr("src")
@@ -143,68 +141,69 @@ class FreeWebNovelProvider : MainAPI() {
 
         val document = Jsoup.parse(response.text)
         val name = document.selectFirst("h1.tit").text()
-        val informations = document.select("div.txt")
-        fun getInfoHeader(tag: String): Elements? {
-            for (a in informations) {
-                val sel = a.selectFirst("> div.right >a")
-                if (sel != null && sel.attr("href").contains(tag)) return a.select("> div.right >a")
-            }
-            return null
-        }
 
-        val auth = getInfoHeader("author")
-        var author: String? = null
-
-        if (auth != null) {
-            for (a in auth) {
-                author += a.select("> div.right >a").text() + " "
-            }
-        }
+        var author = document.selectFirst("div.m-imgtxt > div.txt > div:nth-child(2) > div > a").text()
 
         val posterUrl = document.select(" div.pic > img").attr("src")
 
-        val tags: ArrayList<String> = ArrayList()
-
-        val gen = getInfoHeader("genre")
-        if (gen != null) {
-            val tagsHeader = gen.select("> div.right > a")
-            for (t in tagsHeader) {
-                tags.add(t.text())
-            }
+        val tags = document.select("div.m-imgtxt > div.txt > div:nth-child(3) > div > a").map{
+            it.text()
         }
-
         val synopsis = document.selectFirst("div.inner").text()
 
         val data: ArrayList<ChapterData> = ArrayList()
         val chapternumber0 = document.select("div.m-newest1 > ul.ul-list5 > li")[1]
         val chapternumber1 = chapternumber0.selectFirst("a").attr("href")
-        val chapternumber = chapternumber1.substringAfterLast("-").filter { it.isDigit() }.toInt()
+        val aid = "[0-9]+s.jpg".toRegex().find(response.text)?.value?.substringBefore("s")
+        val acode = "(?<=r_url\" content=\"https://freewebnovel.com/)(.*)(?=/chapter)".toRegex().find(response.text)?.value
+        val chaptersDataphp = khttp.post(
+            "https://freewebnovel.com/api/chapterlist.php",
+            headers = mapOf(
+                "referer" to mainUrl.substringBeforeLast("/")+chapternumber1,
+                "user-agent" to USER_AGENT
+            ),
+            data = mapOf(
+                "acode" to acode,
+                "aid" to  aid
+            )
+        )
+        val parsed = Jsoup.parse(chaptersDataphp.text.replace( """\""" ,"")).select("option")
 
+        for (c in parsed) {
 
-        for (c in 1..chapternumber + 1) {
-
-            val cUrl = url.substringBeforeLast(".") + "/chapter-$c.html"
-            val cName = "chapter $c"
+            val cUrl = mainUrl.substringBeforeLast("/")+c.attr("value")
+            val cName = if (c.text().isEmpty()){ "chapter $c"}
+            else{c.text()}
             data.add(ChapterData(cName, cUrl, null, null))
         }
+
 
         val statusHeader0 = document.selectFirst("span.s1.s2")
         val statusHeader = document.selectFirst("span.s1.s3")
 
         val status = if (statusHeader != null) {
-            when (statusHeader.selectFirst("> a").text()
-                .toLowerCase(Locale.getDefault())) {
+            when (statusHeader.selectFirst("a").text()) {
                 "OnGoing" -> STATUS_ONGOING
                 "Completed" -> STATUS_COMPLETE
                 else -> STATUS_NULL
             }
-        } else {
-            when (statusHeader0.selectFirst("> a").text()
-                .toLowerCase(Locale.getDefault())) {
-                "OnGoing" -> STATUS_ONGOING
-                "Completed" -> STATUS_COMPLETE
-                else -> STATUS_NULL
-            }
+
+        }
+        else
+        {when (statusHeader0.selectFirst("> a").text()) {
+            "OnGoing" -> STATUS_ONGOING
+            "Completed" -> STATUS_COMPLETE
+            else -> STATUS_NULL
+        }}
+
+        var rating = 0
+        var peopleVoted = 0
+        try {
+            rating = (document.selectFirst("div.m-desc > div.score > p:nth-child(2)").text().substringBefore("/").toFloat() * 200).toInt()
+
+            peopleVoted = document.selectFirst("div.m-desc > div.score > p:nth-child(2)").text().substringAfter("(").filter { it.isDigit() }.toInt()
+        } catch (e: Exception) {
+            // NO RATING
         }
 
         return LoadResponse(
@@ -213,8 +212,8 @@ class FreeWebNovelProvider : MainAPI() {
             data,
             author,
             fixUrl(posterUrl),
-            null,
-            null,
+            rating,
+            peopleVoted,
             null,
             synopsis,
             tags,
