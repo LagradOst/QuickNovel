@@ -122,28 +122,14 @@
             app:isPreferenceVisible="true"
     >
 
-        <Preference
-                android:title="Github"
-                android:icon="@drawable/ic_github_logo"
-                app:summary="https://github.com/LagradOst/QuickNovel">
-            <intent android:action="android.intent.action.VIEW"
-                    android:data="https://github.com/LagradOst/QuickNovel"/>
+        <Preference android:title="Github" android:icon="@drawable/ic_github_logo" app:summary="https://github.com/LagradOst/QuickNovel">
+            <intent android:action="android.intent.action.VIEW" android:data="https://github.com/LagradOst/QuickNovel"/>
         </Preference>
-
-        <Preference
-                android:title="Anime and Movie app by the same devs"
-                android:icon="@drawable/cs3_cloud"
-                app:summary="https://github.com/LagradOst/CloudStream-3">
-            <intent android:action="android.intent.action.VIEW"
-                    android:data="https://github.com/LagradOst/CloudStream-3"/>
+        <Preference android:title="Anime and Movie app by the same devs" android:icon="@drawable/cs3_cloud" app:summary="https://github.com/LagradOst/CloudStream-3">
+            <intent android:action="android.intent.action.VIEW" android:data="https://github.com/LagradOst/CloudStream-3"/>
         </Preference>
-
-        <Preference
-                android:title="Join Discord"
-                android:icon="@drawable/ic_baseline_discord_24"
-                app:summary="https://discord.gg/5Hus6fM">
-            <intent android:action="android.intent.action.VIEW"
-                    android:data="https://discord.gg/5Hus6fM"/>
+        <Preference android:title="Join Discord" android:icon="@drawable/ic_baseline_discord_24" app:summary="https://discord.gg/5Hus6fM">
+            <intent android:action="android.intent.action.VIEW" android:data="https://discord.gg/5Hus6fM"/>
         </Preference>
     </PreferenceCategory>
 </PreferenceScreen>
