@@ -19,6 +19,7 @@ class Apis {
             WuxiaWorldOnlineProvider(),
             RoyalRoadProvider(),
             FreeWebNovelProvider(),
+            AzynovelProvider(),
 
             // chapter captcha
 //            WuxiaWorldSiteProvider(),
