@@ -39,7 +39,7 @@ class ReadNovelFullProvider : MainAPI() {
     override fun loadHtml(url: String): String? {
         val response = khttp.get(url)
         val document = Jsoup.parse(response.text)
-        return document.selectFirst("div#chr-content").html().textClean
+        return document.selectFirst("div#chr-content").html().textClean?.replace("[Updated from F r e e w e b n o v e l. c o m]", "")
     }
 
     override fun load(url: String): LoadResponse {

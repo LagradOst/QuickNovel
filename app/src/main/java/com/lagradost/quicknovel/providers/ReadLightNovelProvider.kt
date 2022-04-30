@@ -3,7 +3,6 @@ package com.lagradost.quicknovel.providers
 import com.lagradost.quicknovel.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
-import java.lang.Exception
 
 class ReadLightNovelProvider : MainAPI() {
     override val name = "ReadLightNovel"
@@ -15,8 +14,8 @@ class ReadLightNovelProvider : MainAPI() {
 
     override val orderBys: List<Pair<String, String>>
         get() = listOf(
-            Pair("Top Rated", "top_rated"),
-            Pair("Most Viewed", "view")
+            Pair("Top Rated", "top-rated"),
+            Pair("Most Viewed", "most-viewed")
         )
 
     override val tags = listOf(
@@ -66,33 +65,32 @@ class ReadLightNovelProvider : MainAPI() {
         tag: String?
     ): HeadMainPageResponse {
         val url =
-            "$mainUrl/${if (tag == "") "top-novel" else "category/$tag"}/$page?change_type=$orderBy"
+            "$mainUrl/${if (tag == "") "top-novels" else "genre/$tag"}/$orderBy/$page"
         val response = khttp.get(url)
 
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.top-novel-block")
         if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
 
-        val returnValue: ArrayList<SearchResponse> = ArrayList()
-        for (h in headers) {
-            val content = h.selectFirst("> div.top-novel-content")
-            val nameHeader = h.selectFirst("div.top-novel-header > h2 > a")
+        val returnValue = headers.map {
+            val content = it.selectFirst("> div.top-novel-content")
+            val nameHeader = it.selectFirst("div.top-novel-header > h2 > a")
             val cUrl = nameHeader.attr("href")
             val name = nameHeader.text()
             val posterUrl = content.selectFirst("> div.top-novel-cover > a > img").attr("src")
             /* val tags = ArrayList(
                  content.select("> div.top-novel-body > div.novel-item > div.content")
                      .last().select("> ul > li > a").map { t -> t.text() })*/
-            returnValue.add(
-                SearchResponse(
-                    name,
-                    fixUrl(cUrl),
-                    fixUrl(posterUrl),
-                    null,
-                    null,
-                    this.name
-                )
-            ) //tags
+
+            SearchResponse(
+                name,
+                fixUrl(cUrl),
+                fixUrl(posterUrl),
+                null,
+                null,
+                this.name
+            )
+            //tags
         }
         return HeadMainPageResponse(url, returnValue)
     }
