@@ -9,7 +9,7 @@ import java.util.*
 import kotlin.collections.ArrayList
 
 class AzynovelProvider : MainAPI() {
-    override val name = "Azynovel"
+    override val name = "AzyNovel"
     override val mainUrl = "https://azynovel.com/"
     override val hasMainPage = true
 
