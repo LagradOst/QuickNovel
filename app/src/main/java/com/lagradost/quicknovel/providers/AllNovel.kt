@@ -8,9 +8,9 @@ import java.lang.Exception
 import java.util.*
 import kotlin.collections.ArrayList
 
-class AllnovelsProvider : MainAPI() {
+class AllNovelProvider : MainAPI() {
     override val name = "AllNovels"
-    override val mainUrl = " https://allnovel.org/"
+    override val mainUrl = "https://allnovel.org"
     override val hasMainPage = true
 
     override val iconId = R.drawable.icon_wuxiaworldonline
@@ -18,69 +18,95 @@ class AllnovelsProvider : MainAPI() {
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
 
     override val tags = listOf(
-        Pair("Most Popular", ""),
-        Pair("Chinese", "Chinese"),
-        Pair("Action", "Action"),
-        Pair("Adventure", "Adventure"),
-        Pair("Fantasy", "Fantasy"),
-        Pair("Martial Arts", "Martial Arts"),
-        Pair("Romance", "Romance"),
-        Pair("Xianxia", "Xianxia"),
-        //Pair("Editor's choice", "Editor's choice"),
-        Pair("Original", "Original"),
-        Pair("Korean", "Korean"),
-        Pair("Comedy", "Comedy"),
-        Pair("Japanese", "Japanese"),
-        Pair("Xuanhuan", "Xuanhuan"),
-        Pair("Mystery", "Mystery"),
-        Pair("Supernatural", "Supernatural"),
-        Pair("Drama", "Drama"),
-        Pair("Historical", "Historical"),
-        Pair("Horror", "Horror"),
-        Pair("Sci-Fi", "Sci-Fi"),
-        Pair("Thriller", "Thriller"),
-        Pair("Futuristic", "Futuristic"),
-        Pair("Academy", "Academy"),
-        Pair("Completed", "Completed"),
-        Pair("Harem", "Harem"),
-        Pair("School Life", "Schoollife"),
-        Pair("Martial Arts", "Martialarts"),
-        Pair("Slice of Life", "Sliceoflife"),
-        Pair("English", "English"),
-        Pair("Reincarnation", "Reincarnation"),
-        Pair("Psychological", "Psychological"),
-        Pair("Sci-fi", "Scifi"),
-        Pair("Mature", "Mature"),
-        Pair("Ghosts", "Ghosts"),
-        Pair("Demons", "Demons"),
-        Pair("Gods", "Gods"),
-        Pair("Cultivation", "Cultivation"),
+        Pair("All","All"),
+        Pair("Shounen","Shounen"),
+        Pair("Harem","Harem"),
+        Pair("Comedy","Comedy"),
+        Pair("Martial Arts","Martial Arts"),
+        Pair("School Life","School Life"),
+        Pair("Mystery","Mystery"),
+        Pair("Shoujo","Shoujo"),
+        Pair("Romance","Romance"),
+        Pair("Sci-fi","Sci-fi"),
+        Pair("Gender Bender","Gender Bender"),
+        Pair("Mature","Mature"),
+        Pair("Fantasy","Fantasy"),
+        Pair("Horror","Horror"),
+        Pair("Drama","Drama"),
+        Pair("Tragedy","Tragedy"),
+        Pair("Supernatural","Supernatural"),
+        Pair("Ecchi","Ecchi"),
+        Pair("Xuanhuan","Xuanhuan"),
+        Pair("Adventure","Adventure"),
+        Pair("Action","Action"),
+        Pair("Psychological","Psychological"),
+        Pair("Xianxia","Xianxia"),
+        Pair("Wuxia","Wuxia"),
+        Pair("Historical","Historical"),
+        Pair("Slice of Life","Slice of Life"),
+        Pair("Seinen","Seinen"),
+        Pair("Lolicon","Lolicon"),
+        Pair("Adult","Adult"),
+        Pair("Josei","Josei"),
+        Pair("Sports","Sports"),
+        Pair("Smut","Smut"),
+        Pair("Mecha","Mecha"),
+        Pair("Yaoi","Yaoi"),
+        Pair("Shounen Ai","Shounen Ai"),
+        Pair("History","History"),
+        Pair("Reincarnation","Reincarnation"),
+        Pair("Martial","Martial"),
+        Pair("Game","Game"),
+        Pair("Eastern","Eastern"),
+        Pair("FantasyHarem","FantasyHarem"),
+        Pair("Yuri","Yuri"),
+        Pair("Magical Realism","Magical Realism"),
+        Pair("Isekai","Isekai"),
+        Pair("Supernatural Source:Explore","Supernatural Source:Explore"),
+        Pair("Video Games","Video Games"),
+        Pair("Contemporary Romance","Contemporary Romance"),
+        Pair("invayne","invayne"),
+        Pair("LitRPG","LitRPG"),
+        Pair("LGBT","LGBT"),
+        Pair("Comedy Drama Romance Shounen Ai Supernatural","Comedy Drama Romance Shounen Ai Supernatural"),
+        Pair("Shoujo Ai","Shoujo Ai"),
+        Pair("Supernatura","Supernatura"),
+        Pair("Canopy","Canopy")
     )
 
     override fun loadMainPage(page: Int, mainCategory: String?, orderBy: String?, tag: String?): HeadMainPageResponse {
-        val url = if (tag != "") {mainUrl+"genre/$tag"} else{"https://allnovel.org/most-popular"}
+
+        val firstresponse = khttp.get(mainUrl)
+        val firstdocument = Jsoup.parse(firstresponse.text)
+        fun get_id (tagvalue:String?): String? {
+            for (i in firstdocument.select("#hot-genre-select>option")){
+                if (i.text()==tagvalue){
+                    return i.attr("value")
+                }
+            }
+            return null
+        }
+        val url = "https://allnovel.org/ajax-search?type=hot&genre=${get_id(tag)}"
         val response = khttp.get(url)
-
         val document = Jsoup.parse(response.text)
-
-        val headers = document.select("div.row")
-        if (headers.size <= 1) return HeadMainPageResponse(url, ArrayList())
+        val headers = document.select("div.item")
+        if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
         val returnValue: ArrayList<SearchResponse> = ArrayList()
-        for (h in headers.take(headers.size-12).takeLast(headers.size-13)) {
-            val h3 = h.selectFirst("h3.truyen-title > a")
-            val cUrl = mainUrl.substringBeforeLast("/")+h3.attr("href")
-
+        for (h in headers) {
+            val h3 = h.selectFirst("a")
+            val cUrl = mainUrl+h3.attr("href")
             val name = h3.attr("title")
-            val posterUrl =  h.selectFirst("div.col-xs-3 > div > img").attr("src")
 
-            val latestChap = h.selectFirst("div.col-xs-2.text-info > div > a").attr("title")
+            val posterUrl =
+                mainUrl+h.selectFirst("img").attr("src")
+
             returnValue.add(
                 SearchResponse(
                     name,
                     cUrl,
                     fixUrl(posterUrl),
                     null,
-                    latestChap,
+                    null,
                     this.name
                 )
             )
@@ -91,7 +117,7 @@ class AllnovelsProvider : MainAPI() {
     override fun loadHtml(url: String): String? {
         val response = khttp.get(url)
         val document = Jsoup.parse(response.text)
-        return document.selectFirst("#chapter-content").html()
+        return document.selectFirst("#chapter-content").html().replace(" If you find any errors ( broken links, non-standard content, etc.. ), Please let us know &lt; report chapter &gt; so we can fix it as soon as possible."," ")
     }
 
 
@@ -105,12 +131,16 @@ class AllnovelsProvider : MainAPI() {
         val headers = document.select("div.row")
         if (headers.size <= 0) return ArrayList()
         val returnValue: ArrayList<SearchResponse> = ArrayList()
-        for (h in headers) {
-            val h3 = h.selectFirst(" iv.col-xs-7 > div > h3 > a")
-            val cUrl = mainUrl.substringBeforeLast("/")+h3.attr("href")
-
+        for (h in headers.take(headers.size-12).takeLast(headers.size-13)) {
+            val h3 = h.selectFirst("h3.truyen-title > a")
+            val cUrl = mainUrl+h3.attr("href")
             val name = h3.attr("title")
-            val posterUrl =  mainUrl.substringBeforeLast("/")+h.selectFirst("div.col-xs-3 > div > img").attr("src")
+
+            val posterUrl =  mainUrl+Jsoup.parse(khttp.get(cUrl).text).select("div.book > img").attr("src")
+            /*
+            mainUrl+h.selectFirst("div.col-xs-3 > div > img").attr("src")
+
+             */
 
             val latestChap = h.selectFirst("div.col-xs-2.text-info > div > a").attr("title")
             returnValue.add(
@@ -149,7 +179,7 @@ class AllnovelsProvider : MainAPI() {
         val parsed = parsedchaptersData.select("select > option")
         for (c in parsed) {
 
-            val cUrl = mainUrl.substringBeforeLast("/")+c.attr("value")
+            val cUrl = mainUrl+c.attr("value")
             val cName = if (c.text().isEmpty()){ "chapter $c"}
             else{c.text()}
             data.add(ChapterData(cName, cUrl, null, null))
@@ -157,7 +187,7 @@ class AllnovelsProvider : MainAPI() {
 
 
         val statusHeader0 = document.selectFirst("div.info > div:nth-child(5) > a")
-        val status = when (statusHeader0.selectFirst("> a").text()) {
+        val status = when (statusHeader0.selectFirst("a").text()) {
             "Ongoing" -> STATUS_ONGOING
             "Completed" -> STATUS_COMPLETE
             else -> STATUS_NULL
