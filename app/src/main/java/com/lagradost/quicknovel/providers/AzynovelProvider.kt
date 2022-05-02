@@ -13,7 +13,7 @@ class AzynovelProvider : MainAPI() {
     override val mainUrl = "https://azynovel.com/"
     override val hasMainPage = true
 
-    override val iconId = R.drawable.icon_wuxiaworldonline
+    override val iconId = R.drawable.icon_azynovel
 
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
 

@@ -13,7 +13,7 @@ class FreeWebNovelProvider : MainAPI() {
     override val mainUrl = "https://freewebnovel.com/"
     override val hasMainPage = true
 
-    override val iconId = R.drawable.icon_wuxiaworldonline
+    override val iconId = R.drawable.icon_freewebnovel
 
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
 

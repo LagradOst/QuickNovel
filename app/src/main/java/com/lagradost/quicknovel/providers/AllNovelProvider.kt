@@ -13,7 +13,7 @@ class AllNovelProvider : MainAPI() {
     override val mainUrl = "https://allnovel.org"
     override val hasMainPage = true
 
-    override val iconId = R.drawable.icon_wuxiaworldonline
+    override val iconId = R.drawable.icon_allnovel
 
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
 
@@ -128,10 +128,10 @@ class AllNovelProvider : MainAPI() {
         val document = Jsoup.parse(response.text)
 
 
-        val headers = document.select("div.row")
+        val headers = document.select("#list-page > div.col-xs-12.col-sm-12.col-md-9.col-truyen-main.archive > div > div.row")
         if (headers.size <= 0) return ArrayList()
         val returnValue: ArrayList<SearchResponse> = ArrayList()
-        for (h in headers.take(headers.size-12).takeLast(headers.size-13)) {
+        for (h in headers) {
             val h3 = h.selectFirst("h3.truyen-title > a")
             val cUrl = mainUrl+h3.attr("href")
             val name = h3.attr("title")

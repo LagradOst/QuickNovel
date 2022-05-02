@@ -12,7 +12,7 @@ class ReadfromnetProvider : MainAPI() {
     override val mainUrl = "https://readfrom.net/"
     override val hasMainPage = true
 
-    override val iconId = R.drawable.icon_wuxiaworldonline
+    override val iconId = R.drawable.icon_readfromnet
 
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
 
