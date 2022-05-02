@@ -2,9 +2,7 @@ package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
 import org.jsoup.Jsoup
-import java.lang.Exception
 import java.util.*
-import kotlin.collections.ArrayList
 
 class BoxNovelProvider : MainAPI() {
     override val name = "BoxNovel"
@@ -16,38 +14,38 @@ class BoxNovelProvider : MainAPI() {
     override val iconBackgroundId = R.color.boxNovelColor
 
     override val tags = listOf(
-            Pair("All", ""),
-            Pair("Completed", "completed"),
-            Pair("Action", "action"),
-            Pair("Adventure", "adventure"),
-            Pair("Comedy", "comedy"),
-            Pair("Drama", "genre"),
-            Pair("Ecchi", "ecchi"),
-            Pair("Fantasy", "fantasy"),
-            Pair("Harem", "harem"),
-            Pair("Josei", "josei"),
-            Pair("Martial Arts", "martial-arts"),
-            Pair("Gender Bender", "gender-bender"),
-            Pair("Historical", "historical"),
-            Pair("Horror", "horror"),
-            Pair("Mature", "mature"),
-            Pair("Mecha", "mecha"),
-            Pair("Mystery", "mystery"),
-            Pair("Psychological", "psychological"),
-            Pair("Romance", "romance"),
-            Pair("School Life", "school-life"),
-            Pair("Sci-fi", "sci-fi"),
-            Pair("Seinen", "seinen"),
-            Pair("Shoujo", "shoujo"),
-            Pair("Shounen", "shounen"),
-            Pair("Slice of Life", "slice-of-life"),
-            Pair("Sports", "sports"),
-            Pair("Supernatural", "supernatural"),
-            Pair("Tragedy", "tragedy"),
-            Pair("Wuxia", "wuxia"),
-            Pair("Xianxia", "xianxia"),
-            Pair("Xuanhuan", "xuanhuan"),
-        )
+        Pair("All", ""),
+        Pair("Completed", "completed"),
+        Pair("Action", "action"),
+        Pair("Adventure", "adventure"),
+        Pair("Comedy", "comedy"),
+        Pair("Drama", "genre"),
+        Pair("Ecchi", "ecchi"),
+        Pair("Fantasy", "fantasy"),
+        Pair("Harem", "harem"),
+        Pair("Josei", "josei"),
+        Pair("Martial Arts", "martial-arts"),
+        Pair("Gender Bender", "gender-bender"),
+        Pair("Historical", "historical"),
+        Pair("Horror", "horror"),
+        Pair("Mature", "mature"),
+        Pair("Mecha", "mecha"),
+        Pair("Mystery", "mystery"),
+        Pair("Psychological", "psychological"),
+        Pair("Romance", "romance"),
+        Pair("School Life", "school-life"),
+        Pair("Sci-fi", "sci-fi"),
+        Pair("Seinen", "seinen"),
+        Pair("Shoujo", "shoujo"),
+        Pair("Shounen", "shounen"),
+        Pair("Slice of Life", "slice-of-life"),
+        Pair("Sports", "sports"),
+        Pair("Supernatural", "supernatural"),
+        Pair("Tragedy", "tragedy"),
+        Pair("Wuxia", "wuxia"),
+        Pair("Xianxia", "xianxia"),
+        Pair("Xuanhuan", "xuanhuan"),
+    )
 
     override val orderBys: List<Pair<String, String>>
         get() = listOf(
@@ -73,7 +71,8 @@ class BoxNovelProvider : MainAPI() {
             "completed" -> "manga-tag/$tag"
             else -> "manga-genre/$tag"
         }
-        val url = "$mainUrl/$order/page/$page/${if (orderBy == null || orderBy == "") "" else "?m_orderby=$orderBy"}"
+        val url =
+            "$mainUrl/$order/page/$page/${if (orderBy == null || orderBy == "") "" else "?m_orderby=$orderBy"}"
 
         val response = khttp.get(url)
 
@@ -94,7 +93,8 @@ class BoxNovelProvider : MainAPI() {
             val rating =
                 (sum.selectFirst("> div.rating > div.post-total-rating > span.score").text()
                     .toFloat() * 200).toInt()
-            val latestChap = sum.selectFirst("> div.list-chapter > div.chapter-item > span > a").text()
+            val latestChap =
+                sum.selectFirst("> div.list-chapter > div.chapter-item > span > a").text()
             returnValue.add(SearchResponse(name, cUrl, posterUrl, rating, latestChap, this.name))
         }
 
@@ -109,7 +109,10 @@ class BoxNovelProvider : MainAPI() {
             return null
         }
         return res.html()
-            .replace("(If you have problems with this website, please continue reading your novel on our new website myboxnovel.com THANKS!)", "")
+            .replace(
+                "(If you have problems with this website, please continue reading your novel on our new website myboxnovel.com THANKS!)",
+                ""
+            )
             .replace("(adsbygoogle = window.adsbygoogle || []).push({});", "")
             .replace(
                 "Read latest Chapters at BoxNovel.Com Only",
@@ -138,7 +141,8 @@ class BoxNovelProvider : MainAPI() {
 
             val meta = h.selectFirst("> div > div.tab-meta")
 
-            val ratingTxt = meta.selectFirst("> div.rating > div.post-total-rating > span.total_votes").text()
+            val ratingTxt =
+                meta.selectFirst("> div.rating > div.post-total-rating > span.total_votes").text()
 
             val rating = if (ratingTxt != null) {
                 (ratingTxt.toFloat() * 200).toInt()
@@ -172,9 +176,9 @@ class BoxNovelProvider : MainAPI() {
         val response = khttp.get(url)
 
         val document = Jsoup.parse(response.text)
-        println(response.text)
-        val name = document.selectFirst("div.post-title > h1").text().replace("  ", " ").replace("\n", "")
-            .replace("\t", "")
+        val name =
+            document.selectFirst("div.post-title > h1").text().replace("  ", " ").replace("\n", "")
+                .replace("\t", "")
         val authors = document.select("div.author-content > a")
         var author = ""
         for (a in authors) {
@@ -198,7 +202,9 @@ class BoxNovelProvider : MainAPI() {
         if (synoParts.size == 0) synoParts = document.select("div.j_synopsis > p")
         if (synoParts.size == 0) synoParts = document.select("div.summary__content > p")
         for (s in synoParts) {
-            if (s.hasText() && !s.text().toLowerCase(Locale.getDefault()).contains(mainUrl)) { // FUCK ADS
+            if (s.hasText() && !s.text().toLowerCase(Locale.getDefault())
+                    .contains(mainUrl)
+            ) { // FUCK ADS
                 synopsis += s.text()!! + "\n\n"
             }
         }
@@ -210,12 +216,22 @@ class BoxNovelProvider : MainAPI() {
         )
         val data = getChapters(chapResponse.text)
 
-        val rating = ((document.selectFirst("span#averagerate")?.text()?.toFloat() ?: 0f) * 200).toInt()
-        val peopleVoted = document.selectFirst("span#countrate")?.text()?.toInt() ?: 0
+        val rating = ((document.selectFirst("span#averagerate")?.text()?.toFloatOrNull()
+            ?: 0f) * 200).toInt()
+
+        val peopleVotedText =
+            document.selectFirst("span#countrate")?.text()
+
+        // Turn K to thousands, 9.3k -> 2 zeroes | 95K -> 3 zeroes
+        val peopleVoted =
+            peopleVotedText?.replace("K", if (peopleVotedText.contains(".")) "00" else "000")
+                ?.replace(".", "")
+                ?.toIntOrNull() ?: 0
 
         val views = null
 
-        val aHeaders = document.select("div.post-status > div.post-content_item > div.summary-content")
+        val aHeaders =
+            document.select("div.post-status > div.post-content_item > div.summary-content")
         val aHeader = aHeaders.last()
 
         val status = when (aHeader.text().toLowerCase(Locale.getDefault())) {
@@ -224,6 +240,18 @@ class BoxNovelProvider : MainAPI() {
             else -> STATUS_NULL
         }
 
-        return LoadResponse(url, name, data, author, posterUrl, rating, peopleVoted, views, synopsis, tags, status)
+        return LoadResponse(
+            url,
+            name,
+            data,
+            author,
+            posterUrl,
+            rating,
+            peopleVoted,
+            views,
+            synopsis,
+            tags,
+            status
+        )
     }
 }

@@ -2,9 +2,7 @@ package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
 import org.jsoup.Jsoup
-import java.lang.Exception
 import java.util.*
-import kotlin.collections.ArrayList
 
 class BestLightNovelProvider : MainAPI() {
     override val name: String get() = "BestLightNovel"
@@ -17,7 +15,7 @@ class BestLightNovelProvider : MainAPI() {
         if (res.html() == "") {
             return null
         }
-        return res.html().textClean
+        return res.html().textClean?.replace("[Updated from F r e e w e b n o v e l. c o m]", "")
     }
 
     override fun search(query: String): List<SearchResponse> {
@@ -26,19 +24,17 @@ class BestLightNovelProvider : MainAPI() {
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.danh_sach > div.list_category")
         if (headers.size <= 0) return ArrayList()
-        val returnValue: ArrayList<SearchResponse> = ArrayList()
-        for (h in headers) {
-            val head = h.selectFirst("> a")
+        return headers.map {
+            val head = it.selectFirst("> a")
             val name = head.attr("title")
             val url = head.attr("href")
 
             val posterUrl = head.selectFirst("> img").attr("src")
 
             val rating = null
-            val latestChapter = h.selectFirst("> a.chapter").text()
-            returnValue.add(SearchResponse(name, url, posterUrl, rating, latestChapter, this.name))
+            val latestChapter = it.selectFirst("> a.chapter").text()
+            SearchResponse(name, url, posterUrl, rating, latestChapter, this.name)
         }
-        return returnValue
     }
 
     override fun load(url: String): LoadResponse {
@@ -67,18 +63,15 @@ class BestLightNovelProvider : MainAPI() {
         }
         val synopsis = document.select("div.entry-header > div")[1].text().textClean
 
-        val data: ArrayList<ChapterData> = ArrayList()
-        val chapterHeaders = document.select("div.chapter-list > div")
-        for (c in chapterHeaders) {
-            val spans = c.select("> span")
+        val chapterHeaders = document.select("div.chapter-list > div").map {
+            val spans = it.select("> span")
             val text = spans[0].selectFirst("> a")
             val cUrl = text.attr("href")
             val cName = text.text()
             val added = spans[1].text()
             val views = null
-            data.add(ChapterData(cName, cUrl, added, views))
-        }
-        data.reverse()
+            ChapterData(cName, cUrl, added, views)
+        }.reversed()
 
         var rating = 0
         var peopleVoted = 0
@@ -105,7 +98,7 @@ class BestLightNovelProvider : MainAPI() {
         return LoadResponse(
             url,
             name,
-            data,
+            chapterHeaders,
             author,
             posterUrl,
             rating,
