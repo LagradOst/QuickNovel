@@ -10,8 +10,8 @@ android {
         applicationId "com.lagradost.quicknovel"
         minSdkVersion 22
         targetSdkVersion 30
-        versionCode 35
-        versionName "1.8.3"
+        versionCode 36
+        versionName "1.8.4"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 

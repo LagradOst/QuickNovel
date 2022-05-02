@@ -324,7 +324,7 @@ object BookDownloader {
     data class QuickStreamData(
         val meta: QuickStreamMetaData,
         val poster: String?,
-        val data: List<ChapterData>,
+        val data: MutableList<ChapterData>,
     )
 
     data class LoadedChapter(val title: String, val html: String)

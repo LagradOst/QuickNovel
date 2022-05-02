@@ -451,7 +451,7 @@ class ResultFragment : Fragment() {
                                 api.name
                             ),
                             res.posterUrl,
-                            res.data
+                            res.data.toMutableList()
                         )
                     )
                     activity?.openQuickStream(uri)

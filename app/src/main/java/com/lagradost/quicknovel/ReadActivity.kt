@@ -51,6 +51,8 @@ import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.DataStore.removeKey
 import com.lagradost.quicknovel.DataStore.setKey
+import com.lagradost.quicknovel.mvvm.logError
+import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.receivers.BecomingNoisyReceiver
 import com.lagradost.quicknovel.services.TTSPauseService
 import com.lagradost.quicknovel.ui.OrientationType
@@ -707,10 +709,42 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         }
     }
 
+    private var hasTriedToFillNextChapter = false
+    private val reddit = RedditProvider()
+    private fun fillNextChapter(): Boolean {
+        if (hasTriedToFillNextChapter || isFromEpub) {
+            return false
+        }
+        hasTriedToFillNextChapter = true
+
+        try {
+            val elements =
+                Jsoup.parse(currentHtmlText)?.allElements?.filterNotNull() ?: return false
+
+            for (element in elements) {
+                if (element.ownText().equals("next", true)) {
+                    val href = element.attr("href") ?: continue
+                    val name = reddit.isValidLink(href) ?: "Next"
+                    quickdata.data.add(ChapterData(name, href, null, null))
+                    chapterTitles.add(getChapterName(maxChapter))
+                    maxChapter += 1
+                    return true
+                }
+            }
+        } catch (e: Exception) {
+            logError(e)
+        }
+        return false
+    }
+
     private fun loadNextChapter(): Boolean {
         return if (currentChapter >= maxChapter - 1) {
-            Toast.makeText(this, "No more chapters", Toast.LENGTH_SHORT).show()
-            false
+            if (fillNextChapter()) {
+                loadNextChapter()
+            } else {
+                Toast.makeText(this, "No more chapters", Toast.LENGTH_SHORT).show()
+                false
+            }
         } else {
             loadChapter(currentChapter + 1, true)
             read_scroll.smoothScrollTo(0, 0)
@@ -905,6 +939,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     private var currentText = ""
+    private var currentHtmlText = ""
     private fun Context.loadChapter(
         chapterIndex: Int,
         scrollToTop: Boolean,
@@ -954,7 +989,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             chapterName = getChapterName(chapterIndex)
 
             currentChapter = chapterIndex
-
+            hasTriedToFillNextChapter = false
             read_toolbar.title = getBookTitle()
             read_toolbar.subtitle = chapterName
             read_title_text.text = chapterName
@@ -965,8 +1000,9 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 txt, HtmlCompat.FROM_HTML_MODE_LEGACY
             )
             //println("TEXT:" + document.html())
-            read_text.text = spanned
+            read_text?.text = spanned
             currentText = spanned.toString()
+            currentHtmlText = txt
 
             read_text.post {
                 loadTextLines()
@@ -987,7 +1023,6 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         val lay = read_text.layout ?: return
         for (i in 0..lay.lineCount) {
             try {
-                if (lay == null) return
                 textLines?.add(
                     TextLine(
                         lay.getLineStart(i),
@@ -2184,7 +2219,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 }
             }
 
-            if (!isFromEpub && quickdata.data.size <= 0) {
+            if (!isFromEpub && quickdata.data.isEmpty()) {
                 Toast.makeText(this, R.string.no_chapters_found, Toast.LENGTH_SHORT).show()
                 kill()
                 return@main

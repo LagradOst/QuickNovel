@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.MainAPI
+import com.lagradost.quicknovel.USER_AGENT
 import org.jsoup.Jsoup
 
 class RedditProvider: MainAPI()  {
@@ -12,7 +13,13 @@ class RedditProvider: MainAPI()  {
     }
 
     override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+        val response = khttp.get(url, headers = mapOf(
+            "cookie" to "over18=1", // 😏
+            "referer" to mainUrl,
+            "x-requested-with" to "XMLHttpRequest",
+            "content-type" to "application/x-www-form-urlencoded",
+            "accept" to "*/*",
+            "user-agent" to USER_AGENT))
         val document = Jsoup.parse(response.text)
         return document.selectFirst("div.RichTextJSON-root").html()
     }

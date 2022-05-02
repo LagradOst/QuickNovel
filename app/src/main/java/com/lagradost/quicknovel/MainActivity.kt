@@ -84,7 +84,7 @@ class MainActivity : AppCompatActivity() {
                                         reddit.name,
                                     ),
                                     null,
-                                    listOf(ChapterData("Single Post", url, null, null, null))
+                                    mutableListOf(ChapterData("Single Post", url, null, null, null))
                                 )
                             )
                         }

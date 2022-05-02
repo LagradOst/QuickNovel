@@ -124,7 +124,7 @@ class CachedAdapter(
                                         card.apiName,
                                     ),
                                     res.posterUrl,
-                                    res.data
+                                    res.data.toMutableList()
                                 )
                             )
                         }
