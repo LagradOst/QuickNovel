@@ -55,7 +55,7 @@ class FreeWebNovelProvider : MainAPI() {
         Pair("Xuanhuan", "Xuanhuan"),
         Pair("Yaoi", "Yaoi"),
         Pair("Eastern", "Eastern"),
-        Pair("Reincarnation", "Reincarnation")
+        Pair("Reincarnation", "Reincarnation"),
     )
 
     override fun loadMainPage(page: Int, mainCategory: String?, orderBy: String?, tag: String?): HeadMainPageResponse {
