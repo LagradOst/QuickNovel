@@ -8,9 +8,9 @@ import java.lang.Exception
 import java.util.*
 import kotlin.collections.ArrayList
 
-class FreeWebNovelProvider : MainAPI() {
+class FreewebnovelProvider : MainAPI() {
     override val name = "FreeWebNovel"
-    override val mainUrl = "https://freewebnovel.com/"
+    override val mainUrl = "https://freewebnovel.com"
     override val hasMainPage = true
 
     override val iconId = R.drawable.icon_freewebnovel
@@ -59,7 +59,7 @@ class FreeWebNovelProvider : MainAPI() {
     )
 
     override fun loadMainPage(page: Int, mainCategory: String?, orderBy: String?, tag: String?): HeadMainPageResponse {
-        val url = mainUrl+"genre/$tag"
+        val url = "$mainUrl/genre/$tag"
         val response = khttp.get(url)
 
         val document = Jsoup.parse(response.text)
@@ -69,7 +69,7 @@ class FreeWebNovelProvider : MainAPI() {
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
             val h3 = h.selectFirst("h3.tit > a")
-            val cUrl = mainUrl.substringBeforeLast("/")+h3.attr("href")
+            val cUrl = mainUrl+h3.attr("href")
 
             val name = h3.attr("title")
             val posterUrl = h.selectFirst("div.pic > a > img").attr("src")
@@ -98,7 +98,7 @@ class FreeWebNovelProvider : MainAPI() {
 
     override fun search(query: String): List<SearchResponse> {
         val response = khttp.post(
-            mainUrl+"search/",
+            "$mainUrl/search/",
             headers = mapOf(
                 "referer" to mainUrl,
                 "x-requested-with" to "XMLHttpRequest",
@@ -116,7 +116,7 @@ class FreeWebNovelProvider : MainAPI() {
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
             val h3 = h.selectFirst("h3.tit > a")
-            val cUrl = mainUrl.substringBeforeLast("/")+h3.attr("href")
+            val cUrl = mainUrl+h3.attr("href")
 
             val name = h3.attr("title")
             val posterUrl = h.selectFirst("div.pic > a > img").attr("src")
@@ -157,9 +157,9 @@ class FreeWebNovelProvider : MainAPI() {
         val aid = "[0-9]+s.jpg".toRegex().find(response.text)?.value?.substringBefore("s")
         val acode = "(?<=r_url\" content=\"https://freewebnovel.com/)(.*)(?=/chapter)".toRegex().find(response.text)?.value
         val chaptersDataphp = khttp.post(
-            "https://freewebnovel.com/api/chapterlist.php",
+            "$mainUrl/api/chapterlist.php",
             headers = mapOf(
-                "referer" to mainUrl.substringBeforeLast("/")+chapternumber1,
+                "referer" to mainUrl+chapternumber1,
                 "user-agent" to USER_AGENT
             ),
             data = mapOf(
@@ -171,7 +171,7 @@ class FreeWebNovelProvider : MainAPI() {
 
         for (c in parsed) {
 
-            val cUrl = mainUrl.substringBeforeLast("/")+c.attr("value")
+            val cUrl = mainUrl+c.attr("value")
             val cName = if (c.text().isEmpty()){ "chapter $c"}
             else{c.text()}
             data.add(ChapterData(cName, cUrl, null, null))

@@ -18,7 +18,7 @@ class Apis {
             BestLightNovelProvider(),
             WuxiaWorldOnlineProvider(),
             RoyalRoadProvider(),
-            FreeWebNovelProvider(),
+            FreewebnovelProvider(),
             AzynovelProvider(),
             ReadfromnetProvider(),
             AllNovelProvider(),

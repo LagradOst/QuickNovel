@@ -10,7 +10,7 @@ import kotlin.collections.ArrayList
 
 class AzynovelProvider : MainAPI() {
     override val name = "AzyNovel"
-    override val mainUrl = "https://azynovel.com/"
+    override val mainUrl = "https://azynovel.com"
     override val hasMainPage = true
 
     override val iconId = R.drawable.icon_azynovel
@@ -65,7 +65,7 @@ class AzynovelProvider : MainAPI() {
     )
 
     override fun loadMainPage(page: Int, mainCategory: String?, orderBy: String?, tag: String?): HeadMainPageResponse {
-        val url = mainUrl+"category/$tag"
+        val url = mainUrl+"/category/$tag"
         val response = khttp.get(url)
 
         val document = Jsoup.parse(response.text)
@@ -75,7 +75,7 @@ class AzynovelProvider : MainAPI() {
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
             val name = h.selectFirst("span").text()
-            val cUrl = mainUrl.substringBeforeLast("/")+h.attr("href")
+            val cUrl = mainUrl+h.attr("href")
 
             val posterUrl = h.selectFirst("div.media-left > figure > img").attr("data-src")
 
@@ -102,7 +102,7 @@ class AzynovelProvider : MainAPI() {
 
     override fun search(query: String): List<SearchResponse> {
         val response =
-            khttp.get("https://azynovel.com/search?q=$query") // AJAX, MIGHT ADD QUICK SEARCH
+            khttp.get("$mainUrl/search?q=$query") // AJAX, MIGHT ADD QUICK SEARCH
 
         val document = Jsoup.parse(response.text)
 
@@ -112,7 +112,7 @@ class AzynovelProvider : MainAPI() {
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
             val name = h.selectFirst("span").text()
-            val cUrl = mainUrl.substringBeforeLast("/")+h.attr("href")
+            val cUrl = mainUrl+h.attr("href")
 
             val posterUrl = h.selectFirst("div.media-left > figure > img").attr("data-src")
             returnValue.add(
@@ -149,7 +149,7 @@ class AzynovelProvider : MainAPI() {
         val chapters = document.select("a.button.is-light.is-fullwidth")
         for (c in chapters) {
             if (c.attr("href").contains("category").not()) {
-                val cUrl = mainUrl.substringBeforeLast("/") + c.attr("href")
+                val cUrl = mainUrl + c.attr("href")
                 val cName = c.attr("title")
                 data.add(ChapterData(cName, cUrl, null, null))
             }

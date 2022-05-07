@@ -9,7 +9,7 @@ import java.util.*
 import kotlin.collections.ArrayList
 
 class AllNovelProvider : MainAPI() {
-    override val name = "AllNovels"
+    override val name = "AllNovel"
     override val mainUrl = "https://allnovel.org"
     override val hasMainPage = true
 
@@ -86,7 +86,7 @@ class AllNovelProvider : MainAPI() {
             }
             return null
         }
-        val url = "https://allnovel.org/ajax-search?type=hot&genre=${get_id(tag)}"
+        val url = "$mainUrl/ajax-search?type=hot&genre=${get_id(tag)}"
         val response = khttp.get(url)
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.item")
@@ -123,7 +123,7 @@ class AllNovelProvider : MainAPI() {
 
     override fun search(query: String): List<SearchResponse> {
         val response =
-            khttp.get("https://allnovel.org/search?keyword=$query") // AJAX, MIGHT ADD QUICK SEARCH
+            khttp.get("$mainUrl/search?keyword=$query") // AJAX, MIGHT ADD QUICK SEARCH
 
         val document = Jsoup.parse(response.text)
 
