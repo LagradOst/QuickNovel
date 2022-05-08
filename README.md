@@ -7,6 +7,14 @@ Adfree FOSS Android app for downloading novels. It also functions as an Epub rea
 
 **Providers used:** 
 
+- https://freewebnovel.com (Made with Adippe)
+
+- https://allnovel.org (Made with Adippe)
+  
+- https://azynovel.com (Made with Adippe)
+
+- https://readfrom.net (Made with Adippe)
+
 - https://www.novelpassion.com
 
 - https://bestlightnovel.com
