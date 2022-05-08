@@ -1,12 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
-import com.lagradost.quicknovel.DataStore.toKotlinObject
 import org.jsoup.Jsoup
-import org.jsoup.select.Elements
-import java.lang.Exception
-import java.util.*
-import kotlin.collections.ArrayList
 
 class AzynovelProvider : MainAPI() {
     override val name = "AzyNovel"
@@ -64,18 +59,28 @@ class AzynovelProvider : MainAPI() {
         Pair("Slice Of Life", "slice-of-life"),
     )
 
-    override fun loadMainPage(page: Int, mainCategory: String?, orderBy: String?, tag: String?): HeadMainPageResponse {
-        val url = mainUrl+"/category/$tag"
+    override fun loadMainPage(
+        page: Int,
+        mainCategory: String?,
+        orderBy: String?,
+        tag: String?
+    ): HeadMainPageResponse {
+        val url =
+            if (tag.isNullOrBlank()) "$mainUrl/latest-releases?page=$page" else "$mainUrl/category/$tag?page=$page"
+
         val response = khttp.get(url)
 
         val document = Jsoup.parse(response.text)
+
+        document.selectFirst("#game-upcoming")?.remove()
+        document.selectFirst("#game-release")?.remove()
 
         val headers = document.select("a.box.is-shadowless")
         if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
             val name = h.selectFirst("span").text()
-            val cUrl = mainUrl+h.attr("href")
+            val cUrl = mainUrl + h.attr("href")
 
             val posterUrl = h.selectFirst("div.media-left > figure > img").attr("data-src")
 
@@ -106,13 +111,12 @@ class AzynovelProvider : MainAPI() {
 
         val document = Jsoup.parse(response.text)
 
-
         val headers = document.select("a.box.is-shadowless")
         if (headers.size <= 0) return ArrayList()
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
             val name = h.selectFirst("span").text()
-            val cUrl = mainUrl+h.attr("href")
+            val cUrl = mainUrl + h.attr("href")
 
             val posterUrl = h.selectFirst("div.media-left > figure > img").attr("data-src")
             returnValue.add(
@@ -135,11 +139,11 @@ class AzynovelProvider : MainAPI() {
         val document = Jsoup.parse(response.text)
         val name = document.selectFirst("div.media-content > div > h1").text()
 
-        var author = document.selectFirst("div.media-content > div > p:nth-child(2) > a").text()
+        val author = document.selectFirst("div.media-content > div > p:nth-child(2) > a").text()
 
         val posterUrl = document.select("div.media-left > figure > img").attr("data-src")
 
-        val tags = document.select("div.media-content > div > p:nth-child(4) > a").map{
+        val tags = document.select("div.media-content > div > p:nth-child(4) > a").map {
             it.text()
         }.plus(document.select("div.media-content > div > p:nth-child(3) > a").map { it.text() })
 
@@ -158,9 +162,13 @@ class AzynovelProvider : MainAPI() {
         var rating = 0
         var peopleVoted = 0
         try {
-            rating = (document.selectFirst("div.is-hidden-desktop.is-hidden-tablet.has-text-centered > p").text().substringBefore("/").toFloat() * 200).toInt()
+            rating =
+                (document.selectFirst("div.is-hidden-desktop.is-hidden-tablet.has-text-centered > p")
+                    .text().substringBefore("/").toFloat() * 200).toInt()
 
-            peopleVoted = document.selectFirst("div.is-hidden-desktop.is-hidden-tablet.has-text-centered > p").text().substringAfter("/").filter { it.isDigit() }.toInt()
+            peopleVoted =
+                document.selectFirst("div.is-hidden-desktop.is-hidden-tablet.has-text-centered > p")
+                    .text().substringAfter("/").filter { it.isDigit() }.toInt()
         } catch (e: Exception) {
             // NO RATING
         }

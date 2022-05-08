@@ -1,12 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
-import com.lagradost.quicknovel.DataStore.toKotlinObject
 import org.jsoup.Jsoup
-import org.jsoup.select.Elements
-import java.lang.Exception
-import java.util.*
-import kotlin.collections.ArrayList
 
 class FreewebnovelProvider : MainAPI() {
     override val name = "FreeWebNovel"
@@ -27,7 +22,7 @@ class FreewebnovelProvider : MainAPI() {
         Pair("Ecchi", "Ecchi"),
         Pair("Fantasy", "Fantasy"),
         //Pair("Editor's choice", "Editor's choice"),
-        Pair("Gender Bender","Gender+Bender"),
+        Pair("Gender Bender", "Gender+Bender"),
         Pair("Harem", "Harem"),
         Pair("Historical", "Historical"),
         Pair("Horror", "Horror"),
@@ -58,8 +53,14 @@ class FreewebnovelProvider : MainAPI() {
         Pair("Reincarnation", "Reincarnation"),
     )
 
-    override fun loadMainPage(page: Int, mainCategory: String?, orderBy: String?, tag: String?): HeadMainPageResponse {
-        val url = "$mainUrl/genre/$tag"
+    override fun loadMainPage(
+        page: Int,
+        mainCategory: String?,
+        orderBy: String?,
+        tag: String?
+    ): HeadMainPageResponse {
+        val url =
+            if (tag.isNullOrBlank()) "$mainUrl/latest-novel/tag/$page.html" else "$mainUrl/genre/$tag/$page.html"
         val response = khttp.get(url)
 
         val document = Jsoup.parse(response.text)
@@ -69,7 +70,7 @@ class FreewebnovelProvider : MainAPI() {
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
             val h3 = h.selectFirst("h3.tit > a")
-            val cUrl = mainUrl+h3.attr("href")
+            val cUrl = mainUrl + h3.attr("href")
 
             val name = h3.attr("title")
             val posterUrl = h.selectFirst("div.pic > a > img").attr("src")
@@ -116,7 +117,7 @@ class FreewebnovelProvider : MainAPI() {
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
             val h3 = h.selectFirst("h3.tit > a")
-            val cUrl = mainUrl+h3.attr("href")
+            val cUrl = mainUrl + h3.attr("href")
 
             val name = h3.attr("title")
             val posterUrl = h.selectFirst("div.pic > a > img").attr("src")
@@ -142,11 +143,12 @@ class FreewebnovelProvider : MainAPI() {
         val document = Jsoup.parse(response.text)
         val name = document.selectFirst("h1.tit").text()
 
-        var author = document.selectFirst("div.m-imgtxt > div.txt > div:nth-child(2) > div > a").text()
+        val author =
+            document.selectFirst("div.m-imgtxt > div.txt > div:nth-child(2) > div > a").text()
 
         val posterUrl = document.select(" div.pic > img").attr("src")
 
-        val tags = document.select("div.m-imgtxt > div.txt > div:nth-child(3) > div > a").map{
+        val tags = document.select("div.m-imgtxt > div.txt > div:nth-child(3) > div > a").map {
             it.text()
         }
         val synopsis = document.selectFirst("div.inner").text()
@@ -155,25 +157,29 @@ class FreewebnovelProvider : MainAPI() {
         val chapternumber0 = document.select("div.m-newest1 > ul.ul-list5 > li")[1]
         val chapternumber1 = chapternumber0.selectFirst("a").attr("href")
         val aid = "[0-9]+s.jpg".toRegex().find(response.text)?.value?.substringBefore("s")
-        val acode = "(?<=r_url\" content=\"https://freewebnovel.com/)(.*)(?=/chapter)".toRegex().find(response.text)?.value
+        val acode = "(?<=r_url\" content=\"https://freewebnovel.com/)(.*)(?=/chapter)".toRegex()
+            .find(response.text)?.value
         val chaptersDataphp = khttp.post(
             "$mainUrl/api/chapterlist.php",
             headers = mapOf(
-                "referer" to mainUrl+chapternumber1,
+                "referer" to mainUrl + chapternumber1,
                 "user-agent" to USER_AGENT
             ),
             data = mapOf(
                 "acode" to acode,
-                "aid" to  aid
+                "aid" to aid
             )
         )
-        val parsed = Jsoup.parse(chaptersDataphp.text.replace( """\""" ,"")).select("option")
+        val parsed = Jsoup.parse(chaptersDataphp.text.replace("""\""", "")).select("option")
 
         for (c in parsed) {
 
-            val cUrl = mainUrl+c.attr("value")
-            val cName = if (c.text().isEmpty()){ "chapter $c"}
-            else{c.text()}
+            val cUrl = mainUrl + c.attr("value")
+            val cName = if (c.text().isEmpty()) {
+                "chapter $c"
+            } else {
+                c.text()
+            }
             data.add(ChapterData(cName, cUrl, null, null))
         }
 
@@ -188,20 +194,22 @@ class FreewebnovelProvider : MainAPI() {
                 else -> STATUS_NULL
             }
 
+        } else {
+            when (statusHeader0.selectFirst("> a").text()) {
+                "OnGoing" -> STATUS_ONGOING
+                "Completed" -> STATUS_COMPLETE
+                else -> STATUS_NULL
+            }
         }
-        else
-        {when (statusHeader0.selectFirst("> a").text()) {
-            "OnGoing" -> STATUS_ONGOING
-            "Completed" -> STATUS_COMPLETE
-            else -> STATUS_NULL
-        }}
 
         var rating = 0
         var peopleVoted = 0
         try {
-            rating = (document.selectFirst("div.m-desc > div.score > p:nth-child(2)").text().substringBefore("/").toFloat() * 200).toInt()
+            rating = (document.selectFirst("div.m-desc > div.score > p:nth-child(2)").text()
+                .substringBefore("/").toFloat() * 200).toInt()
 
-            peopleVoted = document.selectFirst("div.m-desc > div.score > p:nth-child(2)").text().substringAfter("(").filter { it.isDigit() }.toInt()
+            peopleVoted = document.selectFirst("div.m-desc > div.score > p:nth-child(2)").text()
+                .substringAfter("(").filter { it.isDigit() }.toInt()
         } catch (e: Exception) {
             // NO RATING
         }
