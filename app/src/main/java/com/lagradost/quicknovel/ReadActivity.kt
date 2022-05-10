@@ -722,7 +722,12 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 Jsoup.parse(currentHtmlText)?.allElements?.filterNotNull() ?: return false
 
             for (element in elements) {
-                if (element.ownText().equals("next", true)) {
+                val text = element.ownText()?.trim()?.replace(".","") ?: continue
+                if (text.equals("next", true) || text.equals(
+                        "next chapter",
+                        true
+                    ) || text.equals("next part", true)
+                ) {
                     val href = element.attr("href") ?: continue
                     val name = reddit.isValidLink(href) ?: "Next"
                     quickdata.data.add(ChapterData(name, href, null, null))
