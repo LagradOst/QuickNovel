@@ -1401,7 +1401,8 @@ class ReadfromnetProvider : MainAPI() {
     override fun loadHtml(url: String): String? {
         val response = khttp.get(url)
         val document = Jsoup.parse(response.text)
-        return document.selectFirst("#textToRead").html()
+        return document.selectFirst("#textToRead")?.html()
+            ?.replace("(adsbygoogle = window.adsbygoogle || []).push({});", "")
     }
 
 
