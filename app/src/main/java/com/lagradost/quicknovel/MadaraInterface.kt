@@ -5,6 +5,7 @@ import java.util.*
 import org.jsoup.Jsoup
 import org.jsoup.Connection
 import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
 
 // nneed help for adding cookies and dns cache
 fun connect(url: String): Connection = Jsoup.connect(url).apply {
@@ -166,7 +167,7 @@ abstract class MadaraInterface : MainAPI() {
         tag: String?,
     ): HeadMainPageResponse {
         val cek = setOf(null, "")
-        val order = when {
+        val order: String = when {
             mainCategory !in cek -> "$novelTag/$mainCategory"
             tag !in cek -> "$novelGenre/$tag"
             else -> novelPath
@@ -174,8 +175,8 @@ abstract class MadaraInterface : MainAPI() {
 
         val url = mainUrl.toUrlBuilderSafe()
             ?.addPath(order)
-            .ifCase(page > 1) { addPath("page", page.toString()) }
-            .ifCase(orderBy !in cek) { add("m_orderby", orderBy) }
+            .ifCase(page > 1) { addPath("page", page) }
+            .ifCase(orderBy !in cek) { add("m_orderby", "$orderBy") }
             .toString()
 
         val headers = JConnect(url)!!.select("div.page-item-detail")
