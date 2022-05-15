@@ -18,11 +18,10 @@ fun connect(url: String): Connection = Jsoup.connect(url).apply {
     ignoreHttpErrors(true)
 }
 
-fun JConnect(url: String, addHeader: Boolean = false): Document? {
+fun JConnect(url: String): Document? {
     try {
         val res = connect(url)
             .timeout(20 * 1000)
-            .let { if (addHeader) it.header("X-Requested-With", "XMLHttpRequest") else it }
             .execute()
         return if (res.statusCode() == 200) res.parse() else null
     } catch (e: Exception) {
@@ -259,7 +258,12 @@ abstract class MadaraInterface : MainAPI() {
             ?.joinToString("/n") ?: ""
 
         // ajax/chapters/
-        val data = JConnect("${url}ajax/chapters/", true)
+        val conn = connect("${url}ajax/chapters/")
+            .timeout(20 * 1000)
+            .header("X-Requested-With", "XMLHttpRequest")
+            .execute()
+        if (conn.statusCode != 200) return listOf()
+        val data = conn.parse()
             ?.select(".wp-manga-chapter > a[href]")
             ?.mapNotNull {
                 ChapterData(
