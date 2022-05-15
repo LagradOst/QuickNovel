@@ -175,11 +175,11 @@ abstract class MadaraInterface : MainAPI() {
 
         val url = mainUrl.toUrlBuilderSafe()
             ?.addPath(order)
-            .ifCase(page > 1) { addPath("page", page) }
+            .ifCase(page > 1) { addPath("page", page.toString()) }
             .ifCase(orderBy !in cek) { add("m_orderby", "$orderBy") }
             .toString()
 
-        val headers = JConnect(url)!!.select("div.page-item-detail")
+        val headers = JConnect(url)?.select("div.page-item-detail")
         if (headers == null || headers.size <= 0) {
             return HeadMainPageResponse(url, listOf())
         }
@@ -241,7 +241,7 @@ abstract class MadaraInterface : MainAPI() {
         val name = document
             ?.selectFirst("div.post-title > h1")
             ?.text()
-            ?.clean()
+            ?.clean() ?: ""
 
         val author = document?.selectFirst("div.author-content > a")
             ?.text() ?: ""
@@ -262,8 +262,8 @@ abstract class MadaraInterface : MainAPI() {
             ?.select(".wp-manga-chapter > a[href]")
             ?.mapNotNull {
                 ChapterData(
-                    name = it?.selectFirst("a")?.text().clean(),
-                    url = it?.selectFirst("a")?.attr("href"),
+                    name = it?.selectFirst("a")?.text()?.clean(),
+                    url = it?.selectFirst("a")?.attr("href") ?: "",
                     dateOfRelease = it.selectFirst("span > i")?.text(),
                     views = 0
                 )
@@ -282,7 +282,7 @@ abstract class MadaraInterface : MainAPI() {
 
         val status =
             document?.select("div.post-status > div.post-content_item > div.summary-content")
-                .last()
+                ?.last()
                 ?.text()
                 ?.toLowerCase(Locale.getDefault())
                 .let {
