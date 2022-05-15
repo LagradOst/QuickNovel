@@ -3,27 +3,18 @@ package com.lagradost.quicknovel
 import android.net.Uri
 import java.util.*
 import org.jsoup.Jsoup
-import org.jsoup.Connection
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 
-// nneed help for adding cookies and dns cache
-fun connect(url: String): Connection = Jsoup.connect(url).apply {
-    referrer("http://www.google.com")
-    userAgent(USER_AGENT)
-    header("Content-Language", "en-US")
-    header("Accept", "text/html")
-    header("Accept-Encoding", "gzip,deflate")
-    maxBodySize(0)
-    ignoreHttpErrors(true)
-}
-
-fun JConnect(url: String): Document? {
+// Using khttp
+fun JConnect(url: String, method: String = "GET"): Document? {
     try {
-        val res = connect(url)
-            .timeout(20 * 1000)
-            .execute()
-        return if (res.statusCode() == 200) res.parse() else null
+        if (method == "GET" {
+            val res = khttp.get(url)
+        } else {
+            val res = khttp.post(url)
+        }
+        return if (res.statusCode == 200) Jsoup.parse(res.text) else null
     } catch (e: Exception) {
         return null
         /*
@@ -259,14 +250,7 @@ abstract class MadaraInterface : MainAPI() {
             //?.joinToString("/n") ?: ""
 
         // ajax/chapters/
-        val conn = connect("${url}ajax/chapters/")
-            .timeout(20 * 1000)
-            .method(Connection.Method.POST)
-            .ignoreContentType(true)
-            .header("X-Requested-With", "XMLHttpRequest")
-            .execute()
-
-        val data = conn?.parse()
+        val data = JConnect("${url}ajax/chapters/", "POST")
             ?.select(".wp-manga-chapter > a[href]")
             ?.mapNotNull {
                 ChapterData(
