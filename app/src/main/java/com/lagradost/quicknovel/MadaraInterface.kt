@@ -262,8 +262,8 @@ abstract class MadaraInterface : MainAPI() {
             .timeout(20 * 1000)
             .header("X-Requested-With", "XMLHttpRequest")
             .execute()
-        if (conn.statusCode != 200) return listOf()
-        val data = conn.parse()
+
+        val data = conn?.parse()
             ?.select(".wp-manga-chapter > a[href]")
             ?.mapNotNull {
                 ChapterData(
