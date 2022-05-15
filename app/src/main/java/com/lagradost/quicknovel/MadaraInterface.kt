@@ -253,9 +253,10 @@ abstract class MadaraInterface : MainAPI() {
             ?.select("div.genres-content > a")
             ?.mapNotNull { it.text() }
 
-        val synopsis = document?.select("#editdescription > p")
-            ?.mapNotNull { it.text() }
-            ?.joinToString("/n") ?: ""
+        val synopsis = document?.select("div.summary__content")
+            ?.text() ?: ""
+            //?.mapNotNull { it.text() }
+            //?.joinToString("/n") ?: ""
 
         // ajax/chapters/
         val conn = connect("${url}ajax/chapters/")
