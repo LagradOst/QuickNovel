@@ -20,10 +20,10 @@ fun connect(url: String): Connection = Jsoup.connect(url).apply {
 
 fun JConnect(url: String, addHeader: Boolean = false): Document? {
     try {
-        val con = connect(url)
+        val res = connect(url)
             .timeout(20 * 1000)
-        if (addHeader) res.header("X-Requested-With", "XMLHttpRequest")
-        val res = con.execute()
+            .let { if (addHeader) this.header("X-Requested-With", "XMLHttpRequest") else this }
+            .execute()
         return if (res.statusCode() == 200) res.parse() else null
     } catch (e: Exception) {
         return null
