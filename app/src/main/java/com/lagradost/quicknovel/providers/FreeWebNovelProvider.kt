@@ -143,14 +143,10 @@ class FreewebnovelProvider : MainAPI() {
         val document = Jsoup.parse(response.text)
         val name = document.selectFirst("h1.tit").text()
 
-        val author =
-            document.selectFirst("div.m-imgtxt > div.txt > div:nth-child(2) > div > a").text()
+        val author = document.selectFirst("span.glyphicon.glyphicon-user").nextElementSibling().text()
+        val tags = document.selectFirst("span.glyphicon.glyphicon-th-list").nextElementSiblings()[0].text().splitToSequence(", ").toList()
 
         val posterUrl = document.select(" div.pic > img").attr("src")
-
-        val tags = document.select("div.m-imgtxt > div.txt > div:nth-child(3) > div > a").map {
-            it.text()
-        }
         val synopsis = document.selectFirst("div.inner").text()
 
         val data: ArrayList<ChapterData> = ArrayList()
