@@ -3,9 +3,11 @@ package com.lagradost.quicknovel
 import android.net.Uri
 import java.util.*
 import org.jsoup.Jsoup
+import org.jsoup.Connection
+import org.jsoup.nodes.Document
 
 // nneed help for adding cookies and dns cache
-fun connect(url: String): Jsoup.Connection = Jsoup.connect(url).apply {
+fun connect(url: String): Connection = Jsoup.connect(url).apply {
     referrer("http://www.google.com")
     userAgent(USER_AGENT)
     header("Content-Language", "en-US")
@@ -15,13 +17,13 @@ fun connect(url: String): Jsoup.Connection = Jsoup.connect(url).apply {
     ignoreHttpErrors(true)
 }
 
-fun JConnect(url: String): Jsoup.nodes.Document? {
+fun JConnect(url: String): Document? {
     try {
         val res = connect(url)
             .timeout(20 * 1000)
             .execute()
         return if (res.statusCode() == 200) res.parse() else null
-    } catch (e: Exeption) {
+    } catch (e: Exception) {
         return null
         /*
         // maybe used for show dialog error
