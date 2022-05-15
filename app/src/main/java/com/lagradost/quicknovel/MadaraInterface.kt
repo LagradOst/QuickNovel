@@ -207,7 +207,7 @@ abstract class MadaraInterface : MainAPI() {
             return null
         }
         res.select("p")?.forEach {
-            if (it.selectFirst("a[href]") is Jsoup.nodes.Element) it.remove()
+            if (it.selectFirst("a[href]") is Element) it.remove()
         }
         return res.html()
     }
@@ -240,50 +240,50 @@ abstract class MadaraInterface : MainAPI() {
         val name = document
             ?.selectFirst("div.post-title > h1")
             ?.text()
-            .clean()
+            ?.clean()
 
-        val author = document.selectFirst("div.author-content > a")
+        val author = document?.selectFirst("div.author-content > a")
             ?.text() ?: ""
 
         val posterUrl =
-            document.select("div.summary_image > a > img")?.attr(covelAttr) ?: ""
+            document?.select("div.summary_image > a > img")?.attr(covelAttr) ?: ""
 
         val tags = document
-            .select("div.genres-content > a")
-            .mapNotNull { it.text() }
-
-        val synopsis = document.select("#editdescription > p")
+            ?.select("div.genres-content > a")
             ?.mapNotNull { it.text() }
-            .joinToString("/n") ?: ""
+
+        val synopsis = document?.select("#editdescription > p")
+            ?.mapNotNull { it.text() }
+            ?.joinToString("/n") ?: ""
 
         // ajax/chapters/
         val data = JConnect("${url}ajax/chapters/")
             ?.select(".wp-manga-chapter > a[href]")
-            .mapNotNull {
+            ?.mapNotNull {
                 ChapterData(
-                    name = it.selectFirst("a")?.text().clean(),
-                    url = it.selectFirst("a")?.attr("href"),
+                    name = it?.selectFirst("a")?.text().clean(),
+                    url = it?.selectFirst("a")?.attr("href"),
                     dateOfRelease = it.selectFirst("span > i")?.text(),
                     views = 0
                 )
             }
-            .reversed() ?: lisfOf()
+            ?.reversed() ?: lisfOf()
 
-        val rating = document.selectFirst("span#averagerate")
+        val rating = document?.selectFirst("span#averagerate")
             ?.text()
-            .toRate()
+            ?.toRate(200)
 
-        val peopleVoted = document.selectFirst("span#countrate")
+        val peopleVoted = document?.selectFirst("span#countrate")
             ?.text()
-            .toVote()
+            ?.toVote()
 
         val views = null
 
         val status =
-            document.select("div.post-status > div.post-content_item > div.summary-content")
+            document?.select("div.post-status > div.post-content_item > div.summary-content")
                 .last()
                 ?.text()
-                .toLowerCase(Locale.getDefault())
+                ?.toLowerCase(Locale.getDefault())
                 .let {
                     when (it) {
                         "ongoing" -> STATUS_ONGOING
