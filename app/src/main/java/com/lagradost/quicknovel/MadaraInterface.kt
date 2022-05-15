@@ -260,6 +260,8 @@ abstract class MadaraInterface : MainAPI() {
         // ajax/chapters/
         val conn = connect("${url}ajax/chapters/")
             .timeout(20 * 1000)
+            .method(Connection.Method.POST)
+            .ignoreContentType(true)
             .header("X-Requested-With", "XMLHttpRequest")
             .execute()
 
