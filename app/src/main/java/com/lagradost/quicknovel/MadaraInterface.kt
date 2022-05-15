@@ -9,7 +9,7 @@ import org.jsoup.nodes.Element
 // Using khttp
 fun JConnect(url: String, method: String = "GET"): Document? {
     try {
-        var res = null
+        var res: khttp.requests.Response = null
         if (method == "GET") {
             res = khttp.get(url)
         } else {
