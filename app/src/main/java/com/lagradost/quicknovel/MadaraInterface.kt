@@ -22,7 +22,7 @@ fun JConnect(url: String, addHeader: Boolean = false): Document? {
     try {
         val res = connect(url)
             .timeout(20 * 1000)
-            .let { if (addHeader) this.header("X-Requested-With", "XMLHttpRequest") else this }
+            .let { if (addHeader) it.header("X-Requested-With", "XMLHttpRequest") else it }
             .execute()
         return if (res.statusCode() == 200) res.parse() else null
     } catch (e: Exception) {
