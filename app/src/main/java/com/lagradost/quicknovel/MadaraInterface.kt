@@ -18,13 +18,11 @@ fun connect(url: String): Connection = Jsoup.connect(url).apply {
     ignoreHttpErrors(true)
 }
 
-fun Connection.addHeaderRequest(): Connection = this.header("X-Requested-With", "XMLHttpRequest")
-
 fun JConnect(url: String, addHeader: Boolean = false): Document? {
     try {
         val con = connect(url)
             .timeout(20 * 1000)
-        if (addHeader) res.addHeaderRequest()
+        if (addHeader) res.header("X-Requested-With", "XMLHttpRequest")
         val res = con.execute()
         return if (res.statusCode() == 200) res.parse() else null
     } catch (e: Exception) {
