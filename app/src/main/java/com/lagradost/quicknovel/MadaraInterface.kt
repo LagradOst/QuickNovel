@@ -262,13 +262,13 @@ abstract class MadaraInterface : MainAPI() {
             ?.select(".wp-manga-chapter > a[href]")
             ?.mapNotNull {
                 ChapterData(
-                    name = it?.selectFirst("a")?.text()?.clean(),
+                    name = it?.selectFirst("a")?.text()?.clean() ?: "",
                     url = it?.selectFirst("a")?.attr("href") ?: "",
                     dateOfRelease = it.selectFirst("span > i")?.text(),
                     views = 0
                 )
             }
-            ?.reversed() ?: lisfOf()
+            ?.reversed() ?: listOf()
 
         val rating = document?.selectFirst("span#averagerate")
             ?.text()
