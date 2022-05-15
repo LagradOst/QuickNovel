@@ -1401,7 +1401,10 @@ class ReadfromnetProvider : MainAPI() {
     override fun loadHtml(url: String): String? {
         val response = khttp.get(url)
         val document = Jsoup.parse(response.text)
-        return document.selectFirst("#textToRead").html()
+        document.select("div.splitnewsnavigation")?.remove()
+        document.select("div.splitnewsnavigation2")?.remove()
+        return document.selectFirst("#textToRead")?.html()
+            ?.replace("(adsbygoogle = window.adsbygoogle || []).push({});", "")
     }
 
 
@@ -1411,28 +1414,23 @@ class ReadfromnetProvider : MainAPI() {
 
         val document = Jsoup.parse(response.text)
 
-        val headers = document.select("div.box_in")
-        if (headers.size <= 3) return ArrayList()
-        val returnValue: ArrayList<SearchResponse> = ArrayList()
+        val headers = document.select("div > article > div.box_in[id='search result']")
 
-        for (h in headers.take(headers.size - 3)) {
+        return headers.map { h ->
             val name = h.selectFirst(" div > h2.title > a > b").text()
             val cUrl = mainUrl + h.selectFirst(" div > h2.title > a ").attr("href")
 
             val posterUrl = h.selectFirst("div > a.highslide > img").attr("src")
 
-            returnValue.add(
-                SearchResponse(
-                    name,
-                    cUrl,
-                    fixUrl(posterUrl),
-                    null,
-                    null,
-                    this.name
-                )
+            SearchResponse(
+                name,
+                cUrl,
+                fixUrl(posterUrl),
+                null,
+                null,
+                this.name
             )
         }
-        return returnValue
     }
 
     override fun load(url: String): LoadResponse {
@@ -1451,6 +1449,7 @@ class ReadfromnetProvider : MainAPI() {
 
         val data: ArrayList<ChapterData> = ArrayList()
         val chapters = document.select("div.splitnewsnavigation2.ignore-select > center > div > a")
+
         data.add(
             ChapterData(
                 "page 1",
@@ -1459,6 +1458,7 @@ class ReadfromnetProvider : MainAPI() {
                 null
             )
         )
+
         for (c in 0..(chapters.size / 2)) {
             if (chapters[c].attr("href").contains("category").not()) {
                 val cUrl = chapters[c].attr("href")
@@ -1466,6 +1466,7 @@ class ReadfromnetProvider : MainAPI() {
                 data.add(ChapterData(cName, cUrl, null, null, null))
             }
         }
+
         data.sortWith { first, second ->
             if (first.name.substringAfter(" ") != second.name.substringAfter(" ")) {
                 first.name.substringAfter(" ").toInt() - second.name.substringAfter(" ").toInt()
@@ -1474,12 +1475,10 @@ class ReadfromnetProvider : MainAPI() {
             }
         }
 
-
-
         return LoadResponse(
             url,
             name,
-            data,
+            data.distinctBy { it.url },
             author,
             fixUrl(posterUrl),
             null,
