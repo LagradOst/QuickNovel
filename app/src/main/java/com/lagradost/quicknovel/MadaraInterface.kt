@@ -259,7 +259,7 @@ abstract class MadaraInterface : MainAPI() {
             ?.joinToString("/n") ?: ""
 
         // ajax/chapters/
-        val data = JConnect("${url}ajax/chapters/")
+        val data = JConnect("${url}ajax/chapters/", true)
             ?.select(".wp-manga-chapter > a[href]")
             ?.mapNotNull {
                 ChapterData(
