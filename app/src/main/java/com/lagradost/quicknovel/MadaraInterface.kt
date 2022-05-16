@@ -9,13 +9,14 @@ import org.jsoup.nodes.Element
 // Using khttp
 fun JConnect(url: String, method: String = "GET"): Document? {
     try {
-        var res: khttp.requests.Response = null
         if (method == "GET") {
-            res = khttp.get(url)
+            val res = khttp.get(url)
+            if (res.statusCode.toInt() == 200) return Jsoup.parse(res.text)
         } else {
-            res = khttp.post(url)
+            val res = khttp.post(url)
+            if (res.statusCode.toInt() == 200) return Jsoup.parse(res.text)
         }
-        return if (res.statusCode.toInt() == 200) Jsoup.parse(res.text) else null
+        return null
     } catch (e: Exception) {
         return null
         /*
