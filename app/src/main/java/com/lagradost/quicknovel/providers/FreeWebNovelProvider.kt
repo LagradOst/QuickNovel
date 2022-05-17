@@ -157,10 +157,6 @@ class FreewebnovelProvider : MainAPI() {
             .find(response.text)?.value
         val chaptersDataphp = khttp.post(
             "$mainUrl/api/chapterlist.php",
-            headers = mapOf(
-                "referer" to mainUrl + chapternumber1,
-                "user-agent" to USER_AGENT
-            ),
             data = mapOf(
                 "acode" to acode,
                 "aid" to aid
