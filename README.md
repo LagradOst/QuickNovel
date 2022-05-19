@@ -15,6 +15,8 @@ Adfree FOSS Android app for downloading novels. It also functions as an Epub rea
 
 - https://readfrom.net (Made by Adippe & Sir Aguacata)
 
+- https://ranobes.net (Made by Adippe)
+
 - https://www.novelpassion.com
 
 - https://bestlightnovel.com
