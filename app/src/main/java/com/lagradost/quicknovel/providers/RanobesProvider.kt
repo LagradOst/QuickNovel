@@ -141,7 +141,7 @@ class RanobesProvider : MainAPI() {
     override fun loadHtml(url: String): String? {
         val response = khttp.get(url)
         val document = Jsoup.parse(response.text)
-        Thread.sleep(Random.nextLong(45,90))
+        Thread.sleep(Random.nextLong(250,350))
         return document.selectFirst("#dle-content > article > div.block.story.shortstory > h1").html()+document.selectFirst("#arrticle").html()
     }
 
@@ -218,8 +218,8 @@ class RanobesProvider : MainAPI() {
             val chapretspagei = Jsoup.parse(chapretspageresponsei.text)
             listdata.add(Chapterdatajson.fromJson(chapretspagei.select("script").filter { it.data().contains("window.__DATA") }[0].data().substringAfter("=")))
             if(i.rem(2)==0){
-                Thread.sleep(Random.nextInt(15, 30).toLong())
-            }else{Thread.sleep(Random.nextInt(10, 20).toLong())}
+                Thread.sleep(Random.nextInt(50, 100).toLong())
+            }else{Thread.sleep(Random.nextInt(0, 45).toLong())}
         }
 
         for (chapslist in listdata.reversed()){
