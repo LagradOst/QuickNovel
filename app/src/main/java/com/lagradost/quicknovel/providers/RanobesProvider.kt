@@ -108,7 +108,12 @@ class RanobesProvider : MainAPI() {
         orderBy: String?,
         tag: String?
     ): HeadMainPageResponse {
-        val url = "$mainUrl/tags/genre/$tag/"
+        val url =
+            if (page <=1)
+                "$mainUrl/tags/genre/$tag/"
+            else
+                "$mainUrl/tags/genre/$tag/page/$page/"
+        
         val response = khttp.get(url)
 
         val document = Jsoup.parse(response.text)
