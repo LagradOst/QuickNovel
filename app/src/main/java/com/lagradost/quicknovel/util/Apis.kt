@@ -22,6 +22,7 @@ class Apis {
             AzynovelProvider(),
             ReadfromnetProvider(),
             AllNovelProvider(),
+            RanobesProvider(),
 
             // chapter captcha
 //            WuxiaWorldSiteProvider(),
