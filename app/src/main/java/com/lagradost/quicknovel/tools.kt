@@ -29,7 +29,7 @@ fun jConnect(url: String, params: Map<String, String> = mapOf(), method: String 
     )
     try {
         val res = request(method = method, url = url, headers = head, params = params)
-        return if (res.statusCode == 200) Jsoup.parse(res.text)
+        return if (res.statusCode == 200) Jsoup.parse(res.text) else null
     } catch (e: Exception) {
         return null
     }
@@ -47,7 +47,7 @@ fun String.toVote(): Int {
     val k = this.contains("K", true)
     return this
         .replace(Regex("[^.0-9]"), "")
-        .toFloatOrNull()
+        ?.toFloatOrNull()
         ?.times(if (k) 1000 else 1)
         .toInt() ?: 0
 }

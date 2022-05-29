@@ -124,7 +124,7 @@ abstract class WPReader : MainAPI() {
         return LoadResponse(
                 url = url,
                 name = doc?.selectFirst(".series-titlex > h2")?.text()?.clean() ?: "",
-                data = doc?.select("div.flexch-infoz > a")?.MapNotNull { dat ->
+                data = doc?.select("div.flexch-infoz > a")?.mapNotNull { dat ->
                     ChapterData(
                         name = dat.attr("title")?.clean() ?: "",
                         url = dat.attr("href")?.clean() ?: "",
@@ -133,17 +133,17 @@ abstract class WPReader : MainAPI() {
                     )
                 }.reversed(),
                 author = doc?.selectFirst("li:contains(Author)")
-                    ?.selectFirst("span")?.text().clean() ?: "",
+                    ?.selectFirst("span")?.text()?.clean() ?: "",
                 posterUrl = doc?.selectFirst("div.series-thumb > a")
                     ?.attr("src") ?: "",
-                rating = doc?.selectFirst("span[itemprop=ratingValue]")?.text().toRate(),
+                rating = doc?.selectFirst("span[itemprop=ratingValue]")?.text()?.toRate(),
                 peopleVoted = 0,
                 views = 0,
-                synopsis = doc?.selectFirst(".series-synops")?.text().synopsis(),
+                synopsis = doc?.selectFirst(".series-synops")?.text().?synopsis(),
                 tags = doc?.selectFirst("div.series-genres")?.select("a")
                     .mapNotNull { tag -> tag.text()?.clean() },
-                status = doc?.selectFirst("span.status")?.text().toStatus(),
+                status = doc?.selectFirst("span.status")?.text()?.toStatus(),
             )
-        }
+        
     }
 }

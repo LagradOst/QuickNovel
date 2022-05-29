@@ -160,8 +160,8 @@ abstract class MadaraReader : MainAPI() {
                     )
                 }
                 ?.reversed() ?: listOf(),
-            rating = doc?.selectFirst("span#averagerate")?.text().toRate(),
-            peopleVoted = doc?.selectFirst("span#countrate")?.text().toVote(),
+            rating = doc?.selectFirst("span#averagerate")?.text()?.toRate(),
+            peopleVoted = doc?.selectFirst("span#countrate")?.text()?.toVote(),
             views = null,
             status = doc?.select(".post-content_item:contains(Status) > .summary-content")
                 ?.text()?.toStatus(),
