@@ -1,6 +1,6 @@
 package com.lagradost.quicknovel.providers
 
-import com.lagradost.quicknovel.MadaraReader
+import com.lagradost.quicknovel.*
 
 class MoreNovelProvider : MadaraReader() {
     override val name = "MoreNovel"
