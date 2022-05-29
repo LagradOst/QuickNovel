@@ -124,14 +124,15 @@ abstract class WPReader : MainAPI() {
         return LoadResponse(
                 url = url,
                 name = doc?.selectFirst(".series-titlex > h2")?.text()?.clean() ?: "",
-                data = doc?.select("div.flexch-infoz > a")?.mapNotNull { dat ->
-                    ChapterData(
-                        name = dat.attr("title")?.clean() ?: "",
-                        url = dat.attr("href")?.clean() ?: "",
-                        dateOfRelease = dat.selectFirst("span.date")?.text()?.clean() ?: "",
-                        views = 0,
-                    )
-                }?.reversed(),
+                data = doc?.select("div.flexch-infoz > a")
+                    ?.mapNotNull { dat ->
+                        ChapterData(
+                            name = dat.attr("title")?.clean() ?: "",
+                            url = dat.attr("href")?.clean() ?: "",
+                            dateOfRelease = dat.selectFirst("span.date")?.text()?.clean() ?: "",
+                            views = 0,
+                        )
+                    }?.reversed() ?: listOf(ChapterData("", "", null, null)),
                 author = doc?.selectFirst("li:contains(Author)")
                     ?.selectFirst("span")?.text()?.clean() ?: "",
                 posterUrl = doc?.selectFirst("div.series-thumb > a")
@@ -139,11 +140,10 @@ abstract class WPReader : MainAPI() {
                 rating = doc?.selectFirst("span[itemprop=ratingValue]")?.text()?.toRate(),
                 peopleVoted = 0,
                 views = 0,
-                synopsis = doc?.selectFirst(".series-synops")?.text().?synopsis() ?: "",
+                synopsis = doc?.selectFirst(".series-synops")?.text()?.synopsis() ?: "",
                 tags = doc?.selectFirst("div.series-genres")?.select("a")
-                    .mapNotNull { tag -> tag?.text()?.clean() },
+                    ?.mapNotNull { tag -> tag?.text()?.clean() },
                 status = doc?.selectFirst("span.status")?.text()?.toStatus(),
             )
-        
     }
 }
