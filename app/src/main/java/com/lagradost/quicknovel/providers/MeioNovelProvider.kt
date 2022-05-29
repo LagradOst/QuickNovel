@@ -1,8 +1,8 @@
 package com.lagradost.quicknovel.providers
 
-import com.lagradost.quicknovel.MadaraInterface
+import com.lagradost.quicknovel.MadaraReader
 
-class MeioNovelProvider : MadaraInterface() {
+class MeioNovelProvider : MadaraReader() {
     override val name = "MeioNovel"
     override val mainUrl = "https://meionovel.id"
 }

@@ -37,6 +37,8 @@ class Apis {
             ReadAnyBookProvider(),
             MeioNovelProvider(),
             MoreNovelProvider(),
+            IndoWebNovelProvider(),
+            SakuraNovelProvider(),
         )
 
         fun getApiFromName(name: String): APIRepository {
