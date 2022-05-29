@@ -147,8 +147,8 @@ abstract class MadaraReader : MainAPI() {
                 ?.text()?.clean() ?: "",
             author = doc?.selectFirst(".author-content > a")?.text() ?: "",
             posterUrl = doc?.select("div.summary_image > a > img")?.attr(covelAttr) ?: "",
-            tags = doc?.select("div.genres-content > a")?.mapNotNull { it?.text().clean() },
-            synopsis = document?.select("div.summary__content")?.text().synopsis() ?: "",
+            tags = doc?.select("div.genres-content > a")?.mapNotNull { it?.text()?.clean() },
+            synopsis = doc?.select("div.summary__content")?.text()?.synopsis() ?: "",
             data = jConnect("${url}ajax/chapters/", method = "POST")
                 ?.select(".wp-manga-chapter > a[href]")
                 ?.mapNotNull {
@@ -161,10 +161,10 @@ abstract class MadaraReader : MainAPI() {
                 }
                 ?.reversed() ?: listOf(),
             rating = doc?.selectFirst("span#averagerate")?.text().toRate(),
-            peopleVoted = document?.selectFirst("span#countrate")?.text().toVote(),
+            peopleVoted = doc?.selectFirst("span#countrate")?.text().toVote(),
             views = null,
             status = doc?.select(".post-content_item:contains(Status) > .summary-content")
-                ?.text().toStatus(),
+                ?.text()?.toStatus(),
         )
     }
 }

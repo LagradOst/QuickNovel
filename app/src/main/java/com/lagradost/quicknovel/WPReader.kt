@@ -55,7 +55,7 @@ abstract class WPReader : MainAPI() {
     open fun getUrl(
         page: Int = 1,
         title: String = "",
-        genre = "",
+        genre: String = "",
         order: String = "popular"
     ): String {
         return mainUrl.toUrlBuilderSafe()
@@ -82,8 +82,8 @@ abstract class WPReader : MainAPI() {
                     name = it?.selectFirst("a")?.attr("title") ?: "",
                     url = it?.selectFirst("a")?.attr("href") ?: "",
                     posterUrl = it?.selectFirst("a > img")?.attr("src") ?: "",
-                    rating = it?.selectFirst(".score")?.text().toRate(),
-                    latestChapter = it?.selectFirst("div.season")?.text().toChapters() ?: 0,
+                    rating = it?.selectFirst(".score")?.text()?.toRate(),
+                    latestChapter = it?.selectFirst("div.season")?.text()?.toChapters(),
                     apiName = name
                 )
             }
@@ -119,30 +119,30 @@ abstract class WPReader : MainAPI() {
         return getSeriesList(getUrl(title = query)) ?: ArrayList()
     }
 
-    open override fun load(url: String): LoadResponse? {
-        return jConnect(url)?.let { doc ->
-            LoadResponse(
+    open override fun load(url: String): LoadResponse {
+        val doc = jConnect(url)
+        return LoadResponse(
                 url = url,
-                name = doc.selectFirst(".series-titlex > h2")?.text().clean() ?: "",
-                data = doc.select("div.flexch-infoz > a")?.MapNotNull { dat ->
+                name = doc?.selectFirst(".series-titlex > h2")?.text()?.clean() ?: "",
+                data = doc?.select("div.flexch-infoz > a")?.MapNotNull { dat ->
                     ChapterData(
                         name = dat.attr("title")?.clean() ?: "",
                         url = dat.attr("href")?.clean() ?: "",
-                        dateOfRelease = dat.selectFirst("span.date")?.text().clean() ?: "",
+                        dateOfRelease = dat.selectFirst("span.date")?.text()?.clean() ?: "",
                         views = 0,
                     )
                 }.reversed(),
-                author = doc.selectFirst("li:contains(Author)")
+                author = doc?.selectFirst("li:contains(Author)")
                     ?.selectFirst("span")?.text().clean() ?: "",
-                posterUrl = doc.selectFirst("div.series-thumb > a")
+                posterUrl = doc?.selectFirst("div.series-thumb > a")
                     ?.attr("src") ?: "",
-                rating = doc.selectFirst("span[itemprop=ratingValue]")?.text().toRate(),
+                rating = doc?.selectFirst("span[itemprop=ratingValue]")?.text().toRate(),
                 peopleVoted = 0,
                 views = 0,
-                synopsis = doc.selectFirst(".series-synops")?.text().synopsis(),
-                tags = doc.selectFirst("div.series-genres")?.select("a")
-                    .MapNotNull { tag -> tag.text().clean() },
-                status = doc.selectFirst("span.status")?.text().toStatus(),
+                synopsis = doc?.selectFirst(".series-synops")?.text().synopsis(),
+                tags = doc?.selectFirst("div.series-genres")?.select("a")
+                    .mapNotNull { tag -> tag.text()?.clean() },
+                status = doc?.selectFirst("span.status")?.text().toStatus(),
             )
         }
     }
