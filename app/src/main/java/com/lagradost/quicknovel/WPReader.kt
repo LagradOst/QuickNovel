@@ -77,7 +77,7 @@ abstract class WPReader : MainAPI() {
     open fun getSeriesList(url: String): List<SearchResponse>? {
         return jConnect(url = url)
             ?.select("div.flexbox2-content")
-            ?.MapNotNull {
+            ?.mapNotNull {
                 SearchResponse(
                     name = it?.selectFirst("a")?.attr("title") ?: "",
                     url = it?.selectFirst("a")?.attr("href") ?: "",
@@ -111,14 +111,15 @@ abstract class WPReader : MainAPI() {
         // res.select("div:has(script)")?.forEach { it.remove() }
         return res?.let { adv ->
             adv?.select("div:has(script)")?.forEach { it.remove() }
-        }.html()
+            adv.html()
+        }
     }
 
     open override fun search(query: String): List<SearchResponse> {
         return getSeriesList(getUrl(title = query)) ?: ArrayList()
     }
 
-    open override fun load(url: String): LoadResponse {
+    open override fun load(url: String): LoadResponse? {
         return jConnect(url)?.let { doc ->
             LoadResponse(
                 url = url,

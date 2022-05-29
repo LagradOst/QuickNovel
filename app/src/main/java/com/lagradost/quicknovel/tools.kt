@@ -7,6 +7,7 @@ import org.jsoup.nodes.Document
 import org.jsoup.nodes.Node
 import khttp.request
 
+/**
 // not yet test
 fun Node?.extractText(): String {
     val childs = this.select("p")
@@ -16,9 +17,9 @@ fun Node?.extractText(): String {
         ?.filter { it.hasText() }
         ?.joinToString("") { ftext ->
                 "<p>\t${ftext.text().clean()}</p>"
-            }
         }
 }
+*/
 
 fun jConnect(url: String, params: Map<String, String> = mapOf(), method: String = "GET"): Document? {
     val head = mapOf(
@@ -51,13 +52,7 @@ fun String.toVote(): Int {
         .toInt() ?: 0
 }
 
-fun String.toChapters(): Int {
-    return (
-        this
-            .replace(Regex("[^0-9]"), "")
-            .toIntOrNull()
-        ) ?: 0
-}
+fun String.toChapters(): String = this.replace(Regex("[^0-9]"), "")
 
 fun String.toStatus(): Int {
     return this

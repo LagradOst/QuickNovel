@@ -113,7 +113,8 @@ abstract class MadaraReader : MainAPI() {
         if (res == null || res.html() == "") return null
         return res.let { adv ->
             adv.select("p:has(a)")?.forEach { it.remove() }
-        }.html()
+            adv.html()
+        }
     }
 
     open override fun search(query: String): List<SearchResponse> {
@@ -141,11 +142,12 @@ abstract class MadaraReader : MainAPI() {
     open override fun load(url: String): LoadResponse {
         val doc = jConnect(url)
         return LoadResponse(
+            url = url,
             name = doc?.selectFirst("div.post-title > h1")
-                ?.text().clean() ?: "",
+                ?.text()?.clean() ?: "",
             author = doc?.selectFirst(".author-content > a")?.text() ?: "",
             posterUrl = doc?.select("div.summary_image > a > img")?.attr(covelAttr) ?: "",
-            tags = doc?.select("div.genres-content > a")?.mapNotNull { it.text() },
+            tags = doc?.select("div.genres-content > a")?.mapNotNull { it?.text().clean() },
             synopsis = document?.select("div.summary__content")?.text().synopsis() ?: "",
             data = jConnect("${url}ajax/chapters/", method = "POST")
                 ?.select(".wp-manga-chapter > a[href]")
