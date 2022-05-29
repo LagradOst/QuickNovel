@@ -49,7 +49,7 @@ fun String.toVote(): Int {
         .replace(Regex("[^.0-9]"), "")
         ?.toFloatOrNull()
         ?.times(if (k) 1000 else 1)
-        .toInt() ?: 0
+        ?.toInt() ?: 0
 }
 
 fun String.toChapters(): String = this.replace(Regex("[^0-9]"), "")

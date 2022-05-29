@@ -131,7 +131,7 @@ abstract class WPReader : MainAPI() {
                         dateOfRelease = dat.selectFirst("span.date")?.text()?.clean() ?: "",
                         views = 0,
                     )
-                }.reversed(),
+                }?.reversed(),
                 author = doc?.selectFirst("li:contains(Author)")
                     ?.selectFirst("span")?.text()?.clean() ?: "",
                 posterUrl = doc?.selectFirst("div.series-thumb > a")
@@ -139,9 +139,9 @@ abstract class WPReader : MainAPI() {
                 rating = doc?.selectFirst("span[itemprop=ratingValue]")?.text()?.toRate(),
                 peopleVoted = 0,
                 views = 0,
-                synopsis = doc?.selectFirst(".series-synops")?.text().?synopsis(),
+                synopsis = doc?.selectFirst(".series-synops")?.text().?synopsis() ?: "",
                 tags = doc?.selectFirst("div.series-genres")?.select("a")
-                    .mapNotNull { tag -> tag.text()?.clean() },
+                    .mapNotNull { tag -> tag?.text()?.clean() },
                 status = doc?.selectFirst("span.status")?.text()?.toStatus(),
             )
         
