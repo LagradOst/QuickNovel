@@ -81,7 +81,7 @@ abstract class WPReader : MainAPI() {
                 SearchResponse(
                     name = it?.selectFirst("a")?.attr("title") ?: "",
                     url = it?.selectFirst("a")?.attr("href") ?: "",
-                    posterUrl = it?.selectFirst("a > img")?.attr("src") ?: "",
+                    posterUrl = it?.selectFirst("img")?.attr("src") ?: "",
                     rating = it?.selectFirst(".score")?.text()?.toRate(),
                     latestChapter = it?.selectFirst("div.season")?.text()?.toChapters(),
                     apiName = name
@@ -135,7 +135,7 @@ abstract class WPReader : MainAPI() {
                     }?.reversed() ?: listOf(ChapterData("", "", null, null)),
                 author = doc?.selectFirst("li:contains(Author)")
                     ?.selectFirst("span")?.text()?.clean() ?: "",
-                posterUrl = doc?.selectFirst("div.series-thumb > a")
+                posterUrl = doc?.selectFirst("div.series-thumb > img")
                     ?.attr("src") ?: "",
                 rating = doc?.selectFirst("span[itemprop=ratingValue]")?.text()?.toRate(),
                 peopleVoted = 0,

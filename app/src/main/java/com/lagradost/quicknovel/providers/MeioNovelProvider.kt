@@ -5,4 +5,5 @@ import com.lagradost.quicknovel.MadaraReader
 class MeioNovelProvider : MadaraReader() {
     override val name = "MeioNovel"
     override val mainUrl = "https://meionovel.id"
+    override val iconId = R.drawable.ic_meionovel
 }

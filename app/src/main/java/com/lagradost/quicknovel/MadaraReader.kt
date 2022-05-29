@@ -5,7 +5,7 @@ import java.util.*
 abstract class MadaraReader : MainAPI() {
     open override val name = ""
     open override val mainUrl = ""
-    open override val iconId = R.drawable.icon_meionovel
+    open override val iconId = R.drawable.ic_meionovel
     open override val lang = "id"
     override val hasMainPage = true
     open override val iconBackgroundId = R.color.boxNovelColor

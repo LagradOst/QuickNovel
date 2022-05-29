@@ -5,6 +5,7 @@ import com.lagradost.quicknovel.MadaraReader
 class MoreNovelProvider : MadaraReader() {
     override val name = "MoreNovel"
     override val mainUrl = "https://morenovel.net"
+    override val iconId = R.drawable.ic_morenovel
     override val mainCategories: List<Pair<String, String>>
         get() = listOf(
             Pair("All", ""),
