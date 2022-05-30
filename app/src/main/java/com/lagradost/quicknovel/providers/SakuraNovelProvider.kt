@@ -7,7 +7,6 @@ class SakuraNovelProvider : WPReader() {
     override val name = "SakuraNovel"
     override val mainUrl = "https://sakuranovel.id"
     override val iconId = R.drawable.ic_sakuranovel
-    override val iconBackgroundId = R.color.boxNovelColor
     override val tags = listOf(
         Pair("All", ""),
         Pair("Action", "action"),

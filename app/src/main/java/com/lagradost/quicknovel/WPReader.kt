@@ -6,7 +6,7 @@ abstract class WPReader : MainAPI() {
     open override val name = ""
     open override val mainUrl = ""
     open override val lang = "id"
-    open override val iconId = R.drawable.big_icon_boxnovel
+    open override val iconId = R.drawable.ic_meionovel
     open override val hasMainPage = true
     open override val iconBackgroundId = R.color.lightItemBackground
     open override val tags = listOf(
