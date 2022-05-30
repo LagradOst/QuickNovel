@@ -59,7 +59,7 @@ abstract class WPReader : MainAPI() {
         genre: String = "",
         order: String = "popular"
     ): String {
-        return mainUrl.toUrlBuilderSafe()
+        val tUrl = mainUrl.toUrlBuilderSafe()
             .ifCase(genre != "") { addPath("genre", genre) }
             .ifCase(genre == "") { addPath("advanced-search") }
             .ifCase(page > 1) { addPath("page", page.toString()) }
@@ -70,9 +70,10 @@ abstract class WPReader : MainAPI() {
                 "status" to "",
                 "type" to "",
                 "order" to order,
-                "country[]" to country?.joinToString("&country[]=")
             )
             .toString()
+        return tUrl + "&country[]=" + country.joinToString("&country[]=")
+
     }
 
     open fun getSeriesList(url: String): List<SearchResponse>? {
