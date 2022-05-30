@@ -62,7 +62,7 @@ abstract class WPReader : MainAPI() {
     ): HeadMainPageResponse {
         val url = mainUrl
             .toUrlBuilderSafe()
-            .ifCase(tag != "") { addPath("genre", tag) }
+            .ifCase(tag != "") { addPath("genre", "$tag") }
             .ifCase(page > 1) { addPath("page", page.toString()) }
             .toString()
         val res = jConnect(url)
