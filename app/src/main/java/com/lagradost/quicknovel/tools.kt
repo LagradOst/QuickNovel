@@ -2,26 +2,15 @@ package com.lagradost.quicknovel
 
 import android.net.Uri
 import java.util.*
+import khttp.request
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
-import org.jsoup.nodes.Node
-import khttp.request
 
-/**
-// not yet test
-fun Node?.extractText(): String {
-    val childs = this.select("p")
-    if (childs?.size == 0) return ""
-
-    return childs
-        ?.filter { it.hasText() }
-        ?.joinToString("") { ftext ->
-                "<p>\t${ftext.text().clean()}</p>"
-        }
-}
-*/
-
-fun jConnect(url: String, params: Map<String, String> = mapOf(), method: String = "GET"): Document? {
+fun jConnect(
+    url: String,
+    params: Map<String, String> = mapOf(),
+    method: String = "GET"
+): Document? {
     val head = mapOf(
         "Accept" to "*/*",
         "Accept-Encoding" to "gzip, deflate",

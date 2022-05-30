@@ -8,7 +8,7 @@ abstract class WPReader : MainAPI() {
     open override val lang = "id"
     open override val iconId = R.drawable.big_icon_boxnovel
     open override val hasMainPage = true
-    open override val iconBackgroundId = R.color.boxNovelColor
+    open override val iconBackgroundId = R.color.lightItemBackground
     open override val tags = listOf(
         Pair("All", ""),
         Pair("Action", "action"),
@@ -52,6 +52,7 @@ abstract class WPReader : MainAPI() {
         Pair("Latest Add", "latest"),
     )
 
+    open val country: List<String> = listOf("jepang", "china", "korea", "unknown",)
     open fun getUrl(
         page: Int = 1,
         title: String = "",
@@ -69,7 +70,7 @@ abstract class WPReader : MainAPI() {
                 "status" to "",
                 "type" to "",
                 "order" to order,
-                "country[]" to "china&country[]=jepang&country[]=korea&country[]=unknown",
+                "country[]" to country?.joinToString("&country[]=")
             )
             .toString()
     }
@@ -106,11 +107,12 @@ abstract class WPReader : MainAPI() {
     }
 
     open override fun loadHtml(url: String): String? {
-        val res = jConnect(url)?.selectFirst("div.reader-area")
-        // if (res.html() == "") return null
-        // res.select("div:has(script)")?.forEach { it.remove() }
+        val con = jConnect(url)
+        var res = con?.selectFirst(".mn-novel-chapter-content-body")
+        if (res == null) res = con?.selectFirst(".reader-area")
         return res?.let { adv ->
             adv?.select("div:has(script)")?.forEach { it.remove() }
+            adv?.select("p")?.filter { !it.hasText() }?.forEach { it.remove() }
             adv.html()
         }
     }
@@ -122,28 +124,28 @@ abstract class WPReader : MainAPI() {
     open override fun load(url: String): LoadResponse {
         val doc = jConnect(url)
         return LoadResponse(
-                url = url,
-                name = doc?.selectFirst(".series-titlex > h2")?.text()?.clean() ?: "",
-                data = doc?.select("div.flexch-infoz > a")
-                    ?.mapNotNull { dat ->
-                        ChapterData(
-                            name = dat.attr("title")?.clean() ?: "",
-                            url = dat.attr("href")?.clean() ?: "",
-                            dateOfRelease = dat.selectFirst("span.date")?.text()?.clean() ?: "",
-                            views = 0,
-                        )
-                    }?.reversed() ?: listOf(ChapterData("", "", null, null)),
-                author = doc?.selectFirst("li:contains(Author)")
-                    ?.selectFirst("span")?.text()?.clean() ?: "",
-                posterUrl = doc?.selectFirst("div.series-thumb > img")
-                    ?.attr("src") ?: "",
-                rating = doc?.selectFirst("span[itemprop=ratingValue]")?.text()?.toRate(),
-                peopleVoted = 0,
-                views = 0,
-                synopsis = doc?.selectFirst(".series-synops")?.text()?.synopsis() ?: "",
-                tags = doc?.selectFirst("div.series-genres")?.select("a")
-                    ?.mapNotNull { tag -> tag?.text()?.clean() },
-                status = doc?.selectFirst("span.status")?.text()?.toStatus(),
-            )
+            url = url,
+            name = doc?.selectFirst(".series-titlex > h2")?.text()?.clean() ?: "",
+            data = doc?.select("div.flexch-infoz > a")
+                ?.mapNotNull { dat ->
+                    ChapterData(
+                        name = dat.attr("title")?.clean() ?: "",
+                        url = dat.attr("href")?.clean() ?: "",
+                        dateOfRelease = dat.selectFirst("span.date")?.text()?.clean() ?: "",
+                        views = 0,
+                    )
+                }?.reversed() ?: listOf(ChapterData("", "", null, null)),
+            author = doc?.selectFirst("li:contains(Author)")
+                ?.selectFirst("span")?.text()?.clean() ?: "",
+            posterUrl = doc?.selectFirst("div.series-thumb > img")
+                ?.attr("src") ?: "",
+            rating = doc?.selectFirst("span[itemprop=ratingValue]")?.text()?.toRate(),
+            peopleVoted = 0,
+            views = 0,
+            synopsis = doc?.selectFirst(".series-synops")?.text()?.synopsis() ?: "",
+            tags = doc?.selectFirst("div.series-genres")?.select("a")
+                ?.mapNotNull { tag -> tag?.text()?.clean() },
+            status = doc?.selectFirst("span.status")?.text()?.toStatus(),
+        )
     }
 }

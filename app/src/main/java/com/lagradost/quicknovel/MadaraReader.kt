@@ -8,7 +8,7 @@ abstract class MadaraReader : MainAPI() {
     open override val iconId = R.drawable.ic_meionovel
     open override val lang = "id"
     override val hasMainPage = true
-    open override val iconBackgroundId = R.color.boxNovelColor
+    open override val iconBackgroundId = R.color.lightItemBackground
     open val novelGenre: String = "novel-genre"
     open val novelTag: String = "novel-tag"
     open val covelAttr: String = "data-src"
