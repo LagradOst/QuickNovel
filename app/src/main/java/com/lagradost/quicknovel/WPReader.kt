@@ -63,7 +63,8 @@ abstract class WPReader : MainAPI() {
         val url = mainUrl
             .toUrlBuilderSafe()
             .ifCase(page > 1) { addPath("page", page.toString()) }
-        val res = jConnect(url = url.toString())
+            .toString()
+        val res = jConnect(url)
             ?.select("div.flexbox3-content > a")
             ?.mapNotNull {
                 SearchResponse(
