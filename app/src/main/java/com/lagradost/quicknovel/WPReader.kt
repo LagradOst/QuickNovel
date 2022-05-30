@@ -65,18 +65,20 @@ abstract class WPReader : MainAPI() {
             .ifCase(tag != "") { addPath("genre", "$tag") }
             .ifCase(page > 1) { addPath("page", page.toString()) }
             .toString()
+
         val res = jConnect(url)
-            ?.select("div.flexbox3-content > a")
+            ?.select(if (tag == "") ".flexbox3-content > a" else ".flexbox2-content > a")
             ?.mapNotNull {
                 SearchResponse(
                     name = it?.attr("title") ?: "",
                     url = it?.attr("href") ?: "",
                     posterUrl = it?.selectFirst("img")?.attr("src") ?: "",
-                    rating = null,
-                    latestChapter = null,
+                    rating = if (tag == "") t?.selectFirst(".score")?.text()?.toRate() else null,
+                    latestChapter = if (tag == "") it?.selectFirst("div.season")?.text()?.toChapters() else null,
                     apiName = name
                 )
             }
+
         return HeadMainPageResponse(url, res ?: ArrayList())
     }
 
@@ -93,11 +95,11 @@ abstract class WPReader : MainAPI() {
     open override fun search(query: String): List<SearchResponse> {
         val url = mainUrl.toUrlBuilderSafe().add("s" to query)
         return jConnect(url = url.toString())
-            ?.select("div.flexbox2-content")
+            ?.select("div.flexbox2-content > a")
             ?.mapNotNull {
                 SearchResponse(
-                    name = it?.selectFirst("a")?.attr("title") ?: "",
-                    url = it?.selectFirst("a")?.attr("href") ?: "",
+                    name = it?.attr("title") ?: "",
+                    url = it?.attr("href") ?: "",
                     posterUrl = it?.selectFirst("img")?.attr("src") ?: "",
                     rating = it?.selectFirst(".score")?.text()?.toRate(),
                     latestChapter = it?.selectFirst("div.season")?.text()?.toChapters(),
