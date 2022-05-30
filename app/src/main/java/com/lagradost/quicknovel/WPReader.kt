@@ -63,7 +63,7 @@ abstract class WPReader : MainAPI() {
         var idx: Int = -1
         val countryQuery = country?.mapNotNull {
             idx += 1
-            Pair("&country[$idx]", it)
+            Pair("country[$idx]", it)
         }.toTypedArray()
         return mainUrl.toUrlBuilderSafe()
             .ifCase(genre != "") { addPath("genre", genre) }
