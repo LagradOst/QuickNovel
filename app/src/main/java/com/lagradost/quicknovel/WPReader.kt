@@ -44,7 +44,7 @@ abstract class WPReader : MainAPI() {
         Pair("Xianxia", "xianxia"),
         Pair("Xuanhuan", "xuanhuan"),
     )
-
+    /*
     open override val orderBys: List<Pair<String, String>> = listOf(
         Pair("Latest Update", "update"),
         Pair("Most Views", "popular"),
@@ -52,64 +52,31 @@ abstract class WPReader : MainAPI() {
         Pair("A-Z", "title"),
         Pair("Latest Add", "latest"),
     )
-
-    open val country: List<String> = listOf("jepang", "china", "korea", "unknown",)
-    open fun getUrl(
-        page: Int = 1,
-        title: String = "",
-        genre: String = "",
-        order: String = "popular"
-    ): String {
-        var idx: Int = -1
-        val countryQuery = country?.mapNotNull {
-            idx += 1
-            Pair("country[$idx]", it)
-        }.toTypedArray()
-        return mainUrl.toUrlBuilderSafe()
-            .ifCase(genre != "") { addPath("genre", genre) }
-            .ifCase(genre == "") { addPath("advanced-search") }
-            .ifCase(page > 1) { addPath("page", page.toString()) }
-            .add(
-                "title" to title,
-                "author" to "",
-                "yearx" to "",
-                "status" to "",
-                "type" to "",
-                "order" to order,
-                *countryQuery
-            )
-            .toString()
-    }
-
-    open fun getSeriesList(url: String): List<SearchResponse>? {
-        return jConnect(url = url)
-            ?.select("div.flexbox2-content")
-            ?.mapNotNull {
-                SearchResponse(
-                    name = it?.selectFirst("a")?.attr("title") ?: "",
-                    url = it?.selectFirst("a")?.attr("href") ?: "",
-                    posterUrl = it?.selectFirst("img")?.attr("src") ?: "",
-                    rating = it?.selectFirst(".score")?.text()?.toRate(),
-                    latestChapter = it?.selectFirst("div.season")?.text()?.toChapters(),
-                    apiName = name
-                )
-            }
-    }
-
+    */
+    // open val country: List<String> = listOf("jepang", "china", "korea", "unknown",)
+    
     open override fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
         tag: String?,
     ): HeadMainPageResponse {
-        val url = getUrl(
-            page = page,
-            genre = if (tag == null) "" else tag,
-            order = if (orderBy == null) "" else orderBy
-
-        )
-
-        return HeadMainPageResponse(url, getSeriesList(url) ?: ArrayList())
+        val url = mainUrl
+            .toUrlBuilderSafe()
+            .ifCase(page > 1) { addPath("page", page.toString())
+        val res = jConnect(url = url)
+            ?.select("div.flexbox3-content > a")
+            ?.mapNotNull {
+                SearchResponse(
+                    name = it?.attr("title") ?: "",
+                    url = it?.attr("href") ?: "",
+                    posterUrl = it?.selectFirst("img")?.attr("src") ?: "",
+                    rating = null,
+                    latestChapter = null,
+                    apiName = name
+                )
+            }
+        return HeadMainPageResponse(url, res ?: ArrayList())
     }
 
     open override fun loadHtml(url: String): String? {
@@ -123,7 +90,19 @@ abstract class WPReader : MainAPI() {
     }
 
     open override fun search(query: String): List<SearchResponse> {
-        return getSeriesList(getUrl(title = query)) ?: ArrayList()
+        val url = mainUrl.toUrlBuilderSafe().add("s" to query)
+        return jConnect(url = url)
+            ?.select("div.flexbox2-content")
+            ?.mapNotNull {
+                SearchResponse(
+                    name = it?.selectFirst("a")?.attr("title") ?: "",
+                    url = it?.selectFirst("a")?.attr("href") ?: "",
+                    posterUrl = it?.selectFirst("img")?.attr("src") ?: "",
+                    rating = it?.selectFirst(".score")?.text()?.toRate(),
+                    latestChapter = it?.selectFirst("div.season")?.text()?.toChapters(),
+                    apiName = name
+                )
+            } ?: ArrayList()
     }
 
     open override fun load(url: String): LoadResponse {
