@@ -35,12 +35,4 @@ class SakuraNovelProvider : WPReader() {
         Pair("Supernatural", "supernatural"),
         Pair("Tragedy", "tragedy"),
     )
-
-    override val orderBys: List<Pair<String, String>> = listOf(
-        Pair("Latest Update", "update"),
-        Pair("Most Views", "popular"),
-        Pair("Rating", "rating"),
-        Pair("A-Z", "title"),
-        Pair("Latest Add", "latest"),
-    )
 }
