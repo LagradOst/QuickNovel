@@ -123,7 +123,7 @@ abstract class WPReader : MainAPI() {
                 }?.reversed() ?: listOf(ChapterData("", "", null, null)),
             author = doc?.selectFirst("li:contains(Author)")
                 ?.selectFirst("span")?.text()?.clean() ?: "",
-            posterUrl = doc?.selectFirst("div.series-thumb > img")
+            posterUrl = doc?.selectFirst("div.series-thumb img")
                 ?.attr("src") ?: "",
             rating = doc?.selectFirst("span[itemprop=ratingValue]")?.text()?.toRate(),
             peopleVoted = 0,
