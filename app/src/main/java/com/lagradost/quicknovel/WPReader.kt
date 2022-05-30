@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel
 
+import android.net.Uri.encode
 import java.util.*
 
 abstract class WPReader : MainAPI() {
@@ -59,7 +60,12 @@ abstract class WPReader : MainAPI() {
         genre: String = "",
         order: String = "popular"
     ): String {
-        val tUrl = mainUrl.toUrlBuilderSafe()
+        var idx: Int = -1
+        val countryQuery = country?.mapNotNull {
+            idx += 1
+            Pair("&country[$idx]", it)
+        }.toTypedArray()
+        return mainUrl.toUrlBuilderSafe()
             .ifCase(genre != "") { addPath("genre", genre) }
             .ifCase(genre == "") { addPath("advanced-search") }
             .ifCase(page > 1) { addPath("page", page.toString()) }
@@ -70,10 +76,9 @@ abstract class WPReader : MainAPI() {
                 "status" to "",
                 "type" to "",
                 "order" to order,
+                *countryQuery
             )
             .toString()
-        return tUrl + "&country[]=" + country.joinToString("&country[]=")
-
     }
 
     open fun getSeriesList(url: String): List<SearchResponse>? {
