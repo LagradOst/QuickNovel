@@ -1,6 +1,5 @@
 package com.lagradost.quicknovel
 
-import android.net.Uri.encode
 import java.util.*
 
 abstract class WPReader : MainAPI() {
@@ -54,7 +53,7 @@ abstract class WPReader : MainAPI() {
     )
     */
     // open val country: List<String> = listOf("jepang", "china", "korea", "unknown",)
-    
+
     open override fun loadMainPage(
         page: Int,
         mainCategory: String?,
@@ -63,8 +62,8 @@ abstract class WPReader : MainAPI() {
     ): HeadMainPageResponse {
         val url = mainUrl
             .toUrlBuilderSafe()
-            .ifCase(page > 1) { addPath("page", page.toString())
-        val res = jConnect(url = url)
+            .ifCase(page > 1) { addPath("page", page.toString()) }
+        val res = jConnect(url = url.toString())
             ?.select("div.flexbox3-content > a")
             ?.mapNotNull {
                 SearchResponse(
@@ -91,7 +90,7 @@ abstract class WPReader : MainAPI() {
 
     open override fun search(query: String): List<SearchResponse> {
         val url = mainUrl.toUrlBuilderSafe().add("s" to query)
-        return jConnect(url = url)
+        return jConnect(url = url.toString())
             ?.select("div.flexbox2-content")
             ?.mapNotNull {
                 SearchResponse(
