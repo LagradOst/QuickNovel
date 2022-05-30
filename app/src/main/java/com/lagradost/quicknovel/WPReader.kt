@@ -73,7 +73,7 @@ abstract class WPReader : MainAPI() {
                     name = it?.attr("title") ?: "",
                     url = it?.attr("href") ?: "",
                     posterUrl = it?.selectFirst("img")?.attr("src") ?: "",
-                    rating = if (tag == "") t?.selectFirst(".score")?.text()?.toRate() else null,
+                    rating = if (tag == "") it?.selectFirst(".score")?.text()?.toRate() else null,
                     latestChapter = if (tag == "") it?.selectFirst("div.season")?.text()?.toChapters() else null,
                     apiName = name
                 )
@@ -84,8 +84,7 @@ abstract class WPReader : MainAPI() {
 
     open override fun loadHtml(url: String): String? {
         val con = jConnect(url)
-        var res = con?.selectFirst(".mn-novel-chapter-content-body")
-        if (res == null) res = con?.selectFirst(".reader-area")
+        var res = con?.selectFirst(".mn-novel-chapter-content-body") ?: con?.selectFirst(".reader-area")
         return res?.let { adv ->
             adv?.select("p")?.filter { !it.hasText() }?.forEach { it.remove() }
             adv.outerHtml()
