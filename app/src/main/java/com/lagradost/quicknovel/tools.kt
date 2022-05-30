@@ -64,6 +64,7 @@ fun String.clean(): String {
 
 fun String.synopsis(): String {
     return this
+        .replace(Regex("(\\. )"), "\n\n")
         .replace(Regex("[\\t\\r]"), "")
         .replace(Regex("\\n{1}"), "\n\n")
         .replace(Regex("\\n{3,}"), "\n\n")

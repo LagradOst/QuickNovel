@@ -62,7 +62,7 @@ abstract class WPReader : MainAPI() {
         return mainUrl.toUrlBuilderSafe()
             .ifCase(genre != "") { addPath("genre", genre) }
             .ifCase(genre == "") { addPath("advanced-search") }
-            .ifCase(page < 1) { addPath("page", page.toString()) }
+            .ifCase(page > 1) { addPath("page", page.toString()) }
             .add(
                 "title" to title,
                 "author" to "",
@@ -111,9 +111,8 @@ abstract class WPReader : MainAPI() {
         var res = con?.selectFirst(".mn-novel-chapter-content-body")
         if (res == null) res = con?.selectFirst(".reader-area")
         return res?.let { adv ->
-            adv?.select("div:has(script)")?.forEach { it.remove() }
             adv?.select("p")?.filter { !it.hasText() }?.forEach { it.remove() }
-            adv.html()
+            adv.outerHtml()
         }
     }
 
