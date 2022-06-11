@@ -180,6 +180,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     private fun Context.getChapterData(index: Int, forceReload: Boolean = false): String? {
+        println("getChapterData $index")
         val text =
             (if (isFromEpub) book.tableOfContents.tocReferences[index].resource.reader.readText() else getQuickChapter(
                 quickdata.meta,
@@ -722,13 +723,15 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 Jsoup.parse(currentHtmlText)?.allElements?.filterNotNull() ?: return false
 
             for (element in elements) {
-                val text = element.ownText()?.trim()?.replace(".","") ?: continue
+                val href = element.attr("href") ?: continue
+
+                val text =
+                    element.ownText()?.replace(Regex("[\\[\\]().,|{}<>]"), "")?.trim() ?: continue
                 if (text.equals("next", true) || text.equals(
                         "next chapter",
                         true
                     ) || text.equals("next part", true)
                 ) {
-                    val href = element.attr("href") ?: continue
                     val name = reddit.isValidLink(href) ?: "Next"
                     quickdata.data.add(ChapterData(name, href, null, null))
                     chapterTitles.add(getChapterName(maxChapter))
@@ -951,6 +954,23 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         scrollToRemember: Boolean = false,
         forceReload: Boolean = false
     ) {
+        if (chapterIndex > maxChapter - 1) {
+            if (isFromEpub) {
+                loadChapter(maxChapter - 1, scrollToTop, scrollToRemember, forceReload)
+                return
+            } else {
+                for (i in maxChapter - 1 until chapterIndex) {
+                    hasTriedToFillNextChapter = false
+                    currentHtmlText = getChapterData(i, false) ?: break
+                    if (!fillNextChapter()) {
+                        break
+                    }
+                }
+                loadChapter(maxChapter - 1, scrollToTop, scrollToRemember, forceReload)
+                return
+            }
+        }
+
         main {
             setKey(EPUB_CURRENT_POSITION, getBookTitle(), chapterIndex)
             val txt = if (isFromEpub) {
@@ -2181,8 +2201,6 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                     }
                 }
                 MotionEvent.ACTION_UP -> {
-                    println("ACTION_UP")
-
                     if (scrollDistance < TOGGLE_DISTANCE) {
                         toggleShow()
                     }
@@ -2231,20 +2249,20 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             }
 
             maxChapter = getBookSize()
-            loadChapter(
-                minOf(
-                    getKey(EPUB_CURRENT_POSITION, getBookTitle()) ?: 0,
-                    maxChapter - 1
-                ), // CRASH FIX IF YOU SOMEHOW TRY TO LOAD ANOTHER EPUB WITH THE SAME NAME
-                scrollToTop = true,
-                scrollToRemember = true
-            )
-            updateTimeText()
 
             chapterTitles = ArrayList()
             for (i in 0 until maxChapter) {
                 chapterTitles.add(getChapterName(i))
             }
+            loadChapter(
+                //minOf(
+                getKey(EPUB_CURRENT_POSITION, getBookTitle()) ?: 0,
+                //    maxChapter - 1
+                // ), // CRASH FIX IF YOU SOMEHOW TRY TO LOAD ANOTHER EPUB WITH THE SAME NAME
+                scrollToTop = true,
+                scrollToRemember = true
+            )
+            updateTimeText()
 
             fadeInText()
         }
