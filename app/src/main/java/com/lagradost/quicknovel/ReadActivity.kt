@@ -25,10 +25,7 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.text.Spannable
 import android.text.SpannableString
 import android.util.TypedValue
-import android.view.Gravity
-import android.view.KeyEvent
-import android.view.MotionEvent
-import android.view.View
+import android.view.*
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -1532,6 +1529,17 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         return set
     }
 
+    private fun Context.updateKeepScreen(status: Boolean? = null): Boolean{
+        val set = if(status != null){
+            setKey(EPUB_KEEP_SCREEN_ACTIVE, status)
+            status
+        }else{
+            getKey(EPUB_KEEP_SCREEN_ACTIVE, true)!!
+        }
+        if(set) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        return set
+    }
+
     private fun Context.updateHasTime(status: Boolean? = null): Boolean {
         val set = if (status != null) {
             setKey(EPUB_HAS_TIME, status)
@@ -1717,6 +1725,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         getTextColor()
         updateHasTime()
         updateHasBattery()
+        updateKeepScreen()
 
         val fonts = getAllFonts()
         if (fonts == null) {
@@ -1772,6 +1781,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_time)!!
             val showBattery =
                 bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_battery)!!
+            val keepScreenActive =
+                bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_keep_screen_active)!!
             val readSettingsTextPaddingText =
                 bottomSheetDialog.findViewById<TextView>(R.id.read_settings_text_padding_text)!!
             val readSettingsTextPaddingTextTop =
@@ -1824,6 +1835,11 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             showBattery.isChecked = updateHasBattery()
             showBattery.setOnCheckedChangeListener { _, checked ->
                 updateHasBattery(checked)
+            }
+
+            keepScreenActive.isChecked = updateKeepScreen()
+            keepScreenActive.setOnCheckedChangeListener { _, checked ->
+                updateKeepScreen(checked)
             }
 
             val bgColors = resources.getIntArray(R.array.readerBgColors)

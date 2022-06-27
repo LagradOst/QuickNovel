@@ -122,4 +122,5 @@
     <string name="provider_lang_settings">Provider Languages</string>
     <string name="sort_apply">Apply</string>
     <string name="sort_cancel">Cancel</string>
+    <string name="keep_screen_active">Keep screen active</string>
 </resources>
