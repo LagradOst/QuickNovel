@@ -1364,6 +1364,10 @@ class ReadfromnetProvider : MainAPI() {
         Pair("Adventure Thriller", "adventure-thriller"),
     )
 
+    private val baseHeaders = mapOf(
+        "User-Agent" to "Mozilla/5.0"
+    )
+
     override fun loadMainPage(
         page: Int,
         mainCategory: String?,
@@ -1371,7 +1375,9 @@ class ReadfromnetProvider : MainAPI() {
         tag: String?
     ): HeadMainPageResponse {
         val url = "$mainUrl/$tag/page/$page/"
-        val response = khttp.get(url)
+        val response = khttp.get(
+            url, headers = baseHeaders
+        )
 
         val document = Jsoup.parse(response.text)
 
@@ -1399,7 +1405,7 @@ class ReadfromnetProvider : MainAPI() {
     }
 
     override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+        val response = khttp.get(url, headers = baseHeaders)
         val document = Jsoup.parse(response.text)
         document.select("div.splitnewsnavigation")?.remove()
         document.select("div.splitnewsnavigation2")?.remove()
@@ -1410,7 +1416,10 @@ class ReadfromnetProvider : MainAPI() {
 
     override fun search(query: String): List<SearchResponse> {
         val response =
-            khttp.get("$mainUrl/build_in_search/?q=$query") // AJAX, MIGHT ADD QUICK SEARCH
+            khttp.get(
+                "$mainUrl/build_in_search/?q=$query",
+                headers = baseHeaders
+            ) // AJAX, MIGHT ADD QUICK SEARCH
 
         val document = Jsoup.parse(response.text)
 
@@ -1434,7 +1443,7 @@ class ReadfromnetProvider : MainAPI() {
     }
 
     override fun load(url: String): LoadResponse {
-        val response = khttp.get(url)
+        val response = khttp.get(url, headers = baseHeaders)
 
         val document = Jsoup.parse(response.text)
         val name =

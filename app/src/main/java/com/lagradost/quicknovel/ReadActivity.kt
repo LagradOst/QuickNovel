@@ -1908,7 +1908,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             horizontalColors.addView(imageHolder)
             updateImages()
 
-            readSettingsTextSize.max = 10
+            readSettingsTextSize.max = 20
             val offsetSize = 10
             var updateAllTextOnDismiss = false
             readSettingsTextSize.progress = getTextFontSize() - offsetSize
