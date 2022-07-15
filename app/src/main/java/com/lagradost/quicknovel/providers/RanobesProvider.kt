@@ -1,14 +1,12 @@
 package com.lagradost.quicknovel.providers
 
 import com.fasterxml.jackson.annotation.JsonInclude
-import com.lagradost.quicknovel.*
-import org.jsoup.Jsoup
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.PropertyNamingStrategy
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.lagradost.quicknovel.DataStore.toKotlinObject
-import kotlin.concurrent.thread
+import com.lagradost.quicknovel.*
+import org.jsoup.Jsoup
 import kotlin.random.Random
 
 
@@ -17,7 +15,7 @@ val mapper = jacksonObjectMapper().apply {
     setSerializationInclusion(JsonInclude.Include.NON_NULL)
 }
 
-data class Chapterdatajson (
+data class Chapterdatajson(
     @get:JsonProperty("book_title")
     val bookTitle: String? = null,
 
@@ -47,7 +45,7 @@ data class Chapterdatajson (
     }
 }
 
-data class Chapter (
+data class Chapter(
     val id: String? = null,
     val title: String? = null,
     val date: String? = null,
@@ -102,6 +100,10 @@ class RanobesProvider : MainAPI() {
         Pair("Yaoi", "Yaoi"),
     )
 
+    private val baseHeaders = mapOf(
+        "User-Agent" to "Mozilla/5.0",
+    )
+
     override fun loadMainPage(
         page: Int,
         mainCategory: String?,
@@ -109,12 +111,12 @@ class RanobesProvider : MainAPI() {
         tag: String?
     ): HeadMainPageResponse {
         val url =
-            if (page <=1)
+            if (page <= 1)
                 "$mainUrl/tags/genre/$tag/"
             else
                 "$mainUrl/tags/genre/$tag/page/$page/"
-        
-        val response = khttp.get(url)
+
+        val response = khttp.get(url, headers = baseHeaders)
 
         val document = Jsoup.parse(response.text)
 
@@ -126,7 +128,8 @@ class RanobesProvider : MainAPI() {
             val cUrl = h2.attr("href")
 
             val name = h2.text()
-            val posterUrl = h.selectFirst("div.cont.showcont > div > a > figure").attr("style").replace("""background-image: url(""","").replace(");","")
+            val posterUrl = h.selectFirst("div.cont.showcont > div > a > figure").attr("style")
+                .replace("""background-image: url(""", "").replace(");", "")
 
             val latestChap = mainUrl + h.nextElementSibling().selectFirst("div > a").attr("href")
             returnValue.add(
@@ -144,10 +147,11 @@ class RanobesProvider : MainAPI() {
     }
 
     override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+        val response = khttp.get(url, headers = baseHeaders)
         val document = Jsoup.parse(response.text)
-        Thread.sleep(Random.nextLong(250,350))
-        return document.selectFirst("#dle-content > article > div.block.story.shortstory > h1").html()+document.selectFirst("#arrticle").html()
+        Thread.sleep(Random.nextLong(250, 350))
+        return document.selectFirst("#dle-content > article > div.block.story.shortstory > h1")
+            .html() + document.selectFirst("#arrticle").html()
     }
 
 
@@ -179,7 +183,8 @@ class RanobesProvider : MainAPI() {
             val cUrl = h2.attr("href")
 
             val name = h2.text()
-            val posterUrl = h.selectFirst("div.cont.showcont > div > a > figure").attr("style").replace("""background-image: url(""","").replace(");","")
+            val posterUrl = h.selectFirst("div.cont.showcont > div > a > figure").attr("style")
+                .replace("""background-image: url(""", "").replace(");", "")
 
             val latestChap = mainUrl + h.nextElementSibling().selectFirst("div > a").attr("href")
             returnValue.add(
@@ -199,7 +204,7 @@ class RanobesProvider : MainAPI() {
     }
 
     override fun load(url: String): LoadResponse {
-        val response = khttp.get(url)
+        val response = khttp.get(url, headers = baseHeaders)
 
         val document = Jsoup.parse(response.text)
         val name = document.selectFirst("div.r-fullstory-s1 > h1").text()
@@ -212,43 +217,67 @@ class RanobesProvider : MainAPI() {
         val synopsis = document.selectFirst("div.moreless__full").text()
         val listdata = mutableListOf<Chapterdatajson>()
         val data: ArrayList<ChapterData> = ArrayList()
-        val chapretspageresponse = khttp.get("$mainUrl/chapters/${url.substringAfterLast("/").substringBefore("-")}")
+        val chapretspageresponse =
+            khttp.get("$mainUrl/chapters/${url.substringAfterLast("/").substringBefore("-")}", headers = baseHeaders)
         val chapretspage = Jsoup.parse(chapretspageresponse.text)
-        val cha1= Chapterdatajson.fromJson(chapretspage.select("script").filter { it.data().contains("window.__DATA") }[0].data().substringAfter("="))
+        val cha1 = Chapterdatajson.fromJson(
+            chapretspage.select("script").filter { it.data().contains("window.__DATA") }[0].data()
+                .substringAfter("=")
+        )
 
-        val numberofchpages = document.select("span.grey").filter { it.text().contains("chapters") }[0].text().filter { it.isDigit() }.toInt().div(25).plus(1)
+        val numberofchpages =
+            document.select("span.grey").filter { it.text().contains("chapters") }[0].text()
+                .filter { it.isDigit() }.toInt().div(25).plus(1)
         listdata.add(cha1)
-        for (i in 2..numberofchpages!!){
-            val chapretspageresponsei = khttp.get("$mainUrl/chapters/${url.substringAfterLast("/").substringBefore("-")}/page/$i/")
+        for (i in 2..numberofchpages!!) {
+            val chapretspageresponsei = khttp.get(
+                "$mainUrl/chapters/${
+                    url.substringAfterLast("/").substringBefore("-")
+                }/page/$i/", headers = baseHeaders
+            )
             val chapretspagei = Jsoup.parse(chapretspageresponsei.text)
-            listdata.add(Chapterdatajson.fromJson(chapretspagei.select("script").filter { it.data().contains("window.__DATA") }[0].data().substringAfter("=")))
-            if(i.rem(2)==0){
+            listdata.add(
+                Chapterdatajson.fromJson(
+                    chapretspagei.select("script")
+                        .filter { it.data().contains("window.__DATA") }[0].data()
+                        .substringAfter("=")
+                )
+            )
+            if (i.rem(2) == 0) {
                 Thread.sleep(Random.nextInt(50, 100).toLong())
-            }else{Thread.sleep(Random.nextInt(0, 45).toLong())}
+            } else {
+                Thread.sleep(Random.nextInt(0, 45).toLong())
+            }
         }
 
-        for (chapslist in listdata.reversed()){
-            chapslist.chapters?.reversed()?.map {  it ->
+        for (chapslist in listdata.reversed()) {
+            chapslist.chapters?.reversed()?.map { it ->
                 data.add(ChapterData(it.title!!, it.link!!, it.date!!, null))
             }
 
         }
 
-        val statusHeader = document.selectFirst("#fs-info > div.r-fullstory-spec > ul:nth-child(1) > li:nth-child(6) > span > a")
+        val statusHeader =
+            // Copy pasted from browser, hopefully does not break 💀
+            document.selectFirst(".r-fullstory-spec > ul:nth-child(1) > li:nth-child(7) > span:nth-child(1) > a:nth-child(1)")
 
         val status = when (statusHeader.text()) {
             "Ongoing" -> STATUS_ONGOING
             "Completed" -> STATUS_COMPLETE
             else -> STATUS_NULL
         }
-        val views = document.selectFirst("#fs-info > div.r-fullstory-spec > ul:nth-child(2) > li:nth-child(1) > span").text().filter { it.isDigit() }.toInt()
+        val views =
+            document.selectFirst("#fs-info > div.r-fullstory-spec > ul:nth-child(2) > li:nth-child(1) > span")
+                .text().filter { it.isDigit() }.toInt()
         var rating = 0
         var peopleVoted = 0
         try {
             rating = (document.selectFirst("#rate_b > div > div > div > span.bold").text()
                 .substringBefore("/").toFloat() * 200).toInt()
 
-            peopleVoted = document.selectFirst("#rate_b > div > div > div > span.small.grey > span").text().filter { it.isDigit() }.toInt()
+            peopleVoted =
+                document.selectFirst("#rate_b > div > div > div > span.small.grey > span").text()
+                    .filter { it.isDigit() }.toInt()
         } catch (e: Exception) {
             // NO RATING
         }

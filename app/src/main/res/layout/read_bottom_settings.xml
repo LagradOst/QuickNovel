@@ -115,6 +115,17 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content" />
 
+            <com.google.android.material.checkbox.MaterialCheckBox
+                    android:layout_marginTop="5dp"
+                    android:textSize="16sp"
+                    android:paddingStart="5dp"
+                    android:paddingEnd="5dp"
+                    android:text="@string/keep_screen_active"
+                    android:id="@+id/read_settings_keep_screen_active"
+                    android:textColor="?attr/textColor"
+                    app:buttonTint="?attr/colorOnPrimary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
             <TextView
                     android:id="@+id/read_settings_text_font_text"
                     android:layout_marginTop="15dp"
