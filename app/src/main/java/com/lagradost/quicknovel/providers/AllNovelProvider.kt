@@ -80,7 +80,6 @@ class AllNovelProvider : MainAPI() {
         orderBy: String?,
         tag: String?
     ): HeadMainPageResponse {
-        val url = "$mainUrl/$tag/page/$page/"
         val firstresponse = khttp.get(mainUrl)
         val firstdocument = Jsoup.parse(firstresponse.text)
         fun getId(tagvalue: String?): String? {
