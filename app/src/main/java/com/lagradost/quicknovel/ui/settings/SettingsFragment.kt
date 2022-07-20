@@ -5,15 +5,29 @@ import android.widget.Toast
 import androidx.preference.*
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiProviderLangSettings
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
+import com.lagradost.quicknovel.util.BackupUtils.backup
+import com.lagradost.quicknovel.util.BackupUtils.restorePrompt
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.util.SingleSelectionHelper.showMultiDialog
 import com.lagradost.quicknovel.util.SubtitleHelper
 import kotlin.concurrent.thread
 
 class SettingsFragment : PreferenceFragmentCompat() {
+    fun PreferenceFragmentCompat?.getPref(id: Int): Preference? {
+        if (this == null) return null
+
+        return try {
+            findPreference(getString(id))
+        } catch (e: Exception) {
+            logError(e)
+            null
+        }
+    }
+
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.settings, rootKey)
         val multiPreference = findPreference<MultiSelectListPreference>(getString(R.string.search_providers_list_key))!!
@@ -30,6 +44,16 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 providersActive = it
             }
             return@setOnPreferenceChangeListener true
+        }
+
+        getPref(R.string.backup_key)?.setOnPreferenceClickListener {
+            activity?.backup()
+            return@setOnPreferenceClickListener true
+        }
+
+        getPref(R.string.restore_key)?.setOnPreferenceClickListener {
+            activity?.restorePrompt()
+            return@setOnPreferenceClickListener true
         }
 
         updatePrefrence.setOnPreferenceClickListener {

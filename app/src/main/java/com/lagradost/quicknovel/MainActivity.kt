@@ -28,6 +28,7 @@ import com.lagradost.quicknovel.ui.result.ResultFragment
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.Apis.Companion.printProviders
+import com.lagradost.quicknovel.util.BackupUtils.setUpBackup
 import com.lagradost.quicknovel.util.Coroutines
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
@@ -236,6 +237,8 @@ class MainActivity : AppCompatActivity() {
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        setUpBackup()
 
         val navView: BottomNavigationView = findViewById(R.id.nav_view)
 
