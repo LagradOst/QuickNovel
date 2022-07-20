@@ -126,6 +126,8 @@
     <string name="sort_apply">Apply</string>
     <string name="sort_cancel">Cancel</string>
     <string name="keep_screen_active">Keep screen active</string>
+    <string name="twelve_hour_time">12 Hour time</string>
+
 
     <string name="backup_settings">Backup data</string>
     <string name="restore_success">Loaded backup file</string>

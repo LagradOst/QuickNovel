@@ -250,7 +250,6 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
         /* val arrayAdapter = ArrayAdapter<String>(this, R.layout.sort_bottom_single_choice)
          arrayAdapter.addAll(sortingMethods.toMutableList())
-
          res.choiceMode = AbsListView.CHOICE_MODE_SINGLE
          res.adapter = arrayAdapter
          res.setItemChecked(sotringIndex, true)*/
@@ -699,13 +698,16 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         }
     }
 
-    private fun updateTimeText() {
-        val currentTime: String = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+    private fun Context.updateTimeText() {
+        val string = if (this.updateTwelveHourTime()) "KK:mm a" else "HH:mm"
+
+        val currentTime: String = SimpleDateFormat(string, Locale.getDefault()).format(Date())
         if (read_time != null) {
             read_time.text = currentTime
             read_time.postDelayed({ -> updateTimeText() }, 1000)
         }
     }
+
 
     private var hasTriedToFillNextChapter = false
     private val reddit = RedditProvider()
@@ -1540,6 +1542,16 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         return set
     }
 
+    private fun Context.updateTwelveHourTime(status: Boolean? = null): Boolean {
+        return if (status != null) {
+            this.setKey(EPUB_TWELVE_HOUR_TIME, status)
+            status
+        } else {
+            this.getKey(EPUB_TWELVE_HOUR_TIME, false)!!
+        }
+    }
+
+
     private fun Context.updateHasTime(status: Boolean? = null): Boolean {
         val set = if (status != null) {
             setKey(EPUB_HAS_TIME, status)
@@ -1724,6 +1736,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         getBackgroundColor()
         getTextColor()
         updateHasTime()
+        updateTwelveHourTime()
         updateHasBattery()
         updateKeepScreen()
 
@@ -1779,6 +1792,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_lock_tts)!!
             val showTime =
                 bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_time)!!
+            val twelvehourFormat =
+                bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_twelve_hour_time)!!
             val showBattery =
                 bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_battery)!!
             val keepScreenActive =
@@ -1825,6 +1840,12 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             readSettingsLockTts.isChecked = lockTTS
             readSettingsLockTts.setOnCheckedChangeListener { _, checked ->
                 setLockTTS(checked)
+            }
+
+
+            twelvehourFormat.isChecked = updateTwelveHourTime()
+            twelvehourFormat.setOnCheckedChangeListener { _, checked ->
+                updateTwelveHourTime(checked)
             }
 
             showTime.isChecked = updateHasTime()
