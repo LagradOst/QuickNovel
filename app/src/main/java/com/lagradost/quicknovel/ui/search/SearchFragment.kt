@@ -203,19 +203,23 @@ class SearchFragment : Fragment() {
                 apiNames.map { a -> apiNamesSetting.contains(a) }.toBooleanArray()
             ) { _, position: Int, checked: Boolean ->
                 val apiNamesSettingLocal = requireActivity().getApiSettings()
-                val settingsManagerLocal = PreferenceManager.getDefaultSharedPreferences(activity)
+                val settingsManagerLocal = activity?.let {
+                    PreferenceManager.getDefaultSharedPreferences(
+                        it
+                    )
+                }
                 if (checked) {
                     apiNamesSettingLocal.add(apiNames[position])
                 } else {
                     apiNamesSettingLocal.remove(apiNames[position])
                 }
 
-                val edit = settingsManagerLocal.edit()
-                edit.putStringSet(
+                val edit = settingsManagerLocal?.edit()
+                edit?.putStringSet(
                     getString(R.string.search_providers_list_key),
                     apiNames.filter { a -> apiNamesSettingLocal.contains(a) }.toSet()
                 )
-                edit.apply()
+                edit?.apply()
                 providersActive = requireContext().getApiSettings()
             }
             builder.setTitle("Search Providers")
@@ -251,8 +255,8 @@ class SearchFragment : Fragment() {
         search_master_recycler.adapter = masterAdapter
         search_master_recycler.layoutManager = GridLayoutManager(context, 1)
 
-        val settingsManager = PreferenceManager.getDefaultSharedPreferences(context)
-        val isAdvancedSearch = settingsManager.getBoolean("advanced_search", true)
+        val settingsManager = context?.let { PreferenceManager.getDefaultSharedPreferences(it) }
+        val isAdvancedSearch = settingsManager?.getBoolean("advanced_search", true) == true
 
         search_master_recycler.visibility = if (isAdvancedSearch) View.VISIBLE else View.GONE
         cardSpace.visibility = if (!isAdvancedSearch) View.VISIBLE else View.GONE

@@ -30,9 +30,12 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.settings, rootKey)
-        val multiPreference = findPreference<MultiSelectListPreference>(getString(R.string.search_providers_list_key))!!
-        val updatePrefrence = findPreference<Preference>(getString(R.string.manual_check_update_key))!!
-        val providerLangPreference = findPreference<Preference>(getString(R.string.provider_lang_key))!!
+        val multiPreference =
+            findPreference<MultiSelectListPreference>(getString(R.string.search_providers_list_key))!!
+        val updatePrefrence =
+            findPreference<Preference>(getString(R.string.manual_check_update_key))!!
+        val providerLangPreference =
+            findPreference<Preference>(getString(R.string.provider_lang_key))!!
 
         val apiNames = apis.map { it.name }
 
@@ -68,7 +71,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
 
         providerLangPreference.setOnPreferenceClickListener {
-            val settingsManager = PreferenceManager.getDefaultSharedPreferences(context)
+            val settingsManager = PreferenceManager.getDefaultSharedPreferences(it.context)
 
             activity?.getApiProviderLangSettings()?.let { current ->
                 val allLangs = HashSet<String>()
