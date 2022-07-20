@@ -251,7 +251,7 @@ class MainActivity : AppCompatActivity() {
             .setExitAnim(R.anim.nav_exit_anim)
             .setPopEnterAnim(R.anim.nav_pop_enter)
             .setPopExitAnim(R.anim.nav_pop_exit)
-            .setPopUpTo(navController.graph.startDestination, false)
+            .setPopUpTo(navController.graph.startDestinationId, false)
             .build()
 /*
         navView.setOnNavigationItemReselectedListener { item ->

@@ -7,7 +7,7 @@ import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
 class MainPageViewModelFactory(private val mainPageRepository: MainPageRepository) :
     ViewModelProvider.NewInstanceFactory() {
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return MainPageViewModel(mainPageRepository) as T
     }
 }
