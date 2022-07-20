@@ -92,7 +92,7 @@ class AllNovelProvider : MainAPI() {
         }
 
         // I cant fix this because idk how it works
-        val url = "$mainUrl/ajax-search?type=hot&genre=${getId(tag)}"
+        val url =  "$mainUrl/genre/$tag?page=$page"
         val response = khttp.get(url)
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.item")
