@@ -109,7 +109,6 @@ class WuxiaWorldSiteProvider : MainAPI() {
         }
         res.select("script").remove()
         return res.html()
-            .replace("(adsbygoogle = window.adsbygoogle || []).push({});", "")
             .replace("Read latest Chapters at WuxiaWorld.Site Only", "") // FUCK ADS
     }
 

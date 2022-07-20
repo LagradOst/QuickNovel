@@ -1410,7 +1410,6 @@ class ReadfromnetProvider : MainAPI() {
         document.select("div.splitnewsnavigation")?.remove()
         document.select("div.splitnewsnavigation2")?.remove()
         return document.selectFirst("#textToRead")?.html()
-            ?.replace("(adsbygoogle = window.adsbygoogle || []).push({});", "")
     }
 
 
