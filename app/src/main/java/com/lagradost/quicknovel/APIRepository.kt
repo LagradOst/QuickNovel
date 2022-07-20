@@ -9,6 +9,10 @@ data class OnGoingSearch(
     val data: Resource<List<SearchResponse>>
 )
 
+private fun String?.removeAds() : String? {
+    return this?.replace("(adsbygoogle = window.adsbygoogle || []).push({});", "")
+}
+
 class APIRepository(val api: MainAPI) {
     companion object {
         var providersActive = HashSet<String>()
@@ -38,10 +42,13 @@ class APIRepository(val api: MainAPI) {
         }
     }
 
+    /**
+     * Automatically strips adsbygoogle
+     * */
     fun loadHtml(url: String): String? {
         return normalSafeApiCall {
             api.loadHtml(api.fixUrl(url))
-        }
+        }?.removeAds()
     }
 
     suspend fun loadReviews(url: String, page: Int, showSpoilers: Boolean = false): Resource<List<UserReview>> {

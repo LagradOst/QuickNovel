@@ -113,7 +113,6 @@ class BoxNovelProvider : MainAPI() {
                 "(If you have problems with this website, please continue reading your novel on our new website myboxnovel.com THANKS!)",
                 ""
             )
-            .replace("(adsbygoogle = window.adsbygoogle || []).push({});", "")
             .replace(
                 "Read latest Chapters at BoxNovel.Com Only",
                 ""
