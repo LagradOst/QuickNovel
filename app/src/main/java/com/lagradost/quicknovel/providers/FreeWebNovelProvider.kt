@@ -69,18 +69,18 @@ class FreewebnovelProvider : MainAPI() {
         if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
-            val h3 = h.selectFirst("h3.tit > a")
-            val cUrl = mainUrl + h3.attr("href")
+            val h3 = h?.selectFirst("h3.tit > a")
+            val cUrl =  fixUrl(h3?.attr("href") ?: continue)
 
             val name = h3.attr("title")
-            val posterUrl = h.selectFirst("div.pic > a > img").attr("src")
+            val posterUrl = h.selectFirst("div.pic > a > img")?.attr("src")
 
-            val latestChap = h.select("div.item")[2].selectFirst("> div > a").text()
+            val latestChap = h.select("div.item")[2].selectFirst("> div > a")?.text()
             returnValue.add(
                 SearchResponse(
                     name,
                     cUrl,
-                    fixUrl(posterUrl),
+                    fixUrlNull(posterUrl),
                     null,
                     latestChap,
                     this.name
@@ -93,7 +93,7 @@ class FreewebnovelProvider : MainAPI() {
     override fun loadHtml(url: String): String? {
         val response = khttp.get(url)
         val document = Jsoup.parse(response.text)
-        return document.selectFirst("div.txt").html()
+        return document.selectFirst("div.txt")?.html()
     }
 
 
@@ -116,18 +116,18 @@ class FreewebnovelProvider : MainAPI() {
         if (headers.size <= 0) return ArrayList()
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
-            val h3 = h.selectFirst("h3.tit > a")
-            val cUrl = mainUrl + h3.attr("href")
+            val h3 = h?.selectFirst("h3.tit > a")
+            val cUrl = fixUrl(h3?.attr("href") ?: continue)
 
-            val name = h3.attr("title")
-            val posterUrl = h.selectFirst("div.pic > a > img").attr("src")
+            val name = h3.attr("title") ?: continue
+            val posterUrl = h.selectFirst("div.pic > a > img")?.attr("src")
 
-            val latestChap = h.select("div.item")[2].selectFirst("> div > a").text()
+            val latestChap = h.select("div.item")[2].selectFirst("> div > a")?.text()
             returnValue.add(
                 SearchResponse(
                     name,
                     cUrl,
-                    fixUrl(posterUrl),
+                    fixUrlNull(posterUrl),
                     null,
                     latestChap,
                     this.name
@@ -137,21 +137,25 @@ class FreewebnovelProvider : MainAPI() {
         return returnValue
     }
 
-    override fun load(url: String): LoadResponse {
+    override fun load(url: String): LoadResponse? {
         val response = khttp.get(url)
 
         val document = Jsoup.parse(response.text)
-        val name = document.selectFirst("h1.tit").text()
+        val name = document.selectFirst("h1.tit")?.text() ?: return null
 
-        val author = document.selectFirst("span.glyphicon.glyphicon-user").nextElementSibling().text()
-        val tags = document.selectFirst("span.glyphicon.glyphicon-th-list").nextElementSiblings()[0].text().splitToSequence(", ").toList()
+        val author =
+            document.selectFirst("span.glyphicon.glyphicon-user")?.nextElementSibling()?.text()
+        val tags =
+            document.selectFirst("span.glyphicon.glyphicon-th-list")?.nextElementSiblings()?.get(0)
+                ?.text()
+                ?.splitToSequence(", ")?.toList()
 
         val posterUrl = document.select(" div.pic > img").attr("src")
-        val synopsis = document.selectFirst("div.inner").text()
+        val synopsis = document.selectFirst("div.inner")?.text()
 
         val data: ArrayList<ChapterData> = ArrayList()
         val chapternumber0 = document.select("div.m-newest1 > ul.ul-list5 > li")[1]
-        val chapternumber1 = chapternumber0.selectFirst("a").attr("href")
+        val chapternumber1 = chapternumber0.selectFirst("a")?.attr("href")
         val aid = "[0-9]+s.jpg".toRegex().find(response.text)?.value?.substringBefore("s")
         val acode = "(?<=r_url\" content=\"https://freewebnovel.com/)(.*)(?=/chapter)".toRegex()
             .find(response.text)?.value
@@ -166,7 +170,7 @@ class FreewebnovelProvider : MainAPI() {
 
         for (c in parsed) {
 
-            val cUrl = mainUrl + c.attr("value")
+            val cUrl = mainUrl + c?.attr("value")
             val cName = if (c.text().isEmpty()) {
                 "chapter $c"
             } else {
@@ -180,14 +184,14 @@ class FreewebnovelProvider : MainAPI() {
         val statusHeader = document.selectFirst("span.s1.s3")
 
         val status = if (statusHeader != null) {
-            when (statusHeader.selectFirst("a").text()) {
+            when (statusHeader.selectFirst("a")?.text()) {
                 "OnGoing" -> STATUS_ONGOING
                 "Completed" -> STATUS_COMPLETE
                 else -> STATUS_NULL
             }
 
         } else {
-            when (statusHeader0.selectFirst("> a").text()) {
+            when (statusHeader0?.selectFirst("> a")?.text()) {
                 "OnGoing" -> STATUS_ONGOING
                 "Completed" -> STATUS_COMPLETE
                 else -> STATUS_NULL
@@ -197,10 +201,10 @@ class FreewebnovelProvider : MainAPI() {
         var rating = 0
         var peopleVoted = 0
         try {
-            rating = (document.selectFirst("div.m-desc > div.score > p:nth-child(2)").text()
+            rating = (document.selectFirst("div.m-desc > div.score > p:nth-child(2)")?.text()!!
                 .substringBefore("/").toFloat() * 200).toInt()
 
-            peopleVoted = document.selectFirst("div.m-desc > div.score > p:nth-child(2)").text()
+            peopleVoted = document.selectFirst("div.m-desc > div.score > p:nth-child(2)")?.text()!!
                 .substringAfter("(").filter { it.isDigit() }.toInt()
         } catch (e: Exception) {
             // NO RATING
@@ -211,7 +215,7 @@ class FreewebnovelProvider : MainAPI() {
             name,
             data,
             author,
-            fixUrl(posterUrl),
+            fixUrlNull(posterUrl),
             rating,
             peopleVoted,
             null,

@@ -78,14 +78,14 @@ class RewayatArProvider : MainAPI() {
 
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
-            val imageHeader = h.selectFirst("a.tip")
+            val imageHeader = h?.selectFirst("a.tip")
 
-            val cUrl = imageHeader.attr("href")
-            val posterUrl = imageHeader.selectFirst("div.limit img").attr("src")
-            val name = imageHeader.select("div.tt span.ntitle").text()
+            val cUrl = imageHeader?.attr("href") ?: continue
+            val posterUrl = imageHeader.selectFirst("div.limit img")?.attr("src")
+            val name = imageHeader.select("div.tt span.ntitle").text() ?: continue
             val rating =
-                (imageHeader.selectFirst("> div.tt > div > div > div.numscore").text()
-                    .toFloat() * 100).toInt()
+                (imageHeader.selectFirst("> div.tt > div > div > div.numscore")?.text()
+                    ?.toFloat()?.times(100))?.toInt()
             val latestChap = imageHeader.select("> div.tt > span.nchapter").text()
             returnValue.add(SearchResponse(name, cUrl, posterUrl, rating, latestChap, this.name))
         }
@@ -96,7 +96,7 @@ class RewayatArProvider : MainAPI() {
     override fun loadHtml(url: String): String? {
         val response = khttp.get(url)
         val document = Jsoup.parse(response.text)
-        return document.selectFirst("div.entry-content").html()
+        return document.selectFirst("div.entry-content")?.html()
     }
 
     override fun search(query: String): List<SearchResponse> {
@@ -107,17 +107,18 @@ class RewayatArProvider : MainAPI() {
         if (headers.size <= 0) return ArrayList()
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
-            val head = h.selectFirst("a.tip")
+            val head = h?.selectFirst("a.tip")
 
-            val url = head.attr("href")
+            val url = head?.attr("href") ?: continue
 
             val posterUrl = h.select("div.limit img").attr("src")
 
             val tip = h.selectFirst("a.tip")
 
-            val name = tip.select("div.tt span.ntitle").text()
+            val name = tip?.select("div.tt span.ntitle")?.text() ?: continue
 
-            val ratingTxt = tip.selectFirst("> div.tt > div.rt > div.rating > div.numscore").text()
+            val ratingTxt =
+                tip.selectFirst("> div.tt > div.rt > div.rating > div.numscore")?.text()
 
             val rating = if (ratingTxt != null) {
                 (ratingTxt.toFloat() * 100).toInt()
@@ -125,7 +126,7 @@ class RewayatArProvider : MainAPI() {
                 null
             }
 
-            val latestChapter = tip.selectFirst("> div.tt > span.nchapter").text()
+            val latestChapter = tip.selectFirst("> div.tt > span.nchapter")?.text()
             returnValue.add(SearchResponse(name, url, posterUrl, rating, latestChapter, this.name))
         }
         return returnValue
@@ -140,7 +141,7 @@ class RewayatArProvider : MainAPI() {
         val authors = document.select("div.spe span:contains(المؤلف) > a")
         var author = ""
         for (a in authors) {
-            val atter = a.attr("href")
+            val atter = a?.attr("href") ?: continue
             if (atter.length > "$mainUrl/writer/".length && atter.startsWith("$mainUrl/writer/")) {
                 author = a.text()
                 break
@@ -160,11 +161,11 @@ class RewayatArProvider : MainAPI() {
         val data: ArrayList<ChapterData> = ArrayList()
         val chapterHeaders = document.select("li[data-id] > a")//.eplister ul
         for (c in chapterHeaders) {
-            val cUrl = c.attr("href")
+            val cUrl = c?.attr("href") ?: continue
             val cName = c.select("div.epl-title").text() + ":" + c.select("div.epl-num").text()
             val added = c.select("div.epl-date").text()
             val views = null
-            data.add(ChapterData(cName, cUrl, added, views))
+            data.add(ChapterData(cName, cUrl , added, views))
         }
         data.reverse()
 
@@ -178,7 +179,7 @@ class RewayatArProvider : MainAPI() {
         val aHeaders = document.select("span:contains(الحالة)")
 
         val status =
-            when (aHeaders.text().replace("الحالة: ", "").toLowerCase(Locale.getDefault())) {
+            when (aHeaders.text().replace("الحالة: ", "").lowercase(Locale.getDefault())) {
                 "ongoing" -> STATUS_ONGOING
                 "completed" -> STATUS_COMPLETE
                 else -> STATUS_NULL

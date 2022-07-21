@@ -21,7 +21,7 @@ class ReadAnyBookProvider : MainAPI() {
             val main = it.select("div.preview-name > a")
             val bookName = main.text()
             val bookUrl = main.attr("href")
-            val posterUrl = fixUrl(it.select("img").attr("data-src"))
+            val posterUrl = fixUrlNull(it.select("img").attr("data-src"))
 
             SearchResponse(
                 bookName,
@@ -34,17 +34,17 @@ class ReadAnyBookProvider : MainAPI() {
         }
     }
 
-    override fun load(url: String): LoadResponse {
+    override fun load(url: String): LoadResponse? {
         val res = get(url).text
         val doc = Jsoup.parse(res)
 
-        val name = doc.select("div.book-name").text()
+        val name = doc.select("div.book-name").text() ?: return null
         val data = doc.select("div.links-row").attr("data-link") + containerUrl
 
         val authors = doc.select("div.details-row span.authors-list span")
             .joinToString(separator = ", ") { it.text() }
 
-        val posterUrl = fixUrl(doc.select("a.gallery-item").attr("href"))
+        val posterUrl = fixUrlNull(doc.select("a.gallery-item").attr("href"))
 
         val rating =
             doc.select("input[name=all-rating]").attr("value")?.toDoubleOrNull()?.times(100)
@@ -98,8 +98,8 @@ class ReadAnyBookProvider : MainAPI() {
              val found = manifest.firstOrNull { it.attr("id") == id } ?: return@forEach
 
              // Doesn't parse images
-             if (found.attr("media-type").contains("html")) {
-                 val href = found.attr("href")
+             if (found?.attr("media-type").contains("html")) {
+                 val href = found?.attr("href")
                  if (href.isNullOrBlank()) return@forEach
 
                  val pageUrl = if (href.startsWith("http") || href.startsWith("www.")) {
@@ -196,7 +196,7 @@ class ReadAnyBookProvider : MainAPI() {
             val found = manifest.firstOrNull { it.attr("id") == id } ?: return@forEach
 
             // Doesn't parse images
-            if (found.attr("media-type").contains("html")) {
+            if (found.attr("media-type").contains("html") != false) {
                 val href = found.attr("href")
                 if (href.isNullOrBlank()) return@forEach
 

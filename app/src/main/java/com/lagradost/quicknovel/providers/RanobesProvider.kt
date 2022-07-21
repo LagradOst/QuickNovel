@@ -124,19 +124,21 @@ class RanobesProvider : MainAPI() {
         if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
-            val h2 = h.selectFirst("h2.title > a")
-            val cUrl = h2.attr("href")
+            val h2 = h?.selectFirst("h2.title > a")
+            val cUrl = h2?.attr("href") ?: continue
 
             val name = h2.text()
-            val posterUrl = h.selectFirst("div.cont.showcont > div > a > figure").attr("style")
-                .replace("""background-image: url(""", "").replace(");", "")
+            val posterUrl = h.selectFirst("div.cont.showcont > div > a > figure")?.attr("style")
+                ?.replace("""background-image: url(""", "")?.replace(");", "")
 
-            val latestChap = mainUrl + h.nextElementSibling().selectFirst("div > a").attr("href")
+            val latestChap =
+                mainUrl + (h.nextElementSibling()?.selectFirst("div > a")?.attr("href")
+                    ?: continue)
             returnValue.add(
                 SearchResponse(
                     name,
                     cUrl,
-                    fixUrl(posterUrl),
+                    fixUrlNull(posterUrl),
                     null,
                     latestChap,
                     this.name
@@ -150,8 +152,8 @@ class RanobesProvider : MainAPI() {
         val response = khttp.get(url, headers = baseHeaders)
         val document = Jsoup.parse(response.text)
         Thread.sleep(Random.nextLong(250, 350))
-        return document.selectFirst("#dle-content > article > div.block.story.shortstory > h1")
-            .html() + document.selectFirst("#arrticle").html()
+        return (document.selectFirst("#dle-content > article > div.block.story.shortstory > h1")
+            ?.html() ?: return null) + document.selectFirst("#arrticle")?.html()
     }
 
 
@@ -179,19 +181,19 @@ class RanobesProvider : MainAPI() {
         if (headers.size <= 0) return ArrayList()
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
-            val h2 = h.selectFirst("h2.title > a")
-            val cUrl = h2.attr("href")
+            val h2 = h?.selectFirst("h2.title > a")
+            val cUrl = h2?.attr("href") ?: continue
 
-            val name = h2.text()
-            val posterUrl = h.selectFirst("div.cont.showcont > div > a > figure").attr("style")
-                .replace("""background-image: url(""", "").replace(");", "")
+            val name = h2.text() ?: continue
+            val posterUrl = h.selectFirst("div.cont.showcont > div > a > figure")?.attr("style")
+                ?.replace("""background-image: url(""", "")?.replace(");", "")
 
-            val latestChap = mainUrl + h.nextElementSibling().selectFirst("div > a").attr("href")
+            val latestChap = mainUrl + h.nextElementSibling()?.selectFirst("div > a")?.attr("href")
             returnValue.add(
                 SearchResponse(
                     name,
                     cUrl,
-                    fixUrl(posterUrl),
+                    fixUrlNull(posterUrl),
                     null,
                     latestChap,
                     this.name
@@ -203,22 +205,25 @@ class RanobesProvider : MainAPI() {
         return returnValue
     }
 
-    override fun load(url: String): LoadResponse {
+    override fun load(url: String): LoadResponse? {
         val response = khttp.get(url, headers = baseHeaders)
 
         val document = Jsoup.parse(response.text)
-        val name = document.selectFirst("div.r-fullstory-s1 > h1").text()
-        val author = document.selectFirst("span.tag_list").text()
+        val name = document.selectFirst("div.r-fullstory-s1 > h1")?.text() ?: return null
+        val author = document.selectFirst("span.tag_list")?.text()
         val tags = document.select("#mc-fs-genre > div > a").map {
             it.text()
         }
 
-        val posterUrl = document.select("div.poster > a > img").attr("src").substringAfter("/")
-        val synopsis = document.selectFirst("div.moreless__full").text()
+        val posterUrl = document.select("div.poster > a > img").attr("src")?.substringAfter("/")
+        val synopsis = document.selectFirst("div.moreless__full")?.text()
         val listdata = mutableListOf<Chapterdatajson>()
         val data: ArrayList<ChapterData> = ArrayList()
         val chapretspageresponse =
-            khttp.get("$mainUrl/chapters/${url.substringAfterLast("/").substringBefore("-")}", headers = baseHeaders)
+            khttp.get(
+                "$mainUrl/chapters/${url.substringAfterLast("/").substringBefore("-")}",
+                headers = baseHeaders
+            )
         val chapretspage = Jsoup.parse(chapretspageresponse.text)
         val cha1 = Chapterdatajson.fromJson(
             chapretspage.select("script").filter { it.data().contains("window.__DATA") }[0].data()
@@ -229,7 +234,7 @@ class RanobesProvider : MainAPI() {
             document.select("span.grey").filter { it.text().contains("chapters") }[0].text()
                 .filter { it.isDigit() }.toInt().div(25).plus(1)
         listdata.add(cha1)
-        for (i in 2..numberofchpages!!) {
+        for (i in 2..numberofchpages) {
             val chapretspageresponsei = khttp.get(
                 "$mainUrl/chapters/${
                     url.substringAfterLast("/").substringBefore("-")
@@ -261,22 +266,22 @@ class RanobesProvider : MainAPI() {
             // Copy pasted from browser, hopefully does not break 💀
             document.selectFirst(".r-fullstory-spec > ul:nth-child(1) > li:nth-child(7) > span:nth-child(1) > a:nth-child(1)")
 
-        val status = when (statusHeader.text()) {
+        val status = when (statusHeader?.text()) {
             "Ongoing" -> STATUS_ONGOING
             "Completed" -> STATUS_COMPLETE
             else -> STATUS_NULL
         }
         val views =
             document.selectFirst("#fs-info > div.r-fullstory-spec > ul:nth-child(2) > li:nth-child(1) > span")
-                .text().filter { it.isDigit() }.toInt()
+                ?.text()?.filter { it.isDigit() }?.toIntOrNull()
         var rating = 0
         var peopleVoted = 0
         try {
-            rating = (document.selectFirst("#rate_b > div > div > div > span.bold").text()
-                .substringBefore("/").toFloat() * 200).toInt()
+            rating = (document.selectFirst("#rate_b > div > div > div > span.bold")?.text()
+                ?.substringBefore("/")?.toFloatOrNull()?.times(200))?.toInt()!!
 
             peopleVoted =
-                document.selectFirst("#rate_b > div > div > div > span.small.grey > span").text()
+                document.selectFirst("#rate_b > div > div > div > span.small.grey > span")?.text()!!
                     .filter { it.isDigit() }.toInt()
         } catch (e: Exception) {
             // NO RATING

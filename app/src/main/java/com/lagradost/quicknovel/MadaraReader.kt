@@ -3,10 +3,10 @@ package com.lagradost.quicknovel
 import java.util.*
 
 abstract class MadaraReader : MainAPI() {
-    open override val name = ""
-    open override val mainUrl = ""
-    open override val iconId = R.drawable.ic_meionovel
-    open override val lang = "id"
+    override val name = ""
+    override val mainUrl = ""
+    override val iconId = R.drawable.ic_meionovel
+    override val lang = "id"
     override val hasMainPage = true
     override val iconBackgroundId = R.color.lightItemBackground
     open val novelGenre: String = "novel-genre"
@@ -81,7 +81,7 @@ abstract class MadaraReader : MainAPI() {
 
         val url = mainUrl.toUrlBuilderSafe()
             .addPath(order)
-            ?.ifCase(page > 1) { addPath("page", page.toString()) }
+            .ifCase(page > 1) { addPath("page", page.toString()) }
             ?.ifCase(orderBy !in cek) { add("m_orderby", "$orderBy") }
             .toString()
 
@@ -93,15 +93,15 @@ abstract class MadaraReader : MainAPI() {
         val returnValue = headers
             .mapNotNull {
                 val imageHeader = it.selectFirst("div.item-thumb > a")
-                val cName = imageHeader.attr("title")
-                val cUrl = imageHeader.attr("href") ?: ""
+                val cName = imageHeader?.attr("title") ?: return@mapNotNull null
+                val cUrl = imageHeader.attr("href") ?: return@mapNotNull null
                 val posterUrl = imageHeader.selectFirst("> img")?.attr(covelAttr) ?: ""
                 val sum = it.selectFirst("div.item-summary")
-                val rating = sum.selectFirst("> div.rating > div.post-total-rating > span.score")
+                val rating = sum?.selectFirst("> div.rating > div.post-total-rating > span.score")
                     ?.text()
                     ?.toRate()
                 val latestChap =
-                    sum.selectFirst("> div.list-chapter > div.chapter-item > span > a").text()
+                    sum?.selectFirst("> div.list-chapter > div.chapter-item > span > a")?.text()
                 SearchResponse(cName, cUrl, posterUrl, rating, latestChap, this.name)
             }
 
@@ -112,7 +112,7 @@ abstract class MadaraReader : MainAPI() {
         val res = jConnect(url)!!.selectFirst("div.text-left")
         if (res == null || res.html() == "") return null
         return res.let { adv ->
-            adv.select("p:has(a)")?.forEach { it.remove() }
+            adv.select("p:has(a)").forEach { it.remove() }
             adv.html()
         }
     }
@@ -127,14 +127,14 @@ abstract class MadaraReader : MainAPI() {
             .mapNotNull {
                 // val head = it.selectFirst("> div > div.tab-summary")
                 val title = it.selectFirst("div.post-title > h3 > a")
-                val name = title.text()
-                val url = title.attr("href")
+                val name = title?.text() ?: return@mapNotNull null
+                val url = title.attr("href") ?: return@mapNotNull null
                 val posterUrl = it.selectFirst("div.tab-thumb > a > img")?.attr(covelAttr) ?: ""
                 val meta = it.selectFirst("div.tab-meta")
                 val rating =
-                    meta.selectFirst("div.rating > div.post-total-rating > span.total_votes")
-                        .text().toRate()
-                val latestChapter = meta.selectFirst("div.latest-chap > span.chapter > a").text()
+                    meta?.selectFirst("div.rating > div.post-total-rating > span.total_votes")
+                        ?.text()?.toRate()
+                val latestChapter = meta?.selectFirst("div.latest-chap > span.chapter > a")?.text()
                 SearchResponse(name, url, posterUrl, rating, latestChapter, this.name)
             }
     }

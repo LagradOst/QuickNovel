@@ -72,12 +72,12 @@ class ReadLightNovelProvider : MainAPI() {
         val headers = document.select("div.top-novel-block")
         if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
 
-        val returnValue = headers.map {
+        val returnValue = headers.mapNotNull {
             val content = it.selectFirst("> div.top-novel-content")
             val nameHeader = it.selectFirst("div.top-novel-header > h2 > a")
-            val cUrl = nameHeader.attr("href")
-            val name = nameHeader.text()
-            val posterUrl = content.selectFirst("> div.top-novel-cover > a > img").attr("src")
+            val cUrl = nameHeader?.attr("href") ?: return@mapNotNull null
+            val name = nameHeader.text() ?: return@mapNotNull null
+            val posterUrl = content?.selectFirst("> div.top-novel-cover > a > img")?.attr("src")
             /* val tags = ArrayList(
                  content.select("> div.top-novel-body > div.novel-item > div.content")
                      .last().select("> ul > li > a").map { t -> t.text() })*/
@@ -85,7 +85,7 @@ class ReadLightNovelProvider : MainAPI() {
             SearchResponse(
                 name,
                 fixUrl(cUrl),
-                fixUrl(posterUrl),
+                fixUrlNull(posterUrl),
                 null,
                 null,
                 this.name
@@ -98,7 +98,7 @@ class ReadLightNovelProvider : MainAPI() {
     override fun loadHtml(url: String): String? {
         val response = khttp.get(url)
         val document = Jsoup.parse(response.text)
-        val content = document.selectFirst("div.chapter-content3 > div.desc")
+        val content = document.selectFirst("div.chapter-content3 > div.desc") ?: return null
         //content.select("div").remove()
         content.select("div.alert").remove()
         content.select("#podium-spot").remove()
@@ -141,16 +141,16 @@ class ReadLightNovelProvider : MainAPI() {
             val spans = h.select("> span")
 
             val name = spans[1].text()
-            val url = h.attr("href")
+            val url = h?.attr("href") ?: continue
 
-            val posterUrl = spans[0].selectFirst("> img").attr("src")
+            val posterUrl = spans[0].selectFirst("> img")?.attr("src")
 
             returnValue.add(SearchResponse(name, url, posterUrl, null, null, this.name))
         }
         return returnValue
     }
 
-    override fun load(url: String): LoadResponse {
+    override fun load(url: String): LoadResponse? {
         val response = khttp.get(url.replace("http://", "https://"))
 
         val document = Jsoup.parse(response.text)
@@ -178,8 +178,8 @@ class ReadLightNovelProvider : MainAPI() {
         }
 
         val rating = (getIndex("Rating").text().toFloat() * 100).toInt()
-        val name = document.selectFirst("div.block-title").text()
-        var author = getIndex("Author(s)").selectFirst("> ul > li").text()
+        val name = document.selectFirst("div.block-title")?.text() ?: return null
+        var author = getIndex("Author(s)").selectFirst("> ul > li")?.text()
         if (author == "N/A") author = null
 
         val tagsDoc = getIndex("Genre").select("ul > li > a")
@@ -191,7 +191,7 @@ class ReadLightNovelProvider : MainAPI() {
         var synopsis = ""
         val synoParts = getIndex("Description").select("> p")
         for (s in synoParts) {
-            synopsis += s.text()!! + "\n\n"
+            synopsis += s.text() + "\n\n"
         }
 
         val data: ArrayList<ChapterData> = ArrayList()
@@ -204,7 +204,7 @@ class ReadLightNovelProvider : MainAPI() {
                 p.select("> div.panel-collapse > div.panel-body > div.tab-content > div.tab-pane > ul.chapter-chs > li > a")
             for (c in chapterHeaders) {
                 val cName = c.text()
-                val cUrl = c.attr("href")
+                val cUrl = c?.attr("href") ?: continue
                 var rName = cName
                     .replace("CH ([0-9]*)".toRegex(), "Chapter $1")
                     .replace("CH ", "")
@@ -220,7 +220,7 @@ class ReadLightNovelProvider : MainAPI() {
             }
         }
 
-        val posterUrl = document.selectFirst("div.novel-cover > a > img").attr("src")
+        val posterUrl = document.selectFirst("div.novel-cover > a > img")?.attr("src")
 
         val views = getIndex("Total Views").text().replace(",", "").replace(".", "").toInt()
         val peopleRated = null
@@ -236,7 +236,7 @@ class ReadLightNovelProvider : MainAPI() {
             name,
             data,
             author,
-            fixUrl(posterUrl),
+            fixUrlNull(posterUrl),
             rating,
             peopleRated,
             views,

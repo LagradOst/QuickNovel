@@ -85,7 +85,7 @@ class NovelFullProvider : MainAPI() {
         fun getId(tagvalue: String?): String? {
             for (i in firstdocument.select("#hot-genre-select>option")) {
                 if (i.text() == tagvalue) {
-                    return i.attr("value")
+                    return i?.attr("value")
                 }
             }
             return null
@@ -99,18 +99,18 @@ class NovelFullProvider : MainAPI() {
         if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
-            val h3 = h.selectFirst("a")
-            val cUrl = mainUrl + h3.attr("href")
+            val h3 = h?.selectFirst("a") ?: continue
+            val cUrl = h3.attr("href")
             val name = h3.attr("title")
 
             val posterUrl =
-                mainUrl + h.selectFirst("img").attr("src")
+                mainUrl + h.selectFirst("img")?.attr("src")
 
             returnValue.add(
                 SearchResponse(
                     name,
-                    cUrl,
-                    fixUrl(posterUrl),
+                    fixUrl(cUrl),
+                    fixUrlNull(posterUrl),
                     null,
                     null,
                     this.name
@@ -120,10 +120,10 @@ class NovelFullProvider : MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
-    override fun loadHtml(url: String): String {
+    override fun loadHtml(url: String): String? {
         val response = khttp.get(url)
         val document = Jsoup.parse(response.text)
-        return document.selectFirst("#chapter-content").html().replace(
+        return document.selectFirst("#chapter-content")?.html()?.replace(
             " If you find any errors ( broken links, non-standard content, etc.. ), Please let us know &lt; report chapter &gt; so we can fix it as soon as possible.",
             " "
         )
@@ -141,23 +141,23 @@ class NovelFullProvider : MainAPI() {
         if (headers.size <= 0) return ArrayList()
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
-            val h3 = h.selectFirst("h3.truyen-title > a")
+            val h3 = h?.selectFirst("h3.truyen-title > a") ?: continue
             val cUrl = mainUrl + h3.attr("href")
             val name = h3.attr("title")
 
             val posterUrl =
                 mainUrl + Jsoup.parse(khttp.get(cUrl).text).select("div.book > img").attr("src")
             /*
-            mainUrl+h.selectFirst("div.col-xs-3 > div > img").attr("src")
+            mainUrl+h?.selectFirst("div.col-xs-3 > div > img")?.attr("src")
 
              */
 
-            val latestChap = h.selectFirst("div.col-xs-2.text-info > div > a").attr("title")
+            val latestChap = h.selectFirst("div.col-xs-2.text-info > div > a")?.attr("title")
             returnValue.add(
                 SearchResponse(
                     name,
                     cUrl,
-                    fixUrl(posterUrl),
+                    fixUrlNull(posterUrl),
                     null,
                     latestChap,
                     this.name
@@ -167,20 +167,20 @@ class NovelFullProvider : MainAPI() {
         return returnValue
     }
 
-    override fun load(url: String): LoadResponse {
+    override fun load(url: String): LoadResponse? {
         val response = khttp.get(url)
 
         val document = Jsoup.parse(response.text)
-        val name = document.selectFirst("h3.title").text()
+        val name = document.selectFirst("h3.title")?.text() ?: return null
 
-        val author = document.selectFirst("div.info > div:nth-child(1) > a").text()
+        val author = document.selectFirst("div.info > div:nth-child(1) > a")?.text()
 
         val posterUrl = document.select("div.book > img").attr("src")
 
         val tags = document.select("div.info > div:nth-child(3) a").map {
             it.text()
         }
-        val synopsis = document.selectFirst("div.desc-text").text()
+        val synopsis = document.selectFirst("div.desc-text")?.text()
 
         val data: ArrayList<ChapterData> = ArrayList()
         val datanovelid = document.select("#rating").attr("data-novel-id")
@@ -190,7 +190,7 @@ class NovelFullProvider : MainAPI() {
         val parsed = parsedchaptersData.select("select > option")
         for (c in parsed) {
 
-            val cUrl = mainUrl + c.attr("value")
+            val cUrl = mainUrl + c?.attr("value")
             val cName = if (c.text().isEmpty()) {
                 "chapter $c"
             } else {
@@ -201,7 +201,7 @@ class NovelFullProvider : MainAPI() {
 
 
         val statusHeader0 = document.selectFirst("div.info > div:nth-child(5) > a")
-        val status = when (statusHeader0.selectFirst("a").text()) {
+        val status = when (statusHeader0?.selectFirst("a")?.text()) {
             "Ongoing" -> STATUS_ONGOING
             "Completed" -> STATUS_COMPLETE
             else -> STATUS_NULL
@@ -211,9 +211,11 @@ class NovelFullProvider : MainAPI() {
         var peopleVoted = 0
         try {
             rating =
-                document.selectFirst(" div.small > em > strong:nth-child(1) > span").text().toInt()
+                document.selectFirst(" div.small > em > strong:nth-child(1) > span")?.text()!!
+                    .toInt()
             peopleVoted =
-                document.selectFirst(" div.small > em > strong:nth-child(3) > span").text().toInt()
+                document.selectFirst(" div.small > em > strong:nth-child(3) > span")?.text()!!
+                    .toInt()
         } catch (e: Exception) {
             // NO RATING
         }
@@ -223,7 +225,7 @@ class NovelFullProvider : MainAPI() {
             name,
             data,
             author,
-            fixUrl(posterUrl),
+            fixUrlNull(posterUrl),
             rating,
             peopleVoted,
             null,

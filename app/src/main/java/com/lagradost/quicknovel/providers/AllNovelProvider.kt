@@ -83,12 +83,8 @@ class AllNovelProvider : MainAPI() {
         val firstresponse = khttp.get(mainUrl)
         val firstdocument = Jsoup.parse(firstresponse.text)
         fun getId(tagvalue: String?): String? {
-            for (i in firstdocument.select("#hot-genre-select>option")) {
-                if (i.text() == tagvalue) {
-                    return i.attr("value")
-                }
-            }
-            return null
+            return firstdocument.select("#hot-genre-select>option")
+                .firstOrNull { it.text() == tagvalue }?.attr("value")
         }
 
         // I cant fix this because idk how it works
@@ -99,18 +95,18 @@ class AllNovelProvider : MainAPI() {
         if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
-            val h3 = h.selectFirst("a")
-            val cUrl = mainUrl + h3.attr("href")
-            val name = h3.attr("title")
+            val h3 = h?.selectFirst("a")
+            val cUrl = mainUrl + h3?.attr("href")
+            val name = h3?.attr("title") ?: throw ErrorLoadingException("Invalid name")
 
             val posterUrl =
-                mainUrl + h.selectFirst("img").attr("src")
+                mainUrl + h.selectFirst("img")?.attr("src")
 
             returnValue.add(
                 SearchResponse(
                     name,
                     cUrl,
-                    fixUrl(posterUrl),
+                    fixUrlNull(posterUrl),
                     null,
                     null,
                     this.name
@@ -120,10 +116,10 @@ class AllNovelProvider : MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
-    override fun loadHtml(url: String): String {
+    override fun loadHtml(url: String): String? {
         val response = khttp.get(url)
         val document = Jsoup.parse(response.text)
-        return document.selectFirst("#chapter-content").html().replace(
+        return document.selectFirst("#chapter-content")?.html()?.replace(
             " If you find any errors ( broken links, non-standard content, etc.. ), Please let us know &lt; report chapter &gt; so we can fix it as soon as possible.",
             " "
         )
@@ -141,23 +137,23 @@ class AllNovelProvider : MainAPI() {
         if (headers.size <= 0) return ArrayList()
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
-            val h3 = h.selectFirst("h3.truyen-title > a")
-            val cUrl = mainUrl + h3.attr("href")
-            val name = h3.attr("title")
+            val h3 = h?.selectFirst("h3.truyen-title > a")
+            val cUrl = mainUrl + h3?.attr("href")
+            val name = h3?.attr("title") ?: throw ErrorLoadingException("Invalid name")
 
             val posterUrl =
                 mainUrl + Jsoup.parse(khttp.get(cUrl).text).select("div.book > img").attr("src")
             /*
-            mainUrl+h.selectFirst("div.col-xs-3 > div > img").attr("src")
+            mainUrl+h?.selectFirst("div.col-xs-3 > div > img")?.attr("src")
 
              */
 
-            val latestChap = h.selectFirst("div.col-xs-2.text-info > div > a").attr("title")
+            val latestChap = h.selectFirst("div.col-xs-2.text-info > div > a")?.attr("title")
             returnValue.add(
                 SearchResponse(
                     name,
                     cUrl,
-                    fixUrl(posterUrl),
+                    fixUrlNull(posterUrl),
                     null,
                     latestChap,
                     this.name
@@ -171,59 +167,53 @@ class AllNovelProvider : MainAPI() {
         val response = khttp.get(url)
 
         val document = Jsoup.parse(response.text)
-        val name = document.selectFirst("h3.title").text()
+        val name = document.selectFirst("h3.title")?.text()
 
-        val author = document.selectFirst("div.info > div:nth-child(1) > a").text()
+        val author = document.selectFirst("div.info > div:nth-child(1) > a")?.text()
 
         val posterUrl = document.select("div.book > img").attr("src")
 
         val tags = document.select("div.info > div:nth-child(3) a").map {
             it.text()
         }
-        val synopsis = document.selectFirst("div.desc-text").text()
+        val synopsis = document.selectFirst("div.desc-text")?.text()
 
-        val data: ArrayList<ChapterData> = ArrayList()
         val datanovelid = document.select("#rating").attr("data-novel-id")
         val chaptersData =
             khttp.get("https://allnovel.org/ajax-chapter-option?novelId=$datanovelid")
         val parsedchaptersData = Jsoup.parse(chaptersData.text)
         val parsed = parsedchaptersData.select("select > option")
-        for (c in parsed) {
 
-            val cUrl = mainUrl + c.attr("value")
+        val data = parsed.map { c ->
+            val cUrl = mainUrl + c?.attr("value")
             val cName = if (c.text().isEmpty()) {
                 "chapter $c"
             } else {
                 c.text()
             }
-            data.add(ChapterData(cName, cUrl, null, null))
+            ChapterData(cName, cUrl, null, null)
         }
 
-
         val statusHeader0 = document.selectFirst("div.info > div:nth-child(5) > a")
-        val status = when (statusHeader0.selectFirst("a").text()) {
+        val status = when (statusHeader0?.selectFirst("a")?.text()) {
             "Ongoing" -> STATUS_ONGOING
             "Completed" -> STATUS_COMPLETE
             else -> STATUS_NULL
         }
 
-        var rating = 0
-        var peopleVoted = 0
-        try {
-            rating =
-                document.selectFirst(" div.small > em > strong:nth-child(1) > span").text().toInt()
-            peopleVoted =
-                document.selectFirst(" div.small > em > strong:nth-child(3) > span").text().toInt()
-        } catch (e: Exception) {
-            // NO RATING
-        }
+
+        val rating = document.selectFirst(" div.small > em > strong:nth-child(1) > span")?.text()
+            ?.toIntOrNull() ?: 0
+        val peopleVoted =
+            document.selectFirst(" div.small > em > strong:nth-child(3) > span")?.text()
+                ?.toIntOrNull() ?: 0
 
         return LoadResponse(
             url,
-            name,
+            name ?: throw ErrorLoadingException("invalid name"),
             data,
             author,
-            fixUrl(posterUrl),
+            fixUrlNull(posterUrl),
             rating,
             peopleVoted,
             null,
