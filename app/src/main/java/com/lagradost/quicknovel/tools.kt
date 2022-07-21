@@ -27,7 +27,7 @@ fun jConnect(
 fun String.toRate(maxRate: Int = 10): Int {
     return this
         .replace(Regex("[^.0-9]"), "")
-        ?.toFloatOrNull()
+        .toFloatOrNull()
         ?.times(1000 / maxRate)
         ?.toInt() ?: 0
 }
@@ -36,7 +36,7 @@ fun String.toVote(): Int {
     val k = this.contains("K", true)
     return this
         .replace(Regex("[^.0-9]"), "")
-        ?.toFloatOrNull()
+        .toFloatOrNull()
         ?.times(if (k) 1000 else 1)
         ?.toInt() ?: 0
 }
@@ -46,7 +46,7 @@ fun String.toChapters(): String = this.replace(Regex("[^0-9]"), "")
 fun String.toStatus(): Int {
     return this
         .clean()
-        .toLowerCase()
+        .lowercase(Locale.getDefault())
         .let {
             when (it) {
                 "completed" -> STATUS_COMPLETE

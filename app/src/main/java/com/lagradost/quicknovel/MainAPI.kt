@@ -38,11 +38,11 @@ abstract class MainAPI {
         throw NotImplementedError()
     }
 
-    open fun search(query: String): List<SearchResponse> {
+    open fun search(query: String): List<SearchResponse>? {
         throw NotImplementedError()
     }
 
-    open fun load(url: String): LoadResponse {
+    open fun load(url: String): LoadResponse? {
         throw NotImplementedError()
     }
 
@@ -52,6 +52,12 @@ abstract class MainAPI {
 }
 
 class ErrorLoadingException(message: String? = null) : Exception(message)
+fun MainAPI.fixUrlNull(url: String?): String? {
+    if (url.isNullOrEmpty()) {
+        return null
+    }
+    return fixUrl(url)
+}
 
 fun MainAPI.fixUrl(url: String): String {
     if (url.startsWith("http")) {

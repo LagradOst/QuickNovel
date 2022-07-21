@@ -25,7 +25,7 @@ class LightNovelPubProvider : MainAPI() {
     override fun loadHtml(url: String): String? { // THEY RATE LIMIT THE FUCK ON THIS PROVIDER
         val response = get(url)
         val document = Jsoup.parse(response.text)
-        val items = document.selectFirst("div#chapter-container")
+        val items = document.selectFirst("div#chapter-container") ?: return null
         // THEY HAVE SHIT LIKE " <p class="kyzywl">The source of this content is lightnovelpub[.]com</p> " random class, no normal text has a class
         for (i in items.allElements) {
             if (i.tagName() == "p" && i.classNames().size > 0 && i.text()
@@ -38,7 +38,7 @@ class LightNovelPubProvider : MainAPI() {
     }
 
     private fun getChaps(document: Document): List<OrderedChapterData> {
-        return document.select("ul.chapter-list > li").map { parseChap(it) }
+        return document.select("ul.chapter-list > li").mapNotNull { parseChap(it) }
     }
 
     data class OrderedChapterData(
@@ -48,23 +48,23 @@ class LightNovelPubProvider : MainAPI() {
         val orderno: Int,
     )
 
-    private fun parseChap(element: Element): OrderedChapterData {
+    private fun parseChap(element: Element): OrderedChapterData? {
         val orderNum = element.attr("data-orderno").toInt()
         val a = element.selectFirst("> a")
-        val href = fixUrl(a.attr("href"))
-        val title = a.selectFirst("> strong.chapter-title").text()
-        val time = a.selectFirst("> time.chapter-update").text() // attr datetime
-        return OrderedChapterData(title, href, time, orderNum)
+        val href = fixUrl(a?.attr("href") ?: return null)
+        val title = a.selectFirst("> strong.chapter-title")?.text()
+        val time = a.selectFirst("> time.chapter-update")?.text() // attr datetime
+        return OrderedChapterData(title ?: return null, href, time, orderNum)
     }
 
-    override fun load(url: String): LoadResponse {
+    override fun load(url: String): LoadResponse? {
         val response = get(url)
         val document = Jsoup.parse(response.text)
-        val poster = document.selectFirst("div.fixed-img > figure.cover > img").attr("data-src")
+        val poster = document.selectFirst("div.fixed-img > figure.cover > img")?.attr("data-src")
         val novelInfo = document.selectFirst("div.header-body > div.novel-info")
-        val mainHead = novelInfo.selectFirst("> div.main-head")
+        val mainHead = novelInfo?.selectFirst("> div.main-head")
 
-        val title = mainHead.selectFirst("> h1.novel-title").text()
+        val title = mainHead?.selectFirst("> h1.novel-title")?.text() ?: return null
         val author = mainHead.selectFirst("> div.author > a > span")?.text()
         val rating =
             mainHead.selectFirst("> div.rating > div.rating-star > p > strong")?.text()
@@ -72,7 +72,7 @@ class LightNovelPubProvider : MainAPI() {
                 ?.toInt()
 
         val headerStats = novelInfo.select("> div.header-stats > span > strong")
-        val viewsText = headerStats?.get(1)?.text()?.toLowerCase(Locale.getDefault())
+        val viewsText = headerStats.get(1)?.text()?.lowercase(Locale.getDefault())
         val views = if (viewsText == null) null else {
             val times =
                 when {
@@ -87,16 +87,16 @@ class LightNovelPubProvider : MainAPI() {
             (viewsText.replace("m", "").replace("k", "").toFloat() * times).toInt()
         }
 
-        val status = when (headerStats?.get(3)?.text()) {
+        val status = when (headerStats.get(3)?.text()) {
             "Completed" -> 2
             "Ongoing" -> 1
             else -> 0
         }
 
         val genres =
-            ArrayList(novelInfo?.select("> div.categories > ul > li > a")?.map { it.text() }
+            ArrayList(novelInfo.select("> div.categories > ul > li > a")?.map { it.text() }
                 ?: listOf())
-        val tags = ArrayList(document?.select("> div.tags > ul.content > li > a")?.map { it.text() }
+        val tags = ArrayList(document.select("> div.tags > ul.content > li > a")?.map { it.text() }
             ?: listOf())
         genres.addAll(tags)
         val synopsis = document.selectFirst("div.summary > div.content")?.text()
@@ -186,12 +186,12 @@ class LightNovelPubProvider : MainAPI() {
         if (items.size <= 0) return ArrayList()
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (item in items) {
-            val title = item.attr("title")
-            val href = item.attr("href")
-            val poster = item.selectFirst("> div.cover-wrap > figure > img").attr("src")
+            val title = item?.attr("title") ?: continue
+            val href = item.attr("href") ?: continue
+            val poster = item.selectFirst("> div.cover-wrap > figure > img")?.attr("src")
             val latestChap =
-                "Chapter " + item.select("> div.item-body > div.novel-stats > span").last().text()
-                    .replace("Chapters", "")
+                "Chapter " + item.select("> div.item-body > div.novel-stats > span").last()?.text()
+                    ?.replace("Chapters", "")
 
             returnValue.add(
                 SearchResponse(

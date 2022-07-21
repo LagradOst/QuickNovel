@@ -719,13 +719,13 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
         try {
             val elements =
-                Jsoup.parse(currentHtmlText)?.allElements?.filterNotNull() ?: return false
+                Jsoup.parse(currentHtmlText).allElements?.filterNotNull() ?: return false
 
             for (element in elements) {
                 val href = element.attr("href") ?: continue
 
                 val text =
-                    element.ownText()?.replace(Regex("[\\[\\]().,|{}<>]"), "")?.trim() ?: continue
+                    element.ownText().replace(Regex("[\\[\\]().,|{}<>]"), "")?.trim() ?: continue
                 if (text.equals("next", true) || text.equals(
                         "next chapter",
                         true
@@ -1828,7 +1828,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
             readShowFonts?.setOnClickListener {
                 showFonts {
-                    readShowFonts?.text = it
+                    readShowFonts.text = it
                 }
             }
 
@@ -1995,7 +1995,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
                     if (itemId == 1) {
                         it.context?.removeKey(EPUB_TEXT_PADDING_TOP)
-                        readSettingsTextPaddingTop?.progress = getTextPaddingTop()
+                        readSettingsTextPaddingTop.progress = getTextPaddingTop()
                     }
                 }
             }
@@ -2004,7 +2004,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
                     if (itemId == 1) {
                         it.context?.removeKey(EPUB_TEXT_PADDING)
-                        readSettingsTextPadding?.progress = getTextPadding()
+                        readSettingsTextPadding.progress = getTextPadding()
                     }
                 }
             }
@@ -2013,7 +2013,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
                     if (itemId == 1) {
                         it.context?.removeKey(EPUB_TEXT_SIZE)
-                        readSettingsTextSize?.progress = getTextFontSize() - offsetSize
+                        readSettingsTextSize.progress = getTextFontSize() - offsetSize
                     }
                 }
             }

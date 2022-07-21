@@ -21,6 +21,6 @@ class RedditProvider: MainAPI()  {
             "accept" to "*/*",
             "user-agent" to USER_AGENT))
         val document = Jsoup.parse(response.text)
-        return document.selectFirst("div.RichTextJSON-root").html()
+        return document.selectFirst("div.RichTextJSON-root")?.html()
     }
 }

@@ -1385,16 +1385,16 @@ class ReadfromnetProvider : MainAPI() {
         if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
-            val name = h.selectFirst("h2").text()
-            val cUrl = h.selectFirst(" div > h2.title > a ").attr("href")
+            val name = h?.selectFirst("h2")?.text() ?: continue
+            val cUrl = h.selectFirst(" div > h2.title > a ")?.attr("href") ?: continue
 
-            val posterUrl = h.selectFirst("div > a.highslide > img").attr("src")
+            val posterUrl = h.selectFirst("div > a.highslide > img")?.attr("src")
 
             returnValue.add(
                 SearchResponse(
                     name,
                     cUrl,
-                    fixUrl(posterUrl),
+                    fixUrlNull(posterUrl),
                     null,
                     null,
                     this.name
@@ -1407,8 +1407,8 @@ class ReadfromnetProvider : MainAPI() {
     override fun loadHtml(url: String): String? {
         val response = khttp.get(url, headers = baseHeaders)
         val document = Jsoup.parse(response.text)
-        document.select("div.splitnewsnavigation")?.remove()
-        document.select("div.splitnewsnavigation2")?.remove()
+        document.select("div.splitnewsnavigation").remove()
+        document.select("div.splitnewsnavigation2").remove()
         return document.selectFirst("#textToRead")?.html()
     }
 
@@ -1424,16 +1424,16 @@ class ReadfromnetProvider : MainAPI() {
 
         val headers = document.select("div > article > div.box_in[id='search result']")
 
-        return headers.map { h ->
-            val name = h.selectFirst(" div > h2.title > a > b").text()
-            val cUrl = mainUrl + h.selectFirst(" div > h2.title > a ").attr("href")
+        return headers.mapNotNull { h ->
+            val name = h?.selectFirst(" div > h2.title > a > b")?.text() ?: return@mapNotNull null
+            val cUrl = mainUrl + h.selectFirst(" div > h2.title > a ")?.attr("href")
 
-            val posterUrl = h.selectFirst("div > a.highslide > img").attr("src")
+            val posterUrl = h.selectFirst("div > a.highslide > img")?.attr("src")
 
             SearchResponse(
                 name,
                 cUrl,
-                fixUrl(posterUrl),
+                fixUrlNull(posterUrl),
                 null,
                 null,
                 this.name
@@ -1441,19 +1441,20 @@ class ReadfromnetProvider : MainAPI() {
         }
     }
 
-    override fun load(url: String): LoadResponse {
+    override fun load(url: String): LoadResponse? {
         val response = khttp.get(url, headers = baseHeaders)
 
         val document = Jsoup.parse(response.text)
         val name =
-            document.selectFirst(" h2 ").text().substringBefore(", page").substringBefore("#")
+            document.selectFirst(" h2 ")?.text()?.substringBefore(", page")?.substringBefore("#")
+                ?: return null
 
         val author =
             document.selectFirst("#dle-speedbar > div > div > ul > li:nth-child(3) > a > span")
-                .text()
+                ?.text()
 
         val posterUrl =
-            document.selectFirst("div.box_in > center:nth-child(1) > div > a > img").attr("src")
+            document.selectFirst("div.box_in > center:nth-child(1) > div > a > img")?.attr("src")
 
         val data: ArrayList<ChapterData> = ArrayList()
         val chapters = document.select("div.splitnewsnavigation2.ignore-select > center > div > a")
@@ -1488,7 +1489,7 @@ class ReadfromnetProvider : MainAPI() {
             name,
             data.distinctBy { it.url },
             author,
-            fixUrl(posterUrl),
+            fixUrlNull(posterUrl),
             null,
             null,
             null,

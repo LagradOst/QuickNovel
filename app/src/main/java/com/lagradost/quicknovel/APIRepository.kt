@@ -9,8 +9,9 @@ data class OnGoingSearch(
     val data: Resource<List<SearchResponse>>
 )
 
-private fun String?.removeAds() : String? {
-    return this?.replace("(adsbygoogle = window.adsbygoogle || []).push({});", "")
+private fun String?.removeAds(): String? {
+    if (this.isNullOrBlank()) return null
+    return this.replace("(adsbygoogle = window.adsbygoogle || []).push({});", "")
 }
 
 class APIRepository(val api: MainAPI) {
@@ -32,13 +33,13 @@ class APIRepository(val api: MainAPI) {
 
     suspend fun load(url: String): Resource<LoadResponse> {
         return safeApiCall {
-            api.load(api.fixUrl(url))
+            api.load(api.fixUrl(url)) ?: throw ErrorLoadingException("No data")
         }
     }
 
     suspend fun search(query: String): Resource<List<SearchResponse>> {
         return safeApiCall {
-            api.search(query)
+            api.search(query) ?: throw ErrorLoadingException("No data")
         }
     }
 
@@ -51,7 +52,11 @@ class APIRepository(val api: MainAPI) {
         }?.removeAds()
     }
 
-    suspend fun loadReviews(url: String, page: Int, showSpoilers: Boolean = false): Resource<List<UserReview>> {
+    suspend fun loadReviews(
+        url: String,
+        page: Int,
+        showSpoilers: Boolean = false
+    ): Resource<List<UserReview>> {
         return safeApiCall {
             api.loadReviews(url, page, showSpoilers)
         }
