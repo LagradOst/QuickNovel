@@ -24,7 +24,7 @@ abstract class MainAPI {
     open val iconId: Int? = null
     open val iconBackgroundId: Int = R.color.darkBackground
 
-    open fun loadMainPage(
+    open suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
@@ -34,19 +34,19 @@ abstract class MainAPI {
     }
 
     open val hasReviews: Boolean = false
-    open fun loadReviews(url: String, page: Int, showSpoilers: Boolean = false): List<UserReview> {
+    open suspend fun loadReviews(url: String, page: Int, showSpoilers: Boolean = false): List<UserReview> {
         throw NotImplementedError()
     }
 
-    open fun search(query: String): List<SearchResponse>? {
+    open suspend fun search(query: String): List<SearchResponse>? {
         throw NotImplementedError()
     }
 
-    open fun load(url: String): LoadResponse? {
+    open suspend fun load(url: String): LoadResponse? {
         throw NotImplementedError()
     }
 
-    open fun loadHtml(url: String): String? {
+    open suspend fun loadHtml(url: String): String? {
         throw NotImplementedError()
     }
 }

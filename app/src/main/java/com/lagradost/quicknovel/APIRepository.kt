@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel
 
 import com.lagradost.quicknovel.mvvm.Resource
+import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.normalSafeApiCall
 import com.lagradost.quicknovel.mvvm.safeApiCall
 
@@ -46,10 +47,13 @@ class APIRepository(val api: MainAPI) {
     /**
      * Automatically strips adsbygoogle
      * */
-    fun loadHtml(url: String): String? {
-        return normalSafeApiCall {
-            api.loadHtml(api.fixUrl(url))
-        }?.removeAds()
+    suspend fun loadHtml(url: String): String? {
+        return try {
+            api.loadHtml(api.fixUrl(url))?.removeAds()
+        } catch (e : Exception) {
+            logError(e)
+            null
+        }
     }
 
     suspend fun loadReviews(

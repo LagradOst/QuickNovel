@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
@@ -58,7 +59,7 @@ class ReadLightNovelProvider : MainAPI() {
         Pair("Yuri", "yuri")
     )
 
-    override fun loadMainPage(
+    override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
@@ -66,7 +67,7 @@ class ReadLightNovelProvider : MainAPI() {
     ): HeadMainPageResponse {
         val url =
             "$mainUrl/${if (tag == "") "top-novels" else "genre/$tag"}/$orderBy/$page"
-        val response = khttp.get(url)
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.top-novel-block")
@@ -95,8 +96,8 @@ class ReadLightNovelProvider : MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
-    override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         val content = document.selectFirst("div.chapter-content3 > div.desc") ?: return null
         //content.select("div").remove()
@@ -121,8 +122,8 @@ class ReadLightNovelProvider : MainAPI() {
         return content.html()
     }
 
-    override fun search(query: String): List<SearchResponse> {
-        val response = khttp.post(
+    override suspend fun search(query: String): List<SearchResponse> {
+        val response = app.post(
             "$mainUrl/search/autocomplete",
             headers = mapOf(
                 "referer" to mainUrl,
@@ -150,8 +151,8 @@ class ReadLightNovelProvider : MainAPI() {
         return returnValue
     }
 
-    override fun load(url: String): LoadResponse? {
-        val response = khttp.get(url.replace("http://", "https://"))
+    override suspend fun load(url: String): LoadResponse? {
+        val response = app.get(url.replace("http://", "https://"))
 
         val document = Jsoup.parse(response.text)
 

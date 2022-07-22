@@ -54,7 +54,7 @@ abstract class WPReader : MainAPI() {
     */
     // open val country: List<String> = listOf("jepang", "china", "korea", "unknown",)
 
-    override fun loadMainPage(
+    override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
@@ -82,16 +82,16 @@ abstract class WPReader : MainAPI() {
         return HeadMainPageResponse(url, res ?: ArrayList())
     }
 
-    override fun loadHtml(url: String): String? {
+    override suspend fun loadHtml(url: String): String? {
         val con = jConnect(url)
-        var res = con?.selectFirst(".mn-novel-chapter-content-body") ?: con?.selectFirst(".reader-area")
+        val res = con?.selectFirst(".mn-novel-chapter-content-body") ?: con?.selectFirst(".reader-area")
         return res?.let { adv ->
-            adv.select("p")?.filter { !it.hasText() }?.forEach { it.remove() }
+            adv.select("p")?.filter { it -> !it.hasText() }?.forEach { it.remove() }
             adv.outerHtml()
         }
     }
 
-    override fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> {
         val url = mainUrl.toUrlBuilderSafe().add("s" to query)
         return jConnect(url = url.toString())
             ?.select("div.flexbox2-content > a")
@@ -107,7 +107,7 @@ abstract class WPReader : MainAPI() {
             } ?: ArrayList()
     }
 
-    override fun load(url: String): LoadResponse {
+    override suspend fun load(url: String): LoadResponse {
         val doc = jConnect(url)
         return LoadResponse(
             url = url,

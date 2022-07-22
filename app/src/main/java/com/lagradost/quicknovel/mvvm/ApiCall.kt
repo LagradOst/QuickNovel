@@ -3,8 +3,7 @@ package com.lagradost.quicknovel.mvvm
 import android.util.Log
 import com.bumptech.glide.load.HttpException
 import com.lagradost.quicknovel.ErrorLoadingException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 
@@ -33,6 +32,16 @@ fun <T> normalSafeApiCall(apiCall: () -> T): T? {
     } catch (throwable: Throwable) {
         logError(throwable)
         return null
+    }
+}
+
+fun ioSafe(work: suspend (() -> Unit)): Job {
+    return CoroutineScope(Dispatchers.IO).launch {
+        try {
+            work()
+        } catch (e: Exception) {
+            logError(e)
+        }
     }
 }
 

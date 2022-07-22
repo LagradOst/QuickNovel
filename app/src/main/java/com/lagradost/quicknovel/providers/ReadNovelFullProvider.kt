@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
@@ -8,8 +9,8 @@ class ReadNovelFullProvider : MainAPI() {
     override val mainUrl = "https://readnovelfull.com"
     override val name = "ReadNovelFull"
 
-    override fun search(query: String): List<SearchResponse> {
-        val response = khttp.get("$mainUrl/search?keyword=$query", headers = mapOf("User-Agent" to USER_AGENT))
+    override suspend fun search(query: String): List<SearchResponse> {
+        val response = app.get("$mainUrl/search?keyword=$query", headers = mapOf("User-Agent" to USER_AGENT))
 
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.col-novel-main > div.list-novel > div.row")
@@ -33,14 +34,14 @@ class ReadNovelFullProvider : MainAPI() {
         }
     }
 
-    override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         return document.selectFirst("div#chr-content")?.html().textClean?.replace("[Updated from F r e e w e b n o v e l. c o m]", "")
     }
 
-    override fun load(url: String): LoadResponse {
-        val response = khttp.get(url)
+    override suspend fun load(url: String): LoadResponse {
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
 
         val header = document.selectFirst("div.col-info-desc")
@@ -80,7 +81,7 @@ class ReadNovelFullProvider : MainAPI() {
         }
 
         val dataUrl = "$mainUrl/ajax/chapter-archive?novelId=$novelId"
-        val dataResponse = khttp.get(dataUrl)
+        val dataResponse = app.get(dataUrl)
         val dataDocument = Jsoup.parse(dataResponse.text) ?: throw ErrorLoadingException("invalid dataDocument")
         val items =
             dataDocument.select("div.panel-body > div.row > div > ul.list-chapter > li > a").mapNotNull {

@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 import java.util.*
 import kotlin.collections.ArrayList
@@ -75,7 +76,7 @@ class KolNovelProvider : MainAPI() {
             Pair("Completed", "completed"),
         )
 
-    override fun loadMainPage(
+    override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
@@ -83,7 +84,7 @@ class KolNovelProvider : MainAPI() {
     ): HeadMainPageResponse {
         val url = "$mainUrl/series/?page=$page&genre[]=$tag&status=$mainCategory&order=$orderBy"
 
-        val response = khttp.get(url)
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.bsx")
@@ -106,14 +107,14 @@ class KolNovelProvider : MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
-    override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         return document.selectFirst("div.entry-content")?.html()
     }
 
-    override fun search(query: String): List<SearchResponse> {
-        val response = khttp.get("$mainUrl/?s=$query")
+    override suspend fun search(query: String): List<SearchResponse> {
+        val response = app.get("$mainUrl/?s=$query")
 
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.bsx")
@@ -144,11 +145,10 @@ class KolNovelProvider : MainAPI() {
         return returnValue
     }
 
-    override fun load(url: String): LoadResponse? {
-        val response = khttp.get(url)
+    override suspend fun load(url: String): LoadResponse? {
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
-        println(response.text)
         val name = document.select("div.thumb > img").attr("title")
             ?: return null//select("h1.entry-title")?.text()
         val authors = document.select("div.spe span:contains(المؤلف) > a")

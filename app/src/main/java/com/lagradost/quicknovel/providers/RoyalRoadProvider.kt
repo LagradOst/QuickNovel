@@ -2,6 +2,7 @@ package com.lagradost.quicknovel.providers
 
 import android.annotation.SuppressLint
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 import java.lang.Exception
 import java.util.*
@@ -61,9 +62,9 @@ class RoyalRoadProvider : MainAPI() {
     override val hasReviews = true
 
     @SuppressLint("SimpleDateFormat")
-    override fun loadReviews(url: String, page: Int, showSpoilers: Boolean): ArrayList<UserReview> {
+    override suspend fun loadReviews(url: String, page: Int, showSpoilers: Boolean): ArrayList<UserReview> {
         val realUrl = "$url?sorting=top&reviews=$page" //SORTING ??
-        val response = khttp.get(realUrl)
+        val response = app.get(realUrl)
 
         val document = Jsoup.parse(response.text)
         val reviews = document.select("div.reviews-container > div.review")
@@ -178,7 +179,7 @@ class RoyalRoadProvider : MainAPI() {
 
     }
 
-    override fun loadMainPage(
+    override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
@@ -191,7 +192,7 @@ class RoyalRoadProvider : MainAPI() {
             ArrayList()
         ) // TRENDING ONLY HAS 1 PAGE
 
-        val response = khttp.get(url)
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.fiction-list-item")
@@ -239,8 +240,8 @@ class RoyalRoadProvider : MainAPI() {
     }
 
 
-    override fun search(query: String): List<SearchResponse> {
-        val response = khttp.get("$mainUrl/fictions/search?title=$query")
+    override suspend fun search(query: String): List<SearchResponse> {
+        val response = app.get("$mainUrl/fictions/search?title=$query")
 
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.fiction-list-item")
@@ -273,8 +274,8 @@ class RoyalRoadProvider : MainAPI() {
         return returnValue
     }
 
-    override fun load(url: String): LoadResponse? {
-        val response = khttp.get(url)
+    override suspend fun load(url: String): LoadResponse? {
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
 
@@ -351,8 +352,8 @@ class RoyalRoadProvider : MainAPI() {
         )
     }
 
-    override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         return document.selectFirst("div.chapter-content")?.html()
     }

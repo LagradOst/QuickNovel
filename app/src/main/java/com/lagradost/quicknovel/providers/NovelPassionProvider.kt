@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 
 class NovelPassionProvider : MainAPI() {
@@ -68,7 +69,7 @@ class NovelPassionProvider : MainAPI() {
             Pair("Completed", "3"),
         )
 
-    override fun loadMainPage(
+    override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
@@ -76,7 +77,7 @@ class NovelPassionProvider : MainAPI() {
     ): HeadMainPageResponse {
         val url = "$mainUrl/category/$tag?p=$page&s=$mainCategory&f=$orderBy"
 
-        val response = khttp.get(url)
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.lh1d5")
@@ -106,8 +107,8 @@ class NovelPassionProvider : MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
-    override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         val res = document.selectFirst("div.cha-words")
 
@@ -122,8 +123,8 @@ class NovelPassionProvider : MainAPI() {
             ?.textClean // FOR SOME REASON SOME WORDS HAVE DOTS IN THEM
     }
 
-    override fun search(query: String): List<SearchResponse> {
-        val response = khttp.get("$mainUrl/search?keyword=$query")
+    override suspend fun search(query: String): List<SearchResponse> {
+        val response = app.get("$mainUrl/search?keyword=$query")
 
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.lh1d5")
@@ -145,8 +146,8 @@ class NovelPassionProvider : MainAPI() {
         return returnValue
     }
 
-    override fun load(url: String): LoadResponse {
-        val response = khttp.get(url)
+    override suspend fun load(url: String): LoadResponse {
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
         val name = document.selectFirst("h2.pt4")?.text()!!

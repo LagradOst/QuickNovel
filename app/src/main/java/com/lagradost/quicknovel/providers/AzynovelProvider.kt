@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 
 class AzynovelProvider : MainAPI() {
@@ -59,7 +60,7 @@ class AzynovelProvider : MainAPI() {
         Pair("Slice Of Life", "slice-of-life"),
     )
 
-    override fun loadMainPage(
+    override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
@@ -68,7 +69,7 @@ class AzynovelProvider : MainAPI() {
         val url =
             if (tag.isNullOrBlank()) "$mainUrl/latest-releases?page=$page" else "$mainUrl/category/$tag?page=$page"
 
-        val response = khttp.get(url)
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
 
@@ -98,16 +99,16 @@ class AzynovelProvider : MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
-    override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         return document.selectFirst("div.column.is-9 > div:nth-child(5)")?.html()
     }
 
 
-    override fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> {
         val response =
-            khttp.get("$mainUrl/search?q=$query") // AJAX, MIGHT ADD QUICK SEARCH
+            app.get("$mainUrl/search?q=$query") // AJAX, MIGHT ADD QUICK SEARCH
 
         val document = Jsoup.parse(response.text)
 
@@ -133,8 +134,8 @@ class AzynovelProvider : MainAPI() {
         return returnValue
     }
 
-    override fun load(url: String): LoadResponse? {
-        val response = khttp.get(url)
+    override suspend fun load(url: String): LoadResponse? {
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
         val name = document.selectFirst("div.media-content > div > h1")?.text() ?: return null

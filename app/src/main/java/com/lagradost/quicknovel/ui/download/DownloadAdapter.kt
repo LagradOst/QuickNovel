@@ -283,7 +283,6 @@ class DownloadAdapter(
                             2 -> handleUpdate()
                             3 -> handleDelete()
                         }
-                        println(itemId)
                     }
                     return@setOnLongClickListener true
                 }

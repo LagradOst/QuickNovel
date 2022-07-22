@@ -66,7 +66,7 @@ abstract class MadaraReader : MainAPI() {
         Pair("Latest", "latest"),
     )
 
-    override fun loadMainPage(
+    override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
@@ -108,7 +108,7 @@ abstract class MadaraReader : MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
-    override fun loadHtml(url: String): String? {
+    override suspend fun loadHtml(url: String): String? {
         val res = jConnect(url)!!.selectFirst("div.text-left")
         if (res == null || res.html() == "") return null
         return res.let { adv ->
@@ -117,7 +117,7 @@ abstract class MadaraReader : MainAPI() {
         }
     }
 
-    override fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> {
         val headers = jConnect("$mainUrl/?s=$query&post_type=wp-manga")
             ?.select("div.c-tabs-item__content")
         if (headers == null || headers.size <= 0) {
@@ -139,7 +139,7 @@ abstract class MadaraReader : MainAPI() {
             }
     }
 
-    override fun load(url: String): LoadResponse {
+    override suspend fun load(url: String): LoadResponse {
         val doc = jConnect(url)
         return LoadResponse(
             url = url,
