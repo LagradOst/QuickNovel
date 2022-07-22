@@ -119,7 +119,7 @@ class InAppUpdater {
                 // =================== MAKE DIRS ===================
                 val rFile = File(path)
                 try {
-                    rFile.parentFile.mkdirs()
+                    rFile.parentFile?.mkdirs()
                 } catch (_ex: Exception) {
                     println("FAILED:::$_ex")
                 }
