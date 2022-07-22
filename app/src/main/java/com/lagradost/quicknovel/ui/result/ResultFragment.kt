@@ -132,7 +132,8 @@ class ResultFragment : Fragment() {
     private fun Context.updateGenerateBtt(progress: Int?) {
         if (viewModel.loadResponse.value != null) {
             generateEpub =
-                getKey(DOWNLOAD_EPUB_SIZE, viewModel.id.value.toString(), 0) != (progress ?: lastProgress)
+                getKey(DOWNLOAD_EPUB_SIZE, viewModel.id.value.toString(), 0) != (progress
+                    ?: lastProgress)
             if (progress != null) lastProgress = progress
             if (result_download_generate_epub != null) {
                 if (generateEpub) {
@@ -151,7 +152,8 @@ class ResultFragment : Fragment() {
         if (info == null) return
         if (result_download_progress_text != null) {
             val hasDownload = info.progress > 0
-            download_delete_trash_from_result.visibility = if (hasDownload) View.VISIBLE else View.GONE
+            download_delete_trash_from_result.visibility =
+                if (hasDownload) View.VISIBLE else View.GONE
             download_delete_trash_from_result.isClickable = hasDownload
 
             result_download_progress_text.text = "${info.progress}/${info.total}"
@@ -209,7 +211,11 @@ class ResultFragment : Fragment() {
         }
     }
 
-    private fun updateDownloadButtons(progress: Int, total: Int, state: BookDownloader.DownloadType) {
+    private fun updateDownloadButtons(
+        progress: Int,
+        total: Int,
+        state: BookDownloader.DownloadType
+    ) {
         val ePubGeneration = progress > 0
         if (result_download_generate_epub.isClickable != ePubGeneration) {
             result_download_generate_epub.isClickable = ePubGeneration
@@ -264,7 +270,8 @@ class ResultFragment : Fragment() {
                 result_holder.visibility = View.GONE
             }
             is Resource.Success -> {
-                download_warning?.visibility = if (api.rateLimitTime > 1000) View.VISIBLE else View.GONE
+                download_warning?.visibility =
+                    if (api.rateLimitTime > 1000) View.VISIBLE else View.GONE
 
                 val res = loadResponse.value
 
@@ -272,7 +279,10 @@ class ResultFragment : Fragment() {
                 if (!res.posterUrl.isNullOrEmpty()) {
                     try {
                         val glideUrl =
-                            GlideUrl(res.posterUrl, LazyHeaders.Builder().addHeader("Referer", api.mainUrl).build())
+                            GlideUrl(
+                                res.posterUrl,
+                                LazyHeaders.Builder().addHeader("Referer", api.mainUrl).build()
+                            )
                         requireContext().let {
                             Glide.with(it)
                                 .load(glideUrl)
@@ -283,7 +293,7 @@ class ResultFragment : Fragment() {
                                 .apply(bitmapTransform(BlurTransformation(100, 3)))
                                 .into(result_poster_blur)
                         }
-                    } catch (e : Exception) {
+                    } catch (e: Exception) {
                         logError(e)
                     }
                 }
@@ -438,7 +448,8 @@ class ResultFragment : Fragment() {
 
                 result_quickstream.setOnClickListener {
                     if (res.data.size <= 0) {
-                        Toast.makeText(context, R.string.no_chapters_found, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, R.string.no_chapters_found, Toast.LENGTH_SHORT)
+                            .show()
                         return@setOnClickListener
                     }
 
@@ -471,9 +482,14 @@ class ResultFragment : Fragment() {
                                 }
 
                                 if (done) {
-                                    Toast.makeText(ctx, "Created ${res.name}", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(ctx, "Created ${res.name}", Toast.LENGTH_LONG)
+                                        .show()
                                 } else {
-                                    Toast.makeText(ctx, "Error creating the Epub", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(
+                                        ctx,
+                                        "Error creating the Epub",
+                                        Toast.LENGTH_LONG
+                                    ).show()
                                 }
                             }
                         }
@@ -490,15 +506,13 @@ class ResultFragment : Fragment() {
                 }
 
                 result_download_btt.setOnClickListener {
-                    thread {
-                        DownloadHelper.updateDownloadFromResult(
-                            requireContext(),
-                            res,
-                            tid,
-                            apiName,
-                            true
-                        )
-                    }
+                    DownloadHelper.updateDownloadFromResult(
+                        requireContext(),
+                        res,
+                        tid,
+                        apiName,
+                        true
+                    )
                 }
 
 
@@ -573,7 +587,10 @@ class ResultFragment : Fragment() {
                                             )
                                             .add(
                                                 R.id.homeRoot,
-                                                MainPageFragment().newInstance(api.name, tag = tagIndex)
+                                                MainPageFragment().newInstance(
+                                                    api.name,
+                                                    tag = tagIndex
+                                                )
                                             )
                                             .commit()
                                     }

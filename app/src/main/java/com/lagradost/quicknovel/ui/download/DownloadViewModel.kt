@@ -38,7 +38,7 @@ class DownloadViewModel : ViewModel() {
     ): ArrayList<DownloadFragment.DownloadDataLoaded> {
 
         if (sortMethod != null) {
-            currentSortingMethod.postValue(sortMethod)
+            currentSortingMethod.postValue(sortMethod!!)
         }
 
         return when (sortMethod ?: currentSortingMethod.value) {
@@ -82,7 +82,7 @@ class DownloadViewModel : ViewModel() {
     ): ArrayList<ResultCached> {
 
         if (sortMethod != null) {
-            currentNormalSortingMethod.postValue(sortMethod)
+            currentNormalSortingMethod.postValue(sortMethod!!)
         }
 
         return when (sortMethod ?: currentNormalSortingMethod.value) {
