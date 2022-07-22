@@ -1,14 +1,17 @@
 package com.lagradost.quicknovel.ui.download
 
 import android.content.Context
-import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.BookDownloader
 import com.lagradost.quicknovel.BookDownloader.download
 import com.lagradost.quicknovel.BookDownloader.updateDownload
+import com.lagradost.quicknovel.DOWNLOAD_FOLDER
+import com.lagradost.quicknovel.DOWNLOAD_TOTAL
 import com.lagradost.quicknovel.DataStore.setKey
+import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.mvvm.Resource
+import com.lagradost.quicknovel.mvvm.ioSafe
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
 import com.lagradost.quicknovel.util.Coroutines
-import kotlin.concurrent.thread
 
 const val DEFAULT_SORT = 0
 const val ALPHA_SORT = 1
@@ -45,7 +48,7 @@ object DownloadHelper {
                 apiName
             ))
         val api = getApiFromName(apiName)
-        thread {
+        ioSafe {
             when (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped) {
                 BookDownloader.DownloadType.IsFailed -> context.download(res, api)
                 BookDownloader.DownloadType.IsStopped -> context.download(res, api)

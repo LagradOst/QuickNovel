@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 
 class FreewebnovelProvider : MainAPI() {
@@ -53,7 +54,7 @@ class FreewebnovelProvider : MainAPI() {
         Pair("Reincarnation", "Reincarnation"),
     )
 
-    override fun loadMainPage(
+    override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
@@ -61,7 +62,7 @@ class FreewebnovelProvider : MainAPI() {
     ): HeadMainPageResponse {
         val url =
             if (tag.isNullOrBlank()) "$mainUrl/latest-novel/tag/$page.html" else "$mainUrl/genre/$tag/$page.html"
-        val response = khttp.get(url)
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
 
@@ -90,15 +91,15 @@ class FreewebnovelProvider : MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
-    override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         return document.selectFirst("div.txt")?.html()
     }
 
 
-    override fun search(query: String): List<SearchResponse> {
-        val response = khttp.post(
+    override suspend fun search(query: String): List<SearchResponse> {
+        val response = app.post(
             "$mainUrl/search/",
             headers = mapOf(
                 "referer" to mainUrl,
@@ -137,8 +138,8 @@ class FreewebnovelProvider : MainAPI() {
         return returnValue
     }
 
-    override fun load(url: String): LoadResponse? {
-        val response = khttp.get(url)
+    override suspend fun load(url: String): LoadResponse? {
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
         val name = document.selectFirst("h1.tit")?.text() ?: return null
@@ -159,11 +160,11 @@ class FreewebnovelProvider : MainAPI() {
         val aid = "[0-9]+s.jpg".toRegex().find(response.text)?.value?.substringBefore("s")
         val acode = "(?<=r_url\" content=\"https://freewebnovel.com/)(.*)(?=/chapter)".toRegex()
             .find(response.text)?.value
-        val chaptersDataphp = khttp.post(
+        val chaptersDataphp = app.post(
             "$mainUrl/api/chapterlist.php",
             data = mapOf(
-                "acode" to acode,
-                "aid" to aid
+                "acode" to acode!!,
+                "aid" to aid!!
             )
         )
         val parsed = Jsoup.parse(chaptersDataphp.text.replace("""\""", "")).select("option")

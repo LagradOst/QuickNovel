@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 import java.lang.Exception
 import kotlin.collections.ArrayList
@@ -74,13 +75,13 @@ class AllNovelProvider : MainAPI() {
         Pair("Canopy", "Canopy")
     )
 
-    override fun loadMainPage(
+    override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
         tag: String?
     ): HeadMainPageResponse {
-        val firstresponse = khttp.get(mainUrl)
+        val firstresponse = app.get(mainUrl)
         val firstdocument = Jsoup.parse(firstresponse.text)
         fun getId(tagvalue: String?): String? {
             return firstdocument.select("#hot-genre-select>option")
@@ -89,7 +90,7 @@ class AllNovelProvider : MainAPI() {
 
         // I cant fix this because idk how it works
         val url = "$mainUrl/ajax-search?type=hot&genre=${getId(tag)}"
-        val response = khttp.get(url)
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.item")
         if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
@@ -116,8 +117,8 @@ class AllNovelProvider : MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
-    override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         return document.selectFirst("#chapter-content")?.html()?.replace(
             " If you find any errors ( broken links, non-standard content, etc.. ), Please let us know &lt; report chapter &gt; so we can fix it as soon as possible.",
@@ -125,9 +126,9 @@ class AllNovelProvider : MainAPI() {
         )
     }
 
-    override fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> {
         val response =
-            khttp.get("$mainUrl/search?keyword=$query") // AJAX, MIGHT ADD QUICK SEARCH
+            app.get("$mainUrl/search?keyword=$query") // AJAX, MIGHT ADD QUICK SEARCH
 
         val document = Jsoup.parse(response.text)
 
@@ -142,7 +143,7 @@ class AllNovelProvider : MainAPI() {
             val name = h3?.attr("title") ?: throw ErrorLoadingException("Invalid name")
 
             val posterUrl =
-                mainUrl + Jsoup.parse(khttp.get(cUrl).text).select("div.book > img").attr("src")
+                mainUrl + Jsoup.parse(app.get(cUrl).text).select("div.book > img").attr("src")
             /*
             mainUrl+h?.selectFirst("div.col-xs-3 > div > img")?.attr("src")
 
@@ -163,8 +164,8 @@ class AllNovelProvider : MainAPI() {
         return returnValue
     }
 
-    override fun load(url: String): LoadResponse {
-        val response = khttp.get(url)
+    override suspend fun load(url: String): LoadResponse {
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
         val name = document.selectFirst("h3.title")?.text()
@@ -180,7 +181,7 @@ class AllNovelProvider : MainAPI() {
 
         val datanovelid = document.select("#rating").attr("data-novel-id")
         val chaptersData =
-            khttp.get("https://allnovel.org/ajax-chapter-option?novelId=$datanovelid")
+            app.get("https://allnovel.org/ajax-chapter-option?novelId=$datanovelid")
         val parsedchaptersData = Jsoup.parse(chaptersData.text)
         val parsed = parsedchaptersData.select("select > option")
 

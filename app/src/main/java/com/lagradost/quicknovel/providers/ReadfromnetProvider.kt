@@ -2,6 +2,7 @@ package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
 import org.jsoup.Jsoup
+import com.lagradost.quicknovel.MainActivity.Companion.app
 
 class ReadfromnetProvider : MainAPI() {
     override val name = "ReadFrom.Net"
@@ -1368,14 +1369,14 @@ class ReadfromnetProvider : MainAPI() {
         "User-Agent" to "Mozilla/5.0"
     )
 
-    override fun loadMainPage(
+    override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
         tag: String?
     ): HeadMainPageResponse {
         val url = "$mainUrl/$tag/page/$page/"
-        val response = khttp.get(
+        val response = app.get(
             url, headers = baseHeaders
         )
 
@@ -1404,8 +1405,8 @@ class ReadfromnetProvider : MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
-    override fun loadHtml(url: String): String? {
-        val response = khttp.get(url, headers = baseHeaders)
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url, headers = baseHeaders)
         val document = Jsoup.parse(response.text)
         document.select("div.splitnewsnavigation").remove()
         document.select("div.splitnewsnavigation2").remove()
@@ -1413,9 +1414,9 @@ class ReadfromnetProvider : MainAPI() {
     }
 
 
-    override fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> {
         val response =
-            khttp.get(
+            app.get(
                 "$mainUrl/build_in_search/?q=$query",
                 headers = baseHeaders
             ) // AJAX, MIGHT ADD QUICK SEARCH
@@ -1441,8 +1442,8 @@ class ReadfromnetProvider : MainAPI() {
         }
     }
 
-    override fun load(url: String): LoadResponse? {
-        val response = khttp.get(url, headers = baseHeaders)
+    override suspend fun load(url: String): LoadResponse? {
+        val response = app.get(url, headers = baseHeaders)
 
         val document = Jsoup.parse(response.text)
         val name =

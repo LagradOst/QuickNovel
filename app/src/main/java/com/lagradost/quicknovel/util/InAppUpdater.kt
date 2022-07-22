@@ -16,6 +16,7 @@ import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.quicknovel.BuildConfig
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import java.io.*
 import java.net.URL
@@ -60,12 +61,12 @@ class InAppUpdater {
         )
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build()
 
-        private fun Activity.getAppUpdate(): Update {
+        private suspend fun Activity.getAppUpdate(): Update {
             try {
                 val url = "https://api.github.com/repos/LagradOst/QuickNovel/releases/latest"
                 val headers = mapOf("Accept" to "application/vnd.github.v3+json")
                 val response =
-                    mapper.readValue<List<GithubRelease>>(khttp.get(url, headers = headers).text)
+                    mapper.readValue<List<GithubRelease>>(app.get(url, headers = headers).text)
 
                 val versionRegex = Regex("""(.*?((\d)\.(\d)\.(\d)).*\.apk)""")
 
@@ -234,7 +235,7 @@ class InAppUpdater {
             }
         }
 
-        fun Activity.runAutoUpdate(checkAutoUpdate: Boolean = true): Boolean {
+        suspend fun Activity.runAutoUpdate(checkAutoUpdate: Boolean = true): Boolean {
             val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
 
             if (!checkAutoUpdate || settingsManager.getBoolean(getString(R.string.auto_update_key), true)

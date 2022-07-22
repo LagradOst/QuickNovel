@@ -1,15 +1,16 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 
 class ScribblehubProvider : MainAPI() {
     override val name = "Scribblehub"
     override val mainUrl = "https://www.scribblehub.com"
 
-    override fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/?s=$query&post_type=fictionposts"
-        val response = khttp.get(url)
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         return document.select("div.search_main_box").mapNotNull { item ->
             val img = item?.selectFirst("> div.search_img > img")?.attr("src")
@@ -20,7 +21,7 @@ class ScribblehubProvider : MainAPI() {
         }
     }
 
-    override fun load(url: String): LoadResponse {
+    override suspend fun load(url: String): LoadResponse {
         val id = Regex("series/([0-9]*?)/")
             .find(url)
             ?.groupValues
@@ -28,10 +29,10 @@ class ScribblehubProvider : MainAPI() {
             ?.toIntOrNull()
             ?: throw ErrorLoadingException("Error getting Id of $url")
 
-        val response = khttp.get(url)
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
 
-        val listResponse = khttp.post(
+        val listResponse = app.post(
             "https://www.scribblehub.com/wp-admin/admin-ajax.php",
             data = mapOf(
                 "action" to "wi_getreleases_pagination",
@@ -92,8 +93,8 @@ class ScribblehubProvider : MainAPI() {
         )
     }
 
-    override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
         return document

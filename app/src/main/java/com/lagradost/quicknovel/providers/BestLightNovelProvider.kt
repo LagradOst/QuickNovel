@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 import java.util.*
 
@@ -8,15 +9,15 @@ class BestLightNovelProvider : MainAPI() {
     override val name: String get() = "BestLightNovel"
     override val mainUrl: String get() = "https://bestlightnovel.com"
 
-    override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         val res = document.selectFirst("div.vung_doc")
         return res?.html().textClean?.replace("[Updated from F r e e w e b n o v e l. c o m]", "")
     }
 
-    override fun search(query: String): List<SearchResponse> {
-        val response = khttp.get("$mainUrl/search_novels/${query.replace(' ', '_')}")
+    override suspend fun search(query: String): List<SearchResponse> {
+        val response = app.get("$mainUrl/search_novels/${query.replace(' ', '_')}")
 
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.danh_sach > div.list_category")
@@ -34,8 +35,8 @@ class BestLightNovelProvider : MainAPI() {
         }
     }
 
-    override fun load(url: String): LoadResponse? {
-        val response = khttp.get(url)
+    override suspend fun load(url: String): LoadResponse? {
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
         val infoHeaders = document.select("ul.truyen_info_right > li")

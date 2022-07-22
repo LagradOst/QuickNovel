@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 import java.util.*
 import kotlin.collections.ArrayList
@@ -58,7 +59,7 @@ class WuxiaWorldSiteProvider : MainAPI() {
             Pair("Latest", "latest"),
         )
 
-    override fun loadMainPage(
+    override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
@@ -73,7 +74,7 @@ class WuxiaWorldSiteProvider : MainAPI() {
         val url =
             "$mainUrl/$order/page/$page/${if (orderBy == null || orderBy == "") "" else "?m_orderby=$orderBy"}"
 
-        val response = khttp.get(url)
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
         //""div.page-content-listing > div.page-listing-item > div > div > div.page-item-detail"
@@ -100,8 +101,8 @@ class WuxiaWorldSiteProvider : MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
-    override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         val res = document.selectFirst("div.text-left")
         res?.select("script")?.remove()
@@ -111,8 +112,8 @@ class WuxiaWorldSiteProvider : MainAPI() {
             .replace("Read latest Chapters at WuxiaWorld.Site Only", "") // FUCK ADS
     }
 
-    override fun search(query: String): ArrayList<SearchResponse> {
-        val response = khttp.get("$mainUrl/?s=$query&post_type=wp-manga")
+    override suspend fun search(query: String): ArrayList<SearchResponse> {
+        val response = app.get("$mainUrl/?s=$query&post_type=wp-manga")
 
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.c-tabs-item > div.c-tabs-item__content")
@@ -147,8 +148,8 @@ class WuxiaWorldSiteProvider : MainAPI() {
 
     }
 
-    override fun load(url: String): LoadResponse? {
-        val response = khttp.get(url)
+    override suspend fun load(url: String): LoadResponse? {
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
 
@@ -186,7 +187,7 @@ class WuxiaWorldSiteProvider : MainAPI() {
 
         val chapterUrl = "${url}ajax/chapters/"
         // CLOUDFLARE CAPTCHA
-        val chapterRes = khttp.post(chapterUrl).text
+        val chapterRes = app.post(chapterUrl).text
         val chapterDoc = Jsoup.parse(chapterRes)
 
         val data: ArrayList<ChapterData> = ArrayList()

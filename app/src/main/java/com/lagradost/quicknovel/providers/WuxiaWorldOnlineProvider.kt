@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.lang.Exception
@@ -63,14 +64,14 @@ class WuxiaWorldOnlineProvider : MainAPI() {
             Pair("Lastest Releases", "date_added"),
         )
 
-    override fun loadMainPage(
+    override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
         tag: String?
     ): HeadMainPageResponse {
         val url = "$mainUrl/wuxia-list?sort=$orderBy&genres_include=$tag&page=$page" // TAGS
-        val response = khttp.get(url)
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
 
@@ -99,8 +100,8 @@ class WuxiaWorldOnlineProvider : MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
-    override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         val res = document.selectFirst("div.content-area")
         res?.allElements?.forEach { i ->
@@ -117,9 +118,9 @@ class WuxiaWorldOnlineProvider : MainAPI() {
             ?.replace("Do you like this site? Donate here:", "")
     }
 
-    override fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> {
         val response =
-            khttp.get("https://wuxiaworld.online/search.ajax?type=&query=$query") // AJAX, MIGHT ADD QUICK SEARCH
+            app.get("https://wuxiaworld.online/search.ajax?type=&query=$query") // AJAX, MIGHT ADD QUICK SEARCH
 
         val document = Jsoup.parse(response.text)
         val headers = document.select("ul > li")
@@ -148,8 +149,8 @@ class WuxiaWorldOnlineProvider : MainAPI() {
         return returnValue
     }
 
-    override fun load(url: String): LoadResponse? {
-        val response = khttp.get(url)
+    override suspend fun load(url: String): LoadResponse? {
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
         val infoHeaders = document.select("ul.truyen_info_right > li")

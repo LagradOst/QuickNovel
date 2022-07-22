@@ -26,10 +26,13 @@ import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.DataStore.removeKey
 import com.lagradost.quicknovel.DataStore.setKey
+import com.lagradost.quicknovel.MainActivity.Companion.app
+import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.services.DownloadService
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
 import com.lagradost.quicknovel.util.Event
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
+import kotlinx.coroutines.delay
 import nl.siegmann.epublib.domain.Author
 import nl.siegmann.epublib.domain.Book
 import nl.siegmann.epublib.domain.MediaType
@@ -39,7 +42,6 @@ import nl.siegmann.epublib.service.MediatypeService
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
-import java.lang.Thread.sleep
 
 
 const val CHANNEL_ID = "epubdownloader.general"
@@ -107,7 +109,16 @@ object BookDownloader {
 
         val not = cachedNotifications[id]
         if (not != null) {
-            createNotification(not.source, not.id, not.load, not.progress, not.total, not.eta, state, true)
+            createNotification(
+                not.source,
+                not.id,
+                not.load,
+                not.progress,
+                not.total,
+                not.eta,
+                state,
+                true
+            )
         }
     }
 
@@ -220,7 +231,8 @@ object BookDownloader {
             if (fileLength == 0L) return false
             return true
         } else {
-            val normalPath = "${Environment.getExternalStorageDirectory()}${fs}$relativePath$displayName"
+            val normalPath =
+                "${Environment.getExternalStorageDirectory()}${fs}$relativePath$displayName"
 
             val bookFile = File(normalPath)
             return bookFile.exists()
@@ -254,7 +266,8 @@ object BookDownloader {
                 val cr = context.contentResolver ?: return false
                 cr.getExistingDownloadUriOrNullQ(relativePath, displayName) ?: return false
             } else {
-                val normalPath = "${Environment.getExternalStorageDirectory()}${fs}$relativePath$displayName"
+                val normalPath =
+                    "${Environment.getExternalStorageDirectory()}${fs}$relativePath$displayName"
 
                 val bookFile = File(normalPath)
                 bookFile.toUri()
@@ -289,12 +302,14 @@ object BookDownloader {
             if (isScopedStorage()) {
                 val cr = context.contentResolver ?: return false
 
-                val fileUri = cr.getExistingDownloadUriOrNullQ(relativePath, displayName) ?: return false
+                val fileUri =
+                    cr.getExistingDownloadUriOrNullQ(relativePath, displayName) ?: return false
                 intent.setDataAndType(
                     fileUri, type
                 )
             } else {
-                val normalPath = "${Environment.getExternalStorageDirectory()}${fs}$relativePath$displayName"
+                val normalPath =
+                    "${Environment.getExternalStorageDirectory()}${fs}$relativePath$displayName"
 
                 val bookFile = File(normalPath)
 
@@ -359,7 +374,7 @@ object BookDownloader {
         return (settingsManager.getBoolean(this.getString(R.string.remove_external_key), true))
     }
 
-    fun Context.getQuickChapter(
+    suspend fun Context.getQuickChapter(
         meta: QuickStreamMetaData,
         chapter: ChapterData,
         index: Int,
@@ -394,7 +409,10 @@ object BookDownloader {
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
-    private fun ContentResolver.getExistingDownloadUriOrNullQ(relativePath: String, displayName: String): Uri? {
+    private fun ContentResolver.getExistingDownloadUriOrNullQ(
+        relativePath: String,
+        displayName: String
+    ): Uri? {
         try {
             val projection = arrayOf(
                 MediaStore.MediaColumns._ID,
@@ -478,7 +496,12 @@ object BookDownloader {
                     filesDir.toString() + getFilename(sApiName, sAuthor, sName, index)
                 val chap = getChapter(filepath, index, stripHtml) ?: break
                 val chapter =
-                    Resource("id$index", chap.html.toByteArray(), "chapter$index.html", MediatypeService.XHTML)
+                    Resource(
+                        "id$index",
+                        chap.html.toByteArray(),
+                        "chapter$index.html",
+                        MediatypeService.XHTML
+                    )
                 book.addSection(chap.title, chapter)
                 index++
             }
@@ -495,10 +518,14 @@ object BookDownloader {
                 val cr = context.contentResolver ?: return false
 
                 val currentExistingFile =
-                    cr.getExistingDownloadUriOrNullQ(relativePath, displayName) // CURRENT FILE WITH THE SAME PATH
+                    cr.getExistingDownloadUriOrNullQ(
+                        relativePath,
+                        displayName
+                    ) // CURRENT FILE WITH THE SAME PATH
 
                 if (currentExistingFile != null) { // DELETE FILE IF FILE EXITS AND NOT RESUME
-                    val rowsDeleted = context.contentResolver.delete(currentExistingFile, null, null)
+                    val rowsDeleted =
+                        context.contentResolver.delete(currentExistingFile, null, null)
                     if (rowsDeleted < 1) {
                         println("ERROR DELETING FILE!!!")
                     }
@@ -522,7 +549,8 @@ object BookDownloader {
                 fileStream = cr.openOutputStream(newFileUri, "w")
                     ?: return false
             } else {
-                val normalPath = "${Environment.getExternalStorageDirectory()}${fs}$relativePath$displayName"
+                val normalPath =
+                    "${Environment.getExternalStorageDirectory()}${fs}$relativePath$displayName"
 
                 // NORMAL NON SCOPED STORAGE FILE CREATION
                 val rFile = File(normalPath)
@@ -581,7 +609,7 @@ object BookDownloader {
     }
 
     // 0 = FILE EXITS, 1 = SUCCESS, -1 = STOPPED
-    private fun downloadIndividualChapter(
+    private suspend fun downloadIndividualChapter(
         filepath: String,
         api: APIRepository,
         data: ChapterData,
@@ -599,7 +627,7 @@ object BookDownloader {
         while (page == null) {
             page = api.loadHtml(data.url)
             if (api.rateLimitTime > 0) {
-                sleep(api.rateLimitTime)
+                delay(api.rateLimitTime)
             }
 
             if (runningId != null) if (!isRunning.containsKey(runningId)) return -1
@@ -608,13 +636,13 @@ object BookDownloader {
                 rFile.writeText("${data.name}\n${page}")
                 return 1
             } else {
-                sleep(5000) // ERROR
+                delay(5000) // ERROR
             }
         }
         return -2 // THIS SHOULD NOT HAPPEND
     }
 
-    fun Context.download(load: LoadResponse, api: APIRepository) {
+    suspend fun Context.download(load: LoadResponse, api: APIRepository) {
         try {
             val sApiName = sanitizeFilename(api.name)
             val sAuthor = if (load.author == null) "" else sanitizeFilename(load.author)
@@ -629,17 +657,28 @@ object BookDownloader {
 
             try {
                 if (load.posterUrl != null) {
+                    val filepath = getFilenameIMG(sApiName, sAuthor, sName)
                     val posterFilepath =
-                        filesDir.toString() + getFilenameIMG(sApiName, sAuthor, sName)
-                    val get = khttp.get(load.posterUrl)
-                    val bytes = get.content
-
+                        filesDir.toString() + filepath
                     val pFile = File(posterFilepath)
-                    pFile.parentFile?.mkdirs()
-                    pFile.writeBytes(bytes)
+
+                    // dont need to redownload the image every time
+                    if (!pFile.exists() || this.getKey<String>(
+                            filepath,
+                            load.posterUrl
+                        ) != load.posterUrl
+                    ) {
+                        this.setKey(filepath, load.posterUrl)
+                        val get = app.get(load.posterUrl)
+                        val bytes = get.okhttpResponse.body.bytes()
+
+                        pFile.parentFile?.mkdirs()
+                        pFile.writeBytes(bytes)
+                    }
                 }
             } catch (e: Exception) {
-                sleep(1000)
+                logError(e)
+                //delay(1000)
             }
             val total = load.data.size
 
@@ -649,7 +688,7 @@ object BookDownloader {
                 for ((index, d) in load.data.withIndex()) {
                     if (!isRunning.containsKey(id)) return
                     while (isRunning[id] == DownloadType.IsPaused) {
-                        sleep(100)
+                        delay(100)
                     }
                     val lastTime = System.currentTimeMillis() / 1000.0
 
@@ -669,7 +708,8 @@ object BookDownloader {
                     }
 
                     val dloadTime = System.currentTimeMillis() / 1000.0
-                    timePerLoad = (dloadTime - lastTime) * 0.05 + timePerLoad * 0.95 // rolling avrage
+                    timePerLoad =
+                        (dloadTime - lastTime) * 0.05 + timePerLoad * 0.95 // rolling avrage
                     createAndStoreNotification(
                         NotificationData(
                             load.url, id,
@@ -718,7 +758,16 @@ object BookDownloader {
 
     private fun Context.createAndStoreNotification(data: NotificationData, show: Boolean = true) {
         cachedNotifications[data.id] = data
-        createNotification(data.source, data.id, data.load, data.progress, data.total, data.eta, data._state, show)
+        createNotification(
+            data.source,
+            data.id,
+            data.load,
+            data.progress,
+            data.total,
+            data.eta,
+            data._state,
+            show
+        )
     }
 
     private fun Context.createNotification(

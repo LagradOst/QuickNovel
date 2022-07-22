@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
@@ -8,9 +9,9 @@ class ComrademaoProvider : MainAPI() {
     override val name = "Comrademao"
     override val mainUrl = "https://comrademao.com"
 
-    override fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/?s=$query&post_type=novel"
-        val response = khttp.get(url)
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         val items = document.select(".bs")
         return items.mapNotNull {
@@ -22,15 +23,15 @@ class ComrademaoProvider : MainAPI() {
         }
     }
 
-    override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         return document.selectFirst("div[readability]")?.html()
             ?.replace("(end of this chapter)", "", ignoreCase = true)
     }
 
-    override fun load(url: String): LoadResponse? {
-        val response = khttp.get(url)
+    override suspend fun load(url: String): LoadResponse? {
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         val novelInfo = document.selectFirst("div.thumb > img")
         val mainDivs = document.select("div.infox")

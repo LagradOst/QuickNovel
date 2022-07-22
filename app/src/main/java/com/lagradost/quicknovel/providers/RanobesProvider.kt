@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategy
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity.Companion.app
+import kotlinx.coroutines.delay
 import org.jsoup.Jsoup
 import kotlin.random.Random
 
@@ -104,7 +106,7 @@ class RanobesProvider : MainAPI() {
         "User-Agent" to "Mozilla/5.0",
     )
 
-    override fun loadMainPage(
+    override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
@@ -116,7 +118,7 @@ class RanobesProvider : MainAPI() {
             else
                 "$mainUrl/tags/genre/$tag/page/$page/"
 
-        val response = khttp.get(url, headers = baseHeaders)
+        val response = app.get(url, headers = baseHeaders)
 
         val document = Jsoup.parse(response.text)
 
@@ -148,17 +150,17 @@ class RanobesProvider : MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
-    override fun loadHtml(url: String): String? {
-        val response = khttp.get(url, headers = baseHeaders)
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url, headers = baseHeaders)
         val document = Jsoup.parse(response.text)
-        Thread.sleep(Random.nextLong(250, 350))
+        delay(Random.nextLong(250, 350))
         return (document.selectFirst("#dle-content > article > div.block.story.shortstory > h1")
             ?.html() ?: return null) + document.selectFirst("#arrticle")?.html()
     }
 
 
-    override fun search(query: String): List<SearchResponse> {
-        val response = khttp.post(
+    override suspend fun search(query: String): List<SearchResponse> {
+        val response = app.post(
             "$mainUrl/index.php?do=search/",
             headers = mapOf(
                 "referer" to mainUrl,
@@ -167,9 +169,9 @@ class RanobesProvider : MainAPI() {
             data = mapOf(
                 "do" to "search",
                 "subaction" to "search",
-                "search_start" to 0,
-                "full_search" to 0,
-                "result_from" to 1,
+                "search_start" to "0",
+                "full_search" to "0",
+                "result_from" to "1",
                 "story" to query,
                 "dosearch" to "Start search",
                 """dofullsearch\""" to "Advanced"
@@ -205,8 +207,8 @@ class RanobesProvider : MainAPI() {
         return returnValue
     }
 
-    override fun load(url: String): LoadResponse? {
-        val response = khttp.get(url, headers = baseHeaders)
+    override suspend fun load(url: String): LoadResponse? {
+        val response = app.get(url, headers = baseHeaders)
 
         val document = Jsoup.parse(response.text)
         val name = document.selectFirst("div.r-fullstory-s1 > h1")?.text() ?: return null
@@ -220,22 +222,23 @@ class RanobesProvider : MainAPI() {
         val listdata = mutableListOf<Chapterdatajson>()
         val data: ArrayList<ChapterData> = ArrayList()
         val chapretspageresponse =
-            khttp.get(
+            app.get(
                 "$mainUrl/chapters/${url.substringAfterLast("/").substringBefore("-")}",
                 headers = baseHeaders
             )
         val chapretspage = Jsoup.parse(chapretspageresponse.text)
         val cha1 = Chapterdatajson.fromJson(
-            chapretspage.select("script").filter { it.data().contains("window.__DATA") }[0].data()
+            chapretspage.select("script")
+                .filter { it -> it.data().contains("window.__DATA") }[0].data()
                 .substringAfter("=")
         )
 
         val numberofchpages =
-            document.select("span.grey").filter { it.text().contains("chapters") }[0].text()
+            document.select("span.grey").filter { it -> it.text().contains("chapters") }[0].text()
                 .filter { it.isDigit() }.toInt().div(25).plus(1)
         listdata.add(cha1)
         for (i in 2..numberofchpages) {
-            val chapretspageresponsei = khttp.get(
+            val chapretspageresponsei = app.get(
                 "$mainUrl/chapters/${
                     url.substringAfterLast("/").substringBefore("-")
                 }/page/$i/", headers = baseHeaders
@@ -244,14 +247,14 @@ class RanobesProvider : MainAPI() {
             listdata.add(
                 Chapterdatajson.fromJson(
                     chapretspagei.select("script")
-                        .filter { it.data().contains("window.__DATA") }[0].data()
+                        .filter { it -> it.data().contains("window.__DATA") }[0].data()
                         .substringAfter("=")
                 )
             )
             if (i.rem(2) == 0) {
-                Thread.sleep(Random.nextInt(50, 100).toLong())
+                delay(Random.nextInt(50, 100).toLong())
             } else {
-                Thread.sleep(Random.nextInt(0, 45).toLong())
+                delay(Random.nextInt(0, 45).toLong())
             }
         }
 

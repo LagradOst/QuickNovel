@@ -48,6 +48,8 @@ import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.DataStore.removeKey
 import com.lagradost.quicknovel.DataStore.setKey
+import com.lagradost.quicknovel.MainActivity.Companion.app
+import com.lagradost.quicknovel.mvvm.ioSafe
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.receivers.BecomingNoisyReceiver
@@ -147,7 +149,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         return if (isFromEpub) book.title else quickdata.meta.name
     }
 
-    private fun getBookBitmap(): Bitmap? {
+    private suspend fun getBookBitmap(): Bitmap? {
         if (bookCover == null) {
             var byteArray: ByteArray? = null
 
@@ -158,7 +160,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 val poster = quickdata.poster
                 if (poster != null) {
                     try {
-                        byteArray = khttp.get(poster).content
+                        byteArray = app.get(poster).okhttpResponse.body.bytes()
                     } catch (e: Exception) {
                         println("BITMAP ERROR: $e")
                     }
@@ -176,7 +178,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             ?: "Chapter ${index + 1}" else quickdata.data[index].name
     }
 
-    private fun Context.getChapterData(index: Int, forceReload: Boolean = false): String? {
+    private suspend fun Context.getChapterData(index: Int, forceReload: Boolean = false): String? {
         println("getChapterData $index")
         val text =
             (if (isFromEpub) book.tableOfContents.tocReferences[index].resource.reader.readText() else getQuickChapter(
@@ -753,8 +755,11 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 false
             }
         } else {
-            loadChapter(currentChapter + 1, true)
-            read_scroll.smoothScrollTo(0, 0)
+            ioSafe {
+                loadChapter(currentChapter + 1, true)
+                read_scroll.smoothScrollTo(0, 0)
+            }
+
             true
         }
     }
@@ -764,7 +769,9 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             false
             //Toast.makeText(this, "No more chapters", Toast.LENGTH_SHORT).show()
         } else {
-            loadChapter(currentChapter - 1, false)
+            ioSafe {
+                loadChapter(currentChapter - 1, false)
+            }
             true
         }
     }
@@ -947,7 +954,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
     private var currentText = ""
     private var currentHtmlText = ""
-    private fun Context.loadChapter(
+    private suspend fun Context.loadChapter(
         chapterIndex: Int,
         scrollToTop: Boolean,
         scrollToRemember: Boolean = false,
@@ -1412,7 +1419,9 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         builderSingle.setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
 
         builderSingle.setAdapter(arrayAdapter) { _, which ->
-            loadChapter(which, true)
+            ioSafe {
+                loadChapter(which, true)
+            }
         }
 
         val dialog = builderSingle.create()
@@ -1531,14 +1540,16 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         return set
     }
 
-    private fun Context.updateKeepScreen(status: Boolean? = null): Boolean{
-        val set = if(status != null){
+    private fun Context.updateKeepScreen(status: Boolean? = null): Boolean {
+        val set = if (status != null) {
             setKey(EPUB_KEEP_SCREEN_ACTIVE, status)
             status
-        }else{
+        } else {
             getKey(EPUB_KEEP_SCREEN_ACTIVE, true)!!
         }
-        if(set) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        if (set) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) else window.clearFlags(
+            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+        )
         return set
     }
 
@@ -1811,12 +1822,14 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
             hardResetStream.visibility = if (isFromEpub) View.GONE else View.VISIBLE
             hardResetStream.setOnClickListener {
-                loadChapter(
-                    currentChapter,
-                    scrollToTop = false,
-                    scrollToRemember = true,
-                    forceReload = true
-                )
+                ioSafe {
+                    loadChapter(
+                        currentChapter,
+                        scrollToTop = false,
+                        scrollToRemember = true,
+                        forceReload = true
+                    )
+                }
             }
 
             //val root = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_root)!!

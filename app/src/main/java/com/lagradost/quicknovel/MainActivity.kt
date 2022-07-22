@@ -13,6 +13,7 @@ import androidx.navigation.findNavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.preference.PreferenceManager
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.lagradost.nicehttp.Requests
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
 import com.lagradost.quicknovel.BookDownloader.checkWrite
 import com.lagradost.quicknovel.BookDownloader.createQuickStream
@@ -20,6 +21,7 @@ import com.lagradost.quicknovel.BookDownloader.openQuickStream
 import com.lagradost.quicknovel.BookDownloader.requestRW
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
+import com.lagradost.quicknovel.mvvm.ioSafe
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.ui.download.DownloadFragment
@@ -39,6 +41,10 @@ import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
     companion object {
+        var app = Requests().apply {
+            defaultHeaders = mapOf("user-agent" to USER_AGENT)
+        }
+
         // === API ===
         lateinit var activity: MainActivity
 
@@ -300,7 +306,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        thread {
+        ioSafe {
             runAutoUpdate()
         }
 
@@ -321,7 +327,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun test() {
-        // val response = khttp.get("https://ranobes.net/up/a-bored-lich/936969-1.html")
+        // val response = app.get("https://ranobes.net/up/a-bored-lich/936969-1.html")
         // println(response.text)
     }
 }

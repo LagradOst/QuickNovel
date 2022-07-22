@@ -183,7 +183,6 @@ class CachedAdapter(
                             1 -> handleSource()
                             3 -> handleDelete()
                         }
-                        println(itemId)
                     }
                     return@setOnLongClickListener true
                 }

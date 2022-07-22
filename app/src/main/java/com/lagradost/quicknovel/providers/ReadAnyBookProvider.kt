@@ -1,7 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
-import khttp.get
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 import kotlin.math.roundToInt
 
@@ -11,9 +11,9 @@ class ReadAnyBookProvider : MainAPI() {
 
     private val containerUrl = "META-INF/container.xml"
 
-    override fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/search?q=$query"
-        val res = get(url).text
+        val res = app.get(url).text
         val doc = Jsoup.parse(res)
 
         val books = doc.select("div.book-preview")
@@ -34,8 +34,8 @@ class ReadAnyBookProvider : MainAPI() {
         }
     }
 
-    override fun load(url: String): LoadResponse? {
-        val res = get(url).text
+    override suspend fun load(url: String): LoadResponse? {
+        val res = app.get(url).text
         val doc = Jsoup.parse(res)
 
         val name = doc.select("div.book-name").text() ?: return null
@@ -167,8 +167,8 @@ class ReadAnyBookProvider : MainAPI() {
         }
     }
 
-    private fun getChapterData(url: String): List<ChapterData> {
-        val container = get(url).text
+    private suspend fun getChapterData(url: String): List<ChapterData> {
+        val container = app.get(url).text
         val doc = Jsoup.parse(container)
         val root = doc.select("rootfile[full-path]")
 
@@ -179,8 +179,8 @@ class ReadAnyBookProvider : MainAPI() {
         return scrapeOPFList(mainUrl + rootPath)
     }
 
-    private fun scrapeOPFList(url: String): List<ChapterData> {
-        val html = get(url).text
+    private suspend fun scrapeOPFList(url: String): List<ChapterData> {
+        val html = app.get(url).text
         // Cuts off everything after the last "/"
         // Used for relative paths
         val mainPath = url.substring(0, url.lastIndexOf("/") + 1)
@@ -211,9 +211,9 @@ class ReadAnyBookProvider : MainAPI() {
         return list
     }
 
-    override fun loadHtml(url: String): String {
+    override suspend fun loadHtml(url: String): String {
         //TODO Scrape images
-        return get(url).text
+        return app.get(url).text
 
         /*val container = get(url).text
         val doc = Jsoup.parse(container)

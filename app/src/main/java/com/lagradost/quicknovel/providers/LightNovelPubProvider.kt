@@ -3,11 +3,11 @@ package com.lagradost.quicknovel.providers
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.DataStore.toKotlinObject
-import khttp.get
+import com.lagradost.quicknovel.MainActivity.Companion.app
+import kotlinx.coroutines.delay
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
-import java.lang.Thread.sleep
 import java.util.*
 
 class LightNovelPubProvider : MainAPI() {
@@ -22,8 +22,8 @@ class LightNovelPubProvider : MainAPI() {
         val resultview: String,
     )
 
-    override fun loadHtml(url: String): String? { // THEY RATE LIMIT THE FUCK ON THIS PROVIDER
-        val response = get(url)
+    override suspend fun loadHtml(url: String): String? { // THEY RATE LIMIT THE FUCK ON THIS PROVIDER
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         val items = document.selectFirst("div#chapter-container") ?: return null
         // THEY HAVE SHIT LIKE " <p class="kyzywl">The source of this content is lightnovelpub[.]com</p> " random class, no normal text has a class
@@ -57,8 +57,8 @@ class LightNovelPubProvider : MainAPI() {
         return OrderedChapterData(title ?: return null, href, time, orderNum)
     }
 
-    override fun load(url: String): LoadResponse? {
-        val response = get(url)
+    override suspend fun load(url: String): LoadResponse? {
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         val poster = document.selectFirst("div.fixed-img > figure.cover > img")?.attr("data-src")
         val novelInfo = document.selectFirst("div.header-body > div.novel-info")
@@ -101,7 +101,7 @@ class LightNovelPubProvider : MainAPI() {
         genres.addAll(tags)
         val synopsis = document.selectFirst("div.summary > div.content")?.text()
 
-        val chapsDocument = Jsoup.parse(get("$url/chapters").text)
+        val chapsDocument = Jsoup.parse(app.get("$url/chapters").text)
 
         val chaps = ArrayList(getChaps(chapsDocument))
 
@@ -128,8 +128,8 @@ class LightNovelPubProvider : MainAPI() {
 
             val dataList =
                 list.map { // CANT PMAP DUE TO : This operation is rate limited.
-                    sleep(1000)
-                    val localResponse = get(it.second)
+                    delay(1000)
+                    val localResponse = app.get(it.second)
                     val localDocument = Jsoup.parse(localResponse.text)
                     val localChaps = getChaps(localDocument)
                     if (localChaps.isEmpty()) {
@@ -161,21 +161,21 @@ class LightNovelPubProvider : MainAPI() {
         )
     }
 
-    override fun search(query: String): List<SearchResponse> {
-        val searchRequest = get("$mainUrl/search")
+    override suspend fun search(query: String): List<SearchResponse> {
+        val searchRequest = app.get("$mainUrl/search")
         val searchToken = Jsoup.parse(searchRequest.text)
             .select("input[name='__LNRequestVerifyToken']").`val`()
 
         val url = "$mainUrl/lnsearchlive"
         // This fuckery because sometimes khttp fails to get cookies as it only uses lowercase
         val cookie = Regex("""lncoreantifrg=.*?;""").find(searchRequest.headers.toString())?.groupValues?.get(0)
-        val response = khttp.post(
+        val response = app.post(
             url,
             data = mapOf("inputContent" to query),
             headers = mapOf(
-                "LNRequestVerifyToken" to searchToken,
+                "LNRequestVerifyToken" to searchToken!!,
                 // Using cookies = searchRequest.cookies doesn't work
-                "cookie" to cookie
+                "cookie" to cookie!!
             )
         )
         val parse = response.text.toKotlinObject<SearchRoot>()
