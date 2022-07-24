@@ -24,6 +24,8 @@ class Apis {
             AllNovelProvider(),
             RanobesProvider(),
             NovelFullProvider(),
+            MNovelFreeProvider(),
+            NovelFullVipProvider(),
 
 
             // chapter captcha
