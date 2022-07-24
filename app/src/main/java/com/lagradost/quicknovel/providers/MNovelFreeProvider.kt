@@ -1,10 +1,9 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
-import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 
-class MNovelFreeProvider : MainAPI() {
+open class MNovelFreeProvider : MainAPI() {
     override val name = "MNovelFree"
     override val mainUrl = "https://mnovelfree.com"
     override val hasMainPage = true
@@ -147,7 +146,7 @@ class MNovelFreeProvider : MainAPI() {
         }
 
         val rating =
-            document.getElementsByAttributeValue("itemprop","ratingValue")?.text()?.toFloat()?.times(100)?.toInt()
+            document.getElementsByAttributeValue("itemprop","ratingValue").text()?.toFloat()?.times(100)?.toInt()
         val peopleVoted = document.getElementsByAttributeValue("itemprop","ratingCount")?.text()?.toInt()
 
         return LoadResponse(
