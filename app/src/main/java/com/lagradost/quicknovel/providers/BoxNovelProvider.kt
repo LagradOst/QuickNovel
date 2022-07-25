@@ -88,7 +88,7 @@ class BoxNovelProvider : MainAPI() {
             if (name?.contains("Comic") != false) return@mapNotNull null// I DON'T WANT MANGA!
 
             val cUrl = imageHeader.attr("href")
-            val posterUrl = imageHeader.selectFirst("> img")?.attr("src")
+            val posterUrl = imageHeader.selectFirst("> img")?.attr("data-src")
             val sum = h.selectFirst("div.item-summary")
             val rating =
                 (sum?.selectFirst("> div.rating > div.post-total-rating > span.score")?.text()
@@ -142,7 +142,7 @@ class BoxNovelProvider : MainAPI() {
 
             val url = title.attr("href")
 
-            val posterUrl = h.selectFirst("> div > div.tab-thumb > a > img")?.attr("src")
+            val posterUrl = h.selectFirst("> div > div.tab-thumb > a > img")?.attr("data-src")
 
             val meta = h.selectFirst("> div > div.tab-meta")
 
@@ -203,7 +203,7 @@ class BoxNovelProvider : MainAPI() {
             }
         }
 
-        val posterUrl = document.select("div.summary_image > a > img").attr("src")
+        val posterUrl = document.select("div.summary_image > a > img").attr("data-src")
 
         val tags: ArrayList<String> = ArrayList()
         val tagsHeader = document.select("div.genres-content > a")

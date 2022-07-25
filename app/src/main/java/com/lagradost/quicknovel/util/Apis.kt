@@ -24,7 +24,7 @@ class Apis {
             AllNovelProvider(),
             RanobesProvider(),
             NovelFullProvider(),
-            MNovelFreeProvider(),
+            //MNovelFreeProvider(), // same as NovelFullVipProvider
             NovelFullVipProvider(),
 
 
