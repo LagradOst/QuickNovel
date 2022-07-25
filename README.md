@@ -19,9 +19,9 @@ Adfree FOSS Android app for downloading novels. It also functions as an Epub rea
 
 - https://novelfull.com (Made by Sir Aguacata)
 
-- https://mnovelfree.com (Made by Sir Aguacata)
+- https://mnovelfree.com (Made by Adippe & Sir Aguacata)
 
-- https://novelfullvip.com (Made by Sir Aguacata)
+- https://novelfullvip.com (Made by Adippe & Sir Aguacata)
 
 - https://www.novelpassion.com
 
