@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 
 class AzynovelProvider : MainAPI() {
@@ -59,7 +60,7 @@ class AzynovelProvider : MainAPI() {
         Pair("Slice Of Life", "slice-of-life"),
     )
 
-    override fun loadMainPage(
+    override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
@@ -68,7 +69,7 @@ class AzynovelProvider : MainAPI() {
         val url =
             if (tag.isNullOrBlank()) "$mainUrl/latest-releases?page=$page" else "$mainUrl/category/$tag?page=$page"
 
-        val response = khttp.get(url)
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
 
@@ -79,16 +80,16 @@ class AzynovelProvider : MainAPI() {
         if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
-            val name = h.selectFirst("span").text()
+            val name = h?.selectFirst("span")?.text() ?: continue
             val cUrl = mainUrl + h.attr("href")
 
-            val posterUrl = h.selectFirst("div.media-left > figure > img").attr("data-src")
+            val posterUrl = h.selectFirst("div.media-left > figure > img")?.attr("data-src")
 
             returnValue.add(
                 SearchResponse(
                     name,
                     cUrl,
-                    fixUrl(posterUrl),
+                    fixUrlNull(posterUrl),
                     null,
                     null,
                     this.name
@@ -98,16 +99,16 @@ class AzynovelProvider : MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
-    override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
-        return document.selectFirst("div.column.is-9 > div:nth-child(5)").html()
+        return document.selectFirst("div.column.is-9 > div:nth-child(5)")?.html()
     }
 
 
-    override fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> {
         val response =
-            khttp.get("$mainUrl/search?q=$query") // AJAX, MIGHT ADD QUICK SEARCH
+            app.get("$mainUrl/search?q=$query") // AJAX, MIGHT ADD QUICK SEARCH
 
         val document = Jsoup.parse(response.text)
 
@@ -115,15 +116,15 @@ class AzynovelProvider : MainAPI() {
         if (headers.size <= 0) return ArrayList()
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
-            val name = h.selectFirst("span").text()
+            val name = h?.selectFirst("span")?.text() ?: continue
             val cUrl = mainUrl + h.attr("href")
 
-            val posterUrl = h.selectFirst("div.media-left > figure > img").attr("data-src")
+            val posterUrl = h.selectFirst("div.media-left > figure > img")?.attr("data-src")
             returnValue.add(
                 SearchResponse(
                     name,
                     cUrl,
-                    fixUrl(posterUrl),
+                    fixUrlNull(posterUrl),
                     null,
                     null,
                     this.name
@@ -133,13 +134,13 @@ class AzynovelProvider : MainAPI() {
         return returnValue
     }
 
-    override fun load(url: String): LoadResponse {
-        val response = khttp.get(url)
+    override suspend fun load(url: String): LoadResponse? {
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
-        val name = document.selectFirst("div.media-content > div > h1").text()
+        val name = document.selectFirst("div.media-content > div > h1")?.text() ?: return null
 
-        val author = document.selectFirst("div.media-content > div > p:nth-child(2) > a").text()
+        val author = document.selectFirst("div.media-content > div > p:nth-child(2) > a")?.text()
 
         val posterUrl = document.select("div.media-left > figure > img").attr("data-src")
 
@@ -147,13 +148,14 @@ class AzynovelProvider : MainAPI() {
             it.text()
         }.plus(document.select("div.media-content > div > p:nth-child(3) > a").map { it.text() })
 
-        val synopsis = document.selectFirst("div.column.is-9 > div.content").text()
+        val synopsis = document.selectFirst("div.column.is-9 > div.content")?.text()
 
         val data: ArrayList<ChapterData> = ArrayList()
         val chapters = document.select("a.button.is-light.is-fullwidth")
         for (c in chapters) {
-            if (c.attr("href").contains("category").not()) {
-                val cUrl = mainUrl + c.attr("href")
+            val href = c?.attr("href") ?: continue
+            if (href.contains("category").not()) {
+                val cUrl = fixUrl(href)
                 val cName = c.attr("title")
                 data.add(ChapterData(cName, cUrl, null, null))
             }
@@ -163,11 +165,11 @@ class AzynovelProvider : MainAPI() {
         var peopleVoted = 0
         try {
             rating =
-                (document.selectFirst("div.is-hidden-desktop.is-hidden-tablet.has-text-centered > p")
+                (document.selectFirst("div.is-hidden-desktop.is-hidden-tablet.has-text-centered > p")!!
                     .text().substringBefore("/").toFloat() * 200).toInt()
 
             peopleVoted =
-                document.selectFirst("div.is-hidden-desktop.is-hidden-tablet.has-text-centered > p")
+                document.selectFirst("div.is-hidden-desktop.is-hidden-tablet.has-text-centered > p")!!
                     .text().substringAfter("/").filter { it.isDigit() }.toInt()
         } catch (e: Exception) {
             // NO RATING
@@ -178,7 +180,7 @@ class AzynovelProvider : MainAPI() {
             name,
             data,
             author,
-            fixUrl(posterUrl),
+            fixUrlNull(posterUrl),
             rating,
             peopleVoted,
             null,

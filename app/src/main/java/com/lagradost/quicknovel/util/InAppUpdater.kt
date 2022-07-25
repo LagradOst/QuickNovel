@@ -12,9 +12,11 @@ import androidx.preference.PreferenceManager
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.json.JsonMapper
+import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.quicknovel.BuildConfig
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import java.io.*
 import java.net.URL
@@ -47,15 +49,24 @@ class InAppUpdater {
             @JsonProperty("changelog") val changelog: String?,
         )
 
-        private val mapper = JsonMapper.builder().addModule(KotlinModule())
+        private val mapper = JsonMapper.builder().addModule(
+            KotlinModule.Builder()
+                .withReflectionCacheSize(512)
+                .configure(KotlinFeature.NullToEmptyCollection, false)
+                .configure(KotlinFeature.NullToEmptyMap, false)
+                .configure(KotlinFeature.NullIsSameAsDefault, false)
+                .configure(KotlinFeature.SingletonSupport, false)
+                .configure(KotlinFeature.StrictNullChecks, false)
+                .build()
+        )
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build()
 
-        private fun Activity.getAppUpdate(): Update {
+        private suspend fun Activity.getAppUpdate(): Update {
             try {
                 val url = "https://api.github.com/repos/LagradOst/QuickNovel/releases/latest"
                 val headers = mapOf("Accept" to "application/vnd.github.v3+json")
                 val response =
-                    mapper.readValue<List<GithubRelease>>(khttp.get(url, headers = headers).text)
+                    mapper.readValue<List<GithubRelease>>(app.get(url, headers = headers).text)
 
                 val versionRegex = Regex("""(.*?((\d)\.(\d)\.(\d)).*\.apk)""")
 
@@ -108,7 +119,7 @@ class InAppUpdater {
                 // =================== MAKE DIRS ===================
                 val rFile = File(path)
                 try {
-                    rFile.parentFile.mkdirs()
+                    rFile.parentFile?.mkdirs()
                 } catch (_ex: Exception) {
                     println("FAILED:::$_ex")
                 }
@@ -224,7 +235,7 @@ class InAppUpdater {
             }
         }
 
-        fun Activity.runAutoUpdate(checkAutoUpdate: Boolean = true): Boolean {
+        suspend fun Activity.runAutoUpdate(checkAutoUpdate: Boolean = true): Boolean {
             val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
 
             if (!checkAutoUpdate || settingsManager.getBoolean(getString(R.string.auto_update_key), true)

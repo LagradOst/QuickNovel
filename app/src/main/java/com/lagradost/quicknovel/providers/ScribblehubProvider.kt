@@ -1,29 +1,27 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 
 class ScribblehubProvider : MainAPI() {
     override val name = "Scribblehub"
     override val mainUrl = "https://www.scribblehub.com"
 
-    override fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/?s=$query&post_type=fictionposts"
-        val response = khttp.get(url)
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
-        val items = document.select("div.search_main_box")
-        val returnValue = ArrayList<SearchResponse>()
-        for (item in items) {
-            val img = item.selectFirst("> div.search_img > img").attr("src")
-            val body = item.selectFirst("> div.search_body > div.search_title > a")
-            val title = body.text()
-            val href = body.attr("href")
-            returnValue.add(SearchResponse(title, href, img, null, null, this.name))
+        return document.select("div.search_main_box").mapNotNull { item ->
+            val img = item?.selectFirst("> div.search_img > img")?.attr("src")
+            val body = item?.selectFirst("> div.search_body > div.search_title > a")
+            val title = body?.text() ?: return@mapNotNull null
+            val href = body.attr("href") ?: return@mapNotNull null
+            SearchResponse(title, href, img, null, null, this.name)
         }
-        return returnValue
     }
 
-    override fun load(url: String): LoadResponse {
+    override suspend fun load(url: String): LoadResponse {
         val id = Regex("series/([0-9]*?)/")
             .find(url)
             ?.groupValues
@@ -31,10 +29,10 @@ class ScribblehubProvider : MainAPI() {
             ?.toIntOrNull()
             ?: throw ErrorLoadingException("Error getting Id of $url")
 
-        val response = khttp.get(url)
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
 
-        val listResponse = khttp.post(
+        val listResponse = app.post(
             "https://www.scribblehub.com/wp-admin/admin-ajax.php",
             data = mapOf(
                 "action" to "wi_getreleases_pagination",
@@ -47,41 +45,42 @@ class ScribblehubProvider : MainAPI() {
         val doc = Jsoup.parse(listResponse.text)
         val items = doc.select("ol.toc_ol > li")
         var index = 0
-        val data = items.map {
+        val data = items.mapNotNull {
             index++
             val aHeader = it.selectFirst("> a")
-            val href = aHeader.attr("href")
-            val date = it.selectFirst("> span").text()
-            val chapterName = aHeader.ownText()
+            val href = aHeader?.attr("href")
+            val date = it.selectFirst("> span")?.text()
+            val chapterName = aHeader?.ownText()
             ChapterData(
                 if (chapterName.isNullOrBlank()) "Chapter $index" else chapterName,
-                href,
+                href ?: return@mapNotNull null,
                 date,
                 null
             )
         }
 
-        val poster = document.selectFirst("div.fic_image > img").attr("src")
-        val title = document.selectFirst("div.fic_title").text()
-        val synopsis = document.selectFirst("div.wi_fic_desc").text()
+        val poster = document.selectFirst("div.fic_image > img")?.attr("src")
+        val title = document.selectFirst("div.fic_title")?.text()
+        val synopsis = document.selectFirst("div.wi_fic_desc")?.text()
         val genres = document.select("span.wi_fic_genre > span > a.fic_genre").map { it.text() }
         //val tags = document.select("span.wi_fic_showtags > span.wi_fic_showtags_inner > a").map { it.text() }
         val ratings = document.select("span#ratefic_user > span > span")
         val ratingEval = ratings.first()?.text()?.toFloatOrNull()?.times(200)?.toInt()
         val ratingsTotal =
-            ratings?.get(1)?.selectFirst("> span")?.text()?.replace(" ratings", "")?.toIntOrNull()
+            ratings[1]?.selectFirst("> span")?.text()?.replace(" ratings", "")?.toIntOrNull()
         val author = document.selectFirst("span.auth_name_fic")?.text()
 
         val statusSpan =
-            document.selectFirst("ul.widget_fic_similar > li > span").lastElementSibling().ownText()
+            document.selectFirst("ul.widget_fic_similar > li > span")?.lastElementSibling()
+                ?.ownText()
         val status = when {
-            statusSpan.contains("Hiatus") -> STATUS_PAUSE
-            statusSpan.contains("Ongoing") -> STATUS_ONGOING
+            statusSpan?.contains("Hiatus") == true -> STATUS_PAUSE
+            statusSpan?.contains("Ongoing") == true -> STATUS_ONGOING
             else -> STATUS_NULL
         }
         return LoadResponse(
             url,
-            title,
+            title ?: throw ErrorLoadingException("invalid name"),
             data,
             author,
             poster,
@@ -94,12 +93,12 @@ class ScribblehubProvider : MainAPI() {
         )
     }
 
-    override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
         return document
             .selectFirst("div#chp_raw")
-            .html()
+            ?.html()
     }
 }

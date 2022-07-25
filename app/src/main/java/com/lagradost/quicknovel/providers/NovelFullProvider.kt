@@ -6,14 +6,14 @@ import org.jsoup.Jsoup
 import java.lang.Exception
 import kotlin.collections.ArrayList
 
-class AllNovelProvider : MainAPI() {
-    override val name = "AllNovel"
-    override val mainUrl = "https://allnovel.org"
+class NovelFullProvider : MainAPI() {
+    override val name = "NovelFull"
+    override val mainUrl = "https://novelfull.com"
     override val hasMainPage = true
 
-    override val iconId = R.drawable.icon_allnovel
+    override val iconId = R.drawable.icon_novelfull
 
-    override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
+    override val iconBackgroundId = R.color.white
 
     override val tags = listOf(
         Pair("All", "All"),
@@ -84,8 +84,12 @@ class AllNovelProvider : MainAPI() {
         val firstresponse = app.get(mainUrl)
         val firstdocument = Jsoup.parse(firstresponse.text)
         fun getId(tagvalue: String?): String? {
-            return firstdocument.select("#hot-genre-select>option")
-                .firstOrNull { it.text() == tagvalue }?.attr("value")
+            for (i in firstdocument.select("#hot-genre-select>option")) {
+                if (i.text() == tagvalue) {
+                    return i?.attr("value")
+                }
+            }
+            return null
         }
 
         // I cant fix this because idk how it works
@@ -96,9 +100,9 @@ class AllNovelProvider : MainAPI() {
         if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
-            val h3 = h?.selectFirst("a")
-            val cUrl = mainUrl + h3?.attr("href")
-            val name = h3?.attr("title") ?: throw ErrorLoadingException("Invalid name")
+            val h3 = h?.selectFirst("a") ?: continue
+            val cUrl = h3.attr("href")
+            val name = h3.attr("title")
 
             val posterUrl =
                 mainUrl + h.selectFirst("img")?.attr("src")
@@ -106,7 +110,7 @@ class AllNovelProvider : MainAPI() {
             returnValue.add(
                 SearchResponse(
                     name,
-                    cUrl,
+                    fixUrl(cUrl),
                     fixUrlNull(posterUrl),
                     null,
                     null,
@@ -138,9 +142,9 @@ class AllNovelProvider : MainAPI() {
         if (headers.size <= 0) return ArrayList()
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
-            val h3 = h?.selectFirst("h3.truyen-title > a")
-            val cUrl = mainUrl + h3?.attr("href")
-            val name = h3?.attr("title") ?: throw ErrorLoadingException("Invalid name")
+            val h3 = h?.selectFirst("h3.truyen-title > a") ?: continue
+            val cUrl = mainUrl + h3.attr("href")
+            val name = h3.attr("title")
 
             val posterUrl =
                 mainUrl + Jsoup.parse(app.get(cUrl).text).select("div.book > img").attr("src")
@@ -164,11 +168,11 @@ class AllNovelProvider : MainAPI() {
         return returnValue
     }
 
-    override suspend fun load(url: String): LoadResponse {
+    override suspend fun load(url: String): LoadResponse? {
         val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
-        val name = document.selectFirst("h3.title")?.text()
+        val name = document.selectFirst("h3.title")?.text() ?: return null
 
         val author = document.selectFirst("div.info > div:nth-child(1) > a")?.text()
 
@@ -179,21 +183,23 @@ class AllNovelProvider : MainAPI() {
         }
         val synopsis = document.selectFirst("div.desc-text")?.text()
 
+        val data: ArrayList<ChapterData> = ArrayList()
         val datanovelid = document.select("#rating").attr("data-novel-id")
         val chaptersData =
             app.get("https://allnovel.org/ajax-chapter-option?novelId=$datanovelid")
         val parsedchaptersData = Jsoup.parse(chaptersData.text)
         val parsed = parsedchaptersData.select("select > option")
+        for (c in parsed) {
 
-        val data = parsed.map { c ->
             val cUrl = mainUrl + c?.attr("value")
             val cName = if (c.text().isEmpty()) {
                 "chapter $c"
             } else {
                 c.text()
             }
-            ChapterData(cName, cUrl, null, null)
+            data.add(ChapterData(cName, cUrl, null, null))
         }
+
 
         val statusHeader0 = document.selectFirst("div.info > div:nth-child(5) > a")
         val status = when (statusHeader0?.selectFirst("a")?.text()) {
@@ -202,16 +208,22 @@ class AllNovelProvider : MainAPI() {
             else -> STATUS_NULL
         }
 
-
-        val rating = document.selectFirst(" div.small > em > strong:nth-child(1) > span")?.text()
-            ?.toIntOrNull() ?: 0
-        val peopleVoted =
-            document.selectFirst(" div.small > em > strong:nth-child(3) > span")?.text()
-                ?.toIntOrNull() ?: 0
+        var rating = 0
+        var peopleVoted = 0
+        try {
+            rating =
+                document.selectFirst(" div.small > em > strong:nth-child(1) > span")?.text()!!
+                    .toInt()
+            peopleVoted =
+                document.selectFirst(" div.small > em > strong:nth-child(3) > span")?.text()!!
+                    .toInt()
+        } catch (e: Exception) {
+            // NO RATING
+        }
 
         return LoadResponse(
             url,
-            name ?: throw ErrorLoadingException("invalid name"),
+            name,
             data,
             author,
             fixUrlNull(posterUrl),

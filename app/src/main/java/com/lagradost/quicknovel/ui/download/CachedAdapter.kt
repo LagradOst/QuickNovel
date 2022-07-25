@@ -116,7 +116,7 @@ class CachedAdapter(
                         }
 
                         val uri = withContext(Dispatchers.IO) {
-                            localActivity?.createQuickStream(
+                            localActivity.createQuickStream(
                                 BookDownloader.QuickStreamData(
                                     BookDownloader.QuickStreamMetaData(
                                         res.author,
@@ -128,9 +128,9 @@ class CachedAdapter(
                                 )
                             )
                         }
-                        localActivity?.openQuickStream(uri)
+                        localActivity.openQuickStream(uri)
                     } else {
-                        localActivity?.let { ctx ->
+                        localActivity.let { ctx ->
                             Toast.makeText(ctx, "Error Loading Novel", Toast.LENGTH_SHORT).show()
                         }
                     }
@@ -165,10 +165,10 @@ class CachedAdapter(
                     handleSource()
                 }
             } else {
-                backgroundCard?.setOnClickListener {
+                backgroundCard.setOnClickListener {
                     handleRead()
                 }
-                backgroundCard?.setOnLongClickListener {
+                backgroundCard.setOnLongClickListener {
                     val items = listOf(
                         Triple(0, R.drawable.ic_baseline_menu_book_24, R.string.download_read_action),
                         Triple(1, R.drawable.ic_baseline_open_in_new_24, R.string.download_open_action),
@@ -183,7 +183,6 @@ class CachedAdapter(
                             1 -> handleSource()
                             3 -> handleDelete()
                         }
-                        println(itemId)
                     }
                     return@setOnLongClickListener true
                 }

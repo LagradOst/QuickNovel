@@ -108,6 +108,18 @@
                     android:textSize="16sp"
                     android:paddingStart="5dp"
                     android:paddingEnd="5dp"
+                    android:text="@string/twelve_hour_time"
+                    android:id="@+id/read_settings_twelve_hour_time"
+                    android:textColor="?attr/textColor"
+                    app:buttonTint="?attr/colorOnPrimary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                    android:layout_marginTop="5dp"
+                    android:textSize="16sp"
+                    android:paddingStart="5dp"
+                    android:paddingEnd="5dp"
                     android:text="@string/show_battery"
                     android:id="@+id/read_settings_show_battery"
                     android:textColor="?attr/textColor"

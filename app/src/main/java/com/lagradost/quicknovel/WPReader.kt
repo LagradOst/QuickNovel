@@ -3,13 +3,13 @@ package com.lagradost.quicknovel
 import java.util.*
 
 abstract class WPReader : MainAPI() {
-    open override val name = ""
-    open override val mainUrl = ""
-    open override val lang = "id"
-    open override val iconId = R.drawable.ic_meionovel
-    open override val hasMainPage = true
-    open override val iconBackgroundId = R.color.lightItemBackground
-    open override val tags = listOf(
+    override val name = ""
+    override val mainUrl = ""
+    override val lang = "id"
+    override val iconId = R.drawable.ic_meionovel
+    override val hasMainPage = true
+    override val iconBackgroundId = R.color.lightItemBackground
+    override val tags = listOf(
         Pair("All", ""),
         Pair("Action", "action"),
         Pair("Adult", "adult"),
@@ -54,7 +54,7 @@ abstract class WPReader : MainAPI() {
     */
     // open val country: List<String> = listOf("jepang", "china", "korea", "unknown",)
 
-    open override fun loadMainPage(
+    override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
@@ -82,16 +82,16 @@ abstract class WPReader : MainAPI() {
         return HeadMainPageResponse(url, res ?: ArrayList())
     }
 
-    open override fun loadHtml(url: String): String? {
+    override suspend fun loadHtml(url: String): String? {
         val con = jConnect(url)
-        var res = con?.selectFirst(".mn-novel-chapter-content-body") ?: con?.selectFirst(".reader-area")
+        val res = con?.selectFirst(".mn-novel-chapter-content-body") ?: con?.selectFirst(".reader-area")
         return res?.let { adv ->
-            adv?.select("p")?.filter { !it.hasText() }?.forEach { it.remove() }
+            adv.select("p")?.filter { it -> !it.hasText() }?.forEach { it.remove() }
             adv.outerHtml()
         }
     }
 
-    open override fun search(query: String): List<SearchResponse> {
+    override suspend fun search(query: String): List<SearchResponse> {
         val url = mainUrl.toUrlBuilderSafe().add("s" to query)
         return jConnect(url = url.toString())
             ?.select("div.flexbox2-content > a")
@@ -107,7 +107,7 @@ abstract class WPReader : MainAPI() {
             } ?: ArrayList()
     }
 
-    open override fun load(url: String): LoadResponse {
+    override suspend fun load(url: String): LoadResponse {
         val doc = jConnect(url)
         return LoadResponse(
             url = url,
@@ -115,8 +115,8 @@ abstract class WPReader : MainAPI() {
             data = doc?.select("div.flexch-infoz > a")
                 ?.mapNotNull { dat ->
                     ChapterData(
-                        name = dat.attr("title")?.clean() ?: "",
-                        url = dat.attr("href")?.clean() ?: "",
+                        name = dat.attr("title").clean() ?: "",
+                        url = dat.attr("href").clean() ?: "",
                         dateOfRelease = dat.selectFirst("span.date")?.text()?.clean() ?: "",
                         views = 0,
                     )

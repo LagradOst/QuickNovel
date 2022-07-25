@@ -48,6 +48,8 @@ import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.DataStore.removeKey
 import com.lagradost.quicknovel.DataStore.setKey
+import com.lagradost.quicknovel.MainActivity.Companion.app
+import com.lagradost.quicknovel.mvvm.ioSafe
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.receivers.BecomingNoisyReceiver
@@ -147,7 +149,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         return if (isFromEpub) book.title else quickdata.meta.name
     }
 
-    private fun getBookBitmap(): Bitmap? {
+    private suspend fun getBookBitmap(): Bitmap? {
         if (bookCover == null) {
             var byteArray: ByteArray? = null
 
@@ -158,7 +160,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 val poster = quickdata.poster
                 if (poster != null) {
                     try {
-                        byteArray = khttp.get(poster).content
+                        byteArray = app.get(poster).okhttpResponse.body.bytes()
                     } catch (e: Exception) {
                         println("BITMAP ERROR: $e")
                     }
@@ -176,7 +178,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             ?: "Chapter ${index + 1}" else quickdata.data[index].name
     }
 
-    private fun Context.getChapterData(index: Int, forceReload: Boolean = false): String? {
+    private suspend fun Context.getChapterData(index: Int, forceReload: Boolean = false): String? {
         println("getChapterData $index")
         val text =
             (if (isFromEpub) book.tableOfContents.tocReferences[index].resource.reader.readText() else getQuickChapter(
@@ -250,7 +252,6 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
         /* val arrayAdapter = ArrayAdapter<String>(this, R.layout.sort_bottom_single_choice)
          arrayAdapter.addAll(sortingMethods.toMutableList())
-
          res.choiceMode = AbsListView.CHOICE_MODE_SINGLE
          res.adapter = arrayAdapter
          res.setItemChecked(sotringIndex, true)*/
@@ -699,13 +700,16 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         }
     }
 
-    private fun updateTimeText() {
-        val currentTime: String = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+    private fun Context.updateTimeText() {
+        val string = if (this.updateTwelveHourTime()) "KK:mm a" else "HH:mm"
+
+        val currentTime: String = SimpleDateFormat(string, Locale.getDefault()).format(Date())
         if (read_time != null) {
             read_time.text = currentTime
             read_time.postDelayed({ -> updateTimeText() }, 1000)
         }
     }
+
 
     private var hasTriedToFillNextChapter = false
     private val reddit = RedditProvider()
@@ -717,13 +721,13 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
         try {
             val elements =
-                Jsoup.parse(currentHtmlText)?.allElements?.filterNotNull() ?: return false
+                Jsoup.parse(currentHtmlText).allElements?.filterNotNull() ?: return false
 
             for (element in elements) {
                 val href = element.attr("href") ?: continue
 
                 val text =
-                    element.ownText()?.replace(Regex("[\\[\\]().,|{}<>]"), "")?.trim() ?: continue
+                    element.ownText().replace(Regex("[\\[\\]().,|{}<>]"), "")?.trim() ?: continue
                 if (text.equals("next", true) || text.equals(
                         "next chapter",
                         true
@@ -751,8 +755,11 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 false
             }
         } else {
-            loadChapter(currentChapter + 1, true)
-            read_scroll.smoothScrollTo(0, 0)
+            ioSafe {
+                loadChapter(currentChapter + 1, true)
+                read_scroll.smoothScrollTo(0, 0)
+            }
+
             true
         }
     }
@@ -762,7 +769,9 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             false
             //Toast.makeText(this, "No more chapters", Toast.LENGTH_SHORT).show()
         } else {
-            loadChapter(currentChapter - 1, false)
+            ioSafe {
+                loadChapter(currentChapter - 1, false)
+            }
             true
         }
     }
@@ -945,7 +954,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
     private var currentText = ""
     private var currentHtmlText = ""
-    private fun Context.loadChapter(
+    private suspend fun Context.loadChapter(
         chapterIndex: Int,
         scrollToTop: Boolean,
         scrollToRemember: Boolean = false,
@@ -1410,7 +1419,9 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         builderSingle.setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
 
         builderSingle.setAdapter(arrayAdapter) { _, which ->
-            loadChapter(which, true)
+            ioSafe {
+                loadChapter(which, true)
+            }
         }
 
         val dialog = builderSingle.create()
@@ -1529,16 +1540,28 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         return set
     }
 
-    private fun Context.updateKeepScreen(status: Boolean? = null): Boolean{
-        val set = if(status != null){
+    private fun Context.updateKeepScreen(status: Boolean? = null): Boolean {
+        val set = if (status != null) {
             setKey(EPUB_KEEP_SCREEN_ACTIVE, status)
             status
-        }else{
+        } else {
             getKey(EPUB_KEEP_SCREEN_ACTIVE, true)!!
         }
-        if(set) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        if (set) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) else window.clearFlags(
+            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+        )
         return set
     }
+
+    private fun Context.updateTwelveHourTime(status: Boolean? = null): Boolean {
+        return if (status != null) {
+            this.setKey(EPUB_TWELVE_HOUR_TIME, status)
+            status
+        } else {
+            this.getKey(EPUB_TWELVE_HOUR_TIME, false)!!
+        }
+    }
+
 
     private fun Context.updateHasTime(status: Boolean? = null): Boolean {
         val set = if (status != null) {
@@ -1724,6 +1747,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         getBackgroundColor()
         getTextColor()
         updateHasTime()
+        updateTwelveHourTime()
         updateHasBattery()
         updateKeepScreen()
 
@@ -1779,6 +1803,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_lock_tts)!!
             val showTime =
                 bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_time)!!
+            val twelvehourFormat =
+                bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_twelve_hour_time)!!
             val showBattery =
                 bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_battery)!!
             val keepScreenActive =
@@ -1796,12 +1822,14 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
             hardResetStream.visibility = if (isFromEpub) View.GONE else View.VISIBLE
             hardResetStream.setOnClickListener {
-                loadChapter(
-                    currentChapter,
-                    scrollToTop = false,
-                    scrollToRemember = true,
-                    forceReload = true
-                )
+                ioSafe {
+                    loadChapter(
+                        currentChapter,
+                        scrollToTop = false,
+                        scrollToRemember = true,
+                        forceReload = true
+                    )
+                }
             }
 
             //val root = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_root)!!
@@ -1813,7 +1841,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
             readShowFonts?.setOnClickListener {
                 showFonts {
-                    readShowFonts?.text = it
+                    readShowFonts.text = it
                 }
             }
 
@@ -1825,6 +1853,12 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             readSettingsLockTts.isChecked = lockTTS
             readSettingsLockTts.setOnCheckedChangeListener { _, checked ->
                 setLockTTS(checked)
+            }
+
+
+            twelvehourFormat.isChecked = updateTwelveHourTime()
+            twelvehourFormat.setOnCheckedChangeListener { _, checked ->
+                updateTwelveHourTime(checked)
             }
 
             showTime.isChecked = updateHasTime()
@@ -1908,7 +1942,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             horizontalColors.addView(imageHolder)
             updateImages()
 
-            readSettingsTextSize.max = 10
+            readSettingsTextSize.max = 20
             val offsetSize = 10
             var updateAllTextOnDismiss = false
             readSettingsTextSize.progress = getTextFontSize() - offsetSize
@@ -1974,7 +2008,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
                     if (itemId == 1) {
                         it.context?.removeKey(EPUB_TEXT_PADDING_TOP)
-                        readSettingsTextPaddingTop?.progress = getTextPaddingTop()
+                        readSettingsTextPaddingTop.progress = getTextPaddingTop()
                     }
                 }
             }
@@ -1983,7 +2017,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
                     if (itemId == 1) {
                         it.context?.removeKey(EPUB_TEXT_PADDING)
-                        readSettingsTextPadding?.progress = getTextPadding()
+                        readSettingsTextPadding.progress = getTextPadding()
                     }
                 }
             }
@@ -1992,7 +2026,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
                     if (itemId == 1) {
                         it.context?.removeKey(EPUB_TEXT_SIZE)
-                        readSettingsTextSize?.progress = getTextFontSize() - offsetSize
+                        readSettingsTextSize.progress = getTextFontSize() - offsetSize
                     }
                 }
             }

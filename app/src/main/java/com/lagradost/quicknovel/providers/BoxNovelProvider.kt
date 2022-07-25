@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 import java.util.*
 
@@ -58,7 +59,7 @@ class BoxNovelProvider : MainAPI() {
             Pair("Latest", "latest"),
         )
 
-    override fun loadMainPage(
+    override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
@@ -74,75 +75,79 @@ class BoxNovelProvider : MainAPI() {
         val url =
             "$mainUrl/$order/page/$page/${if (orderBy == null || orderBy == "") "" else "?m_orderby=$orderBy"}"
 
-        val response = khttp.get(url)
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
         //""div.page-content-listing > div.page-listing-item > div > div > div.page-item-detail"
         val headers = document.select("div.page-item-detail")
         if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
 
-        val returnValue: ArrayList<SearchResponse> = ArrayList()
-        for (h in headers) {
-            val imageHeader = h.selectFirst("div.item-thumb > a")
-            val name = imageHeader.attr("title")
-            if (name.contains("Comic")) continue // I DON'T WANT MANGA!
+        val returnValue = headers.mapNotNull { h ->
+            val imageHeader = h?.selectFirst("div.item-thumb > a")
+            val name = imageHeader?.attr("title")
+            if (name?.contains("Comic") != false) return@mapNotNull null// I DON'T WANT MANGA!
 
             val cUrl = imageHeader.attr("href")
-            val posterUrl = imageHeader.selectFirst("> img").attr("src")
+            val posterUrl = imageHeader.selectFirst("> img")?.attr("data-src")
             val sum = h.selectFirst("div.item-summary")
             val rating =
-                (sum.selectFirst("> div.rating > div.post-total-rating > span.score").text()
-                    .toFloat() * 200).toInt()
+                (sum?.selectFirst("> div.rating > div.post-total-rating > span.score")?.text()
+                    ?.toFloat()?.times(200))?.toInt()
             val latestChap =
-                sum.selectFirst("> div.list-chapter > div.chapter-item > span > a").text()
-            returnValue.add(SearchResponse(name, cUrl, posterUrl, rating, latestChap, this.name))
+                sum?.selectFirst("> div.list-chapter > div.chapter-item > span > a")?.text()
+            SearchResponse(
+                name,
+                cUrl ?: return@mapNotNull null,
+                posterUrl,
+                rating,
+                latestChap,
+                this.name
+            )
         }
 
         return HeadMainPageResponse(url, returnValue)
     }
 
-    override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         val res = document.selectFirst("div.text-left")
-        if (res.html() == "") {
+        if (res?.html() == "") {
             return null
         }
-        return res.html()
-            .replace(
+        return res?.html()
+            ?.replace(
                 "(If you have problems with this website, please continue reading your novel on our new website myboxnovel.com THANKS!)",
                 ""
             )
-            .replace("(adsbygoogle = window.adsbygoogle || []).push({});", "")
-            .replace(
+            ?.replace(
                 "Read latest Chapters at BoxNovel.Com Only",
                 ""
             ) // HAVE NOT TESTED THIS ONE, COPY FROM WUXIAWORLD
 
     }
 
-    override fun search(query: String): List<SearchResponse> {
-        val response = khttp.get("$mainUrl/?s=$query&post_type=wp-manga")
+    override suspend fun search(query: String): List<SearchResponse> {
+        val response = app.get("$mainUrl/?s=$query&post_type=wp-manga")
 
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.c-tabs-item__content")
         if (headers.size <= 0) return ArrayList()
-        val returnValue: ArrayList<SearchResponse> = ArrayList()
-        for (h in headers) {
-            val head = h.selectFirst("> div > div.tab-summary")
-            val title = head.selectFirst("> div.post-title > h3 > a")
-            val name = title.text()
+        return headers.mapNotNull { h ->
+            val head = h?.selectFirst("> div > div.tab-summary")
+            val title = head?.selectFirst("> div.post-title > h3 > a")
+            val name = title?.text()
 
-            if (name.contains("Comic")) continue // I DON'T WANT MANGA!
+            if (name?.contains("Comic") != false) return@mapNotNull null// I DON'T WANT MANGA!
 
             val url = title.attr("href")
 
-            val posterUrl = h.selectFirst("> div > div.tab-thumb > a > img").attr("src")
+            val posterUrl = h.selectFirst("> div > div.tab-thumb > a > img")?.attr("data-src")
 
             val meta = h.selectFirst("> div > div.tab-meta")
 
             val ratingTxt =
-                meta.selectFirst("> div.rating > div.post-total-rating > span.total_votes").text()
+                meta?.selectFirst("> div.rating > div.post-total-rating > span.total_votes")?.text()
 
             val rating = if (ratingTxt != null) {
                 (ratingTxt.toFloat() * 200).toInt()
@@ -150,10 +155,16 @@ class BoxNovelProvider : MainAPI() {
                 null
             }
 
-            val latestChapter = meta.selectFirst("> div.latest-chap > span.chapter > a").text()
-            returnValue.add(SearchResponse(name, url, posterUrl, rating, latestChapter, this.name))
+            val latestChapter = meta?.selectFirst("> div.latest-chap > span.chapter > a")?.text()
+            SearchResponse(
+                name,
+                url ?: return@mapNotNull null,
+                posterUrl,
+                rating,
+                latestChapter,
+                this.name
+            )
         }
-        return returnValue
     }
 
     fun getChapters(text: String): List<ChapterData> {
@@ -161,35 +172,38 @@ class BoxNovelProvider : MainAPI() {
         val data: ArrayList<ChapterData> = ArrayList()
         val chapterHeaders = document.select("ul.version-chap > li.wp-manga-chapter")
         for (c in chapterHeaders) {
-            val header = c.selectFirst("> a")
-            val cUrl = header.attr("href")
-            val cName = header.text().replace("  ", " ").replace("\n", "")
-                .replace("\t", "")
-            val added = c.selectFirst("> span.chapter-release-date > i").text()
-            data.add(ChapterData(cName, cUrl, added, 0))
+            val header = c?.selectFirst("> a")
+            val cUrl = header?.attr("href")
+            val cName = header?.text()?.replace("  ", " ")?.replace("\n", "")
+                ?.replace("\t", "") ?: continue
+            val added = c.selectFirst("> span.chapter-release-date > i")?.text()
+            data.add(ChapterData(cName, cUrl ?: continue, added, 0))
         }
         data.reverse()
         return data
     }
 
-    override fun load(url: String): LoadResponse {
-        val response = khttp.get(url)
+    override suspend fun load(url: String): LoadResponse? {
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
         val name =
-            document.selectFirst("div.post-title > h1").text().replace("  ", " ").replace("\n", "")
-                .replace("\t", "")
+            document.selectFirst("div.post-title > h1")?.text()?.replace("  ", " ")
+                ?.replace("\n", "")
+                ?.replace("\t", "") ?: return null
         val authors = document.select("div.author-content > a")
         var author = ""
         for (a in authors) {
-            val atter = a.attr("href")
-            if (atter.length > "$mainUrl/manga-author/".length && atter.startsWith("$mainUrl/manga-author/")) {
+            val atter = a?.attr("href")
+            if ((atter?.length
+                    ?: continue) > "$mainUrl/manga-author/".length && atter.startsWith("$mainUrl/manga-author/")
+            ) {
                 author = a.text()
                 break
             }
         }
 
-        val posterUrl = document.select("div.summary_image > a > img").attr("src")
+        val posterUrl = document.select("div.summary_image > a > img").attr("data-src")
 
         val tags: ArrayList<String> = ArrayList()
         val tagsHeader = document.select("div.genres-content > a")
@@ -202,16 +216,16 @@ class BoxNovelProvider : MainAPI() {
         if (synoParts.size == 0) synoParts = document.select("div.j_synopsis > p")
         if (synoParts.size == 0) synoParts = document.select("div.summary__content > p")
         for (s in synoParts) {
-            if (s.hasText() && !s.text().toLowerCase(Locale.getDefault())
+            if (s.hasText() && !s.text().lowercase(Locale.getDefault())
                     .contains(mainUrl)
             ) { // FUCK ADS
-                synopsis += s.text()!! + "\n\n"
+                synopsis += s.text() + "\n\n"
             }
         }
 
         //val id = WuxiaWorldSiteProvider.getId(response.text) ?: throw ErrorLoadingException("No id found")
         //ajax/chapters/
-        val chapResponse = khttp.post(
+        val chapResponse = app.post(
             "${url}ajax/chapters/",
         )
         val data = getChapters(chapResponse.text)
@@ -234,7 +248,7 @@ class BoxNovelProvider : MainAPI() {
             document.select("div.post-status > div.post-content_item > div.summary-content")
         val aHeader = aHeaders.last()
 
-        val status = when (aHeader.text().toLowerCase(Locale.getDefault())) {
+        val status = when (aHeader?.text()?.lowercase()) {
             "ongoing" -> STATUS_ONGOING
             "completed" -> STATUS_COMPLETE
             else -> STATUS_NULL

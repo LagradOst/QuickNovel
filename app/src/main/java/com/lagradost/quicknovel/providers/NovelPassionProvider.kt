@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 
 class NovelPassionProvider : MainAPI() {
@@ -12,42 +13,42 @@ class NovelPassionProvider : MainAPI() {
     override val iconBackgroundId = R.color.novelPassionColor
 
     override val tags = listOf(
-            Pair("All", "all"),
-            Pair("Shounen", "shounen"),
-            Pair("Harem", "harem"),
-            Pair("Comedy", "comedy"),
-            Pair("Martial Arts", "martial-arts"),
-            Pair("School Life", "school-life"),
-            Pair("Mystery", "mystery"),
-            Pair("Shoujo", "shoujo"),
-            Pair("Romance", "romance"),
-            Pair("Sci-fi", "sci-fi"),
-            Pair("Gender Bender", "gender-bender"),
-            Pair("Mature", "mature"),
-            Pair("Fantasy", "fantasy"),
-            Pair("Horror", "horror"),
-            Pair("Drama", "drama"),
-            Pair("Tragedy", "tragedy"),
-            Pair("Supernatural", "supernatural"),
-            Pair("Ecchi", "ecchi"),
-            Pair("Xuanhuan", "xuanhuan"),
-            Pair("Adventure", "adventure"),
-            Pair("Action", "action"),
-            Pair("Psychological", "psychological"),
-            Pair("Xianxia", "xianxia"),
-            Pair("Wuxia", "wuxia"),
-            Pair("Historical", "historical"),
-            Pair("Slice of Life", "slice-of-life"),
-            Pair("Seinen", "seinen"),
-            Pair("Lolicon", "lolicon"),
-            Pair("Adult", "adult"),
-            Pair("Josei", "josei"),
-            Pair("Sports", "sports"),
-            Pair("Smut", "smut"),
-            Pair("Mecha", "mecha"),
-            Pair("Yaoi", "yaoi"),
-            Pair("Shounen Ai", "shounen-ai"),
-        )
+        Pair("All", "all"),
+        Pair("Shounen", "shounen"),
+        Pair("Harem", "harem"),
+        Pair("Comedy", "comedy"),
+        Pair("Martial Arts", "martial-arts"),
+        Pair("School Life", "school-life"),
+        Pair("Mystery", "mystery"),
+        Pair("Shoujo", "shoujo"),
+        Pair("Romance", "romance"),
+        Pair("Sci-fi", "sci-fi"),
+        Pair("Gender Bender", "gender-bender"),
+        Pair("Mature", "mature"),
+        Pair("Fantasy", "fantasy"),
+        Pair("Horror", "horror"),
+        Pair("Drama", "drama"),
+        Pair("Tragedy", "tragedy"),
+        Pair("Supernatural", "supernatural"),
+        Pair("Ecchi", "ecchi"),
+        Pair("Xuanhuan", "xuanhuan"),
+        Pair("Adventure", "adventure"),
+        Pair("Action", "action"),
+        Pair("Psychological", "psychological"),
+        Pair("Xianxia", "xianxia"),
+        Pair("Wuxia", "wuxia"),
+        Pair("Historical", "historical"),
+        Pair("Slice of Life", "slice-of-life"),
+        Pair("Seinen", "seinen"),
+        Pair("Lolicon", "lolicon"),
+        Pair("Adult", "adult"),
+        Pair("Josei", "josei"),
+        Pair("Sports", "sports"),
+        Pair("Smut", "smut"),
+        Pair("Mecha", "mecha"),
+        Pair("Yaoi", "yaoi"),
+        Pair("Shounen Ai", "shounen-ai"),
+    )
 
     override val orderBys: List<Pair<String, String>>
         get() = listOf(
@@ -68,24 +69,30 @@ class NovelPassionProvider : MainAPI() {
             Pair("Completed", "3"),
         )
 
-    override fun loadMainPage(page: Int, mainCategory: String?, orderBy: String?, tag: String?): HeadMainPageResponse {
+    override suspend fun loadMainPage(
+        page: Int,
+        mainCategory: String?,
+        orderBy: String?,
+        tag: String?
+    ): HeadMainPageResponse {
         val url = "$mainUrl/category/$tag?p=$page&s=$mainCategory&f=$orderBy"
 
-        val response = khttp.get(url)
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.lh1d5")
         if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
-            val head = h.selectFirst("> a.c_000")
-            val name = head.attr("title")
-            val cUrl = head.attr("href")
-            var posterUrl = head.selectFirst("> i.oh > img").attr("src")
+            val head = h?.selectFirst("> a.c_000")
+            val name = head?.attr("title") ?: continue
+            val cUrl = head.attr("href") ?: continue
+            var posterUrl = head.selectFirst("> i.oh > img")?.attr("src")
             if (posterUrl != null) posterUrl = mainUrl + posterUrl
 
-            val rating = (h.selectFirst("> p.g_star_num > small").text()!!.toFloat() * 200).toInt()
-            val latestChapter = h.selectFirst("> div > div.dab > a").attr("title")
+            val rating =
+                (h.selectFirst("> p.g_star_num > small")?.text()!!.toFloat() * 200).toInt()
+            val latestChapter = h.selectFirst("> div > div.dab > a")?.attr("title")
             returnValue.add(
                 SearchResponse(
                     name,
@@ -100,60 +107,59 @@ class NovelPassionProvider : MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
-    override fun loadHtml(url: String): String? {
-        val response = khttp.get(url)
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url)
         val document = Jsoup.parse(response.text)
         val res = document.selectFirst("div.cha-words")
-        if (res.html() == "") {
-            return null
-        }
-        return res.html()
+
+        return res?.html()
             // FUCK ADS
-            .replace("( NovelFull )", "")
-            .replace("NiceNovel.com", "")
-            .replace("NovelsToday.com", "")
-            .replace("NovelsToday", "")
-            .replace("read online free", "")
-            .replace("NovelWell.com", "")
-            .textClean // FOR SOME REASON SOME WORDS HAVE DOTS IN THEM
+            ?.replace("( NovelFull )", "")
+            ?.replace("NiceNovel.com", "")
+            ?.replace("NovelsToday.com", "")
+            ?.replace("NovelsToday", "")
+            ?.replace("read online free", "")
+            ?.replace("NovelWell.com", "")
+            ?.textClean // FOR SOME REASON SOME WORDS HAVE DOTS IN THEM
     }
 
-    override fun search(query: String): List<SearchResponse> {
-        val response = khttp.get("$mainUrl/search?keyword=$query")
+    override suspend fun search(query: String): List<SearchResponse> {
+        val response = app.get("$mainUrl/search?keyword=$query")
 
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.lh1d5")
         if (headers.size <= 0) return ArrayList()
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
-            val head = h.selectFirst("> a.c_000")
-            val name = head.attr("title")
+            val head = h?.selectFirst("> a.c_000")
+            val name = head?.attr("title") ?: continue
             val url = mainUrl + head.attr("href")
 
-            var posterUrl = head.selectFirst("> i.oh > img").attr("src")
+            var posterUrl = head.selectFirst("> i.oh > img")?.attr("src")
             if (posterUrl != null) posterUrl = mainUrl + posterUrl
 
-            val rating = (h.selectFirst("> p.g_star_num > small").text()!!.toFloat() * 200).toInt()
-            val latestChapter = h.selectFirst("> div > div.dab > a").attr("title")
+            val rating =
+                (h.selectFirst("> p.g_star_num > small")?.text()!!.toFloat() * 200).toInt()
+            val latestChapter = h.selectFirst("> div > div.dab > a")?.attr("title")
             returnValue.add(SearchResponse(name, url, posterUrl, rating, latestChapter, this.name))
         }
         return returnValue
     }
 
-    override fun load(url: String): LoadResponse {
-        val response = khttp.get(url)
+    override suspend fun load(url: String): LoadResponse {
+        val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
-        val name = document.selectFirst("h2.pt4").text()!!
-        val author = document.selectFirst("a.stq").text()!!
+        val name = document.selectFirst("h2.pt4")?.text()!!
+        val author = document.selectFirst("a.stq")?.text()!!
         val posterUrl = mainUrl + document.select("i.g_thumb > img").attr("src")
         val tags: ArrayList<String> = ArrayList()
 
-        val rating = (document.select("strong.vam").text().toFloat() * 200).toInt()
+        val rating = (document.select("strong.vam").text()!!.toFloat() * 200).toInt()
         var synopsis = ""
         val synoParts = document.select("div.g_txt_over > div.c_000 > p")
         for (s in synoParts) {
-            synopsis += s.text()!! + "\n\n"
+            synopsis += s.text() + "\n\n"
         }
 
         val infoheader =
@@ -167,17 +173,17 @@ class NovelPassionProvider : MainAPI() {
         val data: ArrayList<ChapterData> = ArrayList()
         val chapterHeaders = document.select("ol.content-list > li > a")
         for (c in chapterHeaders) {
-            val cUrl = mainUrl + c.attr("href")
-            val cName = c.select("span.sp1").text()
+            val cUrl = mainUrl + c?.attr("href")
+            val cName = c.select("span.sp1").text() ?: continue
             val added = c.select("i.sp2").text()
-            val views = c.select("i.sp3").text().toInt()
+            val views = c.select("i.sp3").text()?.toIntOrNull()
             data.add(ChapterData(cName, cUrl, added, views))
         }
         data.reverse()
 
-        val peopleVotedText = document.selectFirst("small.fs16").text()!!
+        val peopleVotedText = document.selectFirst("small.fs16")?.text()!!
         val peopleVoted = peopleVotedText.substring(1, peopleVotedText.length - 9).toInt()
-        val views = document.selectFirst("address > p > span").text().replace(",", "").toInt()
+        val views = document.selectFirst("address > p > span")?.text()?.replace(",", "")?.toInt()
 
         val statusTxt =
             document.select("div.psn > address.lh20 > p.ell > a") // 0 = Author, 1 = Tags
@@ -194,6 +200,18 @@ class NovelPassionProvider : MainAPI() {
             }
         }
 
-        return LoadResponse(url, name, data, author, posterUrl, rating, peopleVoted, views, synopsis, tags, status)
+        return LoadResponse(
+            url,
+            name,
+            data,
+            author,
+            posterUrl,
+            rating,
+            peopleVoted,
+            views,
+            synopsis,
+            tags,
+            status
+        )
     }
 }

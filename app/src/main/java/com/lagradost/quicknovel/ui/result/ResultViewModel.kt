@@ -52,6 +52,7 @@ class ResultViewModel : ViewModel() {
                     reviews.postValue(merged)
                     reviewPage.postValue(loadPage)
                 }
+                else -> {}
             }
         }
     }
@@ -96,6 +97,12 @@ class ResultViewModel : ViewModel() {
                             )
                         )
                     }
+                }
+                is Resource.Failure -> {
+
+                }
+                is Resource.Loading -> {
+
                 }
             }
         }

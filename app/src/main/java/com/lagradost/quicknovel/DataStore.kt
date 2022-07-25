@@ -2,9 +2,12 @@ package com.lagradost.quicknovel
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.preference.PreferenceManager
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.json.JsonMapper
+import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.lagradost.quicknovel.mvvm.logError
 
 const val PREFERENCES_NAME: String = "rebuild_preference"
 const val DOWNLOAD_FOLDER: String = "downloads_data"
@@ -25,6 +28,7 @@ const val EPUB_TEXT_PADDING_TOP: String = "reader_epub_text_padding_top"
 const val EPUB_HAS_BATTERY: String = "reader_epub_has_battery"
 const val EPUB_KEEP_SCREEN_ACTIVE: String = "reader_epub_keep_screen_active"
 const val EPUB_HAS_TIME: String = "reader_epub_has_time"
+const val EPUB_TWELVE_HOUR_TIME: String = "reader_epub_twelve_hour_time"
 const val EPUB_FONT: String = "reader_epub_font"
 const val EPUB_CURRENT_POSITION: String = "reader_epub_position"
 const val EPUB_CURRENT_POSITION_SCROLL: String = "reader_epub_position_scroll"
@@ -33,23 +37,54 @@ const val RESULT_BOOKMARK_STATE : String = "result_bookmarked_state"
 const val HISTORY_FOLDER : String = "result_history"
 
 object DataStore {
-    val mapper: JsonMapper = JsonMapper.builder().addModule(KotlinModule())
+    val mapper: JsonMapper = JsonMapper.builder().addModule(
+        KotlinModule.Builder()
+            .withReflectionCacheSize(512)
+            .configure(KotlinFeature.NullToEmptyCollection, false)
+            .configure(KotlinFeature.NullToEmptyMap, false)
+            .configure(KotlinFeature.NullIsSameAsDefault, false)
+            .configure(KotlinFeature.SingletonSupport, false)
+            .configure(KotlinFeature.StrictNullChecks, false)
+            .build()
+    )
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build()
 
-    private fun Context.getPreferences(): SharedPreferences {
-        return getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+    private fun getPreferences(context: Context): SharedPreferences {
+        return context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
     }
 
     fun Context.getSharedPrefs(): SharedPreferences {
-        return getPreferences()
+        return getPreferences(this)
     }
 
     fun getFolderName(folder: String, path: String): String {
         return "${folder}/${path}"
     }
 
+    fun <T> Context.setKeyRaw(path: String, value: T, isEditingAppSettings: Boolean = false) {
+        try {
+            val editor: SharedPreferences.Editor =
+                if (isEditingAppSettings) getDefaultSharedPrefs().edit() else getSharedPrefs().edit()
+            when (value) {
+                is Boolean -> editor.putBoolean(path, value)
+                is Int -> editor.putInt(path, value)
+                is String -> editor.putString(path, value)
+                is Float -> editor.putFloat(path, value)
+                is Long -> editor.putLong(path, value)
+                (value as? Set<String> != null) -> editor.putStringSet(path, value as Set<String>)
+            }
+            editor.apply()
+        } catch (e: Exception) {
+            logError(e)
+        }
+    }
+
+    fun Context.getDefaultSharedPrefs(): SharedPreferences {
+        return PreferenceManager.getDefaultSharedPreferences(this)
+    }
+
     fun Context.getKeys(folder: String): List<String> {
-        return getSharedPrefs().all.keys.filter { it.startsWith(folder) }
+        return this.getSharedPrefs().all.keys.filter { it.startsWith(folder) }
     }
 
     fun Context.removeKey(folder: String, path: String) {
@@ -66,11 +101,15 @@ object DataStore {
     }
 
     fun Context.removeKey(path: String) {
-        val prefs = getSharedPrefs()
-        if (prefs.contains(path)) {
-            val editor: SharedPreferences.Editor = prefs.edit()
-            editor.remove(path)
-            editor.apply()
+        try {
+            val prefs = getSharedPrefs()
+            if (prefs.contains(path)) {
+                val editor: SharedPreferences.Editor = prefs.edit()
+                editor.remove(path)
+                editor.apply()
+            }
+        } catch (e: Exception) {
+            logError(e)
         }
     }
 
@@ -83,9 +122,13 @@ object DataStore {
     }
 
     fun <T> Context.setKey(path: String, value: T) {
-        val editor: SharedPreferences.Editor = getSharedPrefs().edit()
-        editor.putString(path, mapper.writeValueAsString(value))
-        editor.apply()
+        try {
+            val editor: SharedPreferences.Editor = getSharedPrefs().edit()
+            editor.putString(path, mapper.writeValueAsString(value))
+            editor.apply()
+        } catch (e: Exception) {
+            logError(e)
+        }
     }
 
     fun <T> Context.setKey(folder: String, path: String, value: T) {
@@ -115,6 +158,6 @@ object DataStore {
     }
 
     inline fun <reified T : Any> Context.getKey(folder: String, path: String, defVal: T?): T? {
-        return getKey(getFolderName(folder, path), defVal)
+        return getKey(getFolderName(folder, path), defVal) ?: defVal
     }
 }

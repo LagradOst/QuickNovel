@@ -1,12 +1,12 @@
 package com.lagradost.quicknovel
 
 import android.net.Uri
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import java.util.*
-import khttp.request
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
-fun jConnect(
+suspend fun jConnect(
     url: String,
     params: Map<String, String> = mapOf(),
     method: String = "GET"
@@ -16,18 +16,18 @@ fun jConnect(
         "Accept-Encoding" to "gzip, deflate",
         "User-Agent" to USER_AGENT
     )
-    try {
-        val res = request(method = method, url = url, headers = head, params = params)
-        return if (res.statusCode == 200) Jsoup.parse(res.text) else null
+    return try {
+        val res = app.custom(method, url = url, headers = head, params = params)
+        if (res.code == 200) Jsoup.parse(res.text) else null
     } catch (e: Exception) {
-        return null
+        null
     }
 }
 
 fun String.toRate(maxRate: Int = 10): Int {
     return this
         .replace(Regex("[^.0-9]"), "")
-        ?.toFloatOrNull()
+        .toFloatOrNull()
         ?.times(1000 / maxRate)
         ?.toInt() ?: 0
 }
@@ -36,7 +36,7 @@ fun String.toVote(): Int {
     val k = this.contains("K", true)
     return this
         .replace(Regex("[^.0-9]"), "")
-        ?.toFloatOrNull()
+        .toFloatOrNull()
         ?.times(if (k) 1000 else 1)
         ?.toInt() ?: 0
 }
@@ -46,7 +46,7 @@ fun String.toChapters(): String = this.replace(Regex("[^0-9]"), "")
 fun String.toStatus(): Int {
     return this
         .clean()
-        .toLowerCase()
+        .lowercase(Locale.getDefault())
         .let {
             when (it) {
                 "completed" -> STATUS_COMPLETE

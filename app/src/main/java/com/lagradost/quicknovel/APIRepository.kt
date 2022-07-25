@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel
 
 import com.lagradost.quicknovel.mvvm.Resource
+import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.normalSafeApiCall
 import com.lagradost.quicknovel.mvvm.safeApiCall
 
@@ -8,6 +9,11 @@ data class OnGoingSearch(
     val apiName: String,
     val data: Resource<List<SearchResponse>>
 )
+
+private fun String?.removeAds(): String? {
+    if (this.isNullOrBlank()) return null
+    return this.replace("(adsbygoogle = window.adsbygoogle || []).push({});", "")
+}
 
 class APIRepository(val api: MainAPI) {
     companion object {
@@ -28,23 +34,33 @@ class APIRepository(val api: MainAPI) {
 
     suspend fun load(url: String): Resource<LoadResponse> {
         return safeApiCall {
-            api.load(api.fixUrl(url))
+            api.load(api.fixUrl(url)) ?: throw ErrorLoadingException("No data")
         }
     }
 
     suspend fun search(query: String): Resource<List<SearchResponse>> {
         return safeApiCall {
-            api.search(query)
+            api.search(query) ?: throw ErrorLoadingException("No data")
         }
     }
 
-    fun loadHtml(url: String): String? {
-        return normalSafeApiCall {
-            api.loadHtml(api.fixUrl(url))
+    /**
+     * Automatically strips adsbygoogle
+     * */
+    suspend fun loadHtml(url: String): String? {
+        return try {
+            api.loadHtml(api.fixUrl(url))?.removeAds()
+        } catch (e : Exception) {
+            logError(e)
+            null
         }
     }
 
-    suspend fun loadReviews(url: String, page: Int, showSpoilers: Boolean = false): Resource<List<UserReview>> {
+    suspend fun loadReviews(
+        url: String,
+        page: Int,
+        showSpoilers: Boolean = false
+    ): Resource<List<UserReview>> {
         return safeApiCall {
             api.loadReviews(url, page, showSpoilers)
         }

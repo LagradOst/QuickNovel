@@ -13,6 +13,7 @@ import androidx.navigation.findNavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.preference.PreferenceManager
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.lagradost.nicehttp.Requests
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
 import com.lagradost.quicknovel.BookDownloader.checkWrite
 import com.lagradost.quicknovel.BookDownloader.createQuickStream
@@ -20,6 +21,7 @@ import com.lagradost.quicknovel.BookDownloader.openQuickStream
 import com.lagradost.quicknovel.BookDownloader.requestRW
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
+import com.lagradost.quicknovel.mvvm.ioSafe
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.ui.download.DownloadFragment
@@ -28,6 +30,7 @@ import com.lagradost.quicknovel.ui.result.ResultFragment
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.Apis.Companion.printProviders
+import com.lagradost.quicknovel.util.BackupUtils.setUpBackup
 import com.lagradost.quicknovel.util.Coroutines
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
@@ -38,6 +41,10 @@ import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
     companion object {
+        var app = Requests().apply {
+            defaultHeaders = mapOf("user-agent" to USER_AGENT)
+        }
+
         // === API ===
         lateinit var activity: MainActivity
 
@@ -237,6 +244,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        setUpBackup()
+
         val navView: BottomNavigationView = findViewById(R.id.nav_view)
 
         val navController = findNavController(R.id.nav_host_fragment)
@@ -248,7 +257,7 @@ class MainActivity : AppCompatActivity() {
             .setExitAnim(R.anim.nav_exit_anim)
             .setPopEnterAnim(R.anim.nav_pop_enter)
             .setPopExitAnim(R.anim.nav_pop_exit)
-            .setPopUpTo(navController.graph.startDestination, false)
+            .setPopUpTo(navController.graph.startDestinationId, false)
             .build()
 /*
         navView.setOnNavigationItemReselectedListener { item ->
@@ -297,7 +306,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        thread {
+        ioSafe {
             runAutoUpdate()
         }
 
@@ -318,7 +327,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun test() {
-        // val response = khttp.get("https://ranobes.net/up/a-bored-lich/936969-1.html")
+        // val response = app.get("https://ranobes.net/up/a-bored-lich/936969-1.html")
         // println(response.text)
     }
 }
