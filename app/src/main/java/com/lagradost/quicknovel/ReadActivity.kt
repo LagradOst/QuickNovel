@@ -631,9 +631,6 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             controller.hide(WindowInsetsCompat.Type.systemBars())
             controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P){
-            window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
-        }
 
         fun lowerBottomNav(v: View) {
             v.translationY = 0f
