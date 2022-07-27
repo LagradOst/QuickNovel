@@ -35,6 +35,9 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
 import androidx.core.text.getSpans
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media.session.MediaButtonReceiver
 import androidx.preference.PreferenceManager
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -623,19 +626,11 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
     private fun hideSystemUI() {
         isHidden = true
-        // Enables regular immersive mode.
-        // For "lean back" mode, remove SYSTEM_UI_FLAG_IMMERSIVE.
-        // Or for "sticky immersive," replace it with SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-        window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_IMMERSIVE
-                // Set the content to appear under the system bars so that the
-                // content doesn't resize when the system bars hide and show.
-                or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                // Hide the nav bar and status bar
-                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                or View.SYSTEM_UI_FLAG_FULLSCREEN)
-
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, reader_container).let { controller ->
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+            controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
 
         fun lowerBottomNav(v: View) {
             v.translationY = 0f
@@ -667,14 +662,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 // except for the ones that make the content appear under the system bars.
     private fun showSystemUI() {
         isHidden = false
-        if (this.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                    or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
-        } else {
-            window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
-        }
+        WindowCompat.setDecorFitsSystemWindows(window, true)
+        WindowInsetsControllerCompat(window, reader_container).show(WindowInsetsCompat.Type.systemBars())
 
         read_toolbar_holder.visibility = View.VISIBLE
 
@@ -1405,6 +1394,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 checkTTSRange(scroll, true)
             }
         }
+        hideSystemUI()
     }
 
     private fun selectChapter() {
