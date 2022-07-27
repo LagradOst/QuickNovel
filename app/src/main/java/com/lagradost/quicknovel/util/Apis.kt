@@ -26,6 +26,7 @@ class Apis {
             NovelFullProvider(),
             //MNovelFreeProvider(), // same as NovelFullVipProvider
             NovelFullVipProvider(),
+            EngNovelProvider(),
 
 
             // chapter captcha

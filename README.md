@@ -23,6 +23,8 @@ Adfree FOSS Android app for downloading novels. It also functions as an Epub rea
 
 - https://novelfullvip.com (Made by Adippe & Sir Aguacata)
 
+- https://engnovel.com (Made by Adippe & Sir Aguacata)
+
 - https://www.novelpassion.com
 
 - https://bestlightnovel.com
