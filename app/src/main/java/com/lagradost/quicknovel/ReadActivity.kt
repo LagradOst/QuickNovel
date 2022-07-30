@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel
 
+import GlideImageGetter
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
@@ -8,10 +9,8 @@ import android.app.PendingIntent
 import android.content.*
 import android.content.res.ColorStateList
 import android.content.res.Configuration
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Color
-import android.graphics.Typeface
+import android.graphics.*
+import android.graphics.drawable.Drawable
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -22,24 +21,28 @@ import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.support.v4.media.session.MediaSessionCompat
+import android.text.Html
 import android.text.Spannable
 import android.text.SpannableString
 import android.util.TypedValue
 import android.view.*
 import android.widget.*
+import androidx.annotation.NonNull
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.doOnEnd
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import androidx.core.text.HtmlCompat
 import androidx.core.text.getSpans
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media.session.MediaButtonReceiver
 import androidx.preference.PreferenceManager
+import com.bumptech.glide.Glide
+import com.bumptech.glide.RequestBuilder
+import com.bumptech.glide.request.target.Target
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
@@ -51,6 +54,7 @@ import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.DataStore.removeKey
 import com.lagradost.quicknovel.DataStore.setKey
+import com.lagradost.quicknovel.MainActivity.Companion.activity
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.mvvm.ioSafe
 import com.lagradost.quicknovel.mvvm.logError
@@ -66,6 +70,14 @@ import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.requestAudioFocus
 import com.lagradost.quicknovel.util.toDp
 import com.lagradost.quicknovel.util.toPx
+import io.noties.markwon.AbstractMarkwonPlugin
+import io.noties.markwon.Markwon
+import io.noties.markwon.MarkwonConfiguration
+import io.noties.markwon.SoftBreakAddsNewLinePlugin
+import io.noties.markwon.html.HtmlPlugin
+import io.noties.markwon.image.AsyncDrawable
+import io.noties.markwon.image.ImageSizeResolver
+import io.noties.markwon.image.glide.GlideImagesPlugin
 import kotlinx.android.synthetic.main.read_main.*
 import kotlinx.coroutines.*
 import nl.siegmann.epublib.domain.Book
@@ -78,6 +90,7 @@ import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.sqrt
+
 
 const val OVERFLOW_NEXT_CHAPTER_DELTA = 600
 const val OVERFLOW_NEXT_CHAPTER_SHOW_PROCENTAGE = 10
@@ -129,6 +142,7 @@ enum class TTSActionType {
 
 class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     companion object {
+        var markwon: Markwon? = null
         lateinit var readActivity: ReadActivity
         lateinit var images: ArrayList<ImageView>
 
@@ -220,7 +234,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             .replace(
                 "<.*?Translator:.*?Editor:.*?>".toRegex(),
                 ""
-            ) // FUCK THIS, LEGIT IN EVERY CHAPTER
+            )
     }
 
 
@@ -629,7 +643,12 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         WindowInsetsControllerCompat(window, reader_container).let { controller ->
             controller.hide(WindowInsetsCompat.Type.systemBars())
-            controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.systemBarsBehavior =
+                WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes.layoutInDisplayCutoutMode =
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
 
         fun lowerBottomNav(v: View) {
@@ -663,7 +682,10 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     private fun showSystemUI() {
         isHidden = false
         WindowCompat.setDecorFitsSystemWindows(window, true)
-        WindowInsetsControllerCompat(window, reader_container).show(WindowInsetsCompat.Type.systemBars())
+        WindowInsetsControllerCompat(
+            window,
+            reader_container
+        ).show(WindowInsetsCompat.Type.systemBars())
 
         read_toolbar_holder.visibility = View.VISIBLE
 
@@ -941,6 +963,34 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         read_chapter_name.text = "${chapterName!!} (${currentChapter + 1}/${chaptersTotal + 1})"
     }
 
+    fun String.replaceAfterIndex(
+        oldValue: String,
+        newValue: String,
+        ignoreCase: Boolean = false,
+        startIndex: Int = 0
+    ): String {
+        run {
+            var occurrenceIndex: Int = indexOf(oldValue, startIndex, ignoreCase)
+            // FAST PATH: no match
+            if (occurrenceIndex < 0) return this
+
+            val oldValueLength = oldValue.length
+            val searchStep = oldValueLength.coerceAtLeast(1)
+            val newLengthHint = length - oldValueLength + newValue.length
+            if (newLengthHint < 0) throw OutOfMemoryError()
+            val stringBuilder = StringBuilder(newLengthHint)
+
+            var i = 0
+            do {
+                stringBuilder.append(this, i, occurrenceIndex).append(newValue)
+                i = occurrenceIndex + oldValueLength
+                if (occurrenceIndex >= length) break
+                occurrenceIndex = indexOf(oldValue, occurrenceIndex + searchStep, ignoreCase)
+            } while (occurrenceIndex > 0)
+            return stringBuilder.append(this, i, length).toString()
+        }
+    }
+
     private var currentText = ""
     private var currentHtmlText = ""
     private suspend fun Context.loadChapter(
@@ -1016,12 +1066,71 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
             updateChapterName(0)
 
-            val spanned = HtmlCompat.fromHtml(
-                txt, HtmlCompat.FROM_HTML_MODE_LEGACY
-            )
+            this.let { context ->
+                markwon = markwon ?: Markwon.builder(context) // automatically create Glide instance
+                    //.usePlugin(GlideImagesPlugin.create(context)) // use supplied Glide instance
+                    //.usePlugin(GlideImagesPlugin.create(Glide.with(context))) // if you need more control
+                    .usePlugin(HtmlPlugin.create { plugin -> plugin.excludeDefaults(false) })
+                    .usePlugin(GlideImagesPlugin.create(object : GlideImagesPlugin.GlideStore {
+                        @NonNull
+                        override fun load(@NonNull drawable: AsyncDrawable): RequestBuilder<Drawable> {
+                            return Glide.with(context).load(drawable.destination)
+                        }
+
+                        override fun cancel(target: Target<*>) {
+                            Glide.with(context).clear(target)
+                        }
+                    }))
+                    .usePlugin(object :
+                        AbstractMarkwonPlugin() {
+                        override fun configureConfiguration(builder: MarkwonConfiguration.Builder) {
+                            builder.imageSizeResolver(object : ImageSizeResolver() {
+                                override fun resolveImageSize(drawable: AsyncDrawable): Rect {
+                                    //val imageSize = drawable.imageSize
+                                    return drawable.result.bounds
+                                }
+                            })
+                        }
+                    })
+                    .usePlugin(SoftBreakAddsNewLinePlugin.create())
+                    .build()
+
+
+
+                println(
+                    "TEXT == ${
+                        txt.replace(
+                            "\n", "<br>"
+                        )
+                    }"
+                )
+                val index = txt.indexOf("<body>")
+                markwon?.setMarkdown(
+                    read_text,
+                    txt.replaceAfterIndex( // because markwon is fucked we have to replace newlines with breaklines and becausse I dont want 3 br on top I start after body
+                        "\n",
+                        "<br>",
+                        startIndex = index + 7
+                    )//.replaceFirst(Regex("""[\\s*<br>\\s*\\n*]*"""), "")
+                ) ?: run {
+                    val spanned = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        Html.fromHtml(
+                            txt,
+                            Html.FROM_HTML_MODE_LEGACY,
+                            null,
+                            null
+                        ) as Spannable
+                    } else {
+                        Html.fromHtml(txt, null, null) as Spannable
+                    }
+                    read_text?.text = spanned
+                }
+            }
+
+
             //println("TEXT:" + document.html())
-            read_text?.text = spanned
-            currentText = spanned.toString()
+            //read_text?.text = spanned
+            currentText = read_text?.text.toString()
             currentHtmlText = txt
 
             read_text.post {
@@ -2189,9 +2298,13 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             }
         }
 
-        read_scroll.setOnTouchListener { _, event ->
+        val touchListener = View.OnTouchListener { view, event ->
             val height = getScrollRange()
-
+            if (view != null && view == reader_lin_container && event.action == MotionEvent.ACTION_DOWN) {
+                toggleShow()
+                return@OnTouchListener true
+            }
+            if (event == null) return@OnTouchListener true
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     if (mainScrollY >= height) {
@@ -2216,8 +2329,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                     fun deltaShow() {
                         if (scrollYOverflow * 100 / OVERFLOW_NEXT_CHAPTER_DELTA > OVERFLOW_NEXT_CHAPTER_SHOW_PROCENTAGE) {
                             /*read_overflow_progress.visibility = View.VISIBLE
-                            read_overflow_progress.progress =
-                                minOf(scrollYOverflow.toInt(), OVERFLOW_NEXT_CHAPTER_DELTA)*/
+                                    read_overflow_progress.progress =
+                                        minOf(scrollYOverflow.toInt(), OVERFLOW_NEXT_CHAPTER_DELTA)*/
 
                             read_text.translationY = (if (overflowDown) -1f else 1f) * sqrt(
                                 minOf(
@@ -2259,8 +2372,13 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                     scrollYOverflow = 0f
                 }
             }
-            return@setOnTouchListener false
+            false
         }
+
+        read_scroll?.setOnTouchListener(touchListener)
+        reader_lin_container?.setOnTouchListener(touchListener)
+        read_normal_layout?.setOnTouchListener(touchListener)
+        read_text?.setOnTouchListener(touchListener)
 
 //        read_overlay.setOnClickListener {
 //            selectChapter()

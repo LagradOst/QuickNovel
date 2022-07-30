@@ -1,29 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" xmlns:tools="http://schemas.android.com/tools"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
         xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
         android:paddingTop="0dp"
         android:id="@+id/reader_container"
-        android:background="@color/readerBackground"
->
+        android:background="@color/readerBackground">
+
     <ProgressBar
             android:visibility="gone"
             android:id="@+id/read_loading"
             android:layout_gravity="center"
             android:progressTint="@color/colorPrimary"
             android:layout_width="50dp"
-            android:layout_height="50dp">
-    </ProgressBar>
+            android:layout_height="50dp" />
 
     <FrameLayout
             android:alpha="0"
             tools:alpha="1"
 
             tools:visibility="visible"
-            android:id="@+id/read_normal_layout" android:layout_width="match_parent"
+            android:id="@+id/read_normal_layout"
+            android:layout_width="match_parent"
             android:layout_height="match_parent">
 
         <LinearLayout
@@ -35,9 +35,11 @@
                 android:focusable="false"
                 android:orientation="vertical">
 
-            <View android:id="@+id/read_topmargin"
-                  android:layout_width="match_parent" android:layout_height="0dp">
-            </View>
+            <View
+                    android:id="@+id/read_topmargin"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"></View>
+
             <ScrollView
                     android:id="@+id/read_scroll"
                     android:layout_width="match_parent"
@@ -45,55 +47,58 @@
                     android:focusable="false"
                     android:layout_height="wrap_content">
 
-                <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+                <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
                     <View
                             android:visibility="gone"
                             android:id="@+id/line_top"
                             android:layout_height="1dp"
                             android:layout_width="match_parent"
-                            android:background="@color/purple">
-                    </View>
+                            android:background="@color/purple"></View>
 
                     <View
                             android:visibility="gone"
                             android:id="@+id/line_top_extra"
                             android:layout_height="3dp"
                             android:layout_width="match_parent"
-                            android:background="@color/colorPrimaryGreen">
-                    </View>
+                            android:background="@color/colorPrimaryGreen"></View>
+
                     <View
                             android:visibility="gone"
                             android:id="@+id/line_accent"
                             android:layout_height="1dp"
                             android:layout_width="match_parent"
-                            android:background="@color/teal">
-                    </View>
+                            android:background="@color/teal"></View>
+
                     <View
                             android:visibility="gone"
                             android:id="@+id/line_baseline"
                             android:layout_height="1dp"
                             android:layout_width="match_parent"
-                            android:background="@color/red">
-                    </View>
+                            android:background="@color/red"></View>
+
                     <View
                             android:visibility="gone"
                             android:id="@+id/line_descent"
                             android:layout_height="1dp"
                             android:layout_width="match_parent"
-                            android:background="@color/blue">
-                    </View>
+                            android:background="@color/blue"></View>
+
                     <View
                             android:visibility="gone"
                             android:id="@+id/line_bottom"
                             android:layout_height="1dp"
                             android:layout_width="match_parent"
-                            android:background="@color/orange">
-                    </View>
+                            android:background="@color/orange"></View>
 
                     <LinearLayout
+                            android:id="@+id/read_text_background"
                             android:orientation="vertical"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content">
+
                         <TextView
                                 android:gravity="center_vertical"
                                 android:id="@+id/read_title_text"
@@ -108,8 +113,8 @@
                                 android:textStyle="bold"
                                 tools:text="TEST CHAPTER"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content">
-                        </TextView>
+                                android:layout_height="wrap_content"></TextView>
+
                         <com.lagradost.quicknovel.ui.roundedbg.RoundedBgTextView
                                 android:id="@+id/read_text"
                                 android:paddingLeft="20dp"
@@ -123,22 +128,22 @@
                                 android:clickable="false"
                                 android:focusable="false"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content">
-                        </com.lagradost.quicknovel.ui.roundedbg.RoundedBgTextView>
+                                android:layout_height="wrap_content"></com.lagradost.quicknovel.ui.roundedbg.RoundedBgTextView>
                     </LinearLayout>
                 </FrameLayout>
                 <!-- android:textSize="10sp" -->
 
             </ScrollView>
         </LinearLayout>
+
         <View
                 android:visibility="gone"
                 android:id="@+id/read_temp_bottom_margin"
                 android:layout_gravity="bottom"
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
-                android:background="@color/transparent">
-        </View>
+                android:background="@color/transparent"></View>
+
         <FrameLayout
                 android:visibility="visible"
                 android:id="@+id/read_overlay"
@@ -150,6 +155,7 @@
                 android:background="@color/transparent"
 
                 android:layout_height="25dp">
+
             <TextView
                     tools:text="20:35"
                     android:textStyle="bold"
@@ -158,8 +164,10 @@
                     android:id="@+id/read_time"
                     android:textSize="11sp"
                     android:textColor="@color/readerTextColor"
-                    android:layout_width="match_parent" android:layout_height="match_parent" tools:ignore="SmallSp">
-            </TextView>
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    tools:ignore="SmallSp"></TextView>
+
             <TextView
                     tools:text="20:35"
                     android:textStyle="bold"
@@ -168,8 +176,10 @@
                     android:textSize="11sp"
                     android:layout_marginEnd="20dp"
                     android:textColor="@color/readerTextColor"
-                    android:layout_width="match_parent" android:layout_height="match_parent" tools:ignore="SmallSp">
-            </TextView>
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    tools:ignore="SmallSp"></TextView>
+
             <TextView
                     android:visibility="gone"
                     android:layout_marginLeft="50dp"
@@ -182,8 +192,8 @@
                     android:layout_gravity="center_horizontal"
                     android:layout_height="match_parent"
                     tools:text="Chapter 1148 - You Will Support Me in the Future"
-                    android:textColor="@color/readerTextColor" tools:ignore="SmallSp">
-            </TextView>
+                    android:textColor="@color/readerTextColor"
+                    tools:ignore="SmallSp"></TextView>
             <!--        <ImageView
                             android:id="@+id/read_menu"
                             android:background="?selectableItemBackgroundBorderless"
@@ -204,6 +214,7 @@
                     android:layout_width="50dp" android:layout_height="match_parent">
             </TextView>-->
         </FrameLayout>
+
         <androidx.core.widget.ContentLoadingProgressBar
                 android:id="@+id/read_overflow_progress"
                 android:layout_gravity="bottom"
@@ -234,7 +245,7 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
                     app:srcCompat="@drawable/ic_baseline_screen_rotation_24"
-                    app:tint="?attr/white"/>
+                    app:tint="?attr/white" />
 
             <ImageButton
                     android:id="@+id/read_action_tts"
@@ -247,7 +258,7 @@
                     app:layout_constraintStart_toEndOf="@+id/read_action_rotate"
                     app:layout_constraintTop_toTopOf="parent"
                     app:srcCompat="@drawable/ic_baseline_volume_up_24"
-                    app:tint="?attr/white"/>
+                    app:tint="?attr/white" />
 
             <ImageButton
                     android:id="@+id/read_action_chapters"
@@ -260,7 +271,7 @@
                     app:layout_constraintStart_toEndOf="@+id/read_action_tts"
                     app:layout_constraintTop_toTopOf="parent"
                     app:srcCompat="@drawable/ic_baseline_list_24"
-                    app:tint="?attr/white"/>
+                    app:tint="?attr/white" />
 
             <ImageButton
                     android:visibility="visible"
@@ -274,9 +285,10 @@
                     app:layout_constraintStart_toEndOf="@id/read_action_chapters"
                     app:layout_constraintTop_toTopOf="parent"
                     app:srcCompat="@drawable/ic_outline_settings_24"
-                    app:tint="?attr/white"/>
+                    app:tint="?attr/white" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
+
         <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/reader_bottom_view_tts"
                 android:layout_width="match_parent"
@@ -297,7 +309,7 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
                     app:srcCompat="@drawable/ic_baseline_fast_rewind_24"
-                    app:tint="?attr/white"/>
+                    app:tint="?attr/white" />
 
             <ImageButton
                     android:id="@+id/tts_action_stop"
@@ -310,7 +322,7 @@
                     app:layout_constraintStart_toEndOf="@+id/tts_action_back"
                     app:layout_constraintTop_toTopOf="parent"
                     app:srcCompat="@drawable/ic_baseline_stop_24"
-                    app:tint="?attr/white"/>
+                    app:tint="?attr/white" />
 
             <ImageButton
                     android:id="@+id/tts_action_pause_play"
@@ -323,7 +335,7 @@
                     app:layout_constraintStart_toEndOf="@+id/tts_action_stop"
                     app:layout_constraintTop_toTopOf="parent"
                     app:srcCompat="@drawable/ic_baseline_pause_24"
-                    app:tint="?attr/white"/>
+                    app:tint="?attr/white" />
 
             <ImageButton
                     android:visibility="visible"
@@ -337,7 +349,7 @@
                     app:layout_constraintStart_toEndOf="@id/tts_action_pause_play"
                     app:layout_constraintTop_toTopOf="parent"
                     app:srcCompat="@drawable/ic_baseline_fast_forward_24"
-                    app:tint="?attr/white"/>
+                    app:tint="?attr/white" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -347,6 +359,7 @@
                 android:layout_width="match_parent"
                 android:id="@+id/read_toolbar_holder"
                 android:layout_height="wrap_content">
+
             <com.google.android.material.appbar.MaterialToolbar
                     android:id="@+id/read_toolbar"
                     android:paddingTop="@dimen/navbarHeight"
@@ -357,8 +370,8 @@
                     tools:subtitle="TEST"
 
                     android:background="?attr/grayBackground"
-                    android:layout_width="match_parent" android:layout_height="wrap_content">
-            </com.google.android.material.appbar.MaterialToolbar>
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"></com.google.android.material.appbar.MaterialToolbar>
         </com.google.android.material.appbar.AppBarLayout>
     </FrameLayout>
 </FrameLayout>

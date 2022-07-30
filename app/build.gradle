@@ -85,4 +85,8 @@ dependencies {
     // Util to skip the URI file fuckery 🙏
     implementation "com.github.tachiyomiorg:unifile:17bec43"
     implementation 'com.github.Blatzar:NiceHttp:0.3.2'
+
+    implementation "io.noties.markwon:core:4.6.2"
+    implementation "io.noties.markwon:image-glide:4.6.2"
+    implementation "io.noties.markwon:html:4.6.2"
 }
