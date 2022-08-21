@@ -49,6 +49,7 @@ import com.lagradost.quicknovel.ui.download.DownloadHelper
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.ui.search.SearchViewModel
 import com.lagradost.quicknovel.util.Coroutines
+import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getRating
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute

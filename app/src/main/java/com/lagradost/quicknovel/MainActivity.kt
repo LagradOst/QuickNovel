@@ -21,7 +21,6 @@ import com.lagradost.quicknovel.BookDownloader.openQuickStream
 import com.lagradost.quicknovel.BookDownloader.requestRW
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
-import com.lagradost.quicknovel.mvvm.ioSafe
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.ui.download.DownloadFragment
@@ -32,6 +31,8 @@ import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.Apis.Companion.printProviders
 import com.lagradost.quicknovel.util.BackupUtils.setUpBackup
 import com.lagradost.quicknovel.util.Coroutines
+import com.lagradost.quicknovel.util.Coroutines.ioSafe
+import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.getResourceColor

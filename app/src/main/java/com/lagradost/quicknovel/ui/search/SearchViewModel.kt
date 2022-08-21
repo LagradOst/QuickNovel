@@ -10,7 +10,7 @@ import com.lagradost.quicknovel.OnGoingSearch
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.util.Apis.Companion.apis
-import com.lagradost.quicknovel.util.Coroutines.ioThread
+import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.apmap
 import kotlinx.coroutines.launch
 
@@ -42,7 +42,7 @@ class SearchViewModel : ViewModel() {
 
         _currentSearch.postValue(ArrayList())
 
-        ioThread {
+        ioSafe {
             repos.filter { a ->
                 (providersActive.size == 0 || providersActive.contains(a.name))
             }.apmap { a ->

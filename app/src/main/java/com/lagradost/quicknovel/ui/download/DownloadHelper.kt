@@ -9,9 +9,10 @@ import com.lagradost.quicknovel.DOWNLOAD_TOTAL
 import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.mvvm.Resource
-import com.lagradost.quicknovel.mvvm.ioSafe
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
 import com.lagradost.quicknovel.util.Coroutines
+import com.lagradost.quicknovel.util.Coroutines.ioSafe
+import com.lagradost.quicknovel.util.Coroutines.main
 
 const val DEFAULT_SORT = 0
 const val ALPHA_SORT = 1
