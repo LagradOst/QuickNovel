@@ -1,6 +1,5 @@
 package com.lagradost.quicknovel
 
-import GlideImageGetter
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
@@ -54,7 +53,6 @@ import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.DataStore.removeKey
 import com.lagradost.quicknovel.DataStore.setKey
-import com.lagradost.quicknovel.MainActivity.Companion.activity
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.mvvm.ioSafe
 import com.lagradost.quicknovel.mvvm.logError
@@ -84,6 +82,7 @@ import nl.siegmann.epublib.domain.Book
 import nl.siegmann.epublib.epub.EpubReader
 import org.jsoup.Jsoup
 import java.io.File
+import java.net.URLDecoder
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.abs
@@ -198,12 +197,16 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     private suspend fun Context.getChapterData(index: Int, forceReload: Boolean = false): String? {
         println("getChapterData $index")
         val text =
-            (if (isFromEpub) book.tableOfContents.tocReferences[index].resource.reader.readText() else getQuickChapter(
-                quickdata.meta,
-                quickdata.data[index],
-                index,
-                forceReload
-            )?.html ?: return null)
+            (if (isFromEpub) book.tableOfContents.tocReferences[index].resource.reader.readText() else {
+                loading_text?.text = quickdata.data[index].url
+
+                getQuickChapter(
+                    quickdata.meta,
+                    quickdata.data[index],
+                    index,
+                    forceReload
+                )?.html ?: return null
+            })
         val document = Jsoup.parse(text)
 
         // REMOVE USELESS STUFF THAT WONT BE USED IN A NORMAL TXT
@@ -744,7 +747,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         true
                     ) || text.equals("next part", true)
                 ) {
-                    val name = reddit.isValidLink(href) ?: "Next"
+                    val name = reddit.getName(href) ?: "Next"
                     quickdata.data.add(ChapterData(name, href, null, null))
                     chapterTitles.add(getChapterName(maxChapter))
                     maxChapter += 1
@@ -1054,31 +1057,46 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 read_scroll.fling(0)
                 updateChapterName(scrollToY)
             }
-            read_text.alpha = 0f
+            read_text?.alpha = 0f
 
             chapterName = getChapterName(chapterIndex)
 
             currentChapter = chapterIndex
             hasTriedToFillNextChapter = false
-            read_toolbar.title = getBookTitle()
-            read_toolbar.subtitle = chapterName
-            read_title_text.text = chapterName
+            read_toolbar?.title = getBookTitle()
+            read_toolbar?.subtitle = chapterName
+            read_title_text?.text = chapterName
 
             updateChapterName(0)
-
-            this.let { context ->
-                markwon = markwon ?: Markwon.builder(context) // automatically create Glide instance
+            markwon =
+                markwon ?: Markwon.builder(readActivity) // automatically create Glide instance
                     //.usePlugin(GlideImagesPlugin.create(context)) // use supplied Glide instance
                     //.usePlugin(GlideImagesPlugin.create(Glide.with(context))) // if you need more control
                     .usePlugin(HtmlPlugin.create { plugin -> plugin.excludeDefaults(false) })
                     .usePlugin(GlideImagesPlugin.create(object : GlideImagesPlugin.GlideStore {
                         @NonNull
                         override fun load(@NonNull drawable: AsyncDrawable): RequestBuilder<Drawable> {
-                            return Glide.with(context).load(drawable.destination)
+                            return try {
+                                val newUrl = drawable.destination.substringAfter("&url=")
+                                val url =
+                                    if (newUrl.length > 8) { // we assume that it is not a stub url by length > 8
+                                        URLDecoder.decode(newUrl)
+                                    } else {
+                                        drawable.destination
+                                    }
+                                Glide.with(readActivity).load(url)
+                            } catch (e: Exception) {
+                                logError(e)
+                                Glide.with(readActivity).load(R.drawable.books_emoji) // might crash :)
+                            }
                         }
 
                         override fun cancel(target: Target<*>) {
-                            Glide.with(context).clear(target)
+                            try {
+                                Glide.with(readActivity).clear(target)
+                            } catch (e: Exception) {
+                                logError(e)
+                            }
                         }
                     }))
                     .usePlugin(object :
@@ -1095,36 +1113,26 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                     .usePlugin(SoftBreakAddsNewLinePlugin.create())
                     .build()
 
-
-
-                println(
-                    "TEXT == ${
-                        txt.replace(
-                            "\n", "<br>"
-                        )
-                    }"
-                )
-                val index = txt.indexOf("<body>")
-                markwon?.setMarkdown(
-                    read_text,
-                    txt.replaceAfterIndex( // because markwon is fucked we have to replace newlines with breaklines and becausse I dont want 3 br on top I start after body
-                        "\n",
-                        "<br>",
-                        startIndex = index + 7
-                    )//.replaceFirst(Regex("""[\\s*<br>\\s*\\n*]*"""), "")
-                ) ?: run {
-                    val spanned = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                        Html.fromHtml(
-                            txt,
-                            Html.FROM_HTML_MODE_LEGACY,
-                            null,
-                            null
-                        ) as Spannable
-                    } else {
-                        Html.fromHtml(txt, null, null) as Spannable
-                    }
-                    read_text?.text = spanned
+            val index = txt.indexOf("<body>")
+            markwon?.setMarkdown(
+                read_text,
+                txt.replaceAfterIndex( // because markwon is fucked we have to replace newlines with breaklines and becausse I dont want 3 br on top I start after body
+                    "\n",
+                    "<br>",
+                    startIndex = index + 7
+                )//.replaceFirst(Regex("""[\\s*<br>\\s*\\n*]*"""), "")
+            ) ?: run {
+                val spanned = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    Html.fromHtml(
+                        txt,
+                        Html.FROM_HTML_MODE_LEGACY,
+                        null,
+                        null
+                    ) as Spannable
+                } else {
+                    Html.fromHtml(txt, null, null) as Spannable
                 }
+                read_text?.text = spanned
             }
 
 
@@ -1133,10 +1141,10 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             currentText = read_text?.text.toString()
             currentHtmlText = txt
 
-            read_text.post {
+            read_text?.post {
                 loadTextLines()
                 scroll()
-                read_text.alpha = 1f
+                read_text?.alpha = 1f
 
                 globalTTSLines.clear()
                 interruptTTS()
@@ -2210,6 +2218,10 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                                 override fun onDone(utteranceId: String) {
                                     canSpeak = true
                                     //  println("ENDMS: " + System.currentTimeMillis())
+                                }
+
+                                override fun onError(utteranceId: String?, errorCode: Int) {
+                                    canSpeak = true
                                 }
 
                                 override fun onError(utteranceId: String) {

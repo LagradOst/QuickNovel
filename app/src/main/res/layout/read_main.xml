@@ -9,13 +9,29 @@
         android:id="@+id/reader_container"
         android:background="@color/readerBackground">
 
-    <ProgressBar
-            android:visibility="gone"
+    <FrameLayout
+            tools:visibility="visible"
             android:id="@+id/read_loading"
-            android:layout_gravity="center"
-            android:progressTint="@color/colorPrimary"
-            android:layout_width="50dp"
-            android:layout_height="50dp" />
+            android:visibility="gone"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+        <ProgressBar
+                android:layout_gravity="center"
+                android:progressTint="@color/colorPrimary"
+                android:layout_width="50dp"
+                android:layout_height="50dp" />
+
+        <TextView
+                android:id="@+id/loading_text"
+                android:layout_marginTop="50dp"
+                android:gravity="center"
+                android:layout_gravity="center"
+                android:textColor="@color/colorPrimary"
+                tools:text="@string/delete"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+    </FrameLayout>
+
 
     <FrameLayout
             android:alpha="0"
@@ -38,7 +54,7 @@
             <View
                     android:id="@+id/read_topmargin"
                     android:layout_width="match_parent"
-                    android:layout_height="0dp"></View>
+                    android:layout_height="0dp" />
 
             <ScrollView
                     android:id="@+id/read_scroll"
@@ -56,42 +72,42 @@
                             android:id="@+id/line_top"
                             android:layout_height="1dp"
                             android:layout_width="match_parent"
-                            android:background="@color/purple"></View>
+                            android:background="@color/purple" />
 
                     <View
                             android:visibility="gone"
                             android:id="@+id/line_top_extra"
                             android:layout_height="3dp"
                             android:layout_width="match_parent"
-                            android:background="@color/colorPrimaryGreen"></View>
+                            android:background="@color/colorPrimaryGreen" />
 
                     <View
                             android:visibility="gone"
                             android:id="@+id/line_accent"
                             android:layout_height="1dp"
                             android:layout_width="match_parent"
-                            android:background="@color/teal"></View>
+                            android:background="@color/teal" />
 
                     <View
                             android:visibility="gone"
                             android:id="@+id/line_baseline"
                             android:layout_height="1dp"
                             android:layout_width="match_parent"
-                            android:background="@color/red"></View>
+                            android:background="@color/red" />
 
                     <View
                             android:visibility="gone"
                             android:id="@+id/line_descent"
                             android:layout_height="1dp"
                             android:layout_width="match_parent"
-                            android:background="@color/blue"></View>
+                            android:background="@color/blue" />
 
                     <View
                             android:visibility="gone"
                             android:id="@+id/line_bottom"
                             android:layout_height="1dp"
                             android:layout_width="match_parent"
-                            android:background="@color/orange"></View>
+                            android:background="@color/orange" />
 
                     <LinearLayout
                             android:id="@+id/read_text_background"
@@ -113,7 +129,7 @@
                                 android:textStyle="bold"
                                 tools:text="TEST CHAPTER"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"></TextView>
+                                android:layout_height="wrap_content" />
 
                         <com.lagradost.quicknovel.ui.roundedbg.RoundedBgTextView
                                 android:id="@+id/read_text"
@@ -128,7 +144,7 @@
                                 android:clickable="false"
                                 android:focusable="false"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"></com.lagradost.quicknovel.ui.roundedbg.RoundedBgTextView>
+                                android:layout_height="wrap_content" />
                     </LinearLayout>
                 </FrameLayout>
                 <!-- android:textSize="10sp" -->
@@ -142,7 +158,7 @@
                 android:layout_gravity="bottom"
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
-                android:background="@color/transparent"></View>
+                android:background="@color/transparent" />
 
         <FrameLayout
                 android:visibility="visible"
@@ -166,7 +182,7 @@
                     android:textColor="@color/readerTextColor"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    tools:ignore="SmallSp"></TextView>
+                    tools:ignore="SmallSp" />
 
             <TextView
                     tools:text="20:35"
@@ -178,7 +194,7 @@
                     android:textColor="@color/readerTextColor"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    tools:ignore="SmallSp"></TextView>
+                    tools:ignore="SmallSp" />
 
             <TextView
                     android:visibility="gone"
@@ -193,7 +209,7 @@
                     android:layout_height="match_parent"
                     tools:text="Chapter 1148 - You Will Support Me in the Future"
                     android:textColor="@color/readerTextColor"
-                    tools:ignore="SmallSp"></TextView>
+                    tools:ignore="SmallSp" />
             <!--        <ImageView
                             android:id="@+id/read_menu"
                             android:background="?selectableItemBackgroundBorderless"
@@ -371,7 +387,7 @@
 
                     android:background="?attr/grayBackground"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"></com.google.android.material.appbar.MaterialToolbar>
+                    android:layout_height="wrap_content" />
         </com.google.android.material.appbar.AppBarLayout>
     </FrameLayout>
 </FrameLayout>
