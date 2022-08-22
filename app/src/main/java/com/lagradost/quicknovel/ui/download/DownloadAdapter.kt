@@ -25,6 +25,7 @@ import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.ui.download.DownloadHelper.updateDownloadFromCard
 import com.lagradost.quicknovel.util.Coroutines
+import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.setImage
