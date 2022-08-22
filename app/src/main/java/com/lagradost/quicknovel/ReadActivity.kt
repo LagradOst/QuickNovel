@@ -198,7 +198,9 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         println("getChapterData $index")
         val text =
             (if (isFromEpub) book.tableOfContents.tocReferences[index].resource.reader.readText() else {
-                loading_text?.text = quickdata.data[index].url
+                main {
+                    loading_text?.text = quickdata.data[index].url
+                }
 
                 getQuickChapter(
                     quickdata.meta,
@@ -1087,7 +1089,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                                 Glide.with(readActivity).load(url)
                             } catch (e: Exception) {
                                 logError(e)
-                                Glide.with(readActivity).load(R.drawable.books_emoji) // might crash :)
+                                Glide.with(readActivity)
+                                    .load(R.drawable.books_emoji) // might crash :)
                             }
                         }
 
