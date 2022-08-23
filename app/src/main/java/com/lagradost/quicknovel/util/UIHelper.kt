@@ -16,6 +16,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
 import androidx.annotation.AttrRes
 import androidx.annotation.ColorInt
+import androidx.annotation.DrawableRes
 import androidx.annotation.MenuRes
 import androidx.appcompat.view.ContextThemeWrapper
 import androidx.appcompat.view.menu.MenuBuilder
@@ -29,9 +30,14 @@ import androidx.core.view.forEach
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.load.model.LazyHeaders
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
+import com.bumptech.glide.request.RequestOptions.bitmapTransform
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.mvvm.logError
+import jp.wasabeef.glide.transformations.BlurTransformation
 import java.text.CharacterIterator
 import java.text.StringCharacterIterator
 import kotlin.math.roundToInt
@@ -86,19 +92,40 @@ object UIHelper {
         return color
     }
 
-    fun ImageView?.setImage(url: String?, referer: String? = null) {
-        if (this == null || url.isNullOrBlank()) return
-        try {
-            Glide.with(this.context)
-                .load(
-                    if (referer == null) GlideUrl(url) else GlideUrl(
-                        url,
-                        LazyHeaders.Builder().addHeader("Referer", referer).build()
-                    )
-                )
-                .into(this)
+    fun ImageView?.setImage(
+        url: String?,
+        referer: String? = null,
+        headers: Map<String, String>? = null,
+        @DrawableRes
+        errorImageDrawable: Int? = null,
+        blur: Boolean = false
+    ): Boolean {
+        if (this == null || url.isNullOrBlank()) return false
+        val refererMap = referer?.let { mapOf("referer" to referer) } ?: emptyMap()
+
+        return try {
+            val builder = Glide.with(this)
+                .load(GlideUrl(url) { (headers ?: emptyMap()) + refererMap }).transition(
+                    DrawableTransitionOptions.withCrossFade()
+                ).let {
+                    if (blur)
+                        it.apply(bitmapTransform(BlurTransformation(100, 3)))
+                    else
+                        it
+                }
+                .skipMemoryCache(true)
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+
+            val res = if (errorImageDrawable != null)
+                builder.error(errorImageDrawable).into(this)
+            else
+                builder.into(this)
+            res.clearOnDetach()
+
+            true
         } catch (e: Exception) {
-            e.printStackTrace()
+            logError(e)
+            false
         }
     }
 
@@ -112,7 +139,12 @@ object UIHelper {
     }
 
     fun Activity.fixPaddingStatusbar(v: View) {
-        v.setPadding(v.paddingLeft, v.paddingTop + getStatusBarHeight(), v.paddingRight, v.paddingBottom)
+        v.setPadding(
+            v.paddingLeft,
+            v.paddingTop + getStatusBarHeight(),
+            v.paddingRight,
+            v.paddingBottom
+        )
     }
 
     fun Activity.requestAudioFocus(focusRequest: AudioFocusRequest?) {
@@ -207,9 +239,10 @@ object UIHelper {
             val emptyIcon = ContextCompat.getDrawable(context, R.drawable.ic_blank_24)
             popup.menu.forEach { item ->
                 item.icon = when (item.itemId) {
-                    selectedItemId -> ContextCompat.getDrawable(context, R.drawable.ic_check_24)?.mutate()?.apply {
-                        setTint(context.getResourceColor(android.R.attr.textColorPrimary))
-                    }
+                    selectedItemId -> ContextCompat.getDrawable(context, R.drawable.ic_check_24)
+                        ?.mutate()?.apply {
+                            setTint(context.getResourceColor(android.R.attr.textColorPrimary))
+                        }
                     else -> emptyIcon
                 }
             }
@@ -256,7 +289,8 @@ object UIHelper {
     }
 
     fun Context.hideKeyboard(view: View) {
-        val inputMethodManager = getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
+        val inputMethodManager =
+            getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
         inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
     }
 }

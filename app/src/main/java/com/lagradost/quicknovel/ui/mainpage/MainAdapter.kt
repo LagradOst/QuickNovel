@@ -54,7 +54,8 @@ class MainAdapter(
 
 
     class MainCardViewHolder
-    constructor(itemView: View, val activity: Activity, resView: AutofitRecyclerView) : RecyclerView.ViewHolder(itemView) {
+    constructor(itemView: View, val activity: Activity, resView: AutofitRecyclerView) :
+        RecyclerView.ViewHolder(itemView) {
         private val cardText: TextView = itemView.imageText
         private val cardTextExtra: TextView? = itemView.imageTextExtra
         val cardView: ImageView = itemView.imageView
@@ -63,7 +64,8 @@ class MainAdapter(
 
         val imageTextProvider: TextView = itemView.imageTextProvider*/
         private val compactView = activity.getGridIsCompact()
-        private val coverHeight: Int = if (compactView) 80.toPx else (resView.itemWidth / 0.68).roundToInt()
+        private val coverHeight: Int =
+            if (compactView) 80.toPx else (resView.itemWidth / 0.68).roundToInt()
         private val bg = itemView.backgroundCard
         fun bind(card: SearchResponse) {
 
@@ -88,7 +90,7 @@ class MainAdapter(
             }*/
             //imageTextProvider.text = card.apiName
 
-            cardView.setImage(card.posterUrl)
+            cardView.setImage(card.posterUrl, headers = card.posterHeaders)
             cardView.setLayerType(View.LAYER_TYPE_SOFTWARE, null) // HALF IMAGE DISPLAYING FIX
 
             bg.setOnClickListener {

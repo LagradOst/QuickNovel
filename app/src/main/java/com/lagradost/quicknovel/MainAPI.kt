@@ -34,7 +34,11 @@ abstract class MainAPI {
     }
 
     open val hasReviews: Boolean = false
-    open suspend fun loadReviews(url: String, page: Int, showSpoilers: Boolean = false): List<UserReview> {
+    open suspend fun loadReviews(
+        url: String,
+        page: Int,
+        showSpoilers: Boolean = false
+    ): List<UserReview> {
         throw NotImplementedError()
     }
 
@@ -52,6 +56,7 @@ abstract class MainAPI {
 }
 
 class ErrorLoadingException(message: String? = null) : Exception(message)
+
 fun MainAPI.fixUrlNull(url: String?): String? {
     if (url.isNullOrEmpty()) {
         return null
@@ -91,19 +96,23 @@ fun stripHtml(txt: String, chapterName: String? = null, chapterIndex: Int? = nul
         if (chapterName != null && chapterIndex != null) {
             for (a in document.allElements) {
                 if (a != null && a.hasText() &&
-                    (a.text() == chapterName || (a.tagName() == "h3" && a.text().startsWith("Chapter ${chapterIndex + 1}")))
+                    (a.text() == chapterName || (a.tagName() == "h3" && a.text()
+                        .startsWith("Chapter ${chapterIndex + 1}")))
                 ) { // IDK, SOME MIGHT PREFER THIS SETTING??
                     a.remove() // THIS REMOVES THE TITLE
                     break
                 }
             }
         }
-    } catch (e : Exception) {
+    } catch (e: Exception) {
         logError(e)
     }
 
     return document.html()
-        .replace("<p>.*<strong>Translator:.*?Editor:.*>".toRegex(), "") // FUCK THIS, LEGIT IN EVERY CHAPTER
+        .replace(
+            "<p>.*<strong>Translator:.*?Editor:.*>".toRegex(),
+            ""
+        ) // FUCK THIS, LEGIT IN EVERY CHAPTER
         .replace("<.*?Translator:.*?Editor:.*?>".toRegex(), "") // FUCK THIS, LEGIT IN EVERY CHAPTER
 
 }
@@ -145,6 +154,7 @@ data class SearchResponse(
     val rating: Int?,
     val latestChapter: String?,
     val apiName: String,
+    var posterHeaders: Map<String, String>? = null
 )
 
 const val STATUS_NULL = 0
@@ -166,6 +176,7 @@ data class LoadResponse(
     val synopsis: String?,
     val tags: List<String>?,
     val status: Int?, // 0 = null - implemented but not found, 1 = Ongoing, 2 = Complete, 3 = Pause/HIATUS, 4 = Dropped
+    var posterHeaders: Map<String, String>? = null
 )
 
 data class ChapterData(
