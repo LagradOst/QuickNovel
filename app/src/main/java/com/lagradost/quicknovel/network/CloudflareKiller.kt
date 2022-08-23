@@ -10,6 +10,7 @@ import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.mvvm.debugWarning
 import kotlinx.coroutines.runBlocking
 import okhttp3.*
+import java.net.URI
 
 
 @AnyThread
@@ -24,7 +25,23 @@ class CloudflareKiller : Interceptor {
         }
     }
 
+    init {
+        // Needs to clear cookies between sessions to generate new cookies.
+        CookieManager.getInstance().removeAllCookies(null)
+    }
+
     val savedCookies: MutableMap<String, Map<String, String>> = mutableMapOf()
+
+    /**
+     * Gets the headers with cookies, webview user agent included!
+     * */
+    fun getCookieHeaders(url: String): Headers {
+        val userAgentHeaders =  WebViewResolver.webViewUserAgent?.let {
+            mapOf("user-agent" to it)
+        } ?: emptyMap()
+
+        return getHeaders(userAgentHeaders, null,savedCookies[URI(url).host] ?: emptyMap())
+    }
 
     override fun intercept(chain: Interceptor.Chain): Response = runBlocking {
         val request = chain.request()
@@ -66,7 +83,7 @@ class CloudflareKiller : Interceptor {
         } ?: emptyMap()
 
         val headers =
-            getHeaders(request.headers.toMap() + userAgentMap, null,cookies + request.cookies)
+            getHeaders(request.headers.toMap() + userAgentMap, null, cookies + request.cookies)
         return app.baseClient.newCall(
             request.newBuilder()
                 .headers(headers)
