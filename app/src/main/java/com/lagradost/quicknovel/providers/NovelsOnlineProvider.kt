@@ -99,22 +99,18 @@ class NovelsOnlineProvider : MainAPI() {
         ).document
         val headers = document.select("li")
         if (headers.size <= 0) return ArrayList()
-        val returnValue: ArrayList<SearchResponse> = ArrayList()
-        headers.map { h ->
+        val returnValue = headers.map { h ->
 
             val name = h.selectFirst("div.top-novel-header > h2 > a")!!.text()
             val cUrl = h.selectFirst("div.top-novel-header > h2 > a")!!.attr("href")
             val posterUrl = h.selectFirst("div.top-novel-content > div.top-novel-cover > a > img")!!.attr("src")
-
-            returnValue.add(
-                SearchResponse(
-                    name,
-                    cUrl,
-                    posterUrl,
-                    null,
-                    null,
-                    this.name, interceptor.getCookieHeaders(mainUrl).toMap()
-                )
+            SearchResponse(
+                name,
+                cUrl,
+                posterUrl,
+                null,
+                null,
+                this.name, interceptor.getCookieHeaders(mainUrl).toMap()
             )
         }
         return returnValue
