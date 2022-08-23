@@ -53,7 +53,7 @@ class HomeChildItemAdapter(
             cardText.text = card.name
 
             //imageTextProvider.text = card.apiName
-            cardView.setImage(card.posterUrl, Apis.getApiFromNameOrNull(card.apiName)?.mainUrl)
+            cardView.setImage(card.posterUrl, Apis.getApiFromNameOrNull(card.apiName)?.mainUrl, card.posterHeaders)
 
             bg.setOnClickListener {
                 clickCallback.invoke(SearchClickCallback(SEARCH_ACTION_LOAD, it, card))

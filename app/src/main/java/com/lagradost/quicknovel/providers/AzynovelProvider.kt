@@ -2,11 +2,12 @@ package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.app
+import okhttp3.Headers
 import org.jsoup.Jsoup
 
 class AzynovelProvider : MainAPI() {
     override val name = "AzyNovel"
-    override val mainUrl = "https://azynovel.com"
+    override val mainUrl = "https://www.azynovel.com"
     override val hasMainPage = true
 
     override val iconId = R.drawable.icon_azynovel
@@ -99,10 +100,30 @@ class AzynovelProvider : MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
+    // Fixed version
+    private fun Headers.getCookies(cookieKey: String): Map<String, String> {
+        val cookieList =
+            this.filter { it.first.equals(cookieKey, ignoreCase = true) }.map {
+                it.second.split(";")
+            }.flatten()
+
+        return cookieList.associate {
+            val split = it.split("=")
+            (split.getOrNull(0)?.trim() ?: "") to (split.getOrNull(1)?.trim() ?: "")
+        }.filter { it.key.isNotBlank() && it.value.isNotBlank() && it.key != "Path" }
+    }
+
     override suspend fun loadHtml(url: String): String? {
-        val response = app.get(url)
-        val document = Jsoup.parse(response.text)
-        return document.selectFirst("div.column.is-9 > div:nth-child(5)")?.html()
+        val (cookies, location) = app.get(url, allowRedirects = false).let {
+            it.headers.getCookies("set-cookie") to it.headers["location"]
+        }
+
+        val (newCookies, newLocation) = app.get(location ?: return null, allowRedirects = false, cookies = cookies).let {
+            it.headers.getCookies("set-cookie") to it.headers["location"]
+        }
+        val document = app.get(newLocation ?: return null, cookies = newCookies).document
+
+        return document.selectFirst(".is-9 > div[style]")?.html()
     }
 
 

@@ -97,7 +97,7 @@ class SearchAdapter(
             }
 
             cardView.setLayerType(View.LAYER_TYPE_SOFTWARE, null) // HALF IMAGE DISPLAYING FIX
-            cardView.setImage(card.posterUrl, Apis.getApiFromNameOrNull(card.apiName)?.mainUrl)
+            cardView.setImage(card.posterUrl, Apis.getApiFromNameOrNull(card.apiName)?.mainUrl, card.posterHeaders)
 
             bg.setOnClickListener {
                 clickCallback.invoke(SearchClickCallback(SEARCH_ACTION_LOAD, it, card))

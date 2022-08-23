@@ -12,7 +12,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
-import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -22,13 +21,8 @@ import androidx.core.content.ContextCompat.getColor
 import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.model.GlideUrl
-import com.bumptech.glide.load.model.LazyHeaders
-import com.bumptech.glide.request.RequestOptions.bitmapTransform
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayout
 import com.lagradost.quicknovel.*
@@ -47,7 +41,6 @@ import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.download.DownloadHelper
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
-import com.lagradost.quicknovel.ui.search.SearchViewModel
 import com.lagradost.quicknovel.util.Coroutines
 import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.ResultCached
@@ -58,12 +51,11 @@ import com.lagradost.quicknovel.util.UIHelper.getStatusBarHeight
 import com.lagradost.quicknovel.util.UIHelper.hideKeyboard
 import com.lagradost.quicknovel.util.UIHelper.humanReadableByteCountSI
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
+import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.util.toPx
-import jp.wasabeef.glide.transformations.BlurTransformation
 import kotlinx.android.synthetic.main.fragment_result.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlin.concurrent.thread
 import android.annotation.SuppressLint as SuppressLint1
 
 const val MAX_SYNO_LENGH = 300
@@ -279,21 +271,17 @@ class ResultFragment : Fragment() {
                 // LOAD IMAGES FIRST TO GIVE IT A BIT OF TIME
                 if (!res.posterUrl.isNullOrEmpty()) {
                     try {
-                        val glideUrl =
-                            GlideUrl(
-                                res.posterUrl,
-                                LazyHeaders.Builder().addHeader("Referer", api.mainUrl).build()
-                            )
-                        requireContext().let {
-                            Glide.with(it)
-                                .load(glideUrl)
-                                .into(result_poster)
-
-                            Glide.with(it)
-                                .load(glideUrl)
-                                .apply(bitmapTransform(BlurTransformation(100, 3)))
-                                .into(result_poster_blur)
-                        }
+                        result_poster?.setImage(
+                            res.posterUrl,
+                            api.mainUrl,
+                            res.posterHeaders,
+                        )
+                        result_poster_blur?.setImage(
+                            res.posterUrl,
+                            api.mainUrl,
+                            res.posterHeaders,
+                            blur = true
+                        )
                     } catch (e: Exception) {
                         logError(e)
                     }
