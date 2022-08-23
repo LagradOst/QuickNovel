@@ -64,7 +64,6 @@ class NovelsOnlineProvider : MainAPI() {
         val document = app.get(url, interceptor = interceptor).document
 
         val headers = document.select("div.top-novel-block")
-        if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
         val returnValue: ArrayList<SearchResponse> = ArrayList()
 
         for (h in headers) {
