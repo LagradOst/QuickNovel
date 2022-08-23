@@ -3,6 +3,7 @@ import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.network.CloudflareKiller
 import org.jsoup.Jsoup
+import kotlin.math.roundToInt
 
 class NovelsOnlineProvider : MainAPI() {
     override val name = "NovelsOnline"
@@ -60,9 +61,7 @@ class NovelsOnlineProvider : MainAPI() {
         val url =
             if (tag.isNullOrBlank()) "$mainUrl/top-novel/$page" else "$mainUrl/category/$tag/$page"
 
-        val response = app.get(url, interceptor = interceptor)
-
-        val document = Jsoup.parse(response.text)
+        val document = app.get(url, interceptor = interceptor).document
 
         val headers = document.select("div.top-novel-block")
         if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
@@ -142,7 +141,7 @@ class NovelsOnlineProvider : MainAPI() {
 
 
         val rating =
-            document.selectFirst("div.novel-right > div > div:nth-child(6) > div.novel-detail-body")?.text()?.toFloat()?.times(100)?.toInt()
+            document.selectFirst("div.novel-right > div > div:nth-child(6) > div.novel-detail-body")?.text()?.toFloatOrNull()?.times(100)?.roundToInt()
 
         return LoadResponse(
             url,
