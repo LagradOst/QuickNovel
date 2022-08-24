@@ -60,19 +60,17 @@ class NovelsOnlineProvider : MainAPI() {
     ): HeadMainPageResponse {
         val url =
             if (tag.isNullOrBlank()) "$mainUrl/top-novel/$page" else "$mainUrl/category/$tag/$page"
-
+        
         val document = app.get(url, interceptor = interceptor).document
 
         val headers = document.select("div.top-novel-block")
-        val returnValue: ArrayList<SearchResponse> = ArrayList()
 
-        headers.map { h ->
+        val list = headers.map { h ->
             val adata= h.selectFirst("div.top-novel-header > h2 > a")
             val name = adata!!.text()
             val cUrl = adata!!.attr("href")
             val posterUrl = h.selectFirst("div.top-novel-content > div.top-novel-cover > a > img")!!.attr("src")
 
-            returnValue.add(
                 SearchResponse(
                     name,
                     cUrl,
@@ -81,9 +79,8 @@ class NovelsOnlineProvider : MainAPI() {
                     null,
                     this.name, interceptor.getCookieHeaders(url).toMap()
                 )
-            )
         }
-        return HeadMainPageResponse(url, returnValue)
+        return HeadMainPageResponse(url, list)
     }
 
     override suspend fun loadHtml(url: String): String? {
@@ -115,9 +112,9 @@ class NovelsOnlineProvider : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val response = app.get(url, interceptor = interceptor)
 
-        val document = Jsoup.parse(response.text)
+        val document = app.get(url, interceptor = interceptor).document
+
         val name = document.selectFirst("h1")!!.text()
 
         val author = document.selectFirst("div.novel-details > div:nth-child(5) > div.novel-detail-body")?.select("li")?.map { it.text() }?.joinToString ()
