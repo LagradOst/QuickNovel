@@ -66,10 +66,10 @@ class NovelsOnlineProvider : MainAPI() {
         val headers = document.select("div.top-novel-block")
         val returnValue: ArrayList<SearchResponse> = ArrayList()
 
-        for (h in headers) {
-
-            val name = h.selectFirst("div.top-novel-header > h2 > a")!!.text()
-            val cUrl = h.selectFirst("div.top-novel-header > h2 > a")!!.attr("href")
+        headers.map { h ->
+            val adata= h.selectFirst("div.top-novel-header > h2 > a")
+            val name = adata!!.text()
+            val cUrl = adata!!.attr("href")
             val posterUrl = h.selectFirst("div.top-novel-content > div.top-novel-cover > a > img")!!.attr("src")
 
             returnValue.add(
