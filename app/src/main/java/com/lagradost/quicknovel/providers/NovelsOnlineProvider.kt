@@ -98,22 +98,20 @@ class NovelsOnlineProvider : MainAPI() {
             data = mapOf("q" to query)
         ).document
         val headers = document.select("li")
-        if (headers.size <= 0) return ArrayList()
-        val returnValue = headers.map { h ->
+        return headers.mapNotNull { h ->
+            val name = h.text()
+            val cUrl = h.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+            val posterUrl = h.selectFirst("img")?.attr("src")
 
-            val name = h.selectFirst("div.top-novel-header > h2 > a")!!.text()
-            val cUrl = h.selectFirst("div.top-novel-header > h2 > a")!!.attr("href")
-            val posterUrl = h.selectFirst("div.top-novel-content > div.top-novel-cover > a > img")!!.attr("src")
             SearchResponse(
                 name,
                 cUrl,
                 posterUrl,
                 null,
                 null,
-                this.name, interceptor.getCookieHeaders(mainUrl).toMap()
+                this.name
             )
         }
-        return returnValue
     }
 
     override suspend fun load(url: String): LoadResponse {
