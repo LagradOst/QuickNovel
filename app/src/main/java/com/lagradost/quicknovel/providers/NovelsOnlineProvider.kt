@@ -60,7 +60,7 @@ class NovelsOnlineProvider : MainAPI() {
     ): HeadMainPageResponse {
         val url =
             if (tag.isNullOrBlank()) "$mainUrl/top-novel/$page" else "$mainUrl/category/$tag/$page"
-        
+
         val document = app.get(url, interceptor = interceptor).document
 
         val headers = document.select("div.top-novel-block")
