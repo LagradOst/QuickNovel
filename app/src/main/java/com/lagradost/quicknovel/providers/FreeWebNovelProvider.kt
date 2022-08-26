@@ -93,7 +93,9 @@ class FreewebnovelProvider : MainAPI() {
 
     override suspend fun loadHtml(url: String): String? {
         val response = app.get(url)
-        val document = Jsoup.parse(response.text)
+        val document = Jsoup.parse(response.text
+            .replace("New novel chapters are published on Freewebnovel.com.", "")
+            .replace("The source of this content is Freewebnᴏvel.com.", ""))
         return document.selectFirst("div.txt")?.html()
     }
 
