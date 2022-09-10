@@ -717,7 +717,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     private fun Context.updateTimeText() {
-        val string = if (this.updateTwelveHourTime()) "KK:mm a" else "HH:mm"
+        val string = if (this.updateTwelveHourTime()) "hh:mm a" else "HH:mm"
 
         val currentTime: String = SimpleDateFormat(string, Locale.getDefault()).format(Date())
         if (read_time != null) {
