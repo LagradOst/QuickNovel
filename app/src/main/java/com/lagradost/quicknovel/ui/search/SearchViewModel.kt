@@ -29,11 +29,11 @@ class SearchViewModel : ViewModel() {
         _searchResponse.postValue(Resource.Success(ArrayList()))
     }
 
-    fun search(query: String) = viewModelScope.launch {
+    fun search(query: String) = ioSafe {
         searchCounter++
         if (query.length <= 1) {
             clearSearch()
-            return@launch
+            return@ioSafe
         }
         val localSearchCounter = searchCounter
         _searchResponse.postValue(Resource.Loading())
@@ -42,19 +42,18 @@ class SearchViewModel : ViewModel() {
 
         _currentSearch.postValue(ArrayList())
 
-        ioSafe {
-            repos.filter { a ->
-                (providersActive.size == 0 || providersActive.contains(a.name))
-            }.apmap { a ->
-                currentList.add(OnGoingSearch(a.name, a.search(query)))
-                if (localSearchCounter == searchCounter) {
-                    _currentSearch.postValue(currentList)
-                }
+        repos.filter { a ->
+            (providersActive.size == 0 || providersActive.contains(a.name))
+        }.apmap { a ->
+            currentList.add(OnGoingSearch(a.name, a.search(query)))
+            if (localSearchCounter == searchCounter) {
+                _currentSearch.postValue(currentList)
             }
         }
+
         _currentSearch.postValue(currentList)
 
-        if (localSearchCounter != searchCounter) return@launch
+        if (localSearchCounter != searchCounter) return@ioSafe
 
         val list = ArrayList<SearchResponse>()
         val nestedList =

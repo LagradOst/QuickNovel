@@ -14,6 +14,7 @@ import androidx.navigation.fragment.NavHostFragment
 import androidx.preference.PreferenceManager
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.lagradost.nicehttp.Requests
+import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
 import com.lagradost.quicknovel.BookDownloader.checkWrite
 import com.lagradost.quicknovel.BookDownloader.createQuickStream
@@ -38,11 +39,17 @@ import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.getResourceColor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
 import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
     companion object {
-        var app = Requests().apply {
+        var app = Requests(
+            OkHttpClient()
+                .newBuilder()
+                .ignoreAllSSLErrors()
+                .build()
+        ).apply {
             defaultHeaders = mapOf("user-agent" to USER_AGENT)
         }
 
@@ -98,7 +105,7 @@ class MainActivity : AppCompatActivity() {
                         }
                         activity.openQuickStream(uri)
                     }
-                } catch (e : Exception) {
+                } catch (e: Exception) {
                     logError(e)
                 }
             }
