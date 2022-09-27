@@ -142,9 +142,9 @@
         <Preference
                 android:title="Anime and Movie app by the same devs"
                 android:icon="@drawable/cs3_cloud"
-                app:summary="https://github.com/LagradOst/CloudStream-3">
+                app:summary="https://recloudstream.github.io/">
             <intent android:action="android.intent.action.VIEW"
-                    android:data="https://github.com/LagradOst/CloudStream-3"/>
+                    android:data="https://recloudstream.github.io/"/>
         </Preference>
 
         <Preference

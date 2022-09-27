@@ -202,9 +202,33 @@ class MainActivity : AppCompatActivity() {
         super.onBackPressed()
     }
 
-    override fun onNewIntent(intent: Intent?) {
-        val data: String? = intent?.data?.toString()
+    private fun handleIntent(intent: Intent?) {
+        if(intent == null) return
+        if (intent.action == Intent.ACTION_SEND) {
+            val extraText = try { // I dont trust android
+                intent.getStringExtra(Intent.EXTRA_TEXT)
+            } catch (e: Exception) {
+                null
+            }
+            val cd = intent.clipData
+            val item = if (cd != null && cd.itemCount > 0) cd.getItemAt(0) else null
+            val url = item?.text?.toString()
+
+            // idk what I am doing, just hope any of these work
+            if (item?.uri != null)
+                loadResultFromUrl(item.uri?.toString())
+            else if (url != null)
+                loadResultFromUrl(url)
+            else if (extraText != null)
+                loadResultFromUrl(extraText)
+
+        }
+        val data: String? = intent.data?.toString()
         loadResultFromUrl(data)
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        handleIntent(intent)
         super.onNewIntent(intent)
     }
 
@@ -318,8 +342,7 @@ class MainActivity : AppCompatActivity() {
             runAutoUpdate()
         }
 
-        val data: String? = intent?.data?.toString()
-        loadResultFromUrl(data)
+        handleIntent(intent)
 
         if (!checkWrite()) {
             requestRW()

@@ -36,7 +36,7 @@ class WattpadProvider : MainAPI() {
             ChapterData(url = href, name = name)
         }
 
-        val title = document.selectFirst(".story-info > .sr-only")?.text()
+        val title = document.selectFirst(".story-info > .sr-only")?.text() ?: document.selectFirst(".item-title")?.text()
             ?: throw ErrorLoadingException("No title")
         val poster = document.selectFirst(".story-cover > img")?.attr("src")
 

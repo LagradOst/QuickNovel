@@ -25,6 +25,13 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter android:label="Read with QuickNovel">
+                <action android:name="android.intent.action.SEND" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="*/*" />
+            </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.BROWSABLE" />
@@ -78,6 +85,10 @@
                         android:scheme="https"
                         android:host="www.readanybook.com"
                         android:pathPrefix="/ebook/" />
+                <data
+                        android:scheme="https"
+                        android:host="www.wattpad.com"
+                        android:pathPrefix="/story/" />
             </intent-filter>
         </activity>
 
