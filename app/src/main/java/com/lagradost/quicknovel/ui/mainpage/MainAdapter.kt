@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.DiffUtil
 
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -26,10 +27,11 @@ import kotlin.math.roundToInt
 
 class MainAdapter(
     val activity: Activity,
-    var cardList: List<SearchResponse>,
     private val resView: AutofitRecyclerView,
 ) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+    var cardList: MutableList<SearchResponse> = mutableListOf()
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
 
         val layout = activity.getGridFormatId()
@@ -52,6 +54,16 @@ class MainAdapter(
         return cardList.size
     }
 
+    fun updateList(newList: List<SearchResponse>) {
+        val diffResult = DiffUtil.calculateDiff(
+            SearchResponseDiffCallback(this.cardList, newList)
+        )
+
+        cardList.clear()
+        cardList.addAll(newList)
+
+        diffResult.dispatchUpdatesTo(this)
+    }
 
     class MainCardViewHolder
     constructor(itemView: View, val activity: Activity, resView: AutofitRecyclerView) :
@@ -98,4 +110,16 @@ class MainAdapter(
             }
         }
     }
+}
+class SearchResponseDiffCallback(private val oldList: List<SearchResponse>, private val newList: List<SearchResponse>) :
+    DiffUtil.Callback() {
+    override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int) =
+        oldList[oldItemPosition].url == newList[newItemPosition].url
+
+    override fun getOldListSize() = oldList.size
+
+    override fun getNewListSize() = newList.size
+
+    override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int) =
+        oldList[oldItemPosition] == newList[newItemPosition]
 }

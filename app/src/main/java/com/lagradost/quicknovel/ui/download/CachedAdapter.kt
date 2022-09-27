@@ -10,6 +10,7 @@ import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.model.GlideUrl
@@ -34,11 +35,11 @@ import kotlin.math.roundToInt
 
 class CachedAdapter(
     val activity: Activity,
-    var cardList: ArrayList<ResultCached>,
     private val resView: AutofitRecyclerView,
     private val updateCallback: (id: Int) -> Unit
 ) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+    val cardList: ArrayList<ResultCached> = arrayListOf()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val layout = R.layout.history_result_compact
@@ -65,6 +66,17 @@ class CachedAdapter(
 
     override fun getItemId(position: Int): Long {
         return cardList[position].id.toLong()
+    }
+
+    fun updateList(newList: List<ResultCached>) {
+        val diffResult = DiffUtil.calculateDiff(
+            ResultCachedLoadedDiffCallback(this.cardList, newList)
+        )
+
+        cardList.clear()
+        cardList.addAll(newList)
+
+        diffResult.dispatchUpdatesTo(this)
     }
 
     class DownloadCardViewHolder
@@ -193,4 +205,16 @@ class CachedAdapter(
             }
         }
     }
+}
+class ResultCachedLoadedDiffCallback(private val oldList: List<ResultCached>, private val newList: List<ResultCached>) :
+    DiffUtil.Callback() {
+    override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int) =
+        oldList[oldItemPosition].id == newList[newItemPosition].id
+
+    override fun getOldListSize() = oldList.size
+
+    override fun getNewListSize() = newList.size
+
+    override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int) =
+        oldList[oldItemPosition] == newList[newItemPosition]
 }

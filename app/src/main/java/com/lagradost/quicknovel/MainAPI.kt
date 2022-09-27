@@ -150,9 +150,9 @@ data class MainPageResponse(
 data class SearchResponse(
     val name: String,
     val url: String,
-    val posterUrl: String?,
-    val rating: Int?,
-    val latestChapter: String?,
+    val posterUrl: String? = null,
+    val rating: Int? = null,
+    val latestChapter: String? = null,
     val apiName: String,
     var posterHeaders: Map<String, String>? = null
 )
@@ -167,23 +167,23 @@ data class LoadResponse(
     val url: String,
     val name: String,
     val data: List<ChapterData>,
-    val author: String?,
-    val posterUrl: String?,
+    val author: String? = null,
+    val posterUrl: String? = null,
     //RATING IS FROM 0-1000
-    val rating: Int?,
-    val peopleVoted: Int?,
-    val views: Int?,
-    val synopsis: String?,
-    val tags: List<String>?,
-    val status: Int?, // 0 = null - implemented but not found, 1 = Ongoing, 2 = Complete, 3 = Pause/HIATUS, 4 = Dropped
+    val rating: Int? = null,
+    val peopleVoted: Int? = null,
+    val views: Int? = null,
+    val synopsis: String? = null,
+    val tags: List<String>? = null,
+    val status: Int? = null, // 0 = null - implemented but not found, 1 = Ongoing, 2 = Complete, 3 = Pause/HIATUS, 4 = Dropped
     var posterHeaders: Map<String, String>? = null
 )
 
 data class ChapterData(
     val name: String,
     val url: String,
-    val dateOfRelease: String?,
-    val views: Int?,
+    val dateOfRelease: String? = null,
+    val views: Int? = null,
     val regerer: String? = null
     //val index : Int,
 )

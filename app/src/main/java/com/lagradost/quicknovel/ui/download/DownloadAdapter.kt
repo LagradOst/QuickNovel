@@ -12,6 +12,7 @@ import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.model.GlideUrl
@@ -24,6 +25,7 @@ import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.ui.download.DownloadHelper.updateDownloadFromCard
+import com.lagradost.quicknovel.ui.mainpage.SearchResponseDiffCallback
 import com.lagradost.quicknovel.util.Coroutines
 import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
@@ -38,10 +40,10 @@ import kotlin.math.roundToInt
 
 class DownloadAdapter(
     val activity: Activity,
-    var cardList: ArrayList<DownloadFragment.DownloadDataLoaded>,
     private val resView: AutofitRecyclerView,
 ) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+    val cardList: ArrayList<DownloadFragment.DownloadDataLoaded> = arrayListOf()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val layout =
@@ -67,6 +69,17 @@ class DownloadAdapter(
 
     override fun getItemId(position: Int): Long {
         return cardList[position].id.toLong()
+    }
+
+    fun updateList(newList: List<DownloadFragment.DownloadDataLoaded>) {
+        val diffResult = DiffUtil.calculateDiff(
+            DownloadDataLoadedDiffCallback(this.cardList, newList)
+        )
+
+        cardList.clear()
+        cardList.addAll(newList)
+
+        diffResult.dispatchUpdatesTo(this)
     }
 
     /*
@@ -298,4 +311,16 @@ class DownloadAdapter(
             }
         }
     }
+}
+class DownloadDataLoadedDiffCallback(private val oldList: List<DownloadFragment.DownloadDataLoaded>, private val newList: List<DownloadFragment.DownloadDataLoaded>) :
+    DiffUtil.Callback() {
+    override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int) =
+        oldList[oldItemPosition].id == newList[newItemPosition].id
+
+    override fun getOldListSize() = oldList.size
+
+    override fun getNewListSize() = newList.size
+
+    override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int) =
+        oldList[oldItemPosition] == newList[newItemPosition]
 }

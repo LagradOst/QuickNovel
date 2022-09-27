@@ -45,6 +45,7 @@ class Apis {
             MoreNovelProvider(),
             IndoWebNovelProvider(),
             SakuraNovelProvider(),
+            WattpadProvider(),
         )
 
         fun getApiFromName(name: String): APIRepository {

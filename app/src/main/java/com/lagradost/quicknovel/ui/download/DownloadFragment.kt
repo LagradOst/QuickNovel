@@ -111,15 +111,13 @@ class DownloadFragment : Fragment() {
 
     private fun updateData(data: ArrayList<DownloadDataLoaded>) {
         download_cardSpace?.let {
-            (it.adapter as DownloadAdapter).cardList = data
-            it.adapter?.notifyDataSetChanged()
+            (it.adapter as DownloadAdapter).updateList(data)
         }
     }
 
     private fun updateNormalData(data: ArrayList<ResultCached>) {
         bookmark_cardSpace?.let {
-            (it.adapter as CachedAdapter).cardList = data
-            it.adapter?.notifyDataSetChanged()
+            (it.adapter as CachedAdapter).updateList(data)
         }
     }
 
@@ -294,7 +292,6 @@ class DownloadFragment : Fragment() {
         val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = activity?.let {
             DownloadAdapter(
                 it,
-                ArrayList(),
                 download_cardSpace,
             )
         }
@@ -306,7 +303,6 @@ class DownloadFragment : Fragment() {
         val normalAdapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = activity?.let {
             CachedAdapter(
                 it,
-                ArrayList(),
                 download_cardSpace,
             ) {
                 val type = currentReadType

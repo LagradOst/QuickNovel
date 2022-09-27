@@ -73,8 +73,7 @@ class MainPageFragment : Fragment() {
                 mainpage_loading_error?.isVisible = false
                 mainpage_loading?.isVisible = false
 
-                (mainpage_list?.adapter as MainAdapter?)?.cardList = value
-                mainpage_list?.adapter?.notifyDataSetChanged()
+                (mainpage_list?.adapter as MainAdapter?)?.updateList(value)
             }
             is Resource.Loading -> {
                 mainpage_loading_error?.isVisible = false
@@ -174,15 +173,12 @@ class MainPageFragment : Fragment() {
             mainpage_toolbar.menu.findItem(R.id.action_search)
         val searchView = myActionMenuItem.actionView as SearchView
         myActionMenuItem.setOnActionExpandListener(object : MenuItem.OnActionExpandListener {
-            override fun onMenuItemActionExpand(item: MenuItem?): Boolean {
-                // viewModel.isInSearch.postValue(true)
+            override fun onMenuItemActionExpand(p0: MenuItem): Boolean {
                 return true
             }
 
-            override fun onMenuItemActionCollapse(item: MenuItem?): Boolean {
+            override fun onMenuItemActionCollapse(p0: MenuItem): Boolean {
                 viewModel.switchToMain()
-                // if (viewModel.isSearchResults.value == true)
-                //    defLoad() // IN CASE THE USER HAS SEARCHED SOMETHING, RELOAD ON BACK
                 return true
             }
         })
@@ -205,7 +201,6 @@ class MainPageFragment : Fragment() {
         val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = activity?.let {
             MainAdapter(
                 it,
-                ArrayList(),
                 mainpage_list,
             )
         }
