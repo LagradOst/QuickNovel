@@ -41,6 +41,7 @@ import androidx.media.session.MediaButtonReceiver
 import androidx.preference.PreferenceManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestBuilder
+import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.request.target.Target
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -48,6 +49,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.checkbox.MaterialCheckBox
 import com.jaredrummler.android.colorpicker.ColorPickerDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
+import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.BookDownloader.getQuickChapter
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.mapper
@@ -59,6 +61,7 @@ import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.receivers.BecomingNoisyReceiver
 import com.lagradost.quicknovel.services.TTSPauseService
 import com.lagradost.quicknovel.ui.OrientationType
+import com.lagradost.quicknovel.util.Apis.Companion.getApiFromNameNull
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.UIHelper
@@ -80,8 +83,10 @@ import kotlinx.android.synthetic.main.read_main.*
 import kotlinx.coroutines.*
 import nl.siegmann.epublib.domain.Book
 import nl.siegmann.epublib.epub.EpubReader
+import okhttp3.OkHttpClient
 import org.jsoup.Jsoup
 import java.io.File
+import java.io.InputStream
 import java.net.URLDecoder
 import java.text.SimpleDateFormat
 import java.util.*
@@ -593,7 +598,6 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         )
                     }
 
-
                     with(NotificationManagerCompat.from(this)) {
                         // notificationId is a unique int for each notification that you must define
                         notify(TTS_NOTIFICATION_ID, builder.build())
@@ -737,13 +741,13 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
         try {
             val elements =
-                Jsoup.parse(currentHtmlText).allElements?.filterNotNull() ?: return false
+                Jsoup.parse(currentHtmlText).allElements.filterNotNull()
 
             for (element in elements) {
                 val href = element.attr("href") ?: continue
 
                 val text =
-                    element.ownText().replace(Regex("[\\[\\]().,|{}<>]"), "")?.trim() ?: continue
+                    element.ownText().replace(Regex("[\\[\\]().,|{}<>]"), "").trim()
                 if (text.equals("next", true) || text.equals(
                         "next chapter",
                         true
@@ -1079,14 +1083,27 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         @NonNull
                         override fun load(@NonNull drawable: AsyncDrawable): RequestBuilder<Drawable> {
                             return try {
-                                val newUrl = drawable.destination.substringAfter("&url=")
+                                var newUrl = drawable.destination.substringAfter("&url=")
+                                if(!isFromEpub) {
+                                    getApiFromNameNull(quickdata.meta.apiName)?.fixUrlNull(newUrl)?.let {
+                                        newUrl = it
+                                    }
+                                }
+
                                 val url =
                                     if (newUrl.length > 8) { // we assume that it is not a stub url by length > 8
                                         URLDecoder.decode(newUrl)
                                     } else {
                                         drawable.destination
                                     }
-                                Glide.with(readActivity).load(url)
+                                /* TODO https://github.com/bumptech/glide/tree/master/integration/okhttp3/src/main/java/com/bumptech/glide/integration/okhttp3
+                                Glide.get(readActivity).apply {
+                                    registry.replace(GlideUrl::class.java, InputStream::class.java, com.bumptech.glide OkHttpUrlLoader.Factory(OkHttpClient()
+                                        .newBuilder()
+                                        .ignoreAllSSLErrors()
+                                        .build()))
+                                }*/
+                                Glide.with(readActivity).load(GlideUrl(url) { mapOf( "user-agent" to USER_AGENT) })
                             } catch (e: Exception) {
                                 logError(e)
                                 Glide.with(readActivity)

@@ -14,6 +14,8 @@ abstract class MainAPI {
 
     open val rateLimitTime: Long = 0
 
+    open val usesCloudFlareKiller = false
+
     // DECLARE HAS ACCESS TO MAIN PAGE INFORMATION
     open val hasMainPage = false
 

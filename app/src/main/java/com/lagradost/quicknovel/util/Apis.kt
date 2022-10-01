@@ -52,7 +52,7 @@ class Apis {
             return getApiFromNameOrNull(name) ?: APIRepository(apis[1])
         }
 
-        private fun getApiFromNameNull(apiName: String?): MainAPI? {
+        fun getApiFromNameNull(apiName: String?): MainAPI? {
             for (api in apis) {
                 if (apiName == api.name)
                     return api

@@ -11,6 +11,7 @@ class NovelsOnlineProvider : MainAPI() {
     override val hasMainPage = true
     override val iconId = R.drawable.icon_novelsonline
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
+    override val usesCloudFlareKiller = true
 
     override val tags = listOf(
         Pair("All", ""),
