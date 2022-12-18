@@ -71,7 +71,7 @@
     <string name="download_delete_action">Delete</string>
 
     <!-- rotations -->
-    <string name="default_rotation_type">Default</string>
+    <string name="default_text">Default</string>
     <string name="rotation_type">Rotation type</string>
     <string name="rotation_free">Free</string>
     <string name="rotation_portrait">Portrait</string>
@@ -135,4 +135,6 @@
     <string name="backup_success">Successfully stored data</string>
     <string name="backup_failed">Storage permissions missing, please try again</string>
     <string name="backup_failed_error_format">Error backing up %s</string>
+    <string name="tts_locale">Language</string>
+    <string name="tts_voice">Voice</string>
 </resources>

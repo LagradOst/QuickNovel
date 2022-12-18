@@ -148,23 +148,44 @@
 
             <com.google.android.material.button.MaterialButton
                     android:layout_marginTop="10dp"
-                    android:visibility="visible"
-                    android:layout_gravity="center_vertical"
-                    app:cornerRadius="4dp"
                     android:id="@+id/read_show_fonts"
 
                     android:text="@string/reader_font"
 
-                    app:rippleColor="?attr/colorPrimary"
-                    android:textColor="?attr/textColor"
-                    app:iconTint="?attr/textColor"
-                    app:iconPadding="10dp"
-                    android:textAllCaps="false"
-                    app:iconGravity="textStart"
-                    android:backgroundTint="@color/transparent"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    style="@style/ReadButtonStyle" />
+
+            <TextView
+                    android:layout_marginTop="15dp"
+                    android:text="TTS Voice"
+                    android:textSize="16sp"
                     android:layout_width="wrap_content"
-                    android:layout_height="45dp" />
+                    android:layout_height="wrap_content" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_marginTop="15dp"
+
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                <com.google.android.material.button.MaterialButton
+                        android:id="@+id/read_language"
+                        android:text="@string/tts_locale"
+                        style="@style/ReadButtonStyle"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+
+                <com.google.android.material.button.MaterialButton
+                        android:layout_marginStart="10dp"
+                        android:id="@+id/read_voice"
+                        android:text="@string/tts_voice"
+                        style="@style/ReadButtonStyle"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toEndOf="@+id/read_language" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
 
             <TextView
                     android:id="@+id/read_settings_text_size_text"

@@ -6,7 +6,7 @@ import androidx.annotation.StringRes
 import com.lagradost.quicknovel.R
 
 enum class OrientationType(val prefValue: Int, val flag: Int, @StringRes val stringRes: Int, @DrawableRes val iconRes: Int) {
-    DEFAULT(0, ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED, R.string.default_rotation_type, R.drawable.ic_baseline_screen_rotation_24),
+    DEFAULT(0, ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED, R.string.default_text, R.drawable.ic_baseline_screen_rotation_24),
     FREE(1, ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED, R.string.rotation_free, R.drawable.ic_baseline_screen_rotation_24),
     PORTRAIT(2, ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT, R.string.rotation_portrait, R.drawable.ic_baseline_stay_current_portrait_24),
     LANDSCAPE(3, ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE, R.string.rotation_landscape, R.drawable.ic_baseline_stay_current_landscape_24),

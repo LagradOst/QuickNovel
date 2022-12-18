@@ -19,6 +19,7 @@ import android.os.Build
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.speech.tts.Voice
 import android.support.v4.media.session.MediaSessionCompat
 import android.text.Html
 import android.text.Spannable
@@ -45,11 +46,8 @@ import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.request.target.Target
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.checkbox.MaterialCheckBox
 import com.jaredrummler.android.colorpicker.ColorPickerDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
-import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.BookDownloader.getQuickChapter
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.mapper
@@ -64,6 +62,7 @@ import com.lagradost.quicknovel.ui.OrientationType
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromNameNull
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.main
+import com.lagradost.quicknovel.util.SingleSelectionHelper.showBottomDialog
 import com.lagradost.quicknovel.util.UIHelper
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
@@ -79,14 +78,13 @@ import io.noties.markwon.html.HtmlPlugin
 import io.noties.markwon.image.AsyncDrawable
 import io.noties.markwon.image.ImageSizeResolver
 import io.noties.markwon.image.glide.GlideImagesPlugin
+import kotlinx.android.synthetic.main.read_bottom_settings.*
 import kotlinx.android.synthetic.main.read_main.*
 import kotlinx.coroutines.*
 import nl.siegmann.epublib.domain.Book
 import nl.siegmann.epublib.epub.EpubReader
-import okhttp3.OkHttpClient
 import org.jsoup.Jsoup
 import java.io.File
-import java.io.InputStream
 import java.net.URLDecoder
 import java.text.SimpleDateFormat
 import java.util.*
@@ -116,7 +114,8 @@ fun clearTextViewOfSpans(tv: TextView) {
     tv.setText(wordToSpan, TextView.BufferType.SPANNABLE)
 }
 
-fun setHighLightedText(tv: TextView, start: Int, end: Int): Boolean {
+fun setHighLightedText(tv: TextView?, start: Int, end: Int): Boolean {
+    if(tv == null) return false
     try {
         val wordToSpan: Spannable = SpannableString(tv.text)
         val spans = wordToSpan.getSpans<android.text.Annotation>(0, tv.text.length)
@@ -295,7 +294,6 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         bottomSheetDialog.show()
     }
 
-
     fun callOnPause(): Boolean {
         if (!isTTSPaused) {
             isTTSPaused = true
@@ -371,7 +369,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     private fun getSpeakIdFromIndex(id: Int, startIndex: Int, endIndex: Int): String {
-        return "$speakId|$startIndex:$endIndex"
+        return "$speakId:$startIndex:$endIndex" //TODO FIX
     }
 
     private fun getSpeakIdFromLine(id: Int, line: TTSLine): String {
@@ -1084,10 +1082,11 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         override fun load(@NonNull drawable: AsyncDrawable): RequestBuilder<Drawable> {
                             return try {
                                 var newUrl = drawable.destination.substringAfter("&url=")
-                                if(!isFromEpub) {
-                                    getApiFromNameNull(quickdata.meta.apiName)?.fixUrlNull(newUrl)?.let {
-                                        newUrl = it
-                                    }
+                                if (!isFromEpub) {
+                                    getApiFromNameNull(quickdata.meta.apiName)?.fixUrlNull(newUrl)
+                                        ?.let {
+                                            newUrl = it
+                                        }
                                 }
 
                                 val url =
@@ -1103,7 +1102,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                                         .ignoreAllSSLErrors()
                                         .build()))
                                 }*/
-                                Glide.with(readActivity).load(GlideUrl(url) { mapOf( "user-agent" to USER_AGENT) })
+                                Glide.with(readActivity)
+                                    .load(GlideUrl(url) { mapOf("user-agent" to USER_AGENT) })
                             } catch (e: Exception) {
                                 logError(e)
                                 Glide.with(readActivity)
@@ -1460,9 +1460,6 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                     }
 
                     readFromIndex++
-                    if (speakId == latestTTSSpeakOutId) {
-                        readFromIndex++
-                    }
                 } catch (e: Exception) {
                     println(e)
                     return@launch
@@ -1802,6 +1799,93 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     var latestTTSSpeakOutId = Int.MIN_VALUE
+    var ttsDefaultVoice: Voice? = null
+
+    private fun requireTTS(callback: (TextToSpeech) -> Unit) {
+        if (tts == null) {
+            tts = TextToSpeech(this) { status ->
+                if (status == TextToSpeech.SUCCESS) {
+                    // Locale.getDefault()
+                    // tts!!.availableLanguages
+                    // tts!!.setVoice(Voice.QUALITY_VERY_HIGH)
+
+
+                    val voiceName = getKey<String>(EPUB_VOICE)
+                    val langName = getKey<String>(EPUB_LANG)
+
+                    val result = tts!!.setLanguage(
+                        tts!!.availableLanguages.firstOrNull { it.displayName == langName }
+                            ?: Locale.US)
+                    tts!!.voice =
+                        tts!!.voices.firstOrNull { it.name == voiceName } ?: tts!!.defaultVoice
+
+                    if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                        showMessage("This Language is not supported")
+                    } else {
+                        tts!!.setOnUtteranceProgressListener(object :
+                            UtteranceProgressListener() {
+                            //MIGHT BE INTERESTING https://stackoverflow.com/questions/44461533/android-o-new-texttospeech-onrangestart-callback
+                            override fun onDone(utteranceId: String) {
+                                canSpeak = true
+                                //  println("ENDMS: " + System.currentTimeMillis())
+                            }
+
+                            override fun onError(utteranceId: String?, errorCode: Int) {
+                                canSpeak = true
+                            }
+
+                            override fun onError(utteranceId: String) {
+                                canSpeak = true
+                            }
+
+                            override fun onStart(utteranceId: String) {
+                                val highlightResult =
+                                    Regex("([0-9]*):([0-9]*):([0-9]*)").matchEntire(utteranceId)
+                                println("AAAAAAAAA:$highlightResult on $utteranceId")
+                                if (highlightResult == null || (highlightResult.groupValues.size < 4)) return
+                                try {
+                                    latestTTSSpeakOutId =
+                                        highlightResult.groupValues[1].toIntOrNull() ?: return
+                                    val startIndex =
+                                        highlightResult.groupValues[2].toIntOrNull() ?: return
+                                    val endIndex =
+                                        highlightResult.groupValues[3].toIntOrNull() ?: return
+                                    runOnUiThread {
+                                        read_text?.let {
+                                            setHighLightedText(it, startIndex, endIndex)
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+                        })
+                        callback(tts!!)
+                        //readTTSClick()
+                    }
+                } else {
+                    val errorMSG = when (status) {
+                        TextToSpeech.ERROR -> "ERROR"
+                        TextToSpeech.ERROR_INVALID_REQUEST -> "ERROR_INVALID_REQUEST"
+                        TextToSpeech.ERROR_NETWORK -> "ERROR_NETWORK"
+                        TextToSpeech.ERROR_NETWORK_TIMEOUT -> "ERROR_NETWORK_TIMEOUT"
+                        TextToSpeech.ERROR_NOT_INSTALLED_YET -> "ERROR_NOT_INSTALLED_YET"
+                        TextToSpeech.ERROR_OUTPUT -> "ERROR_OUTPUT"
+                        TextToSpeech.ERROR_SYNTHESIS -> "ERROR_SYNTHESIS"
+                        TextToSpeech.ERROR_SERVICE -> "ERROR_SERVICE"
+                        else -> status.toString()
+                    }
+
+                    showMessage("Initialization Failed! Error $errorMSG")
+                    tts = null
+                }
+            }
+        } else {
+            callback(tts!!)
+        }
+    }
+
+    val defaultTTSLanguage = Locale.US
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -1918,34 +2002,33 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
             bottomSheetDialog.setContentView(R.layout.read_bottom_settings)
             val readSettingsTextSize =
-                bottomSheetDialog.findViewById<SeekBar>(R.id.read_settings_text_size)!!
+                bottomSheetDialog.read_settings_text_size
             val readSettingsTextPadding =
-                bottomSheetDialog.findViewById<SeekBar>(R.id.read_settings_text_padding)!!
+                bottomSheetDialog.read_settings_text_padding
             val readSettingsTextPaddingTop =
-                bottomSheetDialog.findViewById<SeekBar>(R.id.read_settings_text_padding_top)!!
+                bottomSheetDialog.read_settings_text_padding_top
 
             val readSettingsScrollVol =
-                bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_scroll_vol)!!
+                bottomSheetDialog.read_settings_scroll_vol
             val readSettingsLockTts =
-                bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_lock_tts)!!
+                bottomSheetDialog.read_settings_lock_tts
             val showTime =
-                bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_time)!!
+                bottomSheetDialog.read_settings_show_time
             val twelvehourFormat =
-                bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_twelve_hour_time)!!
+                bottomSheetDialog.read_settings_twelve_hour_time
             val showBattery =
-                bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_show_battery)!!
+                bottomSheetDialog.read_settings_show_battery
             val keepScreenActive =
-                bottomSheetDialog.findViewById<MaterialCheckBox>(R.id.read_settings_keep_screen_active)!!
+                bottomSheetDialog.read_settings_keep_screen_active
             val readSettingsTextPaddingText =
-                bottomSheetDialog.findViewById<TextView>(R.id.read_settings_text_padding_text)!!
+                bottomSheetDialog.read_settings_text_padding_text
             val readSettingsTextPaddingTextTop =
-                bottomSheetDialog.findViewById<TextView>(R.id.read_settings_text_padding_text_top)!!
+                bottomSheetDialog.read_settings_text_padding_text_top
             val readSettingsTextSizeText =
-                bottomSheetDialog.findViewById<TextView>(R.id.read_settings_text_size_text)!!
+                bottomSheetDialog.read_settings_text_size_text
             val readSettingsTextFontText =
-                bottomSheetDialog.findViewById<TextView>(R.id.read_settings_text_font_text)!!
-            val hardResetStream =
-                bottomSheetDialog.findViewById<MaterialButton>(R.id.hard_reset_stream)!!
+                bottomSheetDialog.read_settings_text_font_text
+            val hardResetStream = bottomSheetDialog.hard_reset_stream
 
             hardResetStream.visibility = if (isFromEpub) View.GONE else View.VISIBLE
             hardResetStream.setOnClickListener {
@@ -1959,11 +2042,52 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 }
             }
 
+            bottomSheetDialog.read_language.setOnClickListener { view ->
+                view?.context?.let { ctx ->
+                    requireTTS { tts ->
+                        val langs = mutableListOf<Locale?>(null).apply {
+                            addAll(tts.availableLanguages.filterNotNull())
+                        }
+                        ctx.showBottomDialog(
+                            langs.map { it?.displayName ?: ctx.getString(R.string.default_text) },
+                            langs.indexOf(tts.voice.locale),
+                            ctx.getString(R.string.tts_locale), false, {}
+                        ) { index ->
+                            stopTTS()
+                            val lang = langs[index] ?: defaultTTSLanguage
+                            setKey(EPUB_LANG, lang.displayName)
+                            tts.language = lang
+                        }
+                    }
+                }
+            }
+
+            bottomSheetDialog.read_voice.setOnClickListener { view ->
+                view?.context?.let { ctx ->
+                    requireTTS { tts ->
+                        val matchAgainst = tts.voice.locale.language
+                        val voices = mutableListOf<Voice?>(null).apply {
+                            addAll(tts.voices.filter { it != null && it.locale.language == matchAgainst })
+                        }
+
+                        ctx.showBottomDialog(
+                            voices.map { it?.name ?: ctx.getString(R.string.default_text) },
+                            voices.indexOf(tts.voice),
+                            ctx.getString(R.string.tts_locale), false, {}
+                        ) { index ->
+                            stopTTS()
+                            setKey(EPUB_VOICE, voices[index]?.name)
+                            tts.voice = voices[index] ?: tts.defaultVoice
+                        }
+                    }
+                }
+            }
+
             //val root = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_root)!!
             val horizontalColors =
                 bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_colors)!!
 
-            val readShowFonts = bottomSheetDialog.findViewById<MaterialButton>(R.id.read_show_fonts)
+            val readShowFonts = bottomSheetDialog.read_show_fonts
             readShowFonts?.text = UIHelper.parseFontFileName(getKey(EPUB_FONT))
 
             readShowFonts?.setOnClickListener {
@@ -2224,74 +2348,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
              }*/
 
             // DON'T INIT TTS UNTIL IT IS NECESSARY
-            if (tts == null) {
-                tts = TextToSpeech(this) { status ->
-                    if (status == TextToSpeech.SUCCESS) {
-                        val result = tts!!.setLanguage(Locale.US)
-
-                        if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                            showMessage("This Language is not supported")
-                        } else {
-                            tts!!.setOnUtteranceProgressListener(object :
-                                UtteranceProgressListener() {
-                                //MIGHT BE INTERESTING https://stackoverflow.com/questions/44461533/android-o-new-texttospeech-onrangestart-callback
-                                override fun onDone(utteranceId: String) {
-                                    canSpeak = true
-                                    //  println("ENDMS: " + System.currentTimeMillis())
-                                }
-
-                                override fun onError(utteranceId: String?, errorCode: Int) {
-                                    canSpeak = true
-                                }
-
-                                override fun onError(utteranceId: String) {
-                                    canSpeak = true
-                                }
-
-                                override fun onStart(utteranceId: String) {
-                                    val highlightResult =
-                                        Regex("([0-9]*)|([0-9]*):([0-9]*)").matchEntire(utteranceId)
-                                    if (highlightResult == null || (highlightResult.groupValues.size < 4)) return
-                                    try {
-                                        latestTTSSpeakOutId =
-                                            highlightResult.groupValues[1].toIntOrNull() ?: return
-                                        val startIndex =
-                                            highlightResult.groupValues[2].toIntOrNull() ?: return
-                                        val endIndex =
-                                            highlightResult.groupValues[3].toIntOrNull() ?: return
-                                        runOnUiThread {
-                                            read_text?.let {
-                                                setHighLightedText(it, startIndex, endIndex)
-                                            }
-                                        }
-                                    } catch (e: Exception) {
-                                        e.printStackTrace()
-                                    }
-                                }
-                            })
-                            startTTS()
-                            //readTTSClick()
-                        }
-                    } else {
-                        val errorMSG = when (status) {
-                            TextToSpeech.ERROR -> "ERROR"
-                            TextToSpeech.ERROR_INVALID_REQUEST -> "ERROR_INVALID_REQUEST"
-                            TextToSpeech.ERROR_NETWORK -> "ERROR_NETWORK"
-                            TextToSpeech.ERROR_NETWORK_TIMEOUT -> "ERROR_NETWORK_TIMEOUT"
-                            TextToSpeech.ERROR_NOT_INSTALLED_YET -> "ERROR_NOT_INSTALLED_YET"
-                            TextToSpeech.ERROR_OUTPUT -> "ERROR_OUTPUT"
-                            TextToSpeech.ERROR_SYNTHESIS -> "ERROR_SYNTHESIS"
-                            TextToSpeech.ERROR_SERVICE -> "ERROR_SERVICE"
-                            else -> status.toString()
-                        }
-
-                        showMessage("Initialization Failed! Error $errorMSG")
-                        tts = null
-                    }
-                }
-            } else {
+            requireTTS {
                 startTTS()
-                // readTTSClick()
             }
         }
 

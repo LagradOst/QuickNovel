@@ -66,6 +66,20 @@
        <!-- <item name="android:tint">?attr/textColor</item>-->
     </style>
 
+    <style name="ReadButtonStyle" parent="@style/Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:layout_gravity">center_vertical</item>
+        <item name="cornerRadius">4dp</item>
+        <item name="rippleColor">?attr/colorPrimary</item>
+        <item name="android:textColor">?attr/textColor</item>
+        <item name="iconTint">?attr/textColor</item>
+        <item name="iconPadding">10dp</item>
+        <item name="textAllCaps">false</item>
+        <item name="iconGravity">textStart</item>
+        <item name="backgroundTint">@color/transparent</item>
+        <item name="android:layout_height">45dp</item>
+        <item name="android:layout_width">wrap_content</item>
+    </style>
+
     <style name="AppSearchViewStyle"
            parent="Theme.MaterialComponents.NoActionBar">
         <item name="android:searchIcon">@drawable/search_icon</item>
