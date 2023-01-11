@@ -32,6 +32,7 @@ import com.lagradost.quicknovel.services.DownloadService
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
 import com.lagradost.quicknovel.util.Event
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
+import com.lagradost.quicknovel.util.pmap
 import kotlinx.coroutines.delay
 import nl.siegmann.epublib.domain.Author
 import nl.siegmann.epublib.domain.Book
@@ -491,19 +492,36 @@ object BookDownloader {
 
             val stripHtml = getStripHtml()
             var index = 0
-            while (true) {
-                val filepath =
-                    filesDir.toString() + getFilename(sApiName, sAuthor, sName, index)
-                val chap = getChapter(filepath, index, stripHtml) ?: break
-                val chapter =
-                    Resource(
-                        "id$index",
-                        chap.html.toByteArray(),
-                        "chapter$index.html",
-                        MediatypeService.XHTML
+
+            // This overshoots on lower chapter counts but the loading time is negligible
+            // This parallelization can reduce generation from ~5s to ~3s.
+            val threads = 100
+            var hasChapters = true
+            while (hasChapters) {
+                // Using any async does not give performance improvements
+                val chapters = (index until index + threads).pmap { threadIndex ->
+                    println(threadIndex)
+                    val filepath =
+                        filesDir.toString() + getFilename(sApiName, sAuthor, sName, threadIndex)
+                    val chap = getChapter(filepath, threadIndex, stripHtml) ?: return@pmap null
+                    Triple(
+                        Resource(
+                            "id$threadIndex",
+                            chap.html.toByteArray(),
+                            "chapter$threadIndex.html",
+                            MediatypeService.XHTML
+                        ), threadIndex, chap.title
                     )
-                book.addSection(chap.title, chapter)
-                index++
+                }
+                // This needs to be in series
+                chapters.sortedBy { it?.second }.forEach { chapter ->
+                    if (chapter == null) {
+                        hasChapters = false
+                        return@forEach
+                    }
+                    book.addSection(chapter.third, chapter.first)
+                }
+                index += threads
             }
 
             val epubWriter = EpubWriter()
@@ -570,6 +588,7 @@ object BookDownloader {
             isTurningIntoEpub.remove(id)
             return true
         } catch (e: Exception) {
+            logError(e)
             return false
         }
     }

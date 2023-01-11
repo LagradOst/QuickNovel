@@ -35,6 +35,7 @@ import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.load.model.LazyHeaders
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions.bitmapTransform
+import com.lagradost.quicknovel.BookDownloader
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.mvvm.logError
 import jp.wasabeef.glide.transformations.BlurTransformation
@@ -98,14 +99,19 @@ object UIHelper {
         headers: Map<String, String>? = null,
         @DrawableRes
         errorImageDrawable: Int? = null,
-        blur: Boolean = false
+        blur: Boolean = false,
+        skipCache: Boolean = true
     ): Boolean {
         if (this == null || url.isNullOrBlank()) return false
-        val refererMap = referer?.let { mapOf("referer" to referer) } ?: emptyMap()
+        val allHeaders =
+            (headers ?: emptyMap()) + (referer?.let { mapOf("referer" to referer) } ?: emptyMap())
+
+        val glideUrl = if (allHeaders.isEmpty()) GlideUrl(url) else GlideUrl(url)
 
         return try {
             val builder = Glide.with(this)
-                .load(GlideUrl(url) { (headers ?: emptyMap()) + refererMap }).transition(
+                .load(glideUrl)
+                .transition(
                     DrawableTransitionOptions.withCrossFade()
                 ).let {
                     if (blur)
@@ -113,7 +119,7 @@ object UIHelper {
                     else
                         it
                 }
-                .skipMemoryCache(true)
+                .skipMemoryCache(skipCache)
                 .diskCacheStrategy(DiskCacheStrategy.ALL)
 
             val res = if (errorImageDrawable != null)
