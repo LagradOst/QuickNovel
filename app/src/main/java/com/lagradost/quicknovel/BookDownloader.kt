@@ -500,7 +500,6 @@ object BookDownloader {
             while (hasChapters) {
                 // Using any async does not give performance improvements
                 val chapters = (index until index + threads).pmap { threadIndex ->
-                    println(threadIndex)
                     val filepath =
                         filesDir.toString() + getFilename(sApiName, sAuthor, sName, threadIndex)
                     val chap = getChapter(filepath, threadIndex, stripHtml) ?: return@pmap null
