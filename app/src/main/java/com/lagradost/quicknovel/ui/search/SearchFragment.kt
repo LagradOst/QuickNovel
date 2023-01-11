@@ -152,15 +152,12 @@ class SearchFragment : Fragment() {
 
         observe(searchViewModel.currentSearch) { list ->
             normalSafeApiCall {
-                (search_master_recycler?.adapter as ParentItemAdapter?)?.apply {
-                    items = list.map {
-                        HomePageList(
-                            it.apiName,
-                            if (it.data is Resource.Success) it.data.value else listOf()
-                        )
-                    }
-                    notifyDataSetChanged()
-                }
+                (search_master_recycler?.adapter as? ParentItemAdapter?)?.updateList(list.map {
+                    HomePageList(
+                        it.apiName,
+                        if (it.data is Resource.Success) it.data.value else emptyList()
+                    )
+                })
             }
         }
 
@@ -176,7 +173,7 @@ class SearchFragment : Fragment() {
             }
 
         val masterAdapter: RecyclerView.Adapter<RecyclerView.ViewHolder> =
-            ParentItemAdapter(listOf(), { callback ->
+            ParentItemAdapter(mutableListOf(), { callback ->
                 SearchHelper.handleSearchClickCallback(activity, callback)
             }, { item ->
                 activity?.loadHomepageList(item)

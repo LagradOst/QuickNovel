@@ -35,7 +35,6 @@ import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.load.model.LazyHeaders
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions.bitmapTransform
-import com.lagradost.quicknovel.BookDownloader
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.mvvm.logError
 import jp.wasabeef.glide.transformations.BlurTransformation
@@ -100,20 +99,31 @@ object UIHelper {
         @DrawableRes
         errorImageDrawable: Int? = null,
         blur: Boolean = false,
-        skipCache: Boolean = true
+        skipCache: Boolean = true,
+        fade: Boolean = true
     ): Boolean {
         if (this == null || url.isNullOrBlank()) return false
         val allHeaders =
             (headers ?: emptyMap()) + (referer?.let { mapOf("referer" to referer) } ?: emptyMap())
 
-        val glideUrl = if (allHeaders.isEmpty()) GlideUrl(url) else GlideUrl(url)
+        // Using the normal GlideUrl(url) { allHeaders } will refresh the image
+        // causing flashing when downloading novels, hence why this is used instead
+        val glideHeaders = LazyHeaders.Builder().apply {
+            allHeaders.forEach {
+                addHeader(it.key, it.value)
+            }
+        }.build()
+        val glideUrl = GlideUrl(url, glideHeaders)
 
         return try {
             val builder = Glide.with(this)
                 .load(glideUrl)
-                .transition(
-                    DrawableTransitionOptions.withCrossFade()
-                ).let {
+                .let {
+                    if (fade)
+                        it.transition(
+                            DrawableTransitionOptions.withCrossFade()
+                        ) else it
+                }.let {
                     if (blur)
                         it.apply(bitmapTransform(BlurTransformation(100, 3)))
                     else

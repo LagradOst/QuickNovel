@@ -7,15 +7,17 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.cardview.widget.CardView
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.ui.mainpage.SearchResponseDiffCallback
 import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import kotlinx.android.synthetic.main.home_result_grid.view.*
 
 class HomeChildItemAdapter(
-    var cardList: List<SearchResponse>,
+    private val cardList: MutableList<SearchResponse>,
     private val clickCallback: (SearchClickCallback) -> Unit
 ) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -39,6 +41,17 @@ class HomeChildItemAdapter(
         return cardList.size
     }
 
+    fun updateList(newList: List<SearchResponse>) {
+        val diffResult = DiffUtil.calculateDiff(
+            SearchResponseDiffCallback(this.cardList, newList)
+        )
+
+        cardList.clear()
+        cardList.addAll(newList)
+
+        diffResult.dispatchUpdatesTo(this)
+    }
+
     class CardViewHolder
     constructor(itemView: View, private val clickCallback: (SearchClickCallback) -> Unit) :
         RecyclerView.ViewHolder(itemView) {
@@ -53,7 +66,11 @@ class HomeChildItemAdapter(
             cardText.text = card.name
 
             //imageTextProvider.text = card.apiName
-            cardView.setImage(card.posterUrl, Apis.getApiFromNameOrNull(card.apiName)?.mainUrl, card.posterHeaders)
+            cardView.setImage(
+                card.posterUrl,
+                Apis.getApiFromNameOrNull(card.apiName)?.mainUrl,
+                card.posterHeaders
+            )
 
             bg.setOnClickListener {
                 clickCallback.invoke(SearchClickCallback(SEARCH_ACTION_LOAD, it, card))
