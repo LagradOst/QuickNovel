@@ -14,9 +14,9 @@ class Apis {
     companion object {
         val apis: Array<MainAPI> = arrayOf(
             //AllProvider(),
-            NovelPassionProvider(),
+//            NovelPassionProvider(), // Site gone
             BestLightNovelProvider(),
-            WuxiaWorldOnlineProvider(),
+//            WuxiaWorldOnlineProvider(), // Site does not work
             RoyalRoadProvider(),
             FreewebnovelProvider(),
             AzynovelProvider(),
@@ -25,7 +25,6 @@ class Apis {
             RanobesProvider(),
             NovelFullProvider(),
             //MNovelFreeProvider(), // same as NovelFullVipProvider
-            NovelFullVipProvider(),
             EngNovelProvider(),
             NovelsOnlineProvider(),
 
@@ -35,12 +34,12 @@ class Apis {
             ReadLightNovelProvider(),
             BoxNovelProvider(),
             ComrademaoProvider(),
-            LightNovelPubProvider(),
+//            LightNovelPubProvider(), // Got cloudflare, but probably bypassable
             ReadNovelFullProvider(),
             ScribblehubProvider(),
             KolNovelProvider(),
             RewayatArProvider(),
-            ReadAnyBookProvider(),
+//            ReadAnyBookProvider(), // Books locked behind login
             MeioNovelProvider(),
             MoreNovelProvider(),
             IndoWebNovelProvider(),

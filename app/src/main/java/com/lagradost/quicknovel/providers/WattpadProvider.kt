@@ -1,10 +1,8 @@
 package com.lagradost.quicknovel.providers
 
-import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.PropertyNamingStrategy
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.quicknovel.*
@@ -13,7 +11,7 @@ import com.lagradost.quicknovel.mvvm.logError
 
 class WattpadProvider : MainAPI() {
     override val mainUrl = "https://www.wattpad.com"
-    override val name = "wattpad"
+    override val name = "Wattpad"
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "https://www.wattpad.com/search/$query"
         val document = app.get(url).document

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.app
+import com.lagradost.quicknovel.network.CloudflareKiller
 import kotlinx.coroutines.delay
 import org.jsoup.Jsoup
 import kotlin.random.Random
@@ -103,8 +104,10 @@ class RanobesProvider : MainAPI() {
     )
 
     private val baseHeaders = mapOf(
-        "User-Agent" to "Mozilla/5.0",
+        "User-Agent" to "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
     )
+
+    val interceptor = CloudflareKiller()
 
     override suspend fun loadMainPage(
         page: Int,
@@ -208,24 +211,24 @@ class RanobesProvider : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        val response = app.get(url, headers = baseHeaders)
-
+        val response = app.post(url, interceptor = interceptor)
         val document = Jsoup.parse(response.text)
-        val name = document.selectFirst("div.r-fullstory-s1 > h1")?.text() ?: return null
-        val author = document.selectFirst("span.tag_list")?.text()
+        val name = document.selectFirst("h1.title > span")?.text() ?: return null
+        val author = document.select("h1.title > span").last()?.text()
         val tags = document.select("#mc-fs-genre > div > a").map {
             it.text()
         }
 
-        val posterUrl = document.select("div.poster > a > img").attr("src")?.substringAfter("/")
-        val synopsis = document.selectFirst("div.moreless__full")?.text()
+        val posterUrl = fixUrl(document.select("div.poster > a > img").attr("src").substringAfter("/"))
+        val synopsis = document.selectFirst("div.moreless")?.text()
         val listdata = mutableListOf<Chapterdatajson>()
         val data: ArrayList<ChapterData> = ArrayList()
         val chapretspageresponse =
             app.get(
                 "$mainUrl/chapters/${url.substringAfterLast("/").substringBefore("-")}",
-                headers = baseHeaders
+                headers = interceptor.getCookieHeaders(mainUrl).toMap()
             )
+        println(chapretspageresponse)
         val chapretspage = Jsoup.parse(chapretspageresponse.text)
         val cha1 = Chapterdatajson.fromJson(
             chapretspage.select("script")
@@ -284,7 +287,7 @@ class RanobesProvider : MainAPI() {
                 ?.substringBefore("/")?.toFloatOrNull()?.times(200))?.toInt()!!
 
             peopleVoted =
-                document.selectFirst("#rate_b > div > div > div > span.small.grey > span")?.text()!!
+                document.selectFirst("div.rate-stat-num > span.small.grey")?.text()!!
                     .filter { it.isDigit() }.toInt()
         } catch (e: Exception) {
             // NO RATING
@@ -300,7 +303,8 @@ class RanobesProvider : MainAPI() {
             views,
             synopsis,
             tags,
-            status
+            status,
+//            posterHeaders = interceptor.getCookieHeaders(mainUrl).toMap()
         )
     }
 }
