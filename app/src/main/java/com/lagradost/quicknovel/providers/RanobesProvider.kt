@@ -228,7 +228,6 @@ class RanobesProvider : MainAPI() {
                 "$mainUrl/chapters/${url.substringAfterLast("/").substringBefore("-")}",
                 headers = interceptor.getCookieHeaders(mainUrl).toMap()
             )
-        println(chapretspageresponse)
         val chapretspage = Jsoup.parse(chapretspageresponse.text)
         val cha1 = Chapterdatajson.fromJson(
             chapretspage.select("script")
