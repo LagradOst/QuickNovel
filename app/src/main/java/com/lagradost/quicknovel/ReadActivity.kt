@@ -1631,13 +1631,13 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
 
     private fun Context.getLockTTS(): Boolean {
-        lockTTS = getKey(EPUB_SCROLL_VOL, true)!!
+        lockTTS = getKey(EPUB_TTS_LOCK, true)!!
         return lockTTS
     }
 
     private fun Context.setLockTTS(scroll: Boolean) {
         lockTTS = scroll
-        setKey(EPUB_SCROLL_VOL, scroll)
+        setKey(EPUB_TTS_LOCK, scroll)
     }
 
     private fun Context.setBackgroundColor(color: Int) {
