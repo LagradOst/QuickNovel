@@ -19,6 +19,7 @@ import com.lagradost.quicknovel.APIRepository.Companion.providersActive
 import com.lagradost.quicknovel.BookDownloader.checkWrite
 import com.lagradost.quicknovel.BookDownloader.createQuickStream
 import com.lagradost.quicknovel.BookDownloader.openQuickStream
+import com.lagradost.quicknovel.BookDownloader.requestNotifications
 import com.lagradost.quicknovel.BookDownloader.requestRW
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
@@ -203,7 +204,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
-        if(intent == null) return
+        if (intent == null) return
         if (intent.action == Intent.ACTION_SEND) {
             val extraText = try { // I dont trust android
                 intent.getStringExtra(Intent.EXTRA_TEXT)
@@ -347,6 +348,9 @@ class MainActivity : AppCompatActivity() {
         if (!checkWrite()) {
             requestRW()
         }
+        // Note that android can normally not request 2 permissions at once
+        // But storage permissions are not required for android 13, but notifications are
+        requestNotifications()
 
         printProviders()
 
@@ -355,6 +359,7 @@ class MainActivity : AppCompatActivity() {
         thread {
             test()
         }
+
     }
 
     fun test() {

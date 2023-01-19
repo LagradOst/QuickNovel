@@ -13,6 +13,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -195,12 +197,15 @@ object BookDownloader {
         }
     }
 
-    fun Context.checkWrite(): Boolean {
+    fun Activity.checkWrite(): Boolean {
         return (ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.WRITE_EXTERNAL_STORAGE
         )
-                == PackageManager.PERMISSION_GRANTED)
+                == PackageManager.PERMISSION_GRANTED
+                // Since Android 13, we can't request external storage permission,
+                // so don't check it.
+                || Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
     }
 
     fun Activity.requestRW() {
@@ -212,6 +217,25 @@ object BookDownloader {
             ),
             1337
         )
+    }
+
+    fun ComponentActivity.requestNotifications() {
+        // Ask for notification permissions on Android 13
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            val requestPermissionLauncher = this.registerForActivityResult(
+                ActivityResultContracts.RequestPermission()
+            ) { isGranted: Boolean ->
+                println("Notification permission: $isGranted")
+            }
+            requestPermissionLauncher.launch(
+                Manifest.permission.POST_NOTIFICATIONS
+            )
+        }
     }
 
     fun Activity.hasEpub(name: String): Boolean {
@@ -835,7 +859,11 @@ object BookDownloader {
                 flags = FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TASK
             }
 
-            val pendingIntent: PendingIntent = PendingIntent.getActivity(this, 0, intent, 0)
+            val pendingIntent: PendingIntent = PendingIntent.getActivity(
+                this, 0, intent,
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                    PendingIntent.FLAG_MUTABLE else 0
+            )
             val builder = NotificationCompat.Builder(this, CHANNEL_ID)
                 .setAutoCancel(true)
                 .setColorized(true)
@@ -905,11 +933,15 @@ object BookDownloader {
 
                     _resultIntent.putExtra("id", id)
 
-                    val pending: PendingIntent = PendingIntent.getService(
-                        this, 4337 + index + id,
-                        _resultIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT
-                    )
+                    val pending: PendingIntent =
+                        PendingIntent.getService(
+                            this, 4337 + index + id,
+                            _resultIntent,
+                            PendingIntent.FLAG_UPDATE_CURRENT or
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                                        PendingIntent.FLAG_MUTABLE else 0
+                        )
+
 
                     builder.addAction(
                         NotificationCompat.Action(
