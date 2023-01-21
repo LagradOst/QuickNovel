@@ -10,8 +10,8 @@ android {
         applicationId "com.lagradost.quicknovel"
         minSdkVersion 22
         targetSdkVersion 33
-        versionCode 44
-        versionName "2.2.2"
+        versionCode 45
+        versionName "2.3.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -84,7 +84,7 @@ dependencies {
 
     // Util to skip the URI file fuckery 🙏
     implementation "com.github.tachiyomiorg:unifile:17bec43"
-    implementation 'com.github.Blatzar:NiceHttp:0.4.1'
+    implementation 'com.github.Blatzar:NiceHttp:0.4.2'
 
     implementation "io.noties.markwon:core:4.6.2"
     implementation "io.noties.markwon:image-glide:4.6.2"

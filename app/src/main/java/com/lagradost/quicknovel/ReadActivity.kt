@@ -578,7 +578,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         val pending: PendingIntent = PendingIntent.getService(
                             this, 3337 + index,
                             resultIntent,
-                            PendingIntent.FLAG_UPDATE_CURRENT
+                            PendingIntent.FLAG_UPDATE_CURRENT or if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                                        PendingIntent.FLAG_MUTABLE else 0
                         )
 
                         builder.addAction(
@@ -651,7 +652,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         WindowInsetsControllerCompat(window, reader_container).let { controller ->
             controller.hide(WindowInsetsCompat.Type.systemBars())
             controller.systemBarsBehavior =
-                WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             window.attributes.layoutInDisplayCutoutMode =
