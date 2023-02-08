@@ -10,15 +10,17 @@ class ReadNovelFullProvider : MainAPI() {
     override val name = "ReadNovelFull"
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val response = app.get("$mainUrl/search?keyword=$query", headers = mapOf("User-Agent" to USER_AGENT))
+        val document = app.get(
+            "$mainUrl/novel-list/search?keyword=$query",
+            headers = mapOf("User-Agent" to USER_AGENT)
+        ).document
 
-        val document = Jsoup.parse(response.text)
         val headers = document.select("div.col-novel-main > div.list-novel > div.row")
-        if (headers.size <= 0) return ArrayList()
-        val returnValue: ArrayList<SearchResponse> = ArrayList()
-        return headers.mapNotNull { h->
+        if (headers.size <= 0) return emptyList()
+
+        return headers.mapNotNull { h ->
             val divs = h.select("> div > div")
-            val poster = divs[0].selectFirst("> img")?.attr("src")
+            val poster = divs[0].selectFirst("> img")?.attr("src")?.replace("t-200x89", "t-300x439")
             val titleHeader = divs[1].selectFirst("> h3.novel-title > a")
             val href = titleHeader?.attr("href")
             val title = titleHeader?.text()
@@ -37,7 +39,8 @@ class ReadNovelFullProvider : MainAPI() {
     override suspend fun loadHtml(url: String): String? {
         val response = app.get(url)
         val document = Jsoup.parse(response.text)
-        return document.selectFirst("div#chr-content")?.html().textClean?.replace("[Updated from F r e e w e b n o v e l. c o m]", "")
+        return document.selectFirst("div#chr-content")
+            ?.html().textClean?.replace("[Updated from F r e e w e b n o v e l. c o m]", "")
     }
 
     override suspend fun load(url: String): LoadResponse {
@@ -50,7 +53,8 @@ class ReadNovelFullProvider : MainAPI() {
         val poster = bookInfo?.selectFirst("> div.book > img")?.attr("src")
         val desc = header?.selectFirst("> div.desc")
         val rateInfo = desc?.selectFirst("> div.rate-info")
-        val votes = rateInfo?.select("> div.small > em > strong > span")?.last()?.text()?.toIntOrNull()
+        val votes =
+            rateInfo?.select("> div.small > em > strong > span")?.last()?.text()?.toIntOrNull()
         val rate = rateInfo?.selectFirst("> div.rate")
 
         val novelId = rate?.selectFirst("> div#rating")?.attr("data-novel-id")
@@ -82,11 +86,18 @@ class ReadNovelFullProvider : MainAPI() {
 
         val dataUrl = "$mainUrl/ajax/chapter-archive?novelId=$novelId"
         val dataResponse = app.get(dataUrl)
-        val dataDocument = Jsoup.parse(dataResponse.text) ?: throw ErrorLoadingException("invalid dataDocument")
+        val dataDocument =
+            Jsoup.parse(dataResponse.text) ?: throw ErrorLoadingException("invalid dataDocument")
         val items =
-            dataDocument.select("div.panel-body > div.row > div > ul.list-chapter > li > a").mapNotNull {
-                ChapterData(it.selectFirst("> span")?.text() ?: return@mapNotNull null, fixUrl(it.attr("href")), null, null)
-            }
+            dataDocument.select("div.panel-body > div.row > div > ul.list-chapter > li > a")
+                .mapNotNull {
+                    ChapterData(
+                        it.selectFirst("> span")?.text() ?: return@mapNotNull null,
+                        fixUrl(it.attr("href")),
+                        null,
+                        null
+                    )
+                }
         return LoadResponse(
             url,
             title ?: throw ErrorLoadingException("No name"),

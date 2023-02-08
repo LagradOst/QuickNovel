@@ -153,7 +153,9 @@ class DownloadAdapter(
                     downloadUpdate.isEnabled = true
                 }
             }
-            cardView.setImage(card.posterUrl)
+
+            // Cache here makes it reload the image every time a new chapter is downloaded
+            cardView.setImage(card.posterUrl, skipCache = false)
 
             if (downloadUpdate != null) {
                 downloadUpdate.contentDescription = when (realState) {

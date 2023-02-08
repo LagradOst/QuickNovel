@@ -217,7 +217,6 @@ class ReadLightNovelProvider : MainAPI() {
                 }
 
                 data.add(ChapterData(pName + rName, fixUrl(cUrl), null, null))
-                println(cName)
             }
         }
 

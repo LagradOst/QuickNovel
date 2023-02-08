@@ -98,22 +98,38 @@ object UIHelper {
         headers: Map<String, String>? = null,
         @DrawableRes
         errorImageDrawable: Int? = null,
-        blur: Boolean = false
+        blur: Boolean = false,
+        skipCache: Boolean = true,
+        fade: Boolean = true
     ): Boolean {
         if (this == null || url.isNullOrBlank()) return false
-        val refererMap = referer?.let { mapOf("referer" to referer) } ?: emptyMap()
+        val allHeaders =
+            (headers ?: emptyMap()) + (referer?.let { mapOf("referer" to referer) } ?: emptyMap())
+
+        // Using the normal GlideUrl(url) { allHeaders } will refresh the image
+        // causing flashing when downloading novels, hence why this is used instead
+        val glideHeaders = LazyHeaders.Builder().apply {
+            allHeaders.forEach {
+                addHeader(it.key, it.value)
+            }
+        }.build()
+        val glideUrl = GlideUrl(url, glideHeaders)
 
         return try {
             val builder = Glide.with(this)
-                .load(GlideUrl(url) { (headers ?: emptyMap()) + refererMap }).transition(
-                    DrawableTransitionOptions.withCrossFade()
-                ).let {
+                .load(glideUrl)
+                .let {
+                    if (fade)
+                        it.transition(
+                            DrawableTransitionOptions.withCrossFade()
+                        ) else it
+                }.let {
                     if (blur)
                         it.apply(bitmapTransform(BlurTransformation(100, 3)))
                     else
                         it
                 }
-                .skipMemoryCache(true)
+                .skipMemoryCache(skipCache)
                 .diskCacheStrategy(DiskCacheStrategy.ALL)
 
             val res = if (errorImageDrawable != null)

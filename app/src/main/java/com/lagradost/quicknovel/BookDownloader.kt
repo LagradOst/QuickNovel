@@ -13,6 +13,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -32,6 +34,7 @@ import com.lagradost.quicknovel.services.DownloadService
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
 import com.lagradost.quicknovel.util.Event
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
+import com.lagradost.quicknovel.util.pmap
 import kotlinx.coroutines.delay
 import nl.siegmann.epublib.domain.Author
 import nl.siegmann.epublib.domain.Book
@@ -194,12 +197,15 @@ object BookDownloader {
         }
     }
 
-    fun Context.checkWrite(): Boolean {
+    fun Activity.checkWrite(): Boolean {
         return (ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.WRITE_EXTERNAL_STORAGE
         )
-                == PackageManager.PERMISSION_GRANTED)
+                == PackageManager.PERMISSION_GRANTED
+                // Since Android 13, we can't request external storage permission,
+                // so don't check it.
+                || Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
     }
 
     fun Activity.requestRW() {
@@ -211,6 +217,25 @@ object BookDownloader {
             ),
             1337
         )
+    }
+
+    fun ComponentActivity.requestNotifications() {
+        // Ask for notification permissions on Android 13
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            val requestPermissionLauncher = this.registerForActivityResult(
+                ActivityResultContracts.RequestPermission()
+            ) { isGranted: Boolean ->
+                println("Notification permission: $isGranted")
+            }
+            requestPermissionLauncher.launch(
+                Manifest.permission.POST_NOTIFICATIONS
+            )
+        }
     }
 
     fun Activity.hasEpub(name: String): Boolean {
@@ -491,19 +516,35 @@ object BookDownloader {
 
             val stripHtml = getStripHtml()
             var index = 0
-            while (true) {
-                val filepath =
-                    filesDir.toString() + getFilename(sApiName, sAuthor, sName, index)
-                val chap = getChapter(filepath, index, stripHtml) ?: break
-                val chapter =
-                    Resource(
-                        "id$index",
-                        chap.html.toByteArray(),
-                        "chapter$index.html",
-                        MediatypeService.XHTML
+
+            // This overshoots on lower chapter counts but the loading time is negligible
+            // This parallelization can reduce generation from ~5s to ~3s.
+            val threads = 100
+            var hasChapters = true
+            while (hasChapters) {
+                // Using any async does not give performance improvements
+                val chapters = (index until index + threads).pmap { threadIndex ->
+                    val filepath =
+                        filesDir.toString() + getFilename(sApiName, sAuthor, sName, threadIndex)
+                    val chap = getChapter(filepath, threadIndex, stripHtml) ?: return@pmap null
+                    Triple(
+                        Resource(
+                            "id$threadIndex",
+                            chap.html.toByteArray(),
+                            "chapter$threadIndex.html",
+                            MediatypeService.XHTML
+                        ), threadIndex, chap.title
                     )
-                book.addSection(chap.title, chapter)
-                index++
+                }
+                // This needs to be in series
+                chapters.sortedBy { it?.second }.forEach { chapter ->
+                    if (chapter == null) {
+                        hasChapters = false
+                        return@forEach
+                    }
+                    book.addSection(chapter.third, chapter.first)
+                }
+                index += threads
             }
 
             val epubWriter = EpubWriter()
@@ -570,6 +611,7 @@ object BookDownloader {
             isTurningIntoEpub.remove(id)
             return true
         } catch (e: Exception) {
+            logError(e)
             return false
         }
     }
@@ -817,7 +859,11 @@ object BookDownloader {
                 flags = FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TASK
             }
 
-            val pendingIntent: PendingIntent = PendingIntent.getActivity(this, 0, intent, 0)
+            val pendingIntent: PendingIntent = PendingIntent.getActivity(
+                this, 0, intent,
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                    PendingIntent.FLAG_MUTABLE else 0
+            )
             val builder = NotificationCompat.Builder(this, CHANNEL_ID)
                 .setAutoCancel(true)
                 .setColorized(true)
@@ -887,11 +933,15 @@ object BookDownloader {
 
                     _resultIntent.putExtra("id", id)
 
-                    val pending: PendingIntent = PendingIntent.getService(
-                        this, 4337 + index + id,
-                        _resultIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT
-                    )
+                    val pending: PendingIntent =
+                        PendingIntent.getService(
+                            this, 4337 + index + id,
+                            _resultIntent,
+                            PendingIntent.FLAG_UPDATE_CURRENT or
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                                        PendingIntent.FLAG_MUTABLE else 0
+                        )
+
 
                     builder.addAction(
                         NotificationCompat.Action(
