@@ -1841,7 +1841,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                             override fun onStart(utteranceId: String) {
                                 val highlightResult =
                                     Regex("([0-9]*):([0-9]*):([0-9]*)").matchEntire(utteranceId)
-                                println("AAAAAAAAA:$highlightResult on $utteranceId")
+//                                println("AAAAAAAAA:$highlightResult on $utteranceId")
                                 if (highlightResult == null || (highlightResult.groupValues.size < 4)) return
                                 try {
                                     latestTTSSpeakOutId =
@@ -1856,7 +1856,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                                         }
                                     }
                                 } catch (e: Exception) {
-                                    e.printStackTrace()
+                                    logError(e)
                                 }
                             }
                         })
@@ -2045,16 +2045,16 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             bottomSheetDialog.read_language.setOnClickListener { view ->
                 view?.context?.let { ctx ->
                     requireTTS { tts ->
-                        val langs = mutableListOf<Locale?>(null).apply {
-                            addAll(tts.availableLanguages.filterNotNull())
+                        val languages = mutableListOf<Locale?>(null).apply {
+                            addAll(tts.availableLanguages?.filterNotNull() ?: emptySet())
                         }
                         ctx.showBottomDialog(
-                            langs.map { it?.displayName ?: ctx.getString(R.string.default_text) },
-                            langs.indexOf(tts.voice.locale),
+                            languages.map { it?.displayName ?: ctx.getString(R.string.default_text) },
+                            languages.indexOf(tts.voice?.locale),
                             ctx.getString(R.string.tts_locale), false, {}
                         ) { index ->
                             stopTTS()
-                            val lang = langs[index] ?: defaultTTSLanguage
+                            val lang = languages[index] ?: defaultTTSLanguage
                             setKey(EPUB_LANG, lang.displayName)
                             tts.language = lang
                         }
