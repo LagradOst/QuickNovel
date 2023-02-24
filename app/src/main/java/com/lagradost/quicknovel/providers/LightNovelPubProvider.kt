@@ -168,7 +168,10 @@ class LightNovelPubProvider : MainAPI() {
 
         val url = "$mainUrl/lnsearchlive"
         // This fuckery because sometimes khttp fails to get cookies as it only uses lowercase
-        val cookie = Regex("""lncoreantifrg=.*?;""").find(searchRequest.headers.toString())?.groupValues?.get(0)
+        val cookie =
+            Regex("""lncoreantifrg=.*?;""").find(searchRequest.headers.toString())?.groupValues?.get(
+                0
+            )
         val response = app.post(
             url,
             data = mapOf("inputContent" to query),

@@ -4,7 +4,6 @@ import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 import java.util.*
-import kotlin.collections.ArrayList
 
 class KolNovelProvider : MainAPI() {
     override val name = "KolNovel"

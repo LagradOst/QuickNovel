@@ -3,17 +3,16 @@ package com.lagradost.quicknovel.providers
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
-import java.util.*
 
 class BestLightNovelProvider : MainAPI() {
-    override val name: String get() = "BestLightNovel"
-    override val mainUrl: String get() = "https://bestlightnovel.com"
+    override val name = "BestLightNovel"
+    override val mainUrl = "https://bestlightnovel.com"
 
     override suspend fun loadHtml(url: String): String? {
         val response = app.get(url)
         val document = Jsoup.parse(response.text)
         val res = document.selectFirst("div.vung_doc")
-        return res?.html().textClean?.replace("[Updated from F r e e w e b n o v e l. c o m]", "")
+        return res?.html().textClean?.replace("[Updated from F r e e w e b n o v e l. c o m]", "")?.replace("Find authorized novels in Webnovel，faster updates, better experience，Please click for visiting. ","")
     }
 
     override suspend fun search(query: String): List<SearchResponse> {

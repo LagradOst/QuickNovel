@@ -5,8 +5,8 @@ import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 
 class NovelPassionProvider : MainAPI() {
-    override val name: String get() = "Novel Passion"
-    override val mainUrl: String get() = "https://www.novelpassion.com"
+    override val name = "Novel Passion"
+    override val mainUrl = "https://www.novelpassion.com"
     override val iconId = R.drawable.big_icon_novelpassion
     override val hasMainPage = true
 

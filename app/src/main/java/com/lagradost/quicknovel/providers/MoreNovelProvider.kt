@@ -6,8 +6,7 @@ class MoreNovelProvider : MadaraReader() {
     override val name = "MoreNovel"
     override val mainUrl = "https://morenovel.net"
     override val iconId = R.drawable.ic_morenovel
-    override val mainCategories: List<Pair<String, String>>
-        get() = listOf(
+    override val mainCategories = listOf(
             Pair("All", ""),
             Pair("Novel Korea", "korean"),
             Pair("Novel China", "chinese"),
@@ -15,8 +14,7 @@ class MoreNovelProvider : MadaraReader() {
             Pair("Novel Philipina", "philippines")
         )
         
-    override val tags: List<Pair<String, String>>
-        get() = listOf(
+    override val tags = listOf(
             Pair("All", ""),
             Pair("Fantasy", "fantasy"),
             Pair("Martial Arts", "martial-arts"),

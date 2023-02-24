@@ -316,9 +316,9 @@ class RoyalRoadProvider : MainAPI() {
 
         val hStates = document.select("ul.list-unstyled")[1]
         val stats = hStates.select("> li")
-        val views = stats[1].text().replace(",", "").replace(".", "").toInt()
-        val peopleRatedHeader = document.select("div.stats-content > div > meta")
-        val peopleRated = peopleRatedHeader[2].attr("content").toInt()
+        val views = stats[1]?.text()?.replace(",", "")?.replace(".", "")?.toInt()
+        //val peopleRatedHeader = document.select("div.stats-content > div > ul > li")
+        //val peopleRated = peopleRatedHeader[1]?.attr("data-content")?.takeWhile { c -> c != '/' }?.toIntOrNull()
 
         val statusTxt = document.select("div.col-md-8 > div.margin-bottom-10 > span.label")
 
@@ -344,7 +344,7 @@ class RoyalRoadProvider : MainAPI() {
             author,
             fixUrlNull(posterUrl),
             rating,
-            peopleRated,
+            null,//peopleRated,
             views,
             synopsis,
             tags,

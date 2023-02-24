@@ -32,35 +32,30 @@ class WattpadProvider : MainAPI() {
         false
     )
 
-    data class MainData (
-        var part : Metadata? = null
+    data class MainData(
+        var part: Metadata? = null
     )
 
-    data class Metadata (
+    data class Metadata(@JsonProperty("data") var data: Data? = null)
 
-    @JsonProperty("data" ) var data : Data?  = null,
-
+    data class TextUrl(
+        @JsonProperty("text") var text: String? = null,
+        @JsonProperty("refresh_token") var refreshToken: String? = null
     )
 
-    data class TextUrl (
+    data class Parts(
 
-        @JsonProperty("text"          ) var text         : String? = null,
-        @JsonProperty("refresh_token" ) var refreshToken : String? = null
-
-    )
-    data class Parts (
-
-        @JsonProperty("id"     ) var id     : Int?     = null,
-        @JsonProperty("title"  ) var title  : String?  = null,
-        @JsonProperty("url"    ) var url    : String?  = null,
+        @JsonProperty("id") var id: Int? = null,
+        @JsonProperty("title") var title: String? = null,
+        @JsonProperty("url") var url: String? = null,
         //@JsonProperty("rating" ) var rating : Int?     = null,
         //@JsonProperty("draft"  ) var draft  : Boolean? = null
 
     )
 
-    data class Data (
+    data class Data(
         //@JsonProperty("group"                  ) var group                  : Group?                        = null,
-        @JsonProperty("text_url"               ) var textUrl                : TextUrl?                      = null,
+        @JsonProperty("text_url") var textUrl: TextUrl? = null,
         /*
         @JsonProperty("id"                     ) var id                     : Int?                          = null,
         @JsonProperty("title"                  ) var title                  : String?                       = null,
@@ -152,8 +147,8 @@ class WattpadProvider : MainAPI() {
 
     )*/
 
-    data class Group (
-        @JsonProperty("parts"               ) var parts               : ArrayList<Parts>  = arrayListOf(),
+    data class Group(
+        @JsonProperty("parts") var parts: ArrayList<Parts> = arrayListOf(),
 /*
         @JsonProperty("id"                  ) var id                  : String?           = null,
         @JsonProperty("title"               ) var title               : String?           = null,
@@ -182,6 +177,7 @@ class WattpadProvider : MainAPI() {
         @JsonProperty("inLanguage"          ) var inLanguage          : String?           = null
 */
     )
+
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
         val description = document.selectFirst(".description-text")?.text()
@@ -197,7 +193,8 @@ class WattpadProvider : MainAPI() {
             ChapterData(url = href, name = name)
         }
 
-        val title = document.selectFirst(".story-info > .sr-only")?.text() ?: document.selectFirst(".item-title")?.text()
+        val title = document.selectFirst(".story-info > .sr-only")?.text()
+            ?: document.selectFirst(".item-title")?.text()
             ?: throw ErrorLoadingException("No title")
         val poster = document.selectFirst(".story-cover > img")?.attr("src")
 
@@ -208,15 +205,16 @@ class WattpadProvider : MainAPI() {
 
     override suspend fun loadHtml(url: String): String? {
         val response = app.get(url)
-        val htmlJson = response.text.substringAfter("window.prefetched = ").substringBefore("</script>")
+        val htmlJson =
+            response.text.substringAfter("window.prefetched = ").substringBefore("</script>")
 
         var suffix = ""
         try {
-            val data = jsonmapper.readValue<Map<String,Metadata>>(htmlJson)
+            val data = jsonmapper.readValue<Map<String, Metadata>>(htmlJson)
             data.values.firstOrNull()?.data?.textUrl?.text?.let {
                 suffix = app.get(it).text
             }
-        } catch (e : Exception) {
+        } catch (e: Exception) {
             logError(e)
             suffix = ""
         }

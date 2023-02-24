@@ -219,7 +219,8 @@ class RanobesProvider : MainAPI() {
             it.text()
         }
 
-        val posterUrl = fixUrl(document.select("div.poster > a > img").attr("src").substringAfter("/"))
+        val posterUrl =
+            fixUrl(document.select("div.poster > a > img").attr("src").substringAfter("/"))
         val synopsis = document.selectFirst("div.moreless")?.text()
         val listdata = mutableListOf<Chapterdatajson>()
         val data: ArrayList<ChapterData> = ArrayList()

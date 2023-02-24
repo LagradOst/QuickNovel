@@ -9,8 +9,8 @@ import java.util.*
 import kotlin.collections.ArrayList
 
 class WuxiaWorldOnlineProvider : MainAPI() {
-    override val mainUrl: String get() = "https://wuxiaworld.online"
-    override val name: String get() = "WuxiaWorldOnline"
+    override val mainUrl = "https://wuxiaworld.online"
+    override val name = "WuxiaWorldOnline"
     override val hasMainPage = true
 
     override val iconId = R.drawable.icon_wuxiaworldonline

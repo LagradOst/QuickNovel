@@ -118,7 +118,11 @@ class AzynovelProvider : MainAPI() {
             it.headers.getCookies("set-cookie") to it.headers["location"]
         }
 
-        val (newCookies, newLocation) = app.get(location ?: return null, allowRedirects = false, cookies = cookies).let {
+        val (newCookies, newLocation) = app.get(
+            location ?: return null,
+            allowRedirects = false,
+            cookies = cookies
+        ).let {
             it.headers.getCookies("set-cookie") to it.headers["location"]
         }
         val document = app.get(newLocation ?: return null, cookies = newCookies).document

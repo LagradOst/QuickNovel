@@ -3,8 +3,6 @@ package com.lagradost.quicknovel.providers
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
-import java.lang.Exception
-import kotlin.collections.ArrayList
 
 class AllNovelProvider : MainAPI() {
     override val name = "AllNovel"

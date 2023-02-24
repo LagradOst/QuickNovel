@@ -126,19 +126,22 @@ open class MNovelFreeProvider : MainAPI() {
         val name = document.selectFirst("h3")?.text()
 
         val infos = Jsoup.parse(document.select("div.info").html())
-        val author = infos.getElementsByAttributeValue("itemprop","author")?.map { it.text() }?.joinToString(",")
-        val tags = infos.getElementsByAttributeValue("itemprop","genre")?.map { it.text() }
+        val author = infos.getElementsByAttributeValue("itemprop", "author")?.map { it.text() }
+            ?.joinToString(",")
+        val tags = infos.getElementsByAttributeValue("itemprop", "genre")?.map { it.text() }
 
         val posterUrl = document.select("div.book > img").attr("src")
         val synopsis = document.selectFirst("div.desc-text > p")?.text()?.substringBefore("***")
 
         val data: ArrayList<ChapterData> = ArrayList()
-        val document2 = Jsoup.parse(document.selectFirst("li.item-chapter > a") ?.let { MainActivity.app.get(it.attr("href")).text })
+        val document2 = Jsoup.parse(
+            document.selectFirst("li.item-chapter > a")
+                ?.let { MainActivity.app.get(it.attr("href")).text })
         val chapters = document2.selectFirst("select.goToChapter")?.select("option")
         if (chapters != null) {
             for (c in chapters) {
                 if (c.attr("href").contains("category").not()) {
-                    val cUrl =  c.attr("value")
+                    val cUrl = c.attr("value")
                     val cName = c.text()
                     data.add(ChapterData(cName, cUrl, null, null))
                 }
@@ -146,8 +149,10 @@ open class MNovelFreeProvider : MainAPI() {
         }
 
         val rating =
-            document.getElementsByAttributeValue("itemprop","ratingValue").text()?.toFloat()?.times(100)?.toInt()
-        val peopleVoted = document.getElementsByAttributeValue("itemprop","ratingCount")?.text()?.toInt()
+            document.getElementsByAttributeValue("itemprop", "ratingValue").text()?.toFloat()
+                ?.times(100)?.toInt()
+        val peopleVoted =
+            document.getElementsByAttributeValue("itemprop", "ratingCount")?.text()?.toInt()
 
         return LoadResponse(
             url,

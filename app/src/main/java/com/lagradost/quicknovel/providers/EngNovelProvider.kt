@@ -15,45 +15,45 @@ class EngNovelProvider : MainAPI() {
 
     override val tags = listOf(
         Pair("All", ""),
-        Pair("Action","action-novels"),
-        Pair("Adult","adult-novels"),
-        Pair("Adventure","adventure-novels"),
-        Pair("Comedy","comedy-novels"),
-        Pair("Drama","drama-novels"),
-        Pair("Eastern","eastern-novels"),
-        Pair("Ecchi","ecchi-novels"),
-        Pair("Fantasy","fantasy-novels"),
-        Pair("Game","game-novels"),
-        Pair("Gender Bender","gender-bender-novels"),
-        Pair("Harem","harem-novels"),
-        Pair("Historical","historical-novels"),
-        Pair("Horror","horror-novels"),
-        Pair("Josei","josei-novels"),
-        Pair("Lolicon","lolicon-novels"),
-        Pair("Martial Arts","martial-arts-novels"),
-        Pair("Mature","mature-novels"),
-        Pair("Mecha","mecha-novels"),
-        Pair("Modern Life","modern-life-novels"),
-        Pair("Mystery","mystery-novels"),
-        Pair("Psychological","psychological-novels"),
-        Pair("Reincarnation","reincarnation-novels"),
-        Pair("Romance","romance-novels"),
-        Pair("School Life","school-life-novels"),
-        Pair("Sci-fi","sci-fi-novels"),
-        Pair("Seinen","seinen-novels"),
-        Pair("Shoujo","shoujo-novels"),
-        Pair("Shounen Ai","shounen-ai-novels"),
-        Pair("Shounen","shounen-novels"),
-        Pair("Slice of Life","slice-of-life-novels"),
-        Pair("Smut","smut-novels"),
-        Pair("Sports","sports-novels"),
-        Pair("Supernatural","supernatural-novels"),
-        Pair("Tragedy","tragedy-novels"),
-        Pair("Wuxia","wuxia-novels"),
-        Pair("Xianxia","xianxia-novels"),
-        Pair("Xuanhuan","xuanhuan-novels"),
-        Pair("Yaoi","yaoi-novels"),
-        Pair("Yuri","yuri-novels")
+        Pair("Action", "action-novels"),
+        Pair("Adult", "adult-novels"),
+        Pair("Adventure", "adventure-novels"),
+        Pair("Comedy", "comedy-novels"),
+        Pair("Drama", "drama-novels"),
+        Pair("Eastern", "eastern-novels"),
+        Pair("Ecchi", "ecchi-novels"),
+        Pair("Fantasy", "fantasy-novels"),
+        Pair("Game", "game-novels"),
+        Pair("Gender Bender", "gender-bender-novels"),
+        Pair("Harem", "harem-novels"),
+        Pair("Historical", "historical-novels"),
+        Pair("Horror", "horror-novels"),
+        Pair("Josei", "josei-novels"),
+        Pair("Lolicon", "lolicon-novels"),
+        Pair("Martial Arts", "martial-arts-novels"),
+        Pair("Mature", "mature-novels"),
+        Pair("Mecha", "mecha-novels"),
+        Pair("Modern Life", "modern-life-novels"),
+        Pair("Mystery", "mystery-novels"),
+        Pair("Psychological", "psychological-novels"),
+        Pair("Reincarnation", "reincarnation-novels"),
+        Pair("Romance", "romance-novels"),
+        Pair("School Life", "school-life-novels"),
+        Pair("Sci-fi", "sci-fi-novels"),
+        Pair("Seinen", "seinen-novels"),
+        Pair("Shoujo", "shoujo-novels"),
+        Pair("Shounen Ai", "shounen-ai-novels"),
+        Pair("Shounen", "shounen-novels"),
+        Pair("Slice of Life", "slice-of-life-novels"),
+        Pair("Smut", "smut-novels"),
+        Pair("Sports", "sports-novels"),
+        Pair("Supernatural", "supernatural-novels"),
+        Pair("Tragedy", "tragedy-novels"),
+        Pair("Wuxia", "wuxia-novels"),
+        Pair("Xianxia", "xianxia-novels"),
+        Pair("Xuanhuan", "xuanhuan-novels"),
+        Pair("Yaoi", "yaoi-novels"),
+        Pair("Yuri", "yuri-novels")
     )
 
     override suspend fun loadMainPage(
@@ -130,14 +130,15 @@ class EngNovelProvider : MainAPI() {
         val name = document.selectFirst("h3.title")?.text() ?: return null
 
         val infos = document.selectFirst("div.info")
-        val author = infos?.getElementsByAttributeValue("itemprop", "author")?.joinToString(", ") { it.text() }
-        val tags = infos?.getElementsByAttributeValue("itemprop","genre")?.map { it.text() }
+        val author = infos?.getElementsByAttributeValue("itemprop", "author")
+            ?.joinToString(", ") { it.text() }
+        val tags = infos?.getElementsByAttributeValue("itemprop", "genre")?.map { it.text() }
 
         val posterUrl = document.select("div.book > img").attr("src")
         val synopsis = document.selectFirst("div.desc-text")?.text()
 
         val data: ArrayList<ChapterData> = ArrayList()
-        val chapid= document.selectFirst("input#id_post")?.attr("value")
+        val chapid = document.selectFirst("input#id_post")?.attr("value")
         val chaptersDataphp = app.post(
             "$mainUrl/wp-admin/admin-ajax.php",
             data = mapOf(
@@ -169,7 +170,8 @@ class EngNovelProvider : MainAPI() {
         }
 
         var rating = document.getElementsByAttributeValue("itemprop", "ratingValue").text().toRate()
-        var peopleVoted = document.getElementsByAttributeValue("itemprop", "ratingCount").text().toInt()
+        var peopleVoted =
+            document.getElementsByAttributeValue("itemprop", "ratingCount").text().toInt()
 
 
         return LoadResponse(
