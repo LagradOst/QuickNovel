@@ -59,7 +59,7 @@ data class Chapter(
 
 class RanobesProvider : MainAPI() {
     override val name = "Ranobes"
-    override val mainUrl = "https://ranobes.net"
+    override val mainUrl = "https://ranobes.top"
     override val hasMainPage = true
 
     override val iconId = R.drawable.icon_ranobes
