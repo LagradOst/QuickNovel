@@ -5,6 +5,7 @@ import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.mvvm.debugWarning
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
 import java.lang.Exception
 import java.util.*
 import kotlin.collections.ArrayList
@@ -106,7 +107,7 @@ class ArchiveOfOurOwnProvider : MainAPI() {
         if (works.size <= 0) return ArrayList()
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in works) {
-            val workLink = h?.selectFirst("> div.header.module > a[!rel]")
+            val workLink = h?.selectFirst("div.header.module > h4.heading > a")
             if (workLink == null){
                 debugWarning { "Ao3 work has no actual work?" }
                 continue
@@ -114,7 +115,7 @@ class ArchiveOfOurOwnProvider : MainAPI() {
             val name = workLink.text()
             val url = workLink.attr("href")
 
-            val authorLink = h?.selectFirst("> div.header.module > a[rel=\"author\"]")
+            val authorLink = h?.selectFirst("div.header.module > h4.heading > a[rel=\"author\"]")
             if (authorLink == null){
                 debugWarning { "Ao3 work has no actual author?" }
                 continue
@@ -142,14 +143,12 @@ class ArchiveOfOurOwnProvider : MainAPI() {
 
         val name = document.selectFirst("h2.title.heading")?.text().toString()
         val author = document.selectFirst("h3.byline.heading > a[rel=\"author\"]")
-        val peopleVoted = document.selectFirst("dd.kudos")?.text()?.toInt()
-        val views = document.selectFirst("dd.hits")?.text()?.toInt()
+        val peopleVoted = document.selectFirst("dd.kudos")?.text()?.replace(",","")?.toInt()
+        val views = document.selectFirst("dd.hits")?.text()?.replace(",","")?.toInt()
         val synopsis = document.selectFirst("div.summary.module > blockquote.userstuff")
-            ?.children()
-            ?.map(org.jsoup.nodes.Element::text)
-            ?.joinToString("\n")
+            ?.children()?.joinToString("\n", transform = Element::text)
 
-        val tags = document.selectFirst("dd.warning.tags > ul")?.children()?.map{it.child(0).text()}
+        val tags = document.select("a.tag")?.map(org.jsoup.nodes.Element::text)
 
         val chaptersResponse = app.get("$url/navigate?view_adult=true")
         val chapterDocument = Jsoup.parse(chaptersResponse.text)
