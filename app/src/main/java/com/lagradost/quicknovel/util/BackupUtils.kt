@@ -29,6 +29,7 @@ import java.io.PrintWriter
 import java.lang.System.currentTimeMillis
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.concurrent.thread
 
 object BackupUtils {
     var restoreFileSelector: ActivityResultLauncher<Array<String>>? = null
@@ -186,12 +187,16 @@ object BackupUtils {
 
                                 val restoredValue =
                                     mapper.readValue<BackupFile>(input)
-                                activity.restore(
-                                    restoredValue,
-                                    restoreSettings = true,
-                                    restoreDataStore = true
-                                )
-                                activity.recreate()
+                                thread {
+                                    activity.restore(
+                                        restoredValue,
+                                        restoreSettings = true,
+                                        restoreDataStore = true
+                                    )
+                                    activity.runOnUiThread {
+                                        activity.recreate()
+                                    }
+                                }
                             } catch (e: Exception) {
                                 logError(e)
                                 try { // smth can fail in .format
