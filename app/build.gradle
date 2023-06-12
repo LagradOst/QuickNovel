@@ -6,6 +6,10 @@ android {
     compileSdkVersion 33
     buildToolsVersion "30.0.3"
 
+    viewBinding {
+        enabled = true
+    }
+
     defaultConfig {
         applicationId "com.lagradost.quicknovel"
         minSdkVersion 22

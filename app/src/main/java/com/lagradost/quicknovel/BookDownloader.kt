@@ -24,6 +24,8 @@ import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.preference.PreferenceManager
 import com.bumptech.glide.Glide
+import com.lagradost.quicknovel.BaseApplication.Companion.getActivity
+import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.DataStore.removeKey
@@ -264,6 +266,10 @@ object BookDownloader {
         }
     }
 
+    fun openQuickStream(uri: Uri?) {
+        activity?.openQuickStream(uri)
+    }
+
     fun Activity.openQuickStream(uri: Uri?) {
         if (uri == null) return
         val myIntent = Intent(this, ReadActivity::class.java)
@@ -408,6 +414,10 @@ object BookDownloader {
         val path = getFilePath(meta, index)
         downloadIndividualChapter(path, getApiFromName(meta.apiName), chapter, null, forceReload)
         return getChapter(path, index, getStripHtml())
+    }
+
+    fun createQuickStream(data: QuickStreamData): Uri? {
+        return activity?.createQuickStream(data)
     }
 
     fun Activity.createQuickStream(data: QuickStreamData): Uri? {

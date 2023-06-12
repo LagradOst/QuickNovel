@@ -74,11 +74,7 @@ class RedditProvider : MainAPI() {
         } else {
             println("REGULAR")
             val document = Jsoup.parse(response.text)
-            if (curl.contains("/comment/")) {
-                document.selectFirst("div.RichTextJSON-root")?.html()?.let { return it }
-            }
-            return document.allElements.firstOrNull { it.attr("data-click-id") == "text" }?.html()
-                ?: document.selectFirst("div.RichTextJSON-root")?.html()
+            return document.allElements.firstOrNull { it.attr("slot") == "text-body" }?.html()
         }
     }
 }

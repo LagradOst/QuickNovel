@@ -16,11 +16,13 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.lagradost.nicehttp.Requests
 import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
+import com.lagradost.quicknovel.BaseApplication.Companion.getActivity
 import com.lagradost.quicknovel.BookDownloader.checkWrite
 import com.lagradost.quicknovel.BookDownloader.createQuickStream
 import com.lagradost.quicknovel.BookDownloader.openQuickStream
 import com.lagradost.quicknovel.BookDownloader.requestNotifications
 import com.lagradost.quicknovel.BookDownloader.requestRW
+import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
 import com.lagradost.quicknovel.mvvm.logError
@@ -55,9 +57,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         // === API ===
-        lateinit var activity: MainActivity
-
         lateinit var navOptions: NavOptions
+
+        fun loadResult(url: String, apiName: String, startAction: Int = 0) {
+            (activity as? AppCompatActivity)?.loadResult(url,apiName,startAction)
+        }
 
         fun AppCompatActivity.loadResult(url: String, apiName: String, startAction: Int = 0) {
             runOnUiThread {
@@ -68,7 +72,7 @@ class MainActivity : AppCompatActivity() {
                         R.anim.pop_enter,
                         R.anim.pop_exit
                     )
-                    .add(R.id.homeRoot, ResultFragment().newInstance(url, apiName))
+                    .add(R.id.homeRoot, ResultFragment().newInstance(url, apiName, startAction))
                     .commit()
             }
         }
@@ -92,7 +96,7 @@ class MainActivity : AppCompatActivity() {
                 try {
                     Coroutines.main {
                         val uri = withContext(Dispatchers.IO) {
-                            activity.createQuickStream(
+                            createQuickStream(
                                 BookDownloader.QuickStreamData(
                                     BookDownloader.QuickStreamMetaData(
                                         "Not found",
@@ -104,7 +108,7 @@ class MainActivity : AppCompatActivity() {
                                 )
                             )
                         }
-                        activity.openQuickStream(uri)
+                        openQuickStream(uri)
                     }
                 } catch (e: Exception) {
                     logError(e)
@@ -149,14 +153,15 @@ class MainActivity : AppCompatActivity() {
             return false
         }
 
-        fun semihideNavbar() {
-            val w: Window? = activity.window // in Activity's onCreate() for instance
+       /* fun semihideNavbar() {
+            activity
+            val w: Window? = activity?.window // in Activity's onCreate() for instance
             if (w != null) {
                 val uiVisibility =
                     View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                 w.decorView.systemUiVisibility = uiVisibility
                 w.navigationBarColor =
-                    activity.getResourceColor(android.R.attr.navigationBarColor, 0.7F)
+                    activity?.getResourceColor(android.R.attr.navigationBarColor, 0.7F)
             }
         }
 
@@ -180,7 +185,7 @@ class MainActivity : AppCompatActivity() {
                     w.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
                 }
             }
-        }
+        }*/
     }
 
     /* // MOON READER WONT RETURN THE DURATION, BUT THIS CAN BE USED FOR SOME USER FEEDBACK IN THE FUTURE??? SEE @moonreader

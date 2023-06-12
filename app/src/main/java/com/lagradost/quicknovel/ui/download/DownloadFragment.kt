@@ -9,7 +9,7 @@ import android.widget.AbsListView.CHOICE_MODE_SINGLE
 import android.widget.ArrayAdapter
 import android.widget.ListView
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProviders
+import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ItemAnimator
 import androidx.recyclerview.widget.SimpleItemAnimator
@@ -20,17 +20,14 @@ import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.download.DownloadHelper.updateDownloadFromCard
-import com.lagradost.quicknovel.ui.history.HistoryAdapter
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import kotlinx.android.synthetic.main.fragment_downloads.*
-import kotlinx.android.synthetic.main.fragment_result.*
-import kotlin.concurrent.thread
 
 class DownloadFragment : Fragment() {
-    private lateinit var viewModel: DownloadViewModel
+    private val viewModel: DownloadViewModel by viewModels()
 
     data class DownloadData(
         val source: String,
@@ -154,11 +151,12 @@ class DownloadFragment : Fragment() {
     var isOnDownloads = true
     var currentReadType: ReadType? = null
 
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         activity?.fixPaddingStatusbar(downloadRoot)
 
-        viewModel = ViewModelProviders.of(MainActivity.activity).get(DownloadViewModel::class.java)
+        //viewModel = ViewModelProviders.of(activity!!).get(DownloadViewModel::class.java)
 
         observe(viewModel.cards, ::updateData)
         observe(viewModel.normalCards, ::updateNormalData)

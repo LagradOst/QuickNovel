@@ -116,7 +116,9 @@
     <string name="text_padding">Text Side Margin</string>
     <string name="reset_value">Reset to default</string>
     <string name="text_font">Text Font</string>
-    <string name="no_chapters_found">No Chapters Found</string>
+    <string name="no_chapters_found">No chapters found</string>
+    <string name="error_loading_novel">Error loading novel</string>
+
     <string name="text_padding_top">Text Top Margin</string>
 
     <string name="home_more_info">More info</string>
