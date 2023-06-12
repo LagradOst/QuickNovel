@@ -30,6 +30,8 @@ class ArchiveOfOurOwnProvider : MainAPI() {
     override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
+        orderBy: String?,
+        tag: String?,
     ): HeadMainPageResponse {
         val url =
             "$mainUrl/works"
@@ -61,7 +63,6 @@ class ArchiveOfOurOwnProvider : MainAPI() {
             }
             val author = authorLink.attr("href")
 
-            //val tags = ArrayList(h.select("span.tags > a").map { t -> t.text() })
             returnValue.add(
                 SearchResponse(
                     name,
@@ -70,7 +71,6 @@ class ArchiveOfOurOwnProvider : MainAPI() {
                     apiName = this.name
                 )
             )
-            //tags))
         }
         return HeadMainPageResponse(url, returnValue)
     }
