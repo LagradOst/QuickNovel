@@ -137,7 +137,7 @@ class ArchiveOfOurOwnProvider : MainAPI() {
             val date = it.child(1)
             ChapterData(
                 name = link.text().toString(),
-                url = link.attr("href").toString(),
+                url = fixUrl(link.attr("href").toString()),
                 dateOfRelease = date.text()
             )
         }
