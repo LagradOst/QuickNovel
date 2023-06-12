@@ -25,29 +25,6 @@ class ArchiveOfOurOwnProvider : MainAPI() {
     override val orderBys = listOf(
         Pair("Latest", "latest"),
     )
-    val searchFilters = listOf(
-        Pair("Best Match", "_score"),
-        Pair("Author", "authors_to_sort_on"),
-        Pair("Title", "title_to_sort_on"),
-        Pair("Date Posted", "created_at"),
-        Pair("Date Updated", "revised_at"),
-        Pair("Word Count", "word_count"),
-        Pair("Hits", "hits"),
-        Pair("Kudos", "kudos_count"),
-        Pair("Comments", "comments_count"),
-        Pair("Bookmarks", "bookmarks_count")
-
-    )
-
-
-    override val tags = listOf(
-        "Creator Chose Not To Use Archive Warnings",
-        "Graphic Depictions Of Violence",
-        "Major Character Death",
-        "Rape/Non-con",
-        "Underage",
-        "Creator Chose Not To Use Archive Warnings"
-    ).map { Pair(it, java.net.URLEncoder.encode(it.replace("/","*s*"), "utf-8")) }
 
 
     override suspend fun loadMainPage(
@@ -124,7 +101,6 @@ class ArchiveOfOurOwnProvider : MainAPI() {
             }
             val author = authorLink.attr("href")
 
-            //val tags = ArrayList(h.select("span.tags > a").map { t -> t.text() })
             returnValue.add(
                 SearchResponse(
                     name,
@@ -133,7 +109,6 @@ class ArchiveOfOurOwnProvider : MainAPI() {
                     apiName = this.name
                 )
             )
-            //tags))
         }
         return returnValue
     }
