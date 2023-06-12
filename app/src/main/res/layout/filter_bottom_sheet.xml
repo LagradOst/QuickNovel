@@ -55,7 +55,7 @@
             android:layout_marginTop="-10dp"
             android:columnCount="2"
             android:orientation="horizontal"
-            android:background="?attr/darkBackground"
+            android:background="?attr/primaryBlackBackground"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
         <TextView

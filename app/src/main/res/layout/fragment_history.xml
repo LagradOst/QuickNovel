@@ -4,7 +4,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         xmlns:app="http://schemas.android.com/apk/res-auto" xmlns:tools="http://schemas.android.com/tools"
-        android:background="?attr/grayBackground"
+        android:background="?attr/primaryGrayBackground"
         android:id="@+id/historyRoot"
         android:orientation="vertical">
 
@@ -17,7 +17,7 @@
                 app:menu="@menu/history_actionbar"
                 android:paddingTop="@dimen/navbarHeight"
                 app:title="History"
-                android:background="?attr/grayBackground"
+                android:background="?attr/primaryGrayBackground"
                 app:navigationIconTint="?attr/iconColor"
                 app:titleTextColor="?attr/textColor"
                 app:layout_scrollFlags="scroll|enterAlways"

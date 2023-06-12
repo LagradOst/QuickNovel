@@ -1,17 +1,12 @@
 <resources>
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Customize your theme here. -->
-
-        <item name="android:fontFamily">@font/google_sans</item>
-
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
+    <style name="AppTheme" parent="Theme.Material3.Dark.NoActionBar">
         <item name="android:windowBackground">@drawable/splash_background</item>
+        <item name="android:navigationBarColor">?attr/primaryBlackBackground</item>
+        <item name="android:colorEdgeEffect">?attr/textColor</item>
 
-        <item name="android:navigationBarColor">?attr/darkBackground</item>
-        <item name="android:statusBarColor">?attr/grayBackground</item>
+        <!--<item name="android:navigationBarColor">?attr/primaryBlackBackground</item>-->
+        <item name="android:statusBarColor">?attr/iconGrayBackground</item>
 
         <item name="android:scrollbarThumbVertical">@null</item>
         <item name="android:scrollbarThumbHorizontal">@null</item>
@@ -22,41 +17,100 @@
 
         <item name="android:textViewStyle">@style/AppTextViewStyle</item>
         <item name="android:buttonStyle">@style/AppButtonStyle</item>
+        <item name="android:editTextStyle">@style/AppEditStyle</item>
         <item name="materialButtonStyle">@style/AppMaterialButtonStyle</item>
-        <!--<item name="preferenceTheme">@style/PreferenceTheme</item>-->
+        <item name="preferenceFragmentCompatStyle">@style/PreferenceTheme</item>
         <item name="bottomSheetDialogTheme">@style/AppBottomSheetDialogTheme</item>
         <item name="searchViewStyle">@style/AppSearchViewStyle</item>
+        <item name="android:searchViewStyle">@style/AndroidSearchView</item>
+
         <item name="tabStyle">@style/Theme.Widget.Tabs</item>
+        <item name="android:divider">@color/transparent</item>
+        <item name="divider">@color/transparent</item>
+        <item name="android:dividerHeight">0dp</item>
+        <item name="showDividers">none</item>
+        <item name="android:listViewStyle">@style/ListViewStyle</item>
+
+        <!--<item name="mediaRouteButtonTint">?attr/colorPrimary</item>-->
 
         <!-- Preference -->
         <item name="android:textColor">?attr/textColor</item>
         <item name="android:textColorSecondary">?attr/grayTextColor</item>
-        <item name="android:icon">?attr/grayTextColor</item>
 
         <item name="android:textColorHint">?attr/grayTextColor</item>
         <item name="android:editTextColor">?attr/textColor</item>
         <item name="android:colorForeground">?attr/textColor</item>
-        <item name="android:colorControlHighlight">?attr/iconRipple</item>
+        <item name="android:colorControlHighlight">?attr/textColor</item> <!--iconRipple-->
 
         <item name="android:windowAllowReturnTransitionOverlap">true</item>
         <item name="android:windowAllowEnterTransitionOverlap">true</item>
-        <item name="preferenceTheme">@style/PreferencesTheme</item>
+        <!--<item name="preferenceTheme">@style/PreferencesTheme</item>-->
 
         <!-- DEF STYLE -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
         <item name="textColor">@color/textColor</item>
-        <item name="colorItemSeen">@color/colorItemSeen</item>
+        <item name="colorOnPrimary">@color/whiteText</item>
         <item name="grayTextColor">@color/grayTextColor</item>
-        <item name="darkBackground">@color/darkBackground</item>
-        <item name="bitDarkerGrayBackground">@color/bitDarkerGrayBackground</item>
-        <item name="grayBackground">@color/grayBackground</item>
-        <item name="boxItemBackground">@color/itemBackground</item>
+        <item name="primaryGrayBackground">@color/primaryGrayBackground</item>
+        <item name="primaryBlackBackground">@color/primaryBlackBackground</item>
+        <item name="iconGrayBackground">@color/iconGrayBackground</item>
+        <item name="boxItemBackground">@color/boxItemBackground</item>
         <item name="iconColor">@color/iconColor</item>
         <item name="white">#FFF</item>
-        <item name="iconRipple">@color/whiteRipple</item>
+    </style>
+    <style name="PreferenceTheme" parent="@style/AppTheme" />
+
+    <style name="ListViewStyle" parent="Widget.AppCompat.ListView">
+        <item name="android:divider">@null</item>
+        <item name="android:listSelector">@drawable/outline_drawable_less</item>
+        <item name="android:drawSelectorOnTop">false</item>
+    </style>
+    <style name="AmoledMode">
+        <item name="primaryGrayBackground">@color/black</item>
+        <item name="primaryBlackBackground">@color/black</item>
+        <item name="iconGrayBackground">@color/primaryBlackBackground</item>
+        <item name="boxItemBackground">@color/black</item>
+        <item name="textColor">@color/textColor</item>
+        <item name="grayTextColor">@color/grayTextColor</item>
+        <item name="white">@color/white</item>
+        <item name="colorOnPrimary">@color/whiteText</item>
+    </style>
+    <style name="AndroidSearchView" parent="AppSearchViewStyle">
+        <item name="android:paddingStart">-10dp</item>
+    </style>
+    <style name="AmoledModeLight" parent="AmoledMode">
+        <item name="primaryGrayBackground">@color/amoledModeLight</item>
+    </style>
+
+    <style name="ChipFilled" parent="@style/Widget.Material3.Chip.Filter">
+        <item name="chipBackgroundColor">@color/chip_color</item>
+        <item name="chipStrokeColor">@color/white_transparent_toggle</item>
+        <item name="chipStrokeWidth">2dp</item>
+        <item name="textColor">@color/chip_color_text</item>
+        <item name="android:textColor">@color/chip_color_text</item>
+        <item name="checkedIconTint">@color/chip_color_text</item>
+        <item name="fontFamily">@font/google_sans</item>
+        <item name="chipIconTint">@color/chip_color_text</item>
+        <item name="android:fontFamily">@font/google_sans</item>
+        <item name="chipMinTouchTargetSize">0dp</item>
+    </style>
+
+    <style name="ChipFilledSemiTransparent" parent="@style/ChipFilled">
+        <item name="chipBackgroundColor">@color/transparent</item>
+        <item name="chipSurfaceColor">@color/semiWhite</item>
+        <item name="backgroundColor">@color/transparent</item>
+    </style>
+
+    <style name="ChipParent">
+        <item name="chipSpacingVertical">5dp</item>
+        <item name="chipSpacingHorizontal">5dp</item>
+        <item name="textColor">?attr/textColor</item>
     </style>
 
     <style name="PopupMenu" parent="@android:style/Widget.PopupMenu">
-        <item name="android:backgroundTint">?attr/darkBackground</item>
+        <item name="android:backgroundTint">?attr/primaryBlackBackground</item>
     </style>
 
     <style name="PreferencesTheme" parent="@style/Base.Theme.AppCompat">
@@ -114,9 +168,9 @@
         <item name="android:windowFullscreen">true</item>
         <item name="android:textColor">?attr/textColor</item>
         <item name="android:textColorPrimary">?attr/textColor</item>
-        <!--<item name="android:background">@color/darkBackground</item>-->
+        <!--<item name="android:background">?attr/primaryBlackBackground</item>-->
         <item name="android:textAllCaps">false</item>
-        <!--<item name="android:colorBackground">@color/darkBackground</item>-->
+        <!--<item name="android:colorBackground">?attr/primaryBlackBackground</item>-->
         <item name="textColorAlertDialogListItem">?attr/textColor</item>
         <item name="colorControlNormal">?attr/textColor</item>
         <!-- colorPrimarySecond used because colorPrimary fails for no reason -->
@@ -130,13 +184,14 @@
         <item name="android:windowBackground">@color/transparent</item>
     </style>
     <style name="AlertDialogCustomBlack" parent="Theme.AppCompat.Dialog.Alert">
-        <item name="android:windowBackground">?attr/darkBackground</item>
-        <item name="android:layout_width">fill_parent</item>
-        <item name="android:layout_height">fill_parent</item>
+        <item name="android:windowBackground">?attr/primaryBlackBackground</item>
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">match_parent</item>
+
         <!-- No backgrounds, titles or window float -->
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowIsFloating">false</item>
-        <item name="android:navigationBarColor">?attr/darkBackground</item>
+        <item name="android:navigationBarColor">?attr/primaryBlackBackground</item>
     </style>
 
     <style name="RoundedBgTextView" parent="@android:style/Widget.TextView">
@@ -146,6 +201,10 @@
         <item name="roundedTextDrawableLeft">@drawable/rounded_text_bg_left</item>
         <item name="roundedTextDrawableMid">@drawable/rounded_text_bg_mid</item>
         <item name="roundedTextDrawableRight">@drawable/rounded_text_bg_right</item>
+    </style>
+
+    <style name="AppEditStyle" parent="android:Widget.EditText">
+        <item name="android:fontFamily">@font/google_sans</item>
     </style>
 
     <style name="NiceButton" parent="@style/Widget.MaterialComponents.Button.OutlinedButton">
@@ -158,7 +217,6 @@
         <item name="iconSize">20dp</item>
         <item name="textAllCaps">false</item>
         <item name="android:textSize">15sp</item>
-        <item name="cornerRadius">5dp</item>
         <item name="cornerRadius">5dp</item>
         <item name="strokeWidth">2dp</item>
         <item name="android:textColor">?attr/colorPrimary</item>
@@ -191,23 +249,16 @@
         <item name="tabMode">scrollable</item>
     </style>
 
-    <style name="DarkAlternative">
-        <item name="darkBackground">@color/darkDarkBackground</item>
-        <item name="bitDarkerGrayBackground">@color/darkBitDarkerGrayBackground</item>
-        <item name="grayBackground">@color/darkGrayBackground</item>
-        <item name="boxItemBackground">@color/darkItemBackground</item>
-        <item name="white">#FFF</item>
-        <item name="iconRipple">@color/whiteRipple</item>
-    </style>
+
     <style name="LightMode">
-        <item name="darkBackground">@color/lightDarkBackground</item>
-        <item name="bitDarkerGrayBackground">@color/lightBitDarkerGrayBackground</item>
-        <item name="grayBackground">@color/lightGrayBackground</item>
+        <item name="primaryGrayBackground">@color/lightPrimaryGrayBackground</item>
+        <item name="primaryBlackBackground">@color/lightBitDarkerGrayBackground</item>
+        <item name="iconGrayBackground">@color/lightGrayBackground</item>
         <item name="boxItemBackground">@color/lightItemBackground</item>
         <item name="textColor">@color/lightTextColor</item>
         <item name="grayTextColor">@color/lightGrayTextColor</item>
         <item name="white">#000</item>
-        <item name="iconRipple">@color/blackRipple</item>
+        <item name="colorOnPrimary">@color/blackText</item>
     </style>
 
     <style name="OverlayPrimaryColorNormal">
@@ -335,16 +386,6 @@
         <item name="colorOnPrimary">#622C00</item>
         <!--   Needed for leanback fuckery   -->
         <item name="android:colorAccent">@color/colorPrimaryBrown</item>
-    </style>
-
-    <style name="OverlayPrimaryColorOrange">
-        <item name="colorPrimary">@color/colorPrimaryOrange</item>
-        <item name="android:colorPrimary">@color/colorPrimaryOrange</item>
-        <item name="colorPrimaryDark">#B97700</item>
-        <item name="colorAccent">#CE8500</item>
-        <item name="colorOnPrimary">#CE8500</item>
-        <!--   Needed for leanback fuckery   -->
-        <item name="android:colorAccent">@color/colorPrimaryOrange</item>
     </style>
 
     <style name="OverlayPrimaryColorBanana">

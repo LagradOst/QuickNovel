@@ -1,5 +1,21 @@
-package com.lagradost.quicknovel
+package com.lagradost.quicknovel.providers
 
+import com.lagradost.quicknovel.ChapterData
+import com.lagradost.quicknovel.HeadMainPageResponse
+import com.lagradost.quicknovel.LoadResponse
+import com.lagradost.quicknovel.MainAPI
+import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.add
+import com.lagradost.quicknovel.addPath
+import com.lagradost.quicknovel.clean
+import com.lagradost.quicknovel.ifCase
+import com.lagradost.quicknovel.jConnect
+import com.lagradost.quicknovel.synopsis
+import com.lagradost.quicknovel.toChapters
+import com.lagradost.quicknovel.toRate
+import com.lagradost.quicknovel.toStatus
+import com.lagradost.quicknovel.toUrlBuilderSafe
 import java.util.*
 
 abstract class WPReader : MainAPI() {

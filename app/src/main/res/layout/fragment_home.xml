@@ -18,7 +18,7 @@
                 app:title="Explore"
                 app:navigationIconTint="?attr/iconColor"
                 app:titleTextColor="?attr/textColor"
-                android:background="?attr/grayBackground"
+                android:background="?attr/primaryGrayBackground"
                 app:layout_scrollFlags="scroll|enterAlways"
                 android:layout_width="match_parent" android:layout_height="wrap_content">
         </com.google.android.material.appbar.MaterialToolbar>

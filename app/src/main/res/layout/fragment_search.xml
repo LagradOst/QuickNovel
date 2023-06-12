@@ -10,7 +10,7 @@
         android:orientation="vertical"
         android:layout_marginTop="@dimen/navbarHeight"
 
-        android:background="?attr/grayBackground">
+        android:background="?attr/primaryGrayBackground">
 <!--
     <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                  android:layout_margin="10dp" android:background="@drawable/search_background"
@@ -89,7 +89,7 @@
 
                 </androidx.core.widget.ContentLoadingProgressBar>
                 <!--app:queryHint="@string/search_hint"
-                 android:background="?attr/grayBackground" ?attr/itemBackground
+                 android:background="?attr/primaryGrayBackground" ?attr/itemBackground
                             app:searchHintIcon="@drawable/search_white"
                             -->
             </androidx.appcompat.widget.SearchView>

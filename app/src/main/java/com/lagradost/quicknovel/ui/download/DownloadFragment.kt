@@ -277,7 +277,7 @@ class DownloadFragment : Fragment() {
             dialog.show()
         }*/
 
-        swipe_container.setProgressBackgroundColorSchemeColor(requireContext().colorFromAttribute(R.attr.darkBackground))
+        //swipe_container.setProgressBackgroundColorSchemeColor(requireContext().colorFromAttribute(R.attr.darkBackground))
         swipe_container.setColorSchemeColors(requireContext().colorFromAttribute(R.attr.colorPrimary))
         swipe_container.setOnRefreshListener {
             for (card in (download_cardSpace.adapter as DownloadAdapter).cardList) {

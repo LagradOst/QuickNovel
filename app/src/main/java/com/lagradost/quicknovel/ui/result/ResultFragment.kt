@@ -247,8 +247,8 @@ class ResultFragment : Fragment() {
 
     @SuppressLint1("CutPasteId", "SetTextI18n")
     fun newState(loadResponse: Resource<LoadResponse>) {
-        activity?.window?.navigationBarColor =
-            requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground)
+        //activity?.window?.navigationBarColor =
+        //    requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground)
 
         when (loadResponse) {
             is Resource.Failure -> {
@@ -635,12 +635,12 @@ class ResultFragment : Fragment() {
                     result_download_progress_bar.progress = 0
                 }*/
 
-                result_container.setBackgroundColor(
-                    getColor(
-                        requireContext(),
-                        R.color.bitDarkerGrayBackground
-                    )
-                )
+                //result_container.setBackgroundColor(
+                //    getColor(
+                //        requireContext(),
+                //        R.color.bitDarkerGrayBackground
+                //    )
+                //)
 
                 result_loading.visibility = View.GONE
                 result_loading_error.visibility = View.GONE
@@ -673,7 +673,7 @@ class ResultFragment : Fragment() {
             startActivity(i)
         }
 
-        result_container.setBackgroundColor(requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground))
+        //result_container.setBackgroundColor(requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground))
 
         observe(viewModel.downloadNotification, ::updateDownloadInfo)
         observe(viewModel.loadResponse, ::newState)

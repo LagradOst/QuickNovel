@@ -130,8 +130,8 @@ class MainActivity : AppCompatActivity() {
 
             if (currentFragment != null && supportFragmentManager.fragments.size > 2) {
                 if (supportFragmentManager.fragments.size == 3) {
-                    window?.navigationBarColor =
-                        colorFromAttribute(R.attr.darkBackground)
+                    //window?.navigationBarColor =
+                    //    colorFromAttribute(R.attr.primaryBlackBackground)
                 }
                 //MainActivity.showNavbar()
                 supportFragmentManager.beginTransaction()
@@ -242,7 +242,7 @@ class MainActivity : AppCompatActivity() {
         val themeName = settingsManager.getString("theme", "Dark")
         val currentTheme = when (themeName) {
             "Black" -> R.style.AppTheme
-            "Dark" -> R.style.DarkAlternative
+            //"Dark" -> R.style.DarkAlternative
             "Light" -> R.style.LightMode
             else -> R.style.AppTheme
         }
@@ -251,7 +251,7 @@ class MainActivity : AppCompatActivity() {
         val currentOverlayTheme = when (themeOverlayName) {
             "Normal" -> R.style.OverlayPrimaryColorNormal
             "CarnationPink" -> R.style.OverlayPrimaryColorCarnationPink
-            "Orange" -> R.style.OverlayPrimaryColorOrange
+            //"Orange" -> R.style.OverlayPrimaryColorOrange
             "DarkGreen" -> R.style.OverlayPrimaryColorDarkGreen
             "Maroon" -> R.style.OverlayPrimaryColorMaroon
             "NavyBlue" -> R.style.OverlayPrimaryColorNavyBlue
@@ -283,7 +283,7 @@ class MainActivity : AppCompatActivity() {
 
         val navController = findNavController(R.id.nav_host_fragment)
 
-        window.navigationBarColor = colorFromAttribute(R.attr.darkBackground)
+        //window.navigationBarColor = colorFromAttribute(R.attr.darkBackground)
         navOptions = NavOptions.Builder()
             .setLaunchSingleTop(true)
             .setEnterAnim(R.anim.nav_enter_anim)

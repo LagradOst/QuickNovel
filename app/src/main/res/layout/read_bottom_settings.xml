@@ -37,7 +37,7 @@
             android:layout_height="wrap_content">
 
         <LinearLayout
-                android:background="?attr/darkBackground"
+                android:background="?attr/primaryBlackBackground"
                 android:paddingLeft="20dp"
                 android:paddingRight="20dp"
                 android:paddingBottom="20dp"

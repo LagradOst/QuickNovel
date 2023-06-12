@@ -67,12 +67,14 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content">
 
+                    <!--
                     <View
                             android:visibility="gone"
                             android:id="@+id/line_top"
                             android:layout_height="1dp"
                             android:layout_width="match_parent"
                             android:background="@color/purple" />
+                    -->
 
                     <View
                             android:visibility="gone"
@@ -81,6 +83,7 @@
                             android:layout_width="match_parent"
                             android:background="@color/colorPrimaryGreen" />
 
+                    <!--
                     <View
                             android:visibility="gone"
                             android:id="@+id/line_accent"
@@ -107,7 +110,7 @@
                             android:id="@+id/line_bottom"
                             android:layout_height="1dp"
                             android:layout_width="match_parent"
-                            android:background="@color/orange" />
+                            android:background="@color/orange" />-->
 
                     <LinearLayout
                             android:id="@+id/read_text_background"
@@ -248,7 +251,7 @@
                 android:layout_height="?attr/actionBarSize"
                 android:layout_gravity="bottom"
                 tools:visibility="gone"
-                android:background="?attr/grayBackground">
+                android:background="?attr/primaryGrayBackground">
 
             <ImageButton
                     android:id="@+id/read_action_rotate"
@@ -312,7 +315,7 @@
                 android:layout_gravity="bottom"
                 android:visibility="gone"
                 tools:visibility="visible"
-                android:background="?attr/grayBackground">
+                android:background="?attr/primaryGrayBackground">
 
             <ImageButton
                     android:id="@+id/tts_action_back"
@@ -385,7 +388,7 @@
                     tools:title="TEST"
                     tools:subtitle="TEST"
 
-                    android:background="?attr/grayBackground"
+                    android:background="?attr/primaryGrayBackground"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content" />
         </com.google.android.material.appbar.AppBarLayout>

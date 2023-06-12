@@ -836,7 +836,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             }
         }
 
-        if (DEBUGGING) {
+        /*if (DEBUGGING) {
             line_top.visibility = View.VISIBLE
             line_bottom.visibility = View.VISIBLE
             line_top_extra.visibility = View.VISIBLE
@@ -850,7 +850,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 setHighLightedText(read_text, line.startIndex, line.endIndex)
             }
             lastChange = line
-        }
+        }*/
     }
 
     override fun onBackPressed() {
@@ -1893,7 +1893,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
         val currentTheme = when (settingsManager.getString("theme", "Dark")) {
             "Black" -> R.style.AppTheme
-            "Dark" -> R.style.DarkAlternative
+            //"Dark" -> R.style.DarkAlternative
             "Light" -> R.style.LightMode
             else -> R.style.AppTheme
         }
@@ -2366,8 +2366,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
         fixPaddingStatusbar(read_topmargin)
 
-        window.navigationBarColor =
-            colorFromAttribute(R.attr.grayBackground) //getColor(R.color.readerHightlightedMetaInfo)
+        //window.navigationBarColor =
+        //    colorFromAttribute(R.attr.grayBackground) //getColor(R.color.readerHightlightedMetaInfo)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             read_scroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->

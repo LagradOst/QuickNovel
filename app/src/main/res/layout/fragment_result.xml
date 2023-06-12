@@ -5,7 +5,7 @@
         android:layout_width="match_parent"
         android:id="@+id/result_container"
         android:layout_height="match_parent"
-        android:background="?attr/bitDarkerGrayBackground"
+        android:background="?attr/primaryBlackBackground"
         android:clickable="true"
         android:focusable="true">
 
@@ -61,7 +61,7 @@
             android:layout_height="wrap_content"
             android:scaleType="centerCrop"
             android:alpha="0.3"
-            android:background="@color/darkBackground"
+            android:background="?attr/primaryBlackBackground"
             android:id="@+id/result_poster_blur"
             android:contentDescription="@string/background_image_descript" />
 
@@ -545,7 +545,7 @@ Translator: Rainbow Turtle"
             app:elevation="0dp"
             android:textStyle="bold"
 
-            app:backgroundTint="?attr/darkBackground"
+            app:backgroundTint="?attr/primaryBlackBackground"
             app:tint="?attr/colorPrimary"
             android:textColor="?attr/colorPrimary"
             app:iconTint="?attr/colorPrimary"

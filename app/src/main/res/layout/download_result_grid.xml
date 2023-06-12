@@ -20,7 +20,7 @@
             app:cardElevation="0dp"
             app:cardCornerRadius="@dimen/roundedImageRadius"
             android:id="@+id/backgroundCard"
-            app:cardBackgroundColor="@color/darkBackground"
+            app:cardBackgroundColor="?attr/primaryBlackBackground"
     >
         <!-- USING CROP RATIO (182/268), centerCrop for fill -->
         <ImageView
