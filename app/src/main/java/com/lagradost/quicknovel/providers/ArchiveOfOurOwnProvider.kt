@@ -30,8 +30,6 @@ class ArchiveOfOurOwnProvider : MainAPI() {
     override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
-        orderBy: String?,
-        tag: String?,
     ): HeadMainPageResponse {
         val url =
             "$mainUrl/works"
