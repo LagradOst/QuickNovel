@@ -11,7 +11,8 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
-import com.lagradost.quicknovel.ui.mainpage.SearchResponseDiffCallback
+import com.lagradost.quicknovel.ui.download.SearchResponseDiffCallback
+
 import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import kotlinx.android.synthetic.main.home_result_grid.view.*

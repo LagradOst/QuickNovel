@@ -80,6 +80,7 @@ object BookDownloader {
         IsDone,
         IsFailed,
         IsStopped,
+        IsPending
     }
 
     private const val reservedChars = "|\\?*<\":>+[]/'"
@@ -134,7 +135,7 @@ object BookDownloader {
 
         val bitmap = Glide.with(this)
             .asBitmap()
-            .load(url).into(720, 720)
+            .load(url).submit(720, 720)
             .get()
         if (bitmap != null) {
             cachedBitmaps[url] = bitmap
@@ -675,9 +676,9 @@ object BookDownloader {
         rFile.parentFile?.mkdirs()
         if (rFile.isDirectory) rFile.delete()
         rFile.createNewFile()
-        var page: String? = null
-        while (page == null) {
-            page = api.loadHtml(data.url)
+
+        while (true) {
+            val page = api.loadHtml(data.url)
             if (api.rateLimitTime > 0) {
                 delay(api.rateLimitTime)
             }
@@ -691,7 +692,6 @@ object BookDownloader {
                 delay(5000) // ERROR
             }
         }
-        return -2 // THIS SHOULD NOT HAPPEND
     }
 
     suspend fun Context.download(load: LoadResponse, api: APIRepository) {
@@ -857,6 +857,7 @@ object BookDownloader {
             DownloadType.IsPaused -> "Paused"
             DownloadType.IsFailed -> "Error"
             DownloadType.IsStopped -> "Stopped"
+            else -> throw NotImplementedError()
         }
 
         val not = DownloadNotification(progress, total, id, ETA, state)
@@ -888,6 +889,7 @@ object BookDownloader {
                         DownloadType.IsPaused -> "Paused ${load.name} - $progress/$total"
                         DownloadType.IsFailed -> "Error ${load.name} - $progress/$total"
                         DownloadType.IsStopped -> "Stopped ${load.name} - $progress/$total"
+                        else -> throw NotImplementedError()
                     }
                 )
                 .setSmallIcon(
@@ -897,6 +899,7 @@ object BookDownloader {
                         DownloadType.IsPaused -> R.drawable.rdpause
                         DownloadType.IsFailed -> R.drawable.rderror
                         DownloadType.IsStopped -> R.drawable.rderror
+                        else -> throw NotImplementedError()
                     }
                 )
                 .setContentIntent(pendingIntent)

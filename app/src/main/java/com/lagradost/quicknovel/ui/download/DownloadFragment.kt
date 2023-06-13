@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.AbsListView.CHOICE_MODE_SINGLE
 import android.widget.ArrayAdapter
 import android.widget.ListView
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.RecyclerView
@@ -16,18 +17,19 @@ import androidx.recyclerview.widget.SimpleItemAnimator
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.tabs.TabLayout
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.DataStore.setKey
+import com.lagradost.quicknovel.databinding.FragmentDownloadsBinding
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.ReadType
-import com.lagradost.quicknovel.ui.download.DownloadHelper.updateDownloadFromCard
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
-import kotlinx.android.synthetic.main.fragment_downloads.*
 
 class DownloadFragment : Fragment() {
     private val viewModel: DownloadViewModel by viewModels()
+    lateinit var binding: FragmentDownloadsBinding
 
     data class DownloadData(
         val source: String,
@@ -87,35 +89,10 @@ class DownloadFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?,
-    ): View? {
-
-        return inflater.inflate(R.layout.fragment_downloads, container, false)
-    }
-
-    override fun onDestroy() {
-        BookDownloader.downloadNotification -= ::updateDownloadInfo
-        BookDownloader.downloadRemove -= ::removeAction
-        super.onDestroy()
-    }
-
-    private fun updateDownloadInfo(info: BookDownloader.DownloadNotification) {
-        viewModel.updateDownloadInfo(info)
-    }
-
-    private fun removeAction(id: Int) {
-        viewModel.removeActon(id)
-    }
-
-    private fun updateData(data: ArrayList<DownloadDataLoaded>) {
-        download_cardSpace?.let {
-            (it.adapter as DownloadAdapter).updateList(data)
-        }
-    }
-
-    private fun updateNormalData(data: ArrayList<ResultCached>) {
-        bookmark_cardSpace?.let {
-            (it.adapter as CachedAdapter).updateList(data)
-        }
+    ): View {
+        binding = FragmentDownloadsBinding.inflate(inflater)
+        return binding.root
+        //return inflater.inflate(R.layout.fragment_downloads, container, false)
     }
 
     private fun setupGridView() {
@@ -124,23 +101,18 @@ class DownloadFragment : Fragment() {
         val spanCountPortrait = if (compactView) 1 else 3
         val orientation = resources.configuration.orientation
 
-        if (download_cardSpace != null) {
-            if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                download_cardSpace.spanCount = spanCountLandscape
-            } else {
-                download_cardSpace.spanCount = spanCountPortrait
-            }
+        if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            binding.downloadCardSpace.spanCount = spanCountLandscape
+        } else {
+            binding.downloadCardSpace.spanCount = spanCountPortrait
         }
-        if (bookmark_cardSpace != null) {
-            val compactBookmarkView = true
-            val bookmarkSpanCountLandscape = if (compactBookmarkView) 2 else 6
-            val bookmarkSpanCountPortrait = if (compactBookmarkView) 1 else 3
-            if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                bookmark_cardSpace.spanCount = bookmarkSpanCountLandscape
-            } else {
-                bookmark_cardSpace.spanCount = bookmarkSpanCountPortrait
-            }
+
+        if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            binding.bookmarkCardSpace.spanCount = spanCountLandscape
+        } else {
+            binding.bookmarkCardSpace.spanCount = spanCountPortrait
         }
+
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -154,19 +126,17 @@ class DownloadFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        activity?.fixPaddingStatusbar(downloadRoot)
+        activity?.fixPaddingStatusbar(binding.downloadRoot)
 
         //viewModel = ViewModelProviders.of(activity!!).get(DownloadViewModel::class.java)
 
-        observe(viewModel.cards, ::updateData)
-        observe(viewModel.normalCards, ::updateNormalData)
 
-        viewModel.loadData(requireContext())
+        viewModel.loadData()
 
-        observe(viewModel.isOnDownloads) {
-            isOnDownloads = it
-            bookmark_cardSpace?.visibility = if (!it) View.VISIBLE else View.GONE
-            swipe_container?.visibility = if (it) View.VISIBLE else View.GONE
+        observe(viewModel.isOnDownloads) { onDownloads ->
+            isOnDownloads = onDownloads
+            binding.bookmarkCardSpace.isVisible = !onDownloads
+            binding.swipeContainer.isVisible = onDownloads
         }
 
 
@@ -177,31 +147,31 @@ class DownloadFragment : Fragment() {
             ReadType.COMPLETED,
             ReadType.DROPPED,
         )
-        bookmark_tabs.addTab(bookmark_tabs.newTab().setText(getString(R.string.tab_downloads)))
-        for (read in readList) {
-            bookmark_tabs.addTab(bookmark_tabs.newTab().setText(getString(read.stringRes)))
-        }
-
-        bookmark_tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab?) {
-                val pos = tab?.position
-                if (pos != null) {
-                    context?.let { ctx ->
+        binding.bookmarkTabs.apply {
+            addTab(newTab().setText(getString(R.string.tab_downloads)))
+            for (read in readList) {
+                addTab(newTab().setText(getString(read.stringRes)))
+            }
+            addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+                override fun onTabSelected(tab: TabLayout.Tab?) {
+                    val pos = tab?.position
+                    if (pos != null) {
                         if (pos == 0) {
-                            viewModel.loadData(ctx)
+                            viewModel.loadData()
                         } else {
-                            viewModel.loadNormalData(ctx, readList[pos - 1])
+                            viewModel.loadNormalData(readList[pos - 1])
                         }
+
                     }
                 }
-            }
 
-            override fun onTabUnselected(tab: TabLayout.Tab?) {}
+                override fun onTabUnselected(tab: TabLayout.Tab?) {}
 
-            override fun onTabReselected(tab: TabLayout.Tab?) {}
-        })
+                override fun onTabReselected(tab: TabLayout.Tab?) {}
+            })
+        }
 
-        download_toolbar.setOnMenuItemClickListener {
+        binding.downloadToolbar.setOnMenuItemClickListener {
             when (it.itemId) {
                 R.id.action_sort -> {
                     val bottomSheetDialog = BottomSheetDialog(requireContext())
@@ -223,10 +193,9 @@ class DownloadFragment : Fragment() {
                         )
                         res.setOnItemClickListener { _, _, position, _ ->
                             val sel = sortingMethods[position].id
-                            context?.let { ctx ->
-                                ctx.setKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, sel)
-                                viewModel.sortData(ctx, sel)
-                            }
+                            setKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, sel)
+                            viewModel.sortData(sel)
+
                             bottomSheetDialog.dismiss()
                         }
                     } else {
@@ -240,16 +209,16 @@ class DownloadFragment : Fragment() {
                         res.setOnItemClickListener { _, _, position, _ ->
                             val sel = normalSortingMethods[position].id
 
-                            context?.let { ctx ->
-                                ctx.setKey(DOWNLOAD_SETTINGS, DOWNLOAD_NORMAL_SORTING_METHOD, sel)
-                                viewModel.sortNormalData(ctx, sel)
-                            }
+                            setKey(DOWNLOAD_SETTINGS, DOWNLOAD_NORMAL_SORTING_METHOD, sel)
+                            viewModel.sortNormalData(sel)
+
                             bottomSheetDialog.dismiss()
                         }
                     }
 
                     bottomSheetDialog.show()
                 }
+
                 else -> {
                 }
             }
@@ -276,57 +245,35 @@ class DownloadFragment : Fragment() {
         }*/
 
         //swipe_container.setProgressBackgroundColorSchemeColor(requireContext().colorFromAttribute(R.attr.darkBackground))
-        swipe_container.setColorSchemeColors(requireContext().colorFromAttribute(R.attr.colorPrimary))
-        swipe_container.setOnRefreshListener {
-            for (card in (download_cardSpace.adapter as DownloadAdapter).cardList) {
-                if ((card.downloadedCount * 100 / card.downloadedTotal) > 90) {
-                    updateDownloadFromCard(requireContext(), card)
-                }
+
+        binding.swipeContainer.apply {
+            setColorSchemeColors(requireContext().colorFromAttribute(R.attr.colorPrimary))
+            setOnRefreshListener {
+                viewModel.refresh()
+                isRefreshing = false
             }
-            swipe_container.isRefreshing = false
         }
 
         setupGridView()
-        val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = activity?.let {
-            DownloadAdapter(
-                it,
-                download_cardSpace,
-            )
+
+        binding.downloadCardSpace.apply {
+            val downloadAdapter = DownloadAdapter2(viewModel, this)
+            adapter = downloadAdapter
+            observe(viewModel.cards) { cards ->
+                downloadAdapter.submitList(cards)
+            }
+        }
+
+        binding.bookmarkCardSpace.apply {
+            val bookmarkAdapter = CachedAdapter2(viewModel, this)
+            adapter = bookmarkAdapter
+            observe(viewModel.normalCards) { cards ->
+                bookmarkAdapter.submitList(cards)
+            }
         }
 
         observe(viewModel.currentReadType) {
             currentReadType = it
         }
-
-        val normalAdapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = activity?.let {
-            CachedAdapter(
-                it,
-                download_cardSpace,
-            ) {
-                val type = currentReadType
-                if (type != null) {
-                    context?.let { ctx ->
-                        viewModel.loadNormalData(ctx, type)
-                    }
-                }
-            }
-        }
-
-        adapter?.setHasStableIds(true)
-        normalAdapter?.setHasStableIds(true)
-        download_cardSpace.adapter = adapter
-        bookmark_cardSpace.adapter = normalAdapter
-        val animator: ItemAnimator = download_cardSpace.itemAnimator!!
-        if (animator is SimpleItemAnimator) {
-            animator.supportsChangeAnimations = false
-        }
-
-        val normalAnimator: ItemAnimator = bookmark_cardSpace.itemAnimator!!
-        if (normalAnimator is SimpleItemAnimator) {
-            normalAnimator.supportsChangeAnimations = false
-        }
-
-        BookDownloader.downloadNotification += ::updateDownloadInfo
-        BookDownloader.downloadRemove += ::removeAction
     }
 }

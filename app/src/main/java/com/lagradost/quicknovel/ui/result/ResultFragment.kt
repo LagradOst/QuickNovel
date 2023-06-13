@@ -26,6 +26,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayout
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader.createQuickStream
 import com.lagradost.quicknovel.BookDownloader.hasEpub
 import com.lagradost.quicknovel.BookDownloader.openEpub
@@ -231,6 +232,7 @@ class ResultFragment : Fragment() {
             BookDownloader.DownloadType.IsPaused -> "Resume"
             BookDownloader.DownloadType.IsFailed -> "Re-Download"
             BookDownloader.DownloadType.IsStopped -> "Download"
+            else -> throw NotImplementedError()
         }
 
         result_download_btt.iconSize = 30.toPx
@@ -684,7 +686,7 @@ class ResultFragment : Fragment() {
 
         observe(viewModel.id) {
             tid = it
-            context?.setKey(DOWNLOAD_EPUB_LAST_ACCESS, tid.toString(), System.currentTimeMillis())
+            setKey(DOWNLOAD_EPUB_LAST_ACCESS, tid.toString(), System.currentTimeMillis())
         }
 
         observe(viewModel.currentTabIndex) { pos ->

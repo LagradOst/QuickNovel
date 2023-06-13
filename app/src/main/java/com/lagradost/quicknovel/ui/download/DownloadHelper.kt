@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.ui.download
 
 import android.content.Context
+import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader
 import com.lagradost.quicknovel.BookDownloader.download
 import com.lagradost.quicknovel.BookDownloader.updateDownload
@@ -32,11 +33,11 @@ object DownloadHelper {
         apiName: String,
         pauseOngoing: Boolean = false,
     ) {
-        context.setKey(DOWNLOAD_TOTAL,
+        setKey(DOWNLOAD_TOTAL,
             localId.toString(),
             res.data.size) // FIX BUG WHEN DOWNLOAD IS OVER TOTAL
 
-        context.setKey(DOWNLOAD_FOLDER, BookDownloader.generateId(res, apiName).toString(),
+        setKey(DOWNLOAD_FOLDER, BookDownloader.generateId(res, apiName).toString(),
             DownloadFragment.DownloadData(res.url,
                 res.name,
                 res.author,
@@ -67,7 +68,7 @@ object DownloadHelper {
         card: DownloadFragment.DownloadDataLoaded,
         pauseOngoing: Boolean = false,
     ) {
-        Coroutines.main {
+        ioSafe {
             val api = getApiFromName(card.apiName)
             val data = api.load(card.source)
 

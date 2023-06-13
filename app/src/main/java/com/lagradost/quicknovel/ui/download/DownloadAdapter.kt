@@ -12,6 +12,7 @@ import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -25,7 +26,6 @@ import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.ui.download.DownloadHelper.updateDownloadFromCard
-import com.lagradost.quicknovel.ui.mainpage.SearchResponseDiffCallback
 import com.lagradost.quicknovel.util.Coroutines
 import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
@@ -154,6 +154,11 @@ class DownloadAdapter(
                 }
             }
 
+            val isGenerating = false
+            //val isIndeterminate = isGenerating ?: BookDownloader.isTurningIntoEpub.containsKey(card.id)
+            downloadProgressbar?.isVisible = !isGenerating
+            downloadProgressbarIndeterminate?.isVisible = isGenerating
+
             // Cache here makes it reload the image every time a new chapter is downloaded
             cardView.setImage(card.posterUrl, skipCache = false)
 
@@ -164,6 +169,7 @@ class DownloadAdapter(
                     BookDownloader.DownloadType.IsPaused -> "Resume"
                     BookDownloader.DownloadType.IsFailed -> "Re-Download"
                     BookDownloader.DownloadType.IsStopped -> "Update"
+                    BookDownloader.DownloadType.IsPending -> "Pending"
                 }
 
                 downloadUpdate.setImageResource(when (realState) {
@@ -172,6 +178,7 @@ class DownloadAdapter(
                     BookDownloader.DownloadType.IsStopped -> R.drawable.ic_baseline_autorenew_24
                     BookDownloader.DownloadType.IsFailed -> R.drawable.ic_baseline_autorenew_24
                     BookDownloader.DownloadType.IsDone -> R.drawable.ic_baseline_check_24
+                    BookDownloader.DownloadType.IsPending -> R.drawable.nothing
                 })
             }
 
@@ -318,6 +325,19 @@ class DownloadDataLoadedDiffCallback(private val oldList: List<DownloadFragment.
     DiffUtil.Callback() {
     override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int) =
         oldList[oldItemPosition].id == newList[newItemPosition].id
+
+    override fun getOldListSize() = oldList.size
+
+    override fun getNewListSize() = newList.size
+
+    override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int) =
+        oldList[oldItemPosition] == newList[newItemPosition]
+}
+
+class SearchResponseDiffCallback(private val oldList: List<SearchResponse>, private val newList: List<SearchResponse>) :
+    DiffUtil.Callback() {
+    override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int) =
+        oldList[oldItemPosition].url == newList[newItemPosition].url
 
     override fun getOldListSize() = oldList.size
 

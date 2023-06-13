@@ -5,7 +5,11 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.BaseApplication.Companion.context
+import com.lagradost.quicknovel.BaseApplication.Companion.getKey
+import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
 import com.lagradost.quicknovel.BookDownloader.downloadInfo
+import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
 import com.lagradost.quicknovel.ui.ReadType
@@ -13,6 +17,7 @@ import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.internal.toImmutableList
 
 class DownloadViewModel : ViewModel() {
     val cards: MutableLiveData<ArrayList<DownloadFragment.DownloadDataLoaded>> by lazy {
@@ -32,7 +37,17 @@ class DownloadViewModel : ViewModel() {
     var currentNormalSortingMethod: MutableLiveData<Int> =
         MutableLiveData<Int>()
 
-    private fun Context.sortArray(
+    fun refresh() {
+      //  val copy = arrayListOf( *(cards.value ?: emptyList()).toImmutableList().map { it.copy(state = BookDownloader.DownloadType.IsPending) }.toTypedArray())
+       // cards.postValue(copy)
+        for (card in cards.value ?: emptyList()) {
+            if ((card.downloadedCount * 100 / card.downloadedTotal) > 90) {
+                DownloadHelper.updateDownloadFromCard(context ?: return, card)
+            }
+        }
+    }
+
+    private fun sortArray(
         currentArray: ArrayList<DownloadFragment.DownloadDataLoaded>,
         sortMethod: Int? = null,
     ): ArrayList<DownloadFragment.DownloadDataLoaded> {
@@ -76,7 +91,7 @@ class DownloadViewModel : ViewModel() {
         }
     }
 
-    private fun Context.sortNormalArray(
+    private fun sortNormalArray(
         currentArray: ArrayList<ResultCached>,
         sortMethod: Int? = null,
     ): ArrayList<ResultCached> {
@@ -104,9 +119,9 @@ class DownloadViewModel : ViewModel() {
         }
     }
 
-    fun loadNormalData(context: Context, state: ReadType) = viewModelScope.launch {
+    fun loadNormalData(state: ReadType) = viewModelScope.launch {
         currentNormalSortingMethod.postValue(
-            context.getKey(DOWNLOAD_SETTINGS, DOWNLOAD_NORMAL_SORTING_METHOD, LAST_ACCES_SORT)
+            getKey(DOWNLOAD_SETTINGS, DOWNLOAD_NORMAL_SORTING_METHOD, LAST_ACCES_SORT)
                 ?: LAST_ACCES_SORT
         )
 
@@ -117,20 +132,20 @@ class DownloadViewModel : ViewModel() {
         val cards = withContext(Dispatchers.IO) {
             val ids = ArrayList<String>()
 
-            val keys = context.getKeys(RESULT_BOOKMARK_STATE)
-            for (key in keys) {
-                if (context.getKey<Int>(key) == state.prefValue) {
+            val keys = getKeys(RESULT_BOOKMARK_STATE)
+            for (key in keys ?: emptyList()) {
+                if (getKey<Int>(key) == state.prefValue) {
                     ids.add(key.replaceFirst(RESULT_BOOKMARK_STATE, RESULT_BOOKMARK)) // I know kinda spaghetti
                 }
             }
-            ids.mapNotNull { id -> context.getKey<ResultCached>(id) }
+            ids.mapNotNull { id -> getKey<ResultCached>(id) }
         }
-        normalCards.postValue(context.sortNormalArray(ArrayList(cards)))
+        normalCards.postValue(sortNormalArray(ArrayList(cards)))
     }
 
-    fun loadData(context: Context) = viewModelScope.launch {
+    fun loadData() = viewModelScope.launch {
         currentSortingMethod.postValue(
-            context.getKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, LAST_ACCES_SORT)
+            getKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, LAST_ACCES_SORT)
                 ?: LAST_ACCES_SORT
         )
 
@@ -141,14 +156,14 @@ class DownloadViewModel : ViewModel() {
         val added = HashMap<String, Boolean>()
 
         withContext(Dispatchers.IO) {
-            val keys = context.getKeys(DOWNLOAD_FOLDER)
-            for (k in keys) {
+            val keys = getKeys(DOWNLOAD_FOLDER)
+            for (k in keys ?: emptyList()) {
                 val res =
-                    context.getKey<DownloadFragment.DownloadData>(k) // THIS SHIT LAGS THE APPLICATION IF ON MAIN THREAD (IF NOT WARMED UP BEFOREHAND, SEE @WARMUP)
+                    getKey<DownloadFragment.DownloadData>(k) // THIS SHIT LAGS THE APPLICATION IF ON MAIN THREAD (IF NOT WARMED UP BEFOREHAND, SEE @WARMUP)
 
                 if (res != null) {
                     val localId = BookDownloader.generateId(res.apiName, res.author, res.name)
-                    val info = context.downloadInfo(res.author, res.name, 100000, res.apiName)
+                    val info = activity?.downloadInfo(res.author, res.name, 100000, res.apiName)
 
                     if (info != null && info.progress > 0) {
                         if (added.containsKey(res.source)) continue // PREVENTS DUPLICATES
@@ -171,7 +186,7 @@ class DownloadViewModel : ViewModel() {
                                 info.progress,
                                 maxOf(
                                     info.progress,
-                                    context.getKey(DOWNLOAD_TOTAL, localId.toString(), info.progress)!!
+                                    getKey(DOWNLOAD_TOTAL, localId.toString(), info.progress)!!
                                 ), //IDK Bug fix ?
                                 false,
                                 "",
@@ -183,18 +198,19 @@ class DownloadViewModel : ViewModel() {
                 }
             }
         }
-        cards.postValue(context.sortArray(newArray))
+
+        cards.postValue(sortArray(newArray))
     }
 
-    fun sortData(context: Context, sortMethod: Int? = null) {
-        cards.postValue(context.sortArray(cards.value ?: return, sortMethod))
+    fun sortData(sortMethod: Int? = null) {
+        cards.postValue(sortArray(cards.value ?: return, sortMethod))
     }
 
-    fun sortNormalData(context: Context, sortMethod: Int? = null) {
-        normalCards.postValue(context.sortNormalArray(normalCards.value ?: return, sortMethod))
+    fun sortNormalData(sortMethod: Int? = null) {
+        normalCards.postValue(sortNormalArray(normalCards.value ?: return, sortMethod))
     }
 
-    fun removeActon(id: Int) {
+    private fun removeActon(id: Int) {
         val copy = cards.value ?: return
         var index = 0
         for (res in copy) {
@@ -207,7 +223,18 @@ class DownloadViewModel : ViewModel() {
         }
     }
 
-    fun updateDownloadInfo(info: BookDownloader.DownloadNotification) {
+    init {
+        BookDownloader.downloadNotification += ::updateDownloadInfo
+        BookDownloader.downloadRemove += ::removeActon
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        BookDownloader.downloadNotification -= ::updateDownloadInfo
+        BookDownloader.downloadRemove -= ::removeActon
+    }
+
+    private fun updateDownloadInfo(info: BookDownloader.DownloadNotification) {
         val copy = cards.value ?: return
         var index = 0
         for (res in copy) {
