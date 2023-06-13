@@ -18,12 +18,16 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat.getColor
+import androidx.core.view.isGone
+import androidx.core.view.isVisible
 import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipDrawable
 import com.google.android.material.tabs.TabLayout
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
@@ -139,6 +143,15 @@ class ResultFragment : Fragment() {
                     result_download_generate_epub.text = "Read Epub"
                 }
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        activity?.apply {
+            window?.navigationBarColor =
+                colorFromAttribute(R.attr.primaryBlackBackground)
         }
     }
 
@@ -260,11 +273,13 @@ class ResultFragment : Fragment() {
                 result_holder.visibility = View.GONE
                 result_error_text.text = loadResponse.errorString
             }
+
             is Resource.Loading -> {
                 result_loading.visibility = View.VISIBLE
                 result_loading_error.visibility = View.GONE
                 result_holder.visibility = View.GONE
             }
+
             is Resource.Success -> {
                 download_warning?.visibility =
                     if (api.rateLimitTime > 1000) View.VISIBLE else View.GONE
@@ -407,6 +422,7 @@ class ResultFragment : Fragment() {
                                         )
                                     )
                                 }
+
                                 DialogInterface.BUTTON_NEGATIVE -> {
                                 }
                             }
@@ -558,8 +574,57 @@ class ResultFragment : Fragment() {
                        }
                     }*/
 
-                    if (res.tags != null) {
-                        for (tag in res.tags) {
+                    result_tag_holder?.isGone = res.tags.isNullOrEmpty()
+                    result_tag?.apply {
+                        removeAllViews()
+
+                        val map =
+                            api.tags.mapIndexed { i, (value, _) -> value to i }.associate { it }
+
+
+                        res.tags?.forEach { tag ->
+                            val chip = Chip(context)
+                            val chipDrawable = ChipDrawable.createFromAttributes(
+                                context,
+                                null,
+                                0,
+                                R.style.ChipFilled
+                            )
+                            chip.setChipDrawable(chipDrawable)
+                            chip.text = tag
+                            chip.isChecked = false
+                            chip.isCheckable = false
+                            chip.isFocusable = false
+                            chip.isClickable = false
+
+                            map[tag]?.let { index ->
+                                chip.isClickable = true
+                                chip.setOnClickListener {
+                                    requireActivity().supportFragmentManager.beginTransaction()
+                                        .setCustomAnimations(
+                                            R.anim.enter_anim,
+                                            R.anim.exit_anim,
+                                            R.anim.pop_enter,
+                                            R.anim.pop_exit
+                                        )
+                                        .add(
+                                            R.id.homeRoot,
+                                            MainPageFragment().newInstance(
+                                                api.name,
+                                                tag = index
+                                            )
+                                        )
+                                        .commit()
+                                }
+                            }
+
+                            chip.setTextColor(context.colorFromAttribute(R.attr.textColor))
+                            addView(chip)
+                        }
+                    }
+
+
+                    /*for (tag in res.tags) {
                             val viewBtt = layoutInflater.inflate(R.layout.result_tag, null)
                             val btt = viewBtt.findViewById<MaterialButton>(R.id.result_tag_card)
                             btt.text = tag
@@ -589,8 +654,8 @@ class ResultFragment : Fragment() {
 
                             result_tag.addView(viewBtt, index)
                             index++
-                        }
-                    }
+                        }*/
+
                 }
 
                 if (res.synopsis != null) {
@@ -608,7 +673,7 @@ class ResultFragment : Fragment() {
                     result_synopsis_text.text = "..."
                 }
 
-                if (res.data.size > 0) {
+                if (res.data.isNotEmpty()) {
                     val last = res.data.last()
                     result_total_chapters.text = "Latest: " + last.name //+ " " + last.dateOfRelease
                 } else {

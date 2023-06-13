@@ -1,35 +1,19 @@
 package com.lagradost.quicknovel.ui.history
 
-import android.content.DialogInterface
 import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.SimpleItemAnimator
-import com.lagradost.quicknovel.DataStore.getKey
-import com.lagradost.quicknovel.DataStore.getKeys
-import com.lagradost.quicknovel.DataStore.removeKey
-import com.lagradost.quicknovel.DataStore.removeKeys
-import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.FragmentHistoryBinding
-import com.lagradost.quicknovel.databinding.FragmentHomeBinding
 import com.lagradost.quicknovel.mvvm.observe
-import com.lagradost.quicknovel.ui.home.HomeViewModel
-import com.lagradost.quicknovel.util.Coroutines.main
-import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import kotlinx.android.synthetic.main.fragment_downloads.*
-import kotlinx.android.synthetic.main.fragment_history.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 
 class HistoryFragment : Fragment() {
@@ -66,7 +50,7 @@ class HistoryFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        activity?.fixPaddingStatusbar(historyRoot)
+        activity?.fixPaddingStatusbar(binding.historyToolbar)
 
         setupGridView()
 
@@ -87,7 +71,7 @@ class HistoryFragment : Fragment() {
         binding.historyToolbar.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.action_history_more -> {
-                    history_toolbar.findViewById<View>(R.id.action_history_more)
+                    binding.historyToolbar.findViewById<View>(R.id.action_history_more)
                         .popupMenu(listOf(Pair(1, R.string.clear_history))) {
                             if (itemId == 1) {
                                 viewModel.deleteAllAlert()

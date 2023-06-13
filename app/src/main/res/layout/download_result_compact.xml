@@ -100,14 +100,16 @@
                     <FrameLayout
                             android:layout_width="60dp"
                             android:layout_height="match_parent">
+
                         <androidx.core.widget.ContentLoadingProgressBar
                                 android:id="@+id/download_update_loading"
-                                android:layout_width="20dp" android:layout_height="20dp"
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
                                 style="@style/Widget.AppCompat.ProgressBar"
                                 android:foregroundTint="@color/white"
                                 android:progressTint="@color/white"
-                                android:layout_gravity="center">
-                        </androidx.core.widget.ContentLoadingProgressBar>
+                                android:layout_gravity="center" />
+
                         <ImageView
                                 android:id="@+id/download_update"
                                 android:background="?selectableItemBackgroundBorderless"
@@ -120,8 +122,6 @@
                                 android:scaleY="0.6"
                                 app:tint="?attr/textColor" />
                     </FrameLayout>
-
-
 
 
                     <ImageView

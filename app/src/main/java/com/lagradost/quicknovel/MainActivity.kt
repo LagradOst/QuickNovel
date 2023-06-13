@@ -25,6 +25,7 @@ import com.lagradost.quicknovel.BookDownloader.requestRW
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
+import com.lagradost.quicknovel.MainActivity.Companion.backPressed
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.ui.download.DownloadFragment
@@ -40,6 +41,7 @@ import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.getResourceColor
+import kotlinx.android.synthetic.main.activity_main.nav_view
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -117,6 +119,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         fun AppCompatActivity.backPressed(): Boolean {
+            this.window?.navigationBarColor =
+                this.colorFromAttribute(R.attr.primaryGrayBackground)
+
             val currentFragment = supportFragmentManager.fragments.last {
                 it.isVisible
             }
@@ -244,6 +249,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         activity = this
+
+        this.window?.navigationBarColor =
+            this.colorFromAttribute(R.attr.primaryGrayBackground)
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
 
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
@@ -290,6 +298,10 @@ class MainActivity : AppCompatActivity() {
 
         val navView: BottomNavigationView = findViewById(R.id.nav_view)
 
+        val rippleColor = ColorStateList.valueOf(getResourceColor(R.attr.colorPrimary, 0.1f))
+        navView.itemRippleColor = rippleColor
+        navView.itemActiveIndicatorColor = rippleColor
+
         val navController = findNavController(R.id.nav_host_fragment)
 
         //window.navigationBarColor = colorFromAttribute(R.attr.darkBackground)
@@ -330,8 +342,8 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        navView.itemRippleColor =
-            ColorStateList.valueOf(getResourceColor(R.attr.colorPrimary, 0.1f))
+        //navView.itemRippleColor =
+        //    ColorStateList.valueOf(getResourceColor(R.attr.colorPrimary, 0.1f))
 
         val apiNames = getApiSettings()
         providersActive = apiNames

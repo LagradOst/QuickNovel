@@ -3,8 +3,7 @@
         xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:id="@+id/mainpageRoot"
-        android:layout_height="match_parent"
-        android:background="?attr/primaryGrayBackground">
+        android:layout_height="match_parent">
 
     <ProgressBar
             android:id="@+id/mainpage_loading"
@@ -73,7 +72,7 @@
                 android:background="?attr/primaryGrayBackground"
                 app:layout_scrollFlags="scroll|enterAlways"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"></com.google.android.material.appbar.MaterialToolbar>
+                android:layout_height="wrap_content" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <com.lagradost.quicknovel.widget.AutofitRecyclerView

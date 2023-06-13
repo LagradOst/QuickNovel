@@ -14,6 +14,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -27,6 +28,7 @@ import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader.checkWrite
+import com.lagradost.quicknovel.BookDownloader.createQuickStream
 import com.lagradost.quicknovel.BookDownloader.getFileLength
 import com.lagradost.quicknovel.BookDownloader.requestRW
 import com.lagradost.quicknovel.CommonActivity.activity
@@ -41,6 +43,7 @@ import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.Event
+import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.pmap
 import kotlinx.coroutines.Dispatchers
@@ -853,6 +856,40 @@ object BookDownloader2 {
         if (isOpeningQuickStreamMutex.isLocked) return@main
         isOpeningQuickStreamMutex.withLock {
             BookDownloader2Helper.openQuickStream(activity, uri)
+        }
+    }
+
+    fun stream(card: ResultCached) = ioSafe {
+        val api = Apis.getApiFromName(card.apiName)
+        val data = api.load(card.source)
+
+        if (data is com.lagradost.quicknovel.mvvm.Resource.Success) {
+            val res = data.value
+
+            if (res.data.isEmpty()) {
+                showToast(
+                    R.string.no_chapters_found,
+                    Toast.LENGTH_SHORT
+                )
+                return@ioSafe
+            }
+
+            val uri =
+                createQuickStream(
+                    BookDownloader.QuickStreamData(
+                        BookDownloader.QuickStreamMetaData(
+                            res.author,
+                            res.name,
+                            card.apiName,
+                        ),
+                        res.posterUrl,
+                        res.data.toMutableList()
+                    )
+                )
+
+            BookDownloader2.openQuickStream(uri)
+        } else {
+            showToast(R.string.error_loading_novel, Toast.LENGTH_SHORT)
         }
     }
 

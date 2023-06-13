@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-        xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
         xmlns:tools="http://schemas.android.com/tools"
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:background="@null"
         android:layout_height="match_parent">
+
     <androidx.cardview.widget.CardView
             app:cardCornerRadius="10dp"
             android:backgroundTint="?attr/boxItemBackground"
-            android:layout_width="match_parent" android:layout_height="wrap_content">
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
         <TextView
                 style="@style/AppTextViewStyle"
                 android:gravity="center_vertical"
@@ -19,11 +22,13 @@
                 android:paddingLeft="20dp"
                 android:paddingRight="20dp"
                 android:layout_gravity="center_vertical"
-                android:text="@string/filter_dialog_sort_by" android:textColor="?attr/textColor" android:textSize="18sp"
-                android:layout_width="wrap_content" android:layout_height="55dp"
-        >
-        </TextView>
+                android:text="@string/filter_dialog_sort_by"
+                android:textColor="?attr/textColor"
+                android:textSize="18sp"
+                android:layout_width="wrap_content"
+                android:layout_height="55dp" />
     </androidx.cardview.widget.CardView>
+
     <ListView
             android:layout_marginTop="-10dp"
             android:paddingTop="10dp"
@@ -31,6 +36,5 @@
             android:background="?attr/primaryBlackBackground"
             tools:listitem="@layout/sort_bottom_single_choice"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-    </ListView>
+            android:layout_height="wrap_content" />
 </LinearLayout>

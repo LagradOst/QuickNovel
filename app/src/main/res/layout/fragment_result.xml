@@ -188,6 +188,7 @@
                                     android:layout_width="match_parent"
                                     android:layout_height="match_parent"
                                     android:orientation="horizontal">
+
                                 <LinearLayout
                                         android:gravity="center"
                                         android:layout_weight="1"
@@ -212,6 +213,7 @@
                                             android:layout_width="match_parent"
                                             android:layout_height="wrap_content" />
                                 </LinearLayout>
+
                                 <LinearLayout
                                         android:layout_weight="1"
                                         android:gravity="center"
@@ -242,18 +244,26 @@
                         </androidx.cardview.widget.CardView>
 
                         <com.google.android.material.tabs.TabLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
                                 android:id="@+id/result_tabs"
+                                style="@style/Theme.Widget.Tabs"
                                 android:layout_marginTop="10dp"
+                                android:layout_width="match_parent"
+                                android:layout_height="40dp"
+                                android:layout_gravity="bottom"
+                                android:background="@color/transparent"
+                                android:descendantFocusability="blocksDescendants"
+                                android:focusable="false"
+                                android:paddingHorizontal="5dp"
+                                app:layout_scrollFlags="noScroll"
                                 app:tabGravity="start"
-                                android:backgroundTint="@color/transparent">
-
-                            <com.google.android.material.tabs.TabItem
-                                    tools:text="TEST"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content" />
-                        </com.google.android.material.tabs.TabLayout>
+                                app:tabIndicator="@drawable/indicator_background"
+                                app:tabIndicatorColor="?attr/white"
+                                app:tabIndicatorGravity="center"
+                                app:tabIndicatorHeight="30dp"
+                                app:tabMode="scrollable"
+                                app:tabSelectedTextColor="?attr/primaryBlackBackground"
+                                app:tabTextAppearance="@style/TabNoCaps"
+                                app:tabTextColor="?attr/textColor" />
 
                         <FrameLayout
                                 android:visibility="gone"
@@ -295,7 +305,7 @@
                                             android:layout_marginLeft="5dp"
                                             android:text="@string/open_in_browser"
                                             android:layout_width="wrap_content"
-                                            android:layout_height="match_parent"></TextView>
+                                            android:layout_height="match_parent" />
 
                                     <ImageView
                                             android:id="@+id/result_openinbrower"
@@ -306,7 +316,7 @@
                                             android:layout_height="25dp"
                                             android:layout_margin="5dp"
                                             app:tint="?attr/iconColor"
-                                            android:contentDescription="@string/open_in_browser"></ImageView>
+                                            android:contentDescription="@string/open_in_browser" />
 
                                     <ImageView
                                             android:id="@+id/result_share"
@@ -319,7 +329,7 @@
                                             android:background="?android:attr/selectableItemBackgroundBorderless"
                                             android:src="@drawable/ic_outline_share_24"
                                             android:layout_gravity="center"
-                                            android:contentDescription="@string/result_share"></ImageView>
+                                            android:contentDescription="@string/result_share" />
 
                                     <ImageView
                                             android:id="@+id/result_bookmark"
@@ -332,7 +342,7 @@
                                             android:background="?android:attr/selectableItemBackgroundBorderless"
                                             android:src="@drawable/ic_baseline_bookmark_24"
                                             android:layout_gravity="center"
-                                            android:contentDescription="@string/result_share"></ImageView>
+                                            android:contentDescription="@string/result_share" />
                                 </LinearLayout>
                                 <!--<ImageView
                                         android:id="@+id/result_openinbrower"
@@ -379,13 +389,13 @@ Translator: Rainbow Turtle"
                                     android:textStyle="normal"
                                     android:textColor="?attr/textColor" />
 
-                            <com.lagradost.quicknovel.widget.FlowLayout
+                            <com.google.android.material.chip.ChipGroup
                                     android:id="@+id/result_tag"
+                                    style="@style/ChipParent"
+                                    app:chipSpacingVertical="-7dp"
                                     android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:orientation="horizontal">
+                                    android:layout_height="wrap_content" />
 
-                            </com.lagradost.quicknovel.widget.FlowLayout>
                             <!--
                             <HorizontalScrollView android:id="@+id/result_tag_holder" android:layout_width="wrap_content" android:layout_height="wrap_content">
                                 <LinearLayout
@@ -409,12 +419,12 @@ Translator: Rainbow Turtle"
                                             android:id="@+id/download_delete_trash_from_result"
                                             android:background="?selectableItemBackgroundBorderless"
                                             android:src="@drawable/ic_baseline_delete_outline_24"
-                                            android:tint="?attr/textColor"
                                             android:layout_width="25dp"
                                             android:layout_height="match_parent"
                                             android:layout_gravity="end|center_vertical"
-                                            android:layout_marginRight="5dp"
-                                            android:contentDescription="@string/delete"></ImageView>
+                                            android:layout_marginEnd="5dp"
+                                            android:contentDescription="@string/delete"
+                                            app:tint="?attr/textColor" />
 
                                     <TextView
                                             android:layout_width="wrap_content"
@@ -463,14 +473,14 @@ Translator: Rainbow Turtle"
                                 </LinearLayout>
 
                                 <androidx.core.widget.ContentLoadingProgressBar
-                                        android:progressTint="?attr/colorPrimary"
+                                        android:progressTint="?attr/textColor"
                                         android:id="@+id/result_download_progress_bar"
                                         android:layout_width="match_parent"
                                         android:indeterminate="false"
                                         tools:progress="50"
                                         android:layout_marginTop="10dp"
                                         android:layout_marginBottom="10dp"
-                                        android:progressBackgroundTint="?attr/colorPrimary"
+                                        android:progressBackgroundTint="?attr/textColor"
                                         style="@android:style/Widget.Material.ProgressBar.Horizontal"
                                         android:layout_height="wrap_content" />
 
@@ -482,13 +492,13 @@ Translator: Rainbow Turtle"
                                     <com.google.android.material.button.MaterialButton
                                             android:gravity="center"
                                             android:layout_weight="1"
-                                            android:layout_height="45dp"
-                                            android:layout_marginRight="5dp"
+                                            android:layout_marginEnd="5dp"
+                                            android:layout_marginStart="0dp"
                                             app:icon="@drawable/ic_baseline_create_24"
                                             app:iconSize="20dp"
                                             android:text="@string/generate_epub"
                                             android:id="@+id/result_download_generate_epub"
-                                            style="@style/NiceButton"
+                                            style="@style/WhiteButton"
                                             app:rippleColor="?attr/colorPrimary"
                                             android:layout_width="50dp" />
                                     <!--
@@ -497,24 +507,27 @@ Translator: Rainbow Turtle"
                                     <com.google.android.material.button.MaterialButton
                                             android:layout_columnWeight="1"
                                             android:layout_marginStart="5dp"
+                                            android:layout_marginEnd="0dp"
+
                                             android:layout_weight="1"
                                             android:gravity="center"
-                                            android:layout_height="45dp"
                                             android:id="@+id/result_download_btt"
                                             android:text="@string/download_text"
-                                            style="@style/NiceButton"
+                                            style="@style/BlackButton"
                                             android:layout_width="50dp" />
                                 </LinearLayout>
 
                                 <com.google.android.material.button.MaterialButton
-                                        android:layout_marginTop="5dp"
+                                        android:layout_marginTop="10dp"
+                                        android:layout_marginEnd="0dp"
+                                        android:layout_marginStart="0dp"
                                         android:gravity="center"
-                                        android:layout_height="45dp"
+
                                         app:iconSize="20dp"
                                         android:text="@string/quickstream_novel_text"
                                         android:id="@+id/result_quickstream"
-                                        style="@style/NiceButton"
-                                        android:layout_width="match_parent"></com.google.android.material.button.MaterialButton>
+                                        style="@style/WhiteButton"
+                                        android:layout_width="match_parent" />
                             </LinearLayout>
                         </LinearLayout>
                     </LinearLayout>
@@ -531,9 +544,9 @@ Translator: Rainbow Turtle"
             android:layout_height="30dp"
             android:layout_margin="10dp"
             android:layout_gravity="end"
-            android:tint="?attr/white"
             android:src="@drawable/ic_sharp_clear_24"
-            android:contentDescription="@string/back_to_search"></ImageView>
+            android:contentDescription="@string/back_to_search"
+            app:tint="?attr/white" />
 
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
             android:id="@+id/reviews_fab"
@@ -546,9 +559,9 @@ Translator: Rainbow Turtle"
             android:textStyle="bold"
 
             app:backgroundTint="?attr/primaryBlackBackground"
-            app:tint="?attr/colorPrimary"
-            android:textColor="?attr/colorPrimary"
-            app:iconTint="?attr/colorPrimary"
+            app:tint="?attr/textColor"
+            android:textColor="?attr/textColor"
+            app:iconTint="?attr/textColor"
             app:icon="@drawable/ic_baseline_arrow_upward_24"
 
             android:contentDescription="@string/reviews_to_top"

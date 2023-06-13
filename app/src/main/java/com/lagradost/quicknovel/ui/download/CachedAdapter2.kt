@@ -29,9 +29,11 @@ class CachedAdapter2(private val viewModel: DownloadViewModel, private val resVi
                 historyDelete.setOnClickListener {
                     viewModel.deleteAlert(card)
                 }
+
                 historyPlay.setOnClickListener {
-                    viewModel.streamRead(card)
+                    viewModel.stream(card)
                 }
+
                 backgroundCard.setOnClickListener {
                     viewModel.load(card)
                 }

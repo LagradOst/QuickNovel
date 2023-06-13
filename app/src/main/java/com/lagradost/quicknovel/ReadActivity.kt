@@ -1514,6 +1514,9 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     override fun onResume() {
         super.onResume()
 
+        this.window?.navigationBarColor =
+            this.colorFromAttribute(R.attr.primaryGrayBackground)
+
         activity = this
         main {
             if (read_scroll == null) return@main

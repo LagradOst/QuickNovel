@@ -68,38 +68,8 @@ class DownloadViewModel : ViewModel() {
         loadResult(card.source, card.apiName)
     }
 
-    fun streamRead(card: ResultCached) = ioSafe {
-        val api = Apis.getApiFromName(card.apiName)
-        val data = api.load(card.source)
-
-        if (data is Resource.Success) {
-            val res = data.value
-
-            if (res.data.isEmpty()) {
-                showToast(
-                    R.string.no_chapters_found,
-                    Toast.LENGTH_SHORT
-                )
-                return@ioSafe
-            }
-
-            val uri =
-                createQuickStream(
-                    BookDownloader.QuickStreamData(
-                        BookDownloader.QuickStreamMetaData(
-                            res.author,
-                            res.name,
-                            card.apiName,
-                        ),
-                        res.posterUrl,
-                        res.data.toMutableList()
-                    )
-                )
-
-            BookDownloader2.openQuickStream(uri)
-        } else {
-            showToast(R.string.error_loading_novel, Toast.LENGTH_SHORT)
-        }
+    fun stream(card : ResultCached) {
+        BookDownloader2.stream(card)
     }
 
     fun readEpub(card: DownloadFragment.DownloadDataLoaded) = ioSafe {

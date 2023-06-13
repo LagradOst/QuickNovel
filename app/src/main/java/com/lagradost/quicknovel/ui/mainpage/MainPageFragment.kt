@@ -100,7 +100,7 @@ class MainPageFragment : Fragment() {
         if (defOrderBy == -1) defOrderBy = null
         if (defMainCategory == -1) defMainCategory = null*/
 
-        activity?.fixPaddingStatusbar(binding.mainpageRoot)
+        activity?.fixPaddingStatusbar(binding.mainpageToolbar)
 
         viewModel.load(
             0,

@@ -14,6 +14,7 @@ import com.lagradost.quicknovel.BaseApplication.Companion.removeKeys
 import com.lagradost.quicknovel.BookDownloader
 import com.lagradost.quicknovel.BookDownloader.createQuickStream
 import com.lagradost.quicknovel.BookDownloader.openQuickStream
+import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.HISTORY_FOLDER
@@ -113,37 +114,8 @@ class HistoryViewModel : ViewModel() {
         updateHistory()
     }
 
-    fun stream(card: ResultCached) =
-        ioSafe {
-            val data = withContext(Dispatchers.IO) {
-                val api = Apis.getApiFromName(card.apiName)
-                api.load(card.source)
-            }
-            if (data is Resource.Success) {
-                val res = data.value
-
-                if (res.data.isEmpty()) {
-                    showToast(R.string.no_chapters_found, Toast.LENGTH_SHORT)
-                    return@ioSafe
-                }
-
-                val uri = withContext(Dispatchers.IO) {
-                    createQuickStream(
-                        BookDownloader.QuickStreamData(
-                            BookDownloader.QuickStreamMetaData(
-                                res.author,
-                                res.name,
-                                card.apiName,
-                            ),
-                            res.posterUrl,
-                            res.data.toMutableList()
-                        )
-                    )
-                }
-                openQuickStream(uri)
-            } else {
-                showToast(R.string.error_loading_novel, Toast.LENGTH_SHORT)
-            }
-        }
+    fun stream(card: ResultCached) {
+        BookDownloader2.stream(card)
+    }
 
 }

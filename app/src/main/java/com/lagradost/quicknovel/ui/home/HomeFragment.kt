@@ -12,8 +12,8 @@ import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 
 class HomeFragment : Fragment() {
-    lateinit var binding : FragmentHomeBinding
-    private val viewModel : HomeViewModel by viewModels()
+    lateinit var binding: FragmentHomeBinding
+    private val viewModel: HomeViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -36,6 +36,6 @@ class HomeFragment : Fragment() {
             browseAdapter.submitList(list)
         }
 
-        activity?.fixPaddingStatusbar(binding.homeRoot)
+        activity?.fixPaddingStatusbar(binding.homeToolbar)
     }
 }

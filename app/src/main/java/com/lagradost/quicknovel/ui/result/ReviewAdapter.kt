@@ -11,9 +11,14 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.model.GlideUrl
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipDrawable
+import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.UserReview
+import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.util.SettingsHelper.getRatingReview
+import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import kotlinx.android.synthetic.main.result_review.view.*
 
@@ -51,7 +56,8 @@ class ReviewAdapter(
 
 
     class ReviewCardViewHolder
-    constructor(itemView: View, context: Context, resView: RecyclerView) : RecyclerView.ViewHolder(itemView) {
+    constructor(itemView: View, context: Context, resView: RecyclerView) :
+        RecyclerView.ViewHolder(itemView) {
         private val localContext = context
         private val reviewAuthor = itemView.review_author
         private val reviewBody = itemView.review_body
@@ -86,28 +92,47 @@ class ReviewAdapter(
 
             reviewImage.setImage(card.avatarUrl)
 
-            reviewTags.removeAllViews()
-            val inflater = localContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-            var index = 0
-            if (card.rating != null) {
-                val viewBtt = inflater.inflate(R.layout.result_review_tag, null)
-                val btt = viewBtt as MaterialButton
-                btt.strokeColor = ContextCompat.getColorStateList(localContext, R.color.colorOngoing)
-                btt.setTextColor(ContextCompat.getColor(localContext, R.color.colorOngoing))
-                btt.rippleColor = ContextCompat.getColorStateList(localContext, R.color.colorOngoing)
-                btt.text = "Overall ${localContext.getRatingReview(card.rating)}"
-                reviewTags.addView(viewBtt, index)
-                index++
-            }
+            reviewTags.apply {
+                removeAllViews()
 
-            if (card.ratings != null) {
-                for (r in card.ratings) {
-                    val viewBtt = inflater.inflate(R.layout.result_review_tag, null)
-                    val btt = viewBtt as MaterialButton
-                    btt.text = "${r.second} ${localContext.getRatingReview(r.first)}"
+                val context = reviewTags.context
 
-                    reviewTags.addView(viewBtt, index)
-                    index++
+                card.rating?.let {rating ->
+                    val chip = Chip(context)
+                    val chipDrawable = ChipDrawable.createFromAttributes(
+                        context,
+                        null,
+                        0,
+                        R.style.ChipReviewAlt
+                    )
+                    chip.setChipDrawable(chipDrawable)
+                    chip.text = "Overall ${localContext.getRatingReview(rating)}"
+                    chip.isChecked = false
+                    chip.isCheckable = false
+                    chip.isFocusable = false
+                    chip.isClickable = false
+
+                    chip.setTextColor(context.colorFromAttribute(R.attr.primaryGrayBackground))
+                    addView(chip)
+                }
+
+                card.ratings?.forEach { (a, b) ->
+                    val chip = Chip(context)
+                    val chipDrawable = ChipDrawable.createFromAttributes(
+                        context,
+                        null,
+                        0,
+                        R.style.ChipReview
+                    )
+                    chip.setChipDrawable(chipDrawable)
+                    chip.text = "$b ${localContext.getRatingReview(a)}"
+                    chip.isChecked = false
+                    chip.isCheckable = false
+                    chip.isFocusable = false
+                    chip.isClickable = false
+
+                    chip.setTextColor(context.colorFromAttribute(R.attr.textColor))
+                    addView(chip)
                 }
             }
         }
