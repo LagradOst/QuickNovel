@@ -822,7 +822,7 @@ object BookDownloader {
         )
     }
 
-    private fun Context.createNotification(
+    fun Context.createNotification(
         source: String,
         id: Int,
         load: LoadResponse,

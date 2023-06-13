@@ -1,6 +1,9 @@
 package com.lagradost.quicknovel.ui.download
 
 import android.content.Context
+import android.content.DialogInterface
+import androidx.appcompat.app.AlertDialog
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,20 +12,29 @@ import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
 import com.lagradost.quicknovel.BookDownloader.downloadInfo
+import com.lagradost.quicknovel.BookDownloader.hasEpub
+import com.lagradost.quicknovel.BookDownloader.remove
+import com.lagradost.quicknovel.BookDownloader.turnToEpub
+import com.lagradost.quicknovel.BookDownloader2Helper.turnToEpub
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
 import com.lagradost.quicknovel.ui.ReadType
+import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.internal.toImmutableList
 
 class DownloadViewModel : ViewModel() {
-    val cards: MutableLiveData<ArrayList<DownloadFragment.DownloadDataLoaded>> by lazy {
+    private val cards: MutableLiveData<ArrayList<DownloadFragment.DownloadDataLoaded>> by lazy {
         MutableLiveData<ArrayList<DownloadFragment.DownloadDataLoaded>>()
     }
+
+    val downloadCards: LiveData<ArrayList<DownloadFragment.DownloadDataLoaded>> = cards
 
     val normalCards: MutableLiveData<ArrayList<ResultCached>> by lazy {
         MutableLiveData<ArrayList<ResultCached>>()
@@ -37,14 +49,62 @@ class DownloadViewModel : ViewModel() {
     var currentNormalSortingMethod: MutableLiveData<Int> =
         MutableLiveData<Int>()
 
-    fun refresh() {
-      //  val copy = arrayListOf( *(cards.value ?: emptyList()).toImmutableList().map { it.copy(state = BookDownloader.DownloadType.IsPending) }.toTypedArray())
-       // cards.postValue(copy)
-        for (card in cards.value ?: emptyList()) {
-            if ((card.downloadedCount * 100 / card.downloadedTotal) > 90) {
-                DownloadHelper.updateDownloadFromCard(context ?: return, card)
+    fun refreshCard(card: DownloadFragment.DownloadDataLoaded) {
+        BookDownloader2.downloadFromCard(card)
+    }
+
+    fun readEpub(card: DownloadFragment.DownloadDataLoaded) = ioSafe {
+        try {
+            cardsDataMutex.withLock {
+                cardsData[card.id]?.generating = true
+                cards.postValue(sortArray(ArrayList(cardsData.values)))
+            }
+            BookDownloader2.readEpub(
+                card.id,
+                card.downloadedCount,
+                card.author,
+                card.name,
+                card.apiName
+            )
+        } finally {
+            cardsDataMutex.withLock {
+                cardsData[card.id]?.generating = false
+                cards.postValue(sortArray(ArrayList(cardsData.values)))
             }
         }
+    }
+
+    fun refresh() = viewModelScope.launch {
+        val values = cardsDataMutex.withLock {
+            cardsData.values
+        }
+        for (card in values) {
+            if ((card.downloadedCount * 100 / card.downloadedTotal) > 90) {
+                BookDownloader2.downloadFromCard(card)
+            }
+        }
+    }
+
+    fun deleteAlert(card: DownloadFragment.DownloadDataLoaded) {
+        val dialogClickListener =
+            DialogInterface.OnClickListener { _, which ->
+                when (which) {
+                    DialogInterface.BUTTON_POSITIVE -> {
+                        delete(card)
+                    }
+                    DialogInterface.BUTTON_NEGATIVE -> {
+                    }
+                }
+            }
+        val builder: AlertDialog.Builder = AlertDialog.Builder(activity ?: return)
+        builder.setMessage("This will permanently delete ${card.name}.\nAre you sure?").setTitle("Delete")
+            .setPositiveButton("Delete", dialogClickListener)
+            .setNegativeButton("Cancel", dialogClickListener)
+            .show()
+    }
+
+    fun delete(card: DownloadFragment.DownloadDataLoaded) {
+        BookDownloader2.deleteNovel(card.author,card.name,card.apiName)
     }
 
     private fun sortArray(
@@ -62,31 +122,44 @@ class DownloadViewModel : ViewModel() {
                 currentArray.sortBy { t -> t.name }
                 currentArray
             }
+
             REVERSE_ALPHA_SORT -> {
                 currentArray.sortBy { t -> t.name }
                 currentArray.reverse()
                 currentArray
             }
+
             DOWNLOADSIZE_SORT -> {
                 currentArray.sortBy { t -> -t.downloadedCount }
                 currentArray
             }
+
             REVERSE_DOWNLOADSIZE_SORT -> {
                 currentArray.sortBy { t -> t.downloadedCount }
                 currentArray
             }
+
             DOWNLOADPRECENTAGE_SORT -> {
                 currentArray.sortBy { t -> -t.downloadedCount.toFloat() / t.downloadedTotal }
                 currentArray
             }
+
             REVERSE_DOWNLOADPRECENTAGE_SORT -> {
                 currentArray.sortBy { t -> t.downloadedCount.toFloat() / t.downloadedTotal }
                 currentArray
             }
+
             LAST_ACCES_SORT -> {
-                currentArray.sortBy { t -> -(getKey<Long>(DOWNLOAD_EPUB_LAST_ACCESS, t.id.toString(), 0)!!) }
+                currentArray.sortBy { t ->
+                    -(getKey<Long>(
+                        DOWNLOAD_EPUB_LAST_ACCESS,
+                        t.id.toString(),
+                        0
+                    )!!)
+                }
                 currentArray
             }
+
             else -> currentArray
         }
     }
@@ -106,16 +179,37 @@ class DownloadViewModel : ViewModel() {
                 currentArray.sortBy { t -> t.name }
                 currentArray
             }
+
             REVERSE_ALPHA_SORT -> {
                 currentArray.sortBy { t -> t.name }
                 currentArray.reverse()
                 currentArray
             }
+
             LAST_ACCES_SORT -> {
-                currentArray.sortBy { t -> -(getKey<Long>(DOWNLOAD_EPUB_LAST_ACCESS, t.id.toString(), 0)!!) }
+                currentArray.sortBy { t ->
+                    -(getKey<Long>(
+                        DOWNLOAD_EPUB_LAST_ACCESS,
+                        t.id.toString(),
+                        0
+                    )!!)
+                }
                 currentArray
             }
+
             else -> currentArray
+        }
+    }
+
+    fun loadData() = viewModelScope.launch {
+        currentSortingMethod.postValue(
+            getKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, LAST_ACCES_SORT)
+                ?: LAST_ACCES_SORT
+        )
+        currentReadType.postValue(null)
+        isOnDownloads.postValue(true)
+        cardsDataMutex.withLock {
+            cards.postValue(sortArray(ArrayList(cardsData.values)))
         }
     }
 
@@ -135,7 +229,12 @@ class DownloadViewModel : ViewModel() {
             val keys = getKeys(RESULT_BOOKMARK_STATE)
             for (key in keys ?: emptyList()) {
                 if (getKey<Int>(key) == state.prefValue) {
-                    ids.add(key.replaceFirst(RESULT_BOOKMARK_STATE, RESULT_BOOKMARK)) // I know kinda spaghetti
+                    ids.add(
+                        key.replaceFirst(
+                            RESULT_BOOKMARK_STATE,
+                            RESULT_BOOKMARK
+                        )
+                    ) // I know kinda spaghetti
                 }
             }
             ids.mapNotNull { id -> getKey<ResultCached>(id) }
@@ -143,125 +242,113 @@ class DownloadViewModel : ViewModel() {
         normalCards.postValue(sortNormalArray(ArrayList(cards)))
     }
 
-    fun loadData() = viewModelScope.launch {
-        currentSortingMethod.postValue(
-            getKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, LAST_ACCES_SORT)
-                ?: LAST_ACCES_SORT
-        )
-
-        currentReadType.postValue(null)
-        isOnDownloads.postValue(true)
-
-        val newArray = ArrayList<DownloadFragment.DownloadDataLoaded>()
-        val added = HashMap<String, Boolean>()
-
-        withContext(Dispatchers.IO) {
-            val keys = getKeys(DOWNLOAD_FOLDER)
-            for (k in keys ?: emptyList()) {
-                val res =
-                    getKey<DownloadFragment.DownloadData>(k) // THIS SHIT LAGS THE APPLICATION IF ON MAIN THREAD (IF NOT WARMED UP BEFOREHAND, SEE @WARMUP)
-
-                if (res != null) {
-                    val localId = BookDownloader.generateId(res.apiName, res.author, res.name)
-                    val info = activity?.downloadInfo(res.author, res.name, 100000, res.apiName)
-
-                    if (info != null && info.progress > 0) {
-                        if (added.containsKey(res.source)) continue // PREVENTS DUPLICATES
-                        added[res.source] = true
-
-                        val state =
-                            (if (BookDownloader.isRunning.containsKey(localId)) BookDownloader.isRunning[localId] else BookDownloader.DownloadType.IsStopped)!!
-                        newArray.add(
-                            DownloadFragment.DownloadDataLoaded(
-                                res.source,
-                                res.name,
-                                res.author,
-                                res.posterUrl,
-                                res.rating,
-                                res.peopleVoted,
-                                res.views,
-                                res.Synopsis,
-                                res.tags,
-                                res.apiName,
-                                info.progress,
-                                maxOf(
-                                    info.progress,
-                                    getKey(DOWNLOAD_TOTAL, localId.toString(), info.progress)!!
-                                ), //IDK Bug fix ?
-                                false,
-                                "",
-                                state,
-                                info.id,
-                            )
-                        )
-                    }
-                }
-            }
+    fun sortData(sortMethod: Int? = null) = ioSafe {
+        cardsDataMutex.withLock {
+            cards.postValue(sortArray(ArrayList(cardsData.values), sortMethod))
         }
-
-        cards.postValue(sortArray(newArray))
-    }
-
-    fun sortData(sortMethod: Int? = null) {
-        cards.postValue(sortArray(cards.value ?: return, sortMethod))
     }
 
     fun sortNormalData(sortMethod: Int? = null) {
         normalCards.postValue(sortNormalArray(normalCards.value ?: return, sortMethod))
     }
 
-    private fun removeActon(id: Int) {
-        val copy = cards.value ?: return
-        var index = 0
-        for (res in copy) {
-            if (res.id == id) {
-                copy.removeAt(index)
-                cards.postValue(copy)
-                break
-            }
-            index++
-        }
-    }
-
     init {
-        BookDownloader.downloadNotification += ::updateDownloadInfo
-        BookDownloader.downloadRemove += ::removeActon
+        BookDownloader2.downloadDataChanged += ::progressDataChanged
+        BookDownloader2.downloadProgressChanged += ::progressChanged
+        BookDownloader2.downloadDataRefreshed += ::downloadDataRefreshed
+
+        // just in case this runs way after other init that we don't miss downloadDataRefreshed
+        downloadDataRefreshed(0)
     }
 
     override fun onCleared() {
         super.onCleared()
-        BookDownloader.downloadNotification -= ::updateDownloadInfo
-        BookDownloader.downloadRemove -= ::removeActon
+        BookDownloader2.downloadProgressChanged -= ::progressChanged
+        BookDownloader2.downloadDataChanged -= ::progressDataChanged
+        BookDownloader2.downloadDataRefreshed -= ::downloadDataRefreshed
     }
 
-    private fun updateDownloadInfo(info: BookDownloader.DownloadNotification) {
-        val copy = cards.value ?: return
-        var index = 0
-        for (res in copy) {
-            if (res.id == info.id) {
-                copy[index] =
-                    DownloadFragment.DownloadDataLoaded(
-                        res.source,
-                        res.name,
-                        res.author,
-                        res.posterUrl,
-                        res.rating,
-                        res.peopleVoted,
-                        res.views,
-                        res.Synopsis,
-                        res.tags,
-                        res.apiName,
-                        info.progress,
-                        maxOf(info.progress, info.total), //IDK Bug fix ?
-                        true,
-                        info.ETA,
-                        info.state,
-                        res.id,
-                    )
-                cards.postValue(copy)
-                break
+    private val cardsDataMutex = Mutex()
+    private val cardsData: HashMap<Int, DownloadFragment.DownloadDataLoaded> = hashMapOf()
+
+    private fun progressChanged(data: Pair<Int, BookDownloader2Helper.DownloadProgressState>) =
+        ioSafe {
+            cardsDataMutex.withLock {
+                val (id, state) = data
+                cardsData[id]?.apply {
+                    downloadedCount = state.progress
+                    downloadedTotal = state.total
+                    this.state = state.state
+                    this.ETA = state.eta()
+                }
+                cards.postValue(sortArray(ArrayList(cardsData.values)))
             }
-            index++
+        }
+
+    private fun progressDataChanged(data: Pair<Int, DownloadFragment.DownloadData>) = ioSafe {
+        cardsDataMutex.withLock {
+            val (id, value) = data
+            cardsData[id]?.apply {
+                source = value.source
+                name = value.name
+                author = value.name
+                posterUrl = value.posterUrl
+                rating = value.rating
+                peopleVoted = value.peopleVoted
+                views = value.views
+                Synopsis = value.Synopsis
+                tags = value.tags
+                apiName = value.apiName
+            } ?: run {
+                cardsData[id] = DownloadFragment.DownloadDataLoaded(
+                    value.source,
+                    value.name,
+                    value.author,
+                    value.posterUrl,
+                    value.rating,
+                    value.peopleVoted,
+                    value.views,
+                    value.Synopsis,
+                    value.tags,
+                    value.apiName,
+                    0,
+                    0,
+                    "",
+                    BookDownloader2Helper.DownloadState.Nothing,
+                    id,
+                    false
+                )
+            }
+            cards.postValue(sortArray(ArrayList(cardsData.values)))
+        }
+    }
+
+    private fun downloadDataRefreshed(_id: Int) = ioSafe {
+        BookDownloader2.downloadInfoMutex.withLock {
+            cardsDataMutex.withLock {
+                BookDownloader2.downloadData.map { (key, value) ->
+                    val info = BookDownloader2.downloadProgress[key] ?: return@map
+                    cardsData[key] = DownloadFragment.DownloadDataLoaded(
+                        value.source,
+                        value.name,
+                        value.author,
+                        value.posterUrl,
+                        value.rating,
+                        value.peopleVoted,
+                        value.views,
+                        value.Synopsis,
+                        value.tags,
+                        value.apiName,
+                        info.progress,
+                        info.total,
+                        info.eta(),
+                        info.state,
+                        key,
+                        false
+                    )
+                }
+                cards.postValue(sortArray(ArrayList(cardsData.values)))
+            }
         }
     }
 }

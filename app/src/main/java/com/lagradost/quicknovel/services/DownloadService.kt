@@ -4,6 +4,8 @@ import android.app.IntentService
 import android.content.Intent
 import com.lagradost.quicknovel.BookDownloader
 import com.lagradost.quicknovel.BookDownloader.updateDownload
+import com.lagradost.quicknovel.BookDownloader2
+import com.lagradost.quicknovel.BookDownloader2Helper
 
 class DownloadService : IntentService("DownloadService") {
     override fun onHandleIntent(intent: Intent?) {
@@ -18,6 +20,16 @@ class DownloadService : IntentService("DownloadService") {
                     else -> BookDownloader.DownloadType.IsDownloading
                 }
                 updateDownload(id, state)
+
+                val action = when(type) {
+                    "resume" -> BookDownloader.DownloadActionType.Resume
+                    "pause" -> BookDownloader.DownloadActionType.Pause
+                    "stop" -> BookDownloader.DownloadActionType.Stop
+                    else -> null
+                }
+
+                if(action != null)
+                    BookDownloader2.addPendingAction(id, action)
             }
         }
     }

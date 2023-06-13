@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.BookDownloader
+import com.lagradost.quicknovel.BookDownloader2Helper
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.DownloadResultCompactBinding
@@ -25,6 +26,7 @@ class DownloadAdapter2(private val viewModel: DownloadViewModel, private val res
     }
 
     override fun onBindViewHolder(holder: DownloadAdapter2Holder, position: Int) {
+        println("onBindViewHolder $position")
         val currentItem = getItem(position)
         holder.bind(currentItem, viewModel, resView)
     }
@@ -41,17 +43,20 @@ class DownloadAdapter2(private val viewModel: DownloadViewModel, private val res
                     )
                 }
 
+                val same = imageText.text == card.name
+
                 backgroundCard.setOnClickListener {
-                    // load epub
+                    viewModel.readEpub(card)
                 }
+
                 imageView.setOnClickListener {
                     loadResult(card.source, card.apiName)
                 }
-                imageView.setImage(card.posterUrl)
 
-                val isGenerating = false
-                downloadProgressbar.isVisible = !isGenerating
-                downloadProgressbarIndeterment.isVisible = isGenerating
+                imageView.setImage(card.posterUrl, fade = false, skipCache = false)
+
+                downloadProgressbar.isVisible = !card.generating
+                downloadProgressbarIndeterment.isVisible = card.generating
 
                 downloadProgressText.text =
                     "${card.downloadedCount}/${card.downloadedTotal}" + if (card.ETA == "") "" else " - ${card.ETA}"
@@ -60,7 +65,7 @@ class DownloadAdapter2(private val viewModel: DownloadViewModel, private val res
                     max = card.downloadedTotal * 100
 
                     // shitty check for non changed
-                    if (imageText.text == card.name) {
+                    if (same) {
                         val animation: ObjectAnimator = ObjectAnimator.ofInt(this,
                             "progress",
                             progress,
@@ -78,34 +83,43 @@ class DownloadAdapter2(private val viewModel: DownloadViewModel, private val res
                 }
 
                 imageText.text = card.name
-                var realState = card.state
-                if (card.downloadedCount >= card.downloadedTotal && card.updated) {
+                val realState = card.state
+                /*if (card.downloadedCount >= card.downloadedTotal) {
                     downloadUpdate.alpha = 0.5f
                     downloadUpdate.isEnabled = false
-                    realState = BookDownloader.DownloadType.IsDone
-                } else {
+                } else {*/
                     downloadUpdate.alpha = 1f
                     downloadUpdate.isEnabled = true
-                }
+                //}
                 downloadUpdate.contentDescription = when (realState) {
-                    BookDownloader.DownloadType.IsDone -> "Done"
-                    BookDownloader.DownloadType.IsDownloading -> "Pause"
-                    BookDownloader.DownloadType.IsPaused -> "Resume"
-                    BookDownloader.DownloadType.IsFailed -> "Re-Download"
-                    BookDownloader.DownloadType.IsStopped -> "Update"
-                    BookDownloader.DownloadType.IsPending -> "Pending"
+                    BookDownloader2Helper.DownloadState.IsDone -> "Done"
+                    BookDownloader2Helper.DownloadState.IsDownloading -> "Pause"
+                    BookDownloader2Helper.DownloadState.IsPaused -> "Resume"
+                    BookDownloader2Helper.DownloadState.IsFailed -> "Re-Download"
+                    BookDownloader2Helper.DownloadState.IsStopped -> "Update"
+                    BookDownloader2Helper.DownloadState.IsPending -> "Pending"
+                    BookDownloader2Helper.DownloadState.Nothing -> "Update"
                 }
 
                 downloadUpdate.setImageResource(when (realState) {
-                    BookDownloader.DownloadType.IsDownloading -> R.drawable.ic_baseline_pause_24
-                    BookDownloader.DownloadType.IsPaused -> R.drawable.netflix_play
-                    BookDownloader.DownloadType.IsStopped -> R.drawable.ic_baseline_autorenew_24
-                    BookDownloader.DownloadType.IsFailed -> R.drawable.ic_baseline_autorenew_24
-                    BookDownloader.DownloadType.IsDone -> R.drawable.ic_baseline_check_24
-                    BookDownloader.DownloadType.IsPending -> R.drawable.nothing
+                    BookDownloader2Helper.DownloadState.IsDownloading -> R.drawable.ic_baseline_pause_24
+                    BookDownloader2Helper.DownloadState.IsPaused -> R.drawable.netflix_play
+                    BookDownloader2Helper.DownloadState.IsStopped -> R.drawable.ic_baseline_autorenew_24
+                    BookDownloader2Helper.DownloadState.IsFailed -> R.drawable.ic_baseline_autorenew_24
+                    BookDownloader2Helper.DownloadState.IsDone -> R.drawable.ic_baseline_check_24
+                    BookDownloader2Helper.DownloadState.IsPending -> R.drawable.nothing
+                    BookDownloader2Helper.DownloadState.Nothing -> R.drawable.ic_baseline_autorenew_24
                 })
+                downloadUpdate.setOnClickListener {
+                    viewModel.refreshCard(card)
+                }
+                downloadUpdateLoading.isVisible = realState == BookDownloader2Helper.DownloadState.IsPending
             }
         }
+    }
+
+    override fun getItemId(position: Int): Long {
+        return getItem(position).id.toLong()
     }
 
     class DiffCallback : DiffUtil.ItemCallback<DownloadFragment.DownloadDataLoaded>() {

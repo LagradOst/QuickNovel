@@ -144,10 +144,10 @@ class DownloadAdapter(
 
             var realState = card.state
             if (downloadUpdate != null) {
-                if (card.downloadedCount >= card.downloadedTotal && card.updated) {
+                if (card.downloadedCount >= card.downloadedTotal) {
                     downloadUpdate.alpha = 0.5f
                     downloadUpdate.isEnabled = false
-                    realState = BookDownloader.DownloadType.IsDone
+                   // realState = BookDownloader.DownloadType.IsDone
                 } else {
                     downloadUpdate.alpha = 1f
                     downloadUpdate.isEnabled = true
@@ -162,7 +162,7 @@ class DownloadAdapter(
             // Cache here makes it reload the image every time a new chapter is downloaded
             cardView.setImage(card.posterUrl, skipCache = false)
 
-            if (downloadUpdate != null) {
+           /* if (downloadUpdate != null) {
                 downloadUpdate.contentDescription = when (realState) {
                     BookDownloader.DownloadType.IsDone -> "Done"
                     BookDownloader.DownloadType.IsDownloading -> "Pause"
@@ -180,7 +180,7 @@ class DownloadAdapter(
                     BookDownloader.DownloadType.IsDone -> R.drawable.ic_baseline_check_24
                     BookDownloader.DownloadType.IsPending -> R.drawable.nothing
                 })
-            }
+            }*/
 
             fun getDiff(): Int {
                 val downloaded = localActivity.getKey(DOWNLOAD_EPUB_SIZE, card.id.toString(), 0)!!

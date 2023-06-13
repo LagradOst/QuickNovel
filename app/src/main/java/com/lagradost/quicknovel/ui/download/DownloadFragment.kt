@@ -46,23 +46,23 @@ class DownloadFragment : Fragment() {
     )
 
     data class DownloadDataLoaded(
-        val source: String,
-        val name: String,
-        val author: String?,
-        val posterUrl: String?,
+        var source: String,
+        var name: String,
+        var author: String?,
+        var posterUrl: String?,
         //RATING IS FROM 0-100
-        val rating: Int?,
-        val peopleVoted: Int?,
-        val views: Int?,
-        val Synopsis: String?,
-        val tags: List<String>?,
-        val apiName: String,
-        val downloadedCount: Int,
-        val downloadedTotal: Int,
-        val updated: Boolean,
-        val ETA: String,
-        val state: BookDownloader.DownloadType,
+        var rating: Int?,
+        var peopleVoted: Int?,
+        var views: Int?,
+        var Synopsis: String?,
+        var tags: List<String>?,
+        var apiName: String,
+        var downloadedCount: Int,
+        var downloadedTotal: Int,
+        var ETA: String,
+        var state: BookDownloader2Helper.DownloadState,
         val id: Int,
+        var generating : Boolean,
     )
 
     data class SortingMethod(val name: String, val id: Int)
@@ -130,9 +130,6 @@ class DownloadFragment : Fragment() {
 
         //viewModel = ViewModelProviders.of(activity!!).get(DownloadViewModel::class.java)
 
-
-        viewModel.loadData()
-
         observe(viewModel.isOnDownloads) { onDownloads ->
             isOnDownloads = onDownloads
             binding.bookmarkCardSpace.isVisible = !onDownloads
@@ -156,12 +153,11 @@ class DownloadFragment : Fragment() {
                 override fun onTabSelected(tab: TabLayout.Tab?) {
                     val pos = tab?.position
                     if (pos != null) {
-                        if (pos == 0) {
-                            viewModel.loadData()
-                        } else {
+                        if(pos > 0) {
                             viewModel.loadNormalData(readList[pos - 1])
+                        } else {
+                            viewModel.loadData()
                         }
-
                     }
                 }
 
@@ -257,10 +253,13 @@ class DownloadFragment : Fragment() {
         setupGridView()
 
         binding.downloadCardSpace.apply {
+            itemAnimator?.changeDuration = 0
             val downloadAdapter = DownloadAdapter2(viewModel, this)
+            downloadAdapter.setHasStableIds(true)
             adapter = downloadAdapter
-            observe(viewModel.cards) { cards ->
-                downloadAdapter.submitList(cards)
+            observe(viewModel.downloadCards) { cards ->
+                // we need to copy here because otherwise diff wont work
+                downloadAdapter.submitList(cards.map { it.copy() })
             }
         }
 
@@ -268,7 +267,7 @@ class DownloadFragment : Fragment() {
             val bookmarkAdapter = CachedAdapter2(viewModel, this)
             adapter = bookmarkAdapter
             observe(viewModel.normalCards) { cards ->
-                bookmarkAdapter.submitList(cards)
+                bookmarkAdapter.submitList(cards.map { it.copy() })
             }
         }
 
