@@ -157,7 +157,7 @@ object BookDownloader2Helper {
     }
 
     fun deleteNovel(activity: Activity?, author: String?, name: String, apiName: String) {
-        if(activity == null) return
+        if (activity == null) return
         try {
             val sApiName = sanitizeFilename(apiName)
             val sAuthor = if (author == null) "" else sanitizeFilename(author)
@@ -178,8 +178,8 @@ object BookDownloader2Helper {
             if (dir.isDirectory) {
                 dir.deleteRecursively()
             }
-        } catch (e: Exception) {
-            println(e)
+        } catch (t: Throwable) {
+            logError(t)
         }
     }
 
@@ -203,7 +203,7 @@ object BookDownloader2Helper {
                     sAuthor,
                     sName
                 )
-            ).listFiles()?.size ?: return null
+            ).listFiles()?.count { it.name.endsWith(".txt") } ?: return null
 
             /*var sStart = start
             if (sStart == -1) { // CACHE DATA
@@ -231,7 +231,8 @@ object BookDownloader2Helper {
                 return downloadInfo(context, author, name, total, apiName, maxOf(sStart - 100, 0))
             }
             */
-            setKey(DOWNLOAD_SIZE, id.toString(), maxOf(count - 1, 0))
+
+            setKey(DOWNLOAD_SIZE, id.toString(), count)
             val total = getKey<Int>(DOWNLOAD_TOTAL, id.toString()) ?: return null
             return DownloadProgress(count, total)
         } catch (e: Exception) {
@@ -856,7 +857,7 @@ object BookDownloader2 {
     }
 
     private fun generateAndReadEpub(author: String?, name: String, apiName: String) {
-        if(!turnToEpub(author,name,apiName)) {
+        if (!turnToEpub(author, name, apiName)) {
             showToast(R.string.error_loading_novel)
             return
         }
@@ -864,17 +865,17 @@ object BookDownloader2 {
     }
 
     private fun readEpub(author: String?, name: String, apiName: String) {
-        if(hasEpub(name)) {
+        if (hasEpub(name)) {
             openEpub(name)
         } else {
             generateAndReadEpub(author, name, apiName)
         }
     }
 
-    fun readEpub(id : Int, downloadedCount : Int, author: String?, name: String, apiName: String) {
+    fun readEpub(id: Int, downloadedCount: Int, author: String?, name: String, apiName: String) {
         val downloaded = getKey(DOWNLOAD_EPUB_SIZE, id.toString(), 0)!!
         val shouldUpdate = downloadedCount - downloaded != 0
-        if(shouldUpdate) {
+        if (shouldUpdate) {
             generateAndReadEpub(author, name, apiName)
         } else {
             readEpub(author, name, apiName)
@@ -883,9 +884,29 @@ object BookDownloader2 {
 
     fun deleteNovel(author: String?, name: String, apiName: String) = ioSafe {
         val id = BookDownloader2Helper.generateId(apiName, author, name)
+
+        // send stop action
         addPendingActionAsync(id, BookDownloader.DownloadActionType.Stop)
 
+        // wait until download is stopped
+        while (true) {
+            if (!currentDownloadsMutex.withLock { currentDownloads.contains(id) }) {
+                break
+            }
+            delay(100)
+        }
+
+        // delete the novel
         BookDownloader2Helper.deleteNovel(activity, author, name, apiName)
+
+        // remove from info
+        downloadInfoMutex.withLock {
+            downloadData -= id
+            downloadProgress -= id
+        }
+
+        // ping the viewmodels
+        downloadRemoved.invoke(id)
     }
 
     private fun turnToEpub(author: String?, name: String, apiName: String): Boolean {
@@ -922,6 +943,7 @@ object BookDownloader2 {
 
     val downloadProgressChanged = Event<Pair<Int, BookDownloader2Helper.DownloadProgressState>>()
     val downloadDataChanged = Event<Pair<Int, DownloadFragment.DownloadData>>()
+    val downloadRemoved = Event<Int>()
     val downloadDataRefreshed = Event<Int>()
 
     private fun initDownloadProgress() = ioSafe {
@@ -963,12 +985,12 @@ object BookDownloader2 {
     private val pendingAction: HashMap<Int, BookDownloader.DownloadActionType> = hashMapOf()
 
     fun addPendingAction(id: Int, action: BookDownloader.DownloadActionType) = ioSafe {
-        addPendingActionAsync(id,action)
+        addPendingActionAsync(id, action)
     }
 
     private suspend fun addPendingActionAsync(id: Int, action: BookDownloader.DownloadActionType) {
         currentDownloadsMutex.withLock {
-            if(!currentDownloads.contains(id)) {
+            if (!currentDownloads.contains(id)) {
                 return
             }
         }
@@ -1056,7 +1078,7 @@ object BookDownloader2 {
 
 
     fun download(load: LoadResponse, api: APIRepository) {
-        download(load, api, 0..load.data.size)
+        download(load, api, 0 until load.data.size)
     }
 
     fun download(load: LoadResponse, api: APIRepository, range: ClosedRange<Int>) = ioSafe {
@@ -1074,6 +1096,7 @@ object BookDownloader2 {
             }
             currentDownloads += id
         }
+        val totalItems = range.endInclusive + 1
 
         val currentDownloadData = DownloadFragment.DownloadData(
             load.url,
@@ -1088,6 +1111,7 @@ object BookDownloader2 {
             api.name
         )
         setKey(DOWNLOAD_FOLDER, id.toString(), currentDownloadData)
+        setKey(DOWNLOAD_TOTAL, id.toString(), totalItems)
 
         downloadInfoMutex.withLock {
             downloadData[id] = currentDownloadData
@@ -1096,13 +1120,13 @@ object BookDownloader2 {
             downloadProgress[id]?.apply {
                 state = BookDownloader2Helper.DownloadState.IsPending
                 lastUpdatedMs = System.currentTimeMillis()
-                total = range.endInclusive
+                total = totalItems
                 downloadProgressChanged.invoke(Pair(id, this))
             } ?: run {
                 downloadProgress[id] = BookDownloader2Helper.DownloadProgressState(
                     BookDownloader2Helper.DownloadState.IsPending,
                     0,
-                    range.endInclusive,
+                    totalItems,
                     System.currentTimeMillis(),
                     null
                 ).also {
@@ -1229,7 +1253,7 @@ object BookDownloader2 {
                 }
             }
             changeDownload(id) {
-                this.progress = range.endInclusive
+                this.progress = totalItems
                 state = BookDownloader2Helper.DownloadState.IsDone
             }?.let { progressState ->
                 // only notify done if we have actually done some work

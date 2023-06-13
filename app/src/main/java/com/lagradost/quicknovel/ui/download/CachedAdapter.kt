@@ -12,15 +12,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.model.GlideUrl
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.BookDownloader.createQuickStream
 import com.lagradost.quicknovel.BookDownloader.openQuickStream
+import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.removeKey
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.mvvm.Resource
-import com.lagradost.quicknovel.mvvm.safeApiCall
 import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.ResultCached
@@ -80,7 +78,12 @@ class CachedAdapter(
     }
 
     class DownloadCardViewHolder
-    constructor(itemView: View, activity: Activity, resView: AutofitRecyclerView, updateCallback: (id: Int) -> Unit) :
+    constructor(
+        itemView: View,
+        activity: Activity,
+        resView: AutofitRecyclerView,
+        updateCallback: (id: Int) -> Unit
+    ) :
         RecyclerView.ViewHolder(itemView) {
         private val localActivity = activity
         val cardView: ImageView = itemView.imageView
@@ -93,7 +96,8 @@ class CachedAdapter(
         private val compactView = true //localActivity.getDownloadIsCompact()
         val callback = updateCallback
 
-        private val coverHeight: Int = if (compactView) 100.toPx else (resView.itemWidth / 0.68).roundToInt()
+        private val coverHeight: Int =
+            if (compactView) 100.toPx else (resView.itemWidth / 0.68).roundToInt()
 
         @SuppressLint("SetTextI18n")
         fun bind(card: ResultCached) {
@@ -123,7 +127,10 @@ class CachedAdapter(
                         val res = data.value
 
                         if (res.data.isEmpty()) {
-                            Toast.makeText(localActivity, R.string.no_chapters_found, Toast.LENGTH_SHORT).show()
+                            showToast(
+                                R.string.no_chapters_found,
+                                Toast.LENGTH_SHORT
+                            )
                             return@main
                         }
 
@@ -142,9 +149,8 @@ class CachedAdapter(
                         }
                         localActivity.openQuickStream(uri)
                     } else {
-                        localActivity.let { ctx ->
-                            Toast.makeText(ctx, "Error Loading Novel", Toast.LENGTH_SHORT).show()
-                        }
+                        showToast("Error Loading Novel", Toast.LENGTH_SHORT)
+
                     }
                 }
             }
@@ -158,12 +164,14 @@ class CachedAdapter(
                                 localActivity.removeKey(RESULT_BOOKMARK_STATE, card.id.toString())
                                 callback.invoke(card.id)
                             }
+
                             DialogInterface.BUTTON_NEGATIVE -> {
                             }
                         }
                     }
                 val builder: AlertDialog.Builder = AlertDialog.Builder(localActivity)
-                builder.setMessage("This remove ${card.name} from your bookmarks.\nAre you sure?").setTitle("Remove")
+                builder.setMessage("This remove ${card.name} from your bookmarks.\nAre you sure?")
+                    .setTitle("Remove")
                     .setPositiveButton("Remove", dialogClickListener)
                     .setNegativeButton("Cancel", dialogClickListener)
                     .show()
@@ -182,9 +190,21 @@ class CachedAdapter(
                 }
                 backgroundCard.setOnLongClickListener {
                     val items = listOf(
-                        Triple(0, R.drawable.ic_baseline_menu_book_24, R.string.download_read_action),
-                        Triple(1, R.drawable.ic_baseline_open_in_new_24, R.string.download_open_action),
-                        Triple(3, R.drawable.ic_baseline_delete_outline_24, R.string.download_delete_action)
+                        Triple(
+                            0,
+                            R.drawable.ic_baseline_menu_book_24,
+                            R.string.download_read_action
+                        ),
+                        Triple(
+                            1,
+                            R.drawable.ic_baseline_open_in_new_24,
+                            R.string.download_open_action
+                        ),
+                        Triple(
+                            3,
+                            R.drawable.ic_baseline_delete_outline_24,
+                            R.string.download_delete_action
+                        )
                     )
                     it.popupMenu(
                         items = items,
@@ -206,7 +226,11 @@ class CachedAdapter(
         }
     }
 }
-class ResultCachedLoadedDiffCallback(private val oldList: List<ResultCached>, private val newList: List<ResultCached>) :
+
+class ResultCachedLoadedDiffCallback(
+    private val oldList: List<ResultCached>,
+    private val newList: List<ResultCached>
+) :
     DiffUtil.Callback() {
     override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int) =
         oldList[oldItemPosition].id == newList[newItemPosition].id

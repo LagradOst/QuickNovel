@@ -49,6 +49,8 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
 import com.lagradost.quicknovel.BookDownloader.getQuickChapter
+import com.lagradost.quicknovel.CommonActivity.activity
+import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.DataStore.removeKey
@@ -384,7 +386,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     ) {
         canSpeak = false
         if (ttsLine.speakOutMsg.isEmpty() || ttsLine.speakOutMsg.isBlank()) {
-            showMessage("No data")
+            showToast("No data")
             return
         }
         if (tts != null) {
@@ -449,10 +451,6 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         mMediaSessionCompat.release()
 
         super.onDestroy()
-    }
-
-    private fun showMessage(msg: String) {
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
     }
 
     lateinit var path: String
@@ -770,7 +768,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             if (fillNextChapter()) {
                 loadNextChapter()
             } else {
-                Toast.makeText(this, "No more chapters", Toast.LENGTH_SHORT).show()
+                showToast("No more chapters", Toast.LENGTH_SHORT)
                 false
             }
         } else {
@@ -1040,7 +1038,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 fadeInText()
 
             if (txt == null) {
-                Toast.makeText(this, "Error loading chapter", Toast.LENGTH_SHORT).show()
+                showToast("Error loading chapter", Toast.LENGTH_SHORT)
                 if (!isFromEpub && !forceReload) {
                     loadChapter(chapterIndex, scrollToTop, scrollToRemember, true)
                 }
@@ -1479,7 +1477,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 if (it) {
                     runTTS(fromIndex)
                 } else {
-                    Toast.makeText(this, "Error parsing text", Toast.LENGTH_SHORT).show()
+                    showToast("Error parsing text", Toast.LENGTH_SHORT)
                 }
             }
         } else {
@@ -1516,6 +1514,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     override fun onResume() {
         super.onResume()
 
+        activity = this
         main {
             if (read_scroll == null) return@main
             if (!lockTTSOnPaused && isTTSPaused) return@main
@@ -1821,7 +1820,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         tts!!.voices.firstOrNull { it.name == voiceName } ?: tts!!.defaultVoice
 
                     if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                        showMessage("This Language is not supported")
+                        showToast("This Language is not supported")
                     } else {
                         tts!!.setOnUtteranceProgressListener(object :
                             UtteranceProgressListener() {
@@ -1877,7 +1876,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         else -> status.toString()
                     }
 
-                    showMessage("Initialization Failed! Error $errorMSG")
+                    showToast("Initialization Failed! Error $errorMSG")
                     tts = null
                 }
             }
@@ -2492,7 +2491,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             }
 
             if (!isFromEpub && quickdata.data.isEmpty()) {
-                Toast.makeText(this, R.string.no_chapters_found, Toast.LENGTH_SHORT).show()
+                showToast( R.string.no_chapters_found, Toast.LENGTH_SHORT)
                 kill()
                 return@main
             }
@@ -2502,6 +2501,9 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             chapterTitles = ArrayList()
             for (i in 0 until maxChapter) {
                 chapterTitles.add(getChapterName(i))
+            }
+            if(chapterTitles.isEmpty()) {
+                finish()
             }
             loadChapter(
                 //minOf(

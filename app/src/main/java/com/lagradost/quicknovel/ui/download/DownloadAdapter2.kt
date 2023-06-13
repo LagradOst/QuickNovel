@@ -9,9 +9,9 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.lagradost.quicknovel.BookDownloader
+import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BookDownloader2Helper
-import com.lagradost.quicknovel.MainActivity.Companion.loadResult
+import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.DownloadResultCompactBinding
 import com.lagradost.quicknovel.util.UIHelper.setImage
@@ -50,8 +50,16 @@ class DownloadAdapter2(private val viewModel: DownloadViewModel, private val res
                 }
 
                 imageView.setOnClickListener {
-                    loadResult(card.source, card.apiName)
+                    viewModel.load(card)
                 }
+
+                downloadDeleteTrash.setOnClickListener {
+                    viewModel.deleteAlert(card)
+                }
+
+                val epubSize = getKey(DOWNLOAD_EPUB_SIZE, card.id.toString()) ?: 0
+                val diff = card.downloadedCount - epubSize
+                imageTextMore.text = if (diff > 0) "+$diff " else ""
 
                 imageView.setImage(card.posterUrl, fade = false, skipCache = false)
 

@@ -33,6 +33,7 @@ import com.lagradost.quicknovel.BookDownloader.openEpub
 import com.lagradost.quicknovel.BookDownloader.openQuickStream
 import com.lagradost.quicknovel.BookDownloader.remove
 import com.lagradost.quicknovel.BookDownloader.turnToEpub
+import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.MainActivity.Companion.backPressed
@@ -439,8 +440,7 @@ class ResultFragment : Fragment() {
 
                 result_quickstream.setOnClickListener {
                     if (res.data.isEmpty()) {
-                        Toast.makeText(context, R.string.no_chapters_found, Toast.LENGTH_SHORT)
-                            .show()
+                        showToast(R.string.no_chapters_found, Toast.LENGTH_SHORT)
                         return@setOnClickListener
                     }
 
@@ -473,14 +473,12 @@ class ResultFragment : Fragment() {
                                 }
 
                                 if (done) {
-                                    Toast.makeText(ctx, "Created ${res.name}", Toast.LENGTH_LONG)
-                                        .show()
+                                    showToast("Created ${res.name}", Toast.LENGTH_LONG)
                                 } else {
-                                    Toast.makeText(
-                                        ctx,
+                                    showToast(
                                         "Error creating the Epub",
                                         Toast.LENGTH_LONG
-                                    ).show()
+                                    )
                                 }
                             }
                         }

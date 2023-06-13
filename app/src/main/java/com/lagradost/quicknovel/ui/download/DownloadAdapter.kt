@@ -15,13 +15,12 @@ import androidx.cardview.widget.CardView
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.model.GlideUrl
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.BookDownloader.hasEpub
 import com.lagradost.quicknovel.BookDownloader.openEpub
 import com.lagradost.quicknovel.BookDownloader.remove
 import com.lagradost.quicknovel.BookDownloader.turnToEpub
+import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
@@ -229,7 +228,7 @@ class DownloadAdapter(
                         if (done) {
                             //Toast.makeText(context, "Created ${card.name}", Toast.LENGTH_LONG).show()
                         } else {
-                            Toast.makeText(localActivity, "Error creating the Epub", Toast.LENGTH_LONG).show()
+                            showToast("Error creating the Epub", Toast.LENGTH_LONG)
                         }
                         updateEpub()
                         updateBar(null)

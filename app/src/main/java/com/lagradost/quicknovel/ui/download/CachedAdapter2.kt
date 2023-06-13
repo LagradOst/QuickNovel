@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.databinding.HistoryResultCompactBinding
 import com.lagradost.quicknovel.util.ResultCached
+import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.widget.AutofitRecyclerView
 
 class CachedAdapter2(private val viewModel: DownloadViewModel, private val resView: AutofitRecyclerView) : ListAdapter<ResultCached, CachedAdapter2.DownloadAdapter2Holder>(
@@ -25,7 +26,23 @@ class CachedAdapter2(private val viewModel: DownloadViewModel, private val resVi
     class DownloadAdapter2Holder(private val binding : HistoryResultCompactBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(card : ResultCached, viewModel: DownloadViewModel, resView: AutofitRecyclerView) {
             binding.apply {
+                historyDelete.setOnClickListener {
+                    viewModel.deleteAlert(card)
+                }
+                historyPlay.setOnClickListener {
+                    viewModel.streamRead(card)
+                }
+                backgroundCard.setOnClickListener {
+                    viewModel.load(card)
+                }
 
+                imageView.setOnClickListener {
+                    viewModel.load(card)
+                }
+
+                imageView.setImage(card.poster, fade = false, skipCache = false)
+                imageText.text = card.name
+                historyExtraText.text = "${card.totalChapters} Chapters"
             }
         }
     }

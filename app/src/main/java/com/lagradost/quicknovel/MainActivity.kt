@@ -60,7 +60,7 @@ class MainActivity : AppCompatActivity() {
         lateinit var navOptions: NavOptions
 
         fun loadResult(url: String, apiName: String, startAction: Int = 0) {
-            (activity as? AppCompatActivity)?.loadResult(url,apiName,startAction)
+            (activity as? AppCompatActivity)?.loadResult(url, apiName, startAction)
         }
 
         fun AppCompatActivity.loadResult(url: String, apiName: String, startAction: Int = 0) {
@@ -153,39 +153,39 @@ class MainActivity : AppCompatActivity() {
             return false
         }
 
-       /* fun semihideNavbar() {
-            activity
-            val w: Window? = activity?.window // in Activity's onCreate() for instance
-            if (w != null) {
-                val uiVisibility =
-                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                w.decorView.systemUiVisibility = uiVisibility
-                w.navigationBarColor =
-                    activity?.getResourceColor(android.R.attr.navigationBarColor, 0.7F)
-            }
-        }
+        /* fun semihideNavbar() {
+             activity
+             val w: Window? = activity?.window // in Activity's onCreate() for instance
+             if (w != null) {
+                 val uiVisibility =
+                     View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                 w.decorView.systemUiVisibility = uiVisibility
+                 w.navigationBarColor =
+                     activity?.getResourceColor(android.R.attr.navigationBarColor, 0.7F)
+             }
+         }
 
-        fun showNavbar() {
-            val w: Window? = activity.window // in Activity's onCreate() for instance
-            if (w != null) {
-                w.decorView.systemUiVisibility = 0
-                w.navigationBarColor = android.R.attr.navigationBarColor
-            }
-        }
+         fun showNavbar() {
+             val w: Window? = activity.window // in Activity's onCreate() for instance
+             if (w != null) {
+                 w.decorView.systemUiVisibility = 0
+                 w.navigationBarColor = android.R.attr.navigationBarColor
+             }
+         }
 
-        fun transNavbar(trans: Boolean) {
-            val w: Window? = activity.window // in Activity's onCreate() for instance
-            if (w != null) {
-                if (trans) {
-                    w.setFlags(
-                        WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS,
-                        WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
-                    )
-                } else {
-                    w.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-                }
-            }
-        }*/
+         fun transNavbar(trans: Boolean) {
+             val w: Window? = activity.window // in Activity's onCreate() for instance
+             if (w != null) {
+                 if (trans) {
+                     w.setFlags(
+                         WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS,
+                         WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
+                     )
+                 } else {
+                     w.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+                 }
+             }
+         }*/
     }
 
     /* // MOON READER WONT RETURN THE DURATION, BUT THIS CAN BE USED FOR SOME USER FEEDBACK IN THE FUTURE??? SEE @moonreader
@@ -193,6 +193,10 @@ class MainActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
     }*/
 
+    override fun onResume() {
+        super.onResume()
+        activity = this
+    }
 
     fun getStatusBarHeight(): Int {
         var result = 0
@@ -297,24 +301,28 @@ class MainActivity : AppCompatActivity() {
             .setPopExitAnim(R.anim.nav_pop_exit)
             .setPopUpTo(navController.graph.startDestinationId, false)
             .build()
-/*
-        navView.setOnNavigationItemReselectedListener { item ->
-            return@setOnNavigationItemReselectedListener
-        }*/
+        /*
+                navView.setOnNavigationItemReselectedListener { item ->
+                    return@setOnNavigationItemReselectedListener
+                }*/
         navView.setOnNavigationItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.navigation_homepage -> {
                     navController.navigate(R.id.navigation_homepage, null, navOptions)
                 }
+
                 R.id.navigation_search -> {
                     navController.navigate(R.id.navigation_search, null, navOptions)
                 }
+
                 R.id.navigation_download -> {
                     navController.navigate(R.id.navigation_download, null, navOptions)
                 }
+
                 R.id.navigation_history -> {
                     navController.navigate(R.id.navigation_history, null, navOptions)
                 }
+
                 R.id.navigation_settings -> {
                     navController.navigate(R.id.navigation_settings, null, navOptions)
                 }

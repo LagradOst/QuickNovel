@@ -1,25 +1,37 @@
 package com.lagradost.quicknovel.ui.download
 
-import android.content.Context
 import android.content.DialogInterface
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lagradost.quicknovel.*
-import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
-import com.lagradost.quicknovel.BookDownloader.downloadInfo
-import com.lagradost.quicknovel.BookDownloader.hasEpub
+import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
+import com.lagradost.quicknovel.BaseApplication.Companion.setKey
+import com.lagradost.quicknovel.BookDownloader
+import com.lagradost.quicknovel.BookDownloader.createQuickStream
+import com.lagradost.quicknovel.BookDownloader.openQuickStream
 import com.lagradost.quicknovel.BookDownloader.remove
-import com.lagradost.quicknovel.BookDownloader.turnToEpub
-import com.lagradost.quicknovel.BookDownloader2Helper.turnToEpub
+import com.lagradost.quicknovel.BookDownloader2
+import com.lagradost.quicknovel.BookDownloader2Helper
+import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.CommonActivity.activity
-import com.lagradost.quicknovel.DataStore.getKey
-import com.lagradost.quicknovel.DataStore.getKeys
+import com.lagradost.quicknovel.CommonActivity.showToast
+import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
+import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
+import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
+import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
+import com.lagradost.quicknovel.DataStore.removeKey
+import com.lagradost.quicknovel.MainActivity.Companion.loadResult
+import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.RESULT_BOOKMARK
+import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
+import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.ui.ReadType
+import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.coroutines.Dispatchers
@@ -27,7 +39,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import okhttp3.internal.toImmutableList
 
 class DownloadViewModel : ViewModel() {
     private val cards: MutableLiveData<ArrayList<DownloadFragment.DownloadDataLoaded>> by lazy {
@@ -53,11 +64,49 @@ class DownloadViewModel : ViewModel() {
         BookDownloader2.downloadFromCard(card)
     }
 
+    fun load(card: ResultCached) {
+        loadResult(card.source, card.apiName)
+    }
+
+    fun streamRead(card: ResultCached) = ioSafe {
+        val api = Apis.getApiFromName(card.apiName)
+        val data = api.load(card.source)
+
+        if (data is Resource.Success) {
+            val res = data.value
+
+            if (res.data.isEmpty()) {
+                showToast(
+                    R.string.no_chapters_found,
+                    Toast.LENGTH_SHORT
+                )
+                return@ioSafe
+            }
+
+            val uri =
+                createQuickStream(
+                    BookDownloader.QuickStreamData(
+                        BookDownloader.QuickStreamMetaData(
+                            res.author,
+                            res.name,
+                            card.apiName,
+                        ),
+                        res.posterUrl,
+                        res.data.toMutableList()
+                    )
+                )
+
+            BookDownloader2.openQuickStream(uri)
+        } else {
+            showToast(R.string.error_loading_novel, Toast.LENGTH_SHORT)
+        }
+    }
+
     fun readEpub(card: DownloadFragment.DownloadDataLoaded) = ioSafe {
         try {
             cardsDataMutex.withLock {
                 cardsData[card.id]?.generating = true
-                cards.postValue(sortArray(ArrayList(cardsData.values)))
+                postCards()
             }
             BookDownloader2.readEpub(
                 card.id,
@@ -67,9 +116,10 @@ class DownloadViewModel : ViewModel() {
                 card.apiName
             )
         } finally {
+            setKey(DOWNLOAD_EPUB_LAST_ACCESS, card.id.toString(), System.currentTimeMillis())
             cardsDataMutex.withLock {
                 cardsData[card.id]?.generating = false
-                cards.postValue(sortArray(ArrayList(cardsData.values)))
+                postCards()
             }
         }
     }
@@ -85,6 +135,36 @@ class DownloadViewModel : ViewModel() {
         }
     }
 
+    fun load(card: DownloadFragment.DownloadDataLoaded) {
+        loadResult(card.source, card.apiName)
+    }
+
+    fun deleteAlert(card: ResultCached) {
+        val dialogClickListener =
+            DialogInterface.OnClickListener { _, which ->
+                when (which) {
+                    DialogInterface.BUTTON_POSITIVE -> {
+                        delete(card)
+                    }
+
+                    DialogInterface.BUTTON_NEGATIVE -> {
+                    }
+                }
+            }
+        val builder: AlertDialog.Builder = AlertDialog.Builder(activity ?: return)
+        builder.setMessage("This will permanently delete ${card.name}.\nAre you sure?")
+            .setTitle("Delete")
+            .setPositiveButton("Delete", dialogClickListener)
+            .setNegativeButton("Cancel", dialogClickListener)
+            .show()
+    }
+
+    fun delete(card: ResultCached) {
+        removeKey(RESULT_BOOKMARK, card.id.toString())
+        removeKey(RESULT_BOOKMARK_STATE, card.id.toString())
+        loadNormalData(currentReadType.value!!)
+    }
+
     fun deleteAlert(card: DownloadFragment.DownloadDataLoaded) {
         val dialogClickListener =
             DialogInterface.OnClickListener { _, which ->
@@ -92,32 +172,33 @@ class DownloadViewModel : ViewModel() {
                     DialogInterface.BUTTON_POSITIVE -> {
                         delete(card)
                     }
+
                     DialogInterface.BUTTON_NEGATIVE -> {
                     }
                 }
             }
         val builder: AlertDialog.Builder = AlertDialog.Builder(activity ?: return)
-        builder.setMessage("This will permanently delete ${card.name}.\nAre you sure?").setTitle("Delete")
+        builder.setMessage("This will permanently delete ${card.name}.\nAre you sure?")
+            .setTitle("Delete")
             .setPositiveButton("Delete", dialogClickListener)
             .setNegativeButton("Cancel", dialogClickListener)
             .show()
     }
 
     fun delete(card: DownloadFragment.DownloadDataLoaded) {
-        BookDownloader2.deleteNovel(card.author,card.name,card.apiName)
+        BookDownloader2.deleteNovel(card.author, card.name, card.apiName)
     }
 
     private fun sortArray(
         currentArray: ArrayList<DownloadFragment.DownloadDataLoaded>,
         sortMethod: Int? = null,
     ): ArrayList<DownloadFragment.DownloadDataLoaded> {
+        val newSortingMethod =
+            sortMethod ?: getKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD) ?: DEFAULT_SORT
+        currentSortingMethod.postValue(newSortingMethod)
+        setKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, newSortingMethod)
 
-        if (sortMethod != null) {
-            currentSortingMethod.postValue(sortMethod!!)
-        }
-
-        return when (sortMethod ?: currentSortingMethod.value) {
-            DEFAULT_SORT -> currentArray
+        return when (newSortingMethod) {
             ALPHA_SORT -> {
                 currentArray.sortBy { t -> t.name }
                 currentArray
@@ -149,7 +230,8 @@ class DownloadViewModel : ViewModel() {
                 currentArray
             }
 
-            LAST_ACCES_SORT -> {
+            //DEFAULT_SORT, LAST_ACCES_SORT
+            else -> {
                 currentArray.sortBy { t ->
                     -(getKey<Long>(
                         DOWNLOAD_EPUB_LAST_ACCESS,
@@ -159,8 +241,6 @@ class DownloadViewModel : ViewModel() {
                 }
                 currentArray
             }
-
-            else -> currentArray
         }
     }
 
@@ -168,13 +248,12 @@ class DownloadViewModel : ViewModel() {
         currentArray: ArrayList<ResultCached>,
         sortMethod: Int? = null,
     ): ArrayList<ResultCached> {
+        val newSortingMethod =
+            sortMethod ?: getKey(DOWNLOAD_SETTINGS, DOWNLOAD_NORMAL_SORTING_METHOD) ?: DEFAULT_SORT
+        currentNormalSortingMethod.postValue(newSortingMethod)
+        setKey(DOWNLOAD_SETTINGS, DOWNLOAD_NORMAL_SORTING_METHOD, newSortingMethod)
 
-        if (sortMethod != null) {
-            currentNormalSortingMethod.postValue(sortMethod!!)
-        }
-
-        return when (sortMethod ?: currentNormalSortingMethod.value) {
-            DEFAULT_SORT -> currentArray
+        return when (newSortingMethod) {
             ALPHA_SORT -> {
                 currentArray.sortBy { t -> t.name }
                 currentArray
@@ -186,7 +265,8 @@ class DownloadViewModel : ViewModel() {
                 currentArray
             }
 
-            LAST_ACCES_SORT -> {
+            // DEFAULT_SORT, LAST_ACCES_SORT
+            else -> {
                 currentArray.sortBy { t ->
                     -(getKey<Long>(
                         DOWNLOAD_EPUB_LAST_ACCESS,
@@ -196,20 +276,14 @@ class DownloadViewModel : ViewModel() {
                 }
                 currentArray
             }
-
-            else -> currentArray
         }
     }
 
     fun loadData() = viewModelScope.launch {
-        currentSortingMethod.postValue(
-            getKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, LAST_ACCES_SORT)
-                ?: LAST_ACCES_SORT
-        )
         currentReadType.postValue(null)
         isOnDownloads.postValue(true)
         cardsDataMutex.withLock {
-            cards.postValue(sortArray(ArrayList(cardsData.values)))
+            postCards()
         }
     }
 
@@ -242,9 +316,13 @@ class DownloadViewModel : ViewModel() {
         normalCards.postValue(sortNormalArray(ArrayList(cards)))
     }
 
+    private fun postCards(sortMethod: Int? = null) {
+        cards.postValue(sortArray(ArrayList(cardsData.values), sortMethod))
+    }
+
     fun sortData(sortMethod: Int? = null) = ioSafe {
         cardsDataMutex.withLock {
-            cards.postValue(sortArray(ArrayList(cardsData.values), sortMethod))
+            postCards(sortMethod)
         }
     }
 
@@ -256,6 +334,7 @@ class DownloadViewModel : ViewModel() {
         BookDownloader2.downloadDataChanged += ::progressDataChanged
         BookDownloader2.downloadProgressChanged += ::progressChanged
         BookDownloader2.downloadDataRefreshed += ::downloadDataRefreshed
+        BookDownloader2.downloadRemoved += ::downloadRemoved
 
         // just in case this runs way after other init that we don't miss downloadDataRefreshed
         downloadDataRefreshed(0)
@@ -266,6 +345,7 @@ class DownloadViewModel : ViewModel() {
         BookDownloader2.downloadProgressChanged -= ::progressChanged
         BookDownloader2.downloadDataChanged -= ::progressDataChanged
         BookDownloader2.downloadDataRefreshed -= ::downloadDataRefreshed
+        BookDownloader2.downloadRemoved -= ::downloadRemoved
     }
 
     private val cardsDataMutex = Mutex()
@@ -281,9 +361,16 @@ class DownloadViewModel : ViewModel() {
                     this.state = state.state
                     this.ETA = state.eta()
                 }
-                cards.postValue(sortArray(ArrayList(cardsData.values)))
+                postCards()
             }
         }
+
+    private fun downloadRemoved(id: Int) = ioSafe {
+        cardsDataMutex.withLock {
+            cardsData -= id
+            postCards()
+        }
+    }
 
     private fun progressDataChanged(data: Pair<Int, DownloadFragment.DownloadData>) = ioSafe {
         cardsDataMutex.withLock {
@@ -319,7 +406,7 @@ class DownloadViewModel : ViewModel() {
                     false
                 )
             }
-            cards.postValue(sortArray(ArrayList(cardsData.values)))
+            postCards()
         }
     }
 
@@ -347,7 +434,7 @@ class DownloadViewModel : ViewModel() {
                         false
                     )
                 }
-                cards.postValue(sortArray(ArrayList(cardsData.values)))
+                postCards()
             }
         }
     }
