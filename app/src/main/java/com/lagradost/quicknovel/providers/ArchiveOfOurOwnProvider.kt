@@ -1,16 +1,19 @@
 package com.lagradost.quicknovel.providers
 
-import android.annotation.SuppressLint
+import androidx.preference.PreferenceManager
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.app
+import com.lagradost.quicknovel.mvvm.debugAssert
+import com.lagradost.quicknovel.mvvm.debugException
 import com.lagradost.quicknovel.mvvm.debugWarning
+import okhttp3.FormBody
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
-import java.lang.Exception
-import java.util.*
 import kotlin.collections.ArrayList
 
 class ArchiveOfOurOwnProvider : MainAPI() {
+
+
     override val name = "Archive of Our Own"
     override val mainUrl = "https://archiveofourown.org"
 
@@ -33,6 +36,7 @@ class ArchiveOfOurOwnProvider : MainAPI() {
         orderBy: String?,
         tag: String?,
     ): HeadMainPageResponse {
+        tryLogIn()
         val url =
             "$mainUrl/works"
         if (page > 1) return HeadMainPageResponse(
@@ -42,7 +46,7 @@ class ArchiveOfOurOwnProvider : MainAPI() {
 
         val response = app.get(url)
 
-        val document = Jsoup.parse(response.text)
+        val document = response.document
         val works = document.select("li.work")
         if (works.size <= 0) return HeadMainPageResponse(url, ArrayList())
 
@@ -77,9 +81,10 @@ class ArchiveOfOurOwnProvider : MainAPI() {
 
 
     override suspend fun search(query: String): List<SearchResponse> {
+        tryLogIn()
         val response = app.get("$mainUrl/works/search?work_search[query]=$query")
 
-        val document = Jsoup.parse(response.text)
+        val document = response.document
         val works = document.select("li.work")
         if (works.size <= 0) return ArrayList()
         val returnValue: ArrayList<SearchResponse> = ArrayList()
@@ -112,9 +117,10 @@ class ArchiveOfOurOwnProvider : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse? {
+        tryLogIn()
         val response = app.get("$url/?view_adult=true")
 
-        val document = Jsoup.parse(response.text)
+        val document = response.document
 
         val name = document.selectFirst("h2.title.heading")?.text().toString()
         val author = document.selectFirst("h3.byline.heading > a[rel=\"author\"]")
@@ -155,8 +161,76 @@ class ArchiveOfOurOwnProvider : MainAPI() {
     }
 
     override suspend fun loadHtml(url: String): String? {
+        tryLogIn()
         val response = app.get(url)
         val document = Jsoup.parse(response.text)
         return document.selectFirst("div.chapter")?.html()
+    }
+
+    private var hasLoggedIn = false
+    private suspend fun tryLogIn() {
+
+        if (hasLoggedIn) return;
+
+        //Don't try to log in if we don't have email and password
+        val preferenceManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
+
+        val ao3Email = preferenceManager.getString(MainActivity.activity.getString(R.string.ao3_email_key),"")!!
+        val ao3Password = preferenceManager.getString(MainActivity.activity.getString(R.string.ao3_password_key),"")!!
+
+        if (ao3Email == "" || ao3Password == ""){
+            return;
+        }
+
+        val response = app.get("$mainUrl/works/new", allowRedirects = false)
+        if(response.code == 200){
+            hasLoggedIn = true;
+            return;
+        }
+        if(response.code != 302) {
+            debugException { "AO3 isn't redirecting us to login page for some reason. If issue persists please report to extension creator." }
+            return;
+        }
+
+        val loginPageResponse = app.get("$mainUrl/users/login")
+
+        val authenticityToken =
+            loginPageResponse.document.selectFirst("form.new_user#new_user")
+            ?.selectFirst("input[type=hidden][name=authenticity_token]")
+                ?.attr("value")!!
+
+
+        val loginResponse = app.post("$mainUrl/users/login", requestBody = FormBody.Builder()
+            .add("user[login]", ao3Email)
+            .add("user[password]", ao3Password)
+            .add("user[remember_me]", "1")
+            .add("commit", "Log in")
+            .add("authenticity_token", authenticityToken)
+            .build()
+            )
+
+        /*data= mapOf(
+            Pair("user[login]", ao3Email),
+            Pair("user[password]", ao3Password),
+            Pair("user[remember_me]", "1"),
+            Pair("commit", "Log in"),
+            Pair("authenticity_token", authenticityToken),
+        )*/
+
+        if(loginResponse.okhttpResponse.priorResponse == null){
+            if(loginResponse.text.contains("The password or user name you entered doesn't match our records.")){
+                if (!preferenceManager.edit().putString(MainActivity.activity.getString(R.string.ao3_password_key), "").commit()){
+                    debugException { "Something went wrong clearing your password!" }
+                }
+                debugWarning { "Username or Password incorrect! Password's been cleared" }
+            }else{
+                debugException { "Something went wrong logging you in." }
+            }
+
+        }else{
+            debugAssert( {response.url.startsWith("$mainUrl/users") && response.url != "$mainUrl/users/login"},
+                {"Expected to be sent to $mainUrl/users/yourusername was instead sent to ${response.url}"});
+        }
+
     }
 }

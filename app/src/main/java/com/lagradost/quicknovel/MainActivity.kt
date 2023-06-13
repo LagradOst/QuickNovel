@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.View
 import android.view.Window
 import android.view.WindowManager
+import android.webkit.CookieManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.NavOptions
 import androidx.navigation.findNavController
@@ -42,17 +43,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import kotlin.concurrent.thread
+import com.franmontiel.persistentcookiejar.PersistentCookieJar
+import com.franmontiel.persistentcookiejar.cache.SetCookieCache
+import com.franmontiel.persistentcookiejar.persistence.SharedPrefsCookiePersistor
+import okhttp3.CookieJar
 
 class MainActivity : AppCompatActivity() {
     companion object {
-        var app = Requests(
-            OkHttpClient()
-                .newBuilder()
-                .ignoreAllSSLErrors()
-                .build()
-        ).apply {
-            defaultHeaders = mapOf("user-agent" to USER_AGENT)
-        }
+        var cookieJar = CookieJar.NO_COOKIES
+        lateinit var app : Requests
 
         // === API ===
         lateinit var activity: MainActivity
@@ -235,6 +234,17 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         activity = this
+        cookieJar = PersistentCookieJar(SetCookieCache(), SharedPrefsCookiePersistor(activity.applicationContext))
+        app = Requests(
+            OkHttpClient()
+                .newBuilder()
+                .cookieJar(cookieJar)
+                .ignoreAllSSLErrors()
+                .build()
+        ).apply {
+            defaultHeaders = mapOf("user-agent" to USER_AGENT)
+        }
+
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
 
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)

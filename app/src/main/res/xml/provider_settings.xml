@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory android:title="Archive Of Our Own">
+        <EditTextPreference
+                android:defaultValue=""
+                android:selectAllOnFocus="true"
+                android:singleLine="true"
+                android:title="Email"
+                android:key="@string/ao3_email_key"
+                android:dialogLayout="@xml/text_edit_dialog"/>
+        <EditTextPreference
+                android:defaultValue=""
+                android:selectAllOnFocus="true"
+                android:singleLine="true"
+                android:title="Password"
+                android:key="@string/ao3_password_key"
+                android:dialogLayout="@xml/text_edit_dialog" />
+    </PreferenceCategory>
+</PreferenceScreen>

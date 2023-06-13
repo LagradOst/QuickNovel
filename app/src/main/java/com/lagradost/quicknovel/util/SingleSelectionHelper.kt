@@ -12,7 +12,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.lagradost.quicknovel.R
 
 object SingleSelectionHelper {
-    fun Context.showDialog(
+    private fun Context.showDialog(
         dialog: Dialog,
         items: List<String>,
         selectedIndex: List<Int>,
@@ -109,31 +109,6 @@ object SingleSelectionHelper {
         )
     }
 
-    fun Context.showDialog(
-        items: List<String>,
-        selectedIndex: Int,
-        name: String,
-        showApply: Boolean,
-        dismissCallback: () -> Unit,
-        callback: (Int) -> Unit,
-    ) {
-        val builder =
-            AlertDialog.Builder(this, R.style.AlertDialogCustom).setView(R.layout.bottom_selection_dialog)
-
-        val dialog = builder.create()
-        dialog.show()
-        showDialog(
-            dialog,
-            items,
-            listOf(selectedIndex),
-            name,
-            showApply,
-            false,
-            { if (it.isNotEmpty()) callback.invoke(it.first()) },
-            dismissCallback
-        )
-    }
-
     fun Context.showBottomDialog(
         items: List<String>,
         selectedIndex: Int,
@@ -158,4 +133,5 @@ object SingleSelectionHelper {
             dismissCallback
         )
     }
+
 }
