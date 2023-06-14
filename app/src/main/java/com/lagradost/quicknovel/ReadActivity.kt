@@ -49,7 +49,6 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
 import com.lagradost.quicknovel.BookDownloader.getQuickChapter
-import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.mapper
@@ -1005,6 +1004,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         scrollToRemember: Boolean = false,
         forceReload: Boolean = false
     ) {
+        println("loadChapter = $chapterIndex")
         if (chapterIndex > maxChapter - 1) {
             if (isFromEpub) {
                 loadChapter(maxChapter - 1, scrollToTop, scrollToRemember, forceReload)
@@ -1517,7 +1517,6 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         this.window?.navigationBarColor =
             this.colorFromAttribute(R.attr.primaryGrayBackground)
 
-        activity = this
         main {
             if (read_scroll == null) return@main
             if (!lockTTSOnPaused && isTTSPaused) return@main
@@ -2509,8 +2508,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 finish()
             }
             loadChapter(
+                maxOf(getKey(EPUB_CURRENT_POSITION, getBookTitle()) ?: 0, 0),
                 //minOf(
-                getKey(EPUB_CURRENT_POSITION, getBookTitle()) ?: 0,
                 //    maxChapter - 1
                 // ), // CRASH FIX IF YOU SOMEHOW TRY TO LOAD ANOTHER EPUB WITH THE SAME NAME
                 scrollToTop = true,

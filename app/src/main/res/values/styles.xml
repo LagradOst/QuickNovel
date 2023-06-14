@@ -57,7 +57,7 @@
         <item name="primaryBlackBackground">@color/primaryBlackBackground</item>
         <item name="iconGrayBackground">@color/iconGrayBackground</item>
         <item name="boxItemBackground">@color/boxItemBackground</item>
-        <item name="iconColor">@color/iconColor</item>
+        <item name="iconColor">?attr/textColor</item>
         <item name="white">#FFF</item>
     </style>
     <style name="TabNoCaps" parent="TextAppearance.Design.Tab">

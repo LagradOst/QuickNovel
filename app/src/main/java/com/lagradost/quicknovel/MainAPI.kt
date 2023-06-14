@@ -119,7 +119,7 @@ fun stripHtml(txt: String, chapterName: String? = null, chapterIndex: Int? = nul
 
 }
 
-class HomePageList(
+data class HomePageList(
     val name: String,
     val list: List<SearchResponse>
 )

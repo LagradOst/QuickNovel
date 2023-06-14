@@ -26,7 +26,6 @@ class DownloadAdapter2(private val viewModel: DownloadViewModel, private val res
     }
 
     override fun onBindViewHolder(holder: DownloadAdapter2Holder, position: Int) {
-        println("onBindViewHolder $position")
         val currentItem = getItem(position)
         holder.bind(currentItem, viewModel, resView)
     }

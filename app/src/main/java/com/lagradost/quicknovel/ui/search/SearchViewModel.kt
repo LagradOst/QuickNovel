@@ -6,6 +6,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
+import com.lagradost.quicknovel.CommonActivity.activity
+import com.lagradost.quicknovel.CommonActivity.showToast
+import com.lagradost.quicknovel.MainActivity
+import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.OnGoingSearch
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.mvvm.Resource
@@ -27,6 +31,14 @@ class SearchViewModel : ViewModel() {
 
     private fun clearSearch() {
         _searchResponse.postValue(Resource.Success(ArrayList()))
+    }
+
+    fun load(card : SearchResponse) {
+        loadResult(card.url, card.apiName)
+    }
+
+    fun showMetadata(card : SearchResponse) {
+        showToast(card.name)
     }
 
     fun search(query: String) = ioSafe {

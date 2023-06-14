@@ -96,10 +96,10 @@
             app:elevation="0dp"
             android:textStyle="bold"
 
-            app:backgroundTint="?attr/primaryBlackBackground"
-            app:tint="?attr/colorPrimary"
-            android:textColor="?attr/colorPrimary"
-            app:iconTint="?attr/colorPrimary"
+            app:backgroundTint="?attr/primaryGrayBackground"
+            app:tint="?attr/textColor"
+            android:textColor="?attr/textColor"
+            app:iconTint="?attr/textColor"
             app:icon="@drawable/ic_sort_24dp"
             android:text="@string/mainpage_sort_by_button_text"
 
