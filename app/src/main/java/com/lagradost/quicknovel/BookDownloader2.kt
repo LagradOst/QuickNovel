@@ -16,6 +16,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.annotation.WorkerThread
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.FileProvider
@@ -847,31 +848,22 @@ object ImageDownloader {
 }
 
 object BookDownloader2 {
-    // These locks are here to prevent duplicate generation of epubs
-    private val isTurningIntoEpubMutex = Mutex()
-    private val isOpeningEpubMutex = Mutex()
-    private val isOpeningQuickStreamMutex = Mutex()
-
-    fun openQuickStream(uri: Uri?) = main {
-        if (isOpeningQuickStreamMutex.isLocked) return@main
-        isOpeningQuickStreamMutex.withLock {
-            BookDownloader2Helper.openQuickStream(activity, uri)
-        }
+    private fun openQuickStream(uri: Uri?) = main {
+        BookDownloader2Helper.openQuickStream(activity, uri)
     }
 
-    fun stream(card: ResultCached) = ioSafe {
-        val api = Apis.getApiFromName(card.apiName)
-        val data = api.load(card.source)
+    private val streamMutex = Mutex()
 
-        if (data is com.lagradost.quicknovel.mvvm.Resource.Success) {
-            val res = data.value
-
+    @WorkerThread
+    suspend fun stream(res: LoadResponse, apiName: String) {
+        if (streamMutex.isLocked) return
+        streamMutex.withLock {
             if (res.data.isEmpty()) {
                 showToast(
                     R.string.no_chapters_found,
                     Toast.LENGTH_SHORT
                 )
-                return@ioSafe
+                return
             }
 
             val uri =
@@ -880,20 +872,34 @@ object BookDownloader2 {
                         BookDownloader.QuickStreamMetaData(
                             res.author,
                             res.name,
-                            card.apiName,
+                            apiName,
                         ),
                         res.posterUrl,
                         res.data.toMutableList()
                     )
                 )
 
-            BookDownloader2.openQuickStream(uri)
-        } else {
-            showToast(R.string.error_loading_novel, Toast.LENGTH_SHORT)
+            openQuickStream(uri)
+        }
+    }
+
+    private val streamResultMutex = Mutex()
+    fun stream(card: ResultCached) = ioSafe {
+        if (streamResultMutex.isLocked) return@ioSafe
+        streamResultMutex.withLock {
+            val api = Apis.getApiFromName(card.apiName)
+            val data = api.load(card.source)
+
+            if (data is com.lagradost.quicknovel.mvvm.Resource.Success) {
+                stream(data.value, card.apiName)
+            } else {
+                showToast(R.string.error_loading_novel, Toast.LENGTH_SHORT)
+            }
         }
     }
 
     private fun generateAndReadEpub(author: String?, name: String, apiName: String) {
+        showToast(R.string.generating_epub)
         if (!turnToEpub(author, name, apiName)) {
             showToast(R.string.error_loading_novel)
             return
@@ -909,41 +915,50 @@ object BookDownloader2 {
         }
     }
 
-    fun readEpub(id: Int, downloadedCount: Int, author: String?, name: String, apiName: String) {
-        val downloaded = getKey(DOWNLOAD_EPUB_SIZE, id.toString(), 0)!!
-        val shouldUpdate = downloadedCount - downloaded != 0
-        if (shouldUpdate) {
-            generateAndReadEpub(author, name, apiName)
-        } else {
-            readEpub(author, name, apiName)
-        }
-    }
-
-    fun deleteNovel(author: String?, name: String, apiName: String) = ioSafe {
-        val id = BookDownloader2Helper.generateId(apiName, author, name)
-
-        // send stop action
-        addPendingActionAsync(id, BookDownloader.DownloadActionType.Stop)
-
-        // wait until download is stopped
-        while (true) {
-            if (!currentDownloadsMutex.withLock { currentDownloads.contains(id) }) {
-                break
+    private val readEpubMutex = Mutex()
+    fun readEpub(id: Int, downloadedCount: Int, author: String?, name: String, apiName: String) =
+        ioSafe {
+            if (readEpubMutex.isLocked) return@ioSafe
+            readEpubMutex.withLock {
+                val downloaded = getKey(DOWNLOAD_EPUB_SIZE, id.toString(), 0)!!
+                val shouldUpdate = downloadedCount - downloaded != 0
+                if (shouldUpdate) {
+                    generateAndReadEpub(author, name, apiName)
+                } else {
+                    readEpub(author, name, apiName)
+                }
             }
-            delay(100)
         }
 
-        // delete the novel
-        BookDownloader2Helper.deleteNovel(activity, author, name, apiName)
+    private val deleteNovelMutex = Mutex()
+    fun deleteNovel(author: String?, name: String, apiName: String) = ioSafe {
+        if (deleteNovelMutex.isLocked) return@ioSafe
+        deleteNovelMutex.withLock {
+            val id = BookDownloader2Helper.generateId(apiName, author, name)
 
-        // remove from info
-        downloadInfoMutex.withLock {
-            downloadData -= id
-            downloadProgress -= id
+            // send stop action
+            addPendingActionAsync(id, BookDownloader.DownloadActionType.Stop)
+
+            // wait until download is stopped
+            while (true) {
+                if (!currentDownloadsMutex.withLock { currentDownloads.contains(id) }) {
+                    break
+                }
+                delay(100)
+            }
+
+            // delete the novel
+            BookDownloader2Helper.deleteNovel(activity, author, name, apiName)
+
+            // remove from info
+            downloadInfoMutex.withLock {
+                downloadData -= id
+                downloadProgress -= id
+            }
+
+            // ping the viewmodels
+            downloadRemoved.invoke(id)
         }
-
-        // ping the viewmodels
-        downloadRemoved.invoke(id)
     }
 
     private fun turnToEpub(author: String?, name: String, apiName: String): Boolean {
@@ -955,21 +970,8 @@ object BookDownloader2 {
     }
 
     private fun openEpub(name: String, openInApp: Boolean? = null) = main {
-        if (isOpeningEpubMutex.isLocked) return@main
-        isOpeningEpubMutex.withLock {
-            if (!BookDownloader2Helper.openEpub(activity, name, openInApp)) {
-                showToast(R.string.error_loading_novel) // TODO MAKE BETTER STRING
-            }
-        }
-    }
-
-    fun turnIntoEpub(author: String?, name: String, apiName: String) = main {
-        if (isTurningIntoEpubMutex.isLocked) return@main
-        isTurningIntoEpubMutex.withLock {
-            showToast(R.string.generating_epub)
-            if (!BookDownloader2Helper.turnToEpub(activity, author, name, apiName)) {
-                showToast(R.string.error_loading_novel) // TODO MAKE BETTER STRING
-            }
+        if (!BookDownloader2Helper.openEpub(activity, name, openInApp)) {
+            showToast(R.string.error_loading_novel) // TODO MAKE BETTER STRING
         }
     }
 

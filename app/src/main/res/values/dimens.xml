@@ -26,4 +26,9 @@
     <dimen name="rounded_image_radius">10dp</dimen>
     <dimen name="activity_horizontal_margin">16dp</dimen>
     <dimen name="activity_vertical_margin">16dp</dimen>
+
+    <dimen name="loading_line_height">15dp</dimen>
+    <dimen name="loading_radius">3dp</dimen>
+    <dimen name="loading_margin">15dp</dimen>
+    <integer name="loading_time">2000</integer>
 </resources>

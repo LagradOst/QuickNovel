@@ -105,7 +105,7 @@
     <string name="background_color">Background Color</string>
     <string name="text_color">Text Color</string>
     <string name="long_download_time">Warning, This source has extremely long download time, streaming is recommended</string>
-    <string name="quickstream_novel_text">Stream Read Novel</string>
+    <string name="quickstream_novel_text">Stream read novel</string>
     <string name="history_more_options">More Options</string>
     <string name="stream_read">Stream Read</string>
     <string name="clear_history">Clear History</string>
