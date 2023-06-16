@@ -39,7 +39,6 @@ class SearchAdapter2(
     ) :
         RecyclerView.ViewHolder(binding.root) {
 
-
         fun bind(card: SearchResponse) {
             binding.apply {
                 val coverHeight: Int = (resView.itemWidth / 0.68).roundToInt()

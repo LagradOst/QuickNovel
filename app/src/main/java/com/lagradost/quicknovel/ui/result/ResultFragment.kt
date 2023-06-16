@@ -1,7 +1,6 @@
 package com.lagradost.quicknovel.ui.result
 
 import android.animation.ObjectAnimator
-import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Bundle
@@ -19,14 +18,14 @@ import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipDrawable
 import com.google.android.material.tabs.TabLayout
-import com.lagradost.quicknovel.*
-import com.lagradost.quicknovel.DataStore.getKey
-import com.lagradost.quicknovel.DataStore.setKey
+import com.lagradost.quicknovel.BookDownloader2Helper
+import com.lagradost.quicknovel.DownloadState
+import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainActivity.Companion.backPressed
+import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.FragmentResultBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.observe
@@ -108,14 +107,6 @@ class ResultFragment : Fragment() {
         binding.resultHolder.post { // BUG FIX
             updateScrollHeight()
         }
-    }
-
-    private fun updateDownloadButtons(
-        progress: Int,
-        total: Int,
-        state: BookDownloader.DownloadType
-    ) {
-
     }
 
     @SuppressLint1("CutPasteId", "SetTextI18n")
@@ -432,20 +423,20 @@ class ResultFragment : Fragment() {
 
                     //iconSize = 30.toPx
                     text = when (progressState.state) {
-                        BookDownloader2Helper.DownloadState.IsDone -> "Downloaded"
-                        BookDownloader2Helper.DownloadState.IsDownloading -> "Pause"
-                        BookDownloader2Helper.DownloadState.IsPaused -> "Resume"
-                        BookDownloader2Helper.DownloadState.IsFailed -> "Re-Download"
-                        BookDownloader2Helper.DownloadState.IsStopped -> "Download"
-                        BookDownloader2Helper.DownloadState.Nothing -> "Download"
-                        BookDownloader2Helper.DownloadState.IsPending -> "Loading"
+                        DownloadState.IsDone -> "Downloaded"
+                        DownloadState.IsDownloading -> "Pause"
+                        DownloadState.IsPaused -> "Resume"
+                        DownloadState.IsFailed -> "Re-Download"
+                        DownloadState.IsStopped -> "Download"
+                        DownloadState.Nothing -> "Download"
+                        DownloadState.IsPending -> "Loading"
                     }
                     setIconResource(
                         when (progressState.state) {
-                            BookDownloader2Helper.DownloadState.IsDownloading -> R.drawable.ic_baseline_pause_24
-                            BookDownloader2Helper.DownloadState.IsPaused -> R.drawable.netflix_play
-                            BookDownloader2Helper.DownloadState.IsFailed -> R.drawable.ic_baseline_autorenew_24
-                            BookDownloader2Helper.DownloadState.IsDone -> R.drawable.ic_baseline_check_24
+                            DownloadState.IsDownloading -> R.drawable.ic_baseline_pause_24
+                            DownloadState.IsPaused -> R.drawable.netflix_play
+                            DownloadState.IsFailed -> R.drawable.ic_baseline_autorenew_24
+                            DownloadState.IsDone -> R.drawable.ic_baseline_check_24
                             else -> R.drawable.netflix_download
                         }
                     )

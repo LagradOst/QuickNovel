@@ -1,7 +1,6 @@
 package com.lagradost.quicknovel.ui.download
 
 import android.content.DialogInterface
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -11,27 +10,20 @@ import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
-import com.lagradost.quicknovel.BookDownloader
-import com.lagradost.quicknovel.BookDownloader.createQuickStream
-import com.lagradost.quicknovel.BookDownloader.openQuickStream
-import com.lagradost.quicknovel.BookDownloader.remove
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.BookDownloader2Helper
-import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.CommonActivity.activity
-import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
 import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
-import com.lagradost.quicknovel.DataStore.removeKey
+import com.lagradost.quicknovel.DownloadActionType
+import com.lagradost.quicknovel.DownloadProgressState
+import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
-import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
-import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.ui.ReadType
-import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +31,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+
+const val DEFAULT_SORT = 0
+const val ALPHA_SORT = 1
+const val REVERSE_ALPHA_SORT = 2
+const val DOWNLOADSIZE_SORT = 3
+const val REVERSE_DOWNLOADSIZE_SORT = 4
+const val DOWNLOADPRECENTAGE_SORT = 5
+const val REVERSE_DOWNLOADPRECENTAGE_SORT = 6
+const val LAST_ACCES_SORT = 7
+const val REVERSE_LAST_ACCES_SORT = 8
 
 class DownloadViewModel : ViewModel() {
     private val cards: MutableLiveData<ArrayList<DownloadFragment.DownloadDataLoaded>> by lazy {
@@ -60,8 +62,15 @@ class DownloadViewModel : ViewModel() {
     var currentNormalSortingMethod: MutableLiveData<Int> =
         MutableLiveData<Int>()
 
-    fun refreshCard(card: DownloadFragment.DownloadDataLoaded) {
+    fun refreshCard(card: DownloadFragment.DownloadDataLoaded) = viewModelScope.launch {
         BookDownloader2.downloadFromCard(card)
+    }
+
+    fun pause(card: DownloadFragment.DownloadDataLoaded) {
+        BookDownloader2.addPendingAction(card.id, DownloadActionType.Pause)
+    }
+    fun resume(card: DownloadFragment.DownloadDataLoaded) {
+        BookDownloader2.addPendingAction(card.id,DownloadActionType.Resume)
     }
 
     fun load(card: ResultCached) {
@@ -321,7 +330,7 @@ class DownloadViewModel : ViewModel() {
     private val cardsDataMutex = Mutex()
     private val cardsData: HashMap<Int, DownloadFragment.DownloadDataLoaded> = hashMapOf()
 
-    private fun progressChanged(data: Pair<Int, BookDownloader2Helper.DownloadProgressState>) =
+    private fun progressChanged(data: Pair<Int, DownloadProgressState>) =
         ioSafe {
             cardsDataMutex.withLock {
                 val (id, state) = data
@@ -348,7 +357,7 @@ class DownloadViewModel : ViewModel() {
             cardsData[id]?.apply {
                 source = value.source
                 name = value.name
-                author = value.name
+                author = value.author
                 posterUrl = value.posterUrl
                 rating = value.rating
                 peopleVoted = value.peopleVoted
@@ -371,7 +380,7 @@ class DownloadViewModel : ViewModel() {
                     0,
                     0,
                     "",
-                    BookDownloader2Helper.DownloadState.Nothing,
+                    DownloadState.Nothing,
                     id,
                     false
                 )
@@ -380,6 +389,7 @@ class DownloadViewModel : ViewModel() {
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun downloadDataRefreshed(_id: Int) = ioSafe {
         BookDownloader2.downloadInfoMutex.withLock {
             cardsDataMutex.withLock {

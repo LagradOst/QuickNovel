@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BookDownloader2Helper
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
+import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.DownloadResultCompactBinding
 import com.lagradost.quicknovel.util.UIHelper.setImage
@@ -99,28 +100,34 @@ class DownloadAdapter2(private val viewModel: DownloadViewModel, private val res
                     downloadUpdate.isEnabled = true
                 //}
                 downloadUpdate.contentDescription = when (realState) {
-                    BookDownloader2Helper.DownloadState.IsDone -> "Done"
-                    BookDownloader2Helper.DownloadState.IsDownloading -> "Pause"
-                    BookDownloader2Helper.DownloadState.IsPaused -> "Resume"
-                    BookDownloader2Helper.DownloadState.IsFailed -> "Re-Download"
-                    BookDownloader2Helper.DownloadState.IsStopped -> "Update"
-                    BookDownloader2Helper.DownloadState.IsPending -> "Pending"
-                    BookDownloader2Helper.DownloadState.Nothing -> "Update"
+                    DownloadState.IsDone -> "Done"
+                    DownloadState.IsDownloading -> "Pause"
+                    DownloadState.IsPaused -> "Resume"
+                    DownloadState.IsFailed -> "Re-Download"
+                    DownloadState.IsStopped -> "Update"
+                    DownloadState.IsPending -> "Pending"
+                    DownloadState.Nothing -> "Update"
                 }
 
                 downloadUpdate.setImageResource(when (realState) {
-                    BookDownloader2Helper.DownloadState.IsDownloading -> R.drawable.ic_baseline_pause_24
-                    BookDownloader2Helper.DownloadState.IsPaused -> R.drawable.netflix_play
-                    BookDownloader2Helper.DownloadState.IsStopped -> R.drawable.ic_baseline_autorenew_24
-                    BookDownloader2Helper.DownloadState.IsFailed -> R.drawable.ic_baseline_autorenew_24
-                    BookDownloader2Helper.DownloadState.IsDone -> R.drawable.ic_baseline_check_24
-                    BookDownloader2Helper.DownloadState.IsPending -> R.drawable.nothing
-                    BookDownloader2Helper.DownloadState.Nothing -> R.drawable.ic_baseline_autorenew_24
+                    DownloadState.IsDownloading -> R.drawable.ic_baseline_pause_24
+                    DownloadState.IsPaused -> R.drawable.netflix_play
+                    DownloadState.IsStopped -> R.drawable.ic_baseline_autorenew_24
+                    DownloadState.IsFailed -> R.drawable.ic_baseline_autorenew_24
+                    DownloadState.IsDone -> R.drawable.ic_baseline_check_24
+                    DownloadState.IsPending -> R.drawable.nothing
+                    DownloadState.Nothing -> R.drawable.ic_baseline_autorenew_24
                 })
                 downloadUpdate.setOnClickListener {
-                    viewModel.refreshCard(card)
+                    when(realState) {
+                        DownloadState.IsDownloading -> viewModel.pause(card)
+                        DownloadState.IsPaused -> viewModel.resume(card)
+                        DownloadState.IsPending -> {}
+                        else -> viewModel.refreshCard(card)
+                    }
+
                 }
-                downloadUpdateLoading.isVisible = realState == BookDownloader2Helper.DownloadState.IsPending
+                downloadUpdateLoading.isVisible = realState == DownloadState.IsPending
             }
         }
     }

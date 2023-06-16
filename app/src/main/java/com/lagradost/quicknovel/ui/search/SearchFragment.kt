@@ -1,6 +1,6 @@
 package com.lagradost.quicknovel.ui.search
 
-import android.app.Activity
+import android.app.Dialog
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
@@ -9,9 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
-import android.widget.FrameLayout
 import android.widget.ImageView
-import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.isGone
@@ -22,69 +20,63 @@ import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.GridLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
+import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.HomePageList
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.FragmentSearchBinding
+import com.lagradost.quicknovel.databinding.HomeEpisodesExpandedBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.normalSafeApiCall
 import com.lagradost.quicknovel.mvvm.observe
-import com.lagradost.quicknovel.ui.search.SearchHelper.handleSearchClickCallback
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiProviderLangSettings
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.Event
 import com.lagradost.quicknovel.util.SettingsHelper.getGridIsCompact
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
-import com.lagradost.quicknovel.widget.AutofitRecyclerView
 
 class SearchFragment : Fragment() {
-
     lateinit var binding: FragmentSearchBinding
     private val viewModel: SearchViewModel by viewModels()
 
     companion object {
         val configEvent = Event<Int>()
         var currentSpan = 1
+        var currentDialog : Dialog? = null
 
-        fun Activity.loadHomepageList(item: HomePageList) {
-            val context = this
-            val bottomSheetDialogBuilder = BottomSheetDialog(context)
-            bottomSheetDialogBuilder.setContentView(R.layout.home_episodes_expanded)
-            val title = bottomSheetDialogBuilder.findViewById<TextView>(R.id.home_expanded_text)!!
-            title.text = item.name
-            val recycle =
-                bottomSheetDialogBuilder.findViewById<AutofitRecyclerView>(R.id.home_expanded_recycler)!!
-            val titleHolder =
-                bottomSheetDialogBuilder.findViewById<FrameLayout>(R.id.home_expanded_drag_down)!!
+        fun loadHomepageList(viewModel: SearchViewModel, item: HomePageList) {
+            if(currentDialog != null) return
+            val act = activity ?: return
 
-            titleHolder.setOnClickListener {
-                bottomSheetDialogBuilder.dismiss()
+            val bottomSheetDialog = BottomSheetDialog(act)
+            val binding = HomeEpisodesExpandedBinding.inflate(act.layoutInflater, null, false)
+            bottomSheetDialog.setContentView(binding.root)
+
+            binding.homeExpandedText.text = item.name
+            binding.homeExpandedDragDown.setOnClickListener {
+                bottomSheetDialog.dismiss()
             }
 
-            // Span settings
-            recycle.spanCount = currentSpan
 
-            recycle.adapter = SearchAdapter(item.list, recycle) { callback ->
-                handleSearchClickCallback(this, callback)
-                if (callback.action == SEARCH_ACTION_LOAD) {
-                    bottomSheetDialogBuilder.dismiss()
-                }
+            binding.homeExpandedRecycler.apply {
+                val searchAdapter = SearchAdapter2(viewModel, binding.homeExpandedRecycler)
+                searchAdapter.submitList(item.list)
+                adapter = searchAdapter
+                spanCount = currentSpan
             }
 
             val spanListener = { span: Int ->
-                recycle.spanCount = span
-                (recycle.adapter as SearchAdapter).notifyDataSetChanged()
+                binding.homeExpandedRecycler.spanCount = span
             }
 
             configEvent += spanListener
 
-            bottomSheetDialogBuilder.setOnDismissListener {
+            bottomSheetDialog.setOnDismissListener {
                 configEvent -= spanListener
+                currentDialog = null
             }
-
-            (recycle.adapter as SearchAdapter).notifyDataSetChanged()
-
-            bottomSheetDialogBuilder.show()
+            currentDialog = bottomSheetDialog
+            bottomSheetDialog.show()
         }
     }
 

@@ -60,7 +60,7 @@ class DownloadFragment : Fragment() {
         var downloadedCount: Int,
         var downloadedTotal: Int,
         var ETA: String,
-        var state: BookDownloader2Helper.DownloadState,
+        var state: DownloadState,
         val id: Int,
         var generating : Boolean,
     )
@@ -243,7 +243,8 @@ class DownloadFragment : Fragment() {
         //swipe_container.setProgressBackgroundColorSchemeColor(requireContext().colorFromAttribute(R.attr.darkBackground))
 
         binding.swipeContainer.apply {
-            setColorSchemeColors(requireContext().colorFromAttribute(R.attr.colorPrimary))
+            setColorSchemeColors(context.colorFromAttribute(R.attr.colorPrimary))
+            setProgressBackgroundColorSchemeColor(context.colorFromAttribute(R.attr.primaryGrayBackground))
             setOnRefreshListener {
                 viewModel.refresh()
                 isRefreshing = false

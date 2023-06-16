@@ -10,12 +10,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
-import com.lagradost.quicknovel.BookDownloader
 import com.lagradost.quicknovel.BookDownloader2
-import com.lagradost.quicknovel.BookDownloader2Helper
+import com.lagradost.quicknovel.BookDownloader2Helper.generateId
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
 import com.lagradost.quicknovel.DataStore.getKey
+import com.lagradost.quicknovel.DownloadActionType
+import com.lagradost.quicknovel.DownloadProgressState
+import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.RESULT_BOOKMARK
@@ -48,9 +50,8 @@ class ResultViewModel : ViewModel() {
     private var loadUrl: String = ""
     private var hasLoaded: Boolean = false
 
-    val loadResponse: MutableLiveData<Resource<LoadResponse>> by lazy {
-        MutableLiveData<Resource<LoadResponse>>()
-    }
+    val loadResponse: MutableLiveData<Resource<LoadResponse>> = MutableLiveData<Resource<LoadResponse>>()
+
 
     val reviews: MutableLiveData<ArrayList<UserReview>> by lazy {
         MutableLiveData<ArrayList<UserReview>>()
@@ -95,7 +96,7 @@ class ResultViewModel : ViewModel() {
         val newPos = pos ?: return
         currentTabIndex.postValue(newPos)
         if (newPos == 1 && reviews.value.isNullOrEmpty()) {
-            loadMoreReviews()
+            loadMoreReviews(verify = false)
         }
     }
 
@@ -133,17 +134,17 @@ class ResultViewModel : ViewModel() {
             BookDownloader2.downloadInfoMutex.withLock {
                 BookDownloader2.downloadProgress[loadId]?.let { downloadState ->
                     when (downloadState.state) {
-                        BookDownloader2Helper.DownloadState.IsPaused -> BookDownloader2.addPendingAction(
+                        DownloadState.IsPaused -> BookDownloader2.addPendingAction(
                             loadId,
-                            BookDownloader.DownloadActionType.Resume
+                            DownloadActionType.Resume
                         )
 
-                        BookDownloader2Helper.DownloadState.IsDownloading -> BookDownloader2.addPendingAction(
+                        DownloadState.IsDownloading -> BookDownloader2.addPendingAction(
                             loadId,
-                            BookDownloader.DownloadActionType.Pause
+                            DownloadActionType.Pause
                         )
 
-                        BookDownloader2Helper.DownloadState.IsDone, BookDownloader2Helper.DownloadState.IsPending -> {
+                        DownloadState.IsDone, DownloadState.IsPending -> {
 
                         }
 
@@ -249,9 +250,10 @@ class ResultViewModel : ViewModel() {
         }
     }
 
-    fun loadMoreReviews() = viewModelScope.launch {
+    fun loadMoreReviews(verify : Boolean = true) = viewModelScope.launch {
         loadMutex.withLock {
             if (!hasLoaded) return@launch
+            if(verify && currentTabIndex.value == 0) return@launch
             loadMoreReviews(loadUrl)
         }
     }
@@ -269,11 +271,11 @@ class ResultViewModel : ViewModel() {
         BookDownloader2.downloadRemoved -= ::downloadRemoved
     }
 
-    val downloadState: MutableLiveData<BookDownloader2Helper.DownloadProgressState> by lazy {
-        MutableLiveData<BookDownloader2Helper.DownloadProgressState>(null)
+    val downloadState: MutableLiveData<DownloadProgressState> by lazy {
+        MutableLiveData<DownloadProgressState>(null)
     }
 
-    private fun progressChanged(data: Pair<Int, BookDownloader2Helper.DownloadProgressState>) =
+    private fun progressChanged(data: Pair<Int, DownloadProgressState>) =
         viewModelScope.launch {
             val (id, state) = data
             loadMutex.withLock {
@@ -305,8 +307,8 @@ class ResultViewModel : ViewModel() {
             BookDownloader2.downloadInfoMutex.withLock {
                 val current = BookDownloader2.downloadProgress[loadId]
                 if (current == null) {
-                    val new = BookDownloader2Helper.DownloadProgressState(
-                        BookDownloader2Helper.DownloadState.Nothing,
+                    val new = DownloadProgressState(
+                        DownloadState.Nothing,
                         0,
                         load.data.size,
                         System.currentTimeMillis(),
@@ -337,7 +339,7 @@ class ResultViewModel : ViewModel() {
                     load = res
                     loadUrl = res.url
 
-                    val tid = BookDownloader.generateId(res, apiName)
+                    val tid = generateId(res, apiName)
                     loadId = tid
 
                     readState.postValue(

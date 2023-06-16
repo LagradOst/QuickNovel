@@ -13,8 +13,8 @@ import androidx.fragment.app.FragmentActivity
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.hippo.unifile.UniFile
-import com.lagradost.quicknovel.BookDownloader.checkWrite
-import com.lagradost.quicknovel.BookDownloader.requestRW
+import com.lagradost.quicknovel.BookDownloader2Helper.checkWrite
+import com.lagradost.quicknovel.BookDownloader2Helper.requestRW
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.getDefaultSharedPrefs
 import com.lagradost.quicknovel.DataStore.getSharedPrefs

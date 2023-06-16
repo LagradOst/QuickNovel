@@ -1,67 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:id="@+id/downloadRoot"
         android:orientation="vertical">
 
-        <com.google.android.material.appbar.AppBarLayout
-                android:background="@android:color/transparent"
+    <com.google.android.material.appbar.AppBarLayout
+            android:background="@android:color/transparent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+        <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/download_toolbar"
+                app:menu="@menu/download_actionbar"
+                android:paddingTop="@dimen/navbarHeight"
+                app:title="Library"
+                android:background="?attr/primaryGrayBackground"
+                app:navigationIconTint="?attr/iconColor"
+                app:titleTextColor="?attr/textColor"
+                app:layout_scrollFlags="scroll|enterAlways"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
-            <com.google.android.material.appbar.MaterialToolbar
-                    android:id="@+id/download_toolbar"
-                    app:menu="@menu/download_actionbar"
-                    android:paddingTop="@dimen/navbarHeight"
-                    app:title="Library"
-                    android:background="?attr/primaryGrayBackground"
-                    app:navigationIconTint="?attr/iconColor"
-                    app:titleTextColor="?attr/textColor"
-                    app:layout_scrollFlags="scroll|enterAlways"
-                    android:layout_width="match_parent" android:layout_height="wrap_content">
 
-            </com.google.android.material.appbar.MaterialToolbar>
-            <com.google.android.material.tabs.TabLayout
-                    android:id="@+id/bookmark_tabs"
-                    style="@style/Theme.Widget.Tabs"
-                    android:layout_width="match_parent"
-                    android:layout_height="40dp"
-                    android:layout_gravity="bottom"
-                    android:background="?attr/primaryGrayBackground"
-                    android:descendantFocusability="blocksDescendants"
-                    android:focusable="false"
-                    android:paddingHorizontal="5dp"
-                    app:layout_scrollFlags="noScroll"
-                    app:tabGravity="center"
-                    app:tabIndicator="@drawable/indicator_background"
-                    app:tabIndicatorColor="?attr/white"
-                    app:tabIndicatorGravity="center"
-                    app:tabIndicatorHeight="30dp"
-                    app:tabMode="scrollable"
-                    app:tabSelectedTextColor="?attr/primaryBlackBackground"
-                    app:tabTextAppearance="@style/TabNoCaps"
-                    app:tabTextColor="?attr/textColor" />
-        </com.google.android.material.appbar.AppBarLayout>
+        </com.google.android.material.appbar.MaterialToolbar>
 
-        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-                android:id="@+id/swipe_container"
+        <com.google.android.material.tabs.TabLayout
+                android:id="@+id/bookmark_tabs"
+                style="@style/Theme.Widget.Tabs"
                 android:layout_width="match_parent"
-                android:paddingLeft="5dp"
-                android:paddingRight="5dp"
-                app:layout_behavior="@string/appbar_scrolling_view_behavior"
-                android:layout_height="match_parent">
-            <com.lagradost.quicknovel.widget.AutofitRecyclerView
-                    app:spanCount="3"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:clipToPadding="false"
-                    android:paddingTop="5dp"
-                    android:id="@+id/download_cardSpace"
-                    android:orientation="vertical">
-            </com.lagradost.quicknovel.widget.AutofitRecyclerView>
-        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+                android:layout_height="40dp"
+                android:layout_gravity="bottom"
+                android:background="?attr/primaryGrayBackground"
+                android:descendantFocusability="blocksDescendants"
+                android:focusable="false"
+                android:paddingHorizontal="5dp"
+                app:layout_scrollFlags="noScroll"
+                app:tabGravity="center"
+                app:tabIndicator="@drawable/indicator_background"
+                app:tabIndicatorColor="?attr/white"
+                app:tabIndicatorGravity="center"
+                app:tabIndicatorHeight="30dp"
+                app:tabMode="scrollable"
+                app:tabSelectedTextColor="?attr/primaryBlackBackground"
+                app:tabTextAppearance="@style/TabNoCaps"
+                app:tabTextColor="?attr/textColor" />
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipe_container"
+            android:layout_width="match_parent"
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"
+            android:layout_height="match_parent">
+
+        <com.lagradost.quicknovel.widget.AutofitRecyclerView
+                app:spanCount="3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:paddingTop="5dp"
+                android:id="@+id/download_cardSpace"
+                android:orientation="vertical" />
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <com.lagradost.quicknovel.widget.AutofitRecyclerView
             app:spanCount="3"
@@ -73,6 +75,5 @@
             android:paddingLeft="5dp"
             android:paddingRight="5dp"
             android:id="@+id/bookmark_cardSpace"
-            android:orientation="vertical">
-    </com.lagradost.quicknovel.widget.AutofitRecyclerView>
+            android:orientation="vertical" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

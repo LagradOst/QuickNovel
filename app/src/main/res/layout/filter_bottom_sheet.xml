@@ -6,50 +6,35 @@
         android:background="@null"
         android:layout_height="match_parent">
 
-    <androidx.cardview.widget.CardView
-            app:cardCornerRadius="10dp"
-            android:backgroundTint="?attr/boxItemBackground"
+
+    <FrameLayout
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
+            android:orientation="horizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-        <FrameLayout
-                android:paddingTop="5dp"
-                android:paddingBottom="5dp"
-                android:paddingLeft="20dp"
-                android:paddingRight="20dp"
-                android:orientation="horizontal"
-                android:layout_width="match_parent"
-                android:layout_height="55dp">
+        <TextView
+                android:text="@string/filter_dialog_sort_by"
+                android:paddingStart="?android:attr/listPreferredItemPaddingStart"
+                android:paddingEnd="?android:attr/listPreferredItemPaddingEnd"
+                android:layout_gravity="center_vertical"
+                android:textStyle="bold"
+                android:textSize="20sp"
+                android:textColor="?attr/textColor"
+                android:layout_width="wrap_content"
+                android:layout_rowWeight="1"
+                android:paddingTop="10dp"
+                android:layout_height="wrap_content" />
 
-            <TextView
-                    style="@style/AppTextViewStyle"
-                    android:layout_gravity="center_vertical"
-                    android:text="@string/filter_dialog_sort_by"
-                    android:textColor="?attr/textColor"
-                    android:textSize="18sp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
-
-            <com.google.android.material.button.MaterialButton
-                    android:gravity="center"
-                    android:layout_gravity="end"
-                    android:layout_height="45dp"
-                    android:layout_width="wrap_content"
-                    android:minWidth="100dp"
-
-                    android:text="@string/filter_dialog_filter"
-                    android:id="@+id/filter_button"
-                    android:textAllCaps="false"
-                    android:textSize="15sp"
-                    app:cornerRadius="5dp"
-                    app:strokeWidth="2dp"
-                    android:textColor="?attr/colorOnPrimary"
-                    app:strokeColor="?attr/colorOnPrimary"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    app:rippleColor="?attr/colorOnPrimary" />
-        </FrameLayout>
-
-    </androidx.cardview.widget.CardView>
+        <com.google.android.material.button.MaterialButton
+                android:layout_width="wrap_content"
+                android:layout_gravity="center_vertical|end"
+                android:text="@string/filter_dialog_filter"
+                android:id="@+id/filter_button"
+                style="@style/WhiteButton"
+                app:rippleColor="?attr/colorOnPrimary" />
+    </FrameLayout>
 
     <GridLayout
             android:paddingLeft="20dp"

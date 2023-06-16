@@ -13,7 +13,6 @@ import com.lagradost.quicknovel.databinding.FragmentHistoryBinding
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
-import kotlinx.android.synthetic.main.fragment_downloads.*
 
 
 class HistoryFragment : Fragment() {

@@ -11,6 +11,7 @@
 
 
     <com.facebook.shimmer.ShimmerFrameLayout
+            android:visibility="visible"
             android:id="@+id/result_loading"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -108,11 +109,13 @@
             <include layout="@layout/loading_line" />
 
             <include layout="@layout/loading_line_short" />
+
             <View
                     android:layout_width="0dp"
                     android:layout_height="20dp">
 
             </View>
+
             <include layout="@layout/loading_line" />
 
             <LinearLayout
@@ -143,6 +146,7 @@
                         android:background="@color/grayShimmer"
                         tools:ignore="ContentDescription" />
             </LinearLayout>
+
             <androidx.cardview.widget.CardView
                     app:cardCornerRadius="@dimen/loading_radius"
                     android:layout_width="match_parent"
@@ -164,6 +168,7 @@
             android:visibility="gone" />-->
 
     <LinearLayout
+            android:visibility="gone"
             tools:visibility="gone"
             android:id="@+id/result_loading_error"
             android:orientation="vertical"
@@ -206,6 +211,7 @@
     </LinearLayout>
 
     <ImageView
+            android:visibility="gone"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:scaleType="centerCrop"
@@ -215,6 +221,7 @@
             android:contentDescription="@string/background_image_descript" />
 
     <FrameLayout
+            android:visibility="gone"
             tools:visibility="gone"
             android:layout_width="match_parent"
             android:layout_height="match_parent"

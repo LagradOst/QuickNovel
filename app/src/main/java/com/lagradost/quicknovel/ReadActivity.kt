@@ -48,7 +48,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
-import com.lagradost.quicknovel.BookDownloader.getQuickChapter
+import com.lagradost.quicknovel.BookDownloader2Helper.getQuickChapter
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.mapper
@@ -160,7 +160,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
     var isFromEpub = true
     lateinit var book: Book
-    lateinit var quickdata: BookDownloader.QuickStreamData
+    lateinit var quickdata: QuickStreamData
 
     private fun getBookSize(): Int {
         return if (isFromEpub) book.tableOfContents.tocReferences.size else quickdata.data.size
@@ -1005,6 +1005,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         forceReload: Boolean = false
     ) {
         println("loadChapter = $chapterIndex")
+        if(maxChapter == 0) return
         if (chapterIndex > maxChapter - 1) {
             if (isFromEpub) {
                 loadChapter(maxChapter - 1, scrollToTop, scrollToRemember, forceReload)

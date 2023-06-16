@@ -1,6 +1,5 @@
 package com.lagradost.quicknovel.ui.search
 
-
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
@@ -8,7 +7,6 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.HomePageList
 import com.lagradost.quicknovel.databinding.HomepageParentBinding
-
 
 class ParentItemAdapter2(
     private val viewModel: SearchViewModel
@@ -31,11 +29,14 @@ class ParentItemAdapter2(
     ) :
         RecyclerView.ViewHolder(binding.root) {
 
-
         fun bind(card: HomePageList) {
             binding.apply {
                 val oldAdapter = homeChildRecyclerview.adapter
-                if(oldAdapter is HomeChildItemAdapter2) {
+                binding.homeParentItemTitle.text = card.name
+                binding.homeChildMoreInfo.setOnClickListener {
+                    viewModel.loadHomepageList(card)
+                }
+                if (oldAdapter is HomeChildItemAdapter2) {
                     oldAdapter.submitList(card.list)
                 } else {
                     val newAdapter =

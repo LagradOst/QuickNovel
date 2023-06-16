@@ -1,32 +1,19 @@
 package com.lagradost.quicknovel.ui.history
 
 import android.content.DialogInterface
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.lagradost.quicknovel.BaseApplication
-import com.lagradost.quicknovel.BaseApplication.Companion.getActivity
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKeys
-import com.lagradost.quicknovel.BookDownloader
-import com.lagradost.quicknovel.BookDownloader.createQuickStream
-import com.lagradost.quicknovel.BookDownloader.openQuickStream
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.CommonActivity.activity
-import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
-import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.mvvm.Resource
-import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
-import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.ResultCached
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 class HistoryViewModel : ViewModel() {
 

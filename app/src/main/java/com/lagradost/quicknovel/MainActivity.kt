@@ -4,8 +4,6 @@ import android.app.Activity
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
-import android.view.View
-import android.view.Window
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.NavOptions
@@ -16,21 +14,20 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.lagradost.nicehttp.Requests
 import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
-import com.lagradost.quicknovel.BaseApplication.Companion.getActivity
-import com.lagradost.quicknovel.BookDownloader.checkWrite
-import com.lagradost.quicknovel.BookDownloader.createQuickStream
-import com.lagradost.quicknovel.BookDownloader.openQuickStream
-import com.lagradost.quicknovel.BookDownloader.requestNotifications
-import com.lagradost.quicknovel.BookDownloader.requestRW
+import com.lagradost.quicknovel.BookDownloader2.openQuickStream
+import com.lagradost.quicknovel.BookDownloader2Helper.checkWrite
+import com.lagradost.quicknovel.BookDownloader2Helper.createQuickStream
+import com.lagradost.quicknovel.BookDownloader2Helper.requestRW
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
-import com.lagradost.quicknovel.MainActivity.Companion.backPressed
+import com.lagradost.quicknovel.NotificationHelper.requestNotifications
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.ui.result.ResultFragment
+import com.lagradost.quicknovel.ui.search.SearchFragment
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.Apis.Companion.printProviders
@@ -41,7 +38,6 @@ import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.getResourceColor
-import kotlinx.android.synthetic.main.activity_main.nav_view
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -66,6 +62,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         fun AppCompatActivity.loadResult(url: String, apiName: String, startAction: Int = 0) {
+            SearchFragment.currentDialog?.dismiss()
             runOnUiThread {
                 supportFragmentManager.beginTransaction()
                     .setCustomAnimations(
@@ -99,8 +96,8 @@ class MainActivity : AppCompatActivity() {
                     Coroutines.main {
                         val uri = withContext(Dispatchers.IO) {
                             createQuickStream(
-                                BookDownloader.QuickStreamData(
-                                    BookDownloader.QuickStreamMetaData(
+                                QuickStreamData(
+                                    QuickStreamMetaData(
                                         "Not found",
                                         name,
                                         reddit.name,
@@ -201,15 +198,6 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         activity = this
-    }
-
-    fun getStatusBarHeight(): Int {
-        var result = 0
-        val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
-        if (resourceId > 0) {
-            result = resources.getDimensionPixelSize(resourceId)
-        }
-        return result
     }
 
     override fun onBackPressed() {
