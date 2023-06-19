@@ -19,7 +19,7 @@ class ArchiveOfOurOwnProvider : MainAPI() {
 
     override val hasMainPage = true
 
-    override val rateLimitTime: Long = 500
+    override val rateLimitTime: Long = 50
 
     override val iconId = R.drawable.ic_archive_of_our_own
 
