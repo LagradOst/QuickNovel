@@ -38,6 +38,8 @@ import androidx.core.text.getSpans
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.isGone
+import androidx.core.view.isVisible
 import androidx.media.session.MediaButtonReceiver
 import androidx.preference.PreferenceManager
 import com.bumptech.glide.Glide
@@ -55,6 +57,9 @@ import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.DataStore.removeKey
 import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.MainActivity.Companion.app
+import com.lagradost.quicknovel.databinding.FragmentSearchBinding
+import com.lagradost.quicknovel.databinding.ReadBottomSettingsBinding
+import com.lagradost.quicknovel.databinding.ReadMainBinding
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.receivers.BecomingNoisyReceiver
@@ -79,8 +84,6 @@ import io.noties.markwon.html.HtmlPlugin
 import io.noties.markwon.image.AsyncDrawable
 import io.noties.markwon.image.ImageSizeResolver
 import io.noties.markwon.image.glide.GlideImagesPlugin
-import kotlinx.android.synthetic.main.read_bottom_settings.*
-import kotlinx.android.synthetic.main.read_main.*
 import kotlinx.coroutines.*
 import nl.siegmann.epublib.domain.Book
 import nl.siegmann.epublib.epub.EpubReader
@@ -116,7 +119,7 @@ fun clearTextViewOfSpans(tv: TextView) {
 }
 
 fun setHighLightedText(tv: TextView?, start: Int, end: Int): Boolean {
-    if(tv == null) return false
+    if (tv == null) return false
     try {
         val wordToSpan: Spannable = SpannableString(tv.text)
         val spans = wordToSpan.getSpans<android.text.Annotation>(0, tv.text.length)
@@ -204,7 +207,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         val text =
             (if (isFromEpub) book.tableOfContents.tocReferences[index].resource.reader.readText() else {
                 main {
-                    loading_text?.text = quickdata.data[index].url
+                    binding.loadingText.text = quickdata.data[index].url
                 }
 
                 getQuickChapter(
@@ -257,11 +260,11 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     private fun setReadTextFont(file: File?, nameCallback: ((String) -> Unit)? = null) {
-        if (defFont == null) defFont = read_text?.typeface
+        if (defFont == null) defFont = binding.readText.typeface
         setKey(EPUB_FONT, file?.name ?: "")
-        read_text?.setFont(file)
-        read_title_text?.setFont(file)
-        read_title_text?.setTypeface(read_title_text?.typeface, Typeface.BOLD)
+        binding.readText.setFont(file)
+        binding.readTitleText.setFont(file)
+        binding.readTitleText.setTypeface(binding.readText.typeface, Typeface.BOLD)
         nameCallback?.invoke(UIHelper.parseFontFileName(file?.name))
     }
 
@@ -360,8 +363,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         } else {
             showSystemUI()
         }
-
-        read_text.post {
+        binding.readText.post {
             loadTextLines()
             if (wasRunningTTS) {
                 startTTS(readFromIndex)
@@ -417,9 +419,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                     val line = globalTTSLines[readFromIndex]
                     val textLine = getMinMax(line.startIndex, line.endIndex)
                     if (textLine != null) {
-                        return textLine.max + getLineOffset() - (read_toolbar_holder?.height
-                            ?: 0) + (reader_lin_container?.paddingTop
-                            ?: 0)//dimensionFromAttribute(R.attr.actionBarSize))
+                        return textLine.max + getLineOffset() - binding.readToolbarHolder.height + binding.readerLinContainer.paddingTop //dimensionFromAttribute(R.attr.actionBarSize))
                     }
                 }
             } catch (e: Exception) {
@@ -576,7 +576,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                             this, 3337 + index,
                             resultIntent,
                             PendingIntent.FLAG_UPDATE_CURRENT or if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-                                        PendingIntent.FLAG_MUTABLE else 0
+                                PendingIntent.FLAG_MUTABLE else 0
                         )
 
                         builder.addAction(
@@ -601,12 +601,9 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 }
             }
 
-            reader_bottom_view_tts?.visibility =
-                if (isTTSRunning && !isHidden) View.VISIBLE else View.GONE
-            reader_bottom_view?.visibility =
-                if (!isTTSRunning && !isHidden) View.VISIBLE else View.GONE
-
-            tts_action_pause_play?.setImageResource(
+            binding.readerBottomViewTts.isVisible = isTTSRunning && !isHidden
+            binding.readerBottomView.isVisible =!isTTSRunning && !isHidden
+            binding.ttsActionPausePlay.setImageResource(
                 when (value) {
                     TTSStatus.IsPaused -> R.drawable.ic_baseline_play_arrow_24
                     TTSStatus.IsRunning -> R.drawable.ic_baseline_pause_24
@@ -646,7 +643,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     private fun hideSystemUI() {
         isHidden = true
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        WindowInsetsControllerCompat(window, reader_container).let { controller ->
+        WindowInsetsControllerCompat(window, binding.readerContainer).let { controller ->
             controller.hide(WindowInsetsCompat.Type.systemBars())
             controller.systemBarsBehavior =
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -666,19 +663,19 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             }
         }
 
-        lowerBottomNav(reader_bottom_view)
-        lowerBottomNav(reader_bottom_view_tts)
+        lowerBottomNav(binding.readerBottomView)
+        lowerBottomNav(binding.readerBottomViewTts)
 
-        read_toolbar_holder.translationY = 0f
+        binding.readToolbarHolder.translationY = 0f
         ObjectAnimator.ofFloat(
-            read_toolbar_holder,
+            binding.readToolbarHolder,
             "translationY",
-            -read_toolbar_holder.height.toFloat()
+            -binding.readToolbarHolder.height.toFloat()
         ).apply {
             duration = 200
             start()
         }.doOnEnd {
-            read_toolbar_holder.visibility = View.GONE
+            binding.readToolbarHolder.visibility = View.GONE
         }
     }
 
@@ -689,13 +686,13 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         WindowCompat.setDecorFitsSystemWindows(window, true)
         WindowInsetsControllerCompat(
             window,
-            reader_container
+            binding.readerContainer
         ).show(WindowInsetsCompat.Type.systemBars())
 
-        read_toolbar_holder.visibility = View.VISIBLE
+        binding.readToolbarHolder.visibility = View.VISIBLE
 
-        reader_bottom_view.visibility = if (isTTSRunning) View.GONE else View.VISIBLE
-        reader_bottom_view_tts.visibility = if (isTTSRunning) View.VISIBLE else View.GONE
+        binding.readerBottomView.isGone = isTTSRunning
+        binding.readerBottomViewTts.isVisible = isTTSRunning
 
         fun higherBottomNavView(v: View) {
             v.translationY = v.height.toFloat()
@@ -705,12 +702,12 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             }
         }
 
-        higherBottomNavView(reader_bottom_view)
-        higherBottomNavView(reader_bottom_view_tts)
+        higherBottomNavView(binding.readerBottomView)
+        higherBottomNavView(binding.readerBottomViewTts)
 
-        read_toolbar_holder.translationY = -read_toolbar_holder.height.toFloat()
+        binding.readToolbarHolder.translationY = -binding.readToolbarHolder.height.toFloat()
 
-        ObjectAnimator.ofFloat(read_toolbar_holder, "translationY", 0f).apply {
+        ObjectAnimator.ofFloat(binding.readToolbarHolder, "translationY", 0f).apply {
             duration = 200
             start()
         }
@@ -720,10 +717,10 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         val string = if (this.updateTwelveHourTime()) "hh:mm a" else "HH:mm"
 
         val currentTime: String = SimpleDateFormat(string, Locale.getDefault()).format(Date())
-        if (read_time != null) {
-            read_time.text = currentTime
-            read_time.postDelayed({ -> updateTimeText() }, 1000)
-        }
+
+        binding.readTime.text = currentTime
+        binding.readTime.postDelayed({ -> updateTimeText() }, 1000)
+
     }
 
 
@@ -773,7 +770,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         } else {
             ioSafe {
                 loadChapter(currentChapter + 1, true)
-                read_scroll.smoothScrollTo(0, 0)
+                binding.readScroll.smoothScrollTo(0, 0)
             }
 
             true
@@ -801,7 +798,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     private fun getLineOffset(): Int {
-        return (read_title_text?.height ?: 0) + (read_text?.paddingTop ?: 0)
+        return binding.readTitleText.height + binding.readText.paddingTop
     }
 
     var lastChange: TextLine? = null
@@ -809,24 +806,24 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     private fun createTempBottomPadding(size: Int) {
         val parms = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, size)
         parms.gravity = Gravity.BOTTOM
-        read_temp_bottom_margin?.visibility = View.VISIBLE
-        read_temp_bottom_margin?.layoutParams = parms
+
+        binding.readTempBottomMargin.visibility = View.VISIBLE
+        binding.readTempBottomMargin.layoutParams = parms
     }
 
     private fun changeLine(line: TextLine) {//, moveToTextBottom: Boolean) {
         val offset = getLineOffset()
 
-        read_scroll?.let {
+        binding.readScroll.let {
             it.scrollTo(0, line.topPosition + offset)
             for (tLine in textLines!!) {
                 if (tLine.bottomPosition + offset > mainScrollY + it.height) {
                     val size =
-                        (mainScrollY + it.height) - (tLine.topPosition + offset) + (read_overlay?.height
-                            ?: 0)
+                        (mainScrollY + it.height) - (tLine.topPosition + offset) + binding.readOverlay.height
                     createTempBottomPadding(size)
                     if (DEBUGGING) {
-                        read_temp_bottom_margin?.setBackgroundResource(R.color.colorPrimary)
-                        line_top_extra.fixLine(tLine.topPosition + offset)
+                        binding.readTempBottomMargin.setBackgroundResource(R.color.colorPrimary)
+                        binding.lineTopExtra.fixLine(tLine.topPosition + offset)
                     }
                     break
                 }
@@ -876,14 +873,14 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         return true
                     }
 
-                    if (read_scroll.scrollY >= getScrollRange()) {
+                    if (binding.readScroll.scrollY >= getScrollRange()) {
                         loadNextChapter()
                         return true
                     }
                     for (t in textLines!!) {
-                        if (t.bottomPosition + offset > mainScrollY + read_scroll.height) {
+                        if (t.bottomPosition + offset > mainScrollY + binding.readScroll.height) {
                             val str = try {
-                                read_text?.text?.substring(t.startIndex, t.endIndex) ?: "valid"
+                                binding.readText.text.substring(t.startIndex, t.endIndex) ?: "valid"
                             } catch (e: Exception) {
                                 "valid"
                             }
@@ -891,20 +888,21 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                                 continue
                             }
                             changeLine(t)
-                            read_scroll.fling(0)
+                            binding.readScroll.fling(0)
                             return true
                         }
                     }
                     loadNextChapter()
                     return true
                 }
+
                 KeyEvent.KEYCODE_VOLUME_UP -> {
                     if (isTTSRunning) {
                         prevTTSLine()
                         return true
                     }
 
-                    if (read_scroll.scrollY <= 0) {
+                    if (binding.readScroll.scrollY <= 0) {
                         loadPrevChapter()
                         return true
                     }
@@ -916,9 +914,9 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                             }
                             for (returnIndex in index downTo 0) {
                                 val returnLine = textLines!![returnIndex]
-                                if (textLine.bottomPosition - returnLine.topPosition > read_scroll.height) {
+                                if (textLine.bottomPosition - returnLine.topPosition > binding.readScroll.height) {
                                     changeLine(returnLine)
-                                    read_scroll.fling(0)
+                                    binding.readScroll.fling(0)
                                     return true
                                 }
                             }
@@ -958,14 +956,15 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
     @SuppressLint("SetTextI18n")
     fun updateChapterName(scrollX: Int) {
-        if (read_scroll.height == 0) {
-            read_chapter_name.text = chapterName!!
+        if (binding.readScroll.height == 0) {
+            binding.readChapterName.text = chapterName!!
             return
         }
         val height = maxOf(1, getScrollRange())
-        val chaptersTotal = ceil(height.toDouble() / read_scroll.height).toInt()
-        val currentChapter = read_scroll.scrollY * chaptersTotal / height
-        read_chapter_name.text = "${chapterName!!} (${currentChapter + 1}/${chaptersTotal + 1})"
+        val chaptersTotal = ceil(height.toDouble() / binding.readScroll.height).toInt()
+        val currentChapter = binding.readScroll.scrollY * chaptersTotal / height
+        binding.readChapterName.text =
+            "${chapterName!!} (${currentChapter + 1}/${chaptersTotal + 1})"
     }
 
     fun String.replaceAfterIndex(
@@ -1005,7 +1004,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         forceReload: Boolean = false
     ) {
         println("loadChapter = $chapterIndex")
-        if(maxChapter == 0) return
+        if (maxChapter == 0) return
         if (chapterIndex > maxChapter - 1) {
             if (isFromEpub) {
                 loadChapter(maxChapter - 1, scrollToTop, scrollToRemember, forceReload)
@@ -1028,8 +1027,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             val txt = if (isFromEpub) {
                 getChapterData(chapterIndex, forceReload)
             } else {
-                read_loading?.visibility = View.VISIBLE
-                read_normal_layout?.alpha = 0f
+                binding.readLoading.isVisible = true
+                binding.readNormalLayout.alpha = 0f
                 withContext(Dispatchers.IO) {
                     getChapterData(chapterIndex, forceReload)
                 }
@@ -1050,26 +1049,35 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 if (scrollToRemember) {
                     val scrollToY = getKey<Int>(EPUB_CURRENT_POSITION_SCROLL, getBookTitle(), null)
                     if (scrollToY != null) {
-                        read_scroll.scrollTo(0, scrollToY)
-                        read_scroll.fling(0)
+                        binding.readScroll.apply {
+                            scrollTo(0, scrollToY)
+                            fling(0)
+                        }
                         return
                     }
                 }
 
                 val scrollToY = if (scrollToTop) 0 else getScrollRange()
-                read_scroll.scrollTo(0, scrollToY)
-                read_scroll.fling(0)
+                binding.readScroll.apply {
+                    scrollTo(0, scrollToY)
+                    fling(0)
+                }
                 updateChapterName(scrollToY)
             }
-            read_text?.alpha = 0f
+
+            binding.readText.alpha = 0f
 
             chapterName = getChapterName(chapterIndex)
 
             currentChapter = chapterIndex
             hasTriedToFillNextChapter = false
-            read_toolbar?.title = getBookTitle()
-            read_toolbar?.subtitle = chapterName
-            read_title_text?.text = chapterName
+
+            binding.readToolbar.apply {
+                title = getBookTitle()
+                subtitle = chapterName
+
+            }
+            binding.readTitleText.text = chapterName
 
             updateChapterName(0)
             markwon =
@@ -1135,7 +1143,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
             val index = txt.indexOf("<body>")
             markwon?.setMarkdown(
-                read_text,
+                binding.readText,
                 txt.replaceAfterIndex( // because markwon is fucked we have to replace newlines with breaklines and becausse I dont want 3 br on top I start after body
                     "\n",
                     "<br>",
@@ -1152,19 +1160,19 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 } else {
                     Html.fromHtml(txt, null, null) as Spannable
                 }
-                read_text?.text = spanned
+
+                binding.readText.text = spanned
             }
 
 
             //println("TEXT:" + document.html())
             //read_text?.text = spanned
-            currentText = read_text?.text.toString()
+            currentText = binding.readText.text.toString()
             currentHtmlText = txt
-
-            read_text?.post {
+            binding.readText.post {
                 loadTextLines()
                 scroll()
-                read_text?.alpha = 1f
+                binding.readText.alpha = 1f
 
                 globalTTSLines.clear()
                 interruptTTS()
@@ -1177,7 +1185,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
     private fun loadTextLines() {
         textLines = ArrayList()
-        val lay = read_text.layout ?: return
+        val lay = binding.readText.layout ?: return
         for (i in 0..lay.lineCount) {
             try {
                 textLines?.add(
@@ -1217,9 +1225,9 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         runOnUiThread {
             val scroll = getCurrentTTSLineScroll()
             if (scroll != null) {
-                read_scroll?.scrollTo(0, scroll)
+                binding.readScroll.scrollTo(0, scroll)
             }
-            clearTextViewOfSpans(read_text)
+            clearTextViewOfSpans(binding.readText)
             interruptTTS()
             ttsStatus = TTSStatus.IsStopped
         }
@@ -1400,11 +1408,15 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 readFromIndex = index
             } else {
                 val offset = getLineOffset()
-                val topPadding = reader_lin_container?.paddingTop ?: 0
-                val height = read_toolbar_holder?.height ?: 0
+
+                val topPadding = binding.readerLinContainer.paddingTop
+                val height = binding.readToolbarHolder.height
 
                 for ((startIndex, line) in globalTTSLines.withIndex()) {
-                    if (read_scroll.scrollY <= (getMinMax(line.startIndex, line.endIndex)?.max
+                    if (binding.readScroll.scrollY <= (getMinMax(
+                            line.startIndex,
+                            line.endIndex
+                        )?.max
                             ?: 0) + offset - height + topPadding
                     ) {
                         readFromIndex = startIndex
@@ -1439,17 +1451,15 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
                     currentTTSRangeStartIndex = line.startIndex
                     currentTTSRangeEndIndex = line.endIndex
-                    if (read_scroll != null) {
-                        val textLine = getMinMax(line.startIndex, line.endIndex)
-                        minScroll = textLine?.min
-                        maxScroll = textLine?.max
-                        checkTTSRange(read_scroll.scrollY, true)
-                    }
+
+                    val textLine = getMinMax(line.startIndex, line.endIndex)
+                    minScroll = textLine?.min
+                    maxScroll = textLine?.max
+                    checkTTSRange(binding.readScroll.scrollY, true)
+
 
                     if (isValidSpeakOutMsg(line.speakOutMsg)) {
-                        read_text?.let {
-                            setHighLightedText(it, line.startIndex, line.endIndex)
-                        }
+                        setHighLightedText(binding.readText, line.startIndex, line.endIndex)
 
                         speakOut(line, nextLine)
                     }
@@ -1495,16 +1505,18 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             val offset = getLineOffset()
 
             if (lockTTS && isTTSRunning) {
-                if (read_scroll.height + scrollY - offset - 0 <= min) { // FOR WHEN THE TEXT IS ON THE BOTTOM OF THE SCREEN
-                    if (scrollToTop) {
-                        read_scroll.scrollTo(0, max + offset)
-                    } else {
-                        read_scroll.scrollTo(0, min - read_scroll.height + offset + 0)
+                binding.readScroll.apply {
+                    if (height + scrollY - offset - 0 <= min) { // FOR WHEN THE TEXT IS ON THE BOTTOM OF THE SCREEN
+                        if (scrollToTop) {
+                            scrollTo(0, max + offset)
+                        } else {
+                            scrollTo(0, min - height + offset + 0)
+                        }
+                        fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
+                    } else if (scrollY - offset >= max) { // WHEN TEXT IS ON TOP
+                        scrollTo(0, max + offset)
+                        fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
                     }
-                    read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
-                } else if (scrollY - offset >= max) { // WHEN TEXT IS ON TOP
-                    read_scroll.scrollTo(0, max + offset)
-                    read_scroll.fling(0) // FIX WACK INCONSISTENCY, RESETS VELOCITY
                 }
             }
         } catch (e: Exception) {
@@ -1519,17 +1531,14 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             this.colorFromAttribute(R.attr.primaryGrayBackground)
 
         main {
-            if (read_scroll == null) return@main
+            if (binding.readScroll == null) return@main
             if (!lockTTSOnPaused && isTTSPaused) return@main
             if (!lockTTS || !isTTSRunning) return@main
 
             val textLine = getMinMax(currentTTSRangeStartIndex, currentTTSRangeEndIndex)
             minScroll = textLine?.min
             maxScroll = textLine?.max
-            val scroll = read_scroll?.scrollY
-            if (scroll != null) { // JUST TO BE 100% SURE THAT ANDROID DOES NOT FUCK YOU OVER
-                checkTTSRange(scroll, true)
-            }
+            checkTTSRange(binding.readScroll.scrollY, true)
         }
         hideSystemUI()
     }
@@ -1561,13 +1570,16 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
     private fun getScrollRange(): Int {
         var scrollRange = 0
-        if (read_scroll.childCount > 0) {
-            val child: View = read_scroll.getChildAt(0)
-            scrollRange = max(
-                0,
-                child.height - (read_scroll.height - read_scroll.paddingBottom - read_scroll.paddingTop)
-            )
+        binding.readScroll.apply {
+            if (childCount > 0) {
+                val child: View = getChildAt(0)
+                scrollRange = max(
+                    0,
+                    child.height - (height - paddingBottom - paddingTop)
+                )
+            }
         }
+
         return scrollRange
     }
 
@@ -1613,8 +1625,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
     fun Context.setTextFontSize(size: Int) {
         setKey(EPUB_TEXT_SIZE, size)
-        read_text?.setTextSize(TypedValue.COMPLEX_UNIT_SP, size.toFloat())
-        read_title_text?.setTextSize(TypedValue.COMPLEX_UNIT_SP, size.toFloat() + 2f)
+        binding.readText.setTextSize(TypedValue.COMPLEX_UNIT_SP, size.toFloat())
+        binding.readTitleText.setTextSize(TypedValue.COMPLEX_UNIT_SP, size.toFloat() + 2f)
     }
 
     private fun Context.getTextFontSize(): Int {
@@ -1643,16 +1655,19 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     private fun Context.setBackgroundColor(color: Int) {
-        reader_container?.setBackgroundColor(color)
-        read_temp_bottom_margin?.setBackgroundColor(color)
+        binding.readerContainer.setBackgroundColor(color)
+        binding.readTempBottomMargin.setBackgroundColor(color)
         setKey(EPUB_BG_COLOR, color)
     }
 
     private fun Context.setTextColor(color: Int) {
-        read_text?.setTextColor(color)
-        read_battery?.setTextColor(color)
-        read_time?.setTextColor(color)
-        read_title_text?.setTextColor(color)
+        binding.apply {
+            readText.setTextColor(color)
+            readBattery.setTextColor(color)
+            readTime.setTextColor(color)
+            readTitleText.setTextColor(color)
+        }
+
         setKey(EPUB_TEXT_COLOR, color)
     }
 
@@ -1663,7 +1678,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         } else {
             getKey(EPUB_HAS_BATTERY, true)!!
         }
-        read_battery?.visibility = if (set) View.VISIBLE else View.GONE
+        binding.readBattery.isVisible = set
+
         return set
     }
 
@@ -1697,16 +1713,19 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         } else {
             getKey(EPUB_HAS_TIME, true)!!
         }
-        read_time?.visibility = if (set) View.VISIBLE else View.GONE
+        binding.readTime.isVisible = set
         return set
     }
 
     private fun Context.getTextColor(): Int {
         val color = getKey(EPUB_TEXT_COLOR, ContextCompat.getColor(this, R.color.readerTextColor))!!
-        read_text?.setTextColor(color)
-        read_battery?.setTextColor(color)
-        read_time?.setTextColor(color)
-        read_title_text?.setTextColor(color)
+
+        binding.apply {
+            readText.setTextColor(color)
+            readBattery.setTextColor(color)
+            readTime.setTextColor(color)
+            readTitleText.setTextColor(color)
+        }
         return color
     }
 
@@ -1723,23 +1742,27 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     /** In DP **/
     private fun Context.setTextPaddingTop(padding: Int) {
         setKey(EPUB_TEXT_PADDING_TOP, padding)
-        reader_lin_container?.setPadding(
-            reader_lin_container?.paddingLeft ?: 0,
-            padding.toPx,
-            reader_lin_container?.paddingRight ?: 0,
-            0,//padding.toPx,
-        )
+        binding.readerLinContainer.apply {
+            setPadding(
+                paddingLeft,
+                padding.toPx,
+                paddingRight,
+                0,//padding.toPx,
+            )
+        }
     }
 
     /** In DP **/
     private fun Context.setTextPadding(padding: Int) {
         setKey(EPUB_TEXT_PADDING, padding)
-        read_text?.setPadding(
-            padding.toPx,
-            read_text?.paddingTop ?: 25.toPx,
-            padding.toPx,
-            read_text?.paddingBottom ?: 25.toPx
-        )
+        binding.readText.apply {
+            setPadding(
+                padding.toPx,
+                paddingTop,
+                padding.toPx,
+                paddingBottom
+            )
+        }
     }
 
     private fun Context.getBackgroundColor(): Int {
@@ -1790,14 +1813,12 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     private fun fadeInText() {
-        if (read_loading != null) { // IDK, android might be weird and kill before load, not tested tho
-            read_loading?.visibility = View.GONE
-            read_normal_layout?.alpha = 0.01f
+        binding.readLoading.visibility = View.GONE
+        binding.readNormalLayout.alpha = 0.01f
 
-            ObjectAnimator.ofFloat(read_normal_layout, "alpha", 1f).apply {
-                duration = 300
-                start()
-            }
+        ObjectAnimator.ofFloat(binding.readNormalLayout, "alpha", 1f).apply {
+            duration = 300
+            start()
         }
     }
 
@@ -1854,9 +1875,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                                     val endIndex =
                                         highlightResult.groupValues[3].toIntOrNull() ?: return
                                     runOnUiThread {
-                                        read_text?.let {
-                                            setHighLightedText(it, startIndex, endIndex)
-                                        }
+                                        setHighLightedText(binding.readText, startIndex, endIndex)
                                     }
                                 } catch (e: Exception) {
                                     logError(e)
@@ -1889,6 +1908,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     val defaultTTSLanguage = Locale.US
+    lateinit var binding: ReadMainBinding
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -1927,7 +1947,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                     val scale: Int = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
                     level * 100 / scale.toFloat()
                 }
-                read_battery?.text = "${batteryPct.toInt()}%"
+                binding.readBattery.text = "${batteryPct.toInt()}%"
             }
         }
         IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { ifilter ->
@@ -1951,7 +1971,9 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
         isFromEpub = intent.type == "application/epub+zip"
 
         initMediaSession()
-        setContentView(R.layout.read_main)
+        binding = ReadMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        //setContentView(R.layout.read_main)
         setTextFontSize(getTextFontSize())
         setTextPadding(getTextPadding())
         setTextPaddingTop(getTextPaddingTop())
@@ -1975,84 +1997,66 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
 
         createNotificationChannel()
-        read_title_text.minHeight = read_toolbar.height
+        binding.readTitleText.minHeight = binding.readToolbar.height
 
-        fixPaddingStatusbar(read_toolbar)
+        fixPaddingStatusbar(binding.readToolbar)
 
         //<editor-fold desc="Screen Rotation">
         fun setRot(org: OrientationType) {
             orientationType = org.prefValue
             requestedOrientation = org.flag
-            read_action_rotate.setImageResource(org.iconRes)
+            binding.readActionRotate.setImageResource(org.iconRes)
         }
 
-        read_action_rotate.setOnClickListener {
-            read_action_rotate.popupMenu(
-                items = OrientationType.values().map { it.prefValue to it.stringRes },
-                selectedItemId = orientationType
-                //   ?: preferences.defaultOrientationType(),
-            ) {
-                val org = OrientationType.fromSpinner(itemId)
-                setKey(EPUB_LOCK_ROTATION, itemId)
-                setRot(org)
+        binding.readActionRotate.apply {
+            setOnClickListener {
+                popupMenu(
+                    items = OrientationType.values().map { it.prefValue to it.stringRes },
+                    selectedItemId = orientationType
+                    //   ?: preferences.defaultOrientationType(),
+                ) {
+                    val org = OrientationType.fromSpinner(itemId)
+                    setKey(EPUB_LOCK_ROTATION, itemId)
+                    setRot(org)
+                }
             }
         }
+
+
         val colorPrimary =
             colorFromAttribute(R.attr.colorPrimary)//   getColor(R.color.colorPrimary)
 
-        read_action_settings.setOnClickListener {
+        binding.readActionSettings.setOnClickListener {
             val bottomSheetDialog = BottomSheetDialog(this)
 
-            bottomSheetDialog.setContentView(R.layout.read_bottom_settings)
-            val readSettingsTextSize =
-                bottomSheetDialog.read_settings_text_size
-            val readSettingsTextPadding =
-                bottomSheetDialog.read_settings_text_padding
-            val readSettingsTextPaddingTop =
-                bottomSheetDialog.read_settings_text_padding_top
+            val binding = ReadBottomSettingsBinding.inflate(layoutInflater, null, false)
+            bottomSheetDialog.setContentView(binding.root)
 
-            val readSettingsScrollVol =
-                bottomSheetDialog.read_settings_scroll_vol
-            val readSettingsLockTts =
-                bottomSheetDialog.read_settings_lock_tts
-            val showTime =
-                bottomSheetDialog.read_settings_show_time
-            val twelvehourFormat =
-                bottomSheetDialog.read_settings_twelve_hour_time
-            val showBattery =
-                bottomSheetDialog.read_settings_show_battery
-            val keepScreenActive =
-                bottomSheetDialog.read_settings_keep_screen_active
-            val readSettingsTextPaddingText =
-                bottomSheetDialog.read_settings_text_padding_text
-            val readSettingsTextPaddingTextTop =
-                bottomSheetDialog.read_settings_text_padding_text_top
-            val readSettingsTextSizeText =
-                bottomSheetDialog.read_settings_text_size_text
-            val readSettingsTextFontText =
-                bottomSheetDialog.read_settings_text_font_text
-            val hardResetStream = bottomSheetDialog.hard_reset_stream
-
-            hardResetStream.visibility = if (isFromEpub) View.GONE else View.VISIBLE
-            hardResetStream.setOnClickListener {
-                ioSafe {
-                    loadChapter(
-                        currentChapter,
-                        scrollToTop = false,
-                        scrollToRemember = true,
-                        forceReload = true
-                    )
+            binding.hardResetStream.apply {
+                isGone = isFromEpub
+                setOnClickListener {
+                    ioSafe {
+                        loadChapter(
+                            currentChapter,
+                            scrollToTop = false,
+                            scrollToRemember = true,
+                            forceReload = true
+                        )
+                    }
                 }
             }
 
-            bottomSheetDialog.read_language.setOnClickListener { view ->
+
+            binding.readLanguage.setOnClickListener { view ->
                 view?.context?.let { ctx ->
                     requireTTS { tts ->
                         val languages = mutableListOf<Locale?>(null).apply {
                             addAll(tts.availableLanguages?.filterNotNull() ?: emptySet())
                         }
                         ctx.showBottomDialog(
-                            languages.map { it?.displayName ?: ctx.getString(R.string.default_text) },
+                            languages.map {
+                                it?.displayName ?: ctx.getString(R.string.default_text)
+                            },
                             languages.indexOf(tts.voice?.locale),
                             ctx.getString(R.string.tts_locale), false, {}
                         ) { index ->
@@ -2065,7 +2069,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 }
             }
 
-            bottomSheetDialog.read_voice.setOnClickListener { view ->
+            binding.readVoice.setOnClickListener { view ->
                 view?.context?.let { ctx ->
                     requireTTS { tts ->
                         val matchAgainst = tts.voice.locale.language
@@ -2090,44 +2094,55 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             val horizontalColors =
                 bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_colors)!!
 
-            val readShowFonts = bottomSheetDialog.read_show_fonts
-            readShowFonts?.text = UIHelper.parseFontFileName(getKey(EPUB_FONT))
-
-            readShowFonts?.setOnClickListener {
-                showFonts {
-                    readShowFonts.text = it
+            binding.readShowFonts.apply {
+                text = UIHelper.parseFontFileName(getKey(EPUB_FONT))
+                setOnClickListener {
+                    showFonts {
+                        text = it
+                    }
                 }
             }
 
-            readSettingsScrollVol.isChecked = scrollWithVol
-            readSettingsScrollVol.setOnCheckedChangeListener { _, checked ->
-                setScrollWithVol(checked)
+            binding.readSettingsScrollVol.apply {
+                isChecked = scrollWithVol
+                setOnCheckedChangeListener { _, checked ->
+                    setScrollWithVol(checked)
+                }
             }
 
-            readSettingsLockTts.isChecked = lockTTS
-            readSettingsLockTts.setOnCheckedChangeListener { _, checked ->
-                setLockTTS(checked)
+            binding.readSettingsLockTts.apply {
+                isChecked = lockTTS
+                setOnCheckedChangeListener { _, checked ->
+                    setLockTTS(checked)
+                }
             }
 
-
-            twelvehourFormat.isChecked = updateTwelveHourTime()
-            twelvehourFormat.setOnCheckedChangeListener { _, checked ->
-                updateTwelveHourTime(checked)
+            binding.readSettingsTwelveHourTime.apply {
+                isChecked = updateTwelveHourTime()
+                setOnCheckedChangeListener { _, checked ->
+                    updateTwelveHourTime(checked)
+                }
             }
 
-            showTime.isChecked = updateHasTime()
-            showTime.setOnCheckedChangeListener { _, checked ->
-                updateHasTime(checked)
+            binding.readSettingsShowTime.apply {
+                isChecked = updateHasTime()
+                setOnCheckedChangeListener { _, checked ->
+                    updateHasTime(checked)
+                }
             }
 
-            showBattery.isChecked = updateHasBattery()
-            showBattery.setOnCheckedChangeListener { _, checked ->
-                updateHasBattery(checked)
+            binding.readSettingsShowBattery.apply {
+                isChecked = updateHasBattery()
+                setOnCheckedChangeListener { _, checked ->
+                    updateHasBattery(checked)
+                }
             }
 
-            keepScreenActive.isChecked = updateKeepScreen()
-            keepScreenActive.setOnCheckedChangeListener { _, checked ->
-                updateKeepScreen(checked)
+            binding.readSettingsKeepScreenActive.apply {
+                isChecked = updateKeepScreen()
+                setOnCheckedChangeListener { _, checked ->
+                    updateKeepScreen(checked)
+                }
             }
 
             val bgColors = resources.getIntArray(R.array.readerBgColors)
@@ -2196,106 +2211,123 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             horizontalColors.addView(imageHolder)
             updateImages()
 
-            readSettingsTextSize.max = 20
-            val offsetSize = 10
             var updateAllTextOnDismiss = false
-            readSettingsTextSize.progress = getTextFontSize() - offsetSize
-            readSettingsTextSize.setOnSeekBarChangeListener(object :
-                SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(
-                    seekBar: SeekBar?,
-                    progress: Int,
-                    fromUser: Boolean
+            val offsetSize = 10
+            binding.readSettingsTextSize.apply {
+                max = 20
+                progress = getTextFontSize() - offsetSize
+                setOnSeekBarChangeListener(object :
+                    SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(
+                        seekBar: SeekBar?,
+                        progress: Int,
+                        fromUser: Boolean
+                    ) {
+                        setTextFontSize(progress + offsetSize)
+                        stopTTS()
+
+                        updateAllTextOnDismiss = true
+                    }
+
+                    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+                    override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+                })
+            }
+
+            binding.readSettingsTextPadding.apply {
+                max = 50
+                progress = getTextPadding()
+                setOnSeekBarChangeListener(object :
+                    SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(
+                        seekBar: SeekBar?,
+                        progress: Int,
+                        fromUser: Boolean
+                    ) {
+                        setTextPadding(progress)
+                        stopTTS()
+
+                        updateAllTextOnDismiss = true
+                    }
+
+                    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+                    override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+                })
+            }
+
+            binding.readSettingsTextPaddingTop.apply {
+                max = 50
+                progress = getTextPaddingTop()
+                setOnSeekBarChangeListener(object :
+                    SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(
+                        seekBar: SeekBar?,
+                        progress: Int,
+                        fromUser: Boolean
+                    ) {
+                        setTextPaddingTop(progress)
+                        stopTTS()
+
+                        updateAllTextOnDismiss = true
+                    }
+
+                    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+                    override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+                })
+            }
+
+            binding.readSettingsTextPaddingTextTop.setOnClickListener {
+                it.popupMenu(
+                    items = listOf(Pair(1, R.string.reset_value)),
+                    selectedItemId = null
                 ) {
-                    setTextFontSize(progress + offsetSize)
-                    stopTTS()
-
-                    updateAllTextOnDismiss = true
-                }
-
-                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-
-                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-            })
-
-            readSettingsTextPadding.max = 50
-            readSettingsTextPadding.progress = getTextPadding()
-            readSettingsTextPadding.setOnSeekBarChangeListener(object :
-                SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(
-                    seekBar: SeekBar?,
-                    progress: Int,
-                    fromUser: Boolean
-                ) {
-                    setTextPadding(progress)
-                    stopTTS()
-
-                    updateAllTextOnDismiss = true
-                }
-
-                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-
-                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-            })
-
-            readSettingsTextPaddingTop.max = 50
-            readSettingsTextPaddingTop.progress = getTextPaddingTop()
-            readSettingsTextPaddingTop.setOnSeekBarChangeListener(object :
-                SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(
-                    seekBar: SeekBar?,
-                    progress: Int,
-                    fromUser: Boolean
-                ) {
-                    setTextPaddingTop(progress)
-                    stopTTS()
-
-                    updateAllTextOnDismiss = true
-                }
-
-                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-
-                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-            })
-
-            readSettingsTextPaddingTextTop.setOnClickListener {
-                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
                     if (itemId == 1) {
                         it.context?.removeKey(EPUB_TEXT_PADDING_TOP)
-                        readSettingsTextPaddingTop.progress = getTextPaddingTop()
+                        binding.readSettingsTextPaddingTop.progress = getTextPaddingTop()
                     }
                 }
             }
 
-            readSettingsTextPaddingText.setOnClickListener {
-                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
-                    if (itemId == 1) {
-                        it.context?.removeKey(EPUB_TEXT_PADDING)
-                        readSettingsTextPadding.progress = getTextPadding()
+
+            binding.readSettingsTextPaddingText.apply {
+                setOnClickListener {
+                    it.popupMenu(
+                        items = listOf(Pair(1, R.string.reset_value)),
+                        selectedItemId = null
+                    ) {
+                        if (itemId == 1) {
+                            it.context?.removeKey(EPUB_TEXT_PADDING)
+                            binding.readSettingsTextPadding.progress = getTextPadding()
+                        }
                     }
                 }
             }
 
-            readSettingsTextSizeText.setOnClickListener {
+            binding.readSettingsTextSizeText.setOnClickListener {
                 it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
                     if (itemId == 1) {
                         it.context?.removeKey(EPUB_TEXT_SIZE)
-                        readSettingsTextSize.progress = getTextFontSize() - offsetSize
+                        binding.readSettingsTextSize.progress = getTextFontSize() - offsetSize
                     }
                 }
             }
 
-            readSettingsTextFontText.setOnClickListener {
+
+            binding.readSettingsTextFontText.setOnClickListener {
                 it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
                     if (itemId == 1) {
                         setReadTextFont(null) { fileName ->
-                            readShowFonts?.text = fileName
+                            binding.readShowFonts.text = fileName
                         }
                         stopTTS()
                         updateAllTextOnDismiss = true
                     }
                 }
             }
+
 
             bottomSheetDialog.setOnDismissListener {
                 if (updateAllTextOnDismiss) {
@@ -2315,66 +2347,69 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             )
         )
         //</editor-fold>
+        binding.apply {
 
-        read_action_chapters.setOnClickListener {
-            selectChapter()
-        }
 
-        tts_action_stop.setOnClickListener {
-            stopTTS()
-        }
-        tts_action_pause_play.setOnClickListener {
-            when (ttsStatus) {
-                TTSStatus.IsRunning -> isTTSPaused = true
-                TTSStatus.IsPaused -> isTTSPaused = false
-                else -> {
-                    // DO NOTHING
+            readActionChapters.setOnClickListener {
+                selectChapter()
+            }
+            ttsActionStop.setOnClickListener {
+                stopTTS()
+            }
+            ttsActionPausePlay.setOnClickListener {
+                when (ttsStatus) {
+                    TTSStatus.IsRunning -> isTTSPaused = true
+                    TTSStatus.IsPaused -> isTTSPaused = false
+                    else -> {
+                        // DO NOTHING
+                    }
                 }
             }
-        }
-
-        tts_action_forward.setOnClickListener {
-            nextTTSLine()
-        }
-
-        tts_action_back.setOnClickListener {
-            prevTTSLine()
-        }
-
-        read_action_tts.setOnClickListener {
-            /* fun readTTSClick() {
-                 when (ttsStatus) {
-                     TTSStatus.IsStopped -> startTTS()
-                     TTSStatus.IsRunning -> stopTTS()
-                     TTSStatus.IsPaused -> isTTSPaused = false
-                 }
-             }*/
-
-            // DON'T INIT TTS UNTIL IT IS NECESSARY
-            requireTTS {
-                startTTS()
+            ttsActionForward.setOnClickListener {
+                nextTTSLine()
             }
+            ttsActionBack.setOnClickListener {
+                prevTTSLine()
+            }
+            readActionTts.setOnClickListener {
+                /* fun readTTSClick() {
+                     when (ttsStatus) {
+                         TTSStatus.IsStopped -> startTTS()
+                         TTSStatus.IsRunning -> stopTTS()
+                         TTSStatus.IsPaused -> isTTSPaused = false
+                     }
+                 }*/
+
+                // DON'T INIT TTS UNTIL IT IS NECESSARY
+                requireTTS {
+                    startTTS()
+                }
+            }
+
+            hideSystemUI()
+
+            readToolbar.setNavigationIcon(R.drawable.ic_baseline_arrow_back_24)
+            readToolbar.setNavigationOnClickListener {
+                kill() // KILLS ACTIVITY
+            }
+            readOverflowProgress.max = OVERFLOW_NEXT_CHAPTER_DELTA
         }
 
-        hideSystemUI()
 
-        read_toolbar.setNavigationIcon(R.drawable.ic_baseline_arrow_back_24)
-        read_toolbar.setNavigationOnClickListener {
-            kill() // KILLS ACTIVITY
-        }
-        read_overflow_progress.max = OVERFLOW_NEXT_CHAPTER_DELTA
+
 
         readActivity = this
 
-        fixPaddingStatusbar(read_topmargin)
+
+        fixPaddingStatusbar(binding.readTopmargin)
 
         //window.navigationBarColor =
         //    colorFromAttribute(R.attr.grayBackground) //getColor(R.color.readerHightlightedMetaInfo)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            read_scroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+            binding.readScroll.setOnScrollChangeListener { _, _, scrollY, _, _ ->
                 checkTTSRange(scrollY)
-                read_temp_bottom_margin?.visibility = View.GONE
+                binding.readTempBottomMargin.visibility = View.GONE
 
                 setKey(EPUB_CURRENT_POSITION_SCROLL, getBookTitle(), scrollY)
 
@@ -2393,7 +2428,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
         val touchListener = View.OnTouchListener { view, event ->
             val height = getScrollRange()
-            if (view != null && view == reader_lin_container && event.action == MotionEvent.ACTION_DOWN) {
+            if (view != null && view == binding.readerLinContainer && event.action == MotionEvent.ACTION_DOWN) {
                 toggleShow()
                 return@OnTouchListener true
             }
@@ -2412,6 +2447,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                     scrollStartX = event.x
                     scrollDistance = 0f
                 }
+
                 MotionEvent.ACTION_MOVE -> {
                     val deltaX = scrollStartX - event.x
                     val deltaY = scrollStartY - event.y
@@ -2425,7 +2461,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                                     read_overflow_progress.progress =
                                         minOf(scrollYOverflow.toInt(), OVERFLOW_NEXT_CHAPTER_DELTA)*/
 
-                            read_text.translationY = (if (overflowDown) -1f else 1f) * sqrt(
+                            binding.readText.translationY = (if (overflowDown) -1f else 1f) * sqrt(
                                 minOf(
                                     scrollYOverflow,
                                     OVERFLOW_NEXT_CHAPTER_DELTA.toFloat()
@@ -2442,17 +2478,18 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         scrollYOverflow = maxOf(0f, startY!! - event.y)
                         deltaShow()
                     } else {
-                        read_overflow_progress.visibility = View.GONE
-                        read_text.translationY = 0f
+                        binding.readOverflowProgress.visibility = View.GONE
+                        binding.readText.translationY = 0f
                     }
                 }
+
                 MotionEvent.ACTION_UP -> {
                     if (scrollDistance < TOGGLE_DISTANCE) {
                         toggleShow()
                     }
 
-                    read_overflow_progress.visibility = View.GONE
-                    read_text.translationY = 0f
+                    binding.readOverflowProgress.visibility = View.GONE
+                    binding.readText.translationY = 0f
                     startY = null
 
                     if (100 * scrollYOverflow / OVERFLOW_NEXT_CHAPTER_DELTA >= OVERFLOW_NEXT_CHAPTER_NEXT) {
@@ -2468,19 +2505,23 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             false
         }
 
-        read_scroll?.setOnTouchListener(touchListener)
-        reader_lin_container?.setOnTouchListener(touchListener)
-        read_normal_layout?.setOnTouchListener(touchListener)
-        read_text?.setOnTouchListener(touchListener)
+        binding.apply {
+            readScroll.setOnTouchListener(touchListener)
+            readerLinContainer.setOnTouchListener(touchListener)
+            readNormalLayout.setOnTouchListener(touchListener)
+            readText.setOnTouchListener(touchListener)
+        }
+
 
 //        read_overlay.setOnClickListener {
 //            selectChapter()
 //        }
 
         main { // THIS IS USED FOR INSTANT LOAD
-            read_loading.postDelayed({
+
+            binding.readLoading.postDelayed({
                 if (!this::chapterTitles.isInitialized) {
-                    read_loading?.visibility = View.VISIBLE
+                    binding.readLoading.isVisible = true
                 }
             }, 200) // I DON'T WANT TO SHOW THIS IN THE BEGINNING, IN CASE IF SMALL LOAD TIME
 
@@ -2494,7 +2535,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             }
 
             if (!isFromEpub && quickdata.data.isEmpty()) {
-                showToast( R.string.no_chapters_found, Toast.LENGTH_SHORT)
+                showToast(R.string.no_chapters_found, Toast.LENGTH_SHORT)
                 kill()
                 return@main
             }
@@ -2505,7 +2546,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             for (i in 0 until maxChapter) {
                 chapterTitles.add(getChapterName(i))
             }
-            if(chapterTitles.isEmpty()) {
+            if (chapterTitles.isEmpty()) {
                 finish()
             }
             loadChapter(
