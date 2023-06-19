@@ -144,7 +144,6 @@ class ArchiveOfOurOwnProvider : MainAPI() {
             name,
             data ?: ArrayList(),
             author = author?.text(),
-            posterUrl = fixUrlNull(author?.attr("href")),
             peopleVoted,
             views,
             synopsis = synopsis,
