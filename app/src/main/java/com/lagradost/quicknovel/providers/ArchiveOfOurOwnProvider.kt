@@ -60,18 +60,10 @@ class ArchiveOfOurOwnProvider : MainAPI() {
             val name = workLink.text()
             val url = workLink.attr("href")
 
-            val authorLink = h?.selectFirst("div.header.module > h4.heading > a[rel=\"author\"]")
-            if (authorLink == null){
-                debugWarning { "Ao3 work has no actual author?" }
-                continue
-            }
-            val author = authorLink.attr("href")
-
             returnValue.add(
                 SearchResponse(
                     name,
                     fixUrl(url),
-                    fixUrlNull(author),
                     apiName = this.name
                 )
             )
