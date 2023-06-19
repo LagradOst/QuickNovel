@@ -18,6 +18,7 @@ class Apis {
             BestLightNovelProvider(),
 //            WuxiaWorldOnlineProvider(), // Site does not work
             RoyalRoadProvider(),
+            FanFictionDotNetProvider(),
             FreewebnovelProvider(),
             AzynovelProvider(),
             ReadfromnetProvider(),
