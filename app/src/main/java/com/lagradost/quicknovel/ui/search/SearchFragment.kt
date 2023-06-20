@@ -121,7 +121,7 @@ class SearchFragment : Fragment() {
 
         val masterAdapter = ParentItemAdapter2(viewModel)
         val allAdapter = SearchAdapter2(viewModel, binding.searchAllRecycler)
-
+        binding.searchAllRecycler.adapter = allAdapter
         binding.searchMasterRecycler.apply {
             adapter = masterAdapter
             layoutManager = GridLayoutManager(context, 1)

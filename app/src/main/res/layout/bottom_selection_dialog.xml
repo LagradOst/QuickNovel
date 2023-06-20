@@ -40,14 +40,14 @@
             android:layout_height="60dp">
 
         <com.google.android.material.button.MaterialButton
-                style="@style/NiceButton"
+                style="@style/WhiteButton"
                 android:layout_gravity="center_vertical|end"
                 android:text="@string/sort_apply"
                 android:id="@+id/apply_btt"
                 android:layout_width="wrap_content" />
 
         <com.google.android.material.button.MaterialButton
-                style="@style/NiceButton"
+                style="@style/BlackButton"
                 android:layout_gravity="center_vertical|end"
                 android:text="@string/sort_cancel"
                 android:id="@+id/cancel_btt"

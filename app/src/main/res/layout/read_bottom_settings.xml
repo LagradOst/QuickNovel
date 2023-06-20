@@ -1,70 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
         android:orientation="vertical"
         android:id="@+id/read_settings_root"
-
+        android:background="?attr/primaryBlackBackground"
         android:layout_width="match_parent"
-        android:background="@null"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content">
 
-    <androidx.cardview.widget.CardView
-            app:cardCornerRadius="10dp"
-            android:backgroundTint="?attr/boxItemBackground"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-        <TextView
-                style="@style/AppTextViewStyle"
-                android:gravity="center_vertical"
-
-                android:paddingTop="5dp"
-                android:paddingBottom="5dp"
-                android:paddingLeft="20dp"
-                android:paddingRight="20dp"
-                android:layout_gravity="center_vertical"
-                android:text="@string/read_display_settings"
-                android:textColor="?attr/textColor"
-                android:textSize="18sp"
-                android:layout_width="wrap_content"
-                android:layout_height="55dp" />
-    </androidx.cardview.widget.CardView>
-
-    <ScrollView
-            android:layout_marginTop="-10dp"
+    <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
         <LinearLayout
-                android:background="?attr/primaryBlackBackground"
-                android:paddingLeft="20dp"
-                android:paddingRight="20dp"
-                android:paddingBottom="20dp"
-                android:paddingTop="30dp"
+                android:paddingStart="?android:attr/listPreferredItemPaddingStart"
+                android:paddingEnd="?android:attr/listPreferredItemPaddingEnd"
                 android:orientation="vertical"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
+            <TextView
+                    android:text="@string/read_display_settings"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginBottom="10dp"
+                    android:textStyle="bold"
+                    android:textSize="20sp"
+                    android:textColor="?attr/textColor"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_rowWeight="1"
+                    android:paddingTop="10dp" />
+
             <com.google.android.material.button.MaterialButton
                     android:layout_marginTop="10dp"
                     android:visibility="visible"
-                    android:layout_gravity="center_vertical"
-                    app:cornerRadius="4dp"
                     android:id="@+id/hard_reset_stream"
 
                     android:text="@string/reload_chapter"
 
-                    app:rippleColor="?attr/colorPrimary"
-                    android:textColor="?attr/textColor"
-                    app:iconTint="?attr/textColor"
-                    app:iconPadding="10dp"
-                    android:textAllCaps="false"
-                    app:iconGravity="textStart"
-                    android:backgroundTint="@color/transparent"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="45dp" />
+                    style="@style/BlackButton"
+                    android:layout_width="match_parent" />
 
             <com.google.android.material.checkbox.MaterialCheckBox
                     android:paddingStart="5dp"
@@ -80,7 +54,6 @@
             </com.google.android.material.checkbox.MaterialCheckBox>
 
             <com.google.android.material.checkbox.MaterialCheckBox
-                    android:layout_marginTop="5dp"
                     android:textSize="16sp"
                     android:paddingStart="5dp"
                     android:paddingEnd="5dp"
@@ -92,7 +65,6 @@
                     android:layout_height="wrap_content" />
 
             <com.google.android.material.checkbox.MaterialCheckBox
-                    android:layout_marginTop="5dp"
                     android:textSize="16sp"
                     android:paddingStart="5dp"
                     android:paddingEnd="5dp"
@@ -104,7 +76,6 @@
                     android:layout_height="wrap_content" />
 
             <com.google.android.material.checkbox.MaterialCheckBox
-                    android:layout_marginTop="5dp"
                     android:textSize="16sp"
                     android:paddingStart="5dp"
                     android:paddingEnd="5dp"
@@ -116,7 +87,6 @@
                     android:layout_height="wrap_content" />
 
             <com.google.android.material.checkbox.MaterialCheckBox
-                    android:layout_marginTop="5dp"
                     android:textSize="16sp"
                     android:paddingStart="5dp"
                     android:paddingEnd="5dp"
@@ -128,7 +98,6 @@
                     android:layout_height="wrap_content" />
 
             <com.google.android.material.checkbox.MaterialCheckBox
-                    android:layout_marginTop="5dp"
                     android:textSize="16sp"
                     android:paddingStart="5dp"
                     android:paddingEnd="5dp"
@@ -150,19 +119,19 @@
             <com.google.android.material.button.MaterialButton
                     android:layout_marginTop="10dp"
                     android:id="@+id/read_show_fonts"
-
+                    android:layout_width="wrap_content"
                     android:text="@string/reader_font"
-
-                    style="@style/ReadButtonStyle" />
+                    style="@style/BlackButton" />
 
             <TextView
                     android:layout_marginTop="15dp"
-                    android:text="TTS Voice"
+                    android:text="@string/tts_voice_title"
                     android:textSize="16sp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content" />
 
-            <androidx.constraintlayout.widget.ConstraintLayout
+            <LinearLayout
+
                     android:layout_marginTop="15dp"
 
                     android:orientation="horizontal"
@@ -172,20 +141,16 @@
                 <com.google.android.material.button.MaterialButton
                         android:id="@+id/read_language"
                         android:text="@string/tts_locale"
-                        style="@style/ReadButtonStyle"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintBottom_toBottomOf="parent" />
+                        style="@style/BlackButton"
+                        android:layout_width="wrap_content" />
 
                 <com.google.android.material.button.MaterialButton
                         android:layout_marginStart="10dp"
                         android:id="@+id/read_voice"
                         android:text="@string/tts_voice"
-                        style="@style/ReadButtonStyle"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintStart_toEndOf="@+id/read_language" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
+                        style="@style/BlackButton"
+                        android:layout_width="wrap_content" />
+            </LinearLayout>
 
 
             <TextView
@@ -361,5 +326,6 @@
                         android:layout_height="70dp" />
             </HorizontalScrollView>
         </LinearLayout>
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
+
 </LinearLayout>

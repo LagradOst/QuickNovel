@@ -19,7 +19,7 @@ import kotlin.math.roundToInt
 class SearchAdapter2(
     private val viewModel: SearchViewModel,
     private val resView: AutofitRecyclerView,
-    ) :
+) :
     ListAdapter<SearchResponse, SearchAdapter2.SearchAdapter2Holder>(DiffCallback()) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SearchAdapter2Holder {
         val binding =
@@ -48,7 +48,12 @@ class SearchAdapter2(
                         coverHeight
                     )
                     setLayerType(View.LAYER_TYPE_SOFTWARE, null)
-                    setImage(card.posterUrl, Apis.getApiFromNameOrNull(card.apiName)?.mainUrl, card.posterHeaders, skipCache = false)
+                    setImage(
+                        card.posterUrl,
+                        Apis.getApiFromNameOrNull(card.apiName)?.mainUrl,
+                        card.posterHeaders,
+                        skipCache = false
+                    )
 
                     setOnClickListener {
                         viewModel.load(card)

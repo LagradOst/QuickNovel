@@ -3,7 +3,7 @@
         xmlns:app="http://schemas.android.com/apk/res-auto"
         android:orientation="vertical"
         android:layout_width="match_parent"
-        android:background="@null"
+        android:background="?attr/primaryBlackBackground"
         android:layout_height="match_parent">
 
 
@@ -32,8 +32,7 @@
                 android:layout_gravity="center_vertical|end"
                 android:text="@string/filter_dialog_filter"
                 android:id="@+id/filter_button"
-                style="@style/WhiteButton"
-                app:rippleColor="?attr/colorOnPrimary" />
+                style="@style/WhiteButton" />
     </FrameLayout>
 
     <GridLayout

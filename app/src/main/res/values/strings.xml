@@ -140,4 +140,5 @@
     <string name="backup_failed_error_format">Error backing up %s</string>
     <string name="tts_locale">Language</string>
     <string name="tts_voice">Voice</string>
+    <string name="tts_voice_title">TTS Voice</string>
 </resources>
