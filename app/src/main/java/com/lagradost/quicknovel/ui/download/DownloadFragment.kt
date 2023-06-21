@@ -103,16 +103,11 @@ class DownloadFragment : Fragment() {
 
         if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
             binding.downloadCardSpace.spanCount = spanCountLandscape
-        } else {
-            binding.downloadCardSpace.spanCount = spanCountPortrait
-        }
-
-        if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
             binding.bookmarkCardSpace.spanCount = spanCountLandscape
         } else {
+            binding.downloadCardSpace.spanCount = spanCountPortrait
             binding.bookmarkCardSpace.spanCount = spanCountPortrait
         }
-
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
