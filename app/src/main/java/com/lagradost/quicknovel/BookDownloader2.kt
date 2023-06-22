@@ -950,7 +950,7 @@ object BookDownloader2 {
     fun stream(card: ResultCached) = ioSafe {
         if (streamResultMutex.isLocked) return@ioSafe
         streamResultMutex.withLock {
-            val api = Apis.getApiFromName(card.apiName)
+            val api = getApiFromName(card.apiName)
             val data = api.load(card.source)
 
             if (data is com.lagradost.quicknovel.mvvm.Resource.Success) {
@@ -1213,8 +1213,8 @@ object BookDownloader2 {
         }
 
         ioSafe {
-            val api = Apis.getApiFromName(card.apiName)
-            val data = api.load(card.source)
+            val api = getApiFromName(card.apiName)
+            val data = api.load(card.source, allowCache = false)
 
             if (data is com.lagradost.quicknovel.mvvm.Resource.Success) {
                 val res = data.value

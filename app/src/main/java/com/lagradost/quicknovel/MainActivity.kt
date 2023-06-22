@@ -1,16 +1,22 @@
 package com.lagradost.quicknovel
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.WindowManager
+import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
+import androidx.fragment.app.viewModels
 import androidx.navigation.NavOptions
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.preference.PreferenceManager
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.lagradost.nicehttp.Requests
 import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
@@ -19,14 +25,21 @@ import com.lagradost.quicknovel.BookDownloader2Helper.checkWrite
 import com.lagradost.quicknovel.BookDownloader2Helper.createQuickStream
 import com.lagradost.quicknovel.BookDownloader2Helper.requestRW
 import com.lagradost.quicknovel.CommonActivity.activity
+import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
 import com.lagradost.quicknovel.NotificationHelper.requestNotifications
+import com.lagradost.quicknovel.databinding.BottomPreviewBinding
+import com.lagradost.quicknovel.databinding.FragmentResultBinding
+import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.logError
+import com.lagradost.quicknovel.mvvm.observe
+import com.lagradost.quicknovel.mvvm.observeNullable
 import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.ui.result.ResultFragment
+import com.lagradost.quicknovel.ui.result.ResultViewModel
 import com.lagradost.quicknovel.ui.search.SearchFragment
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
@@ -36,15 +49,40 @@ import com.lagradost.quicknovel.util.Coroutines
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
+import com.lagradost.quicknovel.util.ResultCached
+import com.lagradost.quicknovel.util.SettingsHelper.getRating
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
+import com.lagradost.quicknovel.util.UIHelper.dismissSafe
 import com.lagradost.quicknovel.util.UIHelper.getResourceColor
+import com.lagradost.quicknovel.util.UIHelper.html
+import com.lagradost.quicknovel.util.UIHelper.setImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
+import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
     companion object {
+        private var _mainActivity: WeakReference<MainActivity>? = null
+        private var mainActivity
+            get() = _mainActivity?.get()
+            private set(value) {
+                _mainActivity = WeakReference(value)
+            }
+
+        fun loadPreviewPage(searchResponse: SearchResponse) {
+            mainActivity?.loadPopup(searchResponse.url, searchResponse.apiName)
+        }
+
+        fun loadPreviewPage(card: DownloadFragment.DownloadDataLoaded) {
+            mainActivity?.loadPopup(card.source, card.apiName)
+        }
+
+        fun loadPreviewPage(cached: ResultCached) {
+            mainActivity?.loadPopup(cached.source, cached.apiName)
+        }
+
         var app = Requests(
             OkHttpClient()
                 .newBuilder()
@@ -190,6 +228,43 @@ class MainActivity : AppCompatActivity() {
          }*/
     }
 
+    private val viewModel: ResultViewModel by viewModels()
+
+    private fun hidePreviewPopupDialog() {
+        viewModel.clear()
+        bottomPreviewPopup.dismissSafe(this)
+    }
+
+    fun loadPopup(
+        url: String,
+        apiName: String,
+    ) {
+        viewModel.initState(apiName, url)
+    }
+
+    var bottomPreviewBinding: BottomPreviewBinding? = null
+    var bottomPreviewPopup: BottomSheetDialog? = null
+    private fun showPreviewPopupDialog(): BottomPreviewBinding {
+        val ret = (bottomPreviewBinding ?: run {
+            val builder =
+                BottomSheetDialog(this)
+
+            val bottom = BottomPreviewBinding.inflate(layoutInflater, null, false)
+            builder.setContentView(bottom.root)
+            builder.setOnDismissListener {
+                bottomPreviewBinding = null
+                bottomPreviewPopup = null
+                viewModel.clear()
+            }
+            builder.setCanceledOnTouchOutside(true)
+            builder.show()
+            bottomPreviewPopup = builder
+            bottom
+        })
+        bottomPreviewBinding = ret
+        return ret
+    }
+
     /* // MOON READER WONT RETURN THE DURATION, BUT THIS CAN BE USED FOR SOME USER FEEDBACK IN THE FUTURE??? SEE @moonreader
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
@@ -198,6 +273,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         activity = this
+        mainActivity = this
     }
 
     override fun onBackPressed() {
@@ -236,6 +312,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        mainActivity = this
         activity = this
 
         this.window?.navigationBarColor =
@@ -328,6 +405,79 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             true
+        }
+
+        observeNullable(viewModel.loadResponse) { resource ->
+            if (resource == null) {
+                bottomPreviewPopup.dismissSafe(this)
+                return@observeNullable
+            }
+            when (resource) {
+                is Resource.Failure -> {
+                    showToast(this, R.string.error_loading_novel)
+                    hidePreviewPopupDialog()
+                }
+
+                is Resource.Loading -> {
+                    showPreviewPopupDialog().apply {
+                        resultviewPreviewLoading.isVisible = true
+                        resultviewPreviewResult.isVisible = false
+
+                    }
+                }
+
+                is Resource.Success -> {
+                    val d = resource.value
+                    showPreviewPopupDialog().apply {
+                        resultviewPreviewLoading.isVisible = false
+                        resultviewPreviewResult.isVisible = true
+
+                        resultviewPreviewPoster.apply {
+                            setImage(d.posterUrl)
+                            setOnClickListener {
+                                loadResult(d.url, viewModel.apiName)
+                                hidePreviewPopupDialog()
+                            }
+                        }
+
+                        resultviewPreviewTitle.text = d.name
+
+                        resultviewPreviewMoreInfo.setOnClickListener {
+                            loadResult(d.url, viewModel.apiName)
+                            hidePreviewPopupDialog()
+                        }
+
+                        resultviewPreviewDescription.text = d.synopsis
+                        resultviewPreviewDescription.setOnClickListener { view ->
+                            view.context?.let { ctx ->
+                                val builder: AlertDialog.Builder =
+                                    AlertDialog.Builder(ctx, R.style.AlertDialogCustom)
+                                builder.setMessage( d.synopsis.html())
+                                    .setTitle(d.name)
+                                    .show()
+                            }
+                        }
+                        d.rating?.let { rating ->
+                            resultviewPreviewMetaRating.text = getRating(rating)
+                            resultviewPreviewMetaRating.isVisible = true
+                        } ?: run {
+                            resultviewPreviewMetaRating.isVisible = false
+                        }
+
+                        // TODO FIX STRINGS
+                        val statusTxt = when (d.status) {
+                            1 -> "Ongoing"
+                            2 -> "Completed"
+                            3 -> "Paused"
+                            4 -> "Dropped"
+                            else -> ""
+                        }
+                        resultviewPreviewMetaStatus.text = statusTxt
+                        resultviewPreviewMetaStatus.isVisible = statusTxt.isNotBlank()
+                        resultviewPreviewMetaChapters.text = "${d.data.size} Chapters"
+                    }
+                }
+            }
         }
 
         //navView.itemRippleColor =

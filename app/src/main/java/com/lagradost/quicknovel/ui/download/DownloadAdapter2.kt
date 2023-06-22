@@ -57,13 +57,23 @@ class DownloadAdapter2(
                 is DownloadResultCompactBinding -> {
                     binding.apply {
                         val same = imageText.text == card.name
-
-                        backgroundCard.setOnClickListener {
-                            viewModel.readEpub(card)
+                        backgroundCard.apply {
+                            setOnClickListener {
+                                viewModel.readEpub(card)
+                            }
+                            setOnLongClickListener {
+                                viewModel.showMetadata(card)
+                                return@setOnLongClickListener true
+                            }
                         }
-
-                        imageView.setOnClickListener {
-                            viewModel.load(card)
+                        imageView.apply {
+                            setOnClickListener {
+                                viewModel.load(card)
+                            }
+                            setOnLongClickListener {
+                                viewModel.showMetadata(card)
+                                return@setOnLongClickListener true
+                            }
                         }
 
                         downloadDeleteTrash.setOnClickListener {
@@ -156,16 +166,25 @@ class DownloadAdapter2(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 coverHeight
                             )
+                            setOnClickListener {
+                                viewModel.readEpub(card)
+                            }
+                            setOnLongClickListener {
+                                viewModel.showMetadata(card)
+                                return@setOnLongClickListener true
+                            }
                         }
 
                         val same = imageText.text == card.name
 
-                        backgroundCard.setOnClickListener {
-                            viewModel.readEpub(card)
-                        }
-
-                        imageView.setOnClickListener {
-                            viewModel.load(card)
+                        imageView.apply {
+                            setOnClickListener {
+                                viewModel.load(card)
+                            }
+                            setOnLongClickListener {
+                                viewModel.showMetadata(card)
+                                return@setOnLongClickListener true
+                            }
                         }
 
                         val epubSize = getKey(DOWNLOAD_EPUB_SIZE, card.id.toString()) ?: 0

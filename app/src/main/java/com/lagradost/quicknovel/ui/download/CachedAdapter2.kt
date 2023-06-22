@@ -61,6 +61,11 @@ class CachedAdapter2(
                             viewModel.load(card)
                         }
 
+                        imageView.setOnLongClickListener {
+                            viewModel.showMetadata(card)
+                            return@setOnLongClickListener true
+                        }
+
                         imageView.setImage(card.poster, fade = false, skipCache = false)
                         imageText.text = card.name
                         historyExtraText.text = "${card.totalChapters} Chapters"

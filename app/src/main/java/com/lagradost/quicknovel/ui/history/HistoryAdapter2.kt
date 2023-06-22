@@ -37,6 +37,10 @@ class HistoryAdapter2(private val viewModel: HistoryViewModel) : ListAdapter<Res
                 historyDelete.setOnClickListener {
                     viewModel.deleteAlert(card)
                 }
+                imageView.setOnLongClickListener {
+                    viewModel.showMetadata(card)
+                    return@setOnLongClickListener true
+                }
             }
         }
     }

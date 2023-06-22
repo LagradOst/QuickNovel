@@ -45,7 +45,6 @@ class MainPageViewModel : ViewModel() {
         MutableLiveData<String>(null)
     }
 
-
     val isInSearch: MutableLiveData<Boolean> by lazy {
         MutableLiveData<Boolean>(false)
     }

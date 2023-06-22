@@ -11,6 +11,7 @@ import com.lagradost.quicknovel.BaseApplication.Companion.removeKeys
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.HISTORY_FOLDER
+import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.ResultCached
@@ -69,6 +70,10 @@ class HistoryViewModel : ViewModel() {
 
     fun open(card: ResultCached) {
         loadResult(card.source, card.apiName)
+    }
+
+    fun showMetadata(card : ResultCached) {
+        MainActivity.loadPreviewPage(card)
     }
 
     fun deleteAlert(card: ResultCached) {

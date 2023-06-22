@@ -9,6 +9,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lagradost.quicknovel.APIRepository
+import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.BookDownloader2Helper.generateId
@@ -32,6 +33,10 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 class ResultViewModel : ViewModel() {
+    fun clear() {
+        loadResponse.postValue(null)
+    }
+
     lateinit var repo: APIRepository
 
     var id: MutableLiveData<Int> = MutableLiveData<Int>(-1)
@@ -50,7 +55,7 @@ class ResultViewModel : ViewModel() {
     private var loadUrl: String = ""
     private var hasLoaded: Boolean = false
 
-    val loadResponse: MutableLiveData<Resource<LoadResponse>> = MutableLiveData<Resource<LoadResponse>>()
+    val loadResponse: MutableLiveData<Resource<LoadResponse>?> = MutableLiveData<Resource<LoadResponse>?>()
 
 
     val reviews: MutableLiveData<ArrayList<UserReview>> by lazy {
@@ -323,13 +328,14 @@ class ResultViewModel : ViewModel() {
         }
     }
 
-    fun initState(context: Context, apiName: String, url: String) = viewModelScope.launch {
+    fun initState(apiName: String, url: String) = viewModelScope.launch {
+        loadResponse.postValue(Resource.Loading(url))
+
         loadMutex.withLock {
             repo = Apis.getApiFromName(apiName)
             loadUrl = url
         }
 
-        loadResponse.postValue(Resource.Loading(url))
         val data = repo.load(url)
         loadMutex.withLock {
             when (data) {
@@ -344,7 +350,7 @@ class ResultViewModel : ViewModel() {
 
                     readState.postValue(
                         ReadType.fromSpinner(
-                            context.getKey(
+                            getKey(
                                 RESULT_BOOKMARK_STATE, tid.toString()
                             )
                         )

@@ -20,6 +20,7 @@ import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
 import com.lagradost.quicknovel.DownloadActionType
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
+import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
@@ -112,6 +113,13 @@ class DownloadViewModel : ViewModel() {
                 BookDownloader2.downloadFromCard(card)
             }
         }
+    }
+    fun showMetadata(card : DownloadFragment.DownloadDataLoaded) {
+        MainActivity.loadPreviewPage(card)
+    }
+
+    fun showMetadata(card : ResultCached) {
+        MainActivity.loadPreviewPage(card)
     }
 
     fun load(card: DownloadFragment.DownloadDataLoaded) {

@@ -36,6 +36,7 @@ import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.util.UIHelper.getStatusBarHeight
 import com.lagradost.quicknovel.util.UIHelper.hideKeyboard
+import com.lagradost.quicknovel.util.UIHelper.html
 import com.lagradost.quicknovel.util.UIHelper.humanReadableByteCountSI
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.setImage
@@ -110,7 +111,8 @@ class ResultFragment : Fragment() {
     }
 
     @SuppressLint1("CutPasteId", "SetTextI18n")
-    fun newState(loadResponse: Resource<LoadResponse>) {
+    fun newState(loadResponse: Resource<LoadResponse>?) {
+        if(loadResponse == null) return
         //activity?.window?.navigationBarColor =
         //    requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground)
 
@@ -239,10 +241,10 @@ class ResultFragment : Fragment() {
                         }
                         resultSynopsisText.setOnClickListener {
                             val builder: AlertDialog.Builder = AlertDialog.Builder(requireContext())
-                            builder.setMessage(res.synopsis).setTitle("Synopsis")
+                            builder.setMessage(res.synopsis.html()).setTitle("Synopsis")
                                 .show()
                         }
-                        resultSynopsisText.text = syno
+                        resultSynopsisText.text = syno.html()
                     } else {
                         resultSynopsisText.text = "..."
                     }
@@ -277,7 +279,7 @@ class ResultFragment : Fragment() {
         hideKeyboard()
 
         if (viewModel.loadResponse.value == null)
-            viewModel.initState(requireContext(), apiName, url)
+            viewModel.initState(apiName, url)
 
         binding.apply {
             activity?.fixPaddingStatusbar(resultInfoHeader)
@@ -285,7 +287,7 @@ class ResultFragment : Fragment() {
             resultOpeninbrowerText.text = apiName //""// resultUrl
 
             resultReloadConnectionerror.setOnClickListener {
-                viewModel.initState(requireContext(), apiName, url)
+                viewModel.initState(apiName, url)
             }
             resultOpeninbrower.setOnClickListener {
                 viewModel.openInBrowser()

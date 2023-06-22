@@ -4,14 +4,21 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.util.AttributeSet
 import android.view.ViewGroup
+import androidx.core.view.marginEnd
 import com.lagradost.quicknovel.R
 import kotlin.math.max
 
 class FlowLayout : ViewGroup {
+    var itemSpacing: Int = 0
+
     constructor(context: Context?) : super(context)
 
-    @JvmOverloads
-    constructor(context: Context?, attrs: AttributeSet?, defStyleAttr: Int = 0) : super(context, attrs, defStyleAttr)
+    @SuppressLint("CustomViewStyleable")
+    internal constructor(c: Context, attrs: AttributeSet?) : super(c, attrs) {
+        val t = c.obtainStyledAttributes(attrs, R.styleable.FlowLayout_Layout)
+        itemSpacing = t.getDimensionPixelSize(R.styleable.FlowLayout_Layout_itemSpacing, 0);
+        t.recycle()
+    }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val realWidth = MeasureSpec.getSize(widthMeasureSpec)
@@ -25,28 +32,32 @@ class FlowLayout : ViewGroup {
             measureChild(child, widthMeasureSpec, heightMeasureSpec)
             val childWidth = child.measuredWidth
             val childHeight = child.measuredHeight
+            currentHeight = max(currentHeight, currentChildHookPointy + childHeight)
 
             //check if child can be placed in the current row, else go to next line
-            if (currentChildHookPointx + childWidth > realWidth) {
+            if (currentChildHookPointx + childWidth - child.marginEnd - child.paddingEnd > realWidth) {
                 //new line
-                currentWidth = Math.max(currentWidth, currentChildHookPointx)
+                currentWidth = max(currentWidth, currentChildHookPointx)
 
                 //reset for new line
                 currentChildHookPointx = 0
                 currentChildHookPointy += childHeight
             }
-            val nextChildHookPointx = currentChildHookPointx + childWidth
+            val nextChildHookPointx =
+                currentChildHookPointx + childWidth + if (childWidth == 0) 0 else itemSpacing
+
             val nextChildHookPointy = currentChildHookPointy
-            currentHeight = max(currentHeight, currentChildHookPointy + childHeight)
             val lp = child.layoutParams as LayoutParams
             lp.x = currentChildHookPointx
             lp.y = currentChildHookPointy
             currentChildHookPointx = nextChildHookPointx
             currentChildHookPointy = nextChildHookPointy
         }
-        currentWidth = Math.max(currentChildHookPointx, currentWidth)
-        setMeasuredDimension(resolveSize(currentWidth, widthMeasureSpec),
-            resolveSize(currentHeight, heightMeasureSpec))
+        currentWidth = max(currentChildHookPointx, currentWidth)
+        setMeasuredDimension(
+            resolveSize(currentWidth, widthMeasureSpec),
+            resolveSize(currentHeight, heightMeasureSpec)
+        )
     }
 
     override fun onLayout(b: Boolean, left: Int, top: Int, right: Int, bottom: Int) {

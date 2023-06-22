@@ -1,25 +1,15 @@
 package com.lagradost.quicknovel.ui.mainpage
 
-import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
-import androidx.navigation.findNavController
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.lagradost.quicknovel.BaseApplication.Companion.getActivity
-import com.lagradost.quicknovel.CommonActivity
-import com.lagradost.quicknovel.CommonActivity.activity
-import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
-import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
-import com.lagradost.quicknovel.databinding.BrowseListCompactBinding
 import com.lagradost.quicknovel.databinding.SearchResultGridBinding
 import com.lagradost.quicknovel.util.SettingsHelper.getGridIsCompact
 import com.lagradost.quicknovel.util.UIHelper.setImage
@@ -51,14 +41,18 @@ class MainAdapter2(private val resView: AutofitRecyclerView) : ListAdapter<Searc
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         coverHeight
                     )
+                    setImage(card.posterUrl, headers = card.posterHeaders)
+                    setLayerType(View.LAYER_TYPE_SOFTWARE, null) // HALF IMAGE DISPLAYING FIX
+                    setOnClickListener {
+                        loadResult(card.url, card.apiName)
+                    }
+                    setOnLongClickListener {
+                        MainActivity.loadPreviewPage(card)
+                        return@setOnLongClickListener true
+                    }
                 }
 
                 imageText.text = card.name
-                imageView.setImage(card.posterUrl, headers = card.posterHeaders)
-                imageView.setLayerType(View.LAYER_TYPE_SOFTWARE, null) // HALF IMAGE DISPLAYING FIX
-                backgroundCard.setOnClickListener {
-                    loadResult(card.url, card.apiName)
-                }
             }
         }
     }

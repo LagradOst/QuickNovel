@@ -41,7 +41,8 @@ class SearchViewModel : ViewModel() {
     }
 
     fun showMetadata(card: SearchResponse) {
-        showToast(card.name)
+        MainActivity.loadPreviewPage(card)
+        //showToast(card.name)
     }
 
     fun search(query: String) = ioSafe {

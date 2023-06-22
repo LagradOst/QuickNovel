@@ -15,6 +15,9 @@
   ~ limitations under the License.
   -->
 <resources>
+    <declare-styleable name="FlowLayout_Layout">
+        <attr name="itemSpacing" format="dimension" />
+    </declare-styleable>
     <declare-styleable name="TextRoundedBgHelper">
         <attr name="roundedTextHorizontalPadding" format="dimension"/>
         <attr name="roundedTextVerticalPadding" format="dimension"/>
@@ -23,7 +26,6 @@
         <attr name="roundedTextDrawableMid" format="reference"/>
         <attr name="roundedTextDrawableRight" format="reference"/>
     </declare-styleable>
-    <declare-styleable name="FlowLayout_Layout"/>
     <declare-styleable name="FlowLayout_Layout_layout_space"/>
 
     <declare-styleable name="MainColors">
