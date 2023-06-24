@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.button.MaterialButton
+<com.google.android.material.button.MaterialButton xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
         android:insetBottom="2dp"
         android:insetTop="2dp"
         android:insetLeft="2dp"
@@ -17,7 +19,6 @@
         tools:text="Test"
         app:strokeColor="?attr/colorAccent"
         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-        android:id="@+id/result_review_card" xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto" xmlns:tools="http://schemas.android.com/tools">
+        android:id="@+id/result_review_card">
 
 </com.google.android.material.button.MaterialButton>

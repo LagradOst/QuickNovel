@@ -1,6 +1,5 @@
 package com.lagradost.quicknovel.util
 
-import android.app.Activity
 import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
@@ -10,13 +9,13 @@ import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.StringRes
 import androidx.fragment.app.FragmentActivity
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.hippo.unifile.UniFile
-import com.lagradost.quicknovel.BookDownloader.checkWrite
-import com.lagradost.quicknovel.BookDownloader.requestRW
+import com.lagradost.quicknovel.BookDownloader2Helper.checkWrite
+import com.lagradost.quicknovel.BookDownloader2Helper.requestRW
+import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.getDefaultSharedPrefs
 import com.lagradost.quicknovel.DataStore.getSharedPrefs
 import com.lagradost.quicknovel.DataStore.mapper
@@ -65,20 +64,6 @@ object BackupUtils {
             )
         )
     }
-
-    private fun showToast(act: Activity?, @StringRes message: Int, duration: Int) {
-        if (act == null) return
-        showToast(act, act.getString(message), duration)
-    }
-
-    private fun showToast(act: Activity?, message: String?, duration: Int? = null) {
-        try {
-            Toast.makeText(act, message, duration ?: Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
-            logError(e)
-        }
-    }
-
 
     fun FragmentActivity.backup() {
         try {
@@ -151,12 +136,11 @@ object BackupUtils {
                 printStream.close()
 
                 showToast(
-                    this,
                     R.string.backup_success,
                     Toast.LENGTH_LONG
                 )
             } else {
-                showToast(this, getString(R.string.backup_failed), Toast.LENGTH_LONG)
+                showToast(getString(R.string.backup_failed), Toast.LENGTH_LONG)
                 requestRW()
                 return
             }
@@ -164,7 +148,6 @@ object BackupUtils {
             logError(e)
             try {
                 showToast(
-                    this,
                     getString(R.string.backup_failed_error_format).format(e.toString()),
                     Toast.LENGTH_LONG
                 )
@@ -201,7 +184,6 @@ object BackupUtils {
                                 logError(e)
                                 try { // smth can fail in .format
                                     showToast(
-                                        activity,
                                         getString(R.string.restore_failed_format).format(e.toString())
                                     )
                                 } catch (e: Exception) {
@@ -230,7 +212,7 @@ object BackupUtils {
                     )
                 )
             } catch (e: Exception) {
-                showToast(this, e.message)
+                showToast(e.message)
                 logError(e)
             }
         }

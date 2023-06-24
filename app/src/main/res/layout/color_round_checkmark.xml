@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        android:layout_width="70dp" android:layout_height="70dp">
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="70dp"
+        android:layout_height="70dp">
+
     <ImageView
             android:layout_margin="10dp"
             android:id="@+id/image1"
@@ -13,7 +14,6 @@
             android:background="@drawable/color_selection"
             android:backgroundTint="#141414"
             android:src="@drawable/color_selection_outline"
-            android:contentDescription="@string/reading_color">
-    </ImageView>
+            android:contentDescription="@string/reading_color" />
 </FrameLayout>
 

@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.preference.*
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
+import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.util.Apis.Companion.apis
@@ -62,9 +63,9 @@ class SettingsFragment : PreferenceFragmentCompat() {
         updatePrefrence.setOnPreferenceClickListener {
             ioSafe {
                 if (!requireActivity().runAutoUpdate(false)) {
-                    activity?.runOnUiThread {
-                        Toast.makeText(this@SettingsFragment.context, "No Update Found", Toast.LENGTH_SHORT).show()
-                    }
+
+                    showToast("No Update Found", Toast.LENGTH_SHORT)
+
                 }
             }
             return@setOnPreferenceClickListener true

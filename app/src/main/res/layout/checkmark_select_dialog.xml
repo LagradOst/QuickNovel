@@ -1,5 +1,6 @@
-<TextView
-        xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
         style="@style/AppTextViewStyle"
         android:id="@android:id/text1"
         android:layout_width="match_parent"
@@ -13,8 +14,7 @@
         tools:text="TEST"
         android:checkMark="?android:attr/listChoiceIndicatorSingle"
         android:ellipsize="marquee"
-        android:drawableEnd="@drawable/ic_baseline_check_24"
-        android:drawableTint="@color/check_selection_color"
         tools:drawableTint="?attr/colorPrimary"
         android:drawablePadding="20dp"
-/>
+        app:drawableEndCompat="@drawable/ic_baseline_check_24"
+        app:drawableTint="@color/check_selection_color" />

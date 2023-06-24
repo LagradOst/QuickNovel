@@ -24,7 +24,7 @@ abstract class MainAPI {
     open val tags: List<Pair<String, String>> = listOf()
 
     open val iconId: Int? = null
-    open val iconBackgroundId: Int = R.color.darkBackground
+    open val iconBackgroundId: Int = R.color.primaryGrayBackground
 
     open suspend fun loadMainPage(
         page: Int,
@@ -119,7 +119,7 @@ fun stripHtml(txt: String, chapterName: String? = null, chapterIndex: Int? = nul
 
 }
 
-class HomePageList(
+data class HomePageList(
     val name: String,
     val list: List<SearchResponse>
 )

@@ -5,6 +5,7 @@ import android.os.Looper
 import com.lagradost.quicknovel.mvvm.launchSafe
 import com.lagradost.quicknovel.mvvm.logError
 import kotlinx.coroutines.*
+import java.util.Collections
 
 object Coroutines {
     fun <T> T.main(work: suspend ((T) -> Unit)): Job {
@@ -53,5 +54,14 @@ object Coroutines {
         mainHandler.post {
             work()
         }
+    }
+
+    /**
+     * Safe to add and remove how you want
+     * If you want to iterate over the list then you need to do:
+     * synchronized(allProviders) { code here }
+     **/
+    fun <T> threadSafeListOf(vararg items: T): MutableList<T> {
+        return Collections.synchronizedList(items.toMutableList())
     }
 }

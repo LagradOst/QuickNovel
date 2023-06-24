@@ -4,7 +4,11 @@ import android.app.Activity
 import android.content.Context
 import androidx.preference.PreferenceManager
 import com.lagradost.quicknovel.APIRepository
+import com.lagradost.quicknovel.BaseApplication.Companion.context
+import com.lagradost.quicknovel.BaseApplication.Companion.getActivity
+import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.MainAPI
+import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.providers.*
 
@@ -98,6 +102,10 @@ class Apis {
             }
             if (list.isEmpty()) return hashSet
             return list
+        }
+
+        fun getApiProviderLangSettings(): HashSet<String> {
+            return activity?.getApiProviderLangSettings() ?: hashSetOf()
         }
 
         fun Context.getApiProviderLangSettings(): HashSet<String> {
