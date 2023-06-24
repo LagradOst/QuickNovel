@@ -26,6 +26,7 @@ import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.ui.ReadType
+import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.coroutines.launch
@@ -38,6 +39,8 @@ class ResultViewModel : ViewModel() {
     }
 
     lateinit var repo: APIRepository
+
+    var isGetLoaded = false
 
     var id: MutableLiveData<Int> = MutableLiveData<Int>(-1)
     var readState: MutableLiveData<ReadType> = MutableLiveData<ReadType>(ReadType.NONE)
@@ -55,7 +58,8 @@ class ResultViewModel : ViewModel() {
     private var loadUrl: String = ""
     private var hasLoaded: Boolean = false
 
-    val loadResponse: MutableLiveData<Resource<LoadResponse>?> = MutableLiveData<Resource<LoadResponse>?>()
+    val loadResponse: MutableLiveData<Resource<LoadResponse>?> =
+        MutableLiveData<Resource<LoadResponse>?>()
 
 
     val reviews: MutableLiveData<ArrayList<UserReview>> by lazy {
@@ -90,7 +94,7 @@ class ResultViewModel : ViewModel() {
 
     fun openInBrowser() = viewModelScope.launch {
         loadMutex.withLock {
-            if (loadUrl.isNotBlank()) return@launch
+            if (loadUrl.isBlank()) return@launch
             val i = Intent(Intent.ACTION_VIEW)
             i.data = Uri.parse(loadUrl)
             activity?.startActivity(i)
@@ -164,6 +168,8 @@ class ResultViewModel : ViewModel() {
 
 
     private fun addToHistory() = viewModelScope.launch {
+        // we wont add it to history from cache
+        if (!isGetLoaded) return@launch
         loadMutex.withLock {
             if (!hasLoaded) return@launch
             setKey(
@@ -177,7 +183,8 @@ class ResultViewModel : ViewModel() {
                     load.tags,
                     load.rating,
                     load.data.size,
-                    System.currentTimeMillis()
+                    System.currentTimeMillis(),
+                    synopsis = load.synopsis
                 )
             )
         }
@@ -217,27 +224,36 @@ class ResultViewModel : ViewModel() {
         }
     }
 
+    private fun updateBookmarkData() {
+        // dont update data if preview because that data is from cache
+        if (!isGetLoaded && getKey<ResultCached>(RESULT_BOOKMARK, loadId.toString()) != null) {
+            return
+        }
+
+        setKey(
+            RESULT_BOOKMARK, loadId.toString(), ResultCached(
+                loadUrl,
+                load.name,
+                apiName,
+                loadId,
+                load.author,
+                load.posterUrl,
+                load.tags,
+                load.rating,
+                load.data.size,
+                System.currentTimeMillis(),
+                synopsis = load.synopsis
+            )
+        )
+    }
+
     fun bookmark(state: Int) = viewModelScope.launch {
         loadMutex.withLock {
             if (!hasLoaded) return@launch
             setKey(
                 RESULT_BOOKMARK_STATE, loadId.toString(), state
             )
-
-            setKey(
-                RESULT_BOOKMARK, loadId.toString(), ResultCached(
-                    loadUrl,
-                    load.name,
-                    apiName,
-                    loadId,
-                    load.author,
-                    load.posterUrl,
-                    load.tags,
-                    load.rating,
-                    load.data.size,
-                    System.currentTimeMillis()
-                )
-            )
+            updateBookmarkData()
         }
 
         readState.postValue(ReadType.fromSpinner(state))
@@ -255,10 +271,10 @@ class ResultViewModel : ViewModel() {
         }
     }
 
-    fun loadMoreReviews(verify : Boolean = true) = viewModelScope.launch {
+    fun loadMoreReviews(verify: Boolean = true) = viewModelScope.launch {
         loadMutex.withLock {
             if (!hasLoaded) return@launch
-            if(verify && currentTabIndex.value == 0) return@launch
+            if (verify && currentTabIndex.value == 0) return@launch
             loadMoreReviews(loadUrl)
         }
     }
@@ -328,7 +344,87 @@ class ResultViewModel : ViewModel() {
         }
     }
 
+    fun initState(card: ResultCached) = viewModelScope.launch {
+        isGetLoaded = false
+        loadMutex.withLock {
+            repo = Apis.getApiFromName(card.apiName)
+            loadUrl = card.source
+
+            val data = LoadResponse(
+                card.source,
+                card.name,
+                listOf(),
+                card.author,
+                card.poster,
+                card.rating,
+                null,
+                null,
+                card.synopsis,
+                card.tags,
+                null,
+                null
+            )
+            load = data
+            loadResponse.postValue(Resource.Success(data))
+
+            setState(card.id)
+        }
+    }
+
+    private fun setState(tid: Int) {
+        loadId = tid
+
+        readState.postValue(
+            ReadType.fromSpinner(
+                getKey(
+                    RESULT_BOOKMARK_STATE, tid.toString()
+                )
+            )
+        )
+
+        setKey(
+            DOWNLOAD_EPUB_LAST_ACCESS, tid.toString(), System.currentTimeMillis()
+        )
+
+        updateBookmarkData()
+
+        hasLoaded = true
+
+        // insert a download progress if not found
+        insertZeroData()
+    }
+
+    fun initState(card: DownloadFragment.DownloadDataLoaded) = viewModelScope.launch {
+        isGetLoaded = false
+        loadResponse.postValue(Resource.Loading(card.source))
+
+        loadMutex.withLock {
+            repo = Apis.getApiFromName(card.apiName)
+            loadUrl = card.source
+
+            val data = LoadResponse(
+                card.source,
+                card.name,
+                listOf(),
+                card.author,
+                card.posterUrl,
+                card.rating,
+                null,
+                null,
+                card.synopsis,
+                card.tags,
+                null,
+                null
+            )
+            load = data
+            loadResponse.postValue(Resource.Success(data))
+
+            setState(card.id)
+        }
+    }
+
     fun initState(apiName: String, url: String) = viewModelScope.launch {
+        isGetLoaded = true
         loadResponse.postValue(Resource.Loading(url))
 
         loadMutex.withLock {
@@ -346,23 +442,7 @@ class ResultViewModel : ViewModel() {
                     loadUrl = res.url
 
                     val tid = generateId(res, apiName)
-                    loadId = tid
-
-                    readState.postValue(
-                        ReadType.fromSpinner(
-                            getKey(
-                                RESULT_BOOKMARK_STATE, tid.toString()
-                            )
-                        )
-                    )
-
-                    setKey(
-                        DOWNLOAD_EPUB_LAST_ACCESS, tid.toString(), System.currentTimeMillis()
-                    )
-                    hasLoaded = true
-
-                    // insert a download progress if not found
-                    insertZeroData()
+                    setState(tid)
                 }
 
                 else -> {}

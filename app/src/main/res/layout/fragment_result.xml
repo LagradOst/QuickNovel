@@ -22,7 +22,7 @@
             app:shimmer_base_alpha="0.2"
             app:shimmer_duration="@integer/loading_time"
             app:shimmer_highlight_alpha="0.3"
-            tools:visibility="visible">
+            tools:visibility="gone">
 
         <LinearLayout
                 android:layout_width="match_parent"
@@ -201,6 +201,7 @@
                 android:minWidth="200dp" />
 
         <TextView
+                tools:text="hello world"
                 android:id="@+id/result_error_text"
                 android:layout_margin="5dp"
                 android:gravity="center"
@@ -222,7 +223,7 @@
 
     <FrameLayout
             android:visibility="gone"
-            tools:visibility="gone"
+            tools:visibility="visible"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:id="@+id/result_holder">

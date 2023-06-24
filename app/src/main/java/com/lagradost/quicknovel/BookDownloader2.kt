@@ -1004,7 +1004,7 @@ object BookDownloader2 {
     private suspend fun deleteNovelAsync(author: String?, name: String, apiName: String) {
         if (deleteNovelMutex.isLocked) return
         deleteNovelMutex.withLock {
-            val id = BookDownloader2Helper.generateId(apiName, author, name)
+            val id = generateId(apiName, author, name)
 
             // send stop action
             addPendingActionAsync(id, DownloadActionType.Stop)
@@ -1066,7 +1066,7 @@ object BookDownloader2 {
                 val res =
                     getKey<DownloadFragment.DownloadData>(key) ?: continue
 
-                val localId = BookDownloader2Helper.generateId(res.apiName, res.author, res.name)
+                val localId = generateId(res.apiName, res.author, res.name)
 
 
                 BookDownloader2Helper.downloadInfo(
@@ -1165,13 +1165,22 @@ object BookDownloader2 {
         )
 
         setKey(
+            HISTORY_FOLDER, to.toString(),
+            getKey<ResultCached>(HISTORY_FOLDER, from.toString())
+        )
+        removeKey(HISTORY_FOLDER, from.toString())
+
+        setKey(
             RESULT_BOOKMARK, to.toString(),
             getKey<ResultCached>(RESULT_BOOKMARK, from.toString())
         )
+        removeKey(RESULT_BOOKMARK, from.toString())
+
         setKey(
             RESULT_BOOKMARK_STATE, to.toString(),
             getKey<Int>(RESULT_BOOKMARK_STATE, from.toString())
         )
+        removeKey(RESULT_BOOKMARK_STATE, from.toString())
 
         setKey(
             DOWNLOAD_EPUB_LAST_ACCESS, to.toString(),
@@ -1187,7 +1196,6 @@ object BookDownloader2 {
             EPUB_CURRENT_POSITION_SCROLL, newName,
             getKey<Int>(EPUB_CURRENT_POSITION_SCROLL, oldName)
         )
-
     }
 
     private val migrationNovelMutex = Mutex()
@@ -1265,7 +1273,7 @@ object BookDownloader2 {
         val sAuthor =
             if (load.author == null) "" else BookDownloader2Helper.sanitizeFilename(load.author)
         val sName = BookDownloader2Helper.sanitizeFilename(load.name)
-        val id = BookDownloader2Helper.generateId(load, api.name)
+        val id = generateId(load, api.name)
 
         // cant download the same thing twice at the same time
         currentDownloadsMutex.withLock {

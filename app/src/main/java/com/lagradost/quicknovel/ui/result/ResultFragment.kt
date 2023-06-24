@@ -112,7 +112,7 @@ class ResultFragment : Fragment() {
 
     @SuppressLint1("CutPasteId", "SetTextI18n")
     fun newState(loadResponse: Resource<LoadResponse>?) {
-        if(loadResponse == null) return
+        if (loadResponse == null) return
         //activity?.window?.navigationBarColor =
         //    requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground)
 
@@ -123,6 +123,7 @@ class ResultFragment : Fragment() {
                     resultLoadingError.isVisible = true
                     resultHolder.isVisible = false
                     resultErrorText.text = loadResponse.errorString
+                    resultPosterBlur.isVisible = false
                 }
             }
 
@@ -131,6 +132,7 @@ class ResultFragment : Fragment() {
                     resultLoading.isVisible = true
                     resultLoadingError.isVisible = false
                     resultHolder.isVisible = false
+                    resultPosterBlur.isVisible = false
                 }
             }
 
@@ -261,6 +263,7 @@ class ResultFragment : Fragment() {
                     resultLoading.isVisible = false
                     resultLoadingError.isVisible = false
                     resultHolder.isVisible = true
+                    resultPosterBlur.isVisible = true
                     resultHolder.post {
                         updateScrollHeight()
                     }
@@ -289,6 +292,7 @@ class ResultFragment : Fragment() {
             resultReloadConnectionerror.setOnClickListener {
                 viewModel.initState(apiName, url)
             }
+
             resultOpeninbrower.setOnClickListener {
                 viewModel.openInBrowser()
             }
@@ -348,8 +352,8 @@ class ResultFragment : Fragment() {
                 override fun onTabReselected(tab: TabLayout.Tab?) {}
             })
 
-            resultBookmark.setOnClickListener {
-                resultBookmark.popupMenu(
+            resultBookmark.setOnClickListener { view ->
+                view.popupMenu(
                     ReadType.values().map { Pair(it.prefValue, it.stringRes) },
                     selectedItemId = viewModel.readState.value?.prefValue
                 ) {

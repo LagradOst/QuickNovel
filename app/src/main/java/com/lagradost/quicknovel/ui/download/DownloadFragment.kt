@@ -14,6 +14,7 @@ import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ItemAnimator
 import androidx.recyclerview.widget.SimpleItemAnimator
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.tabs.TabLayout
 import com.lagradost.quicknovel.*
@@ -32,16 +33,26 @@ class DownloadFragment : Fragment() {
     lateinit var binding: FragmentDownloadsBinding
 
     data class DownloadData(
+        @JsonProperty("source")
         val source: String,
+        @JsonProperty("name")
         val name: String,
+        @JsonProperty("author")
         val author: String?,
+        @JsonProperty("posterUrl")
         val posterUrl: String?,
         //RATING IS FROM 0-100
+        @JsonProperty("rating")
         val rating: Int?,
+        @JsonProperty("peopleVoted")
         val peopleVoted: Int?,
+        @JsonProperty("views")
         val views: Int?,
-        val Synopsis: String?,
+        @JsonProperty("synopsis")
+        val synopsis: String?,
+        @JsonProperty("tags")
         val tags: List<String>?,
+        @JsonProperty("apiName")
         val apiName: String,
     )
 
@@ -54,7 +65,7 @@ class DownloadFragment : Fragment() {
         var rating: Int?,
         var peopleVoted: Int?,
         var views: Int?,
-        var Synopsis: String?,
+        var synopsis: String?,
         var tags: List<String>?,
         var apiName: String,
         var downloadedCount: Int,

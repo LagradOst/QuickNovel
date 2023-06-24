@@ -70,15 +70,16 @@ class DownloadViewModel : ViewModel() {
     fun pause(card: DownloadFragment.DownloadDataLoaded) {
         BookDownloader2.addPendingAction(card.id, DownloadActionType.Pause)
     }
+
     fun resume(card: DownloadFragment.DownloadDataLoaded) {
-        BookDownloader2.addPendingAction(card.id,DownloadActionType.Resume)
+        BookDownloader2.addPendingAction(card.id, DownloadActionType.Resume)
     }
 
     fun load(card: ResultCached) {
         loadResult(card.source, card.apiName)
     }
 
-    fun stream(card : ResultCached) {
+    fun stream(card: ResultCached) {
         BookDownloader2.stream(card)
     }
 
@@ -114,11 +115,12 @@ class DownloadViewModel : ViewModel() {
             }
         }
     }
-    fun showMetadata(card : DownloadFragment.DownloadDataLoaded) {
+
+    fun showMetadata(card: DownloadFragment.DownloadDataLoaded) {
         MainActivity.loadPreviewPage(card)
     }
 
-    fun showMetadata(card : ResultCached) {
+    fun showMetadata(card: ResultCached) {
         MainActivity.loadPreviewPage(card)
     }
 
@@ -370,27 +372,27 @@ class DownloadViewModel : ViewModel() {
                 rating = value.rating
                 peopleVoted = value.peopleVoted
                 views = value.views
-                Synopsis = value.Synopsis
+                synopsis = value.synopsis
                 tags = value.tags
                 apiName = value.apiName
             } ?: run {
                 cardsData[id] = DownloadFragment.DownloadDataLoaded(
-                    value.source,
-                    value.name,
-                    value.author,
-                    value.posterUrl,
-                    value.rating,
-                    value.peopleVoted,
-                    value.views,
-                    value.Synopsis,
-                    value.tags,
-                    value.apiName,
-                    0,
-                    0,
-                    "",
-                    DownloadState.Nothing,
-                    id,
-                    false
+                    source = value.source,
+                    name = value.name,
+                    author = value.author,
+                    posterUrl = value.posterUrl,
+                    rating = value.rating,
+                    peopleVoted = value.peopleVoted,
+                    views = value.views,
+                    synopsis = value.synopsis,
+                    tags = value.tags,
+                    apiName = value.apiName,
+                    downloadedCount = 0,
+                    downloadedTotal = 0,
+                    ETA = "",
+                    state = DownloadState.Nothing,
+                    id = id,
+                    generating = false,
                 )
             }
             postCards()
@@ -404,22 +406,22 @@ class DownloadViewModel : ViewModel() {
                 BookDownloader2.downloadData.map { (key, value) ->
                     val info = BookDownloader2.downloadProgress[key] ?: return@map
                     cardsData[key] = DownloadFragment.DownloadDataLoaded(
-                        value.source,
-                        value.name,
-                        value.author,
-                        value.posterUrl,
-                        value.rating,
-                        value.peopleVoted,
-                        value.views,
-                        value.Synopsis,
-                        value.tags,
-                        value.apiName,
-                        info.progress,
-                        info.total,
-                        info.eta(),
-                        info.state,
-                        key,
-                        false
+                        source = value.source,
+                        name = value.name,
+                        author = value.author,
+                        posterUrl = value.posterUrl,
+                        rating = value.rating,
+                        peopleVoted = value.peopleVoted,
+                        views = value.views,
+                        synopsis = value.synopsis,
+                        tags = value.tags,
+                        apiName = value.apiName,
+                        downloadedCount = info.progress,
+                        downloadedTotal = info.total,
+                        ETA = info.eta(),
+                        state = info.state,
+                        id = key,
+                        generating = false
                     )
                 }
                 postCards()

@@ -36,6 +36,7 @@ import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.mvvm.observeNullable
 import com.lagradost.quicknovel.providers.RedditProvider
+import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.ui.result.ResultFragment
@@ -55,6 +56,7 @@ import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.dismissSafe
 import com.lagradost.quicknovel.util.UIHelper.getResourceColor
 import com.lagradost.quicknovel.util.UIHelper.html
+import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -76,11 +78,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         fun loadPreviewPage(card: DownloadFragment.DownloadDataLoaded) {
-            mainActivity?.loadPopup(card.source, card.apiName)
+            mainActivity?.loadPopup(card)
         }
 
         fun loadPreviewPage(cached: ResultCached) {
-            mainActivity?.loadPopup(cached.source, cached.apiName)
+            mainActivity?.loadPopup(cached)
         }
 
         var app = Requests(
@@ -233,6 +235,16 @@ class MainActivity : AppCompatActivity() {
     private fun hidePreviewPopupDialog() {
         viewModel.clear()
         bottomPreviewPopup.dismissSafe(this)
+    }
+
+    fun loadPopup(
+        resultCached: ResultCached,
+    ) {
+        viewModel.initState(resultCached)
+    }
+
+    fun loadPopup(card: DownloadFragment.DownloadDataLoaded) {
+        viewModel.initState(card)
     }
 
     fun loadPopup(
@@ -407,6 +419,13 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
+        observe(viewModel.readState) {
+            bottomPreviewBinding?.apply {
+                bookmark.setIconResource(if (it == ReadType.NONE) R.drawable.ic_baseline_bookmark_border_24 else R.drawable.ic_baseline_bookmark_24)
+                bookmark.setText(it.stringRes)
+            }
+        }
+
         observeNullable(viewModel.loadResponse) { resource ->
             if (resource == null) {
                 bottomPreviewPopup.dismissSafe(this)
@@ -422,13 +441,27 @@ class MainActivity : AppCompatActivity() {
                     showPreviewPopupDialog().apply {
                         resultviewPreviewLoading.isVisible = true
                         resultviewPreviewResult.isVisible = false
-
                     }
                 }
 
                 is Resource.Success -> {
                     val d = resource.value
                     showPreviewPopupDialog().apply {
+
+                        bookmark.setOnClickListener { view ->
+                            view.popupMenu(
+                                ReadType.values().map { Pair(it.prefValue, it.stringRes) },
+                                selectedItemId = viewModel.readState.value?.prefValue
+                            ) {
+                                viewModel.bookmark(itemId)
+                            }
+                        }
+
+                        readMore.setOnClickListener {
+                            loadResult(d.url, viewModel.apiName)
+                            hidePreviewPopupDialog()
+                        }
+
                         resultviewPreviewLoading.isVisible = false
                         resultviewPreviewResult.isVisible = true
 
@@ -447,16 +480,17 @@ class MainActivity : AppCompatActivity() {
                             hidePreviewPopupDialog()
                         }
 
-                        resultviewPreviewDescription.text = d.synopsis
+                        resultviewPreviewDescription.text = d.synopsis ?: "No data"
                         resultviewPreviewDescription.setOnClickListener { view ->
                             view.context?.let { ctx ->
                                 val builder: AlertDialog.Builder =
                                     AlertDialog.Builder(ctx, R.style.AlertDialogCustom)
-                                builder.setMessage( d.synopsis.html())
+                                builder.setMessage(d.synopsis.html())
                                     .setTitle(d.name)
                                     .show()
                             }
                         }
+
                         d.rating?.let { rating ->
                             resultviewPreviewMetaRating.text = getRating(rating)
                             resultviewPreviewMetaRating.isVisible = true
@@ -472,9 +506,11 @@ class MainActivity : AppCompatActivity() {
                             4 -> "Dropped"
                             else -> ""
                         }
+
                         resultviewPreviewMetaStatus.text = statusTxt
                         resultviewPreviewMetaStatus.isVisible = statusTxt.isNotBlank()
                         resultviewPreviewMetaChapters.text = "${d.data.size} Chapters"
+                        resultviewPreviewMetaChapters.isVisible = d.data.isNotEmpty()
                     }
                 }
             }

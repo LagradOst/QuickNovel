@@ -82,6 +82,7 @@
                      tools:text="2023" />-->
 
                 <FrameLayout
+                        android:visibility="visible"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent">
 
@@ -103,7 +104,39 @@
             </LinearLayout>
         </LinearLayout>
 
+        <LinearLayout
+                android:padding="7dp"
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+            <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bookmark"
+                    android:layout_weight="1"
+
+                    tools:visibility="visible"
+
+                    app:icon="@drawable/ic_baseline_bookmark_24"
+                    android:text="Bookmark"
+                    style="@style/BlackButton"
+
+                    android:layout_width="50dp" />
+
+            <com.google.android.material.button.MaterialButton
+                    android:id="@+id/read_more"
+                    android:layout_weight="1"
+
+                    tools:visibility="visible"
+
+                    app:icon="@drawable/ic_baseline_open_in_new_24"
+                    android:text="More Info"
+                    style="@style/WhiteButton"
+
+                    android:layout_width="50dp" />
+        </LinearLayout>
+
         <TextView
+                android:visibility="gone"
                 android:id="@+id/resultview_preview_more_info"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
