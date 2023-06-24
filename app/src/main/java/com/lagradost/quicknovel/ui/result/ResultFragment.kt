@@ -28,6 +28,7 @@ import com.lagradost.quicknovel.MainActivity.Companion.backPressed
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.FragmentResultBinding
 import com.lagradost.quicknovel.mvvm.Resource
+import com.lagradost.quicknovel.mvvm.debugException
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
@@ -339,7 +340,23 @@ class ResultFragment : Fragment() {
             resultReviews.layoutManager = GridLayoutManager(context, 1)
 
             observe(viewModel.reviews) { reviews ->
-                reviewAdapter.submitList(reviews)
+                when(reviews) {
+                    is Resource.Success -> {
+                        resultviewReviewsLoading.isVisible = false
+                        resultviewReviewsLoadingShimmer.startShimmer()
+                        resultReviews.isVisible = true
+                        // fuck jvm, we have to do a copy because otherwise it wont fucking register
+                        reviewAdapter.submitList(reviews.value.map { it.copy() })
+                    }
+                    is Resource.Loading -> {
+                        resultviewReviewsLoadingShimmer.stopShimmer()
+                        resultviewReviewsLoading.isVisible = true
+                        resultReviews.isVisible = false
+                    }
+                    is Resource.Failure -> {
+                        debugException { "This should never happened" }
+                    }
+                }
             }
 
             resultTabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {

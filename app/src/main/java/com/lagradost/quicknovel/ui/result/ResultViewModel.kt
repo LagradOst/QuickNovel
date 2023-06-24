@@ -62,9 +62,10 @@ class ResultViewModel : ViewModel() {
         MutableLiveData<Resource<LoadResponse>?>()
 
 
-    val reviews: MutableLiveData<ArrayList<UserReview>> by lazy {
-        MutableLiveData<ArrayList<UserReview>>()
+    val reviews: MutableLiveData<Resource<ArrayList<UserReview>>> by lazy {
+        MutableLiveData<Resource<ArrayList<UserReview>>>()
     }
+    var currentReviews : ArrayList<UserReview> = arrayListOf()
 
     private val reviewPage: MutableLiveData<Int> by lazy {
         MutableLiveData<Int>(0)
@@ -76,13 +77,15 @@ class ResultViewModel : ViewModel() {
             if (loadMoreReviewsMutex.isLocked) return@launch
             loadMoreReviewsMutex.withLock {
                 val loadPage = (reviewPage.value ?: 0) + 1
+                if(loadPage == 1) {
+                    reviews.postValue(Resource.Loading())
+                }
                 when (val data = repo.loadReviews(url, loadPage, false)) {
                     is Resource.Success -> {
                         val moreReviews = data.value
-                        val merged = ArrayList<UserReview>()
-                        merged.addAll(reviews.value ?: ArrayList())
-                        merged.addAll(moreReviews)
-                        reviews.postValue(merged)
+                        currentReviews.addAll(moreReviews)
+                        println("Adding ${moreReviews.size} -> ${currentReviews.size}")
+                        reviews.postValue(Resource.Success(currentReviews))
                         reviewPage.postValue(loadPage)
                     }
 
@@ -104,7 +107,7 @@ class ResultViewModel : ViewModel() {
     fun switchTab(pos: Int?) {
         val newPos = pos ?: return
         currentTabIndex.postValue(newPos)
-        if (newPos == 1 && reviews.value.isNullOrEmpty()) {
+        if (newPos == 1 && currentReviews.isEmpty()) {
             loadMoreReviews(verify = false)
         }
     }
