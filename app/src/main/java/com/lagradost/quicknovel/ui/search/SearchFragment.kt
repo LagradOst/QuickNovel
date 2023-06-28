@@ -94,7 +94,7 @@ class SearchFragment : Fragment() {
     }
 
     private fun fixGrid() {
-        val compactView = activity?.getGridIsCompact() ?: false
+        val compactView = false//activity?.getGridIsCompact() ?: false
         val spanCountLandscape = if (compactView) 2 else 6
         val spanCountPortrait = if (compactView) 1 else 3
         val orientation = resources.configuration.orientation

@@ -17,7 +17,6 @@ class HistoryAdapter2(private val viewModel: HistoryViewModel) : ListAdapter<Res
 
     override fun onBindViewHolder(holder: HistoryAdapter2Holder, position: Int) {
         val currentItem = getItem(position)
-        println("currentItem : $position = ${currentItem.name}")
         holder.bind(currentItem, viewModel)
     }
 

@@ -152,8 +152,8 @@ class DownloadAdapter2(
                                 DownloadState.IsPending -> {}
                                 else -> viewModel.refreshCard(card)
                             }
-
                         }
+
                         downloadUpdateLoading.isVisible = realState == DownloadState.IsPending
                     }
                 }
@@ -176,10 +176,13 @@ class DownloadAdapter2(
                         }
 
                         val same = imageText.text == card.name
+                        downloadProgressbarIndeterment.isVisible = card.generating
+                        val showDownloadLoading = card.state == DownloadState.IsPending
+                        downloadUpdateLoading.isVisible = showDownloadLoading
 
                         imageView.apply {
                             setOnClickListener {
-                                viewModel.load(card)
+                                viewModel.readEpub(card)
                             }
                             setOnLongClickListener {
                                 viewModel.showMetadata(card)
@@ -190,7 +193,7 @@ class DownloadAdapter2(
                         val epubSize = getKey(DOWNLOAD_EPUB_SIZE, card.id.toString()) ?: 0
                         val diff = card.downloadedCount - epubSize
                         imageTextMore.text = "+$diff "
-                        imageTextMore.isVisible = diff > 0
+                        imageTextMore.isVisible = diff > 0 && !showDownloadLoading
                         imageText.text = card.name
                         imageView.setImage(card.posterUrl, fade = false, skipCache = false)
                     }

@@ -38,6 +38,30 @@
                 android:textColor="@color/textColor"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" />
+
+        <androidx.core.widget.ContentLoadingProgressBar
+                android:indeterminate="true"
+                style="@android:style/Widget.Material.ProgressBar.Horizontal"
+                android:layout_gravity="bottom"
+                android:layout_marginBottom="-7dp"
+                android:indeterminateTint="?attr/colorPrimary"
+                android:id="@+id/download_progressbar_indeterment"
+                android:layout_width="match_parent"
+                tools:progress="10"
+                android:progressTint="?attr/colorPrimary"
+                android:layout_height="15dp" />
+
+        <androidx.core.widget.ContentLoadingProgressBar
+                android:padding="3dp"
+                android:background="@drawable/download_add_bg"
+                android:id="@+id/download_update_loading"
+                android:layout_width="25dp"
+                android:layout_height="25dp"
+                android:layout_margin="5dp"
+                style="@style/Widget.AppCompat.ProgressBar"
+                android:foregroundTint="@color/white"
+                android:progressTint="@color/white"
+                android:layout_gravity="top|start" />
     </androidx.cardview.widget.CardView>
 
     <TextView

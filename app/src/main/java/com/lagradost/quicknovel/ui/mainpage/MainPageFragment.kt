@@ -71,7 +71,7 @@ class MainPageFragment : Fragment() {
     var isInSearch = false
 
     private fun setupGridView() {
-        val compactView = activity?.getGridIsCompact() ?: return
+        val compactView = false //activity?.getGridIsCompact() ?: return
         val spanCountLandscape = if (compactView) 2 else 6
         val spanCountPortrait = if (compactView) 1 else 3
         val orientation = resources.configuration.orientation

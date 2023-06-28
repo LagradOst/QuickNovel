@@ -31,7 +31,7 @@ class MainAdapter2(private val resView: AutofitRecyclerView) : ListAdapter<Searc
     class MainAdapter2Holder(private val binding : SearchResultGridBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(card : SearchResponse, resView: AutofitRecyclerView) {
             binding.apply {
-                val compactView = resView.context?.getGridIsCompact() ?: return
+                val compactView = false//resView.context?.getGridIsCompact() ?: return
 
                 val coverHeight: Int =
                     if (compactView) 80.toPx else (resView.itemWidth / 0.68).roundToInt()
