@@ -12,6 +12,10 @@ import com.lagradost.quicknovel.mvvm.logError
 class WattpadProvider : MainAPI() {
     override val mainUrl = "https://www.wattpad.com"
     override val name = "Wattpad"
+
+
+
+
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "https://www.wattpad.com/search/$query"
         val document = app.get(url).document
@@ -211,17 +215,29 @@ class WattpadProvider : MainAPI() {
         var suffix = ""
         try {
             val data = jsonmapper.readValue<Map<String, Metadata>>(htmlJson)
-            data.values.firstOrNull()?.data?.textUrl?.text?.let {
-                suffix = app.get(it).text
+            data.values.firstOrNull()?.data?.textUrl?.text?.let { str ->
+                val index = str.indexOf('?')
+                val before = str.substring(0 until index)
+                val after = str.substring(index until str.length)
+
+                // should be while(true) but cant be sure so I placed a upper bounds of 100
+                for (i in 1..100) {
+                    val text = app.get("$before-$i$after").text
+                    // if the response is too short then we break because it probs did too much
+                    if (text.length < 30) {
+                        break
+                    }
+                    suffix += text
+                }
             }
         } catch (e: Exception) {
             logError(e)
             suffix = ""
         }
-
-        val document = response.document
+        return suffix
+        /*val document = response.document
         return document.selectFirst("pre")
             ?.apply { removeClass("trinityAudioPlaceholder"); removeClass("comment-marker") }
-            ?.html()?.plus(suffix)
+            ?.html()?.plus(suffix)*/
     }
 }
