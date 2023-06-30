@@ -40,6 +40,8 @@
                 android:layout_height="wrap_content" />
 
         <androidx.core.widget.ContentLoadingProgressBar
+                android:visibility="gone"
+
                 android:indeterminate="true"
                 style="@android:style/Widget.Material.ProgressBar.Horizontal"
                 android:layout_gravity="bottom"
@@ -52,6 +54,7 @@
                 android:layout_height="15dp" />
 
         <androidx.core.widget.ContentLoadingProgressBar
+                android:visibility="gone"
                 android:padding="3dp"
                 android:background="@drawable/download_add_bg"
                 android:id="@+id/download_update_loading"

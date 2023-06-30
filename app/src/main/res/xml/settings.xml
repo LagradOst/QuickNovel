@@ -13,19 +13,19 @@
                 android:title="Advanced Search"
                 android:summary="Gives you the search results separated by provider"
                 app:defaultValue="true" />
-        <MultiSelectListPreference
+        <Preference
                 app:icon="@drawable/ic_baseline_cloud_24"
                 android:key="@string/search_providers_list_key"
                 android:title="Search Providers"
                 app:useSimpleSummaryProvider="true" />
-        <ListPreference
+        <!--<ListPreference
                 app:icon="@drawable/ic_baseline_grid_view_24"
                 android:key="@string/grid_format_key"
                 android:title="Display Mode"
                 app:defaultValue="grid"
                 app:useSimpleSummaryProvider="true"
                 android:entries="@array/GridFormat"
-                android:entryValues="@array/GridFormatData" />
+                android:entryValues="@array/GridFormatData" />-->
         <Preference
                 android:icon="@drawable/ic_baseline_language_24"
                 android:key="@string/provider_lang_key"
@@ -78,22 +78,16 @@
                 app:defaultValue="true"
                 android:icon="@drawable/ic_baseline_edit_24" />
 
-        <ListPreference
-                app:key="theme"
-                android:title="Theme"
+        <Preference
+                app:key="@string/theme_key"
+                android:title="@string/theme"
                 android:icon="@drawable/ic_baseline_color_lens_24"
-                app:useSimpleSummaryProvider="true"
-                app:defaultValue="Dark"
-                android:entries="@array/ThemesNames"
-                android:entryValues="@array/ThemesValues" />
-        <ListPreference
-                app:key="color_theme"
-                android:title="Main Color"
+                app:useSimpleSummaryProvider="true" />
+        <Preference
+                app:key="@string/primary_color_key"
+                android:title="@string/primary_color_settings"
                 android:icon="@drawable/ic_baseline_color_lens_24"
-                app:useSimpleSummaryProvider="true"
-                app:defaultValue="Normal"
-                android:entries="@array/ThemesOverlayNames"
-                android:entryValues="@array/ThemesOverlayValues" />
+                app:useSimpleSummaryProvider="true" />
 
         <Preference
                 android:title="Check for Update"

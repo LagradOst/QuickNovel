@@ -83,6 +83,10 @@ class CachedAdapter2(
                             setOnClickListener {
                                 viewModel.load(card)
                             }
+                            setOnLongClickListener {
+                                viewModel.showMetadata(card)
+                                return@setOnLongClickListener true
+                            }
                         }
                         imageView.setImage(card.poster, fade = true, skipCache = false)
                         imageText.text = card.name

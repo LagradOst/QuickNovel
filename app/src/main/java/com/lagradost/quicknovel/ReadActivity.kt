@@ -1912,30 +1912,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
-        val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
-        val currentTheme = when (settingsManager.getString("theme", "Dark")) {
-            "Black" -> R.style.AppTheme
-            //"Dark" -> R.style.DarkAlternative
-            "Light" -> R.style.LightMode
-            else -> R.style.AppTheme
-        }
-
-        val currentOverlayTheme = when (settingsManager.getString("color_theme", "Blue")) {
-            "Normal" -> R.style.OverlayPrimaryColorNormal
-            "Blue" -> R.style.OverlayPrimaryColorBlue
-            "Purple" -> R.style.OverlayPrimaryColorPurple
-            "Green" -> R.style.OverlayPrimaryColorGreen
-            "GreenApple" -> R.style.OverlayPrimaryColorGreenApple
-            "Red" -> R.style.OverlayPrimaryColorRed
-            else -> R.style.OverlayPrimaryColorNormal
-        }
-        //val isLightTheme = themeName == "Light"
-
-        theme.applyStyle(
-            currentTheme,
-            true
-        ) // THEME IS SET BEFORE VIEW IS CREATED TO APPLY THE THEME TO THE MAIN VIEW
-        theme.applyStyle(currentOverlayTheme, true)
+        CommonActivity.loadThemes(this)
 
         super.onCreate(savedInstanceState)
 

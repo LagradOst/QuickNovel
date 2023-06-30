@@ -141,4 +141,8 @@
     <string name="tts_locale">Language</string>
     <string name="tts_voice">Voice</string>
     <string name="tts_voice_title">TTS Voice</string>
+    <string name="theme_key">theme_key</string>
+    <string name="theme">Theme</string>
+    <string name="primary_color_key">primary_color_key</string>
+    <string name="primary_color_settings">Main Color</string>
 </resources>

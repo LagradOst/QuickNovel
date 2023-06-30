@@ -20,6 +20,7 @@ import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.GridLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
+import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.HomePageList
 import com.lagradost.quicknovel.R
@@ -28,6 +29,7 @@ import com.lagradost.quicknovel.databinding.HomeEpisodesExpandedBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.normalSafeApiCall
 import com.lagradost.quicknovel.mvvm.observe
+import com.lagradost.quicknovel.ui.settings.SettingsFragment
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiProviderLangSettings
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
@@ -170,41 +172,8 @@ class SearchFragment : Fragment() {
         searchMagIcon.scaleX = 0.65f
         searchMagIcon.scaleY = 0.65f
 
-        binding.searchFilter.setOnClickListener { clickView ->
-            val builder: AlertDialog.Builder = AlertDialog.Builder(requireContext())
-            //val settingsManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
-            val apiNamesSetting = clickView.context.getApiSettings()
-
-            val langs = clickView.context.getApiProviderLangSettings()
-            val apiNames = apis.mapNotNull { if (langs.contains(it.lang)) it.name else null }
-
-            builder.setMultiChoiceItems(
-                apiNames.toTypedArray(),
-                apiNames.map { a -> apiNamesSetting.contains(a) }.toBooleanArray()
-            ) { _, position: Int, checked: Boolean ->
-                val apiNamesSettingLocal = requireActivity().getApiSettings()
-                val settingsManagerLocal = activity?.let {
-                    PreferenceManager.getDefaultSharedPreferences(
-                        it
-                    )
-                }
-                if (checked) {
-                    apiNamesSettingLocal.add(apiNames[position])
-                } else {
-                    apiNamesSettingLocal.remove(apiNames[position])
-                }
-
-                val edit = settingsManagerLocal?.edit()
-                edit?.putStringSet(
-                    getString(R.string.search_providers_list_key),
-                    apiNames.filter { a -> apiNamesSettingLocal.contains(a) }.toSet()
-                )
-                edit?.apply()
-                providersActive = requireContext().getApiSettings()
-            }
-            builder.setTitle("Search Providers")
-            builder.setNegativeButton("Ok") { _, _ -> }
-            builder.show()
+        binding.searchFilter.setOnClickListener {
+            SettingsFragment.showSearchProviders(it.context)
         }
 
         binding.mainSearch.setOnQueryTextListener(object : SearchView.OnQueryTextListener {

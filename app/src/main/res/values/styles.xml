@@ -210,6 +210,11 @@
         <item name="textAllCaps">false</item>
     </style>
 
+    <style name="LoadedStyle">
+        <item name="android:navigationBarColor">?attr/primaryGrayBackground</item>
+        <item name="android:windowBackground">?attr/primaryBlackBackground</item>
+    </style>
+
     <style name="AlertDialogCustom" parent="Theme.AppCompat.Dialog.Alert">
         <item name="android:windowFullscreen">true</item>
         <item name="android:textColor">?attr/textColor</item>
@@ -342,6 +347,50 @@
         <item name="grayTextColor">@color/lightGrayTextColor</item>
         <item name="white">#000</item>
         <item name="colorOnPrimary">@color/blackText</item>
+    </style>
+    <style name="OverlayPrimaryColorParty">
+        <item name="colorPrimary">@color/colorPrimaryParty</item>
+        <item name="android:colorPrimary">@color/colorPrimaryParty</item>
+        <item name="colorPrimaryDark">#C1495B</item>
+        <item name="colorAccent">#FD798C</item>
+        <item name="colorOnPrimary">@color/blackText</item>
+        <item name="android:colorAccent">@color/colorPrimaryParty</item>
+    </style>
+    <style name="OverlayPrimaryColorPink">
+        <item name="colorPrimary">@color/colorPrimaryPink</item>
+        <item name="android:colorPrimary">@color/colorPrimaryPink</item>
+        <item name="colorPrimaryDark">#DD1280</item>
+        <item name="colorAccent">#FF4DAE</item>
+        <item name="colorOnPrimary">@color/blackText</item>
+        <item name="android:colorAccent">@color/colorPrimaryPink</item>
+    </style>
+    <style name="OverlayPrimaryColorMonet">
+        <item name="colorPrimary">@color/material_dynamic_primary80</item>
+        <item name="android:colorPrimary">@color/material_dynamic_primary80</item>
+        <item name="colorPrimaryDark">@color/material_dynamic_primary30</item>
+        <item name="colorAccent">@color/material_dynamic_primary80</item>
+        <item name="colorOnPrimary">@color/material_dynamic_primary20</item>
+        <!-- Needed for leanback fuckery -->
+        <item name="android:colorAccent">@color/material_dynamic_primary80</item>
+    </style>
+    <style name="OverlayPrimaryColorMonetTwo">
+        <item name="colorPrimary">@color/material_dynamic_secondary80</item>
+        <item name="android:colorPrimary">@color/material_dynamic_secondary80</item>
+        <item name="colorPrimaryDark">@color/material_dynamic_secondary30</item>
+        <item name="colorAccent">@color/material_dynamic_secondary80</item>
+        <item name="colorOnPrimary">@color/material_dynamic_secondary20</item>
+        <!-- Needed for leanback fuckery -->
+        <item name="android:colorAccent">@color/material_dynamic_secondary80</item>
+    </style>
+    <style name="MonetMode">
+        <item name="primaryGrayBackground">@color/material_dynamic_neutral20</item>
+        <item name="primaryBlackBackground">@color/material_dynamic_neutral10</item>
+        <item name="iconGrayBackground">@color/material_dynamic_neutral20</item>
+        <item name="boxItemBackground">@color/material_dynamic_neutral20</item>
+        <item name="textColor">@color/material_dynamic_neutral90</item>
+        <item name="grayTextColor">@color/material_dynamic_neutral60</item>
+        <item name="white">@color/material_dynamic_neutral90</item>
+        <item name="colorOnPrimary">@color/material_on_primary_emphasis_medium</item>
     </style>
 
     <style name="OverlayPrimaryColorNormal">

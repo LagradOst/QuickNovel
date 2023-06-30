@@ -327,46 +327,10 @@ class MainActivity : AppCompatActivity() {
         mainActivity = this
         activity = this
 
-        this.window?.navigationBarColor =
-            this.colorFromAttribute(R.attr.primaryGrayBackground)
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
 
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
-
-        val themeName = settingsManager.getString("theme", "Dark")
-        val currentTheme = when (themeName) {
-            "Black" -> R.style.AppTheme
-            //"Dark" -> R.style.DarkAlternative
-            "Light" -> R.style.LightMode
-            else -> R.style.AppTheme
-        }
-
-        val themeOverlayName = settingsManager.getString("color_theme", "Blue")
-        val currentOverlayTheme = when (themeOverlayName) {
-            "Normal" -> R.style.OverlayPrimaryColorNormal
-            "CarnationPink" -> R.style.OverlayPrimaryColorCarnationPink
-            //"Orange" -> R.style.OverlayPrimaryColorOrange
-            "DarkGreen" -> R.style.OverlayPrimaryColorDarkGreen
-            "Maroon" -> R.style.OverlayPrimaryColorMaroon
-            "NavyBlue" -> R.style.OverlayPrimaryColorNavyBlue
-            "Grey" -> R.style.OverlayPrimaryColorGrey
-            "White" -> R.style.OverlayPrimaryColorWhite
-            "Brown" -> R.style.OverlayPrimaryColorBrown
-            "Banana" -> R.style.OverlayPrimaryColorBanana
-            "Blue" -> R.style.OverlayPrimaryColorBlue
-            "Purple" -> R.style.OverlayPrimaryColorPurple
-            "Green" -> R.style.OverlayPrimaryColorGreen
-            "GreenApple" -> R.style.OverlayPrimaryColorGreenApple
-            "Red" -> R.style.OverlayPrimaryColorRed
-            else -> R.style.OverlayPrimaryColorNormal
-        }
-        //val isLightTheme = themeName == "Light"
-
-        theme.applyStyle(
-            currentTheme,
-            true
-        ) // THEME IS SET BEFORE VIEW IS CREATED TO APPLY THE THEME TO THE MAIN VIEW
-        theme.applyStyle(currentOverlayTheme, true)
+        CommonActivity.loadThemes(this)
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)

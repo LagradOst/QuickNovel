@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.util
 
+import android.app.Activity
 import android.app.Dialog
 import android.content.Context
 import android.widget.*
@@ -134,6 +135,7 @@ object SingleSelectionHelper {
         )
     }
 
+    /** Only for a low amount of items */
     fun Context.showBottomDialog(
         items: List<String>,
         selectedIndex: Int,
