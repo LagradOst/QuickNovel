@@ -43,18 +43,16 @@
                 android:key="@string/provider_list_key"
                 android:title="Active Provider"
                 app:useSimpleSummaryProvider="true" />-->
-        <ListPreference
+        <Preference
                 app:icon="@drawable/ic_baseline_star_24"
                 android:key="@string/rating_format_key"
-                android:title="Rating Format"
+                android:title="@string/rating_format"
                 app:defaultValue="star"
-                app:useSimpleSummaryProvider="true"
-                android:entries="@array/RatingFormat"
-                android:entryValues="@array/RatingFormatData" />
-        <ListPreference
+                app:useSimpleSummaryProvider="true" />
+        <Preference
                 app:icon="@drawable/ic_baseline_grid_view_24"
                 android:key="@string/download_format_key"
-                android:title="Library Display Mode"
+                android:title="@string/library_display_mode"
                 app:defaultValue="list"
                 app:useSimpleSummaryProvider="true"
                 android:entries="@array/DownloadGridFormat"
@@ -120,7 +118,7 @@
 
         <Preference
                 android:title="Anime and Movie app by the same devs"
-                android:icon="@drawable/cs3_cloud"
+                android:icon="@drawable/ic_github_logo"
                 app:summary="https://github.com/recloudstream/cloudstream">
             <intent
                     android:action="android.intent.action.VIEW"

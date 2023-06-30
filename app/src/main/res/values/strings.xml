@@ -145,4 +145,6 @@
     <string name="theme">Theme</string>
     <string name="primary_color_key">primary_color_key</string>
     <string name="primary_color_settings">Main Color</string>
+    <string name="library_display_mode">Library Display Mode</string>
+    <string name="rating_format">Rating Format</string>
 </resources>

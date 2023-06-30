@@ -172,7 +172,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 prefNames.toList(),
                 prefValues.indexOf(currentLayout),
                 getString(R.string.theme),
-                true,
+                false,
                 {}) {
                 try {
                     settingsManager.edit()
@@ -216,6 +216,54 @@ class SettingsFragment : PreferenceFragmentCompat() {
                         .putString(getString(R.string.primary_color_key), prefValues[it])
                         .apply()
                     activity?.recreate()
+                } catch (e: Exception) {
+                    logError(e)
+                }
+            }
+            return@setOnPreferenceClickListener true
+        }
+
+        getPref(R.string.rating_format_key)?.setOnPreferenceClickListener {
+            val prefNames = resources.getStringArray(R.array.RatingFormat)
+            val prefValues = resources.getStringArray(R.array.RatingFormatData)
+
+            val current =
+                settingsManager.getString(getString(R.string.rating_format_key), prefValues.first())
+
+            activity?.showBottomDialog(
+                prefNames.toList(),
+                prefValues.indexOf(current),
+                getString(R.string.rating_format),
+                false,
+                {}) {
+                try {
+                    settingsManager.edit()
+                        .putString(getString(R.string.rating_format_key), prefValues[it])
+                        .apply()
+                } catch (e: Exception) {
+                    logError(e)
+                }
+            }
+            return@setOnPreferenceClickListener true
+        }
+
+        getPref(R.string.download_format_key)?.setOnPreferenceClickListener {
+            val prefNames = resources.getStringArray(R.array.DownloadGridFormat)
+            val prefValues = resources.getStringArray(R.array.DownloadGridFormatData)
+
+            val current =
+                settingsManager.getString(getString(R.string.download_format_key), prefValues.first())
+
+            activity?.showBottomDialog(
+                prefNames.toList(),
+                prefValues.indexOf(current),
+                getString(R.string.rating_format),
+                false,
+                {}) {
+                try {
+                    settingsManager.edit()
+                        .putString(getString(R.string.download_format_key), prefValues[it])
+                        .apply()
                 } catch (e: Exception) {
                     logError(e)
                 }
