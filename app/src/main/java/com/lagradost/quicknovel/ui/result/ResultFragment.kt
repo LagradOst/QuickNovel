@@ -256,6 +256,7 @@ class ResultFragment : Fragment() {
                     }
 
                     if (res is StreamResponse) {
+                        resultQuickstream.isVisible = true
                         if (res.data.isNotEmpty()) {
                             val last = res.data.last()
 
@@ -264,6 +265,9 @@ class ResultFragment : Fragment() {
                         } else {
                             resultTotalChapters.text = getString(R.string.no_chapters)
                         }
+                    }
+                    else {
+                        resultQuickstream.isVisible = false
                     }
 
                     resultLoading.isVisible = false

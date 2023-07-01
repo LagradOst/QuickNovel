@@ -1,5 +1,8 @@
 package com.lagradost.quicknovel
 
+import androidx.annotation.WorkerThread
+import com.lagradost.nicehttp.NiceResponse
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.mvvm.logError
 import org.jsoup.Jsoup
 
@@ -211,13 +214,43 @@ data class StreamResponse(
 ) : LoadResponse
 
 data class DownloadLink(
-    val link: String,
-    val name: String,
-    val headers: Map<String, String> = mapOf(),
+    override val url: String,
+    override val name: String,
     val referer: String? = null,
+    val headers: Map<String, String> = mapOf(),
     val params: Map<String, String> = mapOf(),
     val cookies: Map<String, String> = mapOf(),
-)
+    /// used for sorting, here you input the approx download speed in kb/s
+    val kbPerSec : Long = 1,
+) : DownloadLinkType
+
+data class DownloadExtractLink(
+    override val url: String,
+    override val name: String,
+    val referer: String? = null,
+    val headers: Map<String, String> = mapOf(),
+    val params: Map<String, String> = mapOf(),
+    val cookies: Map<String, String> = mapOf(),
+) : DownloadLinkType
+
+fun makeLinkSafe(url : String) : String {
+    return url.replace("http://", "https://")
+}
+
+@WorkerThread
+suspend fun DownloadExtractLink.get() : NiceResponse {
+    return app.get(makeLinkSafe(url), headers, referer, params, cookies)
+}
+
+@WorkerThread
+suspend fun DownloadLink.get() : NiceResponse {
+    return app.get(makeLinkSafe(url), headers, referer, params, cookies)
+}
+
+interface DownloadLinkType {
+    val url: String
+    val name: String
+}
 
 data class EpubResponse(
     override val url: String,
@@ -231,7 +264,7 @@ data class EpubResponse(
     override val tags: List<String>? = null,
     override val status: Int? = null,
     override var posterHeaders: Map<String, String>? = null,
-    val links: List<DownloadLink>,
+    val links: List<DownloadLinkType>,
 ) : LoadResponse
 
 data class ChapterData(

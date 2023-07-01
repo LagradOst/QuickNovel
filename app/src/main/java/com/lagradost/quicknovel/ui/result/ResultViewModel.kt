@@ -29,6 +29,7 @@ import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.util.Apis
+import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -85,7 +86,7 @@ class ResultViewModel : ViewModel() {
                     is Resource.Success -> {
                         val moreReviews = data.value
                         currentReviews.addAll(moreReviews)
-                        println("Adding ${moreReviews.size} -> ${currentReviews.size}")
+
                         reviews.postValue(Resource.Success(currentReviews))
                         reviewPage.postValue(loadPage)
                     }
@@ -127,9 +128,9 @@ class ResultViewModel : ViewModel() {
         }
     }
 
-    fun streamRead() = viewModelScope.launch {
+    fun streamRead() = ioSafe {
         loadMutex.withLock {
-            if (!hasLoaded) return@launch
+            if (!hasLoaded) return@ioSafe
             addToHistory()
             BookDownloader2.stream(load, apiName)
         }

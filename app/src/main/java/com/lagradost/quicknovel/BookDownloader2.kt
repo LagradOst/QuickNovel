@@ -46,6 +46,7 @@ import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.ImageDownloader.getImageBitmapFromUrl
 import com.lagradost.quicknovel.NotificationHelper.etaToString
+import com.lagradost.quicknovel.extractors.ExtractorApi
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.services.DownloadService
 import com.lagradost.quicknovel.ui.download.DownloadFragment
@@ -414,6 +415,7 @@ object BookDownloader2Helper {
         return getChapter(path, index, getStripHtml())
     }
 
+    @WorkerThread
     fun Activity.createQuickStream(data: QuickStreamData): Uri? {
         try {
             if (data.data.isEmpty()) {
@@ -925,6 +927,7 @@ object NotificationHelper {
             }
 
             with(NotificationManagerCompat.from(context)) {
+                println("updated $state")
                 // notificationId is a unique int for each notification that you must define
                 notify(id, builder.build())
             }
@@ -1439,7 +1442,10 @@ object BookDownloader2 {
                 )
             }
 
-            for (link in load.links) {
+            var links = ExtractorApi.extract(load.links)
+            links = links.sortedByDescending { it.kbPerSec }
+            println("links $links")
+            for (link in links) {
                 // consume any action and wait until not paused
                 run {
                     var currentState = DownloadState.IsDownloading
@@ -1474,13 +1480,7 @@ object BookDownloader2 {
 
                 // download into a file
                 val stream = try {
-                    MainActivity.app.get(
-                        link.link,
-                        headers = link.headers,
-                        referer = link.referer,
-                        params = link.params,
-                        cookies = link.cookies
-                    ).body
+                    link.get().body
                 } catch (e: Exception) {
                     delay(api.rateLimitTime + 1000)
                     continue
@@ -1498,7 +1498,8 @@ object BookDownloader2 {
                 val startedTime = System.currentTimeMillis()
 
                 file.createNewFile()
-                val size = 1024
+                val size = DEFAULT_BUFFER_SIZE
+                var lastUpdatedMs = 0L
                 stream.byteStream().buffered(size).iterator().asSequence().chunked(size)
                     .forEach { bytes ->
                         progress += bytes.size
@@ -1514,21 +1515,11 @@ object BookDownloader2 {
                             maxOf(((totalTimeSoFar * total) / progress) - totalTimeSoFar, 0)
                         )
 
-                        createNotification(
-                            id,
-                            load,
-                            state,
-                            progressInBytes = true
-                        )
-
                         run {
                             var currentState = DownloadState.IsDownloading
                             while (true) {
                                 when (consumeAction(id)) {
-                                    DownloadActionType.Pause -> {
-                                        DownloadState.IsPaused
-                                    }
-
+                                    DownloadActionType.Pause -> DownloadState.IsPaused
                                     DownloadActionType.Resume -> DownloadState.IsDownloading
                                     DownloadActionType.Stop -> DownloadState.IsStopped
                                     else -> null
@@ -1554,6 +1545,17 @@ object BookDownloader2 {
                             if (currentState == DownloadState.IsStopped) {
                                 return
                             }
+                        }
+
+                        // don't spam notifications so only update once per sec
+                        if(lastUpdatedMs + 1000 < System.currentTimeMillis()) {
+                            lastUpdatedMs = System.currentTimeMillis()
+                            createNotification(
+                                id,
+                                load,
+                                state,
+                                progressInBytes = true
+                            )
                         }
                     }
 
