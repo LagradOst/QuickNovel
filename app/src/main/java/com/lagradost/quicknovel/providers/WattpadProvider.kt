@@ -202,7 +202,7 @@ class WattpadProvider : MainAPI() {
             ?: throw ErrorLoadingException("No title")
         val poster = document.selectFirst(".story-cover > img")?.attr("src")
 
-        return LoadResponse(url, title, toc, author, poster, synopsis = description, tags = tags)
+        return StreamResponse(url, title, toc, author, poster, synopsis = description, tags = tags)
     }
 
     /*window.prefetched = */

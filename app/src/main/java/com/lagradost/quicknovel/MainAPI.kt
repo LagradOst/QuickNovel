@@ -55,6 +55,20 @@ abstract class MainAPI {
     open suspend fun loadHtml(url: String): String? {
         throw NotImplementedError()
     }
+
+    /*open suspend fun loadEpub(link: DownloadLinkType): ByteArray {
+        if (link is DownloadLink) {
+            return MainActivity.app.get(
+                link.link,
+                headers = link.headers,
+                referer = link.referer,
+                params = link.params,
+                cookies = link.cookies
+            ).body.byteStream().readBytes()
+        } else {
+            throw NotImplementedError()
+        }
+    }*/
 }
 
 class ErrorLoadingException(message: String? = null) : Exception(message)
@@ -165,21 +179,60 @@ const val STATUS_COMPLETE = 2
 const val STATUS_PAUSE = 3
 const val STATUS_DROPPED = 4
 
-data class LoadResponse(
-    val url: String,
-    val name: String,
-    val data: List<ChapterData>,
-    val author: String? = null,
-    val posterUrl: String? = null,
+interface LoadResponse {
+    val url: String
+    val name: String
+    val author: String?
+    val posterUrl: String?
+
     //RATING IS FROM 0-1000
-    val rating: Int? = null,
-    val peopleVoted: Int? = null,
-    val views: Int? = null,
-    val synopsis: String? = null,
-    val tags: List<String>? = null,
-    val status: Int? = null, // 0 = null - implemented but not found, 1 = Ongoing, 2 = Complete, 3 = Pause/HIATUS, 4 = Dropped
-    var posterHeaders: Map<String, String>? = null
+    val rating: Int?
+    val peopleVoted: Int?
+    val views: Int?
+    val synopsis: String?
+    val tags: List<String>?
+    val status: Int? // 0 = null - implemented but not found, 1 = Ongoing, 2 = Complete, 3 = Pause/HIATUS, 4 = Dropped
+    var posterHeaders: Map<String, String>?
+}
+
+data class StreamResponse(
+    override val url: String,
+    override val name: String,
+    val data: List<ChapterData>,
+    override val author: String? = null,
+    override val posterUrl: String? = null,
+    override val rating: Int? = null,
+    override val peopleVoted: Int? = null,
+    override val views: Int? = null,
+    override val synopsis: String? = null,
+    override val tags: List<String>? = null,
+    override val status: Int? = null,
+    override var posterHeaders: Map<String, String>? = null,
+) : LoadResponse
+
+data class DownloadLink(
+    val link: String,
+    val name: String,
+    val headers: Map<String, String> = mapOf(),
+    val referer: String? = null,
+    val params: Map<String, String> = mapOf(),
+    val cookies: Map<String, String> = mapOf(),
 )
+
+data class EpubResponse(
+    override val url: String,
+    override val name: String,
+    override val author: String? = null,
+    override val posterUrl: String? = null,
+    override val rating: Int? = null,
+    override val peopleVoted: Int? = null,
+    override val views: Int? = null,
+    override val synopsis: String? = null,
+    override val tags: List<String>? = null,
+    override val status: Int? = null,
+    override var posterHeaders: Map<String, String>? = null,
+    val links: List<DownloadLink>,
+) : LoadResponse
 
 data class ChapterData(
     val name: String,

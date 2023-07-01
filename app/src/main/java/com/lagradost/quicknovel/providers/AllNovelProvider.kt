@@ -207,7 +207,7 @@ class AllNovelProvider : MainAPI() {
             document.selectFirst(" div.small > em > strong:nth-child(3) > span")?.text()
                 ?.toIntOrNull() ?: 0
 
-        return LoadResponse(
+        return StreamResponse(
             url,
             name ?: throw ErrorLoadingException("invalid name"),
             data,

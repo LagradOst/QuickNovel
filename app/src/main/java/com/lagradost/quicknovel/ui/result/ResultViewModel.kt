@@ -23,6 +23,7 @@ import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
+import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.ui.ReadType
@@ -65,7 +66,7 @@ class ResultViewModel : ViewModel() {
     val reviews: MutableLiveData<Resource<ArrayList<UserReview>>> by lazy {
         MutableLiveData<Resource<ArrayList<UserReview>>>()
     }
-    var currentReviews : ArrayList<UserReview> = arrayListOf()
+    var currentReviews: ArrayList<UserReview> = arrayListOf()
 
     private val reviewPage: MutableLiveData<Int> by lazy {
         MutableLiveData<Int>(0)
@@ -77,7 +78,7 @@ class ResultViewModel : ViewModel() {
             if (loadMoreReviewsMutex.isLocked) return@launch
             loadMoreReviewsMutex.withLock {
                 val loadPage = (reviewPage.value ?: 0) + 1
-                if(loadPage == 1) {
+                if (loadPage == 1) {
                     reviews.postValue(Resource.Loading())
                 }
                 when (val data = repo.loadReviews(url, loadPage, false)) {
@@ -185,7 +186,7 @@ class ResultViewModel : ViewModel() {
                     load.posterUrl,
                     load.tags,
                     load.rating,
-                    load.data.size,
+                    (load as? StreamResponse)?.data?.size ?: 1,
                     System.currentTimeMillis(),
                     synopsis = load.synopsis
                 )
@@ -243,7 +244,7 @@ class ResultViewModel : ViewModel() {
                 load.posterUrl,
                 load.tags,
                 load.rating,
-                load.data.size,
+                (load as? StreamResponse)?.data?.size ?: 1,
                 System.currentTimeMillis(),
                 synopsis = load.synopsis
             )
@@ -334,7 +335,7 @@ class ResultViewModel : ViewModel() {
                     val new = DownloadProgressState(
                         DownloadState.Nothing,
                         0,
-                        load.data.size,
+                        (load as? StreamResponse)?.data?.size ?: 1,
                         System.currentTimeMillis(),
                         null
                     )
@@ -353,7 +354,7 @@ class ResultViewModel : ViewModel() {
             repo = Apis.getApiFromName(card.apiName)
             loadUrl = card.source
 
-            val data = LoadResponse(
+            val data = StreamResponse(
                 card.source,
                 card.name,
                 listOf(),
@@ -405,7 +406,7 @@ class ResultViewModel : ViewModel() {
             repo = Apis.getApiFromName(card.apiName)
             loadUrl = card.source
 
-            val data = LoadResponse(
+            val data = StreamResponse(
                 card.source,
                 card.name,
                 listOf(),

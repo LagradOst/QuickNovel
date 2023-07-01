@@ -26,6 +26,7 @@ import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainActivity.Companion.backPressed
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.databinding.FragmentResultBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.debugException
@@ -160,14 +161,15 @@ class ResultFragment : Fragment() {
                     resultAuthor.text = res.author ?: getString(R.string.no_author)
 
                     resultRatingVotedCount.text = getString(R.string.no_data)
-                    if (res.rating != null) {
-                        resultRating.text = context?.getRating(res.rating)
+                    res.rating?.let { rating ->
+                        resultRating.text = context?.getRating(rating)
                         if (res.peopleVoted != null) {
                             resultRatingVotedCount.text = "${res.peopleVoted} Votes"
                         }
                     }
                     resultViews.text =
-                        if (res.views != null) humanReadableByteCountSI(res.views) else getString(R.string.no_data)
+                        res.views?.let { views -> humanReadableByteCountSI(views) }
+                            ?: getString(R.string.no_data)
 
                     resultBack.setColorFilter(Color.WHITE)
                     resultTabs.removeAllTabs()
@@ -186,7 +188,7 @@ class ResultFragment : Fragment() {
                     }
 
                     resultTag.removeAllViews()
-                    if (res.tags == null && (res.status == null || res.status <= 0)) {
+                    if (res.tags == null && ((res.status ?: 0) <= 0)) {
                         resultTagHolder.isVisible = false
                     } else {
                         resultTagHolder.isGone = res.tags.isNullOrEmpty()
@@ -194,7 +196,6 @@ class ResultFragment : Fragment() {
 
                             val map =
                                 api.tags.mapIndexed { i, (value, _) -> value to i }.associate { it }
-
 
                             res.tags?.forEach { tag ->
                                 val chip = Chip(context)
@@ -237,28 +238,32 @@ class ResultFragment : Fragment() {
                             }
                         }
                     }
-                    if (res.synopsis != null) {
-                        var syno = res.synopsis
-                        if (syno.length > MAX_SYNO_LENGH) {
-                            syno = syno.substring(0, MAX_SYNO_LENGH) + "..."
+                    res.synopsis?.let { synopsis ->
+                        val syno = if (synopsis.length > MAX_SYNO_LENGH) {
+                            synopsis.substring(0, MAX_SYNO_LENGH) + "..."
+                        } else {
+                            synopsis
                         }
+
                         resultSynopsisText.setOnClickListener {
                             val builder: AlertDialog.Builder = AlertDialog.Builder(requireContext())
                             builder.setMessage(res.synopsis.html()).setTitle("Synopsis")
                                 .show()
                         }
                         resultSynopsisText.text = syno.html()
-                    } else {
+                    } ?: run {
                         resultSynopsisText.text = "..."
                     }
 
-                    if (res.data.isNotEmpty()) {
-                        val last = res.data.last()
+                    if (res is StreamResponse) {
+                        if (res.data.isNotEmpty()) {
+                            val last = res.data.last()
 
-                        resultTotalChapters.text =
-                            "Latest: " + last.name //+ " " + last.dateOfRelease
-                    } else {
-                        resultTotalChapters.text = getString(R.string.no_chapters)
+                            resultTotalChapters.text =
+                                "Latest: " + last.name //+ " " + last.dateOfRelease
+                        } else {
+                            resultTotalChapters.text = getString(R.string.no_chapters)
+                        }
                     }
 
                     resultLoading.isVisible = false
@@ -340,7 +345,7 @@ class ResultFragment : Fragment() {
             resultReviews.layoutManager = GridLayoutManager(context, 1)
 
             observe(viewModel.reviews) { reviews ->
-                when(reviews) {
+                when (reviews) {
                     is Resource.Success -> {
                         resultviewReviewsLoading.isVisible = false
                         resultviewReviewsLoadingShimmer.startShimmer()
@@ -348,11 +353,13 @@ class ResultFragment : Fragment() {
                         // fuck jvm, we have to do a copy because otherwise it wont fucking register
                         reviewAdapter.submitList(reviews.value.map { it.copy() })
                     }
+
                     is Resource.Loading -> {
                         resultviewReviewsLoadingShimmer.stopShimmer()
                         resultviewReviewsLoading.isVisible = true
                         resultReviews.isVisible = false
                     }
+
                     is Resource.Failure -> {
                         debugException { "This should never happened" }
                     }

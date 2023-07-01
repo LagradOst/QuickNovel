@@ -32,6 +32,7 @@ class Apis {
             EngNovelProvider(),
             NovelsOnlineProvider(),
 
+            AnnasArchive(),
 
             // chapter captcha
 //            WuxiaWorldSiteProvider(),

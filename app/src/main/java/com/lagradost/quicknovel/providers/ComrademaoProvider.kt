@@ -84,7 +84,7 @@ class ComrademaoProvider : MainAPI() {
             ChapterData(name, chapUrl, date, null)
         }.reversed()
 
-        return LoadResponse(
+        return StreamResponse(
             url,
             title,
             chapters,

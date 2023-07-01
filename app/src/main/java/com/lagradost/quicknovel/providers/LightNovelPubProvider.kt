@@ -146,7 +146,7 @@ class LightNovelPubProvider : MainAPI() {
         val data = chaps.sortedBy { it.orderno }
             .map { ChapterData(it.name, it.url, it.dateOfRelease, null) }
 
-        return LoadResponse(
+        return StreamResponse(
             url,
             title,
             data,

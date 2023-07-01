@@ -154,7 +154,7 @@ open class MNovelFreeProvider : MainAPI() {
         val peopleVoted =
             document.getElementsByAttributeValue("itemprop", "ratingCount")?.text()?.toInt()
 
-        return LoadResponse(
+        return StreamResponse(
             url,
             name!!,
             data,

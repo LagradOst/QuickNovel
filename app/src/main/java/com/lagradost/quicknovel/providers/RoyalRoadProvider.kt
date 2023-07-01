@@ -357,7 +357,7 @@ class RoyalRoadProvider : MainAPI() {
             }
         }
 
-        return LoadResponse(
+        return StreamResponse(
             url,
             name,
             data,

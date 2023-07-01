@@ -6,6 +6,7 @@ import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.add
 import com.lagradost.quicknovel.addPath
 import com.lagradost.quicknovel.clean
@@ -156,7 +157,7 @@ abstract class MadaraReader : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse {
         val doc = jConnect(url)
-        return LoadResponse(
+        return StreamResponse(
             url = url,
             name = doc?.selectFirst("div.post-title > h1")
                 ?.text()?.clean() ?: "",

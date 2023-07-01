@@ -292,7 +292,7 @@ class RanobesProvider : MainAPI() {
         } catch (e: Exception) {
             // NO RATING
         }
-        return LoadResponse(
+        return StreamResponse(
             url,
             name,
             data,

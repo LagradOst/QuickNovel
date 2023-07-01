@@ -473,8 +473,12 @@ class MainActivity : AppCompatActivity() {
 
                         resultviewPreviewMetaStatus.text = statusTxt
                         resultviewPreviewMetaStatus.isVisible = statusTxt.isNotBlank()
-                        resultviewPreviewMetaChapters.text = "${d.data.size} Chapters"
-                        resultviewPreviewMetaChapters.isVisible = d.data.isNotEmpty()
+                        if (d is StreamResponse) {
+                            resultviewPreviewMetaChapters.text = "${d.data.size} Chapters"
+                            resultviewPreviewMetaChapters.isVisible = d.data.isNotEmpty()
+                        } else {
+                            resultviewPreviewMetaChapters.isVisible = false
+                        }
                     }
                 }
             }

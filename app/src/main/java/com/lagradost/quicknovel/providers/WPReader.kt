@@ -6,6 +6,7 @@ import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.add
 import com.lagradost.quicknovel.addPath
 import com.lagradost.quicknovel.clean
@@ -125,7 +126,7 @@ abstract class WPReader : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse {
         val doc = jConnect(url)
-        return LoadResponse(
+        return StreamResponse(
             url = url,
             name = doc?.selectFirst(".series-titlex > h2")?.text()?.clean() ?: "",
             data = doc?.select("div.flexch-infoz > a")

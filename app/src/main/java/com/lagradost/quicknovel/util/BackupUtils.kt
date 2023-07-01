@@ -170,6 +170,7 @@ object BackupUtils {
 
                                 val restoredValue =
                                     mapper.readValue<BackupFile>(input)
+
                                 thread {
                                     activity.restore(
                                         restoredValue,
@@ -180,6 +181,7 @@ object BackupUtils {
                                         activity.recreate()
                                     }
                                 }
+                                input.close()
                             } catch (e: Exception) {
                                 logError(e)
                                 try { // smth can fail in .format
