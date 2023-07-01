@@ -927,7 +927,6 @@ object NotificationHelper {
             }
 
             with(NotificationManagerCompat.from(context)) {
-                println("updated $state")
                 // notificationId is a unique int for each notification that you must define
                 notify(id, builder.build())
             }

@@ -1,7 +1,6 @@
 package com.lagradost.quicknovel
 
 import android.app.Activity
-import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
@@ -10,14 +9,19 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
-import androidx.fragment.app.viewModels
 import androidx.navigation.NavOptions
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.preference.PreferenceManager
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.json.JsonMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.lagradost.nicehttp.Requests
+import com.lagradost.nicehttp.ResponseParser
 import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
 import com.lagradost.quicknovel.BookDownloader2.openQuickStream
@@ -30,7 +34,6 @@ import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
 import com.lagradost.quicknovel.NotificationHelper.requestNotifications
 import com.lagradost.quicknovel.databinding.BottomPreviewBinding
-import com.lagradost.quicknovel.databinding.FragmentResultBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.observe
@@ -63,9 +66,13 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
+import kotlin.reflect.KClass
 
 class MainActivity : AppCompatActivity() {
     companion object {
+        private val mapper = JsonMapper.builder().addModule(KotlinModule())
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build()!!
+
         private var _mainActivity: WeakReference<MainActivity>? = null
         private var mainActivity
             get() = _mainActivity?.get()
@@ -89,7 +96,29 @@ class MainActivity : AppCompatActivity() {
             OkHttpClient()
                 .newBuilder()
                 .ignoreAllSSLErrors()
-                .build()
+                .build(),
+            responseParser = object : ResponseParser {
+                val mapper: ObjectMapper = jacksonObjectMapper().configure(
+                    DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+                    false
+                )
+
+                override fun <T : Any> parse(text: String, kClass: KClass<T>): T {
+                    return mapper.readValue(text, kClass.java)
+                }
+
+                override fun <T : Any> parseSafe(text: String, kClass: KClass<T>): T? {
+                    return try {
+                        mapper.readValue(text, kClass.java)
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+
+                override fun writeValueAsString(obj: Any): String {
+                    return mapper.writeValueAsString(obj)
+                }
+            }
         ).apply {
             defaultHeaders = mapOf("user-agent" to USER_AGENT)
         }
