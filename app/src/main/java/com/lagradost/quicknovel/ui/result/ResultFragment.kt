@@ -179,6 +179,8 @@ class ResultFragment : Fragment() {
                         resultTabs.addTab(resultTabs.newTab().setText("Reviews"))
                     }
 
+                    viewsAndRating.isVisible = res.views != null || res.peopleVoted != null
+
                     resultStatus.text = when (res.status) {
                         1 -> "Ongoing"
                         2 -> "Completed"
@@ -257,6 +259,7 @@ class ResultFragment : Fragment() {
 
                     if (res is StreamResponse) {
                         resultQuickstream.isVisible = true
+                        resultTotalChapters.isVisible = true
                         if (res.data.isNotEmpty()) {
                             val last = res.data.last()
 
@@ -267,6 +270,7 @@ class ResultFragment : Fragment() {
                         }
                     }
                     else {
+                        resultTotalChapters.isVisible = false
                         resultQuickstream.isVisible = false
                     }
 

@@ -336,6 +336,7 @@
                             android:paddingBottom="0dp">
 
                         <androidx.cardview.widget.CardView
+                                android:id="@+id/views_and_rating"
                                 app:cardCornerRadius="15dp"
                                 android:layout_width="match_parent"
                                 android:layout_height="60dp"
