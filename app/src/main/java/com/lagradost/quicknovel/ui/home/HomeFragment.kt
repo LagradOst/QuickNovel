@@ -5,42 +5,37 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.lagradost.quicknovel.util.Apis.Companion.apis
-import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.util.Apis.Companion.getApiProviderLangSettings
+import com.lagradost.quicknovel.databinding.FragmentHomeBinding
+import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
-import kotlinx.android.synthetic.main.fragment_home.*
 
 class HomeFragment : Fragment() {
+    lateinit var binding: FragmentHomeBinding
+    private val viewModel: HomeViewModel by viewModels()
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?,
-    ): View? {
-
-        return inflater.inflate(R.layout.fragment_home, container, false)
+    ): View {
+        binding = FragmentHomeBinding.inflate(inflater)
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        val homeApis = ArrayList<MainAPI>()
-        val langs = context?.getApiProviderLangSettings()
-        for (api in apis) {
-            if (api.hasMainPage && (langs == null || langs.contains(api.lang))) {
-                homeApis.add(api)
-            }
+        val browseAdapter = BrowseAdapter2()
+        binding.homeBrowselist.apply {
+            adapter = browseAdapter
+            layoutManager = GridLayoutManager(context, 1)
+            setHasFixedSize(true)
         }
-        val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = context?.let {
-            BrowseAdapter(
-                it,
-                homeApis,
-                home_browselist,
-            )
+
+        observe(viewModel.homeApis) { list ->
+            browseAdapter.submitList(list)
         }
-        home_browselist.adapter = adapter
-        home_browselist.layoutManager = GridLayoutManager(context, 1)
-        activity?.fixPaddingStatusbar(homeRoot)
+
+        activity?.fixPaddingStatusbar(binding.homeToolbar)
     }
 }

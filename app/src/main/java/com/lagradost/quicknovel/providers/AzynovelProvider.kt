@@ -164,15 +164,11 @@ class AzynovelProvider : MainAPI() {
 
         val document = Jsoup.parse(response.text)
         val name = document.selectFirst("div.media-content > div > h1")?.text() ?: return null
-
         val author = document.selectFirst("div.media-content > div > p:nth-child(2) > a")?.text()
-
         val posterUrl = document.select("div.media-left > figure > img").attr("data-src")
-
         val tags = document.select("div.media-content > div > p:nth-child(4) > a").map {
             it.text()
         }.plus(document.select("div.media-content > div > p:nth-child(3) > a").map { it.text() })
-
         val synopsis = document.selectFirst("div.column.is-9 > div.content")?.text()
 
         val data: ArrayList<ChapterData> = ArrayList()
@@ -200,7 +196,7 @@ class AzynovelProvider : MainAPI() {
             // NO RATING
         }
 
-        return LoadResponse(
+        return StreamResponse(
             url,
             name,
             data,

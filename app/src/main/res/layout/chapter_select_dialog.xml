@@ -1,5 +1,4 @@
-<TextView
-        xmlns:android="http://schemas.android.com/apk/res/android"
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
         style="@style/AppTextViewStyle"
         android:id="@android:id/text1"
         android:layout_width="match_parent"
@@ -11,5 +10,4 @@
         android:paddingStart="12dip"
         android:paddingEnd="7dip"
         android:checkMark="?android:attr/listChoiceIndicatorSingle"
-        android:ellipsize="marquee"
-/>
+        android:ellipsize="marquee" />

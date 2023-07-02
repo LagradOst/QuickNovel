@@ -174,7 +174,7 @@ class EngNovelProvider : MainAPI() {
             document.getElementsByAttributeValue("itemprop", "ratingCount").text().toInt()
 
 
-        return LoadResponse(
+        return StreamResponse(
             url,
             name,
             data,

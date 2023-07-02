@@ -2,12 +2,14 @@ package com.lagradost.quicknovel.util
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.Dialog
 import android.content.Context
 import android.content.res.Resources
 import android.graphics.Color
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Build
+import android.text.Spanned
 import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
@@ -26,6 +28,8 @@ import androidx.core.graphics.alpha
 import androidx.core.graphics.blue
 import androidx.core.graphics.green
 import androidx.core.graphics.red
+import androidx.core.text.HtmlCompat
+import androidx.core.text.toSpanned
 import androidx.core.view.forEach
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
@@ -49,6 +53,22 @@ val Int.toDp: Int get() = (this / Resources.getSystem().displayMetrics.density).
 val Float.toDp: Float get() = (this / Resources.getSystem().displayMetrics.density)
 
 object UIHelper {
+    fun String?.html(): Spanned {
+        return getHtmlText(this ?: return "".toSpanned())
+    }
+
+    private fun getHtmlText(text: String): Spanned {
+        return try {
+            // I have no idea if this can throw any error, but I dont want to try
+            HtmlCompat.fromHtml(
+                text, HtmlCompat.FROM_HTML_MODE_LEGACY
+            )
+        } catch (e: Exception) {
+            logError(e)
+            text.toSpanned()
+        }
+    }
+
     fun humanReadableByteCountSI(bytes: Int): String {
         if (-1000 < bytes && bytes < 1000) {
             return "$bytes"
@@ -61,7 +81,11 @@ object UIHelper {
         }
         return String.format("%.1f%c", currentBytes / 1000.0, ci.current()).replace(',', '.')
     }
-
+    fun Dialog?.dismissSafe(activity: Activity?) {
+        if (this?.isShowing == true && activity?.isFinishing == false) {
+            this.dismiss()
+        }
+    }
     fun FragmentActivity.popCurrentPage() {
         val currentFragment = supportFragmentManager.fragments.lastOrNull {
             it.isVisible

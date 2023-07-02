@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.util
 
+import android.app.Activity
 import android.app.Dialog
 import android.content.Context
 import android.widget.*
@@ -109,6 +110,33 @@ object SingleSelectionHelper {
         )
     }
 
+
+    fun Context.showDialog(
+        items: List<String>,
+        selectedIndex: Int,
+        name: String,
+        showApply: Boolean,
+        dismissCallback: () -> Unit,
+        callback: (Int) -> Unit,
+    ) {
+        val builder =
+            AlertDialog.Builder(this, R.style.AlertDialogCustom).setView(R.layout.bottom_selection_dialog)
+
+        val dialog = builder.create()
+        dialog.show()
+        showDialog(
+            dialog,
+            items,
+            listOf(selectedIndex),
+            name,
+            showApply,
+            false,
+            { if (it.isNotEmpty()) callback.invoke(it.first()) },
+            dismissCallback
+        )
+    }
+
+    /** Only for a low amount of items */
     fun Context.showBottomDialog(
         items: List<String>,
         selectedIndex: Int,

@@ -1,6 +1,22 @@
-package com.lagradost.quicknovel
+package com.lagradost.quicknovel.providers
 
-import java.util.*
+import com.lagradost.quicknovel.ChapterData
+import com.lagradost.quicknovel.HeadMainPageResponse
+import com.lagradost.quicknovel.LoadResponse
+import com.lagradost.quicknovel.MainAPI
+import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.StreamResponse
+import com.lagradost.quicknovel.add
+import com.lagradost.quicknovel.addPath
+import com.lagradost.quicknovel.clean
+import com.lagradost.quicknovel.ifCase
+import com.lagradost.quicknovel.jConnect
+import com.lagradost.quicknovel.synopsis
+import com.lagradost.quicknovel.toRate
+import com.lagradost.quicknovel.toStatus
+import com.lagradost.quicknovel.toUrlBuilderSafe
+import com.lagradost.quicknovel.toVote
 
 abstract class MadaraReader : MainAPI() {
     override val name = ""
@@ -141,7 +157,7 @@ abstract class MadaraReader : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse {
         val doc = jConnect(url)
-        return LoadResponse(
+        return StreamResponse(
             url = url,
             name = doc?.selectFirst("div.post-title > h1")
                 ?.text()?.clean() ?: "",

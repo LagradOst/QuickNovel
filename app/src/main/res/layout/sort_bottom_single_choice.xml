@@ -1,5 +1,5 @@
-<CheckedTextView
-        xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"
+<!--<CheckedTextView xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
         android:id="@android:id/text1"
         android:layout_width="match_parent"
         android:layout_height="?android:attr/listPreferredItemHeightSmall"
@@ -10,5 +10,10 @@
 
         android:checkMark="?android:attr/listChoiceIndicatorSingle"
         android:paddingStart="?android:attr/listPreferredItemPaddingStart"
-        android:paddingEnd="?android:attr/listPreferredItemPaddingEnd"/>
-        <!--android:background="?attr/bitDarkerGrayBackground"-->
+        android:paddingEnd="?android:attr/listPreferredItemPaddingEnd" /> android:background="?attr/bitDarkerGrayBackground"-->
+
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@android:id/text1"
+        style="@style/CheckLabel"
+        tools:text="hello" />

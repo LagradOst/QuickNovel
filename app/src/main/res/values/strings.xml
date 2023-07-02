@@ -19,6 +19,7 @@
     <string name="no_author">Author not found</string>
     <string name="no_chapters">No Chapters</string>
     <string name="generate_epub">Generate Epub</string>
+    <string name="generating_epub">Generating Epub</string>
     <string name="reload_error">Retry connection…</string>
     <string name="download_text">Download</string>
     <string name="download">Download</string>
@@ -107,7 +108,7 @@
     <string name="background_color">Background Color</string>
     <string name="text_color">Text Color</string>
     <string name="long_download_time">Warning, This source has extremely long download time, streaming is recommended</string>
-    <string name="quickstream_novel_text">Stream Read Novel</string>
+    <string name="quickstream_novel_text">Stream read novel</string>
     <string name="history_more_options">More Options</string>
     <string name="stream_read">Stream Read</string>
     <string name="clear_history">Clear History</string>
@@ -119,7 +120,9 @@
     <string name="text_padding">Text Side Margin</string>
     <string name="reset_value">Reset to default</string>
     <string name="text_font">Text Font</string>
-    <string name="no_chapters_found">No Chapters Found</string>
+    <string name="no_chapters_found">No chapters found</string>
+    <string name="error_loading_novel">Error loading novel</string>
+
     <string name="text_padding_top">Text Top Margin</string>
 
     <string name="home_more_info">More info</string>
@@ -141,4 +144,11 @@
     <string name="backup_failed_error_format">Error backing up %s</string>
     <string name="tts_locale">Language</string>
     <string name="tts_voice">Voice</string>
+    <string name="tts_voice_title">TTS Voice</string>
+    <string name="theme_key">theme_key</string>
+    <string name="theme">Theme</string>
+    <string name="primary_color_key">primary_color_key</string>
+    <string name="primary_color_settings">Main Color</string>
+    <string name="library_display_mode">Library Display Mode</string>
+    <string name="rating_format">Rating Format</string>
 </resources>

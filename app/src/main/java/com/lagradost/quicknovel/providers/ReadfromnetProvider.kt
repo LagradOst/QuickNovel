@@ -1485,7 +1485,7 @@ class ReadfromnetProvider : MainAPI() {
             }
         }
 
-        return LoadResponse(
+        return StreamResponse(
             url,
             name,
             data.distinctBy { it.url },

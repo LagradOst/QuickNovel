@@ -98,7 +98,7 @@ class ReadNovelFullProvider : MainAPI() {
                         null
                     )
                 }
-        return LoadResponse(
+        return StreamResponse(
             url,
             title ?: throw ErrorLoadingException("No name"),
             items,

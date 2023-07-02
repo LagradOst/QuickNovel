@@ -19,16 +19,34 @@ class RoyalRoadProvider : MainAPI() {
     override val iconBackgroundId = R.color.royalRoadColor
 
     override val orderBys = listOf(
-        Pair("Best Rated", "best-rated"),
-        Pair("Ongoing", "active-popular"),
-        Pair("Completed", "complete"),
-        Pair("Popular this week", "weekly-popular"),
-        Pair("Latest Updates", "latest-updates"),
-        Pair("New Releases", "new-releases"),
-        Pair("Trending", "trending"),
+        "Best Rated" to "best-rated",
+        "Ongoing" to "active-popular",
+        "Completed" to "complete",
+        "Popular this week" to "weekly-popular",
+        "Latest Updates" to "latest-updates",
+        "New Releases" to "new-releases",
+        "Trending" to "trending",
     )
+
     override val tags = listOf(
-        Pair("All", ""),
+        "All" to "",
+        "Wuxia" to "wuxia",
+        "Xianxia" to "xianxia",
+        "War and Military" to "war_and_military",
+        "Low Fantasy" to "low_fantasy",
+        "High Fantasy" to "high_fantasy",
+        "Mythos" to "mythos",
+        "Martial Arts" to "martial_arts",
+        "Secret Identity" to "secret_identity",
+        "Cyberpunk" to "cyberpunk",
+        "Virtual Reality" to "virtual_reality",
+        "Time Loop" to "loop",
+        "Space Opera" to "space_opera",
+        "First Contact" to "first_contact",
+        "Grimdark" to "grimdark",
+        "Strong Lead" to "strong_lead",
+        "Time Travel" to "time_travel",
+        "Ruling Class" to "ruling_class",
         Pair("Action", "action"),
         Pair("Adventure", "adventure"),
         Pair("Comedy", "comedy"),
@@ -42,6 +60,8 @@ class RoyalRoadProvider : MainAPI() {
         Pair("Romance", "romance"),
         Pair("Satire", "satire"),
         Pair("Sci-fi", "sci_fi"),
+        "Hard Sci-fi" to "hard_sci-fi",
+        "Soft Sci-fi" to "soft_sci-fi",
         Pair("LitRPG", "litrpg"),
         Pair("Magic", "magic"),
         Pair("GameLit", "gamelit"),
@@ -53,11 +73,11 @@ class RoyalRoadProvider : MainAPI() {
         Pair("Harem", "harem"),
         Pair("Gender Bender", "gender_bender"),
         Pair("Anti-Hero Lead", "anti-hero_lead"),
-        Pair("Progression", "Progression"),
+        Pair("Progression", "progression"),
         Pair("Strategy", "strategy"),
         Pair("Short Story", "one_shot"),
         Pair("Tragedy", "tragedy")
-    )
+    ).sortedBy { it.first }
 
     override val hasReviews = true
 
@@ -337,7 +357,7 @@ class RoyalRoadProvider : MainAPI() {
             }
         }
 
-        return LoadResponse(
+        return StreamResponse(
             url,
             name,
             data,

@@ -145,7 +145,7 @@ class NovelsOnlineProvider : MainAPI() {
             document.selectFirst("div.novel-right > div > div:nth-child(6) > div.novel-detail-body")
                 ?.text()?.toFloatOrNull()?.times(100)?.roundToInt()
 
-        return LoadResponse(
+        return StreamResponse(
             url,
             name,
             data,
