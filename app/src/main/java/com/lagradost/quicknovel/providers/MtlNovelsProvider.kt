@@ -68,7 +68,7 @@ class MtlNovelProvider : MainAPI() {
         val url =
             if (tag.isNullOrBlank()) "$mainUrl/alltime-rank/page/$page" else "$mainUrl/genre/$tag/page/$page"
 
-        val response = app.get(url)
+
         val document = app.get(url).document
 
         val headers =  document.select("div.box")
@@ -104,7 +104,6 @@ class MtlNovelProvider : MainAPI() {
 
 
     override suspend fun load(url: String): LoadResponse? {
-        val response = app.get(url)
         val document = app.get(url).document
 
         val name = document.selectFirst("h1.entry-title")?.text() ?: return null
