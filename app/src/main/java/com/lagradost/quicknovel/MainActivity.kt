@@ -75,7 +75,7 @@ class MainActivity : AppCompatActivity() {
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build()!!
 
         private var _mainActivity: WeakReference<MainActivity>? = null
-        private var mainActivity
+        var mainActivity
             get() = _mainActivity?.get()
             private set(value) {
                 _mainActivity = WeakReference(value)

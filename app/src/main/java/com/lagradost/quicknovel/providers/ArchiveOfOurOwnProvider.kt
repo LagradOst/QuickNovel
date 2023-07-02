@@ -1,19 +1,24 @@
 package com.lagradost.quicknovel.providers
 
 import androidx.preference.PreferenceManager
+import com.franmontiel.persistentcookiejar.PersistentCookieJar
+import com.franmontiel.persistentcookiejar.cache.SetCookieCache
+import com.franmontiel.persistentcookiejar.persistence.SharedPrefsCookiePersistor
+import com.lagradost.nicehttp.Requests
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.mvvm.debugAssert
 import com.lagradost.quicknovel.mvvm.debugException
 import com.lagradost.quicknovel.mvvm.debugWarning
+import nl.siegmann.epublib.epub.Main
 import okhttp3.FormBody
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import kotlin.collections.ArrayList
 
 class ArchiveOfOurOwnProvider : MainAPI() {
-
-
+    private val cookieJar  = PersistentCookieJar(SetCookieCache(), SharedPrefsCookiePersistor(MainActivity.mainActivity!!.applicationContext))
+    private val app = Requests(MainActivity.app.baseClient.newBuilder().cookieJar(cookieJar).build())
     override val name = "Archive of Our Own"
     override val mainUrl = "https://archiveofourown.org"
 
@@ -89,7 +94,7 @@ class ArchiveOfOurOwnProvider : MainAPI() {
             val name = workLink.text()
             val url = workLink.attr("href")
 
-            val authorLink = h?.selectFirst("div.header.module > h4.heading > a[rel=\"author\"]")
+            val authorLink = h.selectFirst("div.header.module > h4.heading > a[rel=\"author\"]")
             if (authorLink == null){
                 debugWarning { "Ao3 work has no actual author?" }
                 continue
@@ -121,7 +126,7 @@ class ArchiveOfOurOwnProvider : MainAPI() {
         val synopsis = document.selectFirst("div.summary.module > blockquote.userstuff")
             ?.children()?.joinToString("\n", transform = Element::text)
 
-        val tags = document.select("a.tag")?.map(org.jsoup.nodes.Element::text)
+        val tags = document.select("a.tag").map(org.jsoup.nodes.Element::text)
 
         val chaptersResponse = app.get("$url/navigate?view_adult=true")
         val chapterDocument = Jsoup.parse(chaptersResponse.text)
@@ -139,12 +144,12 @@ class ArchiveOfOurOwnProvider : MainAPI() {
         }
 
 
-        return LoadResponse(
+        return StreamResponse(
             url,
             name,
             data ?: ArrayList(),
             author = author?.text(),
-            peopleVoted,
+            peopleVoted.toString(),
             views,
             synopsis = synopsis,
             tags = tags
@@ -161,26 +166,26 @@ class ArchiveOfOurOwnProvider : MainAPI() {
     private var hasLoggedIn = false
     private suspend fun tryLogIn() {
 
-        if (hasLoggedIn) return;
+        if (hasLoggedIn) return
 
         //Don't try to log in if we don't have email and password
-        val preferenceManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
+        val preferenceManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.mainActivity!!.applicationContext)
 
-        val ao3Email = preferenceManager.getString(MainActivity.activity.getString(R.string.ao3_email_key),"")!!
-        val ao3Password = preferenceManager.getString(MainActivity.activity.getString(R.string.ao3_password_key),"")!!
+        val ao3Email = preferenceManager.getString(MainActivity.mainActivity?.getString(R.string.ao3_email_key),"")!!
+        val ao3Password = preferenceManager.getString(MainActivity.mainActivity?.getString(R.string.ao3_password_key),"")!!
 
         if (ao3Email == "" || ao3Password == ""){
-            return;
+            return
         }
 
         val response = app.get("$mainUrl/works/new", allowRedirects = false)
         if(response.code == 200){
-            hasLoggedIn = true;
-            return;
+            hasLoggedIn = true
+            return
         }
         if(response.code != 302) {
             debugException { "AO3 isn't redirecting us to login page for some reason. If issue persists please report to extension creator." }
-            return;
+            return
         }
 
         val loginPageResponse = app.get("$mainUrl/users/login")
@@ -210,7 +215,7 @@ class ArchiveOfOurOwnProvider : MainAPI() {
 
         if(loginResponse.okhttpResponse.priorResponse == null){
             if(loginResponse.text.contains("The password or user name you entered doesn't match our records.")){
-                if (!preferenceManager.edit().putString(MainActivity.activity.getString(R.string.ao3_password_key), "").commit()){
+                if (!preferenceManager.edit().putString(MainActivity.mainActivity?.getString(R.string.ao3_password_key), "").commit()){
                     debugException { "Something went wrong clearing your password!" }
                 }
                 debugWarning { "Username or Password incorrect! Password's been cleared" }
@@ -220,7 +225,7 @@ class ArchiveOfOurOwnProvider : MainAPI() {
 
         }else{
             debugAssert( {response.url.startsWith("$mainUrl/users") && response.url != "$mainUrl/users/login"},
-                {"Expected to be sent to $mainUrl/users/yourusername was instead sent to ${response.url}"});
+                {"Expected to be sent to $mainUrl/users/yourusername was instead sent to ${response.url}"})
         }
 
     }
