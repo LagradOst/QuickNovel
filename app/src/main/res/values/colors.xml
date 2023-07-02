@@ -1,26 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#3d50fa</color>
-    <color name="colorRipple">#1A3D50FA</color>
-    <color name="colorSearch">?attr/boxItemBackground</color>
-    <color name="colorItemSeen">#1E1E32</color>
-    <color name="colorOngoing">#F53B66</color> <!--FF8181-->
-    <color name="colorPrimaryDark">#3700B3</color>
-    <color name="colorAccent">#3b65f5</color> <!-- 818fff-->
-
-    <color name="darkBackground">#0E0E10</color> <!--0f0f10-->
-    <color name="bitDarkerGrayBackground">#19181E</color> <!--191a1f-->
-    <color name="grayBackground">#141419</color>
-    <color name="itemBackground">#131217</color> <!--1B1B20-->
-
-    <color name="textColor">#FFF</color>
-    <color name="grayTextColor">#9ba0a6</color>  5e5f62
-    <color name="whiteTextColor">#9f9fa0</color>
-    <color name="searchColor">@color/textColor</color> <!--DADADA-->
-    <!--<color name="searchColorTransparent">#1AFFFFFF</color>--> <!--DADADA-->
-    <color name="transparent">#00000000</color>
-
-    <color name="white">#FFF</color>
     <color name="readerBackground">#292832</color> <!--3c3c3c-->
     <color name="readerTextColor">#cccccc</color>
     <color name="readerHightlightedTextColor">#6600ABFF</color>
@@ -29,8 +8,8 @@
 
     <color name="novelPassionColor">#FFF</color>
     <color name="wuxiaWorldOnlineColor">#24242B</color>
-    <color name="royalRoadColor">@color/darkBackground</color>
     <color name="fanFictionDotNetColor">#4150B5</color>
+    <color name="royalRoadColor">@color/primaryGrayBackground</color>
     <color name="wuxiaWorldSiteColor">#1670bf</color>
     <color name="readLightNovelColor">#FFF</color>
     <color name="boxNovelColor">#eb3349</color>
@@ -40,41 +19,89 @@
     <color name="whiteRipple">#33FFFFFF</color>
     <color name="blackRipple">#33000000</color>
 
-    <!--Alt Dark Mode -->
-    <color name="darkDarkBackground">#2B2C30</color> <!--0f0f10 0E0E10 303135 2B2C30-->
-    <color name="darkBitDarkerGrayBackground">#1C1C20</color> <!--191a1f 19181E 202125 1C1C20-->
-    <color name="darkGrayBackground">#1C1C20</color> <!--141419 202125-->
-    <color name="darkItemBackground">#242529</color> <!--1B1B20--> <!-- 38373c--> <!--131217--> <!--232225-->
+    <color name="colorPrimary">#3d50fa</color>
+    <color name="colorPrimarySecond">@color/colorPrimary</color>
+    <color name="colorSearch">#303135</color> <!--#3444D1 @color/itemBackground-->
+    <color name="colorOngoing">#F53B66</color> <!--FF8181-->
+    <color name="colorPrimaryDark">#3700B3</color>
+    <color name="colorAccent">#3b65f5</color> <!-- 818fff-->
+
+    <color name="primaryGrayBackground">#2B2C30</color> <!--0f0f10 0E0E10 303135 2B2C30-->
+    <color name="primaryBlackBackground">#111111</color> <!--1C1C20 191a1f 19181E 202125 1C1C20-->
+    <color name="iconGrayBackground">#1C1C20</color> <!--141419 202125-->
+    <color name="boxItemBackground">#161616</color> <!-- 17171B 1B1B20-->
+
+    <color name="textColor">#e9eaee</color> <!--FFF-->
+    <color name="semiWhite">#1AFFFFFF</color> <!--FFF-->
+    <color name="grayTextColor">#9ba0a4</color> <!-- 5e5f62-->
+    <color name="grayShimmer">#DCDCDC</color> <!-- 5e5f62-->
+
+    <color name="searchColorTransparent">#1AFFFFFF</color> <!--DADADA-->
+    <color name="transparent">#00000000</color>
+
+    <color name="white">#FFF</color>
+    <color name="black">#000</color>
+
+    <color name="whiteText">#FFF</color>
+    <color name="blackText">#000</color>
+
+    <color name="progressBackgroundColor">#1AFFFFFF</color>
+
+    <color name="dubColorText">#121950</color> <!--3b65f5 f18c82 8294F1-->
+    <color name="amoledModeLight">#121213</color>
+
+    <color name="dubColorBg">#3B65F5</color>
+    <color name="subColorText">#571711</color> <!--F53B66 FA3D79-->
+    <color name="subColorBg">#F53B66</color>
+    <color name="typeColorText">#BEC8FF</color>
+    <color name="typeColorBg">?attr/colorPrimaryDark</color>
+    <color name="ratingColor">#4C3115</color>
+    <color name="ratingColorBg">#FFA662</color>
+
+    <color name="adultColor">#FF6F63</color> <!-- same as sub color -->
+
+    <color name="video_ripple">#80FFFFFF</color>
+    <color name="video_button_ripple">#32FFFFFF</color>
+
+    <color name="black_overlay">#66000000</color>
+    <color name="darkBarTransparent">#C0121212</color>
+    <color name="skipOpTransparent">#4D121212</color>
+    <color name="darkBar">#121212</color>
+    <color name="videoProgress">#66B5B5B5</color> <!--66B5B5B5-->
+    <!--<color name="videoCache">#663D50FA</color>--> <!--66B5B5B5-->
+
     <color name="iconColor">#9ba0a6</color>
+
+    <!-- <color name="usedStorageColor">?attr/white</color>#fff-->
+    <!-- <color name="freeStorageColor">?attr/grayTextColor</color> #676767-->
+
     <!--Light Mode -->
-    <color name="lightDarkBackground">#FFF</color>
-    <color name="lightBitDarkerGrayBackground">#F4F4F4</color>
-    <color name="lightGrayBackground">#FFF</color>
-    <color name="lightItemBackground">#EDEDED</color>
+    <color name="lightPrimaryGrayBackground">#f1f1f1</color>
+    <color name="lightBitDarkerGrayBackground">#fff</color>
+    <color name="lightGrayBackground">#eeeeee</color>
+    <color name="lightItemBackground">#eeeeee</color>
     <color name="lightTextColor">#202125</color>
     <color name="lightGrayTextColor">#5f6267</color>
     <color name="lightIconColor">#5f6267</color>
 
     <!--Other Colors -->
+    <color name="colorPrimaryBlue">#5664B7</color>
+    <color name="colorPrimaryRed">#D50000</color>
+    <color name="colorPrimaryPurple">#6200EA</color> <!-- Burple-->
+    <color name="colorPrimaryGreen">#00BFA5</color>
+    <color name="colorPrimaryGreenApple">#48E484</color>
+    <color name="colorPrimaryBanana">#E4D448</color>
+    <color name="colorPrimaryParty">#ea596e</color>
+    <color name="colorPrimaryPink">#ff1493</color>
+
     <color name="colorPrimaryCarnationPink">#BD5DA5</color>
-    <color name="colorPrimaryOrange">#CE8500</color>
     <color name="colorPrimaryDarkGreen">#004500</color>
     <color name="colorPrimaryMaroon">#451010</color>
     <color name="colorPrimaryNavyBlue">#000080</color>
     <color name="colorPrimaryGrey">#515151</color>
     <color name="colorPrimaryWhite">#FFFFFF</color>
     <color name="colorPrimaryBrown">#622C00</color>
-    <color name="colorPrimaryBanana">#E4D448</color>
-    <color name="colorPrimaryBlue">#5664B7</color>
-    <color name="colorPrimaryRed">#FA3D3D</color>
-    <color name="colorPrimaryPurple">#6200EA</color> <!-- Burple-->
-    <color name="colorPrimaryGreen">#00BFA5</color>
-    <color name="colorPrimaryGreenApple">#48E484</color>
 
-    <!--Debugging Colors -->
-    <color name="purple">#FF6200EE</color>
-    <color name="teal">#FF03DAC5</color>
-    <color name="red">#FD0000</color>
-    <color name="blue">#0048FD</color>
-    <color name="orange">#FD6E00</color>
+    <color name="colorTestPass">#48E484</color>
+    <color name="colorTestFail">#ea596e</color>
 </resources>

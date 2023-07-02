@@ -4,10 +4,17 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
+import com.lagradost.quicknovel.CommonActivity.activity
+import com.lagradost.quicknovel.CommonActivity.showToast
+import com.lagradost.quicknovel.HomePageList
+import com.lagradost.quicknovel.MainActivity
+import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.OnGoingSearch
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.databinding.HomeEpisodesExpandedBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
@@ -27,6 +34,15 @@ class SearchViewModel : ViewModel() {
 
     private fun clearSearch() {
         _searchResponse.postValue(Resource.Success(ArrayList()))
+    }
+
+    fun load(card: SearchResponse) {
+        loadResult(card.url, card.apiName)
+    }
+
+    fun showMetadata(card: SearchResponse) {
+        MainActivity.loadPreviewPage(card)
+        //showToast(card.name)
     }
 
     fun search(query: String) = ioSafe {
@@ -75,5 +91,9 @@ class SearchViewModel : ViewModel() {
         }
 
         _searchResponse.postValue(Resource.Success(list))
+    }
+
+    fun loadHomepageList(item: HomePageList) {
+        SearchFragment.loadHomepageList(this, item)
     }
 }

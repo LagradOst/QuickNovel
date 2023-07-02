@@ -1,6 +1,6 @@
 package com.lagradost.quicknovel.ui.search
 
-import android.app.Activity
+import android.app.Dialog
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
@@ -9,76 +9,76 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
-import android.widget.FrameLayout
 import android.widget.ImageView
-import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
+import androidx.core.view.isGone
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
+import androidx.fragment.app.viewModels
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
+import com.lagradost.quicknovel.CommonActivity
+import com.lagradost.quicknovel.CommonActivity.activity
+import com.lagradost.quicknovel.HomePageList
+import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.databinding.FragmentSearchBinding
+import com.lagradost.quicknovel.databinding.HomeEpisodesExpandedBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.normalSafeApiCall
 import com.lagradost.quicknovel.mvvm.observe
-import com.lagradost.quicknovel.ui.search.SearchHelper.handleSearchClickCallback
+import com.lagradost.quicknovel.ui.settings.SettingsFragment
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiProviderLangSettings
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.Event
-import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.util.SettingsHelper.getGridIsCompact
-import com.lagradost.quicknovel.widget.AutofitRecyclerView
-import kotlinx.android.synthetic.main.fragment_search.*
+import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 
 class SearchFragment : Fragment() {
+    lateinit var binding: FragmentSearchBinding
+    private val viewModel: SearchViewModel by viewModels()
+
     companion object {
         val configEvent = Event<Int>()
         var currentSpan = 1
+        var currentDialog : Dialog? = null
 
-        fun Activity.loadHomepageList(item: HomePageList) {
-            val context = this
-            val bottomSheetDialogBuilder = BottomSheetDialog(context)
-            bottomSheetDialogBuilder.setContentView(R.layout.home_episodes_expanded)
-            val title = bottomSheetDialogBuilder.findViewById<TextView>(R.id.home_expanded_text)!!
-            title.text = item.name
-            val recycle =
-                bottomSheetDialogBuilder.findViewById<AutofitRecyclerView>(R.id.home_expanded_recycler)!!
-            val titleHolder =
-                bottomSheetDialogBuilder.findViewById<FrameLayout>(R.id.home_expanded_drag_down)!!
+        fun loadHomepageList(viewModel: SearchViewModel, item: HomePageList) {
+            if(currentDialog != null) return
+            val act = activity ?: return
 
-            titleHolder.setOnClickListener {
-                bottomSheetDialogBuilder.dismiss()
+            val bottomSheetDialog = BottomSheetDialog(act)
+            val binding = HomeEpisodesExpandedBinding.inflate(act.layoutInflater, null, false)
+            bottomSheetDialog.setContentView(binding.root)
+
+            binding.homeExpandedText.text = item.name
+            binding.homeExpandedDragDown.setOnClickListener {
+                bottomSheetDialog.dismiss()
             }
 
-            // Span settings
-            recycle.spanCount = currentSpan
 
-            recycle.adapter = SearchAdapter(item.list, recycle) { callback ->
-                handleSearchClickCallback(this, callback)
-                if (callback.action == SEARCH_ACTION_LOAD) {
-                    bottomSheetDialogBuilder.dismiss()
-                }
+            binding.homeExpandedRecycler.apply {
+                val searchAdapter = SearchAdapter2(viewModel, binding.homeExpandedRecycler)
+                searchAdapter.submitList(item.list)
+                adapter = searchAdapter
+                spanCount = currentSpan
             }
 
             val spanListener = { span: Int ->
-                recycle.spanCount = span
-                (recycle.adapter as SearchAdapter).notifyDataSetChanged()
+                binding.homeExpandedRecycler.spanCount = span
             }
 
             configEvent += spanListener
 
-            bottomSheetDialogBuilder.setOnDismissListener {
+            bottomSheetDialog.setOnDismissListener {
                 configEvent -= spanListener
+                currentDialog = null
             }
-
-            (recycle.adapter as SearchAdapter).notifyDataSetChanged()
-
-            bottomSheetDialogBuilder.show()
+            currentDialog = bottomSheetDialog
+            bottomSheetDialog.show()
         }
     }
 
@@ -86,18 +86,17 @@ class SearchFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?,
-    ): View? {
-        searchViewModel =
-            ViewModelProvider(this).get(SearchViewModel::class.java)
+    ): View {
         activity?.window?.setSoftInputMode(
             WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
         )
 
-        return inflater.inflate(R.layout.fragment_search, container, false)
+        binding = FragmentSearchBinding.inflate(inflater)
+        return binding.root
     }
 
     private fun fixGrid() {
-        val compactView = activity?.getGridIsCompact() ?: false
+        val compactView = false//activity?.getGridIsCompact() ?: false
         val spanCountLandscape = if (compactView) 2 else 6
         val spanCountPortrait = if (compactView) 1 else 3
         val orientation = resources.configuration.orientation
@@ -107,7 +106,7 @@ class SearchFragment : Fragment() {
         } else {
             spanCountPortrait
         }
-        cardSpace.spanCount = currentSpan
+        binding.searchAllRecycler.spanCount = currentSpan
         configEvent.invoke(currentSpan)
     }
 
@@ -116,43 +115,46 @@ class SearchFragment : Fragment() {
         fixGrid()
     }
 
-    private lateinit var searchViewModel: SearchViewModel
-
     lateinit var searchExitIcon: ImageView
     lateinit var searchMagIcon: ImageView
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        observe(searchViewModel.searchResponse) {
+        val masterAdapter = ParentItemAdapter2(viewModel)
+        val allAdapter = SearchAdapter2(viewModel, binding.searchAllRecycler)
+        binding.searchAllRecycler.adapter = allAdapter
+        binding.searchMasterRecycler.apply {
+            adapter = masterAdapter
+            layoutManager = GridLayoutManager(context, 1)
+        }
+
+        observe(viewModel.searchResponse) {
             when (it) {
                 is Resource.Success -> {
                     it.value.let { data ->
-                        if (data.isNotEmpty()) {
-                            (cardSpace?.adapter as SearchAdapter?)?.apply {
-                                cardList = data.toList()
-                                notifyDataSetChanged()
-                            }
-                        }
+                        allAdapter.submitList(data)
                     }
                     searchExitIcon.alpha = 1f
-                    search_loading_bar.alpha = 0f
+                    binding.searchLoadingBar.alpha = 0f
                 }
+
                 is Resource.Failure -> {
                     // Toast.makeText(activity, "Server error", Toast.LENGTH_LONG).show()
                     searchExitIcon.alpha = 1f
-                    search_loading_bar.alpha = 0f
+                    binding.searchLoadingBar.alpha = 0f
                 }
+
                 is Resource.Loading -> {
                     searchExitIcon.alpha = 0f
-                    search_loading_bar.alpha = 1f
+                    binding.searchLoadingBar.alpha = 1f
                 }
             }
         }
 
-        observe(searchViewModel.currentSearch) { list ->
+        observe(viewModel.currentSearch) { list ->
             normalSafeApiCall {
-                (search_master_recycler?.adapter as? ParentItemAdapter?)?.updateList(list.map {
+                masterAdapter.submitList(list.map {
                     HomePageList(
                         it.apiName,
                         if (it.data is Resource.Success) it.data.value else emptyList()
@@ -161,74 +163,24 @@ class SearchFragment : Fragment() {
             }
         }
 
-        activity?.fixPaddingStatusbar(searchRoot)
+        activity?.fixPaddingStatusbar(binding.searchRoot)
 
         fixGrid()
-        val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder> =
-            SearchAdapter(
-                ArrayList(),
-                cardSpace,
-            ) { callback ->
-                SearchHelper.handleSearchClickCallback(activity, callback)
-            }
-
-        val masterAdapter: RecyclerView.Adapter<RecyclerView.ViewHolder> =
-            ParentItemAdapter(mutableListOf(), { callback ->
-                SearchHelper.handleSearchClickCallback(activity, callback)
-            }, { item ->
-                activity?.loadHomepageList(item)
-            })
-
-        cardSpace.adapter = adapter
-        //cardSpace.layoutManager = GridLayoutManager(context, 1)
-        search_loading_bar.alpha = 0f
-        searchExitIcon = main_search.findViewById(androidx.appcompat.R.id.search_close_btn)
-        searchMagIcon = main_search.findViewById(androidx.appcompat.R.id.search_mag_icon)
+        binding.searchLoadingBar.alpha = 0f
+        searchExitIcon = binding.mainSearch.findViewById(androidx.appcompat.R.id.search_close_btn)
+        searchMagIcon = binding.mainSearch.findViewById(androidx.appcompat.R.id.search_mag_icon)
         searchMagIcon.scaleX = 0.65f
         searchMagIcon.scaleY = 0.65f
 
-        search_filter.setOnClickListener { view ->
-            val builder: AlertDialog.Builder = AlertDialog.Builder(requireContext())
-            //val settingsManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.activity)
-            val apiNamesSetting = view.context.getApiSettings()
-
-            val langs = view.context.getApiProviderLangSettings()
-            val apiNames = apis.mapNotNull { if (langs.contains(it.lang)) it.name else null }
-
-            builder.setMultiChoiceItems(
-                apiNames.toTypedArray(),
-                apiNames.map { a -> apiNamesSetting.contains(a) }.toBooleanArray()
-            ) { _, position: Int, checked: Boolean ->
-                val apiNamesSettingLocal = requireActivity().getApiSettings()
-                val settingsManagerLocal = activity?.let {
-                    PreferenceManager.getDefaultSharedPreferences(
-                        it
-                    )
-                }
-                if (checked) {
-                    apiNamesSettingLocal.add(apiNames[position])
-                } else {
-                    apiNamesSettingLocal.remove(apiNames[position])
-                }
-
-                val edit = settingsManagerLocal?.edit()
-                edit?.putStringSet(
-                    getString(R.string.search_providers_list_key),
-                    apiNames.filter { a -> apiNamesSettingLocal.contains(a) }.toSet()
-                )
-                edit?.apply()
-                providersActive = requireContext().getApiSettings()
-            }
-            builder.setTitle("Search Providers")
-            builder.setNegativeButton("Ok") { _, _ -> }
-            builder.show()
+        binding.searchFilter.setOnClickListener {
+            SettingsFragment.showSearchProviders(it.context)
         }
 
-        main_search.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+        binding.mainSearch.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String): Boolean {
                 searchExitIcon.alpha = 0f
-                search_loading_bar.alpha = 1f
-                searchViewModel.search(query)
+                binding.searchLoadingBar.alpha = 1f
+                viewModel.search(query)
                 return true
             }
 
@@ -237,7 +189,7 @@ class SearchFragment : Fragment() {
             }
         })
 
-        main_search.setOnQueryTextFocusChangeListener { searchView, b ->
+        binding.mainSearch.setOnQueryTextFocusChangeListener { searchView, b ->
             if (b) {
                 // https://stackoverflow.com/questions/12022715/unable-to-show-keyboard-automatically-in-the-searchview
                 searchView.postDelayed({
@@ -247,16 +199,14 @@ class SearchFragment : Fragment() {
                 }, 200)
             }
         }
-        main_search.onActionViewExpanded()
+        binding.mainSearch.onActionViewExpanded()
 
-        search_master_recycler.adapter = masterAdapter
-        search_master_recycler.layoutManager = GridLayoutManager(context, 1)
 
         val settingsManager = context?.let { PreferenceManager.getDefaultSharedPreferences(it) }
         val isAdvancedSearch = settingsManager?.getBoolean("advanced_search", true) == true
+        binding.searchMasterRecycler.isVisible = isAdvancedSearch
+        binding.searchAllRecycler.isGone = isAdvancedSearch
 
-        search_master_recycler.visibility = if (isAdvancedSearch) View.VISIBLE else View.GONE
-        cardSpace.visibility = if (!isAdvancedSearch) View.VISIBLE else View.GONE
         /*
         thread {
             searchDowloads.clear()

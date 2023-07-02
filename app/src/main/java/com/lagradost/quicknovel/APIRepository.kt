@@ -4,6 +4,7 @@ import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.normalSafeApiCall
 import com.lagradost.quicknovel.mvvm.safeApiCall
+import com.lagradost.quicknovel.util.Coroutines.threadSafeListOf
 
 data class OnGoingSearch(
     val apiName: String,
@@ -16,8 +17,24 @@ private fun String?.removeAds(): String? {
 }
 
 class APIRepository(val api: MainAPI) {
+    val unixTime: Long
+        get() = System.currentTimeMillis() / 1000L
+
     companion object {
         var providersActive = HashSet<String>()
+
+        data class SavedLoadResponse(
+            val unixTime: Long,
+            val response: LoadResponse,
+            val hash: Pair<String, String>
+        )
+
+        private val cache = threadSafeListOf<SavedLoadResponse>()
+        private var cacheIndex: Int = 0
+        const val cacheSize = 20
+
+        // 10min cache time should be plenty per session without fucking up anything for the user with outdated data
+        const val cacheTimeSec: Int = 60 * 10
     }
 
     val name: String get() = api.name
@@ -32,9 +49,37 @@ class APIRepository(val api: MainAPI) {
     val orderBys: List<Pair<String, String>> get() = api.orderBys
     val tags: List<Pair<String, String>> get() = api.tags
 
-    suspend fun load(url: String): Resource<LoadResponse> {
+
+    suspend fun load(url: String, allowCache: Boolean = true): Resource<LoadResponse> {
         return safeApiCall {
-            api.load(api.fixUrl(url)) ?: throw ErrorLoadingException("No data")
+            val fixedUrl = api.fixUrl(url)
+            val lookingForHash = Pair(api.name, fixedUrl)
+
+            if (allowCache) {
+                synchronized(cache) {
+                    for (item in cache) {
+                        // 10 min save
+                        if (item.hash == lookingForHash && (unixTime - item.unixTime) < cacheTimeSec) {
+                            return@safeApiCall item.response
+                        }
+                    }
+                }
+            }
+
+            api.load(fixedUrl)?.also { response ->
+                // Remove all blank tags as early as possible
+                val add = SavedLoadResponse(unixTime, response, lookingForHash)
+                if (allowCache) {
+                    synchronized(cache) {
+                        if (cache.size > cacheSize) {
+                            cache[cacheIndex] = add // rolling cache
+                            cacheIndex = (cacheIndex + 1) % cacheSize
+                        } else {
+                            cache.add(add)
+                        }
+                    }
+                }
+            } ?: throw ErrorLoadingException("No data")
         }
     }
 
@@ -50,7 +95,7 @@ class APIRepository(val api: MainAPI) {
     suspend fun loadHtml(url: String): String? {
         return try {
             api.loadHtml(api.fixUrl(url))?.removeAds()
-        } catch (e : Exception) {
+        } catch (e: Exception) {
             logError(e)
             null
         }

@@ -1,119 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<PreferenceScreen
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
     <PreferenceCategory />
     <PreferenceCategory
             android:key="search"
             android:title="Search"
-            app:isPreferenceVisible="true"
-    >
+            app:isPreferenceVisible="true">
         <SwitchPreference
                 android:icon="@drawable/search_icon_white"
                 app:key="advanced_search"
                 android:title="Advanced Search"
                 android:summary="Gives you the search results separated by provider"
-                app:defaultValue="true"
-        />
-        <MultiSelectListPreference
+                app:defaultValue="true" />
+        <Preference
                 app:icon="@drawable/ic_baseline_cloud_24"
                 android:key="@string/search_providers_list_key"
                 android:title="Search Providers"
                 app:useSimpleSummaryProvider="true" />
-        <ListPreference
+        <!--<ListPreference
                 app:icon="@drawable/ic_baseline_grid_view_24"
                 android:key="@string/grid_format_key"
                 android:title="Display Mode"
                 app:defaultValue="grid"
                 app:useSimpleSummaryProvider="true"
                 android:entries="@array/GridFormat"
-                android:entryValues="@array/GridFormatData"
-        />
+                android:entryValues="@array/GridFormatData" />-->
         <Preference
                 android:icon="@drawable/ic_baseline_language_24"
                 android:key="@string/provider_lang_key"
-                android:title="@string/provider_lang_settings">
-        </Preference>
+                android:title="@string/provider_lang_settings" />
     </PreferenceCategory>
 
 
     <PreferenceCategory
             android:key="general"
             android:title="General"
-            app:isPreferenceVisible="true"
-    >
+            app:isPreferenceVisible="true">
         <!--
         <ListPreference
                 app:icon="@drawable/ic_baseline_cloud_24"
                 android:key="@string/provider_list_key"
                 android:title="Active Provider"
                 app:useSimpleSummaryProvider="true" />-->
-        <ListPreference
+        <Preference
                 app:icon="@drawable/ic_baseline_star_24"
                 android:key="@string/rating_format_key"
-                android:title="Rating Format"
+                android:title="@string/rating_format"
                 app:defaultValue="star"
-                app:useSimpleSummaryProvider="true"
-                android:entries="@array/RatingFormat"
-                android:entryValues="@array/RatingFormatData"
-        />
-        <ListPreference
+                app:useSimpleSummaryProvider="true" />
+        <Preference
                 app:icon="@drawable/ic_baseline_grid_view_24"
                 android:key="@string/download_format_key"
-                android:title="Library Display Mode"
+                android:title="@string/library_display_mode"
                 app:defaultValue="list"
                 app:useSimpleSummaryProvider="true"
                 android:entries="@array/DownloadGridFormat"
-                android:entryValues="@array/DownloadGridFormatData"
-        />
+                android:entryValues="@array/DownloadGridFormatData" />
         <SwitchPreference
                 app:key="@string/auto_update_key"
                 android:title="Show app updates"
                 android:summary="Automatically search for new updates on start"
                 app:defaultValue="true"
-                android:icon="@drawable/ic_baseline_notifications_active_24"
-        />
+                android:icon="@drawable/ic_baseline_notifications_active_24" />
         <SwitchPreference
                 app:key="@string/external_reader_key"
                 android:title="External reader"
                 android:summary="Use an external app to read"
                 app:defaultValue="true"
-                android:icon="@drawable/ic_baseline_menu_book_24"
-        />
+                android:icon="@drawable/ic_baseline_menu_book_24" />
         <SwitchPreference
                 app:key="@string/remove_external_key"
                 android:title="Remove Bloat"
                 android:summary="Removes the title and translator from all pages, will cause longer generation time"
                 app:defaultValue="true"
-                android:icon="@drawable/ic_baseline_edit_24"
-        />
+                android:icon="@drawable/ic_baseline_edit_24" />
 
-        <ListPreference
-                app:key="theme"
-                android:title="Theme"
+        <Preference
+                app:key="@string/theme_key"
+                android:title="@string/theme"
                 android:icon="@drawable/ic_baseline_color_lens_24"
-                app:useSimpleSummaryProvider="true"
-                app:defaultValue="Dark"
-                android:entries="@array/ThemesNames"
-                android:entryValues="@array/ThemesValues"
-        />
-        <ListPreference
-                app:key="color_theme"
-                android:title="Main Color"
+                app:useSimpleSummaryProvider="true" />
+        <Preference
+                app:key="@string/primary_color_key"
+                android:title="@string/primary_color_settings"
                 android:icon="@drawable/ic_baseline_color_lens_24"
-                app:useSimpleSummaryProvider="true"
-                app:defaultValue="Normal"
-                android:entries="@array/ThemesOverlayNames"
-                android:entryValues="@array/ThemesOverlayValues"
-        />
+                app:useSimpleSummaryProvider="true" />
 
         <Preference
                 android:title="Check for Update"
                 app:key="@string/manual_check_update_key"
-                app:icon="@drawable/ic_baseline_system_update_24"
-        />
+                app:icon="@drawable/ic_baseline_system_update_24" />
         <Preference
                 android:icon="@drawable/baseline_save_as_24"
                 android:key="@string/backup_key"
@@ -128,31 +105,33 @@
     <PreferenceCategory
             android:key="extra"
             android:title="Info"
-            app:isPreferenceVisible="true"
-    >
+            app:isPreferenceVisible="true">
 
         <Preference
                 android:title="Github"
                 android:icon="@drawable/ic_github_logo"
                 app:summary="https://github.com/LagradOst/QuickNovel">
-            <intent android:action="android.intent.action.VIEW"
-                    android:data="https://github.com/LagradOst/QuickNovel"/>
+            <intent
+                    android:action="android.intent.action.VIEW"
+                    android:data="https://github.com/LagradOst/QuickNovel" />
         </Preference>
 
         <Preference
                 android:title="Anime and Movie app by the same devs"
-                android:icon="@drawable/cs3_cloud"
-                app:summary="https://recloudstream.github.io/">
-            <intent android:action="android.intent.action.VIEW"
-                    android:data="https://recloudstream.github.io/"/>
+                android:icon="@drawable/ic_github_logo"
+                app:summary="https://github.com/recloudstream/cloudstream">
+            <intent
+                    android:action="android.intent.action.VIEW"
+                    android:data="https://github.com/recloudstream/cloudstream" />
         </Preference>
 
         <Preference
                 android:title="Join Discord"
                 android:icon="@drawable/ic_baseline_discord_24"
                 app:summary="https://discord.gg/5Hus6fM">
-            <intent android:action="android.intent.action.VIEW"
-                    android:data="https://discord.gg/5Hus6fM"/>
+            <intent
+                    android:action="android.intent.action.VIEW"
+                    android:data="https://discord.gg/5Hus6fM" />
         </Preference>
     </PreferenceCategory>
 </PreferenceScreen>

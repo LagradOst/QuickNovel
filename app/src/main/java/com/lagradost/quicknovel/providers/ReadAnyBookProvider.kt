@@ -65,7 +65,7 @@ class ReadAnyBookProvider : MainAPI() {
             null
         )*/
 
-        return LoadResponse(
+        return StreamResponse(
             url,
             name,
             getChapterData(data),//listOf(chapterData),

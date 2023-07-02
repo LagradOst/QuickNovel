@@ -215,7 +215,7 @@ class FreewebnovelProvider : MainAPI() {
             // NO RATING
         }
 
-        return LoadResponse(
+        return StreamResponse(
             url,
             name,
             data,

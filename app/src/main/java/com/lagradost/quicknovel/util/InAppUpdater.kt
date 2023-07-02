@@ -16,6 +16,7 @@ import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.quicknovel.BuildConfig
+import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import java.io.*
@@ -88,14 +89,17 @@ class InAppUpdater {
 //                    }).toList().lastOrNull()
                 val foundAsset = response.assets?.getOrNull(0)
                 val currentVersion = packageName?.let {
-                    packageManager.getPackageInfo(it,
-                        0)
+                    packageManager.getPackageInfo(
+                        it,
+                        0
+                    )
                 }
 
                 val foundVersion = foundAsset?.name?.let { versionRegex.find(it) }
-                val shouldUpdate = if (foundAsset?.browser_download_url != "" && foundVersion != null) currentVersion?.versionName?.compareTo(
-                            foundVersion.groupValues[2]
-                        )!! < 0 else false
+                val shouldUpdate =
+                    if (foundAsset?.browser_download_url != "" && foundVersion != null) currentVersion?.versionName?.compareTo(
+                        foundVersion.groupValues[2]
+                    )!! < 0 else false
                 return if (foundVersion != null) {
                     Update(
                         shouldUpdate,
@@ -146,9 +150,8 @@ class InAppUpdater {
                     }
                 } catch (e: Exception) {
                     println(e)
-                    runOnUiThread {
-                        Toast.makeText(this, "Permission error", Toast.LENGTH_SHORT).show()
-                    }
+
+                    showToast("Permission error", Toast.LENGTH_SHORT)
                     return false
                 }
 
@@ -243,14 +246,19 @@ class InAppUpdater {
         suspend fun Activity.runAutoUpdate(checkAutoUpdate: Boolean = true): Boolean {
             val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
 
-            if (!checkAutoUpdate || settingsManager.getBoolean(getString(R.string.auto_update_key), true)
+            if (!checkAutoUpdate || settingsManager.getBoolean(
+                    getString(R.string.auto_update_key),
+                    true
+                )
             ) {
                 val update = getAppUpdate()
                 if (update.shouldUpdate && update.updateURL != null) {
                     runOnUiThread {
                         val currentVersion = packageName?.let {
-                            packageManager.getPackageInfo(it,
-                                0)
+                            packageManager.getPackageInfo(
+                                it,
+                                0
+                            )
                         }
 
                         val builder: AlertDialog.Builder = AlertDialog.Builder(this)
@@ -260,15 +268,15 @@ class InAppUpdater {
                         val context = this
                         builder.apply {
                             setPositiveButton("Update") { _, _ ->
-                                Toast.makeText(context, "Download started", Toast.LENGTH_LONG).show()
+                                showToast(context, "Download started", Toast.LENGTH_LONG)
                                 thread {
                                     val downloadStatus = context.downloadUpdate(update.updateURL)
                                     if (!downloadStatus) {
-                                        runOnUiThread {
-                                            Toast.makeText(context,
-                                                "Download Failed",
-                                                Toast.LENGTH_LONG).show()
-                                        }
+                                        showToast(
+                                            "Download Failed",
+                                            Toast.LENGTH_LONG
+                                        )
+
                                     } /*else {
                                         activity.runOnUiThread {
                                             Toast.makeText(localContext,
@@ -281,7 +289,7 @@ class InAppUpdater {
 
                             setNegativeButton("Cancel") { _, _ -> }
 
-                            if(checkAutoUpdate) {
+                            if (checkAutoUpdate) {
                                 setNeutralButton("Don't show again") { _, _ ->
                                     settingsManager.edit().putBoolean("auto_update", false).apply()
                                 }

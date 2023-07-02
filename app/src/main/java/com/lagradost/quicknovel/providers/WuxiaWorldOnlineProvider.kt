@@ -238,7 +238,7 @@ class WuxiaWorldOnlineProvider : MainAPI() {
                 else -> STATUS_NULL
             }
 
-        return LoadResponse(
+        return StreamResponse(
             url,
             name,
             data,

@@ -1,10 +1,12 @@
 package com.lagradost.quicknovel.mvvm
 
 import android.util.Log
+import android.widget.Toast
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
 import com.bumptech.glide.load.HttpException
 import com.lagradost.quicknovel.BuildConfig
+import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.ErrorLoadingException
 import kotlinx.coroutines.*
 import java.net.SocketTimeoutException
@@ -44,7 +46,9 @@ inline fun debugWarning(assert: () -> Boolean, message: () -> String) {
 fun <T> LifecycleOwner.observe(liveData: LiveData<T>, action: (t: T) -> Unit) {
     liveData.observe(this) { it?.let { t -> action(t) } }
 }
-
+fun <T> LifecycleOwner.observeNullable(liveData: LiveData<T>, action: (t: T) -> Unit) {
+    liveData.observe(this) { action(it) }
+}
 inline fun <reified T : Any> some(value: T?): Some<T> {
     return if (value == null) {
         Some.None
@@ -88,6 +92,11 @@ fun logError(throwable: Throwable) {
     Log.d("ApiError", "safeApiCall: " + throwable.localizedMessage)
     Log.d("ApiError", "safeApiCall: " + throwable.message)
     throwable.printStackTrace()
+    /*try {
+        showToast(throwable.stackTraceToString(), Toast.LENGTH_LONG)
+    } catch (_ : Throwable) {
+
+    }*/
     Log.d("ApiError", "-------------------------------------------------------------------")
 }
 

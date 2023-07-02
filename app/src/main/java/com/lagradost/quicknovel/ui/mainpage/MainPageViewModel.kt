@@ -1,14 +1,18 @@
 package com.lagradost.quicknovel.ui.mainpage
 
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lagradost.quicknovel.APIRepository
+import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.mvvm.Resource
 import kotlinx.coroutines.launch
 
-class MainPageViewModel(private val repo: MainPageRepository) : ViewModel() {
+class MainPageViewModel : ViewModel() {
+    lateinit var repo : MainPageRepository
     val api: APIRepository get() = repo.api
 
     /*private val searchCards: MutableLiveData<ArrayList<SearchResponse>> by lazy {
@@ -41,9 +45,21 @@ class MainPageViewModel(private val repo: MainPageRepository) : ViewModel() {
         MutableLiveData<String>(null)
     }
 
-
     val isInSearch: MutableLiveData<Boolean> by lazy {
         MutableLiveData<Boolean>(false)
+    }
+
+    fun openInBrowser() {
+        try {
+            val url = currentUrl.value
+            if (url != null) {
+                val i = Intent(Intent.ACTION_VIEW)
+                i.data = Uri.parse(url)
+                activity?.startActivity(i)
+            }
+        } catch (_ : Throwable) {
+
+        }
     }
 
     fun search(query: String) {

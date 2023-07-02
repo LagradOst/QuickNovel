@@ -5,19 +5,171 @@
         android:layout_width="match_parent"
         android:id="@+id/result_container"
         android:layout_height="match_parent"
-        android:background="?attr/bitDarkerGrayBackground"
+        android:background="?attr/primaryBlackBackground"
         android:clickable="true"
         android:focusable="true">
 
-    <ProgressBar
+
+    <com.facebook.shimmer.ShimmerFrameLayout
+            android:visibility="visible"
+            android:id="@+id/result_loading"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:paddingTop="40dp"
+            app:shimmer_auto_start="true"
+            app:shimmer_base_alpha="0.2"
+            app:shimmer_duration="@integer/loading_time"
+            app:shimmer_highlight_alpha="0.3"
+            tools:visibility="gone">
+
+        <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/loading_margin"
+                android:layout_marginEnd="@dimen/loading_margin"
+                android:orientation="vertical">
+
+            <include layout="@layout/loading_downloads" />
+
+            <include layout="@layout/loading_line" />
+
+            <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal">
+
+                <LinearLayout
+                        android:gravity="center"
+                        android:layout_weight="1"
+                        android:layout_height="match_parent"
+                        android:layout_width="0dp"
+                        android:orientation="vertical">
+
+                    <include layout="@layout/loading_line_short" />
+                </LinearLayout>
+
+                <LinearLayout
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:layout_height="match_parent"
+                        android:layout_width="0dp"
+                        android:orientation="vertical">
+
+                    <include layout="@layout/loading_line_short" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <View
+                    android:layout_width="0dp"
+                    android:layout_height="20dp">
+
+            </View>
+
+            <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+
+                <include layout="@layout/loading_line_short2" />
+
+                <View
+                        android:layout_width="20dp"
+                        android:layout_height="0dp">
+
+                </View>
+
+                <include layout="@layout/loading_line_short2" />
+
+            </LinearLayout>
+
+            <View
+                    android:layout_width="0dp"
+                    android:layout_height="20dp">
+
+            </View>
+
+            <include layout="@layout/loading_line" />
+
+            <include layout="@layout/loading_line" />
+
+            <include layout="@layout/loading_line_short" />
+
+            <View
+                    android:layout_width="0dp"
+                    android:layout_height="20dp">
+
+            </View>
+
+            <include layout="@layout/loading_line_short2" />
+
+            <include layout="@layout/loading_line" />
+
+            <include layout="@layout/loading_line" />
+
+            <include layout="@layout/loading_line_short" />
+
+            <View
+                    android:layout_width="0dp"
+                    android:layout_height="20dp">
+
+            </View>
+
+            <include layout="@layout/loading_line" />
+
+            <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal">
+
+
+                <androidx.cardview.widget.CardView
+                        app:cardCornerRadius="@dimen/loading_radius"
+                        android:layout_weight="1"
+                        android:layout_marginStart="0dp"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_marginEnd="5dp"
+                        android:layout_marginBottom="@dimen/loading_margin"
+                        android:background="@color/grayShimmer"
+                        tools:ignore="ContentDescription" />
+
+                <androidx.cardview.widget.CardView
+
+                        app:cardCornerRadius="@dimen/loading_radius"
+                        android:layout_weight="1"
+                        android:layout_marginStart="5dp"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_marginBottom="@dimen/loading_margin"
+                        android:background="@color/grayShimmer"
+                        tools:ignore="ContentDescription" />
+            </LinearLayout>
+
+            <androidx.cardview.widget.CardView
+                    app:cardCornerRadius="@dimen/loading_radius"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginBottom="@dimen/loading_margin"
+                    android:background="@color/grayShimmer"
+                    tools:ignore="ContentDescription" />
+        </LinearLayout>
+
+
+    </com.facebook.shimmer.ShimmerFrameLayout>
+
+    <!--<ProgressBar
             android:id="@+id/result_loading"
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:layout_gravity="center"
             android:indeterminate="true"
-            android:visibility="gone" />
+            android:visibility="gone" />-->
 
     <LinearLayout
+            android:visibility="gone"
+            tools:visibility="gone"
             android:id="@+id/result_loading_error"
             android:orientation="vertical"
             android:layout_gravity="center"
@@ -29,8 +181,9 @@
                 android:layout_gravity="center"
                 app:icon="@drawable/ic_baseline_autorenew_24"
                 app:iconSize="20dp"
+                android:layout_margin="5dp"
                 android:text="@string/reload_error"
-                style="@style/NiceButton"
+                style="@style/WhiteButton"
                 android:layout_width="wrap_content"
                 android:minWidth="200dp" />
 
@@ -38,34 +191,39 @@
                 android:id="@+id/result_reload_connection_open_in_browser"
 
                 android:layout_gravity="center"
+                android:layout_margin="5dp"
 
                 app:icon="@drawable/ic_baseline_public_24"
                 app:iconSize="20dp"
                 android:text="@string/open_in_browser"
-                style="@style/NiceButton"
+                style="@style/BlackButton"
                 android:layout_width="wrap_content"
                 android:minWidth="200dp" />
 
         <TextView
+                tools:text="hello world"
                 android:id="@+id/result_error_text"
                 android:layout_margin="5dp"
                 android:gravity="center"
                 android:layout_gravity="center"
-                android:textColor="?attr/colorPrimary"
+                android:textColor="?attr/textColor"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
     </LinearLayout>
 
     <ImageView
+            android:visibility="gone"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:scaleType="centerCrop"
             android:alpha="0.3"
-            android:background="@color/darkBackground"
+            android:background="?attr/primaryBlackBackground"
             android:id="@+id/result_poster_blur"
             android:contentDescription="@string/background_image_descript" />
 
     <FrameLayout
+            android:visibility="gone"
+            tools:visibility="visible"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:id="@+id/result_holder">
@@ -108,7 +266,7 @@
                         android:ellipsize="end"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/textColor"
+                        android:textColor="?attr/textColor"
                         android:textSize="20sp"
                         android:text="@string/no_data" />
 
@@ -128,7 +286,7 @@
                         android:textStyle="bold"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/textColor"
+                        android:textColor="?attr/textColor"
                         android:textSize="14sp"
                         android:text="@string/no_data" />
 
@@ -138,7 +296,7 @@
                         android:id="@+id/result_total_chapters"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/textColor"
+                        android:textColor="?attr/textColor"
                         android:textSize="14sp"
                         android:text="@string/no_data" />
             </LinearLayout>
@@ -178,6 +336,7 @@
                             android:paddingBottom="0dp">
 
                         <androidx.cardview.widget.CardView
+                                android:id="@+id/views_and_rating"
                                 app:cardCornerRadius="15dp"
                                 android:layout_width="match_parent"
                                 android:layout_height="60dp"
@@ -188,6 +347,7 @@
                                     android:layout_width="match_parent"
                                     android:layout_height="match_parent"
                                     android:orientation="horizontal">
+
                                 <LinearLayout
                                         android:gravity="center"
                                         android:layout_weight="1"
@@ -212,6 +372,7 @@
                                             android:layout_width="match_parent"
                                             android:layout_height="wrap_content" />
                                 </LinearLayout>
+
                                 <LinearLayout
                                         android:layout_weight="1"
                                         android:gravity="center"
@@ -242,29 +403,72 @@
                         </androidx.cardview.widget.CardView>
 
                         <com.google.android.material.tabs.TabLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
                                 android:id="@+id/result_tabs"
+                                style="@style/Theme.Widget.Tabs"
                                 android:layout_marginTop="10dp"
+                                android:layout_width="match_parent"
+                                android:layout_height="40dp"
+                                android:layout_gravity="bottom"
+                                android:background="@color/transparent"
+                                android:descendantFocusability="blocksDescendants"
+                                android:focusable="false"
+                                android:paddingHorizontal="5dp"
+                                app:layout_scrollFlags="noScroll"
                                 app:tabGravity="start"
-                                android:backgroundTint="@color/transparent">
+                                app:tabIndicator="@drawable/indicator_background"
+                                app:tabIndicatorColor="?attr/white"
+                                app:tabIndicatorGravity="center"
+                                app:tabIndicatorHeight="30dp"
+                                app:tabMode="scrollable"
+                                app:tabSelectedTextColor="?attr/primaryBlackBackground"
+                                app:tabTextAppearance="@style/TabNoCaps"
+                                app:tabTextColor="?attr/textColor" />
 
-                            <com.google.android.material.tabs.TabItem
-                                    tools:text="TEST"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content" />
-                        </com.google.android.material.tabs.TabLayout>
+
 
                         <FrameLayout
                                 android:visibility="gone"
+                                tools:visibility="visible"
                                 android:id="@+id/result_reviewsholder"
                                 android:orientation="vertical"
                                 android:minHeight="500dp"
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent">
+                            <FrameLayout
+                                    android:id="@+id/resultview_reviews_loading"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:layout_marginTop="10dp"
+                                    android:visibility="gone"
+                                    tools:visibility="visible">
+
+                                <com.facebook.shimmer.ShimmerFrameLayout
+                                        android:id="@+id/resultview_reviews_loading_shimmer"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
+                                        android:layout_gravity="center"
+                                        android:orientation="vertical"
+                                        app:shimmer_auto_start="true"
+                                        app:shimmer_base_alpha="0.2"
+                                        app:shimmer_duration="@integer/loading_time"
+                                        app:shimmer_highlight_alpha="0.3">
+
+                                    <LinearLayout
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:orientation="vertical">
+
+                                        <include layout="@layout/loading_review" />
+                                        <include layout="@layout/loading_review" />
+                                        <include layout="@layout/loading_review" />
+
+                                    </LinearLayout>
+                                </com.facebook.shimmer.ShimmerFrameLayout>
+                            </FrameLayout>
 
                             <androidx.recyclerview.widget.RecyclerView
                                     android:id="@+id/result_reviews"
+                                    tools:listitem="@layout/result_review"
                                     android:layout_width="match_parent"
                                     android:layout_height="match_parent">
 
@@ -295,7 +499,7 @@
                                             android:layout_marginLeft="5dp"
                                             android:text="@string/open_in_browser"
                                             android:layout_width="wrap_content"
-                                            android:layout_height="match_parent"></TextView>
+                                            android:layout_height="match_parent" />
 
                                     <ImageView
                                             android:id="@+id/result_openinbrower"
@@ -306,7 +510,7 @@
                                             android:layout_height="25dp"
                                             android:layout_margin="5dp"
                                             app:tint="?attr/iconColor"
-                                            android:contentDescription="@string/open_in_browser"></ImageView>
+                                            android:contentDescription="@string/open_in_browser" />
 
                                     <ImageView
                                             android:id="@+id/result_share"
@@ -319,7 +523,7 @@
                                             android:background="?android:attr/selectableItemBackgroundBorderless"
                                             android:src="@drawable/ic_outline_share_24"
                                             android:layout_gravity="center"
-                                            android:contentDescription="@string/result_share"></ImageView>
+                                            android:contentDescription="@string/result_share" />
 
                                     <ImageView
                                             android:id="@+id/result_bookmark"
@@ -332,7 +536,7 @@
                                             android:background="?android:attr/selectableItemBackgroundBorderless"
                                             android:src="@drawable/ic_baseline_bookmark_24"
                                             android:layout_gravity="center"
-                                            android:contentDescription="@string/result_share"></ImageView>
+                                            android:contentDescription="@string/result_share" />
                                 </LinearLayout>
                                 <!--<ImageView
                                         android:id="@+id/result_openinbrower"
@@ -379,13 +583,13 @@ Translator: Rainbow Turtle"
                                     android:textStyle="normal"
                                     android:textColor="?attr/textColor" />
 
-                            <com.lagradost.quicknovel.widget.FlowLayout
+                            <com.google.android.material.chip.ChipGroup
                                     android:id="@+id/result_tag"
+                                    style="@style/ChipParent"
+                                    app:chipSpacingVertical="-7dp"
                                     android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:orientation="horizontal">
+                                    android:layout_height="wrap_content" />
 
-                            </com.lagradost.quicknovel.widget.FlowLayout>
                             <!--
                             <HorizontalScrollView android:id="@+id/result_tag_holder" android:layout_width="wrap_content" android:layout_height="wrap_content">
                                 <LinearLayout
@@ -409,12 +613,12 @@ Translator: Rainbow Turtle"
                                             android:id="@+id/download_delete_trash_from_result"
                                             android:background="?selectableItemBackgroundBorderless"
                                             android:src="@drawable/ic_baseline_delete_outline_24"
-                                            android:tint="?attr/textColor"
                                             android:layout_width="25dp"
                                             android:layout_height="match_parent"
                                             android:layout_gravity="end|center_vertical"
-                                            android:layout_marginRight="5dp"
-                                            android:contentDescription="@string/delete"></ImageView>
+                                            android:layout_marginEnd="5dp"
+                                            android:contentDescription="@string/delete"
+                                            app:tint="?attr/textColor" />
 
                                     <TextView
                                             android:layout_width="wrap_content"
@@ -463,14 +667,14 @@ Translator: Rainbow Turtle"
                                 </LinearLayout>
 
                                 <androidx.core.widget.ContentLoadingProgressBar
-                                        android:progressTint="?attr/colorPrimary"
+                                        android:progressTint="?attr/textColor"
                                         android:id="@+id/result_download_progress_bar"
                                         android:layout_width="match_parent"
                                         android:indeterminate="false"
                                         tools:progress="50"
                                         android:layout_marginTop="10dp"
                                         android:layout_marginBottom="10dp"
-                                        android:progressBackgroundTint="?attr/colorPrimary"
+                                        android:progressBackgroundTint="?attr/textColor"
                                         style="@android:style/Widget.Material.ProgressBar.Horizontal"
                                         android:layout_height="wrap_content" />
 
@@ -482,14 +686,13 @@ Translator: Rainbow Turtle"
                                     <com.google.android.material.button.MaterialButton
                                             android:gravity="center"
                                             android:layout_weight="1"
-                                            android:layout_height="45dp"
-                                            android:layout_marginRight="5dp"
-                                            app:icon="@drawable/ic_baseline_create_24"
+                                            android:layout_marginEnd="5dp"
+                                            android:layout_marginStart="0dp"
+                                            app:icon="@drawable/ic_baseline_menu_book_24"
                                             app:iconSize="20dp"
-                                            android:text="@string/generate_epub"
+                                            android:text="Read epub"
                                             android:id="@+id/result_download_generate_epub"
-                                            style="@style/NiceButton"
-                                            app:rippleColor="?attr/colorPrimary"
+                                            style="@style/WhiteButton"
                                             android:layout_width="50dp" />
                                     <!--
                                           app:iconTint="@color/white"
@@ -497,24 +700,28 @@ Translator: Rainbow Turtle"
                                     <com.google.android.material.button.MaterialButton
                                             android:layout_columnWeight="1"
                                             android:layout_marginStart="5dp"
+                                            android:layout_marginEnd="0dp"
+
                                             android:layout_weight="1"
                                             android:gravity="center"
-                                            android:layout_height="45dp"
                                             android:id="@+id/result_download_btt"
                                             android:text="@string/download_text"
-                                            style="@style/NiceButton"
+                                            style="@style/BlackButton"
+                                            app:iconSize="30dp"
                                             android:layout_width="50dp" />
                                 </LinearLayout>
 
                                 <com.google.android.material.button.MaterialButton
-                                        android:layout_marginTop="5dp"
+                                        android:layout_marginTop="10dp"
+                                        android:layout_marginEnd="0dp"
+                                        android:layout_marginStart="0dp"
                                         android:gravity="center"
-                                        android:layout_height="45dp"
+
                                         app:iconSize="20dp"
                                         android:text="@string/quickstream_novel_text"
                                         android:id="@+id/result_quickstream"
-                                        style="@style/NiceButton"
-                                        android:layout_width="match_parent"></com.google.android.material.button.MaterialButton>
+                                        style="@style/WhiteButton"
+                                        android:layout_width="match_parent" />
                             </LinearLayout>
                         </LinearLayout>
                     </LinearLayout>
@@ -531,9 +738,9 @@ Translator: Rainbow Turtle"
             android:layout_height="30dp"
             android:layout_margin="10dp"
             android:layout_gravity="end"
-            android:tint="?attr/white"
             android:src="@drawable/ic_sharp_clear_24"
-            android:contentDescription="@string/back_to_search"></ImageView>
+            android:contentDescription="@string/back_to_search"
+            app:tint="?attr/white" />
 
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
             android:id="@+id/reviews_fab"
@@ -545,10 +752,10 @@ Translator: Rainbow Turtle"
             app:elevation="0dp"
             android:textStyle="bold"
 
-            app:backgroundTint="?attr/darkBackground"
-            app:tint="?attr/colorPrimary"
-            android:textColor="?attr/colorPrimary"
-            app:iconTint="?attr/colorPrimary"
+            app:backgroundTint="?attr/primaryBlackBackground"
+            app:tint="?attr/textColor"
+            android:textColor="?attr/textColor"
+            app:iconTint="?attr/textColor"
             app:icon="@drawable/ic_baseline_arrow_upward_24"
 
             android:contentDescription="@string/reviews_to_top"

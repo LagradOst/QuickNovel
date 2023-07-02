@@ -78,7 +78,7 @@ class ScribblehubProvider : MainAPI() {
             statusSpan?.contains("Ongoing") == true -> STATUS_ONGOING
             else -> STATUS_NULL
         }
-        return LoadResponse(
+        return StreamResponse(
             url,
             title ?: throw ErrorLoadingException("invalid name"),
             data,

@@ -54,12 +54,4 @@ object SettingsHelper {
         return getDownloadFormat() != "grid"
     }
 
-    fun Context.getGridFormatId(): Int {
-        return when (getGridFormat()) {
-            "list" -> R.layout.search_result_compact
-            "compact_list" -> R.layout.search_result_super_compact
-            else -> R.layout.search_result_grid
-        }
-    }
-
 }

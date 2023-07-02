@@ -4,30 +4,47 @@ import android.app.Activity
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
-import android.view.View
-import android.view.Window
 import android.view.WindowManager
+import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.navigation.NavOptions
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.preference.PreferenceManager
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.json.JsonMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.lagradost.nicehttp.Requests
+import com.lagradost.nicehttp.ResponseParser
 import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
-import com.lagradost.quicknovel.BookDownloader.checkWrite
-import com.lagradost.quicknovel.BookDownloader.createQuickStream
-import com.lagradost.quicknovel.BookDownloader.openQuickStream
-import com.lagradost.quicknovel.BookDownloader.requestNotifications
-import com.lagradost.quicknovel.BookDownloader.requestRW
+import com.lagradost.quicknovel.BookDownloader2.openQuickStream
+import com.lagradost.quicknovel.BookDownloader2Helper.checkWrite
+import com.lagradost.quicknovel.BookDownloader2Helper.createQuickStream
+import com.lagradost.quicknovel.BookDownloader2Helper.requestRW
+import com.lagradost.quicknovel.CommonActivity.activity
+import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
+import com.lagradost.quicknovel.NotificationHelper.requestNotifications
+import com.lagradost.quicknovel.databinding.BottomPreviewBinding
+import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.logError
+import com.lagradost.quicknovel.mvvm.observe
+import com.lagradost.quicknovel.mvvm.observeNullable
 import com.lagradost.quicknovel.providers.RedditProvider
+import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.ui.result.ResultFragment
+import com.lagradost.quicknovel.ui.result.ResultViewModel
+import com.lagradost.quicknovel.ui.search.SearchFragment
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.Apis.Companion.printProviders
@@ -36,30 +53,85 @@ import com.lagradost.quicknovel.util.Coroutines
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
+import com.lagradost.quicknovel.util.ResultCached
+import com.lagradost.quicknovel.util.SettingsHelper.getRating
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
+import com.lagradost.quicknovel.util.UIHelper.dismissSafe
 import com.lagradost.quicknovel.util.UIHelper.getResourceColor
+import com.lagradost.quicknovel.util.UIHelper.html
+import com.lagradost.quicknovel.util.UIHelper.popupMenu
+import com.lagradost.quicknovel.util.UIHelper.setImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
+import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
+import kotlin.reflect.KClass
 
 class MainActivity : AppCompatActivity() {
     companion object {
+        private val mapper = JsonMapper.builder().addModule(KotlinModule())
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build()!!
+
+        private var _mainActivity: WeakReference<MainActivity>? = null
+        private var mainActivity
+            get() = _mainActivity?.get()
+            private set(value) {
+                _mainActivity = WeakReference(value)
+            }
+
+        fun loadPreviewPage(searchResponse: SearchResponse) {
+            mainActivity?.loadPopup(searchResponse.url, searchResponse.apiName)
+        }
+
+        fun loadPreviewPage(card: DownloadFragment.DownloadDataLoaded) {
+            mainActivity?.loadPopup(card)
+        }
+
+        fun loadPreviewPage(cached: ResultCached) {
+            mainActivity?.loadPopup(cached)
+        }
+
         var app = Requests(
             OkHttpClient()
                 .newBuilder()
                 .ignoreAllSSLErrors()
-                .build()
+                .build(),
+            responseParser = object : ResponseParser {
+                val mapper: ObjectMapper = jacksonObjectMapper().configure(
+                    DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+                    false
+                )
+
+                override fun <T : Any> parse(text: String, kClass: KClass<T>): T {
+                    return mapper.readValue(text, kClass.java)
+                }
+
+                override fun <T : Any> parseSafe(text: String, kClass: KClass<T>): T? {
+                    return try {
+                        mapper.readValue(text, kClass.java)
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+
+                override fun writeValueAsString(obj: Any): String {
+                    return mapper.writeValueAsString(obj)
+                }
+            }
         ).apply {
             defaultHeaders = mapOf("user-agent" to USER_AGENT)
         }
 
         // === API ===
-        lateinit var activity: MainActivity
-
         lateinit var navOptions: NavOptions
 
+        fun loadResult(url: String, apiName: String, startAction: Int = 0) {
+            (activity as? AppCompatActivity)?.loadResult(url, apiName, startAction)
+        }
+
         fun AppCompatActivity.loadResult(url: String, apiName: String, startAction: Int = 0) {
+            SearchFragment.currentDialog?.dismiss()
             runOnUiThread {
                 supportFragmentManager.beginTransaction()
                     .setCustomAnimations(
@@ -68,7 +140,7 @@ class MainActivity : AppCompatActivity() {
                         R.anim.pop_enter,
                         R.anim.pop_exit
                     )
-                    .add(R.id.homeRoot, ResultFragment().newInstance(url, apiName))
+                    .add(R.id.homeRoot, ResultFragment().newInstance(url, apiName, startAction))
                     .commit()
             }
         }
@@ -92,9 +164,9 @@ class MainActivity : AppCompatActivity() {
                 try {
                     Coroutines.main {
                         val uri = withContext(Dispatchers.IO) {
-                            activity.createQuickStream(
-                                BookDownloader.QuickStreamData(
-                                    BookDownloader.QuickStreamMetaData(
+                            createQuickStream(
+                                QuickStreamData(
+                                    QuickStreamMetaData(
                                         "Not found",
                                         name,
                                         reddit.name,
@@ -104,7 +176,7 @@ class MainActivity : AppCompatActivity() {
                                 )
                             )
                         }
-                        activity.openQuickStream(uri)
+                        openQuickStream(uri)
                     }
                 } catch (e: Exception) {
                     logError(e)
@@ -113,6 +185,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         fun AppCompatActivity.backPressed(): Boolean {
+            this.window?.navigationBarColor =
+                this.colorFromAttribute(R.attr.primaryGrayBackground)
+
             val currentFragment = supportFragmentManager.fragments.last {
                 it.isVisible
             }
@@ -130,8 +205,8 @@ class MainActivity : AppCompatActivity() {
 
             if (currentFragment != null && supportFragmentManager.fragments.size > 2) {
                 if (supportFragmentManager.fragments.size == 3) {
-                    window?.navigationBarColor =
-                        colorFromAttribute(R.attr.darkBackground)
+                    //window?.navigationBarColor =
+                    //    colorFromAttribute(R.attr.primaryBlackBackground)
                 }
                 //MainActivity.showNavbar()
                 supportFragmentManager.beginTransaction()
@@ -149,38 +224,86 @@ class MainActivity : AppCompatActivity() {
             return false
         }
 
-        fun semihideNavbar() {
-            val w: Window? = activity.window // in Activity's onCreate() for instance
-            if (w != null) {
-                val uiVisibility =
-                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                w.decorView.systemUiVisibility = uiVisibility
-                w.navigationBarColor =
-                    activity.getResourceColor(android.R.attr.navigationBarColor, 0.7F)
-            }
-        }
+        /* fun semihideNavbar() {
+             activity
+             val w: Window? = activity?.window // in Activity's onCreate() for instance
+             if (w != null) {
+                 val uiVisibility =
+                     View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                 w.decorView.systemUiVisibility = uiVisibility
+                 w.navigationBarColor =
+                     activity?.getResourceColor(android.R.attr.navigationBarColor, 0.7F)
+             }
+         }
 
-        fun showNavbar() {
-            val w: Window? = activity.window // in Activity's onCreate() for instance
-            if (w != null) {
-                w.decorView.systemUiVisibility = 0
-                w.navigationBarColor = android.R.attr.navigationBarColor
-            }
-        }
+         fun showNavbar() {
+             val w: Window? = activity.window // in Activity's onCreate() for instance
+             if (w != null) {
+                 w.decorView.systemUiVisibility = 0
+                 w.navigationBarColor = android.R.attr.navigationBarColor
+             }
+         }
 
-        fun transNavbar(trans: Boolean) {
-            val w: Window? = activity.window // in Activity's onCreate() for instance
-            if (w != null) {
-                if (trans) {
-                    w.setFlags(
-                        WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS,
-                        WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
-                    )
-                } else {
-                    w.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-                }
+         fun transNavbar(trans: Boolean) {
+             val w: Window? = activity.window // in Activity's onCreate() for instance
+             if (w != null) {
+                 if (trans) {
+                     w.setFlags(
+                         WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS,
+                         WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
+                     )
+                 } else {
+                     w.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+                 }
+             }
+         }*/
+    }
+
+    private val viewModel: ResultViewModel by viewModels()
+
+    private fun hidePreviewPopupDialog() {
+        viewModel.clear()
+        bottomPreviewPopup.dismissSafe(this)
+    }
+
+    fun loadPopup(
+        resultCached: ResultCached,
+    ) {
+        viewModel.initState(resultCached)
+    }
+
+    fun loadPopup(card: DownloadFragment.DownloadDataLoaded) {
+        viewModel.initState(card)
+    }
+
+    fun loadPopup(
+        url: String,
+        apiName: String,
+    ) {
+        viewModel.initState(apiName, url)
+    }
+
+    var bottomPreviewBinding: BottomPreviewBinding? = null
+    var bottomPreviewPopup: BottomSheetDialog? = null
+    private fun showPreviewPopupDialog(): BottomPreviewBinding {
+        val ret = (bottomPreviewBinding ?: run {
+            val builder =
+                BottomSheetDialog(this)
+
+            val bottom = BottomPreviewBinding.inflate(layoutInflater, null, false)
+            builder.setContentView(bottom.root)
+            builder.setOnDismissListener {
+                bottomPreviewBinding = null
+                bottomPreviewPopup = null
+                viewModel.clear()
             }
-        }
+            builder.setCanceledOnTouchOutside(true)
+            builder.show()
+            bottomPreviewPopup = builder
+            bottom
+        })
+        bottomPreviewBinding = ret
+        return ret
     }
 
     /* // MOON READER WONT RETURN THE DURATION, BUT THIS CAN BE USED FOR SOME USER FEEDBACK IN THE FUTURE??? SEE @moonreader
@@ -188,14 +311,10 @@ class MainActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
     }*/
 
-
-    fun getStatusBarHeight(): Int {
-        var result = 0
-        val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
-        if (resourceId > 0) {
-            result = resources.getDimensionPixelSize(resourceId)
-        }
-        return result
+    override fun onResume() {
+        super.onResume()
+        activity = this
+        mainActivity = this
     }
 
     override fun onBackPressed() {
@@ -234,45 +353,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        mainActivity = this
         activity = this
+
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
 
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
-
-        val themeName = settingsManager.getString("theme", "Dark")
-        val currentTheme = when (themeName) {
-            "Black" -> R.style.AppTheme
-            "Dark" -> R.style.DarkAlternative
-            "Light" -> R.style.LightMode
-            else -> R.style.AppTheme
-        }
-
-        val themeOverlayName = settingsManager.getString("color_theme", "Blue")
-        val currentOverlayTheme = when (themeOverlayName) {
-            "Normal" -> R.style.OverlayPrimaryColorNormal
-            "CarnationPink" -> R.style.OverlayPrimaryColorCarnationPink
-            "Orange" -> R.style.OverlayPrimaryColorOrange
-            "DarkGreen" -> R.style.OverlayPrimaryColorDarkGreen
-            "Maroon" -> R.style.OverlayPrimaryColorMaroon
-            "NavyBlue" -> R.style.OverlayPrimaryColorNavyBlue
-            "Grey" -> R.style.OverlayPrimaryColorGrey
-            "White" -> R.style.OverlayPrimaryColorWhite
-            "Brown" -> R.style.OverlayPrimaryColorBrown
-            "Banana" -> R.style.OverlayPrimaryColorBanana
-            "Blue" -> R.style.OverlayPrimaryColorBlue
-            "Purple" -> R.style.OverlayPrimaryColorPurple
-            "Green" -> R.style.OverlayPrimaryColorGreen
-            "GreenApple" -> R.style.OverlayPrimaryColorGreenApple
-            "Red" -> R.style.OverlayPrimaryColorRed
-            else -> R.style.OverlayPrimaryColorNormal
-        }
-        //val isLightTheme = themeName == "Light"
-
-        theme.applyStyle(
-            currentTheme,
-            true
-        ) // THEME IS SET BEFORE VIEW IS CREATED TO APPLY THE THEME TO THE MAIN VIEW
-        theme.applyStyle(currentOverlayTheme, true)
+        CommonActivity.loadThemes(this)
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -281,9 +368,13 @@ class MainActivity : AppCompatActivity() {
 
         val navView: BottomNavigationView = findViewById(R.id.nav_view)
 
+        val rippleColor = ColorStateList.valueOf(getResourceColor(R.attr.colorPrimary, 0.1f))
+        navView.itemRippleColor = rippleColor
+        navView.itemActiveIndicatorColor = rippleColor
+
         val navController = findNavController(R.id.nav_host_fragment)
 
-        window.navigationBarColor = colorFromAttribute(R.attr.darkBackground)
+        //window.navigationBarColor = colorFromAttribute(R.attr.darkBackground)
         navOptions = NavOptions.Builder()
             .setLaunchSingleTop(true)
             .setEnterAnim(R.anim.nav_enter_anim)
@@ -292,24 +383,28 @@ class MainActivity : AppCompatActivity() {
             .setPopExitAnim(R.anim.nav_pop_exit)
             .setPopUpTo(navController.graph.startDestinationId, false)
             .build()
-/*
-        navView.setOnNavigationItemReselectedListener { item ->
-            return@setOnNavigationItemReselectedListener
-        }*/
+        /*
+                navView.setOnNavigationItemReselectedListener { item ->
+                    return@setOnNavigationItemReselectedListener
+                }*/
         navView.setOnNavigationItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.navigation_homepage -> {
                     navController.navigate(R.id.navigation_homepage, null, navOptions)
                 }
+
                 R.id.navigation_search -> {
                     navController.navigate(R.id.navigation_search, null, navOptions)
                 }
+
                 R.id.navigation_download -> {
                     navController.navigate(R.id.navigation_download, null, navOptions)
                 }
+
                 R.id.navigation_history -> {
                     navController.navigate(R.id.navigation_history, null, navOptions)
                 }
+
                 R.id.navigation_settings -> {
                     navController.navigate(R.id.navigation_settings, null, navOptions)
                 }
@@ -317,8 +412,109 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        navView.itemRippleColor =
-            ColorStateList.valueOf(getResourceColor(R.attr.colorPrimary, 0.1f))
+        observe(viewModel.readState) {
+            bottomPreviewBinding?.apply {
+                bookmark.setIconResource(if (it == ReadType.NONE) R.drawable.ic_baseline_bookmark_border_24 else R.drawable.ic_baseline_bookmark_24)
+                bookmark.setText(it.stringRes)
+            }
+        }
+
+        observeNullable(viewModel.loadResponse) { resource ->
+            if (resource == null) {
+                bottomPreviewPopup.dismissSafe(this)
+                return@observeNullable
+            }
+            when (resource) {
+                is Resource.Failure -> {
+                    showToast(this, R.string.error_loading_novel)
+                    hidePreviewPopupDialog()
+                }
+
+                is Resource.Loading -> {
+                    showPreviewPopupDialog().apply {
+                        resultviewPreviewLoading.isVisible = true
+                        resultviewPreviewResult.isVisible = false
+                    }
+                }
+
+                is Resource.Success -> {
+                    val d = resource.value
+                    showPreviewPopupDialog().apply {
+
+                        bookmark.setOnClickListener { view ->
+                            view.popupMenu(
+                                ReadType.values().map { Pair(it.prefValue, it.stringRes) },
+                                selectedItemId = viewModel.readState.value?.prefValue
+                            ) {
+                                viewModel.bookmark(itemId)
+                            }
+                        }
+
+                        readMore.setOnClickListener {
+                            loadResult(d.url, viewModel.apiName)
+                            hidePreviewPopupDialog()
+                        }
+
+                        resultviewPreviewLoading.isVisible = false
+                        resultviewPreviewResult.isVisible = true
+
+                        resultviewPreviewPoster.apply {
+                            setImage(d.posterUrl)
+                            setOnClickListener {
+                                loadResult(d.url, viewModel.apiName)
+                                hidePreviewPopupDialog()
+                            }
+                        }
+
+                        resultviewPreviewTitle.text = d.name
+
+                        resultviewPreviewMoreInfo.setOnClickListener {
+                            loadResult(d.url, viewModel.apiName)
+                            hidePreviewPopupDialog()
+                        }
+
+                        resultviewPreviewDescription.text = d.synopsis ?: "No data"
+                        resultviewPreviewDescription.setOnClickListener { view ->
+                            view.context?.let { ctx ->
+                                val builder: AlertDialog.Builder =
+                                    AlertDialog.Builder(ctx, R.style.AlertDialogCustom)
+                                builder.setMessage(d.synopsis.html())
+                                    .setTitle(d.name)
+                                    .show()
+                            }
+                        }
+
+                        d.rating?.let { rating ->
+                            resultviewPreviewMetaRating.text = getRating(rating)
+                            resultviewPreviewMetaRating.isVisible = true
+                        } ?: run {
+                            resultviewPreviewMetaRating.isVisible = false
+                        }
+
+                        // TODO FIX STRINGS
+                        val statusTxt = when (d.status) {
+                            1 -> "Ongoing"
+                            2 -> "Completed"
+                            3 -> "Paused"
+                            4 -> "Dropped"
+                            else -> ""
+                        }
+
+                        resultviewPreviewMetaStatus.text = statusTxt
+                        resultviewPreviewMetaStatus.isVisible = statusTxt.isNotBlank()
+                        if (d is StreamResponse) {
+                            resultviewPreviewMetaChapters.text = "${d.data.size} Chapters"
+                            resultviewPreviewMetaChapters.isVisible = d.data.isNotEmpty()
+                        } else {
+                            resultviewPreviewMetaChapters.isVisible = false
+                        }
+                    }
+                }
+            }
+        }
+
+        //navView.itemRippleColor =
+        //    ColorStateList.valueOf(getResourceColor(R.attr.colorPrimary, 0.1f))
 
         val apiNames = getApiSettings()
         providersActive = apiNames

@@ -1,7 +1,6 @@
-<FrameLayout
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        xmlns:android="http://schemas.android.com/apk/res/android">
+        android:layout_height="wrap_content">
 
     <TextView
             android:layout_width="wrap_content"
@@ -20,6 +19,6 @@
             android:layout_width="25dp"
             android:layout_height="25dp"
             android:layout_margin="5dp"
-            android:contentDescription="@string/sort_downloads_descript"/>
+            android:contentDescription="@string/sort_downloads_descript" />
 
 </FrameLayout>

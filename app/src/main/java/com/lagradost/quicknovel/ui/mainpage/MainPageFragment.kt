@@ -1,8 +1,6 @@
 package com.lagradost.quicknovel.ui.mainpage
 
-import android.content.Intent
 import android.content.res.Configuration
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MenuItem
@@ -15,34 +13,31 @@ import androidx.appcompat.widget.SearchView
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProviders
-import androidx.navigation.findNavController
+import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.button.MaterialButton
-import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.databinding.FilterBottomSheetBinding
+import com.lagradost.quicknovel.databinding.FragmentMainpageBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.observe
+import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.SettingsHelper.getGridIsCompact
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
-import kotlinx.android.synthetic.main.fragment_mainpage.*
 
 
 class MainPageFragment : Fragment() {
+    lateinit var binding: FragmentMainpageBinding
+    private val viewModel: MainPageViewModel by viewModels()
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?,
-    ): View? {
-
-        /*activity?.window?.setSoftInputMode(
-            WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
-        )*/
-
-        return inflater.inflate(R.layout.fragment_mainpage, container, false)
+    ): View {
+        binding = FragmentMainpageBinding.inflate(inflater)
+        return binding.root
     }
 
     fun newInstance(
@@ -64,31 +59,6 @@ class MainPageFragment : Fragment() {
             }
         }
 
-    private lateinit var viewModel: MainPageViewModel
-
-    private fun updateList(data: Resource<List<SearchResponse>>) {
-        when (data) {
-            is Resource.Success -> {
-                val value = data.value
-                mainpage_loading_error?.isVisible = false
-                mainpage_loading?.isVisible = false
-
-                (mainpage_list?.adapter as MainAdapter?)?.updateList(value)
-            }
-            is Resource.Loading -> {
-                mainpage_loading_error?.isVisible = false
-                mainpage_loading?.isVisible = true
-            }
-            is Resource.Failure -> {
-                mainpage_error_text?.text = data.errorString
-                mainpage_loading_error?.isVisible = true
-                mainpage_loading?.isVisible = false
-            }
-        }
-
-        isLoading = false
-    }
-
     var isLoading = false
     var pastVisiblesItems = 0
     var visibleItemCount = 0
@@ -101,14 +71,14 @@ class MainPageFragment : Fragment() {
     var isInSearch = false
 
     private fun setupGridView() {
-        val compactView = requireContext().getGridIsCompact()
+        val compactView = false //activity?.getGridIsCompact() ?: return
         val spanCountLandscape = if (compactView) 2 else 6
         val spanCountPortrait = if (compactView) 1 else 3
         val orientation = resources.configuration.orientation
         if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            mainpage_list.spanCount = spanCountLandscape
+            binding.mainpageList.spanCount = spanCountLandscape
         } else {
-            mainpage_list.spanCount = spanCountPortrait
+            binding.mainpageList.spanCount = spanCountPortrait
         }
     }
 
@@ -119,8 +89,7 @@ class MainPageFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val apiName = requireArguments().getString("apiName")!!
-        viewModel = ViewModelProviders.of(this, provideMainPageViewModelFactory(apiName))
-            .get(MainPageViewModel::class.java)
+        viewModel.repo = MainPageRepository(Apis.getApiFromName(apiName))
 
         defMainCategory = arguments?.getInt("mainCategory", 0)
         defOrderBy = arguments?.getInt("orderBy", 0)
@@ -131,7 +100,7 @@ class MainPageFragment : Fragment() {
         if (defOrderBy == -1) defOrderBy = null
         if (defMainCategory == -1) defMainCategory = null*/
 
-        activity?.fixPaddingStatusbar(mainpageRoot)
+        activity?.fixPaddingStatusbar(binding.mainpageToolbar)
 
         viewModel.load(
             0,
@@ -140,119 +109,122 @@ class MainPageFragment : Fragment() {
             defTag
         )
 
-        mainpage_toolbar.title = apiName
+        binding.mainpageToolbar.apply {
+            title = apiName
+            setNavigationIcon(R.drawable.ic_baseline_arrow_back_24)
+            setNavigationOnClickListener {
+                //val navController = requireActivity().findNavController(R.id.nav_host_fragment)
+                //navController.navigate(R.id.navigation_homepage, Bundle(), MainActivity.navOptions)
+                // activity?.popCurrentPage()
+                activity?.onBackPressed()
+            }
+            setOnMenuItemClickListener {
+                when (it.itemId) {
+                    R.id.action_open_in_browser -> {
+                        viewModel.openInBrowser()
+                    }
 
-        mainpage_toolbar.setNavigationIcon(R.drawable.ic_baseline_arrow_back_24)
-        mainpage_toolbar.setNavigationOnClickListener {
-            //val navController = requireActivity().findNavController(R.id.nav_host_fragment)
-            //navController.navigate(R.id.navigation_homepage, Bundle(), MainActivity.navOptions)
-            // activity?.popCurrentPage()
-            activity?.onBackPressed()
-        }
-
-        mainpage_toolbar.setOnMenuItemClickListener {
-            when (it.itemId) {
-                R.id.action_open_in_browser -> {
-                    val url = viewModel.currentUrl.value
-                    if (url != null) {
-                        val i = Intent(Intent.ACTION_VIEW)
-                        i.data = Uri.parse(url)
-                        startActivity(i)
+                    else -> {
                     }
                 }
-                /*
-                R.id.action_search -> {
-                }*/
-                else -> {
+                return@setOnMenuItemClickListener true
+            }
+            val myActionMenuItem =
+                menu.findItem(R.id.action_search)
+            val searchView = myActionMenuItem.actionView as SearchView
+            myActionMenuItem.setOnActionExpandListener(object : MenuItem.OnActionExpandListener {
+                override fun onMenuItemActionExpand(p0: MenuItem): Boolean {
+                    return true
                 }
-            }
-            return@setOnMenuItemClickListener true
+
+                override fun onMenuItemActionCollapse(p0: MenuItem): Boolean {
+                    viewModel.switchToMain()
+                    return true
+                }
+            })
+
+            searchView.queryHint = getString(R.string.search_hint)
+
+            searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+                override fun onQueryTextSubmit(query: String): Boolean {
+                    viewModel.search(query)//MainActivity.activeAPI.search(query)
+                    return true
+                }
+
+                override fun onQueryTextChange(newText: String): Boolean {
+                    return true
+                }
+            })
         }
-
-        val myActionMenuItem =
-            mainpage_toolbar.menu.findItem(R.id.action_search)
-        val searchView = myActionMenuItem.actionView as SearchView
-        myActionMenuItem.setOnActionExpandListener(object : MenuItem.OnActionExpandListener {
-            override fun onMenuItemActionExpand(p0: MenuItem): Boolean {
-                return true
-            }
-
-            override fun onMenuItemActionCollapse(p0: MenuItem): Boolean {
-                viewModel.switchToMain()
-                return true
-            }
-        })
-
-        searchView.queryHint = getString(R.string.search_hint)
-
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String): Boolean {
-                viewModel.search(query)//MainActivity.activeAPI.search(query)
-                return true
-            }
-
-            override fun onQueryTextChange(newText: String): Boolean {
-                return true
-            }
-        })
 
         setupGridView()
 
-        val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = activity?.let {
-            MainAdapter(
-                it,
-                mainpage_list,
-            )
+        binding.mainpageList.apply {
+            val mainPageAdapter = MainAdapter2(this)
+            adapter = mainPageAdapter
+            addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    if (dy > 0) { //check for scroll down
+                        binding.mainpageFab.shrink()
+                        val layoutManager =
+                            recyclerView.layoutManager as? GridLayoutManager ?: return
+                        visibleItemCount = layoutManager.childCount
+                        totalItemCount = layoutManager.itemCount
+                        pastVisiblesItems = layoutManager.findFirstVisibleItemPosition()
+                        if (!isLoading && !isInSearch) {
+                            if (visibleItemCount + pastVisiblesItems >= totalItemCount) {
+                                isLoading = true
+                                viewModel.load(
+                                    null,
+                                    viewModel.currentMainCategory.value,
+                                    viewModel.currentOrderBy.value,
+                                    viewModel.currentTag.value
+                                )
+                            }
+                        }
+                    } else if (dy < -5) {
+                        binding.mainpageFab.extend()
+                    }
+                }
+            })
+
+            observe(viewModel.currentCards) { data ->
+                when (data) {
+                    is Resource.Success -> {
+                        val value = data.value
+                        binding.mainpageLoading.isVisible = false
+                        binding.mainpageLoadingError.isVisible = false
+
+                        mainPageAdapter.submitList(value)
+                    }
+
+                    is Resource.Loading -> {
+                        binding.mainpageLoading.isVisible = true
+                        binding.mainpageLoadingError.isVisible = false
+                    }
+
+                    is Resource.Failure -> {
+                        binding.mainpageErrorText.text = data.errorString
+                        binding.mainpageLoading.isVisible = false
+                        binding.mainpageLoadingError.isVisible = true
+
+                    }
+                }
+
+                isLoading = false
+            }
         }
 
-        mainpage_list.adapter = adapter
-        val mLayoutManager = mainpage_list.layoutManager!! as GridLayoutManager
 
-        mainpage_list.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                if (dy > 0) { //check for scroll down
-                    mainpage_fab.shrink()
-
-                    visibleItemCount = mLayoutManager.childCount
-                    totalItemCount = mLayoutManager.itemCount
-                    pastVisiblesItems = mLayoutManager.findFirstVisibleItemPosition()
-                    if (!isLoading && !isInSearch) {
-                        if (visibleItemCount + pastVisiblesItems >= totalItemCount) {
-                            isLoading = true
-                            viewModel.load(
-                                null,
-                                viewModel.currentMainCategory.value,
-                                viewModel.currentOrderBy.value,
-                                viewModel.currentTag.value
-                            )
-                        }
-                    }
-                } else if (dy < -5) {
-                    mainpage_fab.extend()
-                }
-            }
-        })
-
-        mainpage_fab.setOnClickListener {
+        binding.mainpageFab.setOnClickListener {
             val api = viewModel.api
             if (!api.hasMainPage) {
                 return@setOnClickListener
             }
 
             val bottomSheetDialog = BottomSheetDialog(requireContext())
-            bottomSheetDialog.setContentView(R.layout.filter_bottom_sheet)
-
-            val filterGeneralText =
-                bottomSheetDialog.findViewById<TextView>(R.id.filter_general_text)!!
-            val filterGeneralSpinner =
-                bottomSheetDialog.findViewById<Spinner>(R.id.filter_general_spinner)!!
-            val filterOrderText = bottomSheetDialog.findViewById<TextView>(R.id.filter_order_text)!!
-            val filterOrderSpinner =
-                bottomSheetDialog.findViewById<Spinner>(R.id.filter_order_spinner)!!
-            val filterTagText = bottomSheetDialog.findViewById<TextView>(R.id.filter_tag_text)!!
-            val filterTagSpinner =
-                bottomSheetDialog.findViewById<Spinner>(R.id.filter_tag_spinner)!!
-            val filterButton = bottomSheetDialog.findViewById<MaterialButton>(R.id.filter_button)!!
+            val binding = FilterBottomSheetBinding.inflate(layoutInflater, null, false)
+            bottomSheetDialog.setContentView(binding.root)
 
             fun setUp(
                 data: List<Pair<String, String>>,
@@ -261,8 +233,8 @@ class MainPageFragment : Fragment() {
                 startId: Int?
             ) {
                 if (data.isEmpty()) {
-                    txt.visibility = View.GONE
-                    spinner.visibility = View.GONE
+                    txt.isVisible = false
+                    spinner.isVisible = false
                 } else {
                     val arrayAdapter =
                         ArrayAdapter<String>(requireContext(), R.layout.spinner_select_dialog)
@@ -272,31 +244,36 @@ class MainPageFragment : Fragment() {
                     spinner.setSelection(startId ?: 0)
                 }
             }
+            binding.apply {
+                setUp(
+                    api.orderBys,
+                    filterOrderText,
+                    filterOrderSpinner,
+                    viewModel.currentOrderBy.value
+                )
+                setUp(
+                    api.mainCategories,
+                    filterGeneralText,
+                    filterGeneralSpinner,
+                    viewModel.currentMainCategory.value
+                )
+                setUp(api.tags, filterTagText, filterTagSpinner, viewModel.currentTag.value)
 
-            setUp(api.orderBys, filterOrderText, filterOrderSpinner, viewModel.currentOrderBy.value)
-            setUp(
-                api.mainCategories,
-                filterGeneralText,
-                filterGeneralSpinner,
-                viewModel.currentMainCategory.value
-            )
-            setUp(api.tags, filterTagText, filterTagSpinner, viewModel.currentTag.value)
+                filterButton.setOnClickListener {
+                    fun getId(spinner: Spinner): Int? {
+                        return if (spinner.visibility == View.VISIBLE) spinner.selectedItemPosition else null
+                    }
 
-            filterButton.setOnClickListener {
-                fun getId(spinner: Spinner): Int? {
-                    return if (spinner.visibility == View.VISIBLE) spinner.selectedItemPosition else null
+                    val generalId = getId(filterGeneralSpinner)
+                    val orderId = getId(filterOrderSpinner)
+                    val tagId = getId(filterTagSpinner)
+                    isLoading = true
+
+                    viewModel.load(0, generalId, orderId, tagId)
+
+                    bottomSheetDialog.dismiss()
                 }
-
-                val generalId = getId(filterGeneralSpinner)
-                val orderId = getId(filterOrderSpinner)
-                val tagId = getId(filterTagSpinner)
-                isLoading = true
-
-                viewModel.load(0, generalId, orderId, tagId)
-
-                bottomSheetDialog.dismiss()
             }
-
             bottomSheetDialog.setOnDismissListener {
                 //  MainActivity.semihideNavbar()
             }
@@ -304,10 +281,10 @@ class MainPageFragment : Fragment() {
             //  MainActivity.showNavbar()
         }
 
-        observe(viewModel.currentCards, ::updateList)
+
         observe(viewModel.isInSearch) {
             isInSearch = it
-            mainpage_fab.isGone = it // CANT USE FILTER ON A SEARCHERS
+            binding.mainpageFab.isGone = it // CANT USE FILTER ON A SEARCHERS
         }
     }
 }

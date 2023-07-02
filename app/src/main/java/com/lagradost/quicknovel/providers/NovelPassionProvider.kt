@@ -200,7 +200,7 @@ class NovelPassionProvider : MainAPI() {
             }
         }
 
-        return LoadResponse(
+        return StreamResponse(
             url,
             name,
             data,
