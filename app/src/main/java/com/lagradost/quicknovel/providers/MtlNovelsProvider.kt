@@ -69,7 +69,7 @@ class MtlNovelProvider : MainAPI() {
             if (tag.isNullOrBlank()) "$mainUrl/alltime-rank/page/$page" else "$mainUrl/genre/$tag/page/$page"
 
         val response = app.get(url)
-        val document = Jsoup.parse(response.text)
+        val document = app.get(url).document
 
         val headers =  document.select("div.box")
         if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
