@@ -1364,7 +1364,7 @@ class EfremnetProvider : MainAPI() {
         Pair("African Literature", "african-literature"),
         Pair("Adventure Thriller", "adventure-thriller"),
     )
-
+        .sortedBy { it.first }
     private val baseHeaders = mapOf(
         "User-Agent" to "Mozilla/5.0"
     )

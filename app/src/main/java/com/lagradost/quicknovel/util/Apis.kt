@@ -32,7 +32,7 @@ class Apis {
             EngNovelProvider(),
             NovelsOnlineProvider(),
             EfremnetProvider(),
-            mtlNovelProvider(),
+            MtlNovelProvider(),
 
             AnnasArchive(),
 

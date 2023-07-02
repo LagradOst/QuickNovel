@@ -6,8 +6,8 @@ import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 
-class mtlNovelProvider : MainAPI() {
-    override val name = "mtlNovel"
+class MtlNovelProvider : MainAPI() {
+    override val name = "MtlNovel"
     override val mainUrl = "https://www.mtlnovel.com"
     override val hasMainPage = true
 
@@ -105,7 +105,7 @@ class mtlNovelProvider : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse? {
         val response = app.get(url)
-        val document = Jsoup.parse(response.text)
+        val document = app.get(url).document
 
         val name = document.selectFirst("h1.entry-title")?.text() ?: return null
 
