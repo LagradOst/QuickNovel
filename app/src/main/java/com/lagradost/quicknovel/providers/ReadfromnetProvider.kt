@@ -14,7 +14,6 @@ class ReadfromnetProvider : MainAPI() {
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
 
     override val tags = listOf(
-        Pair("All", "allbooks"),
         Pair("Romance", "romance"),
         Pair("Fiction", "fiction"),
         Pair("Fantasy", "fantasy"),
@@ -1363,8 +1362,7 @@ class ReadfromnetProvider : MainAPI() {
         Pair("Alexander The Great", "alexander-the-great"),
         Pair("African Literature", "african-literature"),
         Pair("Adventure Thriller", "adventure-thriller"),
-    )
-        .sortedBy { it.first }
+    ).sortedBy { it.first }.let { listOf("All" to "allbooks") + it }
 
     private val baseHeaders = mapOf(
         "User-Agent" to "Mozilla/5.0"
