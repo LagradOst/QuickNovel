@@ -31,6 +31,8 @@ class Apis {
             //MNovelFreeProvider(), // same as NovelFullVipProvider
             EngNovelProvider(),
             NovelsOnlineProvider(),
+            EfremnetProvider(),
+            MtlNovelProvider(),
 
             AnnasArchive(),
 
