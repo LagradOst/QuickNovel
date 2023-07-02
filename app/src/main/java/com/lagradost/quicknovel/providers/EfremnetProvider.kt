@@ -6,7 +6,7 @@ import com.lagradost.quicknovel.MainActivity.Companion.app
 
 class EfremnetProvider : MainAPI() {
     override val name = "Efrem.net"
-    override val mainUrl = "https://efrem.net/"
+    override val mainUrl = "https://efrem.net"
     override val hasMainPage = true
 
     override val iconId = R.drawable.icon_efremnet
