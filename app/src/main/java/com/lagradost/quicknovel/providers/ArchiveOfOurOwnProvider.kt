@@ -6,18 +6,17 @@ import com.franmontiel.persistentcookiejar.cache.SetCookieCache
 import com.franmontiel.persistentcookiejar.persistence.SharedPrefsCookiePersistor
 import com.lagradost.nicehttp.Requests
 import com.lagradost.quicknovel.*
-import com.lagradost.quicknovel.MainActivity.Companion.app
+import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.mvvm.debugAssert
 import com.lagradost.quicknovel.mvvm.debugException
 import com.lagradost.quicknovel.mvvm.debugWarning
-import nl.siegmann.epublib.epub.Main
 import okhttp3.FormBody
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import kotlin.collections.ArrayList
 
 class ArchiveOfOurOwnProvider : MainAPI() {
-    private val cookieJar  = PersistentCookieJar(SetCookieCache(), SharedPrefsCookiePersistor(MainActivity.mainActivity!!.applicationContext))
+    private val cookieJar  = PersistentCookieJar(SetCookieCache(), SharedPrefsCookiePersistor(context))
     private val app = Requests(MainActivity.app.baseClient.newBuilder().cookieJar(cookieJar).build())
     override val name = "Archive of Our Own"
     override val mainUrl = "https://archiveofourown.org"
@@ -169,10 +168,10 @@ class ArchiveOfOurOwnProvider : MainAPI() {
         if (hasLoggedIn) return
 
         //Don't try to log in if we don't have email and password
-        val preferenceManager = PreferenceManager.getDefaultSharedPreferences(MainActivity.mainActivity!!.applicationContext)
+        val preferenceManager = PreferenceManager.getDefaultSharedPreferences(context!!.applicationContext)
 
-        val ao3Email = preferenceManager.getString(MainActivity.mainActivity?.getString(R.string.ao3_email_key),"")!!
-        val ao3Password = preferenceManager.getString(MainActivity.mainActivity?.getString(R.string.ao3_password_key),"")!!
+        val ao3Email = preferenceManager.getString(context?.getString(R.string.ao3_email_key),"")!!
+        val ao3Password = preferenceManager.getString(context?.getString(R.string.ao3_password_key),"")!!
 
         if (ao3Email == "" || ao3Password == ""){
             return
@@ -215,7 +214,7 @@ class ArchiveOfOurOwnProvider : MainAPI() {
 
         if(loginResponse.okhttpResponse.priorResponse == null){
             if(loginResponse.text.contains("The password or user name you entered doesn't match our records.")){
-                if (!preferenceManager.edit().putString(MainActivity.mainActivity?.getString(R.string.ao3_password_key), "").commit()){
+                if (!preferenceManager.edit().putString(context?.getString(R.string.ao3_password_key), "").commit()){
                     debugException { "Something went wrong clearing your password!" }
                 }
                 debugWarning { "Username or Password incorrect! Password's been cleared" }
