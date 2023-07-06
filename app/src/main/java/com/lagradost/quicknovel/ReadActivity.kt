@@ -22,8 +22,11 @@ import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
 import android.support.v4.media.session.MediaSessionCompat
 import android.text.Html
+import android.text.Layout
 import android.text.Spannable
 import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.util.TypedValue
 import android.view.*
 import android.widget.*
@@ -41,7 +44,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.media.session.MediaButtonReceiver
-import androidx.preference.PreferenceManager
+import androidx.recyclerview.widget.GridLayoutManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.load.model.GlideUrl
@@ -57,7 +60,6 @@ import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.DataStore.removeKey
 import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.MainActivity.Companion.app
-import com.lagradost.quicknovel.databinding.FragmentSearchBinding
 import com.lagradost.quicknovel.databinding.ReadBottomSettingsBinding
 import com.lagradost.quicknovel.databinding.ReadMainBinding
 import com.lagradost.quicknovel.mvvm.logError
@@ -65,6 +67,7 @@ import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.receivers.BecomingNoisyReceiver
 import com.lagradost.quicknovel.services.TTSPauseService
 import com.lagradost.quicknovel.ui.OrientationType
+import com.lagradost.quicknovel.ui.TextAdapter
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromNameNull
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.main
@@ -126,6 +129,7 @@ fun setHighLightedText(tv: TextView?, start: Int, end: Int): Boolean {
         for (s in spans) {
             wordToSpan.removeSpan(s)
         }
+
         wordToSpan.setSpan(
             android.text.Annotation("", "rounded"),
             start,
@@ -158,6 +162,39 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
             val path = "/system/fonts"
             val file = File(path)
             return file.listFiles()
+        }
+
+        fun parseSpan(unsegmented: Spanned): List<Spanned> {
+            val spans: ArrayList<Spanned> = ArrayList()
+
+            //get locations of '/n'
+            val loc = getNewLineLocations(unsegmented)
+            loc.push(unsegmented.length)
+
+            //divides up a span by each new line character position in loc
+            while (!loc.isEmpty()) {
+                val end = loc.pop()
+                val start = if (loc.isEmpty()) 0 else loc.peek()
+                spans.add(0, unsegmented.subSequence(start, end) as Spanned)
+            }
+            return spans
+        }
+
+        private fun getNewLineLocations(unsegmented: Spanned): Stack<Int> {
+            val loc = Stack<Int>()
+            val string = unsegmented.toString()
+            var next = string.indexOf('\n')
+            while (next > 0) {
+                //avoid chains of newline characters
+                next = if (string[next - 1] != '\n') {
+                    loc.push(next)
+                    string.indexOf('\n', loc.peek() + 1)
+                } else {
+                    string.indexOf('\n', next + 1)
+                }
+                if (next >= string.length) next = -1
+            }
+            return loc
         }
     }
 
@@ -725,7 +762,6 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
 
     private var hasTriedToFillNextChapter = false
-    private val reddit = RedditProvider()
     private fun fillNextChapter(): Boolean {
         if (hasTriedToFillNextChapter || isFromEpub) {
             return false
@@ -746,7 +782,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                         true
                     ) || text.equals("next part", true)
                 ) {
-                    val name = reddit.getName(href) ?: "Next"
+                    val name = RedditProvider.getName(href) ?: "Next"
                     quickdata.data.add(ChapterData(name, href, null, null))
                     chapterTitles.add(getChapterName(maxChapter))
                     maxChapter += 1
@@ -931,12 +967,21 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     data class TextLine(
-        val startIndex: Int,
-        val endIndex: Int,
-        val topPosition: Int,
-        val bottomPosition: Int,
-        val lineIndex: Int,
-    )
+        val layout: Layout,
+        val lineIndex: Int
+    ) {
+        /*
+
+                        lay.getLineStart(i),
+                        lay.getLineEnd(i),
+                        lay.getLineTop(i),
+                        lay.getLineBottom(i),
+         */
+        val startIndex: Int get() = layout.getLineStart(lineIndex)
+        val endIndex: Int get() = layout.getLineEnd(lineIndex)
+        val topPosition: Int get() = layout.getLineTop(lineIndex)
+        val bottomPosition: Int get() = layout.getLineBottom(lineIndex)
+    }
 
     private lateinit var chapterTitles: ArrayList<String>
     private var maxChapter: Int = 0
@@ -1141,15 +1186,45 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                     .usePlugin(SoftBreakAddsNewLinePlugin.create())
                     .build()
 
-            val index = txt.indexOf("<body>")
-            markwon?.setMarkdown(
+            /*val index = txt.indexOf("<body>")
+            markwon?.apply {
+                // Spannable
+                val renderResult = render(parse(
+                    txt.replaceAfterIndex( // because markwon is fucked we have to replace newlines with breaklines and becausse I dont want 3 br on top I start after body
+                        "\n",
+                        "<br>",
+                        startIndex = index + 7
+                    )//.replaceFirst(Regex("""[\\s*<br>\\s*\\n*]*"""), "")
+                ))
+                val result = parseSpan(renderResult)
+
+                val textAdapter = TextAdapter()
+                binding.realText.layoutManager = GridLayoutManager(binding.realText.context, 1)
+                binding.realText.adapter = textAdapter
+
+
+                textAdapter.submitList(result)//renderResult.getSpans<Any>().toMutableList())
+                /*(spanbuilder as? SpannableStringBuilder)?.let { builder ->
+                    val spans = builder.getSpans<CharSequence>()
+                    println("SPANs: $spans")
+                    binding.readText.setText(spanbuilder)
+                    for (span in spans) {
+                        span.toSpannable()
+
+                    }
+                }
+
+                println(spanbuilder)*/
+            }*/
+
+            /*markwon?.setMarkdown(
                 binding.readText,
                 txt.replaceAfterIndex( // because markwon is fucked we have to replace newlines with breaklines and becausse I dont want 3 br on top I start after body
                     "\n",
                     "<br>",
                     startIndex = index + 7
                 )//.replaceFirst(Regex("""[\\s*<br>\\s*\\n*]*"""), "")
-            ) ?: run {
+            ) ?:*/ run {
                 val spanned = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     Html.fromHtml(
                         txt,
@@ -1184,16 +1259,18 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     private fun loadTextLines() {
-        textLines = ArrayList()
+        val lines = ArrayList<TextLine>()
+
         val lay = binding.readText.layout ?: return
         for (i in 0..lay.lineCount) {
             try {
-                textLines?.add(
+                lines.add(
                     TextLine(
-                        lay.getLineStart(i),
-                        lay.getLineEnd(i),
-                        lay.getLineTop(i),
-                        lay.getLineBottom(i),
+                        lay,
+                       // lay.getLineStart(i),
+                        //lay.getLineEnd(i),
+                        //lay.getLineTop(i),
+                        //lay.getLineBottom(i),
                         i,
                     )
                 )
@@ -1201,6 +1278,8 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 println("EX: $e")
             }
         }
+
+        textLines = lines
     }
 
     private fun interruptTTS() {

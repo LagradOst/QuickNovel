@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.lagradost.quicknovel.ui.roundedbg.RoundedBgTextView
+        android:paddingBottom="10dp"
+        android:paddingTop="10dp"
+        android:fontFamily="serif"
+        android:lineSpacingExtra="3sp"
+        tools:text="@string/exampleTXT"
+        android:textColor="@color/readerTextColor"
+        android:clickable="false"
+        android:focusable="false"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools" />

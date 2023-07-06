@@ -144,6 +144,16 @@ fun CoroutineScope.launchSafe(
     return this.launch(context, start, obj)
 }
 
+fun <T,V> Resource<T>.map(transform : (T) -> V) : Resource<V> {
+    return when(this) {
+        is Resource.Failure -> Resource.Failure(this.isNetworkError,this.errorCode,this.errorResponse,this.errorString)
+        is Resource.Loading -> Resource.Loading(this.url)
+        is Resource.Success -> {
+            Resource.Success(transform(this.value))
+        }
+    }
+}
+
 suspend fun <T> safeApiCall(
     apiCall: suspend () -> T,
 ): Resource<T> {

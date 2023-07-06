@@ -187,7 +187,7 @@ object UIHelper {
         )
     }
 
-    fun Activity.requestAudioFocus(focusRequest: AudioFocusRequest?) {
+    fun Context.requestAudioFocus(focusRequest: AudioFocusRequest?) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && focusRequest != null) {
             val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
             audioManager.requestAudioFocus(focusRequest)

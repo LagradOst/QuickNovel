@@ -160,7 +160,7 @@ class MainActivity : AppCompatActivity() {
 
             // kinda dirty ik
             val reddit = RedditProvider()
-            reddit.getName(url)?.let { name ->
+            RedditProvider.getName(url)?.let { name ->
                 try {
                     Coroutines.main {
                         val uri = withContext(Dispatchers.IO) {

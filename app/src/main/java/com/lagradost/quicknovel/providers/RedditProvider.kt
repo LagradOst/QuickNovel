@@ -9,12 +9,13 @@ class RedditProvider : MainAPI() {
     override val mainUrl = "https://www.reddit.com"
     override val name = "Reddit"
 
+    companion object {
     fun getName(url: String?): String? {
         return Regex("reddit\\.com/r/.*?/comments.*?/.*?/(.*)/").find(
             url ?: return null
         )?.groupValues?.getOrNull(1)?.replace('_', ' ')
     }
-
+    }
     fun isValidLink() {
 
     }
