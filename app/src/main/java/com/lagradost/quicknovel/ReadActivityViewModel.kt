@@ -8,13 +8,10 @@ import android.graphics.Rect
 import android.graphics.drawable.Drawable
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
-import android.text.Spanned
-import android.widget.Toast
 import androidx.annotation.WorkerThread
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.load.model.GlideUrl
@@ -22,19 +19,24 @@ import com.bumptech.glide.request.target.Target
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
+import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2Helper.getQuickChapter
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.TTSHelper.parseTextToSpans
 import com.lagradost.quicknovel.TTSHelper.preParseHtml
 import com.lagradost.quicknovel.TTSHelper.ttsParseText
 import com.lagradost.quicknovel.mvvm.Resource
-import com.lagradost.quicknovel.mvvm.launchSafe
+import com.lagradost.quicknovel.mvvm.letInner
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.map
 import com.lagradost.quicknovel.mvvm.safeApiCall
 import com.lagradost.quicknovel.providers.RedditProvider
+import com.lagradost.quicknovel.ui.ScrollIndex
+import com.lagradost.quicknovel.ui.ScrollVisibilityIndex
 import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
+import com.lagradost.quicknovel.util.Coroutines.runOnMainThread
+import com.lagradost.quicknovel.util.amap
 import io.noties.markwon.AbstractMarkwonPlugin
 import io.noties.markwon.Markwon
 import io.noties.markwon.MarkwonConfiguration
@@ -188,9 +190,8 @@ class RegularBook(val data: Book) : AbstractBook() {
     }
 }
 
-
 data class LiveChapterData(
-    val spans: List<Spanned>,
+    val spans: List<TextSpan>,
     val title: String,
     val rawText: String,
     val ttsLines: List<TTSHelper.TTSLine>
@@ -207,14 +208,15 @@ class ReadActivityViewModel : ViewModel() {
             _context = WeakReference(value)
         }
 
-    /*
-        private val _chapter: MutableLiveData<Resource<LiveChapterData>> =
-            MutableLiveData<Resource<LiveChapterData>>(null)
-        val chapter: LiveData<Resource<LiveChapterData>> = _chapter*/
 
-    private val _loadingStatus: MutableLiveData<Resource<Nothing>> =
-        MutableLiveData<Resource<Nothing>>(null)
-    val chapter: LiveData<Resource<Nothing>> = _loadingStatus
+    private val _chapterData: MutableLiveData<ArrayList<SpanDisplay>> =
+        MutableLiveData<ArrayList<SpanDisplay>>(null)
+    val chapter: LiveData<ArrayList<SpanDisplay>> = _chapterData
+
+    // we use bool as we cant construct Nothing, does not represent anything
+    private val _loadingStatus: MutableLiveData<Resource<Boolean>> =
+        MutableLiveData<Resource<Boolean>>(null)
+    val loadingStatus: LiveData<Resource<Boolean>> = _loadingStatus
 
     private val _chaptersTitles: MutableLiveData<List<String>> =
         MutableLiveData<List<String>>(null)
@@ -224,95 +226,185 @@ class ReadActivityViewModel : ViewModel() {
         MutableLiveData<String>(null)
     val title: LiveData<String> = _title
 
-    var chapters: ArrayList<String> = arrayListOf()
+    private val _chapterTile: MutableLiveData<String> =
+        MutableLiveData<String>(null)
+    val chapterTile: LiveData<String> = _chapterTile
+
+    private val _bottomVisibility: MutableLiveData<Boolean> =
+        MutableLiveData<Boolean>(false)
+    val bottomVisibility: LiveData<Boolean> = _bottomVisibility
+
+    private val _ttsStatus: MutableLiveData<TTSHelper.TTSStatus> =
+        MutableLiveData<TTSHelper.TTSStatus>(TTSHelper.TTSStatus.IsStopped)
+    val ttsStatus: LiveData<TTSHelper.TTSStatus> = _ttsStatus
+
+    fun switchVisibility() {
+        _bottomVisibility.postValue(!(_bottomVisibility.value ?: false))
+    }
+
+    private var chaptersTitlesInternal: ArrayList<String> = arrayListOf()
+
+    lateinit var desiredIndex: ScrollIndex
 
     private fun updateChapters() {
-        for (idx in chapters.size until book.size()) {
-            chapters.add(book.getChapterTitle(idx))
+        for (idx in chaptersTitlesInternal.size until book.size()) {
+            chaptersTitlesInternal.add(book.getChapterTitle(idx))
         }
-        _chaptersTitles.postValue(chapters)
+        _chaptersTitles.postValue(chaptersTitlesInternal)
     }
 
     private val chapterMutex = Mutex()
+    private val chapterExpandMutex = Mutex()
+
+    private val requested: HashSet<Int> = hashSetOf()
+
     private val loading: HashSet<Int> = hashSetOf()
     private val chapterData: HashMap<Int, Resource<LiveChapterData>> = hashMapOf()
     private val hasExpanded: HashSet<Int> = hashSetOf()
 
     private var currentIndex = Int.MIN_VALUE
 
-    fun updateIndex(index: Int) {
-        if (currentIndex == index) return
-        currentIndex = index
-        viewModelScope.launchSafe {
-            for (i in listOf(index,index+1,index-1)) {
-                if (index <= 0) continue
-
-                val exists = chapterMutex.withLock {
-                    chapterData.contains(i) || loading.contains(i)
-                }
-
-                if (!exists) {
-                    ioSafe { loadIndividualChapter(i, false) }
-                }
-            }
+    /**
+     * Preloads this much in both directions
+     * */
+    private var chapterPadding: Int = 1
+    private suspend fun updateIndexAsync(
+        index: Int,
+        notify: Boolean = true
+    ) {
+        for (idx in index - chapterPadding..index + chapterPadding) {
+            requested += index
+            loadIndividualChapter(idx, false, notify)
         }
     }
 
-    private fun notifyChapterUpdate() {
+    private fun updateIndex(index: Int) {
+        var alreadyRequested = false
+        for (idx in index - chapterPadding..index + chapterPadding) {
+            if (!requested.contains(index)) {
+                alreadyRequested = true
+            }
+            requested += index
+        }
 
+        if (alreadyRequested) return
+
+        ioSafe {
+            updateIndexAsync(index)
+        }
     }
 
+    private fun updateReadArea() {
+        val cIndex = currentIndex
+        val chapters = ArrayList<SpanDisplay>()
+        for (idx in cIndex - chapterPadding..cIndex + chapterPadding) {
+            val append: List<SpanDisplay> = when (val data = chapterData[idx]) {
+                null -> emptyList()
+                is Resource.Loading -> {
+                    listOf<SpanDisplay>(LoadingSpanned(data.url, cIndex))
+                }
+
+                is Resource.Success -> {
+                    data.value.spans
+                }
+
+                is Resource.Failure -> listOf<SpanDisplay>(
+                    FailedSpanned(
+                        data.errorString,
+                        cIndex
+                    )
+                )
+            }
+            chapters.addAll(append)
+            _chapterData.postValue(chapters)
+        }
+    }
+
+    private fun notifyChapterUpdate(index: Int) {
+        val cIndex = currentIndex
+        if (cIndex - chapterPadding <= index && index <= cIndex + chapterPadding) {
+            updateReadArea()
+        }
+    }
+
+    private val markwonMutex = Mutex()
+
     @WorkerThread
-    private suspend fun loadIndividualChapter(index: Int, reload: Boolean = false) {
-        require(index >= 0)
+    private suspend fun loadIndividualChapter(
+        index: Int,
+        reload: Boolean = false,
+        notify: Boolean = true
+    ) {
+        if (index < 0) return
+
+        // set loading and return early if already loading or return cache
         chapterMutex.withLock {
             if (loading.contains(index)) return
-            loading += index
             if (!reload) {
                 if (chapterData.contains(index)) {
                     return
                 }
             }
+
+            loading += index
+            chapterData[index] = Resource.Loading(null)
+            if (notify) notifyChapterUpdate(index)
         }
 
-        _loadingStatus.postValue(Resource.Loading(null))
+        // we check for out of bounds and if it is out of bounds then try to expand it (Reddit next)
+        // we lock it here to prevent duplicate loading when init
+        chapterExpandMutex.withLock {
+            val preSize = book.size()
+            while (index >= book.size()) {
+                // will only expand once per session per chapter
+                if (hasExpanded.contains(book.size())) break
+                hasExpanded += book.size()
 
-        if (index >= book.size() && !hasExpanded.contains(index)) {
-            hasExpanded += index
-            try {
-                // we assume that the text is cached
-                book.expand(book.getChapterData(book.size() - 1, reload = false))
-            } catch (t: Throwable) {
-                logError(t)
+                try {
+                    // we assume that the text is cached
+                    book.expand(book.getChapterData(book.size() - 1, reload = false))
+                } catch (t: Throwable) {
+                    logError(t)
+                }
             }
-            updateChapters()
+            if (preSize != book.size()) updateChapters()
         }
 
+        // if we are still out of bounds then return no more chapters
         if (index >= book.size()) {
             chapterMutex.withLock {
-                chapterData[index] = Resource.Failure(false, null, null, "No more chapters")
+                chapterData[index] =
+                    Resource.Failure(false, null, null, "No more chapters")
                 loading -= index
-                notifyChapterUpdate()
+                if (notify) notifyChapterUpdate(index)
             }
             return
         }
-        _loadingStatus.postValue(Resource.Loading(book.getLoadingStatus(index)))
 
+        // we have verified we are within bounds, then set the loading to the index url
+        chapterMutex.withLock {
+            chapterData[index] = Resource.Loading(book.getLoadingStatus(index))
+            if (notify) notifyChapterUpdate(index)
+        }
+
+        // load the data and precalculate everything needed
         val data = safeApiCall {
             book.getChapterData(index, reload)
         }.map { text ->
             val rawText = preParseHtml(text)
             LiveChapterData(
                 rawText = rawText,
-                spans = parseTextToSpans(rawText, markwon),
+                spans = markwonMutex.withLock { parseTextToSpans(rawText, markwon, index) },
                 title = book.getChapterTitle(index),
                 ttsLines = ttsParseText(rawText)
             )
         }
+
+        // set the data and return
         chapterMutex.withLock {
             chapterData[index] = data
             loading -= index
-            notifyChapterUpdate()
+            if (notify) notifyChapterUpdate(index)
         }
     }
 
@@ -378,14 +470,44 @@ class ReadActivityViewModel : ViewModel() {
                 QuickBook(DataStore.mapper.readValue<QuickStreamData>(input.reader().readText()))
             }
 
-            if (epub.size() == 0) {
+            if (epub.size() <= 0) {
                 throw ErrorLoadingException("Empty book, failed to parse ${intent.type}")
             }
             epub
         }
+
         when (loadedBook) {
             is Resource.Success -> {
                 init(loadedBook.value, context)
+
+                // cant assume we know a chapter max as it can expand
+                val loadedChapter =
+                    maxOf(getKey(EPUB_CURRENT_POSITION, book.title()) ?: 0, 0)
+
+
+                // we the current loaded thing here, but because loadedChapter can be >= book.size (expand) we have to check
+                if (loadedChapter < book.size()) {
+                    _loadingStatus.postValue(Resource.Loading(book.getLoadingStatus(loadedChapter)))
+                }
+
+                changeIndex(loadedChapter, updateArea = false)
+
+                updateIndexAsync(loadedChapter, notify = false)
+
+                val char = getKey(
+                    EPUB_CURRENT_POSITION_SCROLL_CHAR, book.title()
+                ) ?: 0
+
+                val innerIndex = innerCharToIndex(currentIndex, char) ?: 0
+
+                changeIndex(ScrollIndex(currentIndex, innerIndex), updateArea = false)
+
+                // notify once because initial load is 3 chapters I don't care about 10 notifications when the user cant see it
+                notifyChapterUpdate(index = loadedChapter)
+
+                _loadingStatus.postValue(
+                    Resource.Success(true)
+                )
             }
 
             is Resource.Failure -> {
@@ -409,7 +531,7 @@ class ReadActivityViewModel : ViewModel() {
 
         updateChapters()
 
-        Markwon.builder(context) // automatically create Glide instance
+        markwon = Markwon.builder(context) // automatically create Glide instance
             //.usePlugin(GlideImagesPlugin.create(context)) // use supplied Glide instance
             //.usePlugin(GlideImagesPlugin.create(Glide.with(context))) // if you need more control
             .usePlugin(HtmlPlugin.create { plugin -> plugin.excludeDefaults(false) })
@@ -521,7 +643,9 @@ class ReadActivityViewModel : ViewModel() {
     }
 
     private fun initTTSSession(context: Context) {
-        ttsSession = TTSSession(context, ::parseAction)
+        runOnMainThread {
+            ttsSession = TTSSession(context, ::parseAction)
+        }
     }
 
     fun startTTS() {
@@ -534,6 +658,51 @@ class ReadActivityViewModel : ViewModel() {
 
     fun parseAction(input: TTSHelper.TTSActionType): Boolean {
         return true
+    }
+
+    private fun innerIndexToChar(index: Int, innerIndex: Int?): Int? {
+        return chapterData[index]?.letInner { live ->
+            innerIndex?.let { live.spans.getOrNull(innerIndex)?.start }
+        }
+    }
+
+    private fun innerCharToIndex(index: Int, char: Int): Int? {
+        return chapterData[index]?.letInner { live ->
+            live.spans.firstOrNull { it.start >= char }?.innerIndex
+        }
+    }
+
+    private fun changeIndex(index: ScrollIndex, updateArea: Boolean = true) {
+        desiredIndex = index
+        changeIndex(index.index, updateArea)
+        innerIndexToChar(index.index, index.innerIndex)?.let { char ->
+            setKey(EPUB_CURRENT_POSITION_SCROLL_CHAR, book.title(), char)
+        }
+    }
+
+    private fun changeIndex(index: Int, updateArea: Boolean = true) {
+        val realNewIndex = minOf(index, book.size() - 1)
+        if (currentIndex == realNewIndex) return
+        setKey(EPUB_CURRENT_POSITION, book.title(), realNewIndex)
+        currentIndex = realNewIndex
+        if (updateArea) updateReadArea()
+        _chapterTile.postValue(chaptersTitlesInternal[realNewIndex])
+    }
+
+    fun onScroll(visibility: ScrollVisibilityIndex?) {
+        if (visibility == null) return
+
+        // dynamically increase padding in case of very small chapters with a maximum of 10 chapters
+        chapterPadding = minOf(
+            maxOf(
+                chapterPadding,
+                kotlin.math.abs(visibility.lastVisible.index - visibility.firstVisible.index)
+            ), 5
+        )
+
+        changeIndex(visibility.firstVisible)
+        updateIndex(visibility.firstVisible.index)
+        updateIndex(visibility.lastVisible.index)
     }
 
     override fun onCleared() {

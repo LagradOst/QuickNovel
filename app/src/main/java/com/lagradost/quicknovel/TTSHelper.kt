@@ -16,8 +16,8 @@ import com.lagradost.quicknovel.receivers.BecomingNoisyReceiver
 import com.lagradost.quicknovel.util.UIHelper.requestAudioFocus
 import io.noties.markwon.Markwon
 import org.jsoup.Jsoup
-import java.util.ArrayList
 import java.util.Stack
+import kotlin.collections.ArrayList
 
 class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boolean) {
     private val intentFilter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
@@ -37,9 +37,11 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
                 event(TTSHelper.TTSActionType.Pause)
             }
         }
+    private var isRegisterd = false
 
     fun register(context: Context?) {
-        if(context == null) return
+        if (context == null || isRegisterd) return
+        isRegisterd = true
         context.registerReceiver(myNoisyAudioStreamReceiver, intentFilter)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.requestAudioFocus(focusRequest)
@@ -47,7 +49,8 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
     }
 
     fun unregister(context: Context?) {
-        if(context == null) return
+        if (context == null || !isRegisterd) return
+        isRegisterd = false
         context.unregisterReceiver(myNoisyAudioStreamReceiver)
     }
 
@@ -66,6 +69,41 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
                 build()
             }
         }
+    }
+}
+
+data class TextSpan(
+    val text: Spanned,
+    val start: Int,
+    val end: Int,
+    override val index: Int,
+    override var innerIndex: Int,
+) : SpanDisplay() {
+    override fun id(): Long {
+        return ((index.toLong() * 10000L) + start) xor end.toLong()
+    }
+}
+
+abstract class SpanDisplay {
+    val id by lazy { id() }
+
+    abstract val index: Int
+    abstract val innerIndex: Int
+
+    protected abstract fun id(): Long
+}
+
+data class LoadingSpanned(val url: String?, override val index: Int) : SpanDisplay() {
+    override val innerIndex: Int = 0
+    override fun id(): Long {
+        return Long.MAX_VALUE - index.toLong()
+    }
+}
+
+data class FailedSpanned(val reason: String, override val index: Int) : SpanDisplay() {
+    override val innerIndex: Int = 0
+    override fun id(): Long {
+        return Long.MIN_VALUE + index.toLong()
     }
 }
 
@@ -88,6 +126,7 @@ object TTSHelper {
         Stop,
         Next,
     }
+
 
     fun initMediaSession(context: Context, event: (TTSActionType) -> Boolean): MediaSessionCompat {
         val mediaButtonReceiver = ComponentName(context, MediaButtonReceiver::class.java)
@@ -146,25 +185,51 @@ object TTSHelper {
         }
     }
 
-    private fun parseSpan(unsegmented: Spanned): List<Spanned> {
-        val spans: ArrayList<Spanned> = ArrayList()
+    private fun parseSpan(unsegmented: Spanned, index: Int): List<TextSpan> {
+        val spans: ArrayList<TextSpan> = ArrayList()
 
-        //get locations of '/n'
-        val loc = getNewLineLocations(unsegmented)
-        loc.push(unsegmented.length)
+        var currentOffset = 0
+        var innerIndex = 0
+        var nextIndex = unsegmented.indexOf('\n')
 
-        //divides up a span by each new line character position in loc
-        while (!loc.isEmpty()) {
-            val end = loc.pop()
-            val start = if (loc.isEmpty()) 0 else loc.peek()
-            spans.add(0, unsegmented.subSequence(start, end) as Spanned)
+        while (nextIndex != -1) {
+            // don't include duplicate newlines
+            if (currentOffset != nextIndex)
+                spans.add(
+                    TextSpan(
+                        unsegmented.subSequence(currentOffset, nextIndex) as Spanned,
+                        currentOffset,
+                        nextIndex,
+                        index,
+                        innerIndex
+                    )
+                )
+
+            innerIndex++
+            currentOffset = nextIndex + 1
+
+            nextIndex = unsegmented.indexOf('\n', currentOffset)
         }
+
+        if (currentOffset != unsegmented.length)
+            spans.add(
+                TextSpan(
+                    unsegmented.subSequence(currentOffset, unsegmented.length) as Spanned,
+                    currentOffset,
+                    unsegmented.length,
+                    index,
+                    innerIndex
+                )
+            )
+
         return spans
     }
 
     private fun getNewLineLocations(unsegmented: Spanned): Stack<Int> {
         val loc = Stack<Int>()
         val string = unsegmented.toString()
+
+
         var next = string.indexOf('\n')
         while (next > 0) {
             //avoid chains of newline characters
@@ -204,7 +269,7 @@ object TTSHelper {
         return text
     }
 
-    fun parseTextToSpans(html: String, markwon: Markwon): List<Spanned> {
+    fun parseTextToSpans(html: String, markwon: Markwon, index: Int): List<TextSpan> {
 
         //val index = html.indexOf("<body>")
 
@@ -218,7 +283,7 @@ object TTSHelper {
             )*/
             )
         )
-        return parseSpan(renderResult)
+        return parseSpan(renderResult, index = index)
     }
 
     private fun isValidSpeakOutMsg(msg: String): Boolean {

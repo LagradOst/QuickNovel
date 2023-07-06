@@ -346,7 +346,7 @@ object BookDownloader2Helper {
 
     fun openQuickStream(activity: Activity?, uri: Uri?) {
         if (uri == null || activity == null) return
-        val myIntent = Intent(activity, ReadActivity::class.java)
+        val myIntent = Intent(activity, ReadActivity2::class.java)
         myIntent.setDataAndType(uri, "quickstream")
         activity.startActivity(myIntent)
     }
@@ -1264,6 +1264,10 @@ object BookDownloader2 {
         setKey(
             EPUB_CURRENT_POSITION_SCROLL, newName,
             getKey<Int>(EPUB_CURRENT_POSITION_SCROLL, oldName)
+        )
+        setKey(
+            EPUB_CURRENT_POSITION_SCROLL_CHAR, newName,
+            getKey<Int>(EPUB_CURRENT_POSITION_SCROLL_CHAR, oldName)
         )
     }
 

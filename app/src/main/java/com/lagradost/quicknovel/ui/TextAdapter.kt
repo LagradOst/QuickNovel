@@ -1,32 +1,76 @@
 package com.lagradost.quicknovel.ui
 
-import android.text.Spanned
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.text.getSpans
-import androidx.core.text.toSpanned
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
+import com.lagradost.quicknovel.FailedSpanned
+import com.lagradost.quicknovel.LoadingSpanned
+import com.lagradost.quicknovel.ReadActivityViewModel
+import com.lagradost.quicknovel.SpanDisplay
+import com.lagradost.quicknovel.TextSpan
+import com.lagradost.quicknovel.databinding.SingleFailedBinding
 import com.lagradost.quicknovel.databinding.SingleImageBinding
+import com.lagradost.quicknovel.databinding.SingleLoadingBinding
 import com.lagradost.quicknovel.databinding.SingleTextBinding
 import com.lagradost.quicknovel.util.UIHelper.setImage
-import io.noties.markwon.SpannableBuilder
-import io.noties.markwon.core.spans.EmphasisSpan
 import io.noties.markwon.image.AsyncDrawableSpan
 
-// var spanned: Spanned
-class TextAdapter : ListAdapter<Spanned, TextAdapter.TextAdapterHolder>(DiffCallback()) {
+const val DRAW_DRAWABLE = 1
+const val DRAW_TEXT = 0
+const val DRAW_LOADING = 2
+const val DRAW_FAILED = 3
+
+data class ScrollVisibility(
+    val firstVisible: Int,
+    val firstFullyVisible: Int,
+    val lastVisible: Int,
+    val lastFullyVisible: Int,
+)
+
+data class ScrollIndex(
+    val index: Int,
+    val innerIndex : Int,
+)
+
+data class ScrollVisibilityIndex(
+    val firstVisible: ScrollIndex,
+    val firstFullyVisible: ScrollIndex,
+    val lastVisible: ScrollIndex,
+    val lastFullyVisible: ScrollIndex,
+)
+
+class TextAdapter(private val viewModel: ReadActivityViewModel) :
+    ListAdapter<SpanDisplay, TextAdapter.TextAdapterHolder>(DiffCallback()) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TextAdapterHolder {
         val inflater = LayoutInflater.from(parent.context)
         val binding: ViewBinding = when (viewType) {
-            0 -> SingleTextBinding.inflate(inflater, parent, false)
-            1 -> SingleImageBinding.inflate(inflater, parent, false)
+            DRAW_TEXT -> SingleTextBinding.inflate(inflater, parent, false)
+            DRAW_DRAWABLE -> SingleImageBinding.inflate(inflater, parent, false)
+            DRAW_LOADING -> SingleLoadingBinding.inflate(inflater, parent, false)
+            DRAW_FAILED -> SingleFailedBinding.inflate(inflater, parent, false)
             else -> throw NotImplementedError()
         }
 
-        return TextAdapterHolder(binding)
+        return TextAdapterHolder(binding, viewModel)
+    }
+
+    private fun transformIndexToScrollIndex(index: Int): ScrollIndex? {
+        if(index < 0||index >= itemCount) return null
+        val item = getItem(index)
+        return ScrollIndex(index = item.index, innerIndex = item.innerIndex)
+    }
+
+    fun getIndex(data: ScrollVisibility): ScrollVisibilityIndex? {
+        return ScrollVisibilityIndex(
+            firstVisible = transformIndexToScrollIndex(data.firstVisible) ?: return null,
+            firstFullyVisible = transformIndexToScrollIndex(data.firstFullyVisible) ?: return null,
+            lastFullyVisible = transformIndexToScrollIndex(data.lastFullyVisible) ?: return null,
+            lastVisible = transformIndexToScrollIndex(data.lastVisible) ?: return null,
+        )
     }
 
     override fun onBindViewHolder(holder: TextAdapterHolder, position: Int) {
@@ -35,49 +79,111 @@ class TextAdapter : ListAdapter<Spanned, TextAdapter.TextAdapterHolder>(DiffCall
     }
 
     override fun getItemViewType(position: Int): Int {
-        val item = getItem(position)
+        return when (val item = getItem(position)) {
+            is TextSpan -> {
+                if (item.text.getSpans<AsyncDrawableSpan>(0, item.text.length).isNotEmpty()) {
+                    DRAW_DRAWABLE
+                } else {
+                    DRAW_TEXT
+                }
+            }
 
-        if (item.getSpans<AsyncDrawableSpan>(0, item.length).isNotEmpty()) {
-            return 1
+            is LoadingSpanned -> {
+                DRAW_LOADING
+            }
+
+            is FailedSpanned -> {
+                DRAW_FAILED
+            }
+
+            else -> throw NotImplementedError()
         }
-
-        return 0
     }
 
-    class TextAdapterHolder(private val binding: ViewBinding) :
+    override fun getItemId(position: Int): Long {
+        return getItem(position).id
+    }
+
+    class TextAdapterHolder(private val binding: ViewBinding, private val viewModel: ReadActivityViewModel) :
         RecyclerView.ViewHolder(binding.root) {
-        fun bind(obj: Spanned) {
-            binding.apply {
-                when (binding) {
-                    is SingleImageBinding -> {
-                        val img = obj.getSpans<AsyncDrawableSpan>(0, obj.length)[0]
-                        img.drawable.result?.let { drawable ->
-                            binding.root.setImageDrawable(drawable)
-                        } ?: kotlin.run {
-                            binding.root.setImage(img.drawable.destination)
-                        }
-                    }
 
-                    is SingleTextBinding -> {
-                        /*val start = spanned.getSpanStart(obj)
-                                val end = spanned.getSpanEnd(obj)
-
-                                println("SPAN: $start->$end ${spanned.substring(start,end)}")
-                                val builder = SpannableBuilder(spanned.substring(start,end))
-                                builder.setSpan(obj,0, builder.length)*/
-                        binding.root.text = obj
-                    }
-
-                    else -> {
-                        throw NotImplementedError()
+        private fun bindText(obj: TextSpan) {
+            when (binding) {
+                is SingleImageBinding -> {
+                    val img = obj.text.getSpans<AsyncDrawableSpan>(0, obj.text.length)[0]
+                    img.drawable.result?.let { drawable ->
+                        binding.root.setImageDrawable(drawable)
+                    } ?: kotlin.run {
+                        binding.root.setImage(img.drawable.destination)
                     }
                 }
+
+                is SingleTextBinding -> {
+                    binding.root.text = obj.text
+                }
+
+                else -> throw NotImplementedError()
+            }
+        }
+
+        private fun bindLoading(obj: LoadingSpanned) {
+            if (binding !is SingleLoadingBinding) throw NotImplementedError()
+            binding.root.text = obj.url?.let { "Loading $it" } ?: "Loading"
+        }
+
+        private fun bindFailed(obj: FailedSpanned) {
+            if (binding !is SingleFailedBinding) throw NotImplementedError()
+            binding.root.text = obj.reason
+        }
+
+        fun bind(obj: SpanDisplay) {
+            binding.root.setOnClickListener {
+                viewModel.switchVisibility()
+            }
+            when (obj) {
+                is TextSpan -> {
+                    this.bindText(obj)
+                }
+
+                is LoadingSpanned -> {
+                    this.bindLoading(obj)
+                }
+
+                is FailedSpanned -> {
+                    this.bindFailed(obj)
+                }
+
+                else -> throw NotImplementedError()
             }
         }
     }
 
-    class DiffCallback : DiffUtil.ItemCallback<Spanned>() {
-        override fun areItemsTheSame(oldItem: Spanned, newItem: Spanned): Boolean = oldItem == newItem
-        override fun areContentsTheSame(oldItem: Spanned, newItem: Spanned): Boolean = oldItem == newItem
+    class DiffCallback : DiffUtil.ItemCallback<SpanDisplay>() {
+        override fun areItemsTheSame(oldItem: SpanDisplay, newItem: SpanDisplay): Boolean =
+            oldItem.id == newItem.id
+
+        override fun areContentsTheSame(oldItem: SpanDisplay, newItem: SpanDisplay): Boolean {
+            return when (oldItem) {
+                is TextSpan -> {
+                    if (newItem !is TextSpan) return false
+                    // don't check the span content as that does not change
+                    return newItem.end == oldItem.end && newItem.start == oldItem.start && newItem.index != oldItem.index
+                }
+
+                is LoadingSpanned -> {
+                    if (newItem !is LoadingSpanned) return false
+
+                    newItem != oldItem
+                }
+
+                is FailedSpanned -> {
+                    if (newItem !is FailedSpanned) return false
+
+                    newItem != oldItem
+                }
+
+                else -> throw NotImplementedError()
+            }
+        }
     }
 }

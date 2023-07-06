@@ -144,13 +144,22 @@ fun CoroutineScope.launchSafe(
     return this.launch(context, start, obj)
 }
 
-fun <T,V> Resource<T>.map(transform : (T) -> V) : Resource<V> {
+suspend fun <T, V> Resource<T>.map(transform : suspend (T) -> V) : Resource<V> {
     return when(this) {
         is Resource.Failure -> Resource.Failure(this.isNetworkError,this.errorCode,this.errorResponse,this.errorString)
         is Resource.Loading -> Resource.Loading(this.url)
         is Resource.Success -> {
             Resource.Success(transform(this.value))
         }
+    }
+}
+
+fun <T, V> Resource<T>?.letInner(transform : (T) -> V) : V? {
+    return when(this) {
+        is Resource.Success -> {
+            transform(this.value)
+        }
+        else -> null
     }
 }
 

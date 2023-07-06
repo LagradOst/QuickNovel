@@ -115,7 +115,18 @@
                 <data android:mimeType="application/epub+zip" />
             </intent-filter>
         </activity>
+        <activity
+                android:name=".ReadActivity2"
+                android:exported="true"
+                android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
 
+                <data android:scheme="content" />
+                <data android:mimeType="application/epub+zip" />
+            </intent-filter>
+        </activity>
         <service
                 android:name=".services.DownloadService"
                 android:enabled="true"

@@ -33,6 +33,24 @@
                 android:layout_height="match_parent" />
     </FrameLayout>
 
+    <FrameLayout
+            tools:visibility="visible"
+            android:id="@+id/read_fail"
+            android:visibility="gone"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+        <TextView
+                android:id="@+id/fail_text"
+                android:layout_marginTop="50dp"
+                android:gravity="center"
+                android:layout_gravity="center"
+                android:textColor="@color/colorPrimary"
+                tools:text="@string/delete"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+    </FrameLayout>
+
 
     <FrameLayout
             android:alpha="0"
@@ -53,11 +71,26 @@
                 android:orientation="vertical">
 
             <View
+                    android:visibility="gone"
                     android:id="@+id/read_topmargin"
                     android:layout_width="match_parent"
                     android:layout_height="0dp" />
 
+
+            <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/real_text"
+                    android:paddingLeft="20dp"
+                    android:paddingRight="20dp"
+                    android:paddingBottom="25dp"
+
+                    tools:listitem="@layout/single_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+            </androidx.recyclerview.widget.RecyclerView>
+
             <ScrollView
+                    android:visibility="gone"
                     android:id="@+id/read_scroll"
                     android:layout_width="match_parent"
                     android:clickable="false"
@@ -150,18 +183,6 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content" />
 
-                        <androidx.recyclerview.widget.RecyclerView
-                                android:visibility="gone"
-                                android:id="@+id/real_text"
-                                android:paddingLeft="20dp"
-                                android:paddingRight="20dp"
-                                android:paddingBottom="25dp"
-                                android:paddingTop="25dp"
-                                tools:listitem="@layout/single_text"
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent">
-
-                        </androidx.recyclerview.widget.RecyclerView>
                     </LinearLayout>
                 </FrameLayout>
                 <!-- android:textSize="10sp" -->
