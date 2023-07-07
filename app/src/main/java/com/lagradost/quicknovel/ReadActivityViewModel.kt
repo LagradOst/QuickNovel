@@ -12,6 +12,7 @@ import androidx.annotation.WorkerThread
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.load.model.GlideUrl
@@ -24,8 +25,10 @@ import com.lagradost.quicknovel.BookDownloader2Helper.getQuickChapter
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.TTSHelper.parseTextToSpans
 import com.lagradost.quicknovel.TTSHelper.preParseHtml
+import com.lagradost.quicknovel.TTSHelper.render
 import com.lagradost.quicknovel.TTSHelper.ttsParseText
 import com.lagradost.quicknovel.mvvm.Resource
+import com.lagradost.quicknovel.mvvm.launchSafe
 import com.lagradost.quicknovel.mvvm.letInner
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.map
@@ -44,6 +47,7 @@ import io.noties.markwon.html.HtmlPlugin
 import io.noties.markwon.image.AsyncDrawable
 import io.noties.markwon.image.ImageSizeResolver
 import io.noties.markwon.image.glide.GlideImagesPlugin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import nl.siegmann.epublib.domain.Book
@@ -237,6 +241,11 @@ class ReadActivityViewModel : ViewModel() {
         MutableLiveData<TTSHelper.TTSStatus>(TTSHelper.TTSStatus.IsStopped)
     val ttsStatus: LiveData<TTSHelper.TTSStatus> = _ttsStatus
 
+
+    private val _ttsLine: MutableLiveData<TTSHelper.TTSLine?> =
+        MutableLiveData<TTSHelper.TTSLine?>(null)
+    val ttsLine: LiveData<TTSHelper.TTSLine?> = _ttsLine
+
     fun switchVisibility() {
         _bottomVisibility.postValue(!(_bottomVisibility.value ?: false))
     }
@@ -258,7 +267,7 @@ class ReadActivityViewModel : ViewModel() {
     private val requested: HashSet<Int> = hashSetOf()
 
     private val loading: HashSet<Int> = hashSetOf()
-    private val chapterData: HashMap<Int, Resource<LiveChapterData>> = hashMapOf()
+    private val chapterData: HashMap<Int, Resource<LiveChapterData>?> = hashMapOf()
     private val hasExpanded: HashSet<Int> = hashSetOf()
 
     private var currentIndex = Int.MIN_VALUE
@@ -377,8 +386,13 @@ class ReadActivityViewModel : ViewModel() {
         // if we are still out of bounds then return no more chapters
         if (index >= book.size()) {
             chapterMutex.withLock {
-                chapterData[index] =
-                    Resource.Failure(false, null, null, "No more chapters")
+                // only push one no more chapters
+                if (index == book.size()) {
+                    chapterData[index] =
+                        Resource.Failure(false, null, null, "No more chapters") // TODO STRING RES
+                } else {
+                    chapterData[index] = null
+                }
                 loading -= index
                 if (notify) notifyChapterUpdate(index)
             }
@@ -396,11 +410,14 @@ class ReadActivityViewModel : ViewModel() {
             book.getChapterData(index, reload)
         }.map { text ->
             val rawText = preParseHtml(text)
+
+            val render = markwonMutex.withLock { render(rawText, markwon) }
+
             LiveChapterData(
                 rawText = rawText,
-                spans = markwonMutex.withLock { parseTextToSpans(rawText, markwon, index) },
+                spans = parseTextToSpans(render, index),
                 title = book.getChapterTitle(index),
-                ttsLines = ttsParseText(rawText)
+                ttsLines = ttsParseText(render.substring(0, render.length), index)
             )
         }
 
@@ -411,47 +428,6 @@ class ReadActivityViewModel : ViewModel() {
             if (notify) notifyChapterUpdate(index)
         }
     }
-
-    /*private var hasTriedExpand: Boolean = false
-    fun loadChapter(index: Int, reload: Boolean = false) = ioSafe {
-        if (index >= book.size()) {
-            try {
-                // we assume that the text is cached
-                book.expand(book.getChapterData(book.size() - 1, reload = false))
-            } catch (t: Throwable) {
-                logError(t)
-            }
-
-            hasTriedExpand = true
-        }
-
-        if (index >= book.size()) {
-            showToast("No more chapters", Toast.LENGTH_SHORT)
-            return@ioSafe
-        }
-
-        updateChapters()
-
-        _chapter.postValue(Resource.Loading(book.getLoadingStatus(index)))
-
-        val result = safeApiCall {
-            book.getChapterData(index, reload)
-        }
-
-        result.map { text ->
-            val rawText = preParseHtml(text)
-            LiveChapterData(
-                rawText = rawText,
-                spans = parseTextToSpans(rawText, markwon),
-                title = book.getChapterTitle(index),
-                ttsLines = ttsParseText(rawText)
-            )
-        }.let { newChapter ->
-            _chapter.postValue(newChapter)
-        }
-        hasTriedExpand = false
-    }*/
-
 
     fun init(intent: Intent?, context: ReadActivity2) = ioSafe {
         _loadingStatus.postValue(Resource.Loading())
@@ -586,65 +562,6 @@ class ReadActivityViewModel : ViewModel() {
     // ========================================  TTS STUFF ========================================
 
     lateinit var ttsSession: TTSSession
-    private var tts: TextToSpeech? = null
-
-    private fun requireTTS(callback: (TextToSpeech) -> Unit) {
-        tts?.let(callback) ?: run {
-            val pendingTTS = TextToSpeech(context ?: return) { status ->
-                if (status == TextToSpeech.SUCCESS) {
-                    return@TextToSpeech
-                }
-                val errorMSG = when (status) {
-                    TextToSpeech.ERROR -> "ERROR"
-                    TextToSpeech.ERROR_INVALID_REQUEST -> "ERROR_INVALID_REQUEST"
-                    TextToSpeech.ERROR_NETWORK -> "ERROR_NETWORK"
-                    TextToSpeech.ERROR_NETWORK_TIMEOUT -> "ERROR_NETWORK_TIMEOUT"
-                    TextToSpeech.ERROR_NOT_INSTALLED_YET -> "ERROR_NOT_INSTALLED_YET"
-                    TextToSpeech.ERROR_OUTPUT -> "ERROR_OUTPUT"
-                    TextToSpeech.ERROR_SYNTHESIS -> "ERROR_SYNTHESIS"
-                    TextToSpeech.ERROR_SERVICE -> "ERROR_SERVICE"
-                    else -> status.toString()
-                }
-
-                showToast("Initialization Failed! Error $errorMSG")
-                return@TextToSpeech
-            }
-
-            val voiceName = getKey<String>(EPUB_VOICE)
-            val langName = getKey<String>(EPUB_LANG)
-
-            val canSetLanguage = pendingTTS.setLanguage(
-                pendingTTS.availableLanguages.firstOrNull { it.displayName == langName }
-                    ?: Locale.US)
-            pendingTTS.voice =
-                pendingTTS.voices.firstOrNull { it.name == voiceName } ?: pendingTTS.defaultVoice
-
-            if (canSetLanguage == TextToSpeech.LANG_MISSING_DATA || canSetLanguage == TextToSpeech.LANG_NOT_SUPPORTED) {
-                showToast("Unable to initialize TTS, download the language")
-                return
-            }
-
-            pendingTTS.setOnUtteranceProgressListener(object :
-                UtteranceProgressListener() {
-                //MIGHT BE INTERESTING https://stackoverflow.com/questions/44461533/android-o-new-texttospeech-onrangestart-callback
-                override fun onDone(utteranceId: String) {
-
-                }
-
-                @Deprecated("Deprecated")
-                override fun onError(utteranceId: String?) {
-                }
-
-                override fun onError(utteranceId: String?, errorCode: Int) {
-
-                }
-
-                override fun onStart(utteranceId: String) {
-
-                }
-            })
-        }
-    }
 
     private fun initTTSSession(context: Context) {
         runOnMainThread {
@@ -652,22 +569,186 @@ class ReadActivityViewModel : ViewModel() {
         }
     }
 
-    fun startTTS() {
-        ttsSession.register(context)
-    }
+    private var pendingTTSSkip: Int = 0
+    private var _CurrentTTSStatus: TTSHelper.TTSStatus = TTSHelper.TTSStatus.IsStopped
+    var CurrentTTSStatus: TTSHelper.TTSStatus
+        get() = _CurrentTTSStatus
+        set(value) {
+            if (_CurrentTTSStatus == TTSHelper.TTSStatus.IsStopped && value == TTSHelper.TTSStatus.IsRunning) {
+                startTTSThread()
+            } else if (_CurrentTTSStatus == TTSHelper.TTSStatus.IsRunning && value == TTSHelper.TTSStatus.IsStopped) {
+                ioSafe {
+                    ttsSession.interruptTTS()
+                }
+            }
+
+            _ttsStatus.postValue(value)
+            _CurrentTTSStatus = value
+        }
 
     fun stopTTS() {
-        ttsSession.unregister(context)
+        CurrentTTSStatus = TTSHelper.TTSStatus.IsStopped
+    }
+
+    fun pauseTTS() {
+        CurrentTTSStatus = TTSHelper.TTSStatus.IsPaused
+    }
+
+    fun startTTS() {
+        CurrentTTSStatus = TTSHelper.TTSStatus.IsRunning
+    }
+
+    fun forwardsTTS() {
+        pendingTTSSkip += 1
+    }
+
+    fun backwardsTTS() {
+        pendingTTSSkip -= 1
+    }
+
+    fun pausePlayTTS() {
+        if (CurrentTTSStatus == TTSHelper.TTSStatus.IsRunning) {
+            CurrentTTSStatus = TTSHelper.TTSStatus.IsPaused
+        }
+        if (CurrentTTSStatus == TTSHelper.TTSStatus.IsPaused) {
+            CurrentTTSStatus = TTSHelper.TTSStatus.IsRunning
+        }
+    }
+
+    fun isTTSRunning() : Boolean {
+        return CurrentTTSStatus == TTSHelper.TTSStatus.IsRunning
+    }
+
+    private val ttsThreadMutex = Mutex()
+    private fun startTTSThread() = ioSafe {
+        if (ttsThreadMutex.isLocked) return@ioSafe
+        ttsThreadMutex.withLock {
+            ttsSession.register(context)
+
+            val dIndex = desiredIndex
+            var innerIndex = 0
+            var index = dIndex.index
+
+            let {
+                val startChar = innerIndexToChar(dIndex.index, dIndex.innerIndex)?.let { char ->
+                    char + (dIndex.firstVisibleChar ?: 0)
+                } ?: 0
+
+                val lines = chapterMutex.withLock {
+                    chapterData[index].letInner {
+                        it.ttsLines
+                    }
+                } ?: run {
+                    // in case of error just go to the next chapter
+                    index++
+                    return@let
+                }
+
+                val idx = lines.indexOfFirst { it.startIndex >= startChar }
+                if (idx != -1)
+                    innerIndex = idx
+            }
+
+            while (true) {
+                if (CurrentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
+                val lines = when (val currentData = chapterMutex.withLock { chapterData[index] }) {
+                    null -> {
+                        showToast("Got null data")
+                        break
+                    }
+
+                    is Resource.Failure -> {
+                        showToast(currentData.errorString)
+                        break
+                    }
+
+                    is Resource.Loading -> {
+                        if (CurrentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
+                        delay(100)
+                        continue
+                    }
+
+                    is Resource.Success -> {
+                        currentData.value.ttsLines
+                    }
+                }
+
+                // this is because if you go back one line you will be on the previous chapter with
+                // a negative innerIndex, this makes the wrapping good
+                if(innerIndex < 0) {
+                    innerIndex += lines.size
+                }
+
+                updateIndex(index)
+
+                // speak all lines
+                while (innerIndex < lines.size && innerIndex >= 0) {
+                    if (CurrentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
+
+                    val line = lines[innerIndex]
+                    val nextLine = lines.getOrNull(innerIndex + 1)
+                    _ttsLine.postValue(line)
+                    val waitFor = ttsSession.speak(line, nextLine)
+                    ttsSession.waitForOr(waitFor) {
+                        CurrentTTSStatus != TTSHelper.TTSStatus.IsRunning || pendingTTSSkip != 0
+                    }
+
+                    while (CurrentTTSStatus == TTSHelper.TTSStatus.IsPaused) {
+                        delay(100)
+                    }
+
+                    if (pendingTTSSkip != 0) {
+                        innerIndex += pendingTTSSkip
+                        pendingTTSSkip = 0
+                    } else {
+                        innerIndex += 1
+                    }
+                }
+                if (CurrentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
+
+                if(innerIndex > 0) {
+                    // goto next chapter and set inner to 0
+                    index++
+                    innerIndex = 0
+                } else if (index > 0) {
+                    index--
+                } else {
+                    innerIndex = 0
+                }
+            }
+
+            ttsSession.unregister(context)
+            _ttsLine.postValue(null)
+        }
     }
 
     fun parseAction(input: TTSHelper.TTSActionType): Boolean {
+        // validate that the action makes sense
+        if (
+            (CurrentTTSStatus == TTSHelper.TTSStatus.IsPaused && input == TTSHelper.TTSActionType.Pause) ||
+            (CurrentTTSStatus != TTSHelper.TTSStatus.IsPaused && input == TTSHelper.TTSActionType.Resume) ||
+            (CurrentTTSStatus == TTSHelper.TTSStatus.IsStopped && input == TTSHelper.TTSActionType.Stop) ||
+            (CurrentTTSStatus != TTSHelper.TTSStatus.IsRunning && input == TTSHelper.TTSActionType.Next)
+        ) {
+            return false
+        }
+
+        when(input) {
+            TTSHelper.TTSActionType.Pause -> pauseTTS()
+            TTSHelper.TTSActionType.Resume -> startTTS()
+            TTSHelper.TTSActionType.Stop -> stopTTS()
+            TTSHelper.TTSActionType.Next -> forwardsTTS()
+        }
+
         return true
     }
 
-    private fun innerIndexToChar(index: Int, innerIndex: Int?): Int? {
-        return chapterData[index]?.letInner { live ->
-            innerIndex?.let {
-                live.spans.getOrNull(innerIndex)?.start
+    private suspend fun innerIndexToChar(index: Int, innerIndex: Int?): Int? {
+        return chapterMutex.withLock {
+            chapterData[index]?.letInner { live ->
+                innerIndex?.let {
+                    live.spans.getOrNull(innerIndex)?.start
+                }
             }
         }
     }
@@ -681,8 +762,14 @@ class ReadActivityViewModel : ViewModel() {
     private fun changeIndex(index: ScrollIndex, updateArea: Boolean = true) {
         desiredIndex = index
         changeIndex(index.index, updateArea)
-        innerIndexToChar(index.index, index.innerIndex)?.let { char ->
-            setKey(EPUB_CURRENT_POSITION_SCROLL_CHAR, book.title(), char)
+        ioSafe {
+            innerIndexToChar(index.index, index.innerIndex)?.let { char ->
+                setKey(
+                    EPUB_CURRENT_POSITION_SCROLL_CHAR,
+                    book.title(),
+                    char + (index.firstVisibleChar ?: 0)
+                )
+            }
         }
     }
 
@@ -699,24 +786,16 @@ class ReadActivityViewModel : ViewModel() {
         if (visibility == null) return
 
         // dynamically increase padding in case of very small chapters with a maximum of 10 chapters
-        //val bottom = visibility.firstVisible.index
         val index = visibility.firstVisible.index
         val top = visibility.lastVisible.index
 
         chapterPaddingTop = minOf(10, maxOf(chapterPaddingTop, (top - index) + 1))
 
-
-        /*chapterPadding = minOf(
-            maxOf(
-                chapterPadding,
-                kotlin.math.abs(visibility.lastVisible.index - visibility.firstVisible.index)
-            ), 5
-        )*/
-
         changeIndex(visibility.firstVisible)
         updateIndex(visibility.firstVisible.index)
         updateIndex(visibility.lastVisible.index)
     }
+
 
     override fun onCleared() {
         ttsSession.unregister(context)

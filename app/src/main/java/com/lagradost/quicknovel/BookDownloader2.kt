@@ -454,7 +454,7 @@ object BookDownloader2Helper {
                 true
             ))
         ) {
-            val myIntent = Intent(activity, ReadActivity::class.java)
+            val myIntent = Intent(activity, ReadActivity2::class.java)
 
             val relativePath = (Environment.DIRECTORY_DOWNLOADS + "${fs}Epub${fs}")
             val displayName = "${sanitizeFilename(name)}.epub"

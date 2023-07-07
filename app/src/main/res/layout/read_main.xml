@@ -76,6 +76,11 @@
                     android:layout_width="match_parent"
                     android:layout_height="0dp" />
 
+            <View
+                    android:id="@+id/read_top_item"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp">
+            </View>
 
             <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/real_text"
@@ -88,7 +93,11 @@
                     android:layout_height="match_parent">
 
             </androidx.recyclerview.widget.RecyclerView>
-
+            <View
+                    android:id="@+id/read_bottom_item"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp">
+            </View>
             <ScrollView
                     android:visibility="gone"
                     android:id="@+id/read_scroll"
