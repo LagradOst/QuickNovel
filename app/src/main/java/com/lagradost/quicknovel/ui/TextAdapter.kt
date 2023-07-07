@@ -7,12 +7,14 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
+import com.lagradost.quicknovel.ChapterStartSpanned
 import com.lagradost.quicknovel.FailedSpanned
 import com.lagradost.quicknovel.LoadingSpanned
 import com.lagradost.quicknovel.ReadActivityViewModel
 import com.lagradost.quicknovel.SpanDisplay
 import com.lagradost.quicknovel.TextSpan
 import com.lagradost.quicknovel.databinding.SingleFailedBinding
+import com.lagradost.quicknovel.databinding.SingleFinishedChapterBinding
 import com.lagradost.quicknovel.databinding.SingleImageBinding
 import com.lagradost.quicknovel.databinding.SingleLoadingBinding
 import com.lagradost.quicknovel.databinding.SingleTextBinding
@@ -23,6 +25,7 @@ const val DRAW_DRAWABLE = 1
 const val DRAW_TEXT = 0
 const val DRAW_LOADING = 2
 const val DRAW_FAILED = 3
+const val DRAW_CHAPTER = 4
 
 data class ScrollVisibility(
     val firstVisible: Int,
@@ -33,7 +36,7 @@ data class ScrollVisibility(
 
 data class ScrollIndex(
     val index: Int,
-    val innerIndex : Int,
+    val innerIndex: Int,
 )
 
 data class ScrollVisibilityIndex(
@@ -52,6 +55,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
             DRAW_DRAWABLE -> SingleImageBinding.inflate(inflater, parent, false)
             DRAW_LOADING -> SingleLoadingBinding.inflate(inflater, parent, false)
             DRAW_FAILED -> SingleFailedBinding.inflate(inflater, parent, false)
+            DRAW_CHAPTER -> SingleFinishedChapterBinding.inflate(inflater, parent, false)
             else -> throw NotImplementedError()
         }
 
@@ -59,7 +63,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
     }
 
     private fun transformIndexToScrollIndex(index: Int): ScrollIndex? {
-        if(index < 0||index >= itemCount) return null
+        if (index < 0 || index >= itemCount) return null
         val item = getItem(index)
         return ScrollIndex(index = item.index, innerIndex = item.innerIndex)
     }
@@ -96,6 +100,10 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
                 DRAW_FAILED
             }
 
+            is ChapterStartSpanned -> {
+                DRAW_CHAPTER
+            }
+
             else -> throw NotImplementedError()
         }
     }
@@ -104,21 +112,30 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
         return getItem(position).id
     }
 
-    class TextAdapterHolder(private val binding: ViewBinding, private val viewModel: ReadActivityViewModel) :
+    class TextAdapterHolder(
+        private val binding: ViewBinding,
+        private val viewModel: ReadActivityViewModel
+    ) :
         RecyclerView.ViewHolder(binding.root) {
 
         private fun bindText(obj: TextSpan) {
             when (binding) {
                 is SingleImageBinding -> {
                     val img = obj.text.getSpans<AsyncDrawableSpan>(0, obj.text.length)[0]
+                    val url = img.drawable.destination
+                    if(binding.root.url == url) return
+                    binding.root.url = url // don't reload if already set
                     img.drawable.result?.let { drawable ->
                         binding.root.setImageDrawable(drawable)
                     } ?: kotlin.run {
-                        binding.root.setImage(img.drawable.destination)
+                        binding.root.setImage(url)
                     }
                 }
 
                 is SingleTextBinding -> {
+                    binding.root.setOnClickListener {
+                        viewModel.switchVisibility()
+                    }
                     binding.root.text = obj.text
                 }
 
@@ -129,17 +146,28 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
         private fun bindLoading(obj: LoadingSpanned) {
             if (binding !is SingleLoadingBinding) throw NotImplementedError()
             binding.root.text = obj.url?.let { "Loading $it" } ?: "Loading"
+            binding.root.setOnClickListener {
+                viewModel.switchVisibility()
+            }
         }
 
         private fun bindFailed(obj: FailedSpanned) {
             if (binding !is SingleFailedBinding) throw NotImplementedError()
             binding.root.text = obj.reason
-        }
-
-        fun bind(obj: SpanDisplay) {
             binding.root.setOnClickListener {
                 viewModel.switchVisibility()
             }
+        }
+
+        private fun bindChapter(obj: ChapterStartSpanned) {
+            if (binding !is SingleFinishedChapterBinding) throw NotImplementedError()
+            binding.root.text = obj.name // TODO TEXT STRING
+            binding.root.setOnClickListener {
+                viewModel.switchVisibility()
+            }
+        }
+
+        fun bind(obj: SpanDisplay) {
             when (obj) {
                 is TextSpan -> {
                     this.bindText(obj)
@@ -151,6 +179,10 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
 
                 is FailedSpanned -> {
                     this.bindFailed(obj)
+                }
+
+                is ChapterStartSpanned -> {
+                    this.bindChapter(obj)
                 }
 
                 else -> throw NotImplementedError()
@@ -173,13 +205,19 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
                 is LoadingSpanned -> {
                     if (newItem !is LoadingSpanned) return false
 
-                    newItem != oldItem
+                    newItem.id == oldItem.id && newItem.url == oldItem.url
                 }
 
                 is FailedSpanned -> {
                     if (newItem !is FailedSpanned) return false
 
-                    newItem != oldItem
+                     newItem.id == oldItem.id && newItem.reason == oldItem.reason
+                }
+
+                is ChapterStartSpanned -> {
+                    if (newItem !is ChapterStartSpanned) return false
+
+                    newItem.id == oldItem.id && oldItem.name == newItem.name
                 }
 
                 else -> throw NotImplementedError()

@@ -6,12 +6,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.media.AudioManager
+import android.content.res.Configuration
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
-import android.os.PersistableBundle
-import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import androidx.activity.viewModels
@@ -23,24 +21,15 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
-import androidx.fragment.app.viewModels
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.fasterxml.jackson.module.kotlin.readValue
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
-import com.lagradost.quicknovel.DataStore.setKey
-import com.lagradost.quicknovel.TTSHelper.initMediaSession
 import com.lagradost.quicknovel.databinding.ReadMainBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.observe
-import com.lagradost.quicknovel.receivers.BecomingNoisyReceiver
 import com.lagradost.quicknovel.ui.ScrollVisibility
 import com.lagradost.quicknovel.ui.TextAdapter
-import com.lagradost.quicknovel.ui.mainpage.MainPageViewModel
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
-import com.lagradost.quicknovel.util.toPx
-import nl.siegmann.epublib.epub.EpubReader
 import java.lang.ref.WeakReference
 
 class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
@@ -176,6 +165,34 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         return viewModel.parseAction(input)
     }
 
+    private lateinit var textAdapter: TextAdapter
+    private lateinit var textLayoutManager: LinearLayoutManager
+
+    fun onScroll() {
+        val visibility = ScrollVisibility(
+            firstVisible = textLayoutManager.findFirstVisibleItemPosition(),
+            firstFullyVisible = textLayoutManager.findFirstCompletelyVisibleItemPosition(),
+            lastVisible = textLayoutManager.findLastVisibleItemPosition(),
+            lastFullyVisible = textLayoutManager.findLastCompletelyVisibleItemPosition()
+        )
+        viewModel.onScroll(textAdapter.getIndex(visibility))
+    }
+
+    private var cachedChapter : List<SpanDisplay> = emptyList()
+    private fun scrollToDesired() {
+        val desired = viewModel.desiredIndex
+        val index =
+            cachedChapter.indexOfFirst { display -> display.index == desired.index && display.innerIndex == desired.innerIndex }
+        if (index > 0) {
+            textLayoutManager.scrollToPositionWithOffset(index, 0)
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        scrollToDesired()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         CommonActivity.loadThemes(this)
         super.onCreate(savedInstanceState)
@@ -185,6 +202,13 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         registerBattery()
 
         viewModel.init(intent, this)
+
+        textAdapter = TextAdapter(viewModel).apply {
+            setHasStableIds(true)
+        }
+        textLayoutManager = LinearLayoutManager(binding.realText.context)
+
+
 
         observe(viewModel.title) { title ->
             binding.readToolbar.title = title
@@ -269,10 +293,6 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             }
         }
 
-        val textAdapter = TextAdapter(viewModel).apply {
-            setHasStableIds(true)
-        }
-        val textLayoutManager = LinearLayoutManager(binding.realText.context)
 
         binding.realText.apply {
             layoutManager = textLayoutManager
@@ -283,39 +303,22 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                     super.onScrolled(recyclerView, dx, dy)
-
-                    val visibility = ScrollVisibility(
-                        firstVisible = textLayoutManager.findFirstVisibleItemPosition(),
-                        firstFullyVisible = textLayoutManager.findFirstCompletelyVisibleItemPosition(),
-                        lastVisible = textLayoutManager.findLastVisibleItemPosition(),
-                        lastFullyVisible = textLayoutManager.findLastCompletelyVisibleItemPosition()
-                    )
-                    viewModel.onScroll(textAdapter.getIndex(visibility))
+                    onScroll()
                 }
             })
         }
 
         var firstAppend = true
         observe(viewModel.chapter) { text ->
+            cachedChapter = text
             textAdapter.submitList(text)
             if (firstAppend) {
                 firstAppend = false
-                val desired = viewModel.desiredIndex
-                val index =
-                    text.indexOfFirst { display -> display.index == desired.index && display.innerIndex == desired.innerIndex }
-                if (index > 0) {
-                    textLayoutManager.scrollToPositionWithOffset(index, binding.readToolbar.height - 5.toPx) //
-                }
+                scrollToDesired()
             }
 
             binding.realText.post {
-                val visibility = ScrollVisibility(
-                    firstVisible = textLayoutManager.findFirstVisibleItemPosition(),
-                    firstFullyVisible = textLayoutManager.findFirstCompletelyVisibleItemPosition(),
-                    lastVisible = textLayoutManager.findLastVisibleItemPosition(),
-                    lastFullyVisible = textLayoutManager.findLastCompletelyVisibleItemPosition()
-                )
-                viewModel.onScroll(textAdapter.getIndex(visibility))
+                onScroll()
             }
         }
     }

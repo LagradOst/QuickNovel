@@ -36,7 +36,6 @@ import com.lagradost.quicknovel.ui.ScrollVisibilityIndex
 import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.runOnMainThread
-import com.lagradost.quicknovel.util.amap
 import io.noties.markwon.AbstractMarkwonPlugin
 import io.noties.markwon.Markwon
 import io.noties.markwon.MarkwonConfiguration
@@ -264,15 +263,17 @@ class ReadActivityViewModel : ViewModel() {
 
     private var currentIndex = Int.MIN_VALUE
 
-    /**
-     * Preloads this much in both directions
-     * */
-    private var chapterPadding: Int = 1
+    /** lower padding for preloading current-chapterPaddingBottom*/
+    private var chapterPaddingBottom: Int = 1
+
+    /** upper padding, for preloading current+chapterPaddingTop */
+    private var chapterPaddingTop: Int = 2
+
     private suspend fun updateIndexAsync(
         index: Int,
         notify: Boolean = true
     ) {
-        for (idx in index - chapterPadding..index + chapterPadding) {
+        for (idx in index - chapterPaddingBottom..index + chapterPaddingTop) {
             requested += index
             loadIndividualChapter(idx, false, notify)
         }
@@ -280,7 +281,7 @@ class ReadActivityViewModel : ViewModel() {
 
     private fun updateIndex(index: Int) {
         var alreadyRequested = false
-        for (idx in index - chapterPadding..index + chapterPadding) {
+        for (idx in index - chapterPaddingBottom..index + chapterPaddingTop) {
             if (!requested.contains(index)) {
                 alreadyRequested = true
             }
@@ -297,7 +298,7 @@ class ReadActivityViewModel : ViewModel() {
     private fun updateReadArea() {
         val cIndex = currentIndex
         val chapters = ArrayList<SpanDisplay>()
-        for (idx in cIndex - chapterPadding..cIndex + chapterPadding) {
+        for (idx in cIndex - chapterPaddingBottom..cIndex + chapterPaddingTop) {
             val append: List<SpanDisplay> = when (val data = chapterData[idx]) {
                 null -> emptyList()
                 is Resource.Loading -> {
@@ -315,14 +316,17 @@ class ReadActivityViewModel : ViewModel() {
                     )
                 )
             }
+
+            if (idx < chaptersTitlesInternal.size && idx >= 0)
+                chapters.add(ChapterStartSpanned(idx, 0, chaptersTitlesInternal[idx]))
             chapters.addAll(append)
-            _chapterData.postValue(chapters)
         }
+        _chapterData.postValue(chapters)
     }
 
     private fun notifyChapterUpdate(index: Int) {
         val cIndex = currentIndex
-        if (cIndex - chapterPadding <= index && index <= cIndex + chapterPadding) {
+        if (cIndex - chapterPaddingBottom <= index && index <= cIndex + chapterPaddingTop) {
             updateReadArea()
         }
     }
@@ -662,7 +666,9 @@ class ReadActivityViewModel : ViewModel() {
 
     private fun innerIndexToChar(index: Int, innerIndex: Int?): Int? {
         return chapterData[index]?.letInner { live ->
-            innerIndex?.let { live.spans.getOrNull(innerIndex)?.start }
+            innerIndex?.let {
+                live.spans.getOrNull(innerIndex)?.start
+            }
         }
     }
 
@@ -693,12 +699,19 @@ class ReadActivityViewModel : ViewModel() {
         if (visibility == null) return
 
         // dynamically increase padding in case of very small chapters with a maximum of 10 chapters
-        chapterPadding = minOf(
+        //val bottom = visibility.firstVisible.index
+        val index = visibility.firstVisible.index
+        val top = visibility.lastVisible.index
+
+        chapterPaddingTop = minOf(10, maxOf(chapterPaddingTop, (top - index) + 1))
+
+
+        /*chapterPadding = minOf(
             maxOf(
                 chapterPadding,
                 kotlin.math.abs(visibility.lastVisible.index - visibility.firstVisible.index)
             ), 5
-        )
+        )*/
 
         changeIndex(visibility.firstVisible)
         updateIndex(visibility.firstVisible.index)

@@ -72,6 +72,20 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
     }
 }
 
+fun generateId(type: Long, index: Int, start: Int, end: Int): Long {
+    // 4b bits for type, max 16
+    // 16b for chapter, max 65536
+    // 22b for start, max 4 194 304
+    // 22b for end, max 4 194 304
+
+    val typeBits = type and ((1 shl 5) - 1)
+    val indexBits = index.toLong() and ((1 shl 17) - 1)
+    val startBits = start.toLong() and ((1 shl 23) - 1)
+    val endBits = end.toLong() and ((1 shl 23) - 1)
+
+    return typeBits or (indexBits shl 4) or (startBits shl 20) or (endBits shl 42)
+}
+
 data class TextSpan(
     val text: Spanned,
     val start: Int,
@@ -80,7 +94,7 @@ data class TextSpan(
     override var innerIndex: Int,
 ) : SpanDisplay() {
     override fun id(): Long {
-        return ((index.toLong() * 10000L) + start) xor end.toLong()
+        return generateId(0, index, start, end)
     }
 }
 
@@ -93,17 +107,28 @@ abstract class SpanDisplay {
     protected abstract fun id(): Long
 }
 
+// uses the last text inner index
+data class ChapterStartSpanned(
+    override val index: Int,
+    override val innerIndex: Int,
+    val name: String
+) : SpanDisplay() {
+    override fun id(): Long {
+        return generateId(1, index, 0, 0)
+    }
+}
+
 data class LoadingSpanned(val url: String?, override val index: Int) : SpanDisplay() {
     override val innerIndex: Int = 0
     override fun id(): Long {
-        return Long.MAX_VALUE - index.toLong()
+        return generateId(2, index, 0, 0)
     }
 }
 
 data class FailedSpanned(val reason: String, override val index: Int) : SpanDisplay() {
     override val innerIndex: Int = 0
     override fun id(): Long {
-        return Long.MIN_VALUE + index.toLong()
+        return generateId(3, index, 0, 0)
     }
 }
 
@@ -194,7 +219,7 @@ object TTSHelper {
 
         while (nextIndex != -1) {
             // don't include duplicate newlines
-            if (currentOffset != nextIndex)
+            if (currentOffset != nextIndex) {
                 spans.add(
                     TextSpan(
                         unsegmented.subSequence(currentOffset, nextIndex) as Spanned,
@@ -204,8 +229,9 @@ object TTSHelper {
                         innerIndex
                     )
                 )
+                innerIndex++
+            }
 
-            innerIndex++
             currentOffset = nextIndex + 1
 
             nextIndex = unsegmented.indexOf('\n', currentOffset)
