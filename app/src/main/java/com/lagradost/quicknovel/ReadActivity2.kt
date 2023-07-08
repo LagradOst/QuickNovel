@@ -14,6 +14,7 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.AbsListView
 import android.widget.ArrayAdapter
+import android.widget.FrameLayout
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -38,6 +39,8 @@ import com.lagradost.quicknovel.ui.TextAdapter
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.toPx
+import java.lang.Integer.max
+import java.lang.Integer.min
 import java.lang.ref.WeakReference
 
 class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
@@ -68,13 +71,12 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             ObjectAnimator.ofFloat(v, "translationY", v.height.toFloat()).apply {
                 duration = 200
                 start()
-            }/*.doOnEnd {
-                v.visibility = View.GONE
-            }*/
+            }.doOnEnd {
+                v.isVisible = false
+            }
         }
 
-        lowerBottomNav(binding.readerBottomView)
-        lowerBottomNav(binding.readerBottomViewTts)
+        lowerBottomNav(binding.readerBottomViewHolder)
 
         binding.readToolbarHolder.translationY = 0f
         ObjectAnimator.ofFloat(
@@ -85,7 +87,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             duration = 200
             start()
         }.doOnEnd {
-            binding.readToolbarHolder.visibility = View.GONE
+            binding.readToolbarHolder.isVisible = false
         }
     }
 
@@ -96,10 +98,10 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             binding.readerContainer
         ).show(WindowInsetsCompat.Type.systemBars())
 
-        binding.readToolbarHolder.visibility = View.VISIBLE
-
+        binding.readToolbarHolder.isVisible = true
 
         fun higherBottomNavView(v: View) {
+            v.isVisible = true
             v.translationY = v.height.toFloat()
             ObjectAnimator.ofFloat(v, "translationY", 0f).apply {
                 duration = 200
@@ -107,8 +109,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             }
         }
 
-        higherBottomNavView(binding.readerBottomView)
-        higherBottomNavView(binding.readerBottomViewTts)
+        higherBottomNavView(binding.readerBottomViewHolder)
 
         binding.readToolbarHolder.translationY = -binding.readToolbarHolder.height.toFloat()
 
@@ -117,7 +118,6 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             start()
         }
     }
-
 
     lateinit var binding: ReadMainBinding
     private val viewModel: ReadActivityViewModel by viewModels()
@@ -153,7 +153,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         if ((keyCode != KeyEvent.KEYCODE_VOLUME_DOWN && keyCode != KeyEvent.KEYCODE_VOLUME_UP)) return false
 
         // if we have the bottom bar up then we ignore the override functionality
-        if(viewModel.bottomVisibility.isInitialized && viewModel.bottomVisibility.value == true) return false
+        if (viewModel.bottomVisibility.isInitialized && viewModel.bottomVisibility.value == true) return false
 
         when (keyCode) {
             KeyEvent.KEYCODE_VOLUME_DOWN -> {
@@ -189,7 +189,8 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                     val scale: Int = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
                     level * 100 / scale.toFloat()
                 }
-                binding.readBattery.text = getString(R.string.battery_format).format(batteryPct.toInt())
+                binding.readBattery.text =
+                    getString(R.string.battery_format).format(batteryPct.toInt())
             }
         }
         this.registerReceiver(mBatInfoReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
@@ -256,6 +257,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             lastFullyVisible = transformIndexToScrollVisibilityItem(textLayoutManager.findLastCompletelyVisibleItemPosition()),
             screenTop = topY,
             screenBottom = bottomY,
+            screenTopBar = binding.readToolbarHolder.height
         )
 
         viewModel.onScroll(textAdapter.getIndex(visibility))
@@ -267,7 +269,8 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         val adapterPosition =
             cachedChapter.indexOfFirst { display -> display.index == desired.index && display.innerIndex == desired.innerIndex }
         if (adapterPosition > 0) {
-            textLayoutManager.scrollToPositionWithOffset(adapterPosition, 0)
+            val offset = 7.toPx
+            textLayoutManager.scrollToPositionWithOffset(adapterPosition, offset)
             desired.firstVisibleChar?.let { visible ->
                 binding.realText.post {
                     binding.realText.scrollBy(
@@ -275,21 +278,44 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                         (textAdapter.getViewOffset(
                             transformIndexToScrollVisibilityItem(adapterPosition),
                             visible
-                        ) ?: 0) + 7.toPx
+                        ) ?: 0) + offset
                     )
                 }
             }
         }
     }
 
+    private fun View.fixLine(offset: Int) {
+        // this.setPadding(0, 200, 0, 0)
+        val layoutParams =
+            this.layoutParams as FrameLayout.LayoutParams// FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,offset)
+        layoutParams.setMargins(0, offset, 0, 0)
+        this.layoutParams = layoutParams
+    }
+
+    var lockTop: Int? = null
+    var lockBottom: Int? = null
+    var currentScroll : Int = 0
     private fun updateTTSLine(line: TTSHelper.TTSLine?) {
         textAdapter.updateTTSLine(line)
+
+        var minScroll: Int = Int.MAX_VALUE
+        var maxScroll: Int = Int.MIN_VALUE
         // updates all the current views
         for (position in textLayoutManager.findFirstVisibleItemPosition()..textLayoutManager.findLastVisibleItemPosition()) {
             val viewHolder = binding.realText.findViewHolderForAdapterPosition(position)
             if (viewHolder !is TextAdapter.TextAdapterHolder) continue
-            viewHolder.updateTTSLine(line)
+            val (top, bottom) = viewHolder.updateTTSLine(line) ?: continue
+            minScroll = min(top, minScroll)
+            maxScroll = max(bottom, maxScroll)
         }
+        if (maxScroll == Int.MIN_VALUE || minScroll == Int.MAX_VALUE) {
+            lockTop = null
+            lockBottom = null
+            return
+        }
+        lockTop = currentScroll + minScroll
+        //lockBottom = binding.realText.scrollY + maxScroll - getBottomY()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -412,14 +438,6 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             )
         }
 
-        /*val touchListener = View.OnTouchListener { _, event ->
-            if(event.action == MotionEvent.ACTION_DOWN) {
-                viewModel.switchVisibility()
-                return@OnTouchListener true
-            }
-            false
-        }*/
-
         fixPaddingStatusbar(binding.readToolbarHolder)
         fixPaddingStatusbar(binding.realText)
 
@@ -485,8 +503,30 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             addOnScrollListener(object :
                 RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                    super.onScrolled(recyclerView, dx, dy)
+                    var rdy = dy
+
                     onScroll()
+                    lockTop?.let { lock ->
+                        if(currentScroll+rdy > lock) {
+                            rdy = lock-currentScroll
+                        }
+                    }
+
+                    /*lockBottom?.let { lock ->
+                        if(currentScroll+rdy < lock) {
+                            rdy = lock-currentScroll
+                        }
+                    }*/
+
+                    currentScroll += dy
+                    val delta = rdy-dy
+                    if(delta != 0) scrollBy(0,delta)
+                    super.onScrolled(recyclerView, dx, dx)
+
+                   // binding.tmpTtsEnd.fixLine((getBottomY()- remainingBottom) + 7.toPx)
+                   // binding.tmpTtsStart.fixLine(remainingTop + 7.toPx)
+
+
                 }
             })
         }

@@ -51,7 +51,16 @@
                 android:layout_height="match_parent" />
     </FrameLayout>
 
-
+    <View
+            android:id="@+id/tmp_tts_start"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@android:color/holo_red_dark" />
+    <View
+            android:id="@+id/tmp_tts_end"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@android:color/holo_blue_light" />
     <FrameLayout
             android:alpha="0"
             tools:alpha="1"
@@ -208,7 +217,7 @@
                 android:background="@color/transparent" />
 
         <FrameLayout
-                android:visibility="visible"
+                android:visibility="gone"
                 android:id="@+id/read_overlay"
                 android:orientation="horizontal"
                 android:layout_gravity="bottom"
@@ -289,132 +298,141 @@
 
         </androidx.core.widget.ContentLoadingProgressBar>
 
-        <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/reader_bottom_view"
-                android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize"
-                android:layout_gravity="bottom"
-                tools:visibility="gone"
-                android:background="?attr/primaryGrayBackground">
-
-            <ImageButton
-                    android:id="@+id/read_action_rotate"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/ripple_regular"
-                    android:contentDescription="@string/read_action_screen_rotation"
-                    android:padding="@dimen/screenEdgeMargin"
-                    app:layout_constraintEnd_toStartOf="@id/read_action_tts"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:srcCompat="@drawable/ic_baseline_screen_rotation_24"
-                    app:tint="?attr/white" />
-
-            <ImageButton
-                    android:id="@+id/read_action_tts"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/ripple_regular"
-                    android:contentDescription="@string/read_action_tts"
-                    android:padding="@dimen/screenEdgeMargin"
-                    app:layout_constraintEnd_toStartOf="@id/read_action_chapters"
-                    app:layout_constraintStart_toEndOf="@+id/read_action_rotate"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:srcCompat="@drawable/ic_baseline_volume_up_24"
-                    app:tint="?attr/white" />
-
-            <ImageButton
-                    android:id="@+id/read_action_chapters"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/ripple_regular"
-                    android:contentDescription="@string/read_action_chapters"
-                    android:padding="@dimen/screenEdgeMargin"
-                    app:layout_constraintEnd_toStartOf="@id/read_action_settings"
-                    app:layout_constraintStart_toEndOf="@+id/read_action_tts"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:srcCompat="@drawable/ic_baseline_list_24"
-                    app:tint="?attr/white" />
-
-            <ImageButton
-                    android:visibility="visible"
-                    android:id="@+id/read_action_settings"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/ripple_regular"
-                    android:contentDescription="@string/read_action_settings"
-                    android:padding="@dimen/screenEdgeMargin"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@id/read_action_chapters"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:srcCompat="@drawable/ic_outline_settings_24"
-                    app:tint="?attr/white" />
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/reader_bottom_view_tts"
-                android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize"
-                android:layout_gravity="bottom"
+        <FrameLayout
                 android:visibility="gone"
-                tools:visibility="visible"
-                android:background="?attr/primaryGrayBackground">
+                android:id="@+id/reader_bottom_view_holder"
+                android:layout_gravity="bottom"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+            <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/reader_bottom_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="?attr/actionBarSize"
+                    android:layout_gravity="bottom"
+                    tools:visibility="visible"
+                    android:visibility="gone"
+                    android:background="?attr/primaryGrayBackground">
 
-            <ImageButton
-                    android:id="@+id/tts_action_back"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/ripple_regular"
-                    android:contentDescription="@string/read_action_screen_rotation"
-                    android:padding="@dimen/screenEdgeMargin"
-                    app:layout_constraintEnd_toStartOf="@id/tts_action_stop"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:srcCompat="@drawable/ic_baseline_fast_rewind_24"
-                    app:tint="?attr/white" />
+                <ImageButton
+                        android:id="@+id/read_action_rotate"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/ripple_regular"
+                        android:contentDescription="@string/read_action_screen_rotation"
+                        android:padding="@dimen/screenEdgeMargin"
+                        app:layout_constraintEnd_toStartOf="@id/read_action_tts"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:srcCompat="@drawable/ic_baseline_screen_rotation_24"
+                        app:tint="?attr/white" />
 
-            <ImageButton
-                    android:id="@+id/tts_action_stop"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/ripple_regular"
-                    android:contentDescription="@string/read_action_tts"
-                    android:padding="@dimen/screenEdgeMargin"
-                    app:layout_constraintEnd_toStartOf="@id/tts_action_pause_play"
-                    app:layout_constraintStart_toEndOf="@+id/tts_action_back"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:srcCompat="@drawable/ic_baseline_stop_24"
-                    app:tint="?attr/white" />
+                <ImageButton
+                        android:id="@+id/read_action_tts"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/ripple_regular"
+                        android:contentDescription="@string/read_action_tts"
+                        android:padding="@dimen/screenEdgeMargin"
+                        app:layout_constraintEnd_toStartOf="@id/read_action_chapters"
+                        app:layout_constraintStart_toEndOf="@+id/read_action_rotate"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:srcCompat="@drawable/ic_baseline_volume_up_24"
+                        app:tint="?attr/white" />
 
-            <ImageButton
-                    android:id="@+id/tts_action_pause_play"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/ripple_regular"
-                    android:contentDescription="@string/read_action_chapters"
-                    android:padding="@dimen/screenEdgeMargin"
-                    app:layout_constraintEnd_toStartOf="@id/tts_action_forward"
-                    app:layout_constraintStart_toEndOf="@+id/tts_action_stop"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:srcCompat="@drawable/ic_baseline_pause_24"
-                    app:tint="?attr/white" />
+                <ImageButton
+                        android:id="@+id/read_action_chapters"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/ripple_regular"
+                        android:contentDescription="@string/read_action_chapters"
+                        android:padding="@dimen/screenEdgeMargin"
+                        app:layout_constraintEnd_toStartOf="@id/read_action_settings"
+                        app:layout_constraintStart_toEndOf="@+id/read_action_tts"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:srcCompat="@drawable/ic_baseline_list_24"
+                        app:tint="?attr/white" />
 
-            <ImageButton
-                    android:visibility="visible"
-                    android:id="@+id/tts_action_forward"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/ripple_regular"
-                    android:contentDescription="@string/read_action_settings"
-                    android:padding="@dimen/screenEdgeMargin"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@id/tts_action_pause_play"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:srcCompat="@drawable/ic_baseline_fast_forward_24"
-                    app:tint="?attr/white" />
+                <ImageButton
+                        android:visibility="visible"
+                        android:id="@+id/read_action_settings"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/ripple_regular"
+                        android:contentDescription="@string/read_action_settings"
+                        android:padding="@dimen/screenEdgeMargin"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/read_action_chapters"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:srcCompat="@drawable/ic_outline_settings_24"
+                        app:tint="?attr/white" />
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/reader_bottom_view_tts"
+                    android:layout_width="match_parent"
+                    android:layout_height="?attr/actionBarSize"
+                    android:layout_gravity="bottom"
+                    android:visibility="gone"
+                    tools:visibility="visible"
+                    android:background="?attr/primaryGrayBackground">
+
+                <ImageButton
+                        android:id="@+id/tts_action_back"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/ripple_regular"
+                        android:contentDescription="@string/read_action_screen_rotation"
+                        android:padding="@dimen/screenEdgeMargin"
+                        app:layout_constraintEnd_toStartOf="@id/tts_action_stop"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:srcCompat="@drawable/ic_baseline_fast_rewind_24"
+                        app:tint="?attr/white" />
+
+                <ImageButton
+                        android:id="@+id/tts_action_stop"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/ripple_regular"
+                        android:contentDescription="@string/read_action_tts"
+                        android:padding="@dimen/screenEdgeMargin"
+                        app:layout_constraintEnd_toStartOf="@id/tts_action_pause_play"
+                        app:layout_constraintStart_toEndOf="@+id/tts_action_back"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:srcCompat="@drawable/ic_baseline_stop_24"
+                        app:tint="?attr/white" />
+
+                <ImageButton
+                        android:id="@+id/tts_action_pause_play"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/ripple_regular"
+                        android:contentDescription="@string/read_action_chapters"
+                        android:padding="@dimen/screenEdgeMargin"
+                        app:layout_constraintEnd_toStartOf="@id/tts_action_forward"
+                        app:layout_constraintStart_toEndOf="@+id/tts_action_stop"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:srcCompat="@drawable/ic_baseline_pause_24"
+                        app:tint="?attr/white" />
+
+                <ImageButton
+                        android:visibility="visible"
+                        android:id="@+id/tts_action_forward"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/ripple_regular"
+                        android:contentDescription="@string/read_action_settings"
+                        android:padding="@dimen/screenEdgeMargin"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/tts_action_pause_play"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:srcCompat="@drawable/ic_baseline_fast_forward_24"
+                        app:tint="?attr/white" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </FrameLayout>
+
 
         <com.google.android.material.appbar.AppBarLayout
                 tools:visibility="gone"

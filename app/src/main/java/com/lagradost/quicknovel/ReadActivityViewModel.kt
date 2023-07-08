@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Rect
 import android.graphics.drawable.Drawable
 import androidx.annotation.WorkerThread
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -20,6 +21,7 @@ import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2Helper.getQuickChapter
 import com.lagradost.quicknovel.CommonActivity.showToast
+import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.TTSHelper.parseTextToSpans
 import com.lagradost.quicknovel.TTSHelper.preParseHtml
@@ -54,6 +56,7 @@ import org.jsoup.Jsoup
 import java.lang.ref.WeakReference
 import java.net.URLDecoder
 import java.util.ArrayList
+import kotlin.reflect.KClass
 
 abstract class AbstractBook {
     open fun resolveUrl(url: String): String {
@@ -252,10 +255,22 @@ class ReadActivityViewModel : ViewModel() {
         MutableLiveData<OrientationType>(null)
     val orientation: LiveData<OrientationType> = _orientation
 
+    private val _lockTTS: MutableLiveData<Boolean> =
+        MutableLiveData<Boolean>(null)
+    val lockTTS: LiveData<Boolean> = _lockTTS
+
+    private val _backgroundColor: MutableLiveData<Int> =
+        MutableLiveData<Int>(null)
+    val backgroundColor: LiveData<Int> = _backgroundColor
+
+    private val _textColor: MutableLiveData<Int> =
+        MutableLiveData<Int>(null)
+    val textColor: LiveData<Int> = _textColor
 
     fun switchVisibility() {
         _bottomVisibility.postValue(!(_bottomVisibility.value ?: false))
     }
+
 
     private var chaptersTitlesInternal: ArrayList<String> = arrayListOf()
 
@@ -813,6 +828,11 @@ class ReadActivityViewModel : ViewModel() {
         // sanity check
         if (index < 0 || index >= book.size()) return@ioSafe
 
+        // we wont allow chapter switching and tts at the same time, stop it
+        if(currentTTSStatus != TTSHelper.TTSStatus.IsStopped) {
+            currentTTSStatus = TTSHelper.TTSStatus.IsStopped
+        }
+
         // set loading
         _loadingStatus.postValue(Resource.Loading())
 
@@ -869,7 +889,30 @@ class ReadActivityViewModel : ViewModel() {
         _orientation.postValue(orientationType)
     }
 
+    // :skull: ye java moment right here, we don't do generics because <refined T : Any> cant get
+    // placed on a class, live with the boilerplate
+
+    fun setLockTTS(value : Boolean) {
+        setKey(EPUB_TTS_LOCK, value)
+        _lockTTS.postValue(value)
+    }
+
+    fun setBackgroundColor(value : Int) {
+        setKey(EPUB_BG_COLOR, value)
+        _backgroundColor.postValue(value)
+    }
+
+    fun setTextColor(value: Int) {
+        setKey(EPUB_TEXT_COLOR, value)
+        _textColor.postValue(value)
+    }
+
     init {
         _orientation.postValue(OrientationType.fromSpinner(getKey(EPUB_LOCK_ROTATION)))
+        _lockTTS.postValue(getKey(EPUB_TTS_LOCK) ?: true)
+        BaseApplication.context?.let { ctx ->
+            _backgroundColor.postValue(getKey(EPUB_BG_COLOR) ?: ContextCompat.getColor(ctx, R.color.readerBackground))
+            _textColor.postValue(getKey(EPUB_TEXT_COLOR) ?: ContextCompat.getColor(ctx, R.color.readerTextColor))
+        }
     }
 }
