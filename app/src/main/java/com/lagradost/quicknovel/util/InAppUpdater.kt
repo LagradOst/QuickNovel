@@ -19,6 +19,7 @@ import com.lagradost.quicknovel.BuildConfig
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.mvvm.logError
 import java.io.*
 import java.net.URL
 import java.net.URLConnection
@@ -87,7 +88,7 @@ class InAppUpdater {
 //                                )?.groupValues?.get(2)
 //                            }
 //                    }).toList().lastOrNull()
-                val foundAsset = response.assets?.getOrNull(0)
+                val foundAsset = response.assets.getOrNull(0)
                 val currentVersion = packageName?.let {
                     packageManager.getPackageInfo(
                         it,
@@ -118,7 +119,6 @@ class InAppUpdater {
         }
 
         private fun Activity.downloadUpdate(url: String): Boolean {
-            println("DOWNLOAD UPDATE $url")
             var fullResume = false // IF FULL RESUME
             try {
                 // =================== DOWNLOAD POSTERS AND SETUP PATH ===================
@@ -129,12 +129,11 @@ class InAppUpdater {
                 val rFile = File(path)
                 try {
                     rFile.parentFile?.mkdirs()
-                } catch (_ex: Exception) {
-                    println("FAILED:::$_ex")
+                } catch (t: Throwable) {
+                    logError(t)
                 }
-                val url = url.replace(" ", "%20")
 
-                val _url = URL(url)
+                val _url = URL(url.replace(" ", "%20"))
 
                 val connection: URLConnection = _url.openConnection()
 
@@ -162,10 +161,8 @@ class InAppUpdater {
                 try {
                     connection.connect()
                     clen = connection.contentLength
-                    println("CONTENTN LENGTH: $clen")
-                } catch (_ex: Exception) {
-                    println("CONNECT:::$_ex")
-                    _ex.printStackTrace()
+                } catch (t: Throwable) {
+                    logError(t)
                 }
 
                 // =================== VALIDATE ===================
@@ -194,9 +191,8 @@ class InAppUpdater {
                         bytesRead += count
                         bytesPerSec += count
                         output.write(buffer, 0, count)
-                    } catch (_ex: Exception) {
-                        println("CONNECT TRUE:::$_ex")
-                        _ex.printStackTrace()
+                    } catch (t: Throwable) {
+                        logError(t)
                         fullResume = true
                         break
                     }
@@ -237,8 +233,8 @@ class InAppUpdater {
                     return true
                 }
 
-            } catch (_ex: Exception) {
-                println("FATAL EX DOWNLOADING:::$_ex")
+            } catch (t: Throwable) {
+                logError(t)
                 return false
             }
         }
@@ -262,18 +258,23 @@ class InAppUpdater {
                         }
 
                         val builder: AlertDialog.Builder = AlertDialog.Builder(this)
-                        builder.setTitle("New update found!\n${currentVersion?.versionName} -> ${update.updateVersion}")
-                        builder.setMessage("${update.changelog}")
+                        builder.setTitle(
+                            getString(R.string.new_update_found_format).format(
+                                currentVersion?.versionName,
+                                update.updateVersion
+                            )
+                        )
+                        builder.setMessage(update.changelog)
 
                         val context = this
                         builder.apply {
-                            setPositiveButton("Update") { _, _ ->
-                                showToast(context, "Download started", Toast.LENGTH_LONG)
+                            setPositiveButton(R.string.update) { _, _ ->
+                                showToast(context, R.string.download_started, Toast.LENGTH_LONG)
                                 thread {
                                     val downloadStatus = context.downloadUpdate(update.updateURL)
                                     if (!downloadStatus) {
                                         showToast(
-                                            "Download Failed",
+                                            R.string.download_failed,
                                             Toast.LENGTH_LONG
                                         )
 
@@ -287,10 +288,10 @@ class InAppUpdater {
                                 }
                             }
 
-                            setNegativeButton("Cancel") { _, _ -> }
+                            setNegativeButton(R.string.cancel) { _, _ -> }
 
                             if (checkAutoUpdate) {
-                                setNeutralButton("Don't show again") { _, _ ->
+                                setNeutralButton(R.string.dont_show_again) { _, _ ->
                                     settingsManager.edit().putBoolean("auto_update", false).apply()
                                 }
                             }

@@ -49,7 +49,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                     apiNames.mapIndexed { index, s -> index to active.contains(s) }
                         .filter { it.second }
                         .map { it.first }.toList(),
-                    "Search Providers", // TODO STRING RES
+                    getString(R.string.search_providers),
                     {}) { list ->
                     val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
                     val edit = settingsManager.edit()
@@ -188,7 +188,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
         getPref(R.string.primary_color_key)?.setOnPreferenceClickListener {
             val prefNames = resources.getStringArray(R.array.themes_overlay_names).toMutableList()
-            val prefValues = resources.getStringArray(R.array.themes_overlay_names_values).toMutableList()
+            val prefValues =
+                resources.getStringArray(R.array.themes_overlay_names_values).toMutableList()
 
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) { // remove monet on android 11 and less
                 val toRemove = prefValues
@@ -252,7 +253,10 @@ class SettingsFragment : PreferenceFragmentCompat() {
             val prefValues = resources.getStringArray(R.array.DownloadGridFormatData)
 
             val current =
-                settingsManager.getString(getString(R.string.download_format_key), prefValues.first())
+                settingsManager.getString(
+                    getString(R.string.download_format_key),
+                    prefValues.first()
+                )
 
             activity?.showBottomDialog(
                 prefNames.toList(),

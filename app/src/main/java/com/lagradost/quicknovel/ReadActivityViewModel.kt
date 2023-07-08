@@ -6,13 +6,10 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Rect
 import android.graphics.drawable.Drawable
-import android.speech.tts.TextToSpeech
-import android.speech.tts.UtteranceProgressListener
 import androidx.annotation.WorkerThread
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.load.model.GlideUrl
@@ -23,17 +20,18 @@ import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2Helper.getQuickChapter
 import com.lagradost.quicknovel.CommonActivity.showToast
+import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.TTSHelper.parseTextToSpans
 import com.lagradost.quicknovel.TTSHelper.preParseHtml
 import com.lagradost.quicknovel.TTSHelper.render
 import com.lagradost.quicknovel.TTSHelper.ttsParseText
 import com.lagradost.quicknovel.mvvm.Resource
-import com.lagradost.quicknovel.mvvm.launchSafe
 import com.lagradost.quicknovel.mvvm.letInner
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.map
 import com.lagradost.quicknovel.mvvm.safeApiCall
 import com.lagradost.quicknovel.providers.RedditProvider
+import com.lagradost.quicknovel.ui.OrientationType
 import com.lagradost.quicknovel.ui.ScrollIndex
 import com.lagradost.quicknovel.ui.ScrollVisibilityIndex
 import com.lagradost.quicknovel.util.Apis
@@ -56,7 +54,6 @@ import org.jsoup.Jsoup
 import java.lang.ref.WeakReference
 import java.net.URLDecoder
 import java.util.ArrayList
-import java.util.Locale
 
 abstract class AbstractBook {
     open fun resolveUrl(url: String): String {
@@ -250,6 +247,12 @@ class ReadActivityViewModel : ViewModel() {
         MutableLiveData<TTSHelper.TTSLine?>(null)
     val ttsLine: LiveData<TTSHelper.TTSLine?> = _ttsLine
 
+
+    private val _orientation: MutableLiveData<OrientationType> =
+        MutableLiveData<OrientationType>(null)
+    val orientation: LiveData<OrientationType> = _orientation
+
+
     fun switchVisibility() {
         _bottomVisibility.postValue(!(_bottomVisibility.value ?: false))
     }
@@ -393,7 +396,12 @@ class ReadActivityViewModel : ViewModel() {
                 // only push one no more chapters
                 if (index == book.size()) {
                     chapterData[index] =
-                        Resource.Failure(false, null, null, "No more chapters") // TODO STRING RES
+                        Resource.Failure(
+                            false,
+                            null,
+                            null,
+                            context?.getString(R.string.no_more_chapters) ?: "ERROR"
+                        )
                 } else {
                     chapterData[index] = null
                 }
@@ -574,28 +582,28 @@ class ReadActivityViewModel : ViewModel() {
     }
 
     private var pendingTTSSkip: Int = 0
-    private var _CurrentTTSStatus: TTSHelper.TTSStatus = TTSHelper.TTSStatus.IsStopped
-    var CurrentTTSStatus: TTSHelper.TTSStatus
-        get() = _CurrentTTSStatus
+    private var _currentTTSStatus: TTSHelper.TTSStatus = TTSHelper.TTSStatus.IsStopped
+    var currentTTSStatus: TTSHelper.TTSStatus
+        get() = _currentTTSStatus
         set(value) {
-            if (_CurrentTTSStatus == TTSHelper.TTSStatus.IsStopped && value == TTSHelper.TTSStatus.IsRunning) {
+            if (_currentTTSStatus == TTSHelper.TTSStatus.IsStopped && value == TTSHelper.TTSStatus.IsRunning) {
                 startTTSThread()
             }
 
             _ttsStatus.postValue(value)
-            _CurrentTTSStatus = value
+            _currentTTSStatus = value
         }
 
     fun stopTTS() {
-        CurrentTTSStatus = TTSHelper.TTSStatus.IsStopped
+        currentTTSStatus = TTSHelper.TTSStatus.IsStopped
     }
 
     fun pauseTTS() {
-        CurrentTTSStatus = TTSHelper.TTSStatus.IsPaused
+        currentTTSStatus = TTSHelper.TTSStatus.IsPaused
     }
 
     fun startTTS() {
-        CurrentTTSStatus = TTSHelper.TTSStatus.IsRunning
+        currentTTSStatus = TTSHelper.TTSStatus.IsRunning
     }
 
     fun forwardsTTS() {
@@ -607,16 +615,17 @@ class ReadActivityViewModel : ViewModel() {
     }
 
     fun pausePlayTTS() {
-        if (CurrentTTSStatus == TTSHelper.TTSStatus.IsRunning) {
-            CurrentTTSStatus = TTSHelper.TTSStatus.IsPaused
-        } else if (CurrentTTSStatus == TTSHelper.TTSStatus.IsPaused) {
-            CurrentTTSStatus = TTSHelper.TTSStatus.IsRunning
+        if (currentTTSStatus == TTSHelper.TTSStatus.IsRunning) {
+            currentTTSStatus = TTSHelper.TTSStatus.IsPaused
+        } else if (currentTTSStatus == TTSHelper.TTSStatus.IsPaused) {
+            currentTTSStatus = TTSHelper.TTSStatus.IsRunning
         }
     }
 
     fun isTTSRunning(): Boolean {
-        return CurrentTTSStatus == TTSHelper.TTSStatus.IsRunning
+        return currentTTSStatus == TTSHelper.TTSStatus.IsRunning
     }
+
 
     private val ttsThreadMutex = Mutex()
     private fun startTTSThread() = ioSafe {
@@ -647,9 +656,8 @@ class ReadActivityViewModel : ViewModel() {
                 if (idx != -1)
                     innerIndex = idx
             }
-
             while (true) {
-                if (CurrentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
+                if (currentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
                 val lines = when (val currentData = chapterMutex.withLock { chapterData[index] }) {
                     null -> {
                         showToast("Got null data")
@@ -662,7 +670,7 @@ class ReadActivityViewModel : ViewModel() {
                     }
 
                     is Resource.Loading -> {
-                        if (CurrentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
+                        if (currentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
                         delay(100)
                         continue
                     }
@@ -671,6 +679,17 @@ class ReadActivityViewModel : ViewModel() {
                         currentData.value.ttsLines
                     }
                 }
+
+                fun notify() {
+                    TTSNotifications.notify(
+                        book.title(),
+                        chaptersTitlesInternal[index],
+                        book.poster(),
+                        currentTTSStatus,
+                        context
+                    )
+                }
+                notify()
 
                 // this is because if you go back one line you will be on the previous chapter with
                 // a negative innerIndex, this makes the wrapping good
@@ -682,24 +701,27 @@ class ReadActivityViewModel : ViewModel() {
 
                 // speak all lines
                 while (innerIndex < lines.size && innerIndex >= 0) {
-                    if (CurrentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
+                    if (currentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
 
                     val line = lines[innerIndex]
                     val nextLine = lines.getOrNull(innerIndex + 1)
                     _ttsLine.postValue(line)
                     val waitFor = ttsSession.speak(line, nextLine)
-                    ttsSession.waitForOr(waitFor) {
-                        CurrentTTSStatus != TTSHelper.TTSStatus.IsRunning || pendingTTSSkip != 0
+                    ttsSession.waitForOr(waitFor, {
+                        currentTTSStatus != TTSHelper.TTSStatus.IsRunning || pendingTTSSkip != 0
+                    }) {
+                        notify()
                     }
 
                     var isPauseDuration = 0
-                    while (CurrentTTSStatus == TTSHelper.TTSStatus.IsPaused) {
+                    while (currentTTSStatus == TTSHelper.TTSStatus.IsPaused) {
                         isPauseDuration++
                         delay(100)
                     }
 
                     // if we pause then we resume on the same line
                     if (isPauseDuration > 0) {
+                        notify()
                         pendingTTSSkip = 0
                         continue
                     }
@@ -711,7 +733,7 @@ class ReadActivityViewModel : ViewModel() {
                         innerIndex += 1
                     }
                 }
-                if (CurrentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
+                if (currentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
 
                 if (innerIndex > 0) {
                     // goto next chapter and set inner to 0
@@ -724,6 +746,13 @@ class ReadActivityViewModel : ViewModel() {
                 }
             }
 
+            TTSNotifications.notify(
+                book.title(),
+                "",
+                book.poster(),
+                TTSHelper.TTSStatus.IsStopped,
+                context
+            )
             ttsSession.unregister(context)
             _ttsLine.postValue(null)
         }
@@ -732,10 +761,10 @@ class ReadActivityViewModel : ViewModel() {
     fun parseAction(input: TTSHelper.TTSActionType): Boolean {
         // validate that the action makes sense
         if (
-            (CurrentTTSStatus == TTSHelper.TTSStatus.IsPaused && input == TTSHelper.TTSActionType.Pause) ||
-            (CurrentTTSStatus != TTSHelper.TTSStatus.IsPaused && input == TTSHelper.TTSActionType.Resume) ||
-            (CurrentTTSStatus == TTSHelper.TTSStatus.IsStopped && input == TTSHelper.TTSActionType.Stop) ||
-            (CurrentTTSStatus != TTSHelper.TTSStatus.IsRunning && input == TTSHelper.TTSActionType.Next)
+            (currentTTSStatus == TTSHelper.TTSStatus.IsPaused && input == TTSHelper.TTSActionType.Pause) ||
+            (currentTTSStatus != TTSHelper.TTSStatus.IsPaused && input == TTSHelper.TTSActionType.Resume) ||
+            (currentTTSStatus == TTSHelper.TTSStatus.IsStopped && input == TTSHelper.TTSActionType.Stop) ||
+            (currentTTSStatus != TTSHelper.TTSStatus.IsRunning && input == TTSHelper.TTSActionType.Next)
         ) {
             return false
         }
@@ -782,7 +811,7 @@ class ReadActivityViewModel : ViewModel() {
 
     fun seekToChapter(index: Int) = ioSafe {
         // sanity check
-        if(index < 0 || index >= book.size()) return@ioSafe
+        if (index < 0 || index >= book.size()) return@ioSafe
 
         // set loading
         _loadingStatus.postValue(Resource.Loading())
@@ -833,5 +862,14 @@ class ReadActivityViewModel : ViewModel() {
     override fun onCleared() {
         ttsSession.unregister(context)
         super.onCleared()
+    }
+
+    fun setOrientation(orientationType: OrientationType) {
+        setKey(EPUB_LOCK_ROTATION, orientationType.prefValue)
+        _orientation.postValue(orientationType)
+    }
+
+    init {
+        _orientation.postValue(OrientationType.fromSpinner(getKey(EPUB_LOCK_ROTATION)))
     }
 }

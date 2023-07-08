@@ -1,7 +1,6 @@
 package com.lagradost.quicknovel
 
 import android.animation.ObjectAnimator
-import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -32,10 +31,12 @@ import com.lagradost.quicknovel.databinding.ReadMainBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.mvvm.observeNullable
+import com.lagradost.quicknovel.ui.OrientationType
 import com.lagradost.quicknovel.ui.ScrollVisibility
 import com.lagradost.quicknovel.ui.ScrollVisibilityItem
 import com.lagradost.quicknovel.ui.TextAdapter
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
+import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.toPx
 import java.lang.ref.WeakReference
 
@@ -151,6 +152,9 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         }
         if ((keyCode != KeyEvent.KEYCODE_VOLUME_DOWN && keyCode != KeyEvent.KEYCODE_VOLUME_UP)) return false
 
+        // if we have the bottom bar up then we ignore the override functionality
+        if(viewModel.bottomVisibility.isInitialized && viewModel.bottomVisibility.value == true) return false
+
         when (keyCode) {
             KeyEvent.KEYCODE_VOLUME_DOWN -> {
                 if (viewModel.isTTSRunning()) {
@@ -177,21 +181,18 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         finish()
     }
 
-    fun registerBattery() {
+    private fun registerBattery() {
         val mBatInfoReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-            @SuppressLint("SetTextI18n")
             override fun onReceive(ctxt: Context?, intent: Intent) {
-                val batteryPct: Float = intent.let { intent ->
+                val batteryPct: Float = run {
                     val level: Int = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
                     val scale: Int = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
                     level * 100 / scale.toFloat()
                 }
-                binding.readBattery.text = "${batteryPct.toInt()}%"
+                binding.readBattery.text = getString(R.string.battery_format).format(batteryPct.toInt())
             }
         }
-        IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { ifilter ->
-            this.registerReceiver(mBatInfoReceiver, ifilter)
-        }
+        this.registerReceiver(mBatInfoReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
     }
 
     fun parseAction(input: TTSHelper.TTSActionType): Boolean {
@@ -299,14 +300,10 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         }
     }
 
-    /*fun setRot(org: OrientationType) {
-        orientationType = org.prefValue
-        requestedOrientation = org.flag
-        binding.readActionRotate.setImageResource(org.iconRes)
-    }*/
     override fun onCreate(savedInstanceState: Bundle?) {
         CommonActivity.loadThemes(this)
         super.onCreate(savedInstanceState)
+        readActivity = this
         binding = ReadMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -339,6 +336,22 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             viewModel.backwardsTTS()
         }
 
+        observe(viewModel.orientation) { org ->
+            requestedOrientation = org.flag
+            binding.readActionRotate.setImageResource(org.iconRes)
+
+            binding.readActionRotate.apply {
+                setOnClickListener {
+                    popupMenu(
+                        items = OrientationType.values().map { it.prefValue to it.stringRes },
+                        selectedItemId = org.prefValue
+                    ) {
+                        viewModel.setOrientation(OrientationType.fromSpinner(itemId))
+                    }
+                }
+            }
+        }
+
         observeNullable(viewModel.ttsLine) { line ->
             updateTTSLine(line)
         }
@@ -361,14 +374,14 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 if (validChapter) {
                     builderSingle.setTitle(titles[currentChapter]) //  "Select Chapter"
                 } else {
-                    builderSingle.setTitle("Select Chapter")
+                    builderSingle.setTitle(R.string.select_chapter)
                 }
 
                 val arrayAdapter = ArrayAdapter<String>(this, R.layout.chapter_select_dialog)
 
                 arrayAdapter.addAll(titles)
 
-                builderSingle.setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
+                builderSingle.setNegativeButton(R.string.cancel) { dialog, _ -> dialog.dismiss() }
 
                 builderSingle.setAdapter(arrayAdapter) { _, which ->
                     viewModel.seekToChapter(which)

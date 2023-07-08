@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.ui.result
 
+import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -31,6 +32,7 @@ class ReviewAdapter2 :
 
     class ReviewAdapter2Holder(private val binding: ResultReviewBinding) :
         RecyclerView.ViewHolder(binding.root) {
+
         fun bind(card: UserReview) {
             binding.apply {
                 val localContext = this.root.context ?: return
@@ -44,7 +46,8 @@ class ReviewAdapter2 :
                     val builder: AlertDialog.Builder = AlertDialog.Builder(localContext)
                     builder.setMessage(card.review)
                     val title = card.reviewTitle ?: card.username
-                    ?: if (card.rating != null) "Overall ${localContext.getRatingReview(card.rating)}" else null
+                    ?: if (card.rating != null) localContext.getString(R.string.overall_rating_format)
+                        .format(localContext.getRatingReview(card.rating)) else null
                     if (title != null)
                         builder.setTitle(title)
                     builder.show()

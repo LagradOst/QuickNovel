@@ -91,16 +91,15 @@ data class DownloadProgressState(
     var lastUpdatedMs: Long,
     var etaMs: Long?
 ) {
-    fun eta(): String {
-        // TODO STRINGS
+    fun eta(context: Context): String {
         return when (state) {
             DownloadState.IsDownloading -> etaToString(etaMs)
             DownloadState.IsDone -> ""
-            DownloadState.IsFailed -> "Failed"
-            DownloadState.IsStopped -> "Stopped"
+            DownloadState.IsFailed -> context.getString(R.string.failed)
+            DownloadState.IsStopped -> context.getString(R.string.stopped)
             DownloadState.Nothing -> ""
             DownloadState.IsPending -> ""
-            DownloadState.IsPaused -> "Paused"
+            DownloadState.IsPaused -> context.getString(R.string.paused)
         }
     }
 }
@@ -646,7 +645,10 @@ object BookDownloader2Helper {
                 fileStream = FileOutputStream(rFile, false)
             }
 
-            val epubFile = File(activity.filesDir.toString() + getDirectory(sApiName, sAuthor, sName), LOCAL_EPUB)
+            val epubFile = File(
+                activity.filesDir.toString() + getDirectory(sApiName, sAuthor, sName),
+                LOCAL_EPUB
+            )
             if (epubFile.exists() && epubFile.length() > LOCAL_EPUB_MIN_SIZE) {
                 fileStream.write(epubFile.readBytes())
 
@@ -928,7 +930,11 @@ object NotificationHelper {
 
             with(NotificationManagerCompat.from(context)) {
                 // notificationId is a unique int for each notification that you must define
-                notify(id, builder.build())
+                try {
+                    notify(id, builder.build())
+                } catch (t: Throwable) {
+                    logError(t)
+                }
             }
         }
     }
@@ -1113,7 +1119,7 @@ object BookDownloader2 {
 
     private fun openEpub(name: String, openInApp: Boolean? = null) {
         if (!BookDownloader2Helper.openEpub(activity, name, openInApp)) {
-            showToast(R.string.error_loading_novel) // TODO MAKE BETTER STRING
+            showToast(R.string.error_loading_novel)
         }
     }
 
@@ -1551,7 +1557,7 @@ object BookDownloader2 {
                         }
 
                         // don't spam notifications so only update once per sec
-                        if(lastUpdatedMs + 1000 < System.currentTimeMillis()) {
+                        if (lastUpdatedMs + 1000 < System.currentTimeMillis()) {
                             lastUpdatedMs = System.currentTimeMillis()
                             createNotification(
                                 id,

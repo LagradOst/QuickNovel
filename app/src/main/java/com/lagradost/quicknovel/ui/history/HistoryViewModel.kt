@@ -13,6 +13,7 @@ import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
+import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.ResultCached
 
@@ -56,14 +57,13 @@ class HistoryViewModel : ViewModel() {
                         }
                     }
                 }
-            // TODO MAKE STRINGS
 
             val builder: AlertDialog.Builder =
                 AlertDialog.Builder(act)
-            builder.setMessage("Are you sure?\nAll history will be lost.")
-                .setTitle("Remove History")
-                .setPositiveButton("Remove", dialogClickListener)
-                .setNegativeButton("Cancel", dialogClickListener)
+            builder.setMessage(R.string.remove_all_history)
+                .setTitle(R.string.remove_history)
+                .setPositiveButton(R.string.remove, dialogClickListener)
+                .setNegativeButton(R.string.cancel, dialogClickListener)
                 .show()
         }
     }
@@ -72,7 +72,7 @@ class HistoryViewModel : ViewModel() {
         loadResult(card.source, card.apiName)
     }
 
-    fun showMetadata(card : ResultCached) {
+    fun showMetadata(card: ResultCached) {
         MainActivity.loadPreviewPage(card)
     }
 
@@ -90,13 +90,13 @@ class HistoryViewModel : ViewModel() {
                         }
                     }
                 }
-            // TODO MAKE STRINGS
+
             val builder: AlertDialog.Builder =
                 AlertDialog.Builder(act)
-            builder.setMessage("This remove ${card.name} from your history.\nAre you sure?")
-                .setTitle("Remove")
-                .setPositiveButton("Remove", dialogClickListener)
-                .setNegativeButton("Cancel", dialogClickListener)
+            builder.setMessage(act.getString(R.string.remove_from_history_format).format(card.name))
+                .setTitle(R.string.remove)
+                .setPositiveButton(R.string.remove, dialogClickListener)
+                .setNegativeButton(R.string.cancel, dialogClickListener)
                 .show()
         }
     }

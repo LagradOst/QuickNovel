@@ -313,7 +313,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
 
         private fun bindChapter(obj: ChapterStartSpanned) {
             if (binding !is SingleFinishedChapterBinding) throw NotImplementedError()
-            binding.root.text = obj.name // TODO TEXT STRING
+            binding.root.text = obj.name
             binding.root.setOnClickListener {
                 viewModel.switchVisibility()
             }

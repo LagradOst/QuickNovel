@@ -9,26 +9,30 @@ import android.graphics.Bitmap
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.services.TTSPauseService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.ArrayList
 
 object TTSNotifications {
-    const val TTS_CHANNEL_ID = "QuickNovelTTS"
-    const val TTS_NOTIFICATION_ID = 133742
+    private const val TTS_CHANNEL_ID = "QuickNovelTTS"
+    private const val TTS_NOTIFICATION_ID = 133742
 
-    var hasCreateedNotificationChannel = false
+    private var hasCreateedNotificationChannel = false
 
     private fun createNotificationChannel(context: Context) {
         // Create the NotificationChannel, but only on API 26+ because
         // the NotificationChannel class is new and not in the support library
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Text To Speech"//getString(R.string.channel_name)
-            val descriptionText =
-                "The TTS notification channel" //getString(R.string.channel_description)
+            val name = context.getString(R.string.text_to_speech)
+            val descriptionText = context.getString(R.string.text_to_speech_channel_description)
             val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(com.lagradost.quicknovel.TTS_CHANNEL_ID, name, importance).apply {
+            val channel = NotificationChannel(
+                com.lagradost.quicknovel.TTS_CHANNEL_ID,
+                name,
+                importance
+            ).apply {
                 description = descriptionText
             }
             // Register the channel with the system
@@ -38,8 +42,21 @@ object TTSNotifications {
         }
     }
 
-    fun notify(title : String, chapter : String, icon: Bitmap?, status : TTSHelper.TTSStatus, context: Context ) {
-        if(!hasCreateedNotificationChannel) {
+    fun notify(
+        title: String,
+        chapter: String,
+        icon: Bitmap?,
+        status: TTSHelper.TTSStatus,
+        context: Context?
+    ) {
+        if (context == null) return
+
+        if (status == TTSHelper.TTSStatus.IsStopped) {
+            NotificationManagerCompat.from(context).cancel(TTS_NOTIFICATION_ID)
+            return
+        }
+
+        if (!hasCreateedNotificationChannel) {
             hasCreateedNotificationChannel = true
             createNotificationChannel(context)
         }
@@ -95,7 +112,11 @@ object TTSNotifications {
 
         with(NotificationManagerCompat.from(context)) {
             // notificationId is a unique int for each notification that you must define
-            notify(TTS_NOTIFICATION_ID, builder.build())
+            try {
+                notify(TTS_NOTIFICATION_ID, builder.build())
+            } catch (t: Throwable) {
+                logError(t)
+            }
         }
     }
 }

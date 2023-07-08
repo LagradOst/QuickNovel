@@ -119,6 +119,7 @@
     <string name="text_font">Text Font</string>
     <string name="no_chapters_found">No chapters found</string>
     <string name="error_loading_novel">Error loading novel</string>
+    <string name="error_loading_chapter">Error loading chapter</string>
 
     <string name="text_padding_top">Text Top Margin</string>
 
@@ -147,4 +148,47 @@
     <string name="primary_color_settings">Main Color</string>
     <string name="library_display_mode">Library Display Mode</string>
     <string name="rating_format">Rating Format</string>
+    <string name="cancel">Cancel</string>
+    <string name="remove">Remove</string>
+    <string name="remove_from_history_format">This remove %s from your history.\nAre you sure?</string>
+    <string name="permanently_delete_format">This will permanently delete %s.\nAre you sure?</string>
+    <string name="remove_all_history">Are you sure?\nAll history will be lost.</string>
+    <string name="remove_history">Remove History</string>
+    <string name="search_providers">Search Providers</string>
+    <string name="no_more_chapters">No more chapters</string>
+    <string name="paused">Paused</string>
+    <string name="stopped">Stopped</string>
+    <string name="failed">Failed</string>
+    <string name="done">Done</string>
+    <string name="ongoing">Ongoing</string>
+    <string name="completed">Completed</string>
+    <string name="dropped">Dropped</string>
+    <string name="text_to_speech">Text To Speech</string>
+    <string name="text_to_speech_channel_description">The TTS notification channel</string>
+    <string name="overall_rating_format">Overall %s</string>
+    <string name="battery_format">%d%%</string>
+    <string name="novel">Novel</string>
+    <string name="reviews">Reviews</string>
+    <string name="votes_format">%d Votes</string>
+    <string name="latest_format">Latest: %s</string>
+    <string name="new_update_found_format">New update found!\n %s -> %s</string>
+    <string name="download_started">Download started</string>
+    <string name="download_failed">Download failed</string>
+    <string name="update">Update</string>
+    <string name="dont_show_again">Don\'t show again</string>
+    <string name="downloaded">Downloaded</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="re_downloaded">Re-Download</string>
+    <string name="loading">Loading</string>
+
+    <string name="default_sort">Default</string>
+    <string name="recently_sort">Recently opened</string>
+    <string name="alpha_sort_az">Alphabetical (A-Z)</string>
+    <string name="alpha_sort_za">Alphabetical (Z-A)</string>
+    <string name="download_sort_hl">"Download count (high to low)"</string>
+    <string name="download_sort_lh">"Download count (low to high)"</string>
+    <string name="download_perc_hl">Download percentage (high to low)</string>
+    <string name="download_perc_lh">Download percentage (low to high)</string>
+
 </resources>

@@ -491,17 +491,19 @@ class MainActivity : AppCompatActivity() {
                             resultviewPreviewMetaRating.isVisible = false
                         }
 
-                        // TODO FIX STRINGS
-                        val statusTxt = when (d.status) {
-                            1 -> "Ongoing"
-                            2 -> "Completed"
-                            3 -> "Paused"
-                            4 -> "Dropped"
-                            else -> ""
+                        resultviewPreviewMetaStatus.apply {
+                            val statusTxt = when (d.status) {
+                                1 ->  getString(R.string.ongoing)
+                                2 -> getString(R.string.completed)
+                                3 -> getString(R.string.paused)
+                                4 -> getString(R.string.dropped)
+                                else -> ""
+                            }
+
+                            resultviewPreviewMetaStatus.text = statusTxt
+                            resultviewPreviewMetaStatus.isVisible = statusTxt.isNotBlank()
                         }
 
-                        resultviewPreviewMetaStatus.text = statusTxt
-                        resultviewPreviewMetaStatus.isVisible = statusTxt.isNotBlank()
                         if (d is StreamResponse) {
                             resultviewPreviewMetaChapters.text = "${d.data.size} Chapters"
                             resultviewPreviewMetaChapters.isVisible = d.data.isNotEmpty()

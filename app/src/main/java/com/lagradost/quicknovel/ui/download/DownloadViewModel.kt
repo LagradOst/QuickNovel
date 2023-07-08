@@ -6,6 +6,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
@@ -22,6 +23,7 @@ import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
+import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
 import com.lagradost.quicknovel.ui.ReadType
@@ -140,11 +142,12 @@ class DownloadViewModel : ViewModel() {
                     }
                 }
             }
-        val builder: AlertDialog.Builder = AlertDialog.Builder(activity ?: return)
-        builder.setMessage("This will permanently delete ${card.name}.\nAre you sure?")
-            .setTitle("Delete")
-            .setPositiveButton("Delete", dialogClickListener)
-            .setNegativeButton("Cancel", dialogClickListener)
+        val act = activity ?: return
+        val builder: AlertDialog.Builder = AlertDialog.Builder(act)
+        builder.setMessage(act.getString(R.string.permanently_delete_format).format(card.name))
+            .setTitle(R.string.delete)
+            .setPositiveButton(R.string.delete, dialogClickListener)
+            .setNegativeButton(R.string.cancel, dialogClickListener)
             .show()
     }
 
@@ -166,11 +169,12 @@ class DownloadViewModel : ViewModel() {
                     }
                 }
             }
-        val builder: AlertDialog.Builder = AlertDialog.Builder(activity ?: return)
-        builder.setMessage("This will permanently delete ${card.name}.\nAre you sure?")
-            .setTitle("Delete")
-            .setPositiveButton("Delete", dialogClickListener)
-            .setNegativeButton("Cancel", dialogClickListener)
+        val act = activity ?: return
+        val builder: AlertDialog.Builder = AlertDialog.Builder(act)
+        builder.setMessage(act.getString(R.string.permanently_delete_format).format(card.name))
+            .setTitle(R.string.delete)
+            .setPositiveButton(R.string.delete, dialogClickListener)
+            .setNegativeButton(R.string.cancel, dialogClickListener)
             .show()
     }
 
@@ -348,7 +352,9 @@ class DownloadViewModel : ViewModel() {
                     downloadedCount = state.progress
                     downloadedTotal = state.total
                     this.state = state.state
-                    this.ETA = state.eta()
+                    context?.let { ctx ->
+                        this.ETA = state.eta(ctx)
+                    }
                 }
                 postCards()
             }
@@ -418,7 +424,7 @@ class DownloadViewModel : ViewModel() {
                         apiName = value.apiName,
                         downloadedCount = info.progress,
                         downloadedTotal = info.total,
-                        ETA = info.eta(),
+                        ETA = context?.let { ctx -> info.eta(ctx) } ?: "",
                         state = info.state,
                         id = key,
                         generating = false

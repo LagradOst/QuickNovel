@@ -21,6 +21,7 @@ import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.LoadResponse
+import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
 import com.lagradost.quicknovel.StreamResponse
@@ -215,10 +216,13 @@ class ResultViewModel : ViewModel() {
                     }
                 }
             }
-            val builder: AlertDialog.Builder = AlertDialog.Builder(activity ?: return@launch)
-            builder.setMessage("This will permanently delete ${load.name}.\nAre you sure?")
-                .setTitle("Delete").setPositiveButton("Delete", dialogClickListener)
-                .setNegativeButton("Cancel", dialogClickListener).show()
+            val act = activity ?: return@launch
+            val builder: AlertDialog.Builder = AlertDialog.Builder(act)
+            builder.setMessage(act.getString(R.string.permanently_delete_format).format(load.name))
+                .setTitle(R.string.delete)
+                .setPositiveButton(R.string.delete, dialogClickListener)
+                .setNegativeButton(R.string.cancel, dialogClickListener)
+                .show()
         }
     }
 

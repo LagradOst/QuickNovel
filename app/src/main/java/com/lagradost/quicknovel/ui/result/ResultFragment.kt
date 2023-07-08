@@ -112,7 +112,6 @@ class ResultFragment : Fragment() {
         }
     }
 
-    @SuppressLint1("CutPasteId", "SetTextI18n")
     fun newState(loadResponse: Resource<LoadResponse>?) {
         if (loadResponse == null) return
         //activity?.window?.navigationBarColor =
@@ -163,8 +162,10 @@ class ResultFragment : Fragment() {
                     resultRatingVotedCount.text = getString(R.string.no_data)
                     res.rating?.let { rating ->
                         resultRating.text = context?.getRating(rating)
-                        if (res.peopleVoted != null) {
-                            resultRatingVotedCount.text = "${res.peopleVoted} Votes"
+                        val votes = res.peopleVoted
+                        if (votes != null) {
+                            resultRatingVotedCount.text =
+                                getString(R.string.votes_format).format(votes)
                         }
                     }
                     resultViews.text =
@@ -175,17 +176,17 @@ class ResultFragment : Fragment() {
                     resultTabs.removeAllTabs()
                     resultTabs.isVisible = api.hasReviews
                     if (api.hasReviews) {
-                        resultTabs.addTab(resultTabs.newTab().setText("Novel"))
-                        resultTabs.addTab(resultTabs.newTab().setText("Reviews"))
+                        resultTabs.addTab(resultTabs.newTab().setText(R.string.novel))
+                        resultTabs.addTab(resultTabs.newTab().setText(R.string.reviews))
                     }
 
                     viewsAndRating.isVisible = res.views != null || res.peopleVoted != null
 
                     resultStatus.text = when (res.status) {
-                        1 -> "Ongoing"
-                        2 -> "Completed"
-                        3 -> "Paused"
-                        4 -> "Dropped"
+                        1 -> getString(R.string.ongoing)
+                        2 -> getString(R.string.completed)
+                        3 -> getString(R.string.paused)
+                        4 -> getString(R.string.dropped)
                         else -> ""
                     }
 
@@ -249,7 +250,7 @@ class ResultFragment : Fragment() {
 
                         resultSynopsisText.setOnClickListener {
                             val builder: AlertDialog.Builder = AlertDialog.Builder(requireContext())
-                            builder.setMessage(res.synopsis.html()).setTitle("Synopsis")
+                            builder.setMessage(res.synopsis.html()).setTitle(R.string.synopsis)
                                 .show()
                         }
                         resultSynopsisText.text = syno.html()
@@ -261,15 +262,12 @@ class ResultFragment : Fragment() {
                         resultQuickstream.isVisible = true
                         resultTotalChapters.isVisible = true
                         if (res.data.isNotEmpty()) {
-                            val last = res.data.last()
-
                             resultTotalChapters.text =
-                                "Latest: " + last.name //+ " " + last.dateOfRelease
+                                getString(R.string.latest_format).format(res.data.last().name)
                         } else {
                             resultTotalChapters.text = getString(R.string.no_chapters)
                         }
-                    }
-                    else {
+                    } else {
                         resultTotalChapters.isVisible = false
                         resultQuickstream.isVisible = false
                     }
@@ -461,13 +459,13 @@ class ResultFragment : Fragment() {
 
                     //iconSize = 30.toPx
                     text = when (progressState.state) {
-                        DownloadState.IsDone -> "Downloaded"
-                        DownloadState.IsDownloading -> "Pause"
-                        DownloadState.IsPaused -> "Resume"
-                        DownloadState.IsFailed -> "Re-Download"
-                        DownloadState.IsStopped -> "Download"
-                        DownloadState.Nothing -> "Download"
-                        DownloadState.IsPending -> "Loading"
+                        DownloadState.IsDone -> getString(R.string.downloaded)
+                        DownloadState.IsDownloading -> getString(R.string.pause)
+                        DownloadState.IsPaused -> getString(R.string.resume)
+                        DownloadState.IsFailed -> getString(R.string.re_downloaded)
+                        DownloadState.IsStopped -> getString(R.string.downloaded)
+                        DownloadState.Nothing -> getString(R.string.download)
+                        DownloadState.IsPending -> getString(R.string.loading)
                     }
                     setIconResource(
                         when (progressState.state) {
@@ -479,7 +477,6 @@ class ResultFragment : Fragment() {
                         }
                     )
                 }
-
             } else {
                 binding.downloadDeleteTrashFromResult.isVisible = false
 

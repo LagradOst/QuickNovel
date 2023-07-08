@@ -8,22 +8,18 @@ import android.view.ViewGroup
 import android.widget.AbsListView.CHOICE_MODE_SINGLE
 import android.widget.ArrayAdapter
 import android.widget.ListView
+import androidx.annotation.StringRes
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.RecyclerView.ItemAnimator
-import androidx.recyclerview.widget.SimpleItemAnimator
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.tabs.TabLayout
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
-import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.databinding.FragmentDownloadsBinding
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.ReadType
-import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
@@ -76,24 +72,24 @@ class DownloadFragment : Fragment() {
         var generating : Boolean,
     )
 
-    data class SortingMethod(val name: String, val id: Int)
+    data class SortingMethod(@StringRes val name: Int, val id: Int)
 
     private val sortingMethods = arrayOf(
-        SortingMethod("Default", DEFAULT_SORT),
-        SortingMethod("Recently opened", LAST_ACCES_SORT),
-        SortingMethod("Alphabetical (A-Z)", ALPHA_SORT),
-        SortingMethod("Alphabetical (Z-A)", REVERSE_ALPHA_SORT),
-        SortingMethod("Download count (high to low)", DOWNLOADSIZE_SORT),
-        SortingMethod("Download count (low to high)", REVERSE_DOWNLOADSIZE_SORT),
-        SortingMethod("Download percentage (high to low)", DOWNLOADPRECENTAGE_SORT),
-        SortingMethod("Download percentage (low to high)", REVERSE_DOWNLOADPRECENTAGE_SORT),
+        SortingMethod(R.string.default_sort, DEFAULT_SORT),
+        SortingMethod(R.string.recently_sort, LAST_ACCES_SORT),
+        SortingMethod(R.string.alpha_sort_az, ALPHA_SORT),
+        SortingMethod(R.string.alpha_sort_za, REVERSE_ALPHA_SORT),
+        SortingMethod(R.string.download_sort_hl, DOWNLOADSIZE_SORT),
+        SortingMethod(R.string.download_sort_lh, REVERSE_DOWNLOADSIZE_SORT),
+        SortingMethod(R.string.download_perc_hl, DOWNLOADPRECENTAGE_SORT),
+        SortingMethod(R.string.download_perc_lh, REVERSE_DOWNLOADPRECENTAGE_SORT),
     )
 
     private val normalSortingMethods = arrayOf(
-        SortingMethod("Default", DEFAULT_SORT),
-        SortingMethod("Recently opened", LAST_ACCES_SORT),
-        SortingMethod("Alphabetical (A-Z)", ALPHA_SORT),
-        SortingMethod("Alphabetical (Z-A)", REVERSE_ALPHA_SORT),
+        SortingMethod(R.string.default_sort, DEFAULT_SORT),
+        SortingMethod(R.string.recently_sort, LAST_ACCES_SORT),
+        SortingMethod(R.string.alpha_sort_az, ALPHA_SORT),
+        SortingMethod(R.string.alpha_sort_za, REVERSE_ALPHA_SORT),
     )
 
     override fun onCreateView(
@@ -186,7 +182,7 @@ class DownloadFragment : Fragment() {
                     res.choiceMode = CHOICE_MODE_SINGLE
 
                     if (isOnDownloads) {
-                        arrayAdapter.addAll(ArrayList(sortingMethods.map { t -> t.name }))
+                        arrayAdapter.addAll(ArrayList(sortingMethods.map { t -> getString(t.name)  }))
                         res.adapter = arrayAdapter
 
                         res.setItemChecked(
@@ -201,7 +197,7 @@ class DownloadFragment : Fragment() {
                             bottomSheetDialog.dismiss()
                         }
                     } else {
-                        arrayAdapter.addAll(ArrayList(normalSortingMethods.map { t -> t.name }))
+                        arrayAdapter.addAll(ArrayList(normalSortingMethods.map { t -> getString(t.name) }))
                         res.adapter = arrayAdapter
 
                         res.setItemChecked(

@@ -1083,7 +1083,7 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
                 fadeInText()
 
             if (txt == null) {
-                showToast("Error loading chapter", Toast.LENGTH_SHORT)
+                showToast(R.string.error_loading_chapter, Toast.LENGTH_SHORT)
                 if (!isFromEpub && !forceReload) {
                     loadChapter(chapterIndex, scrollToTop, scrollToRemember, true)
                 }

@@ -80,12 +80,13 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
 
     /** waits for sentence to be finished or action to be true, if action is true then
      * break early and interrupt TTS */
-    suspend fun waitForOr(id: Int?, action : () -> Boolean) {
+    suspend fun waitForOr(id: Int?, action : () -> Boolean, then : () -> Unit) {
         if (id == null) return
         while (id > TTSEndSpeakId) {
             delay(50)
             if(action()) {
                 interruptTTS()
+                then()
                 break
             }
         }
