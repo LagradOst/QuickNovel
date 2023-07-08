@@ -13,7 +13,10 @@ import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
+import android.widget.AbsListView
+import android.widget.ArrayAdapter
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.doOnEnd
 import androidx.core.app.NotificationManagerCompat
@@ -198,10 +201,10 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     private lateinit var textAdapter: TextAdapter
     private lateinit var textLayoutManager: LinearLayoutManager
 
-    private fun transformIndexToScrollVisibilityItem(index: Int): ScrollVisibilityItem {
+    private fun transformIndexToScrollVisibilityItem(adapterPosition: Int): ScrollVisibilityItem {
         return ScrollVisibilityItem(
-            index = index,
-            viewHolder = binding.realText.findViewHolderForAdapterPosition(index),
+            adapterPosition = adapterPosition,
+            viewHolder = binding.realText.findViewHolderForAdapterPosition(adapterPosition),
         )
     }
 
@@ -260,24 +263,21 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     private var cachedChapter: List<SpanDisplay> = emptyList()
     private fun scrollToDesired() {
         val desired = viewModel.desiredIndex
-        val index =
+        val adapterPosition =
             cachedChapter.indexOfFirst { display -> display.index == desired.index && display.innerIndex == desired.innerIndex }
-        if (index > 0) {
-            textLayoutManager.scrollToPositionWithOffset(index, 0)
-
+        if (adapterPosition > 0) {
+            textLayoutManager.scrollToPositionWithOffset(adapterPosition, 0)
             desired.firstVisibleChar?.let { visible ->
                 binding.realText.post {
                     binding.realText.scrollBy(
                         0,
                         (textAdapter.getViewOffset(
-                            transformIndexToScrollVisibilityItem(index),
+                            transformIndexToScrollVisibilityItem(adapterPosition),
                             visible
                         ) ?: 0) + 7.toPx
                     )
                 }
             }
-
-            binding.realText.findViewHolderForAdapterPosition(index)
         }
     }
 
@@ -299,6 +299,11 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         }
     }
 
+    /*fun setRot(org: OrientationType) {
+        orientationType = org.prefValue
+        requestedOrientation = org.flag
+        binding.readActionRotate.setImageResource(org.iconRes)
+    }*/
     override fun onCreate(savedInstanceState: Bundle?) {
         CommonActivity.loadThemes(this)
         super.onCreate(savedInstanceState)
@@ -347,7 +352,37 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         }
 
         observe(viewModel.chaptersTitles) { titles ->
+            binding.readActionChapters.setOnClickListener {
+                val builderSingle: AlertDialog.Builder = AlertDialog.Builder(this)
+                //builderSingle.setIcon(R.drawable.ic_launcher)
+                val currentChapter = viewModel.desiredIndex.index
+                // cant be too safe here
+                val validChapter = currentChapter >= 0 && currentChapter < titles.size
+                if (validChapter) {
+                    builderSingle.setTitle(titles[currentChapter]) //  "Select Chapter"
+                } else {
+                    builderSingle.setTitle("Select Chapter")
+                }
 
+                val arrayAdapter = ArrayAdapter<String>(this, R.layout.chapter_select_dialog)
+
+                arrayAdapter.addAll(titles)
+
+                builderSingle.setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
+
+                builderSingle.setAdapter(arrayAdapter) { _, which ->
+                    viewModel.seekToChapter(which)
+                }
+
+                val dialog = builderSingle.create()
+                dialog.show()
+
+                dialog.listView.choiceMode = AbsListView.CHOICE_MODE_SINGLE
+                if (validChapter) {
+                    dialog.listView.setSelection(currentChapter)
+                    dialog.listView.setItemChecked(currentChapter, true)
+                }
+            }
         }
 
         observe(viewModel.ttsStatus) { status ->
@@ -355,6 +390,13 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
             binding.readerBottomView.isGone = isTTSRunning
             binding.readerBottomViewTts.isVisible = isTTSRunning
+            binding.ttsActionPausePlay.setImageResource(
+                when (status) {
+                    TTSHelper.TTSStatus.IsPaused -> R.drawable.ic_baseline_play_arrow_24
+                    TTSHelper.TTSStatus.IsRunning -> R.drawable.ic_baseline_pause_24
+                    TTSHelper.TTSStatus.IsStopped -> R.drawable.ic_baseline_play_arrow_24
+                }
+            )
         }
 
         /*val touchListener = View.OnTouchListener { _, event ->
@@ -436,16 +478,12 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             })
         }
 
-        var firstAppend = true
-        observe(viewModel.chapter) { text ->
-            cachedChapter = text
-            textAdapter.submitList(text)
-            if (firstAppend) {
-                firstAppend = false
-                scrollToDesired()
-            }
-
-            binding.realText.post {
+        observe(viewModel.chapter) { chapter ->
+            cachedChapter = chapter.data
+            textAdapter.submitList(chapter.data) {
+                if (chapter.seekToDesired) {
+                    scrollToDesired()
+                }
                 onScroll()
             }
         }

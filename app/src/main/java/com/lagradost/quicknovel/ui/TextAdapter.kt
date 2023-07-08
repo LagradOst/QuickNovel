@@ -33,7 +33,7 @@ const val DRAW_CHAPTER = 4
 
 
 data class ScrollVisibilityItem(
-    val index: Int,
+    val adapterPosition: Int,
     val viewHolder: RecyclerView.ViewHolder?,
 )
 
@@ -121,7 +121,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
     }
 
     fun getViewOffset(scrollVisibility: ScrollVisibilityItem, char: Int): Int? {
-        if (scrollVisibility.index < 0 || scrollVisibility.index >= itemCount) return null
+        if (scrollVisibility.adapterPosition < 0 || scrollVisibility.adapterPosition >= itemCount) return null
         //val item = getItem(scrollVisibility.index)
         val viewHolder = scrollVisibility.viewHolder
         if (viewHolder !is TextAdapterHolder) return null
@@ -148,8 +148,8 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
         screenTop: Int,
         screenBottom: Int
     ): ScrollIndex? {
-        if (scrollVisibility.index < 0 || scrollVisibility.index >= itemCount) return null
-        val item = getItem(scrollVisibility.index)
+        if (scrollVisibility.adapterPosition < 0 || scrollVisibility.adapterPosition >= itemCount) return null
+        val item = getItem(scrollVisibility.adapterPosition)
         val viewHolder = scrollVisibility.viewHolder
 
         var firstVisibleChar: Int? = null

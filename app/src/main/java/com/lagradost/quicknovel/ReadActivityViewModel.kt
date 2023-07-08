@@ -200,6 +200,11 @@ data class LiveChapterData(
     val ttsLines: List<TTSHelper.TTSLine>
 )
 
+data class ChapterUpdate(
+    val data: ArrayList<SpanDisplay>,
+    val seekToDesired: Boolean
+)
+
 class ReadActivityViewModel : ViewModel() {
     private lateinit var book: AbstractBook
     private lateinit var markwon: Markwon
@@ -212,9 +217,9 @@ class ReadActivityViewModel : ViewModel() {
         }
 
 
-    private val _chapterData: MutableLiveData<ArrayList<SpanDisplay>> =
-        MutableLiveData<ArrayList<SpanDisplay>>(null)
-    val chapter: LiveData<ArrayList<SpanDisplay>> = _chapterData
+    private val _chapterData: MutableLiveData<ChapterUpdate> =
+        MutableLiveData<ChapterUpdate>(null)
+    val chapter: LiveData<ChapterUpdate> = _chapterData
 
     // we use bool as we cant construct Nothing, does not represent anything
     private val _loadingStatus: MutableLiveData<Resource<Boolean>> =
@@ -240,7 +245,6 @@ class ReadActivityViewModel : ViewModel() {
     private val _ttsStatus: MutableLiveData<TTSHelper.TTSStatus> =
         MutableLiveData<TTSHelper.TTSStatus>(TTSHelper.TTSStatus.IsStopped)
     val ttsStatus: LiveData<TTSHelper.TTSStatus> = _ttsStatus
-
 
     private val _ttsLine: MutableLiveData<TTSHelper.TTSLine?> =
         MutableLiveData<TTSHelper.TTSLine?>(null)
@@ -304,7 +308,7 @@ class ReadActivityViewModel : ViewModel() {
         }
     }
 
-    private fun updateReadArea() {
+    private fun updateReadArea(seekToDesired: Boolean = false) {
         val cIndex = currentIndex
         val chapters = ArrayList<SpanDisplay>()
         for (idx in cIndex - chapterPaddingBottom..cIndex + chapterPaddingTop) {
@@ -330,13 +334,13 @@ class ReadActivityViewModel : ViewModel() {
                 chapters.add(ChapterStartSpanned(idx, 0, chaptersTitlesInternal[idx]))
             chapters.addAll(append)
         }
-        _chapterData.postValue(chapters)
+        _chapterData.postValue(ChapterUpdate(data = chapters, seekToDesired = seekToDesired))
     }
 
-    private fun notifyChapterUpdate(index: Int) {
+    private fun notifyChapterUpdate(index: Int, seekToDesired: Boolean = false) {
         val cIndex = currentIndex
         if (cIndex - chapterPaddingBottom <= index && index <= cIndex + chapterPaddingTop) {
-            updateReadArea()
+            updateReadArea(seekToDesired)
         }
     }
 
@@ -483,7 +487,7 @@ class ReadActivityViewModel : ViewModel() {
                 changeIndex(ScrollIndex(currentIndex, innerIndex), updateArea = false)
 
                 // notify once because initial load is 3 chapters I don't care about 10 notifications when the user cant see it
-                notifyChapterUpdate(index = loadedChapter)
+                updateReadArea(seekToDesired = true)
 
                 _loadingStatus.postValue(
                     Resource.Success(true)
@@ -576,10 +580,6 @@ class ReadActivityViewModel : ViewModel() {
         set(value) {
             if (_CurrentTTSStatus == TTSHelper.TTSStatus.IsStopped && value == TTSHelper.TTSStatus.IsRunning) {
                 startTTSThread()
-            } else if (_CurrentTTSStatus == TTSHelper.TTSStatus.IsRunning && value == TTSHelper.TTSStatus.IsStopped) {
-                ioSafe {
-                    ttsSession.interruptTTS()
-                }
             }
 
             _ttsStatus.postValue(value)
@@ -609,13 +609,12 @@ class ReadActivityViewModel : ViewModel() {
     fun pausePlayTTS() {
         if (CurrentTTSStatus == TTSHelper.TTSStatus.IsRunning) {
             CurrentTTSStatus = TTSHelper.TTSStatus.IsPaused
-        }
-        if (CurrentTTSStatus == TTSHelper.TTSStatus.IsPaused) {
+        } else if (CurrentTTSStatus == TTSHelper.TTSStatus.IsPaused) {
             CurrentTTSStatus = TTSHelper.TTSStatus.IsRunning
         }
     }
 
-    fun isTTSRunning() : Boolean {
+    fun isTTSRunning(): Boolean {
         return CurrentTTSStatus == TTSHelper.TTSStatus.IsRunning
     }
 
@@ -675,7 +674,7 @@ class ReadActivityViewModel : ViewModel() {
 
                 // this is because if you go back one line you will be on the previous chapter with
                 // a negative innerIndex, this makes the wrapping good
-                if(innerIndex < 0) {
+                if (innerIndex < 0) {
                     innerIndex += lines.size
                 }
 
@@ -693,8 +692,16 @@ class ReadActivityViewModel : ViewModel() {
                         CurrentTTSStatus != TTSHelper.TTSStatus.IsRunning || pendingTTSSkip != 0
                     }
 
+                    var isPauseDuration = 0
                     while (CurrentTTSStatus == TTSHelper.TTSStatus.IsPaused) {
+                        isPauseDuration++
                         delay(100)
+                    }
+
+                    // if we pause then we resume on the same line
+                    if (isPauseDuration > 0) {
+                        pendingTTSSkip = 0
+                        continue
                     }
 
                     if (pendingTTSSkip != 0) {
@@ -706,7 +713,7 @@ class ReadActivityViewModel : ViewModel() {
                 }
                 if (CurrentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
 
-                if(innerIndex > 0) {
+                if (innerIndex > 0) {
                     // goto next chapter and set inner to 0
                     index++
                     innerIndex = 0
@@ -733,7 +740,7 @@ class ReadActivityViewModel : ViewModel() {
             return false
         }
 
-        when(input) {
+        when (input) {
             TTSHelper.TTSActionType.Pause -> pauseTTS()
             TTSHelper.TTSActionType.Resume -> startTTS()
             TTSHelper.TTSActionType.Stop -> stopTTS()
@@ -771,6 +778,32 @@ class ReadActivityViewModel : ViewModel() {
                 )
             }
         }
+    }
+
+    fun seekToChapter(index: Int) = ioSafe {
+        // sanity check
+        if(index < 0 || index >= book.size()) return@ioSafe
+
+        // set loading
+        _loadingStatus.postValue(Resource.Loading())
+
+        // load the chapters
+        updateIndexAsync(index, notify = false)
+
+        // set the keys
+        setKey(EPUB_CURRENT_POSITION, book.title(), index)
+        setKey(EPUB_CURRENT_POSITION_SCROLL_CHAR, book.title(), 0)
+
+        // set the state
+        desiredIndex = ScrollIndex(index, 0, 0, 0)
+        currentIndex = index
+
+        // push the update
+        updateReadArea(seekToDesired = true)
+
+        // update the view
+        _chapterTile.postValue(chaptersTitlesInternal[index])
+        _loadingStatus.postValue(Resource.Success(true))
     }
 
     private fun changeIndex(index: Int, updateArea: Boolean = true) {
