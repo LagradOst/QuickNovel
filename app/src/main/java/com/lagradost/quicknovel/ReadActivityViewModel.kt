@@ -21,8 +21,6 @@ import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2Helper.getQuickChapter
 import com.lagradost.quicknovel.CommonActivity.showToast
-import com.lagradost.quicknovel.DataStore.getKey
-import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.TTSHelper.parseTextToSpans
 import com.lagradost.quicknovel.TTSHelper.preParseHtml
 import com.lagradost.quicknovel.TTSHelper.render
@@ -36,6 +34,7 @@ import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.ui.OrientationType
 import com.lagradost.quicknovel.ui.ScrollIndex
 import com.lagradost.quicknovel.ui.ScrollVisibilityIndex
+import com.lagradost.quicknovel.ui.toScroll
 import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.runOnMainThread
@@ -48,6 +47,7 @@ import io.noties.markwon.image.AsyncDrawable
 import io.noties.markwon.image.ImageSizeResolver
 import io.noties.markwon.image.glide.GlideImagesPlugin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import nl.siegmann.epublib.domain.Book
@@ -56,7 +56,6 @@ import org.jsoup.Jsoup
 import java.lang.ref.WeakReference
 import java.net.URLDecoder
 import java.util.ArrayList
-import kotlin.reflect.KClass
 
 abstract class AbstractBook {
     open fun resolveUrl(url: String): String {
@@ -275,6 +274,7 @@ class ReadActivityViewModel : ViewModel() {
     private var chaptersTitlesInternal: ArrayList<String> = arrayListOf()
 
     lateinit var desiredIndex: ScrollIndex
+    var desiredTTSIndex: ScrollIndex? = null
 
     private fun updateChapters() {
         for (idx in chaptersTitlesInternal.size until book.size()) {
@@ -326,6 +326,7 @@ class ReadActivityViewModel : ViewModel() {
         }
     }
 
+    // todo check if we actually seek to the same spot
     private fun updateReadArea(seekToDesired: Boolean = false) {
         val cIndex = currentIndex
         val chapters = ArrayList<SpanDisplay>()
@@ -497,8 +498,7 @@ class ReadActivityViewModel : ViewModel() {
                     _loadingStatus.postValue(Resource.Loading(book.getLoadingStatus(loadedChapter)))
                 }
 
-                changeIndex(loadedChapter, updateArea = false)
-
+                currentIndex = loadedChapter
                 updateIndexAsync(loadedChapter, notify = false)
 
                 val char = getKey(
@@ -507,7 +507,8 @@ class ReadActivityViewModel : ViewModel() {
 
                 val innerIndex = innerCharToIndex(currentIndex, char) ?: 0
 
-                changeIndex(ScrollIndex(currentIndex, innerIndex), updateArea = false)
+                // dont update as you want to seek on update
+                changeIndex(ScrollIndex(currentIndex, innerIndex, char))
 
                 // notify once because initial load is 3 chapters I don't care about 10 notifications when the user cant see it
                 updateReadArea(seekToDesired = true)
@@ -648,14 +649,12 @@ class ReadActivityViewModel : ViewModel() {
         ttsThreadMutex.withLock {
             ttsSession.register(context)
 
-            val dIndex = desiredIndex
+            val dIndex = desiredTTSIndex ?: desiredIndex
             var innerIndex = 0
             var index = dIndex.index
 
             let {
-                val startChar = innerIndexToChar(dIndex.index, dIndex.innerIndex)?.let { char ->
-                    char + (dIndex.firstVisibleChar ?: 0)
-                } ?: 0
+                val startChar = dIndex.char
 
                 val lines = chapterMutex.withLock {
                     chapterData[index].letInner {
@@ -667,7 +666,7 @@ class ReadActivityViewModel : ViewModel() {
                     return@let
                 }
 
-                val idx = lines.indexOfFirst { it.startIndex >= startChar }
+                val idx = lines.indexOfFirst { it.startChar >= startChar }
                 if (idx != -1)
                     innerIndex = idx
             }
@@ -794,34 +793,33 @@ class ReadActivityViewModel : ViewModel() {
         return true
     }
 
-    private suspend fun innerIndexToChar(index: Int, innerIndex: Int?): Int? {
-        return chapterMutex.withLock {
-            chapterData[index]?.letInner { live ->
-                innerIndex?.let {
-                    live.spans.getOrNull(innerIndex)?.start
-                }
+    fun innerCharToIndex(index: Int, char: Int): Int? {
+        // the lock is so short it does not matter I *hope*
+        return runBlocking {
+            chapterMutex.withLock { chapterData[index] }?.letInner { live ->
+                live.spans.firstOrNull { it.start >= char }?.innerIndex
             }
         }
     }
 
-    private fun innerCharToIndex(index: Int, char: Int): Int? {
-        return chapterData[index]?.letInner { live ->
-            live.spans.firstOrNull { it.start >= char }?.innerIndex
-        }
+    /** sets the metadata and global vars used as well as keys */
+    private fun changeIndex(scrollIndex: ScrollIndex) {
+        _chapterTile.postValue(chaptersTitlesInternal[scrollIndex.index])
+
+        desiredIndex = scrollIndex
+        currentIndex = scrollIndex.index
+
+        setKey(
+            EPUB_CURRENT_POSITION_SCROLL_CHAR,
+            book.title(),
+            scrollIndex.char
+        )
+        setKey(EPUB_CURRENT_POSITION, book.title(), scrollIndex.index)
     }
 
-    private fun changeIndex(index: ScrollIndex, updateArea: Boolean = true) {
-        desiredIndex = index
-        changeIndex(index.index, updateArea)
-        ioSafe {
-            innerIndexToChar(index.index, index.innerIndex)?.let { char ->
-                setKey(
-                    EPUB_CURRENT_POSITION_SCROLL_CHAR,
-                    book.title(),
-                    char + (index.firstVisibleChar ?: 0)
-                )
-            }
-        }
+    fun scrollToDesired(scrollIndex: ScrollIndex) {
+        changeIndex(scrollIndex)
+        updateReadArea(seekToDesired = true)
     }
 
     fun seekToChapter(index: Int) = ioSafe {
@@ -829,7 +827,7 @@ class ReadActivityViewModel : ViewModel() {
         if (index < 0 || index >= book.size()) return@ioSafe
 
         // we wont allow chapter switching and tts at the same time, stop it
-        if(currentTTSStatus != TTSHelper.TTSStatus.IsStopped) {
+        if (currentTTSStatus != TTSHelper.TTSStatus.IsStopped) {
             currentTTSStatus = TTSHelper.TTSStatus.IsStopped
         }
 
@@ -844,8 +842,9 @@ class ReadActivityViewModel : ViewModel() {
         setKey(EPUB_CURRENT_POSITION_SCROLL_CHAR, book.title(), 0)
 
         // set the state
-        desiredIndex = ScrollIndex(index, 0, 0, 0)
+        desiredIndex = ScrollIndex(index, 0, 0)
         currentIndex = index
+        desiredTTSIndex = ScrollIndex(index, 0, 0)
 
         // push the update
         updateReadArea(seekToDesired = true)
@@ -855,29 +854,37 @@ class ReadActivityViewModel : ViewModel() {
         _loadingStatus.postValue(Resource.Success(true))
     }
 
-    private fun changeIndex(index: Int, updateArea: Boolean = true) {
+    /*private fun changeIndex(index: Int, updateArea: Boolean = true) {
         val realNewIndex = minOf(index, book.size() - 1)
         if (currentIndex == realNewIndex) return
         setKey(EPUB_CURRENT_POSITION, book.title(), realNewIndex)
         currentIndex = realNewIndex
         if (updateArea) updateReadArea()
         _chapterTile.postValue(chaptersTitlesInternal[realNewIndex])
-    }
+    }*/
 
     fun onScroll(visibility: ScrollVisibilityIndex?) {
         if (visibility == null) return
 
         // dynamically increase padding in case of very small chapters with a maximum of 10 chapters
-        val index = visibility.firstVisible.index
-        val top = visibility.lastVisible.index
+        val first = visibility.firstInMemory.index
+        val last = visibility.lastInMemory.index
+        chapterPaddingTop = minOf(10, maxOf(chapterPaddingTop, (last - first) + 1))
 
-        chapterPaddingTop = minOf(10, maxOf(chapterPaddingTop, (top - index) + 1))
+        val current = currentIndex
 
-        changeIndex(visibility.firstVisible)
-        updateIndex(visibility.firstVisible.index)
-        updateIndex(visibility.lastVisible.index)
+        val save = visibility.firstFullyVisible ?: visibility.firstInMemory
+        desiredTTSIndex = visibility.firstFullyVisibleUnderLine?.toScroll()
+        changeIndex(save.toScroll())
+
+        // update the read area if changed index
+        if (current != save.index)
+            updateReadArea()
+
+        // load forwards and backwards
+        updateIndex(visibility.firstInMemory.index)
+        updateIndex(visibility.lastInMemory.index)
     }
-
 
     override fun onCleared() {
         ttsSession.unregister(context)
@@ -892,12 +899,12 @@ class ReadActivityViewModel : ViewModel() {
     // :skull: ye java moment right here, we don't do generics because <refined T : Any> cant get
     // placed on a class, live with the boilerplate
 
-    fun setLockTTS(value : Boolean) {
+    fun setLockTTS(value: Boolean) {
         setKey(EPUB_TTS_LOCK, value)
         _lockTTS.postValue(value)
     }
 
-    fun setBackgroundColor(value : Int) {
+    fun setBackgroundColor(value: Int) {
         setKey(EPUB_BG_COLOR, value)
         _backgroundColor.postValue(value)
     }
@@ -911,8 +918,18 @@ class ReadActivityViewModel : ViewModel() {
         _orientation.postValue(OrientationType.fromSpinner(getKey(EPUB_LOCK_ROTATION)))
         _lockTTS.postValue(getKey(EPUB_TTS_LOCK) ?: true)
         BaseApplication.context?.let { ctx ->
-            _backgroundColor.postValue(getKey(EPUB_BG_COLOR) ?: ContextCompat.getColor(ctx, R.color.readerBackground))
-            _textColor.postValue(getKey(EPUB_TEXT_COLOR) ?: ContextCompat.getColor(ctx, R.color.readerTextColor))
+            _backgroundColor.postValue(
+                getKey(EPUB_BG_COLOR) ?: ContextCompat.getColor(
+                    ctx,
+                    R.color.readerBackground
+                )
+            )
+            _textColor.postValue(
+                getKey(EPUB_TEXT_COLOR) ?: ContextCompat.getColor(
+                    ctx,
+                    R.color.readerTextColor
+                )
+            )
         }
     }
 }

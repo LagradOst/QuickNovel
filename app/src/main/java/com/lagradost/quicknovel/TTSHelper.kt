@@ -268,8 +268,8 @@ data class FailedSpanned(val reason: String, override val index: Int) : SpanDisp
 object TTSHelper {
     data class TTSLine(
         val speakOutMsg: String,
-        val startIndex: Int,
-        val endIndex: Int,
+        val startChar: Int,
+        val endChar: Int,
         val index: Int,
     )
 

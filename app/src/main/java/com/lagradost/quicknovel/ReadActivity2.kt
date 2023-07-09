@@ -33,14 +33,13 @@ import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.mvvm.observeNullable
 import com.lagradost.quicknovel.ui.OrientationType
-import com.lagradost.quicknovel.ui.ScrollVisibility
+import com.lagradost.quicknovel.ui.ScrollIndex
+import com.lagradost.quicknovel.ui.ScrollVisibilityIndex
 import com.lagradost.quicknovel.ui.ScrollVisibilityItem
 import com.lagradost.quicknovel.ui.TextAdapter
+import com.lagradost.quicknovel.ui.TextVisualLine
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
-import com.lagradost.quicknovel.util.toPx
-import java.lang.Integer.max
-import java.lang.Integer.min
 import java.lang.ref.WeakReference
 
 class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
@@ -224,8 +223,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         return bottomY
     }
 
-    /** this works by first getting the 4 interesting items, first, firstVisible, last, lastVisible
-    then computing the first visible and first invisible char
+    /**
 
     ________________
     [ hello ]
@@ -241,13 +239,45 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
     This is also used for TTS because TTS *must* start at the first visible whole sentence,
     so in this case it would start at "From kotlin" because hello is not visible.
-
-    The struct returned has 2 index variables, index = chapter, while innerIndex = what item in that
-    chapter. So in this case TTS would start at index = N, innerIndex = 0, firstVisibleChar = 16 (F)
-    because firstVisibleChar is relative to the textview, not the entire text
      */
+
+    private fun getAllLines(): ArrayList<TextVisualLine> {
+        val lines: ArrayList<TextVisualLine> = arrayListOf()
+
+        for (i in textLayoutManager.findFirstVisibleItemPosition()..textLayoutManager.findLastVisibleItemPosition()) {
+            lines.addAll(textAdapter.getLines(transformIndexToScrollVisibilityItem(i)))
+        }
+        return lines
+    }
+
+    private fun postLines(lines: ArrayList<TextVisualLine>) {
+        if (lines.isEmpty()) {
+            return
+        }
+
+        viewModel.onScroll(
+            ScrollVisibilityIndex(
+                firstInMemory = lines.first(),
+                lastInMemory = lines.last(),
+                firstFullyVisible = lines.firstOrNull {
+                    it.top >= 0
+                },
+                firstFullyVisibleUnderLine = lines.firstOrNull {
+                    it.top >= binding.readToolbarHolder.height
+                },
+                lastHalfVisible = lines.firstOrNull {
+                    it.bottom >= getBottomY()
+                },
+            )
+        )
+    }
+
     fun onScroll() {
-        val topY = getTopY()
+        val lines = getAllLines()
+        postLines(lines)
+
+
+        /*val topY = getTopY()
         val bottomY = getBottomY()
 
         val visibility = ScrollVisibility(
@@ -260,28 +290,37 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             screenTopBar = binding.readToolbarHolder.height
         )
 
-        viewModel.onScroll(textAdapter.getIndex(visibility))
+        viewModel.onScroll(textAdapter.getIndex(visibility))*/
     }
 
     private var cachedChapter: List<SpanDisplay> = emptyList()
     private fun scrollToDesired() {
-        val desired = viewModel.desiredIndex
+        val desired: ScrollIndex = viewModel.desiredIndex
         val adapterPosition =
             cachedChapter.indexOfFirst { display -> display.index == desired.index && display.innerIndex == desired.innerIndex }
         if (adapterPosition > 0) {
-            val offset = 7.toPx
-            textLayoutManager.scrollToPositionWithOffset(adapterPosition, offset)
-            desired.firstVisibleChar?.let { visible ->
-                binding.realText.post {
-                    binding.realText.scrollBy(
-                        0,
-                        (textAdapter.getViewOffset(
-                            transformIndexToScrollVisibilityItem(adapterPosition),
-                            visible
-                        ) ?: 0) + offset
-                    )
+            //val offset = 7.toPx
+            textLayoutManager.scrollToPositionWithOffset(adapterPosition, 1)
+
+            binding.realText.post {
+                getAllLines().also { postLines(it) }.firstOrNull {
+                    it.startChar >= desired.char
+                }?.let {
+                    binding.realText.scrollBy(0, it.top)
                 }
             }
+
+            /*desired.firstVisibleChar?.let { visible ->
+                    binding.realText.post {
+                        binding.realText.scrollBy(
+                            0,
+                            (textAdapter.getViewOffset(
+                                transformIndexToScrollVisibilityItem(adapterPosition),
+                                visible
+                            ) ?: 0) + offset
+                        )
+                    }
+                }*/
         }
     }
 
@@ -295,27 +334,81 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
     var lockTop: Int? = null
     var lockBottom: Int? = null
-    var currentScroll : Int = 0
+    var currentScroll: Int = 0
+    var lockTTS: Boolean = true
     private fun updateTTSLine(line: TTSHelper.TTSLine?) {
+        // update the visual component
         textAdapter.updateTTSLine(line)
-
-        var minScroll: Int = Int.MAX_VALUE
-        var maxScroll: Int = Int.MIN_VALUE
-        // updates all the current views
         for (position in textLayoutManager.findFirstVisibleItemPosition()..textLayoutManager.findLastVisibleItemPosition()) {
             val viewHolder = binding.realText.findViewHolderForAdapterPosition(position)
             if (viewHolder !is TextAdapter.TextAdapterHolder) continue
-            val (top, bottom) = viewHolder.updateTTSLine(line) ?: continue
-            minScroll = min(top, minScroll)
-            maxScroll = max(bottom, maxScroll)
+            viewHolder.updateTTSLine(line)
         }
-        if (maxScroll == Int.MIN_VALUE || minScroll == Int.MAX_VALUE) {
+
+        // update the lock area
+        if (line == null || !lockTTS) {
             lockTop = null
             lockBottom = null
             return
         }
-        lockTop = currentScroll + minScroll
-        //lockBottom = binding.realText.scrollY + maxScroll - getBottomY()
+
+        val lines = getAllLines()
+        postLines(lines)
+
+        val top = lines.firstOrNull { it.index == line.index && it.endChar > line.startChar }
+        val bottom =
+            lines.firstOrNull { it.index == line.index && it.startChar <= line.endChar && line.endChar <= it.endChar }
+
+        if (top == null || bottom == null) {
+            // scroll to the top of that line, TODO FIX THIS FRFR
+            viewModel.scrollToDesired(
+                ScrollIndex(
+                    index = line.index,
+                    // this should never happened as tts line must be valid
+                    innerIndex = viewModel.innerCharToIndex(line.index, line.startChar) ?: return,
+                    line.startChar
+                )
+            )
+            return
+        }
+
+        val topScroll = top.top - getTopY()
+        lockTop = currentScroll + topScroll
+        val bottomScroll = bottom.bottom - getBottomY() + binding.readOverlay.height
+        lockBottom = currentScroll + bottomScroll
+
+       // binding.tmpTtsStart.fixLine(top.top)
+       // binding.tmpTtsEnd.fixLine(bottom.bottom)
+
+        // we have reached the end, scroll to the top
+        if (bottomScroll > 0) {
+            binding.realText.scrollBy(0, topScroll)
+        }
+        // we have scrolled up while being on top
+        else if (topScroll < 0) {
+            binding.realText.scrollBy(0, topScroll)
+        }
+
+
+        /* textAdapter.updateTTSLine(line)
+
+         var minScroll: Int = Int.MAX_VALUE
+         var maxScroll: Int = Int.MIN_VALUE
+         // updates all the current views
+         for (position in textLayoutManager.findFirstVisibleItemPosition()..textLayoutManager.findLastVisibleItemPosition()) {
+             val viewHolder = binding.realText.findViewHolderForAdapterPosition(position)
+             if (viewHolder !is TextAdapter.TextAdapterHolder) continue
+             val (top, bottom) = viewHolder.updateTTSLine(line) ?: continue
+             minScroll = min(top, minScroll)
+             maxScroll = max(bottom, maxScroll)
+         }
+         if (maxScroll == Int.MIN_VALUE || minScroll == Int.MAX_VALUE) {
+             lockTop = null
+             lockBottom = null
+             return
+         }
+         lockTop = currentScroll + minScroll
+         lockBottom = currentScroll + maxScroll - getBottomY()*/
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -439,7 +532,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         }
 
         fixPaddingStatusbar(binding.readToolbarHolder)
-        fixPaddingStatusbar(binding.realText)
+        fixPaddingStatusbar(binding.readTopmargin)
 
         binding.apply {
             realText.setOnClickListener {
@@ -507,24 +600,26 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
                     onScroll()
                     lockTop?.let { lock ->
-                        if(currentScroll+rdy > lock) {
-                            rdy = lock-currentScroll
+                        if (currentScroll + rdy > lock) {
+                            rdy = lock - currentScroll
+                            fling(0, 0)
                         }
                     }
 
-                    /*lockBottom?.let { lock ->
-                        if(currentScroll+rdy < lock) {
-                            rdy = lock-currentScroll
+                    lockBottom?.let { lock ->
+                        if (currentScroll + rdy < lock) {
+                            rdy = lock - currentScroll
+                            fling(0, 0)
                         }
-                    }*/
+                    }
 
                     currentScroll += dy
-                    val delta = rdy-dy
-                    if(delta != 0) scrollBy(0,delta)
+                    val delta = rdy - dy
+                    if (delta != 0) scrollBy(0, delta)
                     super.onScrolled(recyclerView, dx, dx)
 
-                   // binding.tmpTtsEnd.fixLine((getBottomY()- remainingBottom) + 7.toPx)
-                   // binding.tmpTtsStart.fixLine(remainingTop + 7.toPx)
+                    // binding.tmpTtsEnd.fixLine((getBottomY()- remainingBottom) + 7.toPx)
+                    // binding.tmpTtsStart.fixLine(remainingTop + 7.toPx)
 
 
                 }

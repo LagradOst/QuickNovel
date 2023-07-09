@@ -51,7 +51,7 @@
                 android:layout_height="match_parent" />
     </FrameLayout>
 
-    <View
+   <!-- <View
             android:id="@+id/tmp_tts_start"
             android:layout_width="match_parent"
             android:layout_height="1dp"
@@ -60,7 +60,7 @@
             android:id="@+id/tmp_tts_end"
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="@android:color/holo_blue_light" />
+            android:background="@android:color/holo_blue_light" />-->
     <FrameLayout
             android:alpha="0"
             tools:alpha="1"
@@ -217,7 +217,7 @@
                 android:background="@color/transparent" />
 
         <FrameLayout
-                android:visibility="gone"
+                android:visibility="visible"
                 android:id="@+id/read_overlay"
                 android:orientation="horizontal"
                 android:layout_gravity="bottom"
@@ -288,6 +288,7 @@
         </FrameLayout>
 
         <androidx.core.widget.ContentLoadingProgressBar
+
                 android:id="@+id/read_overflow_progress"
                 android:layout_gravity="bottom"
                 android:layout_width="match_parent"
@@ -300,6 +301,7 @@
 
         <FrameLayout
                 android:visibility="gone"
+                tools:visibility="visible"
                 android:id="@+id/reader_bottom_view_holder"
                 android:layout_gravity="bottom"
                 android:layout_width="match_parent"

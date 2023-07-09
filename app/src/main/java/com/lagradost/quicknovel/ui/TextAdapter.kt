@@ -37,6 +37,7 @@ data class ScrollVisibilityItem(
     val viewHolder: RecyclerView.ViewHolder?,
 )
 
+/*
 data class ScrollVisibility(
     val firstVisible: ScrollVisibilityItem,
     val firstFullyVisible: ScrollVisibilityItem,
@@ -46,22 +47,53 @@ data class ScrollVisibility(
     val screenTop: Int,
     val screenBottom: Int,
     val screenTopBar: Int,
-)
+)*/
 
+/** a scroll index specifies exactly where you are inside a book SHOULD NOT BE SAVED
+ * as ScrollIndex innerIndex should be derived from char
+ *
+ * index = chapter index
+ * innerIndex = what text block, innerIndex *can* be derived from char
+ * char = what character in index, not local
+ */
 data class ScrollIndex(
     val index: Int,
     val innerIndex: Int,
-    // local char
-    val firstVisibleChar: Int? = null,
-    val firstInvisibleChar: Int? = null,
+    val char: Int,
 )
 
 data class ScrollVisibilityIndex(
-    val firstVisible: ScrollIndex,
-    val firstFullyVisible: ScrollIndex,
-    val lastVisible: ScrollIndex,
-    val lastFullyVisible: ScrollIndex,
+    // first in the recyclerview
+    val firstInMemory: TextVisualLine,
+    // last in the recyclerview
+    val lastInMemory: TextVisualLine,
+
+    // first line you can clearly see
+    val firstFullyVisible: TextVisualLine?,
+    // first line you can't clearly see
+    val lastHalfVisible: TextVisualLine?,
+
+    // first line after the bottom bar you can see clearly
+    val firstFullyVisibleUnderLine: TextVisualLine?
 )
+
+/** this represents a single text line split by the layout, NOT newlines,
+ * SHOULD not be stored in any way as layout change or scroll with invalidate the values */
+data class TextVisualLine(
+    // chars are in relation to index, not span
+    val startChar: Int,
+    val endChar: Int,
+
+    val index: Int,
+    val innerIndex: Int,
+
+    val top: Int,
+    val bottom: Int,
+)
+
+fun TextVisualLine.toScroll() : ScrollIndex {
+    return ScrollIndex(index = this.index, innerIndex = this.innerIndex, char = this.startChar)
+}
 
 fun removeHighLightedText(tv: TextView) {
     val wordToSpan: Spannable = SpannableString(tv.text)
@@ -121,7 +153,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
         currentTTSLine = line
     }
 
-    fun getViewOffset(scrollVisibility: ScrollVisibilityItem, char: Int): Int? {
+    /*fun getViewOffset(scrollVisibility: ScrollVisibilityItem, char: Int): Int? {
         try {
             if (scrollVisibility.adapterPosition < 0 || scrollVisibility.adapterPosition >= itemCount) return null
             //val item = getItem(scrollVisibility.index)
@@ -143,54 +175,94 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
             }
         } catch (_ : Throwable) { }
         return null
-    }
+    }*/
 
-    private fun transformIndexToScrollIndex(
-        scrollVisibility: ScrollVisibilityItem,
-        screenTop: Int,
-        screenBottom: Int
-    ): ScrollIndex? {
+    /* private fun transformIndexToScrollIndex(
+         scrollVisibility: ScrollVisibilityItem,
+         screenTop: Int,
+         screenBottom: Int
+     ): ScrollIndex? {
+         try {
+             if (scrollVisibility.adapterPosition < 0 || scrollVisibility.adapterPosition >= itemCount) return null
+             val item = getItem(scrollVisibility.adapterPosition)
+             val viewHolder = scrollVisibility.viewHolder
+
+             var firstVisibleChar: Int? = null
+             var firstInvisibleChar: Int? = null
+             if (viewHolder is TextAdapterHolder) {
+                 val binding = viewHolder.binding
+                 if (binding is SingleTextBinding) {
+                     val outLocation = IntArray(2)
+                     binding.root.getLocationInWindow(outLocation)
+                     val (_, y) = outLocation
+                     binding.root.layout.apply {
+                         for (i in 0 until lineCount) {
+                             val top = y + getLineTop(i)
+                             val bottom = y + getLineBottom(i)
+                             if (top < screenBottom && top > screenTop && bottom < screenBottom && bottom > screenTop) {
+                                 if (firstVisibleChar == null) firstVisibleChar = getLineStart(i)
+                                 if (firstInvisibleChar != null) break
+                             } else {
+                                 if (firstInvisibleChar == null) firstInvisibleChar = getLineStart(i)
+                                 if (firstVisibleChar != null) break
+                             }
+                         }
+                     }
+                 }
+             }
+
+             return ScrollIndex(
+                 index = item.index,
+                 innerIndex = item.innerIndex,
+                 firstVisibleChar = firstVisibleChar,
+                 firstInvisibleChar = firstInvisibleChar
+             )
+         } catch (_ : Throwable) {
+             return null
+         }
+     }*/
+
+
+    fun getLines(scrollVisibility: ScrollVisibilityItem): List<TextVisualLine> {
         try {
-            if (scrollVisibility.adapterPosition < 0 || scrollVisibility.adapterPosition >= itemCount) return null
-            val item = getItem(scrollVisibility.adapterPosition)
+            if (scrollVisibility.adapterPosition < 0 || scrollVisibility.adapterPosition >= itemCount) return emptyList()
             val viewHolder = scrollVisibility.viewHolder
+            if (viewHolder !is TextAdapterHolder) return emptyList()
+            val binding = viewHolder.binding
+            if (binding !is SingleTextBinding) return emptyList()
+            val span = viewHolder.span
+            if (span !is TextSpan) return emptyList()
 
-            var firstVisibleChar: Int? = null
-            var firstInvisibleChar: Int? = null
-            if (viewHolder is TextAdapterHolder) {
-                val binding = viewHolder.binding
-                if (binding is SingleTextBinding) {
-                    val outLocation = IntArray(2)
-                    binding.root.getLocationInWindow(outLocation)
-                    val (_, y) = outLocation
-                    binding.root.layout.apply {
-                        for (i in 0 until lineCount) {
-                            val top = y + getLineTop(i)
-                            val bottom = y + getLineBottom(i)
-                            if (top < screenBottom && top > screenTop && bottom < screenBottom && bottom > screenTop) {
-                                if (firstVisibleChar == null) firstVisibleChar = getLineStart(i)
-                                if (firstInvisibleChar != null) break
-                            } else {
-                                if (firstInvisibleChar == null) firstInvisibleChar = getLineStart(i)
-                                if (firstVisibleChar != null) break
-                            }
-                        }
-                    }
+            val outLocation = IntArray(2)
+            binding.root.getLocationInWindow(outLocation)
+            val y = outLocation[1]+binding.root.paddingTop
+
+            //val paddingTop =
+            //val paddingBottom = binding.root.paddingBottom
+
+
+            val list = arrayListOf<TextVisualLine>()
+            binding.root.layout.apply {
+                for (i in 0 until lineCount) {
+                    list.add(
+                        TextVisualLine(
+                            startChar = span.start + getLineStart(i),
+                            endChar = span.start + getLineEnd(i),
+                            innerIndex = span.innerIndex,
+                            index = span.index,
+                            top = getLineTop(i) + y,//+paddingTop,
+                            bottom = getLineBottom(i) + y//+paddingBottom
+                        )
+                    )
                 }
             }
-
-            return ScrollIndex(
-                index = item.index,
-                innerIndex = item.innerIndex,
-                firstVisibleChar = firstVisibleChar,
-                firstInvisibleChar = firstInvisibleChar
-            )
-        } catch (_ : Throwable) {
-            return null
+            return list
+        } catch (t: Throwable) {
+            return emptyList()
         }
     }
 
-    fun getIndex(data: ScrollVisibility): ScrollVisibilityIndex? {
+    /*fun getIndex(data: ScrollVisibility): ScrollVisibilityIndex? {
         return ScrollVisibilityIndex(
             firstVisible = transformIndexToScrollIndex(
                 data.firstVisible,
@@ -213,7 +285,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
                 data.screenBottom
             ) ?: return null,
         )
-    }
+    }*/
 
     override fun onBindViewHolder(holder: TextAdapterHolder, position: Int) {
         val currentItem = getItem(position)
@@ -256,30 +328,33 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
     ) :
         RecyclerView.ViewHolder(binding.root) {
 
-        private var span: SpanDisplay? = null
+        var span: SpanDisplay? = null
 
         // returns the range of the highlight in UI, (start to end) to (top to bottom)
-        fun updateTTSLine(line: TTSHelper.TTSLine?): Pair<Int, Int>? {
-            if (binding !is SingleTextBinding) return null
+        // : Pair<Int, Int>?
+
+
+        fun updateTTSLine(line: TTSHelper.TTSLine?) {
+            if (binding !is SingleTextBinding) return
             val span = span
-            if (span !is TextSpan) return null
-            if (line == null || ((line.startIndex < span.start && line.endIndex < span.start)
-                        || (line.startIndex > span.end && line.endIndex > span.end) || line.index != span.index)
+            if (span !is TextSpan) return
+            if (line == null || ((line.startChar < span.start && line.endChar < span.start)
+                        || (line.startChar > span.end && line.endChar > span.end) || line.index != span.index)
             ) {
                 removeHighLightedText(binding.root)
-                return null
+                return
             }
 
             val length = binding.root.length()
-            val start = minOf(maxOf(line.startIndex - span.start, 0), length)
-            val end = minOf(maxOf(line.endIndex - span.start, 0), length)
+            val start = minOf(maxOf(line.startChar - span.start, 0), length)
+            val end = minOf(maxOf(line.endChar - span.start, 0), length)
 
             setHighLightedText(
                 binding.root,
                 start,
                 end
             )
-            try {
+            /*try {
                 var startTextTop: Int? = null
                 var startTextBottom: Int? = null
                 if(binding.root.layout == null) return null
@@ -304,7 +379,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
                 }
             } catch (_ : Throwable) {
                 return null
-            }
+            }*/
         }
 
         private fun bindText(obj: TextSpan) {
