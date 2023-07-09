@@ -172,8 +172,8 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
     }
 
 
-    fun register(context: Context?) {
-        if (context == null || isRegisterd) return
+    fun register() {
+        if (isRegisterd) return
         isRegisterd = true
         context.registerReceiver(myNoisyAudioStreamReceiver, intentFilter)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -181,8 +181,16 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
         }
     }
 
-    fun unregister(context: Context?) {
-        if (context == null || !isRegisterd) return
+    fun release() {
+        tts?.stop()
+        tts?.shutdown()
+        tts = null
+
+        unregister()
+    }
+
+    fun unregister() {
+        if (!isRegisterd) return
         isRegisterd = false
         context.unregisterReceiver(myNoisyAudioStreamReceiver)
     }

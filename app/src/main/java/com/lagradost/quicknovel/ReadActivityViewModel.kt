@@ -656,7 +656,7 @@ class ReadActivityViewModel : ViewModel() {
     private fun startTTSThread() = ioSafe {
         if (ttsThreadMutex.isLocked) return@ioSafe
         ttsThreadMutex.withLock {
-            ttsSession.register(context)
+            ttsSession.register()
 
             val dIndex = desiredTTSIndex ?: desiredIndex
             var innerIndex = 0
@@ -728,7 +728,19 @@ class ReadActivityViewModel : ViewModel() {
 
                     val line = lines[innerIndex]
                     val nextLine = lines.getOrNull(innerIndex + 1)
+
+                    // set keys
+                    setKey(
+                        EPUB_CURRENT_POSITION_SCROLL_CHAR,
+                        book.title(),
+                        line.startChar
+                    )
+                    setKey(EPUB_CURRENT_POSITION, book.title(), line.index)
+
+                    // post visual
                     _ttsLine.postValue(line)
+
+                    // wait for next line
                     val waitFor = ttsSession.speak(line, nextLine)
                     ttsSession.waitForOr(waitFor, {
                         currentTTSStatus != TTSHelper.TTSStatus.IsRunning || pendingTTSSkip != 0
@@ -736,6 +748,7 @@ class ReadActivityViewModel : ViewModel() {
                         notify()
                     }
 
+                    // wait for pause
                     var isPauseDuration = 0
                     while (currentTTSStatus == TTSHelper.TTSStatus.IsPaused) {
                         isPauseDuration++
@@ -776,7 +789,7 @@ class ReadActivityViewModel : ViewModel() {
                 TTSHelper.TTSStatus.IsStopped,
                 context
             )
-            ttsSession.unregister(context)
+            ttsSession.unregister()
             _ttsLine.postValue(null)
         }
     }
@@ -896,7 +909,8 @@ class ReadActivityViewModel : ViewModel() {
     }
 
     override fun onCleared() {
-        ttsSession.unregister(context)
+        ttsSession.release()
+
         super.onCleared()
     }
 
