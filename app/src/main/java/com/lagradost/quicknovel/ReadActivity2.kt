@@ -37,10 +37,14 @@ import com.lagradost.quicknovel.ui.ScrollIndex
 import com.lagradost.quicknovel.ui.ScrollVisibilityIndex
 import com.lagradost.quicknovel.ui.ScrollVisibilityItem
 import com.lagradost.quicknovel.ui.TextAdapter
+import com.lagradost.quicknovel.ui.TextConfig
 import com.lagradost.quicknovel.ui.TextVisualLine
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
+import com.lagradost.quicknovel.util.UIHelper.getStatusBarHeight
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
+import com.lagradost.quicknovel.util.toPx
 import java.lang.ref.WeakReference
+import kotlin.properties.Delegates
 
 class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     companion object {
@@ -263,13 +267,23 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                     it.top >= 0
                 },
                 firstFullyVisibleUnderLine = lines.firstOrNull {
-                    it.top >= binding.readToolbarHolder.height
+                    it.top >= topBarHeight
                 },
                 lastHalfVisible = lines.firstOrNull {
                     it.bottom >= getBottomY()
                 },
             )
         )
+
+        /*val desired = viewModel.desiredIndex
+
+        lines.firstOrNull {
+            it.startChar >= desired.char
+        }?.let { line ->
+            binding.tmpTtsStart.fixLine(line.top)
+            binding.tmpTtsEnd.fixLine(line.bottom)
+        }*/
+
     }
 
     fun onScroll() {
@@ -296,32 +310,39 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     private var cachedChapter: List<SpanDisplay> = emptyList()
     private fun scrollToDesired() {
         val desired: ScrollIndex = viewModel.desiredIndex
+
         val adapterPosition =
             cachedChapter.indexOfFirst { display -> display.index == desired.index && display.innerIndex == desired.innerIndex }
-        if (adapterPosition > 0) {
-            //val offset = 7.toPx
-            textLayoutManager.scrollToPositionWithOffset(adapterPosition, 1)
+        if (adapterPosition == -1) return
 
-            binding.realText.post {
-                getAllLines().also { postLines(it) }.firstOrNull {
-                    it.startChar >= desired.char
-                }?.let {
-                    binding.realText.scrollBy(0, it.top)
-                }
+        //val offset = 7.toPx
+        textLayoutManager.scrollToPositionWithOffset(adapterPosition, 1)
+
+        // don't inner-seek if zero because that is chapter break
+        if(desired.innerIndex == 0) return
+
+        binding.realText.post {
+            getAllLines().also { postLines(it) }.firstOrNull { line ->
+                line.index == desired.index && line.endChar >= desired.char
+            }?.let { line ->
+                //binding.tmpTtsStart2.fixLine(line.top)
+                //binding.tmpTtsEnd2.fixLine(line.bottom)
+                binding.realText.scrollBy(0, line.top)
             }
-
-            /*desired.firstVisibleChar?.let { visible ->
-                    binding.realText.post {
-                        binding.realText.scrollBy(
-                            0,
-                            (textAdapter.getViewOffset(
-                                transformIndexToScrollVisibilityItem(adapterPosition),
-                                visible
-                            ) ?: 0) + offset
-                        )
-                    }
-                }*/
         }
+
+        /*desired.firstVisibleChar?.let { visible ->
+                binding.realText.post {
+                    binding.realText.scrollBy(
+                        0,
+                        (textAdapter.getViewOffset(
+                            transformIndexToScrollVisibilityItem(adapterPosition),
+                            visible
+                        ) ?: 0) + offset
+                    )
+                }
+            }*/
+
     }
 
     private fun View.fixLine(offset: Int) {
@@ -360,15 +381,32 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             lines.firstOrNull { it.index == line.index && it.startChar <= line.endChar && line.endChar <= it.endChar }
 
         if (top == null || bottom == null) {
-            // scroll to the top of that line, TODO FIX THIS FRFR
-            viewModel.scrollToDesired(
-                ScrollIndex(
-                    index = line.index,
-                    // this should never happened as tts line must be valid
-                    innerIndex = viewModel.innerCharToIndex(line.index, line.startChar) ?: return,
-                    line.startChar
+            lockTop = null
+            lockBottom = null
+
+            // this should never happened as tts line must be valid
+            val innerIndex = viewModel.innerCharToIndex(line.index, line.startChar) ?: return
+
+            // scroll to the top of that line, first search the adapter
+            val adapterPosition =
+                cachedChapter.indexOfFirst { display -> display.index == line.index && display.innerIndex == innerIndex }
+
+            // if we tts out of bounds somehow? we scroll to that and refresh everything
+            if (adapterPosition == -1) {
+                viewModel.scrollToDesired(
+                    ScrollIndex(
+                        index = line.index,
+                        innerIndex = innerIndex,
+                        line.startChar
+                    )
                 )
-            )
+                return
+            }
+
+            textLayoutManager.scrollToPositionWithOffset(adapterPosition, 1)
+            textLayoutManager.postOnAnimation {
+                updateTTSLine(line)
+            }
             return
         }
 
@@ -377,8 +415,8 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         val bottomScroll = bottom.bottom - getBottomY() + binding.readOverlay.height
         lockBottom = currentScroll + bottomScroll
 
-       // binding.tmpTtsStart.fixLine(top.top)
-       // binding.tmpTtsEnd.fixLine(bottom.bottom)
+        // binding.tmpTtsStart.fixLine(top.top)
+        // binding.tmpTtsEnd.fixLine(bottom.bottom)
 
         // we have reached the end, scroll to the top
         if (bottomScroll > 0) {
@@ -388,37 +426,47 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         else if (topScroll < 0) {
             binding.realText.scrollBy(0, topScroll)
         }
-
-
-        /* textAdapter.updateTTSLine(line)
-
-         var minScroll: Int = Int.MAX_VALUE
-         var maxScroll: Int = Int.MIN_VALUE
-         // updates all the current views
-         for (position in textLayoutManager.findFirstVisibleItemPosition()..textLayoutManager.findLastVisibleItemPosition()) {
-             val viewHolder = binding.realText.findViewHolderForAdapterPosition(position)
-             if (viewHolder !is TextAdapter.TextAdapterHolder) continue
-             val (top, bottom) = viewHolder.updateTTSLine(line) ?: continue
-             minScroll = min(top, minScroll)
-             maxScroll = max(bottom, maxScroll)
-         }
-         if (maxScroll == Int.MIN_VALUE || minScroll == Int.MAX_VALUE) {
-             lockTop = null
-             lockBottom = null
-             return
-         }
-         lockTop = currentScroll + minScroll
-         lockBottom = currentScroll + maxScroll - getBottomY()*/
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
+        // we save this just in case the user fucks it up somehow
+        postDesired(binding.realText)
         super.onConfigurationChanged(newConfig)
-        binding.realText.post {
+    }
+
+    private fun updateTextAdapterConfig() {
+        for (position in textLayoutManager.findFirstVisibleItemPosition()..textLayoutManager.findLastVisibleItemPosition()) {
+            val viewHolder = binding.realText.findViewHolderForAdapterPosition(position)
+            if (viewHolder !is TextAdapter.TextAdapterHolder) continue
+            viewHolder.setConfig(textAdapter.config)
+        }
+    }
+
+    private fun postDesired(view: View) {
+        val currentDesired = viewModel.desiredIndex
+        view.post {
+            viewModel.desiredIndex = currentDesired
             scrollToDesired()
             updateTTSLine(viewModel.ttsLine.value)
         }
     }
 
+    /*private fun pendingPost() {
+        binding.readToolbarHolder.post {
+            val height = binding.readToolbarHolder.height
+            // height cant be 0
+            if(height == 0) {
+                pendingPost()
+                return@post
+            }
+
+            if(textAdapter.changeHeight(binding.readToolbarHolder.height + getStatusBarHeight())) {
+                updateTextAdapterConfig()
+            }
+        }
+    }*/
+
+    private var topBarHeight by Delegates.notNull<Int>()
     override fun onCreate(savedInstanceState: Bundle?) {
         CommonActivity.loadThemes(this)
         super.onCreate(savedInstanceState)
@@ -429,10 +477,34 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         registerBattery()
 
         viewModel.init(intent, this)
-
-        textAdapter = TextAdapter(viewModel).apply {
+        topBarHeight = binding.readToolbarHolder.minimumHeight + getStatusBarHeight()
+        binding.readToolbarHolder.minimumHeight = topBarHeight
+        textAdapter = TextAdapter(
+            viewModel,
+            viewModel.textConfigInit.copy(toolbarHeight = topBarHeight)
+        ).apply {
             setHasStableIds(true)
         }
+
+        fixPaddingStatusbar(binding.readToolbarHolder)
+        //fixPaddingStatusbar(binding.readTopmargin)
+
+        //pendingPost()
+
+
+        observe(viewModel.textSize) { size ->
+            if (textAdapter.changeSize(size)) {
+                updateTextAdapterConfig()
+                postDesired(binding.realText)
+            }
+        }
+
+        observe(viewModel.textColor) { color ->
+            if (textAdapter.changeColor(color)) {
+                updateTextAdapterConfig()
+            }
+        }
+
         textLayoutManager = LinearLayoutManager(binding.realText.context)
 
         binding.ttsActionPausePlay.setOnClickListener {
@@ -444,6 +516,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         }
 
         binding.readActionTts.setOnClickListener {
+            //scrollToDesired()
             viewModel.startTTS()
         }
 
@@ -531,9 +604,6 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             )
         }
 
-        fixPaddingStatusbar(binding.readToolbarHolder)
-        fixPaddingStatusbar(binding.readTopmargin)
-
         binding.apply {
             realText.setOnClickListener {
                 viewModel.switchVisibility()
@@ -620,8 +690,6 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
                     // binding.tmpTtsEnd.fixLine((getBottomY()- remainingBottom) + 7.toPx)
                     // binding.tmpTtsStart.fixLine(remainingTop + 7.toPx)
-
-
                 }
             })
         }

@@ -34,6 +34,7 @@ import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.ui.OrientationType
 import com.lagradost.quicknovel.ui.ScrollIndex
 import com.lagradost.quicknovel.ui.ScrollVisibilityIndex
+import com.lagradost.quicknovel.ui.TextConfig
 import com.lagradost.quicknovel.ui.toScroll
 import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
@@ -266,6 +267,10 @@ class ReadActivityViewModel : ViewModel() {
         MutableLiveData<Int>(null)
     val textColor: LiveData<Int> = _textColor
 
+    private val _textSize: MutableLiveData<Int> =
+        MutableLiveData<Int>(null)
+    val textSize: LiveData<Int> = _textSize
+
     fun switchVisibility() {
         _bottomVisibility.postValue(!(_bottomVisibility.value ?: false))
     }
@@ -300,6 +305,11 @@ class ReadActivityViewModel : ViewModel() {
     /** upper padding, for preloading current+chapterPaddingTop */
     private var chapterPaddingTop: Int = 2
 
+    fun reloadChapter(index: Int) = ioSafe {
+        loadIndividualChapter(index, reload = true, notify = false)
+        updateReadArea(seekToDesired = false)
+    }
+
     private suspend fun updateIndexAsync(
         index: Int,
         notify: Boolean = true
@@ -326,7 +336,6 @@ class ReadActivityViewModel : ViewModel() {
         }
     }
 
-    // todo check if we actually seek to the same spot
     private fun updateReadArea(seekToDesired: Boolean = false) {
         val cIndex = currentIndex
         val chapters = ArrayList<SpanDisplay>()
@@ -334,7 +343,7 @@ class ReadActivityViewModel : ViewModel() {
             val append: List<SpanDisplay> = when (val data = chapterData[idx]) {
                 null -> emptyList()
                 is Resource.Loading -> {
-                    listOf<SpanDisplay>(LoadingSpanned(data.url, cIndex))
+                    listOf<SpanDisplay>(LoadingSpanned(data.url, idx))
                 }
 
                 is Resource.Success -> {
@@ -344,7 +353,7 @@ class ReadActivityViewModel : ViewModel() {
                 is Resource.Failure -> listOf<SpanDisplay>(
                     FailedSpanned(
                         data.errorString,
-                        cIndex
+                        idx
                     )
                 )
             }
@@ -914,22 +923,30 @@ class ReadActivityViewModel : ViewModel() {
         _textColor.postValue(value)
     }
 
+    fun setTextSize(value: Int) {
+        setKey(EPUB_TEXT_SIZE, value)
+        _textSize.postValue(value)
+    }
+
+    val textConfigInit: TextConfig
+
     init {
         _orientation.postValue(OrientationType.fromSpinner(getKey(EPUB_LOCK_ROTATION)))
         _lockTTS.postValue(getKey(EPUB_TTS_LOCK) ?: true)
-        BaseApplication.context?.let { ctx ->
-            _backgroundColor.postValue(
-                getKey(EPUB_BG_COLOR) ?: ContextCompat.getColor(
-                    ctx,
-                    R.color.readerBackground
-                )
-            )
-            _textColor.postValue(
-                getKey(EPUB_TEXT_COLOR) ?: ContextCompat.getColor(
-                    ctx,
-                    R.color.readerTextColor
-                )
-            )
-        }
+
+        val textSize = getKey(EPUB_TEXT_SIZE) ?: 14
+        setTextSize(textSize)
+        val textColor = getKey(EPUB_TEXT_COLOR) ?: ContextCompat.getColor(
+            BaseApplication.context!!,
+            R.color.readerTextColor
+        )
+        setTextColor(textColor)
+
+        val backgroundColor = getKey(EPUB_BG_COLOR) ?: ContextCompat.getColor(
+            BaseApplication.context!!,
+            R.color.readerBackground
+        )
+        setBackgroundColor(backgroundColor)
+        textConfigInit = TextConfig(toolbarHeight = 0, textColor = textColor, textSize = textSize)
     }
 }

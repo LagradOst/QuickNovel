@@ -51,7 +51,8 @@
                 android:layout_height="match_parent" />
     </FrameLayout>
 
-   <!-- <View
+    <!--<View
+            android:alpha="0.2"
             android:id="@+id/tmp_tts_start"
             android:layout_width="match_parent"
             android:layout_height="1dp"
@@ -60,7 +61,22 @@
             android:id="@+id/tmp_tts_end"
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="@android:color/holo_blue_light" />-->
+            android:alpha="0.2"
+            android:background="@android:color/holo_blue_light" />
+
+    <View
+            android:alpha="0.5"
+            android:id="@+id/tmp_tts_start2"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@android:color/holo_green_dark" />
+    <View
+            android:alpha="0.5"
+            android:id="@+id/tmp_tts_end2"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@android:color/holo_orange_dark" />-->
+
     <FrameLayout
             android:alpha="0"
             tools:alpha="1"
@@ -437,24 +453,27 @@
 
 
         <com.google.android.material.appbar.AppBarLayout
-                tools:visibility="gone"
-                android:background="@android:color/transparent"
+                tools:visibility="visible"
+                android:minHeight="?attr/actionBarSize"
                 android:layout_width="match_parent"
                 android:id="@+id/read_toolbar_holder"
+                android:background="?attr/primaryGrayBackground"
                 android:layout_height="wrap_content">
 
             <com.google.android.material.appbar.MaterialToolbar
                     android:id="@+id/read_toolbar"
-                    android:paddingTop="@dimen/navbarHeight"
+
+                    android:layout_gravity="center"
+                    android:gravity="center"
+
                     app:navigationIconTint="?attr/iconColor"
                     app:titleTextColor="?attr/textColor"
                     app:subtitleTextColor="?attr/grayTextColor"
                     tools:title="TEST"
                     tools:subtitle="TEST"
 
-                    android:background="?attr/primaryGrayBackground"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="match_parent" />
         </com.google.android.material.appbar.AppBarLayout>
     </FrameLayout>
 </FrameLayout>

@@ -1,7 +1,9 @@
 package com.lagradost.quicknovel.ui
 
+import android.content.res.ColorStateList
 import android.text.Spannable
 import android.text.SpannableString
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.TextView
@@ -11,8 +13,10 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
 import com.lagradost.quicknovel.ChapterStartSpanned
+import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.FailedSpanned
 import com.lagradost.quicknovel.LoadingSpanned
+import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.ReadActivityViewModel
 import com.lagradost.quicknovel.SpanDisplay
 import com.lagradost.quicknovel.TTSHelper
@@ -91,7 +95,7 @@ data class TextVisualLine(
     val bottom: Int,
 )
 
-fun TextVisualLine.toScroll() : ScrollIndex {
+fun TextVisualLine.toScroll(): ScrollIndex {
     return ScrollIndex(index = this.index, innerIndex = this.innerIndex, char = this.startChar)
 }
 
@@ -130,9 +134,34 @@ fun setHighLightedText(tv: TextView, start: Int, end: Int) {
     }
 }
 
-class TextAdapter(private val viewModel: ReadActivityViewModel) :
+data class TextConfig(
+    var toolbarHeight: Int,
+    var textColor: Int,
+    var textSize: Int,
+)
+
+class TextAdapter(private val viewModel: ReadActivityViewModel, var config: TextConfig) :
     ListAdapter<SpanDisplay, TextAdapter.TextAdapterHolder>(DiffCallback()) {
-    var currentTTSLine: TTSHelper.TTSLine? = null
+    private var currentTTSLine: TTSHelper.TTSLine? = null
+
+    fun changeHeight(height: Int): Boolean {
+        if (config.toolbarHeight == height) return false
+        config.toolbarHeight = height
+        return true
+    }
+
+    fun changeColor(color: Int): Boolean {
+        if (config.textColor == color) return false
+        config.textColor = color
+        return true
+    }
+
+    fun changeSize(size: Int): Boolean {
+        if (config.textSize == size) return false
+        config.textSize = size
+        return true
+
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TextAdapterHolder {
         val inflater = LayoutInflater.from(parent.context)
@@ -235,7 +264,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
 
             val outLocation = IntArray(2)
             binding.root.getLocationInWindow(outLocation)
-            val y = outLocation[1]+binding.root.paddingTop
+            val y = outLocation[1] + binding.root.paddingTop
 
             //val paddingTop =
             //val paddingBottom = binding.root.paddingBottom
@@ -289,7 +318,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
 
     override fun onBindViewHolder(holder: TextAdapterHolder, position: Int) {
         val currentItem = getItem(position)
-        holder.bind(currentItem, currentTTSLine)
+        holder.bind(currentItem, currentTTSLine, config)
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -324,7 +353,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
 
     class TextAdapterHolder(
         val binding: ViewBinding,
-        private val viewModel: ReadActivityViewModel
+        private val viewModel: ReadActivityViewModel,
     ) :
         RecyclerView.ViewHolder(binding.root) {
 
@@ -333,6 +362,33 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
         // returns the range of the highlight in UI, (start to end) to (top to bottom)
         // : Pair<Int, Int>?
 
+
+        fun setConfig(config: TextConfig) {
+            when (binding) {
+                is SingleTextBinding -> {
+                    binding.root.setTextSize(TypedValue.COMPLEX_UNIT_SP, config.textSize.toFloat())
+                    binding.root.setTextColor(config.textColor)
+                }
+
+                is SingleLoadingBinding -> {
+                    binding.root.minimumHeight = config.toolbarHeight
+                    binding.text.setTextColor(config.textColor)
+                    binding.loadingBar.progressTintList = ColorStateList.valueOf(config.textColor)
+                }
+
+                is SingleFailedBinding -> {
+                    binding.root.minHeight = config.toolbarHeight
+                    binding.root.setTextColor(config.textColor)
+                }
+
+                is SingleFinishedChapterBinding -> {
+                    binding.root.minHeight = config.toolbarHeight
+                    binding.root.setTextColor(config.textColor)
+                }
+
+                else -> {}
+            }
+        }
 
         fun updateTTSLine(line: TTSHelper.TTSLine?) {
             if (binding !is SingleTextBinding) return
@@ -409,7 +465,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
 
         private fun bindLoading(obj: LoadingSpanned) {
             if (binding !is SingleLoadingBinding) throw NotImplementedError()
-            binding.root.text = obj.url?.let { "Loading $it" } ?: "Loading"
+            binding.text.text = obj.url?.let { "Loading $it" } ?: "Loading"
             binding.root.setOnClickListener {
                 viewModel.switchVisibility()
             }
@@ -419,7 +475,11 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
             if (binding !is SingleFailedBinding) throw NotImplementedError()
             binding.root.text = obj.reason
             binding.root.setOnClickListener {
-                viewModel.switchVisibility()
+                CommonActivity.showToast(
+                    binding.root.context.getString(R.string.reload_chapter_format)
+                        .format((obj.index + 1).toString())
+                )
+                viewModel.reloadChapter(obj.index)
             }
         }
 
@@ -431,7 +491,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
             }
         }
 
-        fun bind(obj: SpanDisplay, ttsLine: TTSHelper.TTSLine?) {
+        fun bind(obj: SpanDisplay, ttsLine: TTSHelper.TTSLine?, config: TextConfig) {
             span = obj
             when (obj) {
                 is TextSpan -> {
@@ -456,6 +516,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel) :
 
                 else -> throw NotImplementedError()
             }
+            setConfig(config)
         }
     }
 

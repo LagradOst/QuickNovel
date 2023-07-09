@@ -5,7 +5,7 @@
         android:paddingTop="7.5dp"
         android:fontFamily="serif"
         android:lineSpacingExtra="3sp"
-        android:gravity="center_horizontal"
+        android:gravity="center"
         tools:text="@string/exampleTXT"
         android:textSize="16sp"
         android:textColor="@color/readerTextColor"

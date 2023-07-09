@@ -180,7 +180,7 @@
     <string name="pause">Pause</string>
     <string name="resume">Resume</string>
     <string name="re_downloaded">Re-Download</string>
-    <string name="loading">Loading</string>
+    <string name="loading">Loading…</string>
 
     <string name="default_sort">Default</string>
     <string name="recently_sort">Recently opened</string>
@@ -190,5 +190,5 @@
     <string name="download_sort_lh">"Download count (low to high)"</string>
     <string name="download_perc_hl">Download percentage (high to low)</string>
     <string name="download_perc_lh">Download percentage (low to high)</string>
-
+    <string name="reload_chapter_format">Reloading chapter %s</string>
 </resources>
