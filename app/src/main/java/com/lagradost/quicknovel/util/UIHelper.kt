@@ -42,6 +42,7 @@ import com.bumptech.glide.request.RequestOptions.bitmapTransform
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.mvvm.logError
 import jp.wasabeef.glide.transformations.BlurTransformation
+import java.io.File
 import java.text.CharacterIterator
 import java.text.StringCharacterIterator
 import kotlin.math.roundToInt
@@ -81,11 +82,13 @@ object UIHelper {
         }
         return String.format("%.1f%c", currentBytes / 1000.0, ci.current()).replace(',', '.')
     }
+
     fun Dialog?.dismissSafe(activity: Activity?) {
         if (this?.isShowing == true && activity?.isFinishing == false) {
             this.dismiss()
         }
     }
+
     fun FragmentActivity.popCurrentPage() {
         val currentFragment = supportFragmentManager.fragments.lastOrNull {
             it.isVisible
@@ -166,6 +169,21 @@ object UIHelper {
         } catch (e: Exception) {
             logError(e)
             false
+        }
+    }
+
+    val systemFonts : Array<File> by lazy {
+        getAllFonts()
+    }
+
+    private fun getAllFonts(): Array<File> {
+        return try {
+            val path = "/system/fonts"
+            val file = File(path)
+            file.listFiles() ?: emptyArray()
+        } catch (t: Throwable) {
+            logError(t)
+            emptyArray()
         }
     }
 
@@ -283,6 +301,7 @@ object UIHelper {
                         ?.mutate()?.apply {
                             setTint(context.getResourceColor(android.R.attr.textColorPrimary))
                         }
+
                     else -> emptyIcon
                 }
             }

@@ -10,10 +10,13 @@ import android.media.AudioManager
 import android.os.Build
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.speech.tts.Voice
 import android.support.v4.media.session.MediaSessionCompat
 import android.text.Spanned
 import android.view.KeyEvent
 import androidx.media.session.MediaButtonReceiver
+import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
+import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.mvvm.debugAssert
 import com.lagradost.quicknovel.receivers.BecomingNoisyReceiver
 import com.lagradost.quicknovel.util.UIHelper.requestAudioFocus
@@ -22,7 +25,6 @@ import kotlinx.coroutines.delay
 import org.jsoup.Jsoup
 import java.util.Locale
 import java.util.Stack
-import kotlin.collections.ArrayList
 
 class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boolean) {
     private val intentFilter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
@@ -42,7 +44,7 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
                 event(TTSHelper.TTSActionType.Pause)
             }
         }
-    private var isRegisterd = false
+    private var isRegistered = false
     private var tts: TextToSpeech? = null
     private var TTSQueue: Pair<TTSHelper.TTSLine, Int>? = null
 
@@ -50,11 +52,39 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
     private var TTSStartSpeakId = 0
     private var TTSEndSpeakId = 0
 
-    suspend fun interruptTTS() {
-        requireTTS { tts ->
-            tts.stop()
-            TTSQueue = null
+    private fun clearTTS(tts : TextToSpeech) {
+        tts.stop()
+        TTSQueue = null
+    }
+
+    fun setLanguage(locale: Locale?) {
+        val realLocale = locale ?: Locale.US
+        setKey(EPUB_LANG, realLocale.displayName)
+        val tts = tts ?: return
+        clearTTS(tts)
+        tts.language = realLocale
+    }
+
+    fun setVoice(voice: Voice?) {
+        if(voice == null) {
+            removeKey(EPUB_VOICE)
+        } else {
+            setKey(EPUB_VOICE, voice.name)
         }
+        val tts = tts ?: return
+        clearTTS(tts)
+        tts.voice = voice ?: tts.defaultVoice
+    }
+
+    private fun interruptTTS() {
+        // we don't actually want to initialize tts here
+        tts?.let { tts ->
+            clearTTS(tts)
+        }
+    }
+
+    fun ttsInitalized() : Boolean {
+        return tts != null
     }
 
     suspend fun speak(line: TTSHelper.TTSLine, next: TTSHelper.TTSLine?): Int? {
@@ -92,10 +122,10 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
         }
     }
 
-    private suspend fun <T> requireTTS(callback: (TextToSpeech) -> T): T? {
+    suspend fun <T> requireTTS(callback: (TextToSpeech) -> T): T? {
         return tts?.let(callback) ?: run {
-            var waiting : Boolean = true
-            var success : Boolean = false
+            var waiting = true
+            var success = false
             val pendingTTS = TextToSpeech(context) { status ->
                 success = status == TextToSpeech.SUCCESS
                 waiting = false
@@ -173,8 +203,8 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
 
 
     fun register() {
-        if (isRegisterd) return
-        isRegisterd = true
+        if (isRegistered) return
+        isRegistered = true
         context.registerReceiver(myNoisyAudioStreamReceiver, intentFilter)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.requestAudioFocus(focusRequest)
@@ -190,8 +220,8 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
     }
 
     fun unregister() {
-        if (!isRegisterd) return
-        isRegisterd = false
+        if (!isRegistered) return
+        isRegistered = false
         context.unregisterReceiver(myNoisyAudioStreamReceiver)
     }
 
@@ -321,8 +351,6 @@ object TTSHelper {
             setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS)
         }
     }
-
-    lateinit var markwon: Markwon
 
     fun String.replaceAfterIndex(
         oldValue: String,

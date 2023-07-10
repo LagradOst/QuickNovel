@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel
 
 import android.animation.ObjectAnimator
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -9,12 +10,15 @@ import android.content.res.Configuration
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
+import android.speech.tts.Voice
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.AbsListView
 import android.widget.ArrayAdapter
 import android.widget.FrameLayout
+import android.widget.ListView
+import android.widget.SeekBar
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -27,7 +31,11 @@ import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
+import com.lagradost.quicknovel.DataStore.getKey
+import com.lagradost.quicknovel.DataStore.setKey
+import com.lagradost.quicknovel.databinding.ReadBottomSettingsBinding
 import com.lagradost.quicknovel.databinding.ReadMainBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.observe
@@ -37,13 +45,17 @@ import com.lagradost.quicknovel.ui.ScrollIndex
 import com.lagradost.quicknovel.ui.ScrollVisibilityIndex
 import com.lagradost.quicknovel.ui.ScrollVisibilityItem
 import com.lagradost.quicknovel.ui.TextAdapter
-import com.lagradost.quicknovel.ui.TextConfig
 import com.lagradost.quicknovel.ui.TextVisualLine
+import com.lagradost.quicknovel.util.Coroutines.ioSafe
+import com.lagradost.quicknovel.util.SingleSelectionHelper.showBottomDialog
+import com.lagradost.quicknovel.util.UIHelper
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.util.UIHelper.getStatusBarHeight
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
-import com.lagradost.quicknovel.util.toPx
+import com.lagradost.quicknovel.util.UIHelper.systemFonts
+import java.io.File
 import java.lang.ref.WeakReference
+import java.util.Locale
 import kotlin.properties.Delegates
 
 class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
@@ -133,11 +145,11 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     private fun setBackgroundColor(color: Int) {
-
+        viewModel.setBackgroundColor(color)
     }
 
     private fun setTextColor(color: Int) {
-
+        viewModel.setTextColor(color)
     }
 
     override fun onDialogDismissed(dialog: Int) {
@@ -319,7 +331,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         textLayoutManager.scrollToPositionWithOffset(adapterPosition, 1)
 
         // don't inner-seek if zero because that is chapter break
-        if(desired.innerIndex == 0) return
+        if (desired.innerIndex == 0) return
 
         binding.realText.post {
             getAllLines().also { postLines(it) }.firstOrNull { line ->
@@ -434,12 +446,18 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         super.onConfigurationChanged(newConfig)
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private fun updateTextAdapterConfig() {
-        for (position in textLayoutManager.findFirstVisibleItemPosition()..textLayoutManager.findLastVisibleItemPosition()) {
-            val viewHolder = binding.realText.findViewHolderForAdapterPosition(position)
-            if (viewHolder !is TextAdapter.TextAdapterHolder) continue
-            viewHolder.setConfig(textAdapter.config)
-        }
+        // this did not work so I just rebind everything, it does not happend often so idc
+        textAdapter.notifyDataSetChanged()
+
+        /* binding.realText.apply {
+             for (idx in 0..childCount) {//textLayoutManager.findFirstVisibleItemPosition()..textLayoutManager.findLastVisibleItemPosition()) {
+                 val viewHolder = getChildViewHolder(getChildAt(idx) ?: continue) ?: continue
+                 if (viewHolder !is TextAdapter.TextAdapterHolder) continue
+                 viewHolder.setConfig(textAdapter.config)
+             }
+         }*/
     }
 
     private fun postDesired(view: View) {
@@ -465,6 +483,32 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             }
         }
     }*/
+    private fun showFonts() {
+        val bottomSheetDialog = BottomSheetDialog(this)
+        bottomSheetDialog.setContentView(R.layout.font_bottom_sheet)
+        val res = bottomSheetDialog.findViewById<ListView>(R.id.sort_click)!!
+
+        val fonts = systemFonts
+        val items = fonts.toMutableList() as java.util.ArrayList<File?>
+        items.add(0, null)
+
+        val currentName = getKey(EPUB_FONT) ?: ""
+        val storingIndex = items.indexOfFirst { (it?.name ?: "") == currentName }
+
+        /* val arrayAdapter = ArrayAdapter<String>(this, R.layout.sort_bottom_single_choice)
+         arrayAdapter.addAll(sortingMethods.toMutableList())
+         res.choiceMode = AbsListView.CHOICE_MODE_SINGLE
+         res.adapter = arrayAdapter
+         res.setItemChecked(sotringIndex, true)*/
+        val adapter = FontAdapter(this, storingIndex, items)
+
+        res.adapter = adapter
+        res.setOnItemClickListener { _, _, which, _ ->
+            viewModel.setTextFont(items[which]?.name ?: "")
+            bottomSheetDialog.dismiss()
+        }
+        bottomSheetDialog.show()
+    }
 
     private var topBarHeight by Delegates.notNull<Int>()
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -481,7 +525,10 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         binding.readToolbarHolder.minimumHeight = topBarHeight
         textAdapter = TextAdapter(
             viewModel,
-            viewModel.textConfigInit.copy(toolbarHeight = topBarHeight)
+            viewModel.textConfigInit.copy(
+                toolbarHeight = topBarHeight,
+                defaultFont = binding.readText.typeface
+            )
         ).apply {
             setHasStableIds(true)
         }
@@ -501,6 +548,12 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
         observe(viewModel.textColor) { color ->
             if (textAdapter.changeColor(color)) {
+                updateTextAdapterConfig()
+            }
+        }
+
+        observe(viewModel.textFont) { font ->
+            if (textAdapter.changeFont(font)) {
                 updateTextAdapterConfig()
             }
         }
@@ -703,5 +756,413 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 onScroll()
             }
         }
+
+        binding.readActionSettings.setOnClickListener {
+            val bottomSheetDialog = BottomSheetDialog(this)
+
+            val binding = ReadBottomSettingsBinding.inflate(layoutInflater, null, false)
+            bottomSheetDialog.setContentView(binding.root)
+
+            val fontSizeProgressOffset = 10
+
+            binding.readSettingsTextSizeText.setOnClickListener {
+                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
+                    if (itemId == 1) {
+                        viewModel.setTextSize(DEF_FONT_SIZE)
+                        binding.readSettingsTextSize.progress =
+                            DEF_FONT_SIZE - fontSizeProgressOffset
+                    }
+                }
+            }
+
+            binding.readSettingsTextSize.apply {
+                max = 20
+                progress = (viewModel.textSize.value ?: DEF_FONT_SIZE) - fontSizeProgressOffset
+                setOnSeekBarChangeListener(object :
+                    SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(
+                        seekBar: SeekBar?,
+                        progress: Int,
+                        fromUser: Boolean
+                    ) {
+                        viewModel.setTextSize(progress + fontSizeProgressOffset)
+                    }
+
+                    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+                    override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+                })
+            }
+
+            binding.readShowFonts.apply {
+                //text = UIHelper.parseFontFileName(getKey(EPUB_FONT))
+                setOnClickListener {
+                    showFonts()
+                }
+            }
+
+            binding.readSettingsTextFontText.setOnClickListener {
+                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
+                    if (itemId == 1) {
+                        viewModel.setTextFont("")
+                    }
+                }
+            }
+
+            binding.readLanguage.setOnClickListener { _ ->
+                ioSafe {
+                    viewModel.ttsSession.requireTTS { tts ->
+                        runOnUiThread {
+                            val languages = mutableListOf<Locale?>(null).apply {
+                                addAll(tts.availableLanguages?.filterNotNull() ?: emptySet())
+                            }
+                            val ctx = binding.readLanguage.context ?: return@runOnUiThread
+                            ctx.showBottomDialog(
+                                languages.map {
+                                    it?.displayName ?: ctx.getString(R.string.default_text)
+                                },
+                                languages.indexOf(tts.voice?.locale),
+                                ctx.getString(R.string.tts_locale), false, {}
+                            ) { index ->
+                                viewModel.setTTSLanguage(languages.getOrNull(index))
+                            }
+                        }
+                    }
+                }
+            }
+
+            binding.readLanguage.setOnLongClickListener {
+                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
+                    if (itemId == 1) {
+                        viewModel.setTTSLanguage(null)
+                    }
+                }
+
+                return@setOnLongClickListener true
+            }
+
+            binding.readVoice.setOnLongClickListener {
+                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
+                    if (itemId == 1) {
+                        viewModel.setTTSVoice(null)
+                    }
+                }
+
+                return@setOnLongClickListener true
+            }
+
+            binding.readVoice.setOnClickListener {
+                ioSafe {
+                    viewModel.ttsSession.requireTTS { tts ->
+                        runOnUiThread {
+                            val matchAgainst = tts.voice.locale.language
+                            val voices = mutableListOf<Voice?>(null).apply {
+                                addAll(tts.voices.filter { it != null && it.locale.language == matchAgainst })
+                            }
+                            val ctx = binding.readLanguage.context ?: return@runOnUiThread
+
+                            ctx.showBottomDialog(
+                                voices.map { it?.name ?: ctx.getString(R.string.default_text) },
+                                voices.indexOf(tts.voice),
+                                ctx.getString(R.string.tts_locale), false, {}
+                            ) { index ->
+                                viewModel.setTTSVoice(voices.getOrNull(index))
+                            }
+                        }
+                    }
+                }
+            }
+
+            /*binding.readLanguage.setOnClickListener { view ->
+                view?.context?.let { ctx ->
+                    requireTTS { tts ->
+                        val languages = mutableListOf<Locale?>(null).apply {
+                            addAll(tts.availableLanguages?.filterNotNull() ?: emptySet())
+                        }
+                        ctx.showBottomDialog(
+                            languages.map {
+                                it?.displayName ?: ctx.getString(R.string.default_text)
+                            },
+                            languages.indexOf(tts.voice?.locale),
+                            ctx.getString(R.string.tts_locale), false, {}
+                        ) { index ->
+                            stopTTS()
+                            val lang = languages[index] ?: defaultTTSLanguage
+                            setKey(EPUB_LANG, lang.displayName)
+                            tts.language = lang
+                        }
+                    }
+                }
+            }
+
+            binding.readVoice.setOnClickListener { view ->
+                view?.context?.let { ctx ->
+                    requireTTS { tts ->
+                        val matchAgainst = tts.voice.locale.language
+                        val voices = mutableListOf<Voice?>(null).apply {
+                            addAll(tts.voices.filter { it != null && it.locale.language == matchAgainst })
+                        }
+
+                        ctx.showBottomDialog(
+                            voices.map { it?.name ?: ctx.getString(R.string.default_text) },
+                            voices.indexOf(tts.voice),
+                            ctx.getString(R.string.tts_locale), false, {}
+                        ) { index ->
+                            stopTTS()
+                            setKey(EPUB_VOICE, voices[index]?.name)
+                            tts.voice = voices[index] ?: tts.defaultVoice
+                        }
+                    }
+                }
+            }
+
+            //val root = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_root)!!
+            val horizontalColors =
+                bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_colors)!!
+
+            binding.readShowFonts.apply {
+                text = UIHelper.parseFontFileName(getKey(EPUB_FONT))
+                setOnClickListener {
+                    showFonts {
+                        text = it
+                    }
+                }
+            }
+
+            binding.readSettingsScrollVol.apply {
+                isChecked = scrollWithVol
+                setOnCheckedChangeListener { _, checked ->
+                    setScrollWithVol(checked)
+                }
+            }
+
+            binding.readSettingsLockTts.apply {
+                isChecked = lockTTS
+                setOnCheckedChangeListener { _, checked ->
+                    setLockTTS(checked)
+                }
+            }
+
+            binding.readSettingsTwelveHourTime.apply {
+                isChecked = updateTwelveHourTime()
+                setOnCheckedChangeListener { _, checked ->
+                    updateTwelveHourTime(checked)
+                }
+            }
+
+            binding.readSettingsShowTime.apply {
+                isChecked = updateHasTime()
+                setOnCheckedChangeListener { _, checked ->
+                    updateHasTime(checked)
+                }
+            }
+
+            binding.readSettingsShowBattery.apply {
+                isChecked = updateHasBattery()
+                setOnCheckedChangeListener { _, checked ->
+                    updateHasBattery(checked)
+                }
+            }
+
+            binding.readSettingsKeepScreenActive.apply {
+                isChecked = updateKeepScreen()
+                setOnCheckedChangeListener { _, checked ->
+                    updateKeepScreen(checked)
+                }
+            }
+
+            val bgColors = resources.getIntArray(R.array.readerBgColors)
+            val textColors = resources.getIntArray(R.array.readerTextColors)
+
+            ReadActivity.images = java.util.ArrayList()
+
+            for ((index, backgroundColor) in bgColors.withIndex()) {
+                val textColor = textColors[index]
+
+                val imageHolder = layoutInflater.inflate(
+                    R.layout.color_round_checkmark,
+                    null
+                ) //color_round_checkmark
+                val image = imageHolder.findViewById<ImageView>(R.id.image1)
+                image.backgroundTintList = ColorStateList.valueOf(backgroundColor)
+                image.setOnClickListener {
+                    setBackgroundColor(backgroundColor)
+                    setTextColor(textColor)
+                    updateImages()
+                }
+                ReadActivity.images.add(image)
+                horizontalColors.addView(imageHolder)
+                //  image.backgroundTintList = ColorStateList.valueOf(c)// ContextCompat.getColorStateList(this, c)
+            }
+
+            val imageHolder = layoutInflater.inflate(R.layout.color_round_checkmark, null)
+            val image = imageHolder.findViewById<ImageView>(R.id.image1)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                image.foreground = ContextCompat.getDrawable(this, R.drawable.ic_baseline_add_24)
+            }
+            image.setOnClickListener {
+                val builder: AlertDialog.Builder = AlertDialog.Builder(this)
+                builder.setTitle(getString(R.string.reading_color))
+
+                val colorAdapter = ArrayAdapter<String>(this, R.layout.chapter_select_dialog)
+                val array = arrayListOf(
+                    getString(R.string.background_color),
+                    getString(R.string.text_color)
+                )
+                colorAdapter.addAll(array)
+
+                builder.setPositiveButton("OK") { dialog, _ ->
+                    dialog.dismiss()
+                    updateImages()
+                }
+
+                builder.setAdapter(colorAdapter) { _, which ->
+                    ColorPickerDialog.newBuilder()
+                        .setDialogId(which)
+                        .setColor(
+                            when (which) {
+                                0 -> getBackgroundColor()
+                                1 -> getTextColor()
+                                else -> 0
+                            }
+                        )
+                        .show(this)
+                }
+
+                builder.show()
+                updateImages()
+            }
+
+            ReadActivity.images.add(image)
+            horizontalColors.addView(imageHolder)
+            updateImages()
+
+            var updateAllTextOnDismiss = false
+            val offsetSize = 10
+            binding.readSettingsTextSize.apply {
+                max = 20
+                progress = getTextFontSize() - offsetSize
+                setOnSeekBarChangeListener(object :
+                    SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(
+                        seekBar: SeekBar?,
+                        progress: Int,
+                        fromUser: Boolean
+                    ) {
+                        setTextFontSize(progress + offsetSize)
+                        stopTTS()
+
+                        updateAllTextOnDismiss = true
+                    }
+
+                    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+                    override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+                })
+            }
+
+            binding.readSettingsTextPadding.apply {
+                max = 50
+                progress = getTextPadding()
+                setOnSeekBarChangeListener(object :
+                    SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(
+                        seekBar: SeekBar?,
+                        progress: Int,
+                        fromUser: Boolean
+                    ) {
+                        setTextPadding(progress)
+                        stopTTS()
+
+                        updateAllTextOnDismiss = true
+                    }
+
+                    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+                    override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+                })
+            }
+
+            binding.readSettingsTextPaddingTop.apply {
+                max = 50
+                progress = getTextPaddingTop()
+                setOnSeekBarChangeListener(object :
+                    SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(
+                        seekBar: SeekBar?,
+                        progress: Int,
+                        fromUser: Boolean
+                    ) {
+                        setTextPaddingTop(progress)
+                        stopTTS()
+
+                        updateAllTextOnDismiss = true
+                    }
+
+                    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+                    override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+                })
+            }
+
+            binding.readSettingsTextPaddingTextTop.setOnClickListener {
+                it.popupMenu(
+                    items = listOf(Pair(1, R.string.reset_value)),
+                    selectedItemId = null
+                ) {
+                    if (itemId == 1) {
+                        it.context?.removeKey(EPUB_TEXT_PADDING_TOP)
+                        binding.readSettingsTextPaddingTop.progress = getTextPaddingTop()
+                    }
+                }
+            }
+
+
+            binding.readSettingsTextPaddingText.apply {
+                setOnClickListener {
+                    it.popupMenu(
+                        items = listOf(Pair(1, R.string.reset_value)),
+                        selectedItemId = null
+                    ) {
+                        if (itemId == 1) {
+                            it.context?.removeKey(EPUB_TEXT_PADDING)
+                            binding.readSettingsTextPadding.progress = getTextPadding()
+                        }
+                    }
+                }
+            }
+
+            binding.readSettingsTextSizeText.setOnClickListener {
+                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
+                    if (itemId == 1) {
+                        it.context?.removeKey(EPUB_TEXT_SIZE)
+                        binding.readSettingsTextSize.progress = getTextFontSize() - offsetSize
+                    }
+                }
+            }
+
+
+            binding.readSettingsTextFontText.setOnClickListener {
+                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
+                    if (itemId == 1) {
+                        setReadTextFont(null) { fileName ->
+                            binding.readShowFonts.text = fileName
+                        }
+                        stopTTS()
+                        updateAllTextOnDismiss = true
+                    }
+                }
+            }
+
+
+            bottomSheetDialog.setOnDismissListener {
+                if (updateAllTextOnDismiss) {
+                    loadTextLines()
+                    globalTTSLines.clear()
+                }
+            }*/
+            bottomSheetDialog.show()
+        }
+
     }
 }

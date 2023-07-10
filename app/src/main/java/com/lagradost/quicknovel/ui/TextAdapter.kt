@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.ui
 
 import android.content.res.ColorStateList
+import android.graphics.Typeface
 import android.text.Spannable
 import android.text.SpannableString
 import android.util.TypedValue
@@ -26,8 +27,11 @@ import com.lagradost.quicknovel.databinding.SingleFinishedChapterBinding
 import com.lagradost.quicknovel.databinding.SingleImageBinding
 import com.lagradost.quicknovel.databinding.SingleLoadingBinding
 import com.lagradost.quicknovel.databinding.SingleTextBinding
+import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.util.UIHelper.setImage
+import com.lagradost.quicknovel.util.UIHelper.systemFonts
 import io.noties.markwon.image.AsyncDrawableSpan
+import java.io.File
 
 const val DRAW_DRAWABLE = 1
 const val DRAW_TEXT = 0
@@ -103,11 +107,18 @@ fun removeHighLightedText(tv: TextView) {
     val wordToSpan: Spannable = SpannableString(tv.text)
 
     val spans = wordToSpan.getSpans<android.text.Annotation>(0, tv.text.length)
+    var shouldUpdate = false
     for (s in spans) {
-        if (s.value == "rounded")
+        if (s.value == "rounded") {
             wordToSpan.removeSpan(s)
+            shouldUpdate = true
+        }
     }
-    tv.setText(wordToSpan, TextView.BufferType.SPANNABLE)
+
+    // no need to re render an untouched textview
+    if (shouldUpdate) {
+        tv.setText(wordToSpan, TextView.BufferType.SPANNABLE)
+    }
 }
 
 fun setHighLightedText(tv: TextView, start: Int, end: Int) {
@@ -115,6 +126,8 @@ fun setHighLightedText(tv: TextView, start: Int, end: Int) {
         val wordToSpan: Spannable = SpannableString(tv.text)
         val length = tv.text.length
         val spans = wordToSpan.getSpans<android.text.Annotation>(0, length)
+
+        // remove previous HighLighted text
         for (s in spans) {
             if (s.value == "rounded")
                 wordToSpan.removeSpan(s)
@@ -128,17 +141,80 @@ fun setHighLightedText(tv: TextView, start: Int, end: Int) {
         )
 
         tv.setText(wordToSpan, TextView.BufferType.SPANNABLE)
-        return
     } catch (t: Throwable) {
-        return
+        logError(t)
     }
 }
 
+const val CONFIG_COLOR = 1 shl 0
+const val CONFIG_FONT = 1 shl 1
+const val CONFIG_SIZE = 1 shl 2
+const val CONFIG_FONT_BOLD = 1 shl 3
+const val CONFIG_FONT_ITALIC = 1 shl 4
+
+// this uses val to make it explicit copy because of lazy properties
 data class TextConfig(
-    var toolbarHeight: Int,
-    var textColor: Int,
-    var textSize: Int,
-)
+    val toolbarHeight: Int,
+    val textColor: Int,
+    val textSize: Int,
+    val textFont: String,
+    val defaultFont: Typeface
+) {
+    private val fontFile: File? by lazy {
+        if (textFont == "") null else systemFonts.firstOrNull { it.name == textFont }
+    }
+
+    private val cachedFont: Typeface by lazy {
+        fontFile?.let { file -> Typeface.createFromFile(file) } ?: defaultFont
+    }
+
+    private fun setTextFont(textView: TextView, flags: Int) {
+        textView.setTypeface(cachedFont, flags)
+    }
+    /*private fun setTextFont(textView: TextView) {
+        if (cachedFont != null) textView.typeface = cachedFont
+
+        val file = fontFile
+        cachedFont = if (file == null) {
+            defaultFont
+            // ResourcesCompat.getFont(textView.context, R.font.google_sans)
+        } else {
+            Typeface.createFromFile(file)
+        }
+        textView.typeface = cachedFont
+    }*/
+
+    private fun setTextSize(textView: TextView) {
+        textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSize.toFloat())
+    }
+
+    private fun setTextColor(textView: TextView) {
+        textView.setTextColor(textColor)
+    }
+
+    fun setArgs(textView: TextView, args: Int) {
+        if ((args and CONFIG_COLOR) != 0) {
+            setTextColor(textView)
+        }
+        if ((args and CONFIG_FONT) != 0) {
+            val bold = (args and CONFIG_FONT_BOLD) != 0
+            val italic = (args and CONFIG_FONT_ITALIC) != 0
+            val textType = when (bold to italic) {
+                false to false -> Typeface.NORMAL
+                true to false -> Typeface.BOLD
+                false to true -> Typeface.ITALIC
+                true to true -> Typeface.BOLD_ITALIC
+                else -> throw NotImplementedError()
+            }
+            setTextFont(
+                textView, textType
+            )
+        }
+        if ((args and CONFIG_SIZE) != 0) {
+            setTextSize(textView)
+        }
+    }
+}
 
 class TextAdapter(private val viewModel: ReadActivityViewModel, var config: TextConfig) :
     ListAdapter<SpanDisplay, TextAdapter.TextAdapterHolder>(DiffCallback()) {
@@ -146,21 +222,26 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
 
     fun changeHeight(height: Int): Boolean {
         if (config.toolbarHeight == height) return false
-        config.toolbarHeight = height
+        config = config.copy(toolbarHeight = height)
         return true
     }
 
     fun changeColor(color: Int): Boolean {
         if (config.textColor == color) return false
-        config.textColor = color
+        config = config.copy(textColor = color)
         return true
     }
 
     fun changeSize(size: Int): Boolean {
         if (config.textSize == size) return false
-        config.textSize = size
+        config = config.copy(textSize = size)
         return true
+    }
 
+    fun changeFont(font: String): Boolean {
+        if (config.textFont == font) return false
+        config = config.copy(textFont = font)
+        return true
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TextAdapterHolder {
@@ -359,31 +440,27 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
 
         var span: SpanDisplay? = null
 
-        // returns the range of the highlight in UI, (start to end) to (top to bottom)
-        // : Pair<Int, Int>?
-
-
-        fun setConfig(config: TextConfig) {
+        private fun setConfig(config: TextConfig) {
             when (binding) {
                 is SingleTextBinding -> {
-                    binding.root.setTextSize(TypedValue.COMPLEX_UNIT_SP, config.textSize.toFloat())
-                    binding.root.setTextColor(config.textColor)
+                    config.setArgs(binding.root, CONFIG_SIZE or CONFIG_COLOR or CONFIG_FONT)
                 }
 
                 is SingleLoadingBinding -> {
+                    config.setArgs(binding.text, CONFIG_COLOR or CONFIG_FONT or CONFIG_FONT_BOLD)
                     binding.root.minimumHeight = config.toolbarHeight
-                    binding.text.setTextColor(config.textColor)
+
                     binding.loadingBar.progressTintList = ColorStateList.valueOf(config.textColor)
                 }
 
                 is SingleFailedBinding -> {
+                    config.setArgs(binding.root, CONFIG_COLOR or CONFIG_FONT or CONFIG_FONT_BOLD)
                     binding.root.minHeight = config.toolbarHeight
-                    binding.root.setTextColor(config.textColor)
                 }
 
                 is SingleFinishedChapterBinding -> {
+                    config.setArgs(binding.root, CONFIG_COLOR or CONFIG_FONT or CONFIG_FONT_BOLD)
                     binding.root.minHeight = config.toolbarHeight
-                    binding.root.setTextColor(config.textColor)
                 }
 
                 else -> {}
@@ -394,8 +471,10 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
             if (binding !is SingleTextBinding) return
             val span = span
             if (span !is TextSpan) return
-            if (line == null || ((line.startChar < span.start && line.endChar < span.start)
-                        || (line.startChar > span.end && line.endChar > span.end) || line.index != span.index)
+            // if the line does not apply
+            if (line == null || line.index != span.index ||
+                (line.startChar < span.start && line.endChar < span.start)
+                || (line.startChar > span.end && line.endChar > span.end)
             ) {
                 removeHighLightedText(binding.root)
                 return
@@ -410,32 +489,6 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
                 start,
                 end
             )
-            /*try {
-                var startTextTop: Int? = null
-                var startTextBottom: Int? = null
-                if(binding.root.layout == null) return null
-                binding.root.layout.apply {
-                    if (this == null || lineCount == 0) return null
-
-                    for (i in 0 until lineCount) {
-                        if (startTextTop == null && getLineEnd(i) >= start) {
-                            startTextTop = getLineTop(i)
-                        }
-
-                        if (startTextBottom == null && getLineEnd(i) >= end) {
-                            startTextBottom = getLineBottom(i)
-                        }
-                    }
-                    val outLocation = IntArray(2)
-                    binding.root.getLocationInWindow(outLocation)
-                    val y = outLocation[1]
-
-                    return ((startTextTop ?: return null) + y) to ((startTextBottom
-                        ?: getLineBottom(lineCount - 1)) + y)
-                }
-            } catch (_ : Throwable) {
-                return null
-            }*/
         }
 
         private fun bindText(obj: TextSpan) {

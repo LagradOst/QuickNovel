@@ -5,7 +5,9 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Rect
+import android.graphics.Typeface
 import android.graphics.drawable.Drawable
+import android.speech.tts.Voice
 import androidx.annotation.WorkerThread
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LiveData
@@ -56,7 +58,9 @@ import nl.siegmann.epublib.epub.EpubReader
 import org.jsoup.Jsoup
 import java.lang.ref.WeakReference
 import java.net.URLDecoder
-import java.util.ArrayList
+import java.util.Locale
+
+const val DEF_FONT_SIZE: Int = 14
 
 abstract class AbstractBook {
     open fun resolveUrl(url: String): String {
@@ -270,6 +274,10 @@ class ReadActivityViewModel : ViewModel() {
     private val _textSize: MutableLiveData<Int> =
         MutableLiveData<Int>(null)
     val textSize: LiveData<Int> = _textSize
+
+    private val _textFont: MutableLiveData<String> =
+        MutableLiveData<String>(null)
+    val textFont: LiveData<String> = _textFont
 
     fun switchVisibility() {
         _bottomVisibility.postValue(!(_bottomVisibility.value ?: false))
@@ -620,10 +628,20 @@ class ReadActivityViewModel : ViewModel() {
         }
 
     fun stopTTS() {
+        if (!ttsSession.ttsInitalized()) return
         currentTTSStatus = TTSHelper.TTSStatus.IsStopped
     }
 
+    fun setTTSLanguage(locale : Locale?) {
+        ttsSession.setLanguage(locale)
+    }
+
+    fun setTTSVoice(voice : Voice?) {
+        ttsSession.setVoice(voice)
+    }
+
     fun pauseTTS() {
+        if (!ttsSession.ttsInitalized()) return
         currentTTSStatus = TTSHelper.TTSStatus.IsPaused
     }
 
@@ -632,10 +650,12 @@ class ReadActivityViewModel : ViewModel() {
     }
 
     fun forwardsTTS() {
+        if (!ttsSession.ttsInitalized()) return
         pendingTTSSkip += 1
     }
 
     fun backwardsTTS() {
+        if (!ttsSession.ttsInitalized()) return
         pendingTTSSkip -= 1
     }
 
@@ -795,6 +815,7 @@ class ReadActivityViewModel : ViewModel() {
     }
 
     fun parseAction(input: TTSHelper.TTSActionType): Boolean {
+
         // validate that the action makes sense
         if (
             (currentTTSStatus == TTSHelper.TTSStatus.IsPaused && input == TTSHelper.TTSActionType.Pause) ||
@@ -804,6 +825,8 @@ class ReadActivityViewModel : ViewModel() {
         ) {
             return false
         }
+
+        if (!ttsSession.ttsInitalized()) return false
 
         when (input) {
             TTSHelper.TTSActionType.Pause -> pauseTTS()
@@ -942,13 +965,18 @@ class ReadActivityViewModel : ViewModel() {
         _textSize.postValue(value)
     }
 
+    fun setTextFont(value: String) {
+        setKey(EPUB_FONT, value)
+        _textFont.postValue(value)
+    }
+
     val textConfigInit: TextConfig
 
     init {
         _orientation.postValue(OrientationType.fromSpinner(getKey(EPUB_LOCK_ROTATION)))
         _lockTTS.postValue(getKey(EPUB_TTS_LOCK) ?: true)
 
-        val textSize = getKey(EPUB_TEXT_SIZE) ?: 14
+        val textSize = getKey(EPUB_TEXT_SIZE) ?: DEF_FONT_SIZE
         setTextSize(textSize)
         val textColor = getKey(EPUB_TEXT_COLOR) ?: ContextCompat.getColor(
             BaseApplication.context!!,
@@ -961,6 +989,16 @@ class ReadActivityViewModel : ViewModel() {
             R.color.readerBackground
         )
         setBackgroundColor(backgroundColor)
-        textConfigInit = TextConfig(toolbarHeight = 0, textColor = textColor, textSize = textSize)
+
+        val textFont = getKey(EPUB_FONT) ?: ""
+        setTextFont(textFont)
+
+        textConfigInit = TextConfig(
+            toolbarHeight = 0,
+            textColor = textColor,
+            textSize = textSize,
+            textFont = textFont,
+            defaultFont = Typeface.DEFAULT
+        )
     }
 }
