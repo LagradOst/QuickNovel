@@ -296,7 +296,7 @@ data class LoadingSpanned(val url: String?, override val index: Int) : SpanDispl
     }
 }
 
-data class FailedSpanned(val reason: String, override val index: Int) : SpanDisplay() {
+data class FailedSpanned(val reason: String, override val index: Int, val canReload : Boolean) : SpanDisplay() {
     override val innerIndex: Int = 0
     override fun id(): Long {
         return generateId(3, index, 0, 0)

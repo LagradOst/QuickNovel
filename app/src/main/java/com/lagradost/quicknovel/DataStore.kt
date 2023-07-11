@@ -36,9 +36,9 @@ const val EPUB_VOICE: String = "reader_epub_voice"
 const val EPUB_CURRENT_POSITION: String = "reader_epub_position"
 const val EPUB_CURRENT_POSITION_SCROLL: String = "reader_epub_position_scroll"
 const val EPUB_CURRENT_POSITION_SCROLL_CHAR: String = "reader_epub_position_scroll_char"
-const val RESULT_BOOKMARK : String = "result_bookmarked"
-const val RESULT_BOOKMARK_STATE : String = "result_bookmarked_state"
-const val HISTORY_FOLDER : String = "result_history"
+const val RESULT_BOOKMARK: String = "result_bookmarked"
+const val RESULT_BOOKMARK_STATE: String = "result_bookmarked_state"
+const val HISTORY_FOLDER: String = "result_history"
 
 object DataStore {
     val mapper: JsonMapper = JsonMapper.builder().addModule(
@@ -143,11 +143,24 @@ object DataStore {
         return mapper.readValue(this, T::class.java)
     }
 
+    fun <T> String.toKotlinObject(valueType: Class<T>): T {
+        return mapper.readValue(this, valueType)
+    }
+
     // GET KEY GIVEN PATH AND DEFAULT VALUE, NULL IF ERROR
     inline fun <reified T : Any> Context.getKey(path: String, defVal: T?): T? {
         try {
             val json: String = getSharedPrefs().getString(path, null) ?: return defVal
             return json.toKotlinObject()
+        } catch (e: Exception) {
+            return null
+        }
+    }
+
+    fun <T> Context.getKey(path: String, valueType: Class<T>): T? {
+        try {
+            val json: String = getSharedPrefs().getString(path, null) ?: return null
+            return json.toKotlinObject(valueType)
         } catch (e: Exception) {
             return null
         }

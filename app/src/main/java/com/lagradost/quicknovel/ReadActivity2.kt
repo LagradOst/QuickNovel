@@ -33,8 +33,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
+import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.getKey
-import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.databinding.ReadBottomSettingsBinding
 import com.lagradost.quicknovel.databinding.ReadMainBinding
 import com.lagradost.quicknovel.mvvm.Resource
@@ -48,7 +48,6 @@ import com.lagradost.quicknovel.ui.TextAdapter
 import com.lagradost.quicknovel.ui.TextVisualLine
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.SingleSelectionHelper.showBottomDialog
-import com.lagradost.quicknovel.util.UIHelper
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.util.UIHelper.getStatusBarHeight
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
@@ -145,11 +144,11 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     private fun setBackgroundColor(color: Int) {
-        viewModel.setBackgroundColor(color)
+        viewModel.backgroundColor = color
     }
 
     private fun setTextColor(color: Int) {
-        viewModel.setTextColor(color)
+        viewModel.textColor = color
     }
 
     override fun onDialogDismissed(dialog: Int) {
@@ -368,7 +367,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     var lockTop: Int? = null
     var lockBottom: Int? = null
     var currentScroll: Int = 0
-    var lockTTS: Boolean = true
+
     private fun updateTTSLine(line: TTSHelper.TTSLine?) {
         // update the visual component
         textAdapter.updateTTSLine(line)
@@ -379,7 +378,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         }
 
         // update the lock area
-        if (line == null || !lockTTS) {
+        if (line == null || !viewModel.ttsLock) {
             lockTop = null
             lockBottom = null
             return
@@ -504,7 +503,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
         res.adapter = adapter
         res.setOnItemClickListener { _, _, which, _ ->
-            viewModel.setTextFont(items[which]?.name ?: "")
+            viewModel.textFont = items[which]?.name ?: ""
             bottomSheetDialog.dismiss()
         }
         bottomSheetDialog.show()
@@ -539,20 +538,20 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         //pendingPost()
 
 
-        observe(viewModel.textSize) { size ->
+        observe(viewModel.textSizeLive) { size ->
             if (textAdapter.changeSize(size)) {
                 updateTextAdapterConfig()
                 postDesired(binding.realText)
             }
         }
 
-        observe(viewModel.textColor) { color ->
+        observe(viewModel.textColorLive) { color ->
             if (textAdapter.changeColor(color)) {
                 updateTextAdapterConfig()
             }
         }
 
-        observe(viewModel.textFont) { font ->
+        observe(viewModel.textFontLive) { font ->
             if (textAdapter.changeFont(font)) {
                 updateTextAdapterConfig()
             }
@@ -581,7 +580,8 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             viewModel.backwardsTTS()
         }
 
-        observe(viewModel.orientation) { org ->
+        observe(viewModel.orientationLive) { position ->
+            val org = OrientationType.fromSpinner(position)
             requestedOrientation = org.flag
             binding.readActionRotate.setImageResource(org.iconRes)
 
@@ -591,7 +591,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                         items = OrientationType.values().map { it.prefValue to it.stringRes },
                         selectedItemId = org.prefValue
                     ) {
-                        viewModel.setOrientation(OrientationType.fromSpinner(itemId))
+                        viewModel.orientation = itemId
                     }
                 }
             }
@@ -768,7 +768,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             binding.readSettingsTextSizeText.setOnClickListener {
                 it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
                     if (itemId == 1) {
-                        viewModel.setTextSize(DEF_FONT_SIZE)
+                        viewModel.textSize = DEF_FONT_SIZE
                         binding.readSettingsTextSize.progress =
                             DEF_FONT_SIZE - fontSizeProgressOffset
                     }
@@ -777,7 +777,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
             binding.readSettingsTextSize.apply {
                 max = 20
-                progress = (viewModel.textSize.value ?: DEF_FONT_SIZE) - fontSizeProgressOffset
+                progress = viewModel.textSize - fontSizeProgressOffset
                 setOnSeekBarChangeListener(object :
                     SeekBar.OnSeekBarChangeListener {
                     override fun onProgressChanged(
@@ -785,7 +785,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                         progress: Int,
                         fromUser: Boolean
                     ) {
-                        viewModel.setTextSize(progress + fontSizeProgressOffset)
+                        viewModel.textSize = progress + fontSizeProgressOffset
                     }
 
                     override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -804,7 +804,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             binding.readSettingsTextFontText.setOnClickListener {
                 it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
                     if (itemId == 1) {
-                        viewModel.setTextFont("")
+                        viewModel.textFont = ""
                     }
                 }
             }
@@ -870,6 +870,44 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                             }
                         }
                     }
+                }
+            }
+
+            binding.apply {
+                hardResetStream.isVisible = viewModel.canReload()
+                hardResetStream.setOnClickListener {
+                    showToast(getString(R.string.reload_chapter_format).format(""))
+                    viewModel.reloadChapter()
+                }
+
+                readSettingsScrollVol.isChecked = viewModel.scrollWithVolume
+                readSettingsScrollVol.setOnCheckedChangeListener { _, isChecked ->
+                    viewModel.scrollWithVolume = isChecked
+                }
+
+                readSettingsLockTts.isChecked = viewModel.ttsLock
+                readSettingsLockTts.setOnCheckedChangeListener { _, isChecked ->
+                    viewModel.ttsLock = isChecked
+                }
+
+                readSettingsShowTime.isChecked = viewModel.showTime
+                readSettingsShowTime.setOnCheckedChangeListener { _, isChecked ->
+                    viewModel.showTime = isChecked
+                }
+
+                readSettingsTwelveHourTime.isChecked = viewModel.time12H
+                readSettingsTwelveHourTime.setOnCheckedChangeListener { _, isChecked ->
+                    viewModel.time12H = isChecked
+                }
+
+                readSettingsShowBattery.isChecked = viewModel.showBattery
+                readSettingsShowBattery.setOnCheckedChangeListener { _, isChecked ->
+                    viewModel.showBattery = isChecked
+                }
+
+                readSettingsKeepScreenActive.isChecked = viewModel.screenAwake
+                readSettingsKeepScreenActive.setOnCheckedChangeListener { _, isChecked ->
+                    viewModel.screenAwake = isChecked
                 }
             }
 

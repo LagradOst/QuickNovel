@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
 import com.lagradost.quicknovel.ChapterStartSpanned
 import com.lagradost.quicknovel.CommonActivity
+import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.FailedSpanned
 import com.lagradost.quicknovel.LoadingSpanned
 import com.lagradost.quicknovel.R
@@ -527,12 +528,17 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
         private fun bindFailed(obj: FailedSpanned) {
             if (binding !is SingleFailedBinding) throw NotImplementedError()
             binding.root.text = obj.reason
+
             binding.root.setOnClickListener {
-                CommonActivity.showToast(
-                    binding.root.context.getString(R.string.reload_chapter_format)
-                        .format((obj.index + 1).toString())
-                )
-                viewModel.reloadChapter(obj.index)
+                if (obj.canReload) {
+                    showToast(
+                        binding.root.context.getString(R.string.reload_chapter_format)
+                            .format((obj.index + 1).toString())
+                    )
+                    viewModel.reloadChapter(obj.index)
+                } else {
+                    viewModel.switchVisibility()
+                }
             }
         }
 

@@ -49,6 +49,14 @@ class BaseApplication : Application() {
             return context?.getKey(path)
         }
 
+        fun <T : Any> getKeyClass(path: String, valueType: Class<T>): T? {
+            return context?.getKey(path, valueType)
+        }
+
+        fun <T : Any> setKeyClass(path: String, value: T) {
+            context?.setKey(path, value)
+        }
+
         inline fun <reified T : Any> getKey(folder: String, path: String): T? {
             return context?.getKey(folder, path)
         }
@@ -63,6 +71,10 @@ class BaseApplication : Application() {
 
         fun removeKey(folder: String, path: String) {
             context?.removeKey(folder, path)
+        }
+
+        fun removeKeyClass(path: String) {
+            context?.removeKey(path)
         }
 
         fun removeKey(path: String) {

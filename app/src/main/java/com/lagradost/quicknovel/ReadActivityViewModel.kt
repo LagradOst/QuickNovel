@@ -20,7 +20,10 @@ import com.bumptech.glide.request.target.Target
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
+import com.lagradost.quicknovel.BaseApplication.Companion.getKeyClass
+import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
+import com.lagradost.quicknovel.BaseApplication.Companion.setKeyClass
 import com.lagradost.quicknovel.BookDownloader2Helper.getQuickChapter
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.TTSHelper.parseTextToSpans
@@ -59,13 +62,70 @@ import org.jsoup.Jsoup
 import java.lang.ref.WeakReference
 import java.net.URLDecoder
 import java.util.Locale
+import kotlin.reflect.KClass
+import kotlin.reflect.KProperty
 
 const val DEF_FONT_SIZE: Int = 14
+
+class PreferenceDelegate<T : Any>(
+    val key: String, val default: T, private val klass: KClass<T>
+) {
+    // simple cache to make it not get the key every time it is accessed, however this requires
+    // that ONLY this changes the key
+    private var cache: T? = null
+
+    operator fun getValue(self: Any?, property: KProperty<*>) =
+        cache ?: getKeyClass(key, klass.java).also { newCache -> cache = newCache } ?: default
+
+    operator fun setValue(
+        self: Any?,
+        property: KProperty<*>,
+        t: T?
+    ) {
+        cache = t
+        if (t == null) {
+            removeKey(key)
+        } else {
+            setKeyClass(key, t)
+        }
+    }
+}
+
+class PreferenceDelegateLiveView<T : Any>(
+    val key: String, val default: T, klass: KClass<T>, private val _liveData: MutableLiveData<T>
+) {
+    // simple cache to make it not get the key every time it is accessed, however this requires
+    // that ONLY this changes the key
+    private var cache: T
+
+    init {
+        cache = getKeyClass(key, klass.java) ?: default
+        _liveData.postValue(cache)
+    }
+
+    operator fun getValue(self: Any?, property: KProperty<*>) = cache
+
+    operator fun setValue(
+        self: Any?,
+        property: KProperty<*>,
+        t: T?
+    ) {
+        cache = t ?: default
+        _liveData.postValue(cache)
+        if (t == null) {
+            removeKey(key)
+        } else {
+            setKeyClass(key, t)
+        }
+    }
+}
 
 abstract class AbstractBook {
     open fun resolveUrl(url: String): String {
         return url
     }
+
+    abstract val canReload: Boolean
 
     abstract fun size(): Int
     abstract fun title(): String
@@ -101,6 +161,8 @@ class QuickBook(val data: QuickStreamData) : AbstractBook() {
     override fun resolveUrl(url: String): String {
         return Apis.getApiFromNameNull(data.meta.apiName)?.fixUrl(url) ?: url
     }
+
+    override val canReload = true
 
     override fun size(): Int {
         return data.data.size
@@ -168,6 +230,8 @@ class QuickBook(val data: QuickStreamData) : AbstractBook() {
 }
 
 class RegularBook(val data: Book) : AbstractBook() {
+    override val canReload = false
+
     override fun size(): Int {
         return data.tableOfContents.tocReferences.size
     }
@@ -213,6 +277,10 @@ class ReadActivityViewModel : ViewModel() {
     private lateinit var book: AbstractBook
     private lateinit var markwon: Markwon
 
+    fun canReload(): Boolean {
+        return book.canReload
+    }
+
     private var _context: WeakReference<ReadActivity2>? = null
     var context
         get() = _context?.get()
@@ -254,30 +322,25 @@ class ReadActivityViewModel : ViewModel() {
         MutableLiveData<TTSHelper.TTSLine?>(null)
     val ttsLine: LiveData<TTSHelper.TTSLine?> = _ttsLine
 
+    /*  private val _orientation: MutableLiveData<OrientationType> =
+          MutableLiveData<OrientationType>(null)
+      val orientation: LiveData<OrientationType> = _orientation
 
-    private val _orientation: MutableLiveData<OrientationType> =
-        MutableLiveData<OrientationType>(null)
-    val orientation: LiveData<OrientationType> = _orientation
+      private val _backgroundColor: MutableLiveData<Int> =
+          MutableLiveData<Int>(null)
+      val backgroundColor: LiveData<Int> = _backgroundColor
 
-    private val _lockTTS: MutableLiveData<Boolean> =
-        MutableLiveData<Boolean>(null)
-    val lockTTS: LiveData<Boolean> = _lockTTS
+      private val _textColor: MutableLiveData<Int> =
+          MutableLiveData<Int>(null)
+      val textColor: LiveData<Int> = _textColor
 
-    private val _backgroundColor: MutableLiveData<Int> =
-        MutableLiveData<Int>(null)
-    val backgroundColor: LiveData<Int> = _backgroundColor
+      private val _textSize: MutableLiveData<Int> =
+          MutableLiveData<Int>(null)
+      val textSize: LiveData<Int> = _textSize*/
 
-    private val _textColor: MutableLiveData<Int> =
-        MutableLiveData<Int>(null)
-    val textColor: LiveData<Int> = _textColor
-
-    private val _textSize: MutableLiveData<Int> =
-        MutableLiveData<Int>(null)
-    val textSize: LiveData<Int> = _textSize
-
-    private val _textFont: MutableLiveData<String> =
-        MutableLiveData<String>(null)
-    val textFont: LiveData<String> = _textFont
+    // private val _textFont: MutableLiveData<String> =
+    //     MutableLiveData<String>(null)
+    // val textFont: LiveData<String> = _textFont
 
     fun switchVisibility() {
         _bottomVisibility.postValue(!(_bottomVisibility.value ?: false))
@@ -316,6 +379,10 @@ class ReadActivityViewModel : ViewModel() {
     fun reloadChapter(index: Int) = ioSafe {
         loadIndividualChapter(index, reload = true, notify = false)
         updateReadArea(seekToDesired = false)
+    }
+
+    fun reloadChapter() {
+        reloadChapter(currentIndex)
     }
 
     private suspend fun updateIndexAsync(
@@ -360,8 +427,9 @@ class ReadActivityViewModel : ViewModel() {
 
                 is Resource.Failure -> listOf<SpanDisplay>(
                     FailedSpanned(
-                        data.errorString,
-                        idx
+                        reason = data.errorString,
+                        index = idx,
+                        canReload = data.isNetworkError
                     )
                 )
             }
@@ -524,7 +592,7 @@ class ReadActivityViewModel : ViewModel() {
 
                 val innerIndex = innerCharToIndex(currentIndex, char) ?: 0
 
-                // dont update as you want to seek on update
+                // don't update as you want to seek on update
                 changeIndex(ScrollIndex(currentIndex, innerIndex, char))
 
                 // notify once because initial load is 3 chapters I don't care about 10 notifications when the user cant see it
@@ -632,11 +700,11 @@ class ReadActivityViewModel : ViewModel() {
         currentTTSStatus = TTSHelper.TTSStatus.IsStopped
     }
 
-    fun setTTSLanguage(locale : Locale?) {
+    fun setTTSLanguage(locale: Locale?) {
         ttsSession.setLanguage(locale)
     }
 
-    fun setTTSVoice(voice : Voice?) {
+    fun setTTSVoice(voice: Voice?) {
         ttsSession.setVoice(voice)
     }
 
@@ -937,62 +1005,65 @@ class ReadActivityViewModel : ViewModel() {
         super.onCleared()
     }
 
-    fun setOrientation(orientationType: OrientationType) {
-        setKey(EPUB_LOCK_ROTATION, orientationType.prefValue)
-        _orientation.postValue(orientationType)
-    }
-
-    // :skull: ye java moment right here, we don't do generics because <refined T : Any> cant get
-    // placed on a class, live with the boilerplate
-
-    fun setLockTTS(value: Boolean) {
-        setKey(EPUB_TTS_LOCK, value)
-        _lockTTS.postValue(value)
-    }
-
-    fun setBackgroundColor(value: Int) {
-        setKey(EPUB_BG_COLOR, value)
-        _backgroundColor.postValue(value)
-    }
-
-    fun setTextColor(value: Int) {
-        setKey(EPUB_TEXT_COLOR, value)
-        _textColor.postValue(value)
-    }
-
-    fun setTextSize(value: Int) {
-        setKey(EPUB_TEXT_SIZE, value)
-        _textSize.postValue(value)
-    }
-
-    fun setTextFont(value: String) {
-        setKey(EPUB_FONT, value)
-        _textFont.postValue(value)
-    }
 
     val textConfigInit: TextConfig
 
-    init {
-        _orientation.postValue(OrientationType.fromSpinner(getKey(EPUB_LOCK_ROTATION)))
-        _lockTTS.postValue(getKey(EPUB_TTS_LOCK) ?: true)
+    var scrollWithVolume by PreferenceDelegate(EPUB_SCROLL_VOL, true, Boolean::class)
+    var ttsLock by PreferenceDelegate(EPUB_TTS_LOCK, true, Boolean::class)
+    val textFontLive: MutableLiveData<String> = MutableLiveData(null)
+    var textFont by PreferenceDelegateLiveView(EPUB_FONT, "", String::class, textFontLive)
+    val textSizeLive: MutableLiveData<Int> = MutableLiveData(null)
+    var textSize by PreferenceDelegateLiveView(
+        EPUB_TEXT_SIZE,
+        DEF_FONT_SIZE,
+        Int::class,
+        textSizeLive
+    )
 
-        val textSize = getKey(EPUB_TEXT_SIZE) ?: DEF_FONT_SIZE
-        setTextSize(textSize)
-        val textColor = getKey(EPUB_TEXT_COLOR) ?: ContextCompat.getColor(
+    val orientationLive: MutableLiveData<Int> = MutableLiveData(null)
+    var orientation by PreferenceDelegateLiveView(
+        EPUB_LOCK_ROTATION,
+        OrientationType.DEFAULT.prefValue,
+        Int::class, orientationLive
+    )
+
+    val textColorLive: MutableLiveData<Int> = MutableLiveData(null)
+    var textColor by PreferenceDelegateLiveView(
+        EPUB_TEXT_COLOR, ContextCompat.getColor(
             BaseApplication.context!!,
             R.color.readerTextColor
-        )
-        setTextColor(textColor)
+        ), Int::class, textColorLive
+    )
 
-        val backgroundColor = getKey(EPUB_BG_COLOR) ?: ContextCompat.getColor(
+    val backgroundColorLive: MutableLiveData<Int> = MutableLiveData(null)
+    var backgroundColor by PreferenceDelegateLiveView(
+        EPUB_BG_COLOR, ContextCompat.getColor(
             BaseApplication.context!!,
             R.color.readerBackground
-        )
-        setBackgroundColor(backgroundColor)
+        ), Int::class, backgroundColorLive
+    )
 
-        val textFont = getKey(EPUB_FONT) ?: ""
-        setTextFont(textFont)
+    val showBatteryLive: MutableLiveData<Boolean> = MutableLiveData(null)
+    var showBattery by PreferenceDelegateLiveView(
+        EPUB_HAS_BATTERY, true, Boolean::class, showBatteryLive
+    )
 
+    val showTimeLive: MutableLiveData<Boolean> = MutableLiveData(null)
+    var showTime by PreferenceDelegateLiveView(
+        EPUB_HAS_TIME, true, Boolean::class, showTimeLive
+    )
+
+    val time12HLive: MutableLiveData<Boolean> = MutableLiveData(null)
+    var time12H by PreferenceDelegateLiveView(
+        EPUB_TWELVE_HOUR_TIME, false, Boolean::class, time12HLive
+    )
+
+    val screenAwakeLive: MutableLiveData<Boolean> = MutableLiveData(null)
+    var screenAwake by PreferenceDelegateLiveView(
+        EPUB_KEEP_SCREEN_ACTIVE, true, Boolean::class, screenAwakeLive
+    )
+
+    init {
         textConfigInit = TextConfig(
             toolbarHeight = 0,
             textColor = textColor,
