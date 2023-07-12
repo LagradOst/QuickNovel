@@ -2,7 +2,6 @@ package com.lagradost.quicknovel
 
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -66,10 +65,10 @@ import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.util.UIHelper.getStatusBarHeight
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.systemFonts
+import com.lagradost.quicknovel.util.toPx
 import java.io.File
+import java.lang.Integer.max
 import java.lang.ref.WeakReference
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 import kotlin.properties.Delegates
 
@@ -236,12 +235,33 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 if (viewModel.isTTSRunning()) {
                     viewModel.forwardsTTS()
                     return true
+                } else if (viewModel.scrollWithVolume) {
+                    val bottomY = getBottomY()
+                    val lines = getAllLines()
+                    val line = lines.firstOrNull {
+                        it.bottom >= bottomY
+                    } ?: lines.lastOrNull() ?: return true
+                    binding.realText.scrollBy(0, line.top - getTopY())
+
+                    return true
                 }
             }
 
             KeyEvent.KEYCODE_VOLUME_UP -> {
                 if (viewModel.isTTSRunning()) {
                     viewModel.backwardsTTS()
+                    return true
+                } else if (viewModel.scrollWithVolume) {
+                    binding.realText.scrollBy(0, getTopY() - getBottomY())
+                    binding.realText.post {
+                        val lines = getAllLines()
+                        val topY = getTopY()
+                        val line = lines.firstOrNull {
+                            it.top >= topY
+                        } ?: return@post
+                        binding.realText.scrollBy(0, line.top - getTopY())
+                    }
+
                     return true
                 }
             }
@@ -290,14 +310,17 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         val outLocation = IntArray(2)
         binding.readTopItem.getLocationInWindow(outLocation)
         val (_, topY) = outLocation
-        return topY
+        return topY + binding.realText.paddingTop
     }
 
     private fun getBottomY(): Int {
         val outLocation = IntArray(2)
         binding.readBottomItem.getLocationInWindow(outLocation)
         val (_, bottomY) = outLocation
-        return bottomY
+        return bottomY - max(
+            binding.realText.paddingBottom,
+            if (viewModel.showTime || viewModel.showBattery) binding.readOverlay.height else 0
+        )
     }
 
     /**
@@ -332,18 +355,25 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             return
         }
 
+        // val bottomPadding = binding.realText.paddingTop
+        val topY = getTopY()
+        val bottomY = getBottomY()
+
+        // binding.tmpTtsStart.fixLine(getTopY())
+        //  binding.tmpTtsEnd.fixLine(getBottomY())
+
         viewModel.onScroll(
             ScrollVisibilityIndex(
                 firstInMemory = lines.first(),
                 lastInMemory = lines.last(),
                 firstFullyVisible = lines.firstOrNull {
-                    it.top >= 0
+                    it.top >= topY
                 },
                 firstFullyVisibleUnderLine = lines.firstOrNull {
                     it.top >= topBarHeight
                 },
                 lastHalfVisible = lines.firstOrNull {
-                    it.bottom >= getBottomY()
+                    it.bottom >= bottomY
                 },
             )
         )
@@ -400,7 +430,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             }?.let { line ->
                 //binding.tmpTtsStart2.fixLine(line.top)
                 //binding.tmpTtsEnd2.fixLine(line.bottom)
-                binding.realText.scrollBy(0, line.top)
+                binding.realText.scrollBy(0, line.top - getTopY())
             }
         }
 
@@ -516,6 +546,21 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         config.setArgs(binding.readLoadingBar)
     }
 
+    private fun updatePadding() {
+        val h = viewModel.paddingHorizontal.toPx
+        val v = viewModel.paddingVertical.toPx
+        binding.realText.apply {
+            if (paddingLeft == h && paddingRight == h && paddingBottom == v && paddingTop == v) return
+            setPadding(
+                h,
+                v,
+                h,
+                v
+            )
+            scrollToDesired()
+        }
+    }
+
     @SuppressLint("NotifyDataSetChanged")
     private fun updateTextAdapterConfig() {
         // this did not work so I just rebind everything, it does not happend often so idc
@@ -621,6 +666,15 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         //updateTimeText()
         fixPaddingStatusbar(binding.readToolbarHolder)
 
+        observe(viewModel.paddingHorizontalLive) {
+            updatePadding()
+        }
+
+        observe(viewModel.paddingVerticalLive) {
+            updatePadding()
+        }
+
+
         //observe(viewModel.time12HLive) { time12H ->
         //    binding.readTimeClock.is24HourModeEnabled = !time12H
         //}
@@ -724,7 +778,8 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 //builderSingle.setIcon(R.drawable.ic_launcher)
                 val currentChapter = viewModel.desiredIndex?.index
                 // cant be too safe here
-                val validChapter = currentChapter != null && currentChapter >= 0 && currentChapter < titles.size
+                val validChapter =
+                    currentChapter != null && currentChapter >= 0 && currentChapter < titles.size
                 if (validChapter && currentChapter != null) {
                     builderSingle.setTitle(titles[currentChapter]) //  "Select Chapter"
                 } else {
@@ -895,6 +950,68 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                         fromUser: Boolean
                     ) {
                         viewModel.textSize = progress + fontSizeProgressOffset
+                    }
+
+                    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+                    override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+                })
+            }
+
+            binding.readSettingsTextPaddingText.setOnClickListener {
+                it.popupMenu(
+                    items = listOf(Pair(1, R.string.reset_value)),
+                    selectedItemId = null
+                ) {
+                    if (itemId == 1) {
+                        viewModel.paddingHorizontal = DEF_HORIZONTAL_PAD
+                        binding.readSettingsTextPadding.progress = DEF_HORIZONTAL_PAD
+                    }
+                }
+            }
+
+            binding.readSettingsTextPaddingTextTop.setOnClickListener {
+                it.popupMenu(
+                    items = listOf(Pair(1, R.string.reset_value)),
+                    selectedItemId = null
+                ) {
+                    if (itemId == 1) {
+                        viewModel.paddingVertical = DEF_VERTICAL_PAD
+                        binding.readSettingsTextPaddingTop.progress = DEF_VERTICAL_PAD
+                    }
+                }
+            }
+
+            binding.readSettingsTextPadding.apply {
+                max = 50
+                progress = viewModel.paddingHorizontal
+                setOnSeekBarChangeListener(object :
+                    SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(
+                        seekBar: SeekBar?,
+                        progress: Int,
+                        fromUser: Boolean
+                    ) {
+                        viewModel.paddingHorizontal = progress
+                    }
+
+                    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+                    override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+                })
+            }
+
+            binding.readSettingsTextPaddingTop.apply {
+                max = 50
+                progress = viewModel.paddingVertical
+                setOnSeekBarChangeListener(object :
+                    SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(
+                        seekBar: SeekBar?,
+                        progress: Int,
+                        fromUser: Boolean
+                    ) {
+                        viewModel.paddingVertical = progress
                     }
 
                     override fun onStartTrackingTouch(seekBar: SeekBar?) {}

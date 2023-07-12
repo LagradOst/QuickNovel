@@ -66,6 +66,8 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 
 const val DEF_FONT_SIZE: Int = 14
+const val DEF_HORIZONTAL_PAD: Int = 20
+const val DEF_VERTICAL_PAD: Int = 0
 
 class PreferenceDelegate<T : Any>(
     val key: String, val default: T, private val klass: KClass<T>
@@ -1052,6 +1054,16 @@ class ReadActivityViewModel : ViewModel() {
         EPUB_HAS_TIME, true, Boolean::class, showTimeLive
     )
 
+    val paddingHorizontalLive: MutableLiveData<Int> = MutableLiveData(null)
+    var paddingHorizontal by PreferenceDelegateLiveView(
+        EPUB_TEXT_PADDING, DEF_HORIZONTAL_PAD, Int::class, paddingHorizontalLive
+    )
+
+    val paddingVerticalLive: MutableLiveData<Int> = MutableLiveData(null)
+    var paddingVertical by PreferenceDelegateLiveView(
+        EPUB_TEXT_PADDING_TOP, DEF_VERTICAL_PAD, Int::class, paddingVerticalLive
+    )
+
     //val time12HLive: MutableLiveData<Boolean> = MutableLiveData(null)
     //var time12H by PreferenceDelegateLiveView(
     //    EPUB_TWELVE_HOUR_TIME, false, Boolean::class, time12HLive
@@ -1061,5 +1073,4 @@ class ReadActivityViewModel : ViewModel() {
     var screenAwake by PreferenceDelegateLiveView(
         EPUB_KEEP_SCREEN_ACTIVE, true, Boolean::class, screenAwakeLive
     )
-
 }
