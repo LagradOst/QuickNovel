@@ -2,11 +2,14 @@ package com.lagradost.quicknovel
 
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.ColorStateList
 import android.content.res.Configuration
+import android.graphics.Color
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
@@ -17,6 +20,8 @@ import android.view.WindowManager
 import android.widget.AbsListView
 import android.widget.ArrayAdapter
 import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.SeekBar
 import androidx.activity.viewModels
@@ -24,36 +29,47 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.doOnEnd
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.children
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.jaredrummler.android.colorpicker.ColorPickerDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.getKey
+import com.lagradost.quicknovel.databinding.ColorRoundCheckmarkBinding
 import com.lagradost.quicknovel.databinding.ReadBottomSettingsBinding
 import com.lagradost.quicknovel.databinding.ReadMainBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.mvvm.observeNullable
+import com.lagradost.quicknovel.ui.CONFIG_COLOR
+import com.lagradost.quicknovel.ui.CONFIG_FONT
+import com.lagradost.quicknovel.ui.CONFIG_FONT_BOLD
 import com.lagradost.quicknovel.ui.OrientationType
 import com.lagradost.quicknovel.ui.ScrollIndex
 import com.lagradost.quicknovel.ui.ScrollVisibilityIndex
 import com.lagradost.quicknovel.ui.ScrollVisibilityItem
 import com.lagradost.quicknovel.ui.TextAdapter
+import com.lagradost.quicknovel.ui.TextConfig
 import com.lagradost.quicknovel.ui.TextVisualLine
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.SingleSelectionHelper.showBottomDialog
+import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.util.UIHelper.getStatusBarHeight
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.systemFonts
 import java.io.File
 import java.lang.ref.WeakReference
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 import kotlin.properties.Delegates
 
@@ -136,6 +152,13 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     lateinit var binding: ReadMainBinding
     private val viewModel: ReadActivityViewModel by viewModels()
 
+    private var _imageHolder: WeakReference<LinearLayout>? = null
+    var imageHolder
+        get() = _imageHolder?.get()
+        set(value) {
+            _imageHolder = WeakReference(value)
+        }
+
     override fun onColorSelected(dialog: Int, color: Int) {
         when (dialog) {
             0 -> setBackgroundColor(color)
@@ -156,7 +179,46 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     private fun updateImages() {
+        val bgColors = resources.getIntArray(R.array.readerBgColors)
+        val textColors = resources.getIntArray(R.array.readerTextColors)
+        val color = viewModel.backgroundColor
+        val colorPrimary = colorFromAttribute(R.attr.colorPrimary)
+        val colorPrim = ColorStateList.valueOf(colorPrimary)
+        val colorTrans = ColorStateList.valueOf(Color.TRANSPARENT)
+        var foundCurrentColor = false
+        val fullAlpha = 200
+        val fadedAlpha = 50
 
+        for ((index, imgHolder) in imageHolder?.children?.withIndex() ?: return) {
+            val img = imgHolder.findViewById<ImageView>(R.id.image1) ?: return
+
+            if (index == bgColors.size) { // CUSTOM COLOR
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    img.foregroundTintList = colorPrim
+                    img.foreground = ContextCompat.getDrawable(
+                        this,
+                        if (foundCurrentColor) R.drawable.ic_baseline_add_24 else R.drawable.ic_baseline_check_24
+                    )
+                }
+                img.imageAlpha = if (foundCurrentColor) fadedAlpha else fullAlpha
+                img.backgroundTintList =
+                    ColorStateList.valueOf(if (foundCurrentColor) Color.parseColor("#161616") else color)
+                continue
+            }
+
+            if ((color == bgColors[index] && viewModel.textColor == textColors[index])) {
+                foundCurrentColor = true
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    img.foregroundTintList = colorPrim
+                }
+                img.imageAlpha = fullAlpha
+            } else {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    img.foregroundTintList = colorTrans
+                }
+                img.imageAlpha = fadedAlpha
+            }
+        }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -320,7 +382,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
     private var cachedChapter: List<SpanDisplay> = emptyList()
     private fun scrollToDesired() {
-        val desired: ScrollIndex = viewModel.desiredIndex
+        val desired: ScrollIndex = viewModel.desiredIndex ?: return
 
         val adapterPosition =
             cachedChapter.indexOfFirst { display -> display.index == desired.index && display.innerIndex == desired.innerIndex }
@@ -423,7 +485,8 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
         val topScroll = top.top - getTopY()
         lockTop = currentScroll + topScroll
-        val bottomScroll = bottom.bottom - getBottomY() + binding.readOverlay.height
+        val bottomScroll =
+            bottom.bottom - getBottomY() + if (binding.readOverlay.isVisible) binding.readOverlay.height else 0
         lockBottom = currentScroll + bottomScroll
 
         // binding.tmpTtsStart.fixLine(top.top)
@@ -445,11 +508,19 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         super.onConfigurationChanged(newConfig)
     }
 
+    private fun updateOtherTextConfig(config: TextConfig) {
+        config.setArgs(binding.loadingText, CONFIG_FONT or CONFIG_COLOR)
+        config.setArgs(binding.readBattery, CONFIG_FONT or CONFIG_COLOR or CONFIG_FONT_BOLD)
+        config.setArgs(binding.readTimeClock, CONFIG_FONT or CONFIG_COLOR or CONFIG_FONT_BOLD)
+
+        config.setArgs(binding.readLoadingBar)
+    }
+
     @SuppressLint("NotifyDataSetChanged")
     private fun updateTextAdapterConfig() {
         // this did not work so I just rebind everything, it does not happend often so idc
         textAdapter.notifyDataSetChanged()
-
+        updateOtherTextConfig(textAdapter.config)
         /* binding.realText.apply {
              for (idx in 0..childCount) {//textLayoutManager.findFirstVisibleItemPosition()..textLayoutManager.findLastVisibleItemPosition()) {
                  val viewHolder = getChildViewHolder(getChildAt(idx) ?: continue) ?: continue
@@ -460,6 +531,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     private fun postDesired(view: View) {
+
         val currentDesired = viewModel.desiredIndex
         view.post {
             viewModel.desiredIndex = currentDesired
@@ -509,6 +581,15 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         bottomSheetDialog.show()
     }
 
+    /*  private fun updateTimeText() {
+          val string = if (viewModel.time12H) "hh:mm a" else "HH:mm"
+
+          val currentTime: String = SimpleDateFormat(string, Locale.getDefault()).format(Date())
+
+          binding.readTime.text = currentTime
+          binding.readTime.postDelayed({ -> updateTimeText() }, 1000)
+      }*/
+
     private var topBarHeight by Delegates.notNull<Int>()
     override fun onCreate(savedInstanceState: Bundle?) {
         CommonActivity.loadThemes(this)
@@ -524,19 +605,47 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         binding.readToolbarHolder.minimumHeight = topBarHeight
         textAdapter = TextAdapter(
             viewModel,
-            viewModel.textConfigInit.copy(
+            TextConfig(
                 toolbarHeight = topBarHeight,
-                defaultFont = binding.readText.typeface
-            )
+                defaultFont = binding.readText.typeface,
+                textColor = viewModel.textColor,
+                textSize = viewModel.textSize,
+                textFont = viewModel.textFont
+            ).also { config ->
+                updateOtherTextConfig(config)
+            }
         ).apply {
             setHasStableIds(true)
         }
 
+        //updateTimeText()
         fixPaddingStatusbar(binding.readToolbarHolder)
-        //fixPaddingStatusbar(binding.readTopmargin)
 
-        //pendingPost()
+        //observe(viewModel.time12HLive) { time12H ->
+        //    binding.readTimeClock.is24HourModeEnabled = !time12H
+        //}
 
+        observe(viewModel.backgroundColorLive) { color ->
+            binding.root.setBackgroundColor(color)
+            binding.readOverlay.setBackgroundColor(color)
+        }
+
+        observe(viewModel.showBatteryLive) { show ->
+            binding.readBattery.isVisible = show
+            binding.readOverlay.isVisible = show && viewModel.showTime
+        }
+
+        observe(viewModel.showTimeLive) { show ->
+            binding.readTimeClock.isVisible = show
+            binding.readOverlay.isVisible = show && viewModel.showBattery
+        }
+
+        observe(viewModel.screenAwakeLive) { awake ->
+            if (awake)
+                window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            else
+                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
 
         observe(viewModel.textSizeLive) { size ->
             if (textAdapter.changeSize(size)) {
@@ -613,10 +722,10 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             binding.readActionChapters.setOnClickListener {
                 val builderSingle: AlertDialog.Builder = AlertDialog.Builder(this)
                 //builderSingle.setIcon(R.drawable.ic_launcher)
-                val currentChapter = viewModel.desiredIndex.index
+                val currentChapter = viewModel.desiredIndex?.index
                 // cant be too safe here
-                val validChapter = currentChapter >= 0 && currentChapter < titles.size
-                if (validChapter) {
+                val validChapter = currentChapter != null && currentChapter >= 0 && currentChapter < titles.size
+                if (validChapter && currentChapter != null) {
                     builderSingle.setTitle(titles[currentChapter]) //  "Select Chapter"
                 } else {
                     builderSingle.setTitle(R.string.select_chapter)
@@ -636,7 +745,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 dialog.show()
 
                 dialog.listView.choiceMode = AbsListView.CHOICE_MODE_SINGLE
-                if (validChapter) {
+                if (validChapter && currentChapter != null) {
                     dialog.listView.setSelection(currentChapter)
                     dialog.listView.setItemChecked(currentChapter, true)
                 }
@@ -895,10 +1004,10 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                     viewModel.showTime = isChecked
                 }
 
-                readSettingsTwelveHourTime.isChecked = viewModel.time12H
-                readSettingsTwelveHourTime.setOnCheckedChangeListener { _, isChecked ->
-                    viewModel.time12H = isChecked
-                }
+                //readSettingsTwelveHourTime.isChecked = viewModel.time12H
+                //readSettingsTwelveHourTime.setOnCheckedChangeListener { _, isChecked ->
+                //    viewModel.time12H = isChecked
+                //}
 
                 readSettingsShowBattery.isChecked = viewModel.showBattery
                 readSettingsShowBattery.setOnCheckedChangeListener { _, isChecked ->
@@ -911,296 +1020,73 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 }
             }
 
-            /*binding.readLanguage.setOnClickListener { view ->
-                view?.context?.let { ctx ->
-                    requireTTS { tts ->
-                        val languages = mutableListOf<Locale?>(null).apply {
-                            addAll(tts.availableLanguages?.filterNotNull() ?: emptySet())
-                        }
-                        ctx.showBottomDialog(
-                            languages.map {
-                                it?.displayName ?: ctx.getString(R.string.default_text)
-                            },
-                            languages.indexOf(tts.voice?.locale),
-                            ctx.getString(R.string.tts_locale), false, {}
-                        ) { index ->
-                            stopTTS()
-                            val lang = languages[index] ?: defaultTTSLanguage
-                            setKey(EPUB_LANG, lang.displayName)
-                            tts.language = lang
-                        }
-                    }
-                }
-            }
-
-            binding.readVoice.setOnClickListener { view ->
-                view?.context?.let { ctx ->
-                    requireTTS { tts ->
-                        val matchAgainst = tts.voice.locale.language
-                        val voices = mutableListOf<Voice?>(null).apply {
-                            addAll(tts.voices.filter { it != null && it.locale.language == matchAgainst })
-                        }
-
-                        ctx.showBottomDialog(
-                            voices.map { it?.name ?: ctx.getString(R.string.default_text) },
-                            voices.indexOf(tts.voice),
-                            ctx.getString(R.string.tts_locale), false, {}
-                        ) { index ->
-                            stopTTS()
-                            setKey(EPUB_VOICE, voices[index]?.name)
-                            tts.voice = voices[index] ?: tts.defaultVoice
-                        }
-                    }
-                }
-            }
-
-            //val root = bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_root)!!
-            val horizontalColors =
-                bottomSheetDialog.findViewById<LinearLayout>(R.id.read_settings_colors)!!
-
-            binding.readShowFonts.apply {
-                text = UIHelper.parseFontFileName(getKey(EPUB_FONT))
-                setOnClickListener {
-                    showFonts {
-                        text = it
-                    }
-                }
-            }
-
-            binding.readSettingsScrollVol.apply {
-                isChecked = scrollWithVol
-                setOnCheckedChangeListener { _, checked ->
-                    setScrollWithVol(checked)
-                }
-            }
-
-            binding.readSettingsLockTts.apply {
-                isChecked = lockTTS
-                setOnCheckedChangeListener { _, checked ->
-                    setLockTTS(checked)
-                }
-            }
-
-            binding.readSettingsTwelveHourTime.apply {
-                isChecked = updateTwelveHourTime()
-                setOnCheckedChangeListener { _, checked ->
-                    updateTwelveHourTime(checked)
-                }
-            }
-
-            binding.readSettingsShowTime.apply {
-                isChecked = updateHasTime()
-                setOnCheckedChangeListener { _, checked ->
-                    updateHasTime(checked)
-                }
-            }
-
-            binding.readSettingsShowBattery.apply {
-                isChecked = updateHasBattery()
-                setOnCheckedChangeListener { _, checked ->
-                    updateHasBattery(checked)
-                }
-            }
-
-            binding.readSettingsKeepScreenActive.apply {
-                isChecked = updateKeepScreen()
-                setOnCheckedChangeListener { _, checked ->
-                    updateKeepScreen(checked)
-                }
-            }
-
             val bgColors = resources.getIntArray(R.array.readerBgColors)
             val textColors = resources.getIntArray(R.array.readerTextColors)
 
-            ReadActivity.images = java.util.ArrayList()
+            imageHolder = binding.readSettingsColors
+            for ((newBgColor, newTextColor) in bgColors zip textColors) {
+                ColorRoundCheckmarkBinding.inflate(
+                    layoutInflater,
+                    binding.readSettingsColors,
+                    true
+                ).image1.apply {
+                    backgroundTintList = ColorStateList.valueOf(newBgColor)
+                    //foregroundTintList = ColorStateList.valueOf(newTextColor)
+                    setOnClickListener {
+                        viewModel.backgroundColor = newBgColor
+                        viewModel.textColor = newTextColor
+                        updateImages()
+                    }
+                }
+            }
 
-            for ((index, backgroundColor) in bgColors.withIndex()) {
-                val textColor = textColors[index]
+            ColorRoundCheckmarkBinding.inflate(
+                layoutInflater,
+                binding.readSettingsColors,
+                true
+            ).image1.apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    foreground =
+                        ContextCompat.getDrawable(this.context, R.drawable.ic_baseline_add_24)
+                }
 
-                val imageHolder = layoutInflater.inflate(
-                    R.layout.color_round_checkmark,
-                    null
-                ) //color_round_checkmark
-                val image = imageHolder.findViewById<ImageView>(R.id.image1)
-                image.backgroundTintList = ColorStateList.valueOf(backgroundColor)
-                image.setOnClickListener {
-                    setBackgroundColor(backgroundColor)
-                    setTextColor(textColor)
+                setOnClickListener {
+                    val builder: AlertDialog.Builder = AlertDialog.Builder(this.context)
+                    builder.setTitle(getString(R.string.reading_color))
+
+                    val colorAdapter =
+                        ArrayAdapter<String>(this.context, R.layout.chapter_select_dialog)
+                    val array = arrayListOf(
+                        getString(R.string.background_color),
+                        getString(R.string.text_color)
+                    )
+                    colorAdapter.addAll(array)
+
+                    builder.setPositiveButton(R.string.ok) { dialog, _ ->
+                        dialog.dismiss()
+                        updateImages()
+                    }
+
+                    builder.setAdapter(colorAdapter) { _, which ->
+                        ColorPickerDialog.newBuilder()
+                            .setDialogId(which)
+                            .setColor(
+                                when (which) {
+                                    0 -> viewModel.backgroundColor
+                                    1 -> viewModel.textColor
+                                    else -> 0
+                                }
+                            )
+                            .show(readActivity ?: return@setAdapter)
+                    }
+
+                    builder.show()
                     updateImages()
                 }
-                ReadActivity.images.add(image)
-                horizontalColors.addView(imageHolder)
-                //  image.backgroundTintList = ColorStateList.valueOf(c)// ContextCompat.getColorStateList(this, c)
             }
-
-            val imageHolder = layoutInflater.inflate(R.layout.color_round_checkmark, null)
-            val image = imageHolder.findViewById<ImageView>(R.id.image1)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                image.foreground = ContextCompat.getDrawable(this, R.drawable.ic_baseline_add_24)
-            }
-            image.setOnClickListener {
-                val builder: AlertDialog.Builder = AlertDialog.Builder(this)
-                builder.setTitle(getString(R.string.reading_color))
-
-                val colorAdapter = ArrayAdapter<String>(this, R.layout.chapter_select_dialog)
-                val array = arrayListOf(
-                    getString(R.string.background_color),
-                    getString(R.string.text_color)
-                )
-                colorAdapter.addAll(array)
-
-                builder.setPositiveButton("OK") { dialog, _ ->
-                    dialog.dismiss()
-                    updateImages()
-                }
-
-                builder.setAdapter(colorAdapter) { _, which ->
-                    ColorPickerDialog.newBuilder()
-                        .setDialogId(which)
-                        .setColor(
-                            when (which) {
-                                0 -> getBackgroundColor()
-                                1 -> getTextColor()
-                                else -> 0
-                            }
-                        )
-                        .show(this)
-                }
-
-                builder.show()
-                updateImages()
-            }
-
-            ReadActivity.images.add(image)
-            horizontalColors.addView(imageHolder)
             updateImages()
 
-            var updateAllTextOnDismiss = false
-            val offsetSize = 10
-            binding.readSettingsTextSize.apply {
-                max = 20
-                progress = getTextFontSize() - offsetSize
-                setOnSeekBarChangeListener(object :
-                    SeekBar.OnSeekBarChangeListener {
-                    override fun onProgressChanged(
-                        seekBar: SeekBar?,
-                        progress: Int,
-                        fromUser: Boolean
-                    ) {
-                        setTextFontSize(progress + offsetSize)
-                        stopTTS()
-
-                        updateAllTextOnDismiss = true
-                    }
-
-                    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-
-                    override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-                })
-            }
-
-            binding.readSettingsTextPadding.apply {
-                max = 50
-                progress = getTextPadding()
-                setOnSeekBarChangeListener(object :
-                    SeekBar.OnSeekBarChangeListener {
-                    override fun onProgressChanged(
-                        seekBar: SeekBar?,
-                        progress: Int,
-                        fromUser: Boolean
-                    ) {
-                        setTextPadding(progress)
-                        stopTTS()
-
-                        updateAllTextOnDismiss = true
-                    }
-
-                    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-
-                    override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-                })
-            }
-
-            binding.readSettingsTextPaddingTop.apply {
-                max = 50
-                progress = getTextPaddingTop()
-                setOnSeekBarChangeListener(object :
-                    SeekBar.OnSeekBarChangeListener {
-                    override fun onProgressChanged(
-                        seekBar: SeekBar?,
-                        progress: Int,
-                        fromUser: Boolean
-                    ) {
-                        setTextPaddingTop(progress)
-                        stopTTS()
-
-                        updateAllTextOnDismiss = true
-                    }
-
-                    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-
-                    override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-                })
-            }
-
-            binding.readSettingsTextPaddingTextTop.setOnClickListener {
-                it.popupMenu(
-                    items = listOf(Pair(1, R.string.reset_value)),
-                    selectedItemId = null
-                ) {
-                    if (itemId == 1) {
-                        it.context?.removeKey(EPUB_TEXT_PADDING_TOP)
-                        binding.readSettingsTextPaddingTop.progress = getTextPaddingTop()
-                    }
-                }
-            }
-
-
-            binding.readSettingsTextPaddingText.apply {
-                setOnClickListener {
-                    it.popupMenu(
-                        items = listOf(Pair(1, R.string.reset_value)),
-                        selectedItemId = null
-                    ) {
-                        if (itemId == 1) {
-                            it.context?.removeKey(EPUB_TEXT_PADDING)
-                            binding.readSettingsTextPadding.progress = getTextPadding()
-                        }
-                    }
-                }
-            }
-
-            binding.readSettingsTextSizeText.setOnClickListener {
-                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
-                    if (itemId == 1) {
-                        it.context?.removeKey(EPUB_TEXT_SIZE)
-                        binding.readSettingsTextSize.progress = getTextFontSize() - offsetSize
-                    }
-                }
-            }
-
-
-            binding.readSettingsTextFontText.setOnClickListener {
-                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
-                    if (itemId == 1) {
-                        setReadTextFont(null) { fileName ->
-                            binding.readShowFonts.text = fileName
-                        }
-                        stopTTS()
-                        updateAllTextOnDismiss = true
-                    }
-                }
-            }
-
-
-            bottomSheetDialog.setOnDismissListener {
-                if (updateAllTextOnDismiss) {
-                    loadTextLines()
-                    globalTTSLines.clear()
-                }
-            }*/
             bottomSheetDialog.show()
         }
-
     }
 }

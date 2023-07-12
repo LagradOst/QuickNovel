@@ -7,8 +7,10 @@ import android.text.SpannableString
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.text.getSpans
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -191,6 +193,11 @@ data class TextConfig(
 
     private fun setTextColor(textView: TextView) {
         textView.setTextColor(textColor)
+    }
+
+    fun setArgs(progressBar: ProgressBar) {
+        progressBar.progressTintList = ColorStateList.valueOf(textColor)
+        progressBar.indeterminateTintList = ColorStateList.valueOf(textColor)
     }
 
     fun setArgs(textView: TextView, args: Int) {
@@ -449,9 +456,8 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
 
                 is SingleLoadingBinding -> {
                     config.setArgs(binding.text, CONFIG_COLOR or CONFIG_FONT or CONFIG_FONT_BOLD)
+                    config.setArgs(binding.loadingBar)
                     binding.root.minimumHeight = config.toolbarHeight
-
-                    binding.loadingBar.progressTintList = ColorStateList.valueOf(config.textColor)
                 }
 
                 is SingleFailedBinding -> {

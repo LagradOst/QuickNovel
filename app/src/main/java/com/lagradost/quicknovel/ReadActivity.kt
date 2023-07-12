@@ -757,7 +757,6 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
         binding.readTime.text = currentTime
         binding.readTime.postDelayed({ -> updateTimeText() }, 1000)
-
     }
 
 

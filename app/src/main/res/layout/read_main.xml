@@ -17,6 +17,7 @@
             android:layout_height="match_parent">
 
         <ProgressBar
+                android:id="@+id/read_loading_bar"
                 android:layout_gravity="center"
                 android:progressTint="@color/colorPrimary"
                 android:layout_width="50dp"
@@ -90,7 +91,6 @@
                 android:id="@+id/reader_lin_container"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_marginBottom="25dp"
                 android:clickable="false"
                 android:focusable="false"
                 android:orientation="vertical">
@@ -111,7 +111,6 @@
                     android:id="@+id/real_text"
                     android:paddingLeft="20dp"
                     android:paddingRight="20dp"
-                    android:paddingBottom="25dp"
 
                     tools:listitem="@layout/single_text"
                     android:layout_width="match_parent"
@@ -230,9 +229,10 @@
                 android:layout_gravity="bottom"
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
-                android:background="@color/transparent" />
+                android:background="@color/colorPrimary" />
 
         <FrameLayout
+
                 android:visibility="visible"
                 android:id="@+id/read_overlay"
                 android:orientation="horizontal"
@@ -243,8 +243,22 @@
                 android:background="@color/transparent"
 
                 android:layout_height="25dp">
-
+            <TextClock
+                    tools:text="20:35"
+                    android:textStyle="bold"
+                    android:layout_marginStart="20dp"
+                    android:gravity="center_vertical"
+                    android:id="@+id/read_time_clock"
+                    android:textSize="11sp"
+                    android:textColor="@color/readerTextColor"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    tools:ignore="SmallSp"
+                    android:format12Hour="hh:mm a"
+                    android:format24Hour="HH:mm">
+            </TextClock>
             <TextView
+                    android:visibility="gone"
                     tools:text="20:35"
                     android:textStyle="bold"
                     android:layout_marginStart="20dp"
@@ -317,7 +331,7 @@
 
         <FrameLayout
                 android:visibility="gone"
-                tools:visibility="visible"
+                tools:visibility="gone"
                 android:id="@+id/reader_bottom_view_holder"
                 android:layout_gravity="bottom"
                 android:layout_width="match_parent"

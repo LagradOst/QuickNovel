@@ -76,6 +76,7 @@
                     android:layout_height="wrap_content" />
 
             <com.google.android.material.checkbox.MaterialCheckBox
+                    android:visibility="gone"
                     android:textSize="16sp"
                     android:paddingStart="5dp"
                     android:paddingEnd="5dp"
@@ -327,5 +328,4 @@
             </HorizontalScrollView>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
-
 </LinearLayout>

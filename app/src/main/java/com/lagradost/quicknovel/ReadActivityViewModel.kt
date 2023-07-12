@@ -349,7 +349,7 @@ class ReadActivityViewModel : ViewModel() {
 
     private var chaptersTitlesInternal: ArrayList<String> = arrayListOf()
 
-    lateinit var desiredIndex: ScrollIndex
+    var desiredIndex: ScrollIndex? = null
     var desiredTTSIndex: ScrollIndex? = null
 
     private fun updateChapters() {
@@ -742,11 +742,12 @@ class ReadActivityViewModel : ViewModel() {
 
     private val ttsThreadMutex = Mutex()
     private fun startTTSThread() = ioSafe {
+        val dIndex = desiredTTSIndex ?: desiredIndex ?: return@ioSafe
+
         if (ttsThreadMutex.isLocked) return@ioSafe
         ttsThreadMutex.withLock {
             ttsSession.register()
 
-            val dIndex = desiredTTSIndex ?: desiredIndex
             var innerIndex = 0
             var index = dIndex.index
 
@@ -1006,8 +1007,6 @@ class ReadActivityViewModel : ViewModel() {
     }
 
 
-    val textConfigInit: TextConfig
-
     var scrollWithVolume by PreferenceDelegate(EPUB_SCROLL_VOL, true, Boolean::class)
     var ttsLock by PreferenceDelegate(EPUB_TTS_LOCK, true, Boolean::class)
     val textFontLive: MutableLiveData<String> = MutableLiveData(null)
@@ -1053,23 +1052,14 @@ class ReadActivityViewModel : ViewModel() {
         EPUB_HAS_TIME, true, Boolean::class, showTimeLive
     )
 
-    val time12HLive: MutableLiveData<Boolean> = MutableLiveData(null)
-    var time12H by PreferenceDelegateLiveView(
-        EPUB_TWELVE_HOUR_TIME, false, Boolean::class, time12HLive
-    )
+    //val time12HLive: MutableLiveData<Boolean> = MutableLiveData(null)
+    //var time12H by PreferenceDelegateLiveView(
+    //    EPUB_TWELVE_HOUR_TIME, false, Boolean::class, time12HLive
+    //)
 
     val screenAwakeLive: MutableLiveData<Boolean> = MutableLiveData(null)
     var screenAwake by PreferenceDelegateLiveView(
         EPUB_KEEP_SCREEN_ACTIVE, true, Boolean::class, screenAwakeLive
     )
 
-    init {
-        textConfigInit = TextConfig(
-            toolbarHeight = 0,
-            textColor = textColor,
-            textSize = textSize,
-            textFont = textFont,
-            defaultFont = Typeface.DEFAULT
-        )
-    }
 }
