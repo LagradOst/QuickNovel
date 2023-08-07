@@ -5,7 +5,6 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Rect
-import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.speech.tts.Voice
 import androidx.annotation.WorkerThread
@@ -18,6 +17,9 @@ import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.request.target.Target
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.lagradost.quicknovel.ui.UiText
+import com.lagradost.quicknovel.ui.toUiText
+import com.lagradost.quicknovel.ui.txt
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeyClass
@@ -39,7 +41,6 @@ import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.ui.OrientationType
 import com.lagradost.quicknovel.ui.ScrollIndex
 import com.lagradost.quicknovel.ui.ScrollVisibilityIndex
-import com.lagradost.quicknovel.ui.TextConfig
 import com.lagradost.quicknovel.ui.toScroll
 import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
@@ -131,7 +132,7 @@ abstract class AbstractBook {
 
     abstract fun size(): Int
     abstract fun title(): String
-    abstract fun getChapterTitle(index: Int): String
+    abstract fun getChapterTitle(index: Int): UiText
     abstract fun getLoadingStatus(index: Int): String?
 
     @WorkerThread
@@ -174,8 +175,8 @@ class QuickBook(val data: QuickStreamData) : AbstractBook() {
         return data.meta.name
     }
 
-    override fun getChapterTitle(index: Int): String {
-        return data.data[index].name
+    override fun getChapterTitle(index: Int): UiText {
+        return data.data[index].name.toUiText()
     }
 
     override fun getLoadingStatus(index: Int): String {
@@ -242,8 +243,9 @@ class RegularBook(val data: Book) : AbstractBook() {
         return data.title
     }
 
-    override fun getChapterTitle(index: Int): String {
-        return data.tableOfContents.tocReferences?.get(index)?.title ?: "Chapter ${index + 1}"
+    override fun getChapterTitle(index: Int): UiText {
+        return data.tableOfContents.tocReferences?.get(index)?.title?.toUiText()
+            ?: txt(R.string.chapter_format, (index + 1).toString())
     }
 
     override fun getLoadingStatus(index: Int): String? {
@@ -265,7 +267,7 @@ class RegularBook(val data: Book) : AbstractBook() {
 
 data class LiveChapterData(
     val spans: List<TextSpan>,
-    val title: String,
+    val title: UiText,
     val rawText: String,
     val ttsLines: List<TTSHelper.TTSLine>
 )
@@ -300,17 +302,17 @@ class ReadActivityViewModel : ViewModel() {
         MutableLiveData<Resource<Boolean>>(null)
     val loadingStatus: LiveData<Resource<Boolean>> = _loadingStatus
 
-    private val _chaptersTitles: MutableLiveData<List<String>> =
-        MutableLiveData<List<String>>(null)
-    val chaptersTitles: LiveData<List<String>> = _chaptersTitles
+    private val _chaptersTitles: MutableLiveData<List<UiText>> =
+        MutableLiveData<List<UiText>>(null)
+    val chaptersTitles: LiveData<List<UiText>> = _chaptersTitles
 
     private val _title: MutableLiveData<String> =
         MutableLiveData<String>(null)
     val title: LiveData<String> = _title
 
-    private val _chapterTile: MutableLiveData<String> =
-        MutableLiveData<String>(null)
-    val chapterTile: LiveData<String> = _chapterTile
+    private val _chapterTile: MutableLiveData<UiText> =
+        MutableLiveData<UiText>(null)
+    val chapterTile: LiveData<UiText> = _chapterTile
 
     private val _bottomVisibility: MutableLiveData<Boolean> =
         MutableLiveData<Boolean>(false)
@@ -349,7 +351,7 @@ class ReadActivityViewModel : ViewModel() {
     }
 
 
-    private var chaptersTitlesInternal: ArrayList<String> = arrayListOf()
+    private var chaptersTitlesInternal: ArrayList<UiText> = arrayListOf()
 
     var desiredIndex: ScrollIndex? = null
     var desiredTTSIndex: ScrollIndex? = null
@@ -429,7 +431,7 @@ class ReadActivityViewModel : ViewModel() {
 
                 is Resource.Failure -> listOf<SpanDisplay>(
                     FailedSpanned(
-                        reason = data.errorString,
+                        reason = data.errorString.toUiText(),
                         index = idx,
                         canReload = data.isNetworkError
                     )
@@ -562,7 +564,7 @@ class ReadActivityViewModel : ViewModel() {
                 val book = epubReader.readEpub(input)
                 RegularBook(book)
             } else {
-                QuickBook(DataStore.mapper.readValue<QuickStreamData>(input.reader().readText()))
+                QuickBook(DataStore.mapper.readValue(input.reader().readText()))
             }
 
             if (epub.size() <= 0) {
@@ -873,9 +875,10 @@ class ReadActivityViewModel : ViewModel() {
                 }
             }
 
+            currentTTSStatus = TTSHelper.TTSStatus.IsStopped
             TTSNotifications.notify(
                 book.title(),
-                "",
+                "".toUiText(),
                 book.poster(),
                 TTSHelper.TTSStatus.IsStopped,
                 context

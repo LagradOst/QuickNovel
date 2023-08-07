@@ -1,7 +1,6 @@
 package com.lagradost.quicknovel
 
 import android.app.Activity
-import android.content.Context
 import android.os.Build
 import android.util.Log
 import android.view.Gravity
@@ -14,7 +13,7 @@ import androidx.annotation.MainThread
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.PreferenceManager
-import com.lagradost.quicknovel.BaseApplication.Companion.getActivity
+import com.lagradost.quicknovel.ui.UiText
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.toPx
@@ -38,6 +37,15 @@ object CommonActivity {
     fun showToast(message: String?, duration: Int? = null) {
         activity?.runOnUiThread { showToast(activity, message, duration) }
     }
+
+    fun showToast(message: UiText?, duration: Int? = null) {
+        val act = activity ?: return
+        if (message == null) return
+        act.runOnUiThread {
+            showToast(act, message.asString(act), duration)
+        }
+    }
+
 
     /** duration is Toast.LENGTH_SHORT if null*/
     @MainThread

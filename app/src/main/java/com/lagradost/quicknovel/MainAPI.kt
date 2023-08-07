@@ -4,6 +4,8 @@ import androidx.annotation.WorkerThread
 import com.lagradost.nicehttp.NiceResponse
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.mvvm.logError
+import com.lagradost.quicknovel.ui.UiImage
+import com.lagradost.quicknovel.ui.img
 import org.jsoup.Jsoup
 
 const val USER_AGENT =
@@ -174,7 +176,9 @@ data class SearchResponse(
     val latestChapter: String? = null,
     val apiName: String,
     var posterHeaders: Map<String, String>? = null
-)
+) {
+    val image get() = img(posterUrl, posterHeaders)
+}
 
 const val STATUS_NULL = 0
 const val STATUS_ONGOING = 1
@@ -196,6 +200,8 @@ interface LoadResponse {
     val tags: List<String>?
     val status: Int? // 0 = null - implemented but not found, 1 = Ongoing, 2 = Complete, 3 = Pause/HIATUS, 4 = Dropped
     var posterHeaders: Map<String, String>?
+
+    val image : UiImage? get() = img(url = posterUrl, headers = posterHeaders)
 }
 
 data class StreamResponse(

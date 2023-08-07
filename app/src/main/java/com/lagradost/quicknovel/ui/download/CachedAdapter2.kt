@@ -2,19 +2,20 @@ package com.lagradost.quicknovel.ui.download
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import android.widget.FrameLayout
 import android.widget.LinearLayout
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
+import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.DownloadResultGridBinding
 import com.lagradost.quicknovel.databinding.HistoryResultCompactBinding
+import com.lagradost.quicknovel.ui.setText
+import com.lagradost.quicknovel.ui.txt
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import com.lagradost.quicknovel.util.UIHelper.setImage
-import com.lagradost.quicknovel.util.toPx
 import com.lagradost.quicknovel.widget.AutofitRecyclerView
 import kotlin.math.roundToInt
 
@@ -66,9 +67,9 @@ class CachedAdapter2(
                             return@setOnLongClickListener true
                         }
 
-                        imageView.setImage(card.poster, fade = false, skipCache = false)
+                        imageView.setImage(card.image, fadeIn = false, skipCache = false) //
                         imageText.text = card.name
-                        historyExtraText.text = "${card.totalChapters} Chapters"
+                        historyExtraText.setText(txt(R.string.chapter_format, card.totalChapters)) //"${card.totalChapters} Chapters"
                     }
                 }
 
@@ -88,7 +89,7 @@ class CachedAdapter2(
                                 return@setOnLongClickListener true
                             }
                         }
-                        imageView.setImage(card.poster, fade = true, skipCache = false)
+                        imageView.setImage(card.image, fadeIn = true, skipCache = false) // skipCache = false
                         imageText.text = card.name
                         imageTextMore.isVisible = false
                     }

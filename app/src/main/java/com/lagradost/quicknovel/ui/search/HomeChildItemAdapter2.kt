@@ -9,7 +9,6 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.databinding.HomeResultGridBinding
-import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.UIHelper.setImage
 
 class HomeChildItemAdapter2(
@@ -38,12 +37,7 @@ class HomeChildItemAdapter2(
             binding.apply {
                 imageView.apply {
                     setLayerType(View.LAYER_TYPE_SOFTWARE, null)
-                    setImage(
-                        card.posterUrl,
-                        Apis.getApiFromNameOrNull(card.apiName)?.mainUrl,
-                        card.posterHeaders,
-                        skipCache = false
-                    )
+                    setImage(card.image)
 
                     setOnClickListener {
                         viewModel.load(card)

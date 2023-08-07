@@ -60,6 +60,8 @@
     <string name="mainpage_sort_by_button_text">Sort By</string>
     <string name="read_action_settings">Settings</string>
     <string name="read_action_chapters">Chapters</string>
+    <string name="read_action_chapters_formatted" formatted="true">%d Chapters</string>
+
     <string name="read_action_tts">Text To Speech</string>
     <string name="read_action_screen_rotation">Screen Rotation</string>
 
@@ -181,6 +183,8 @@
     <string name="resume">Resume</string>
     <string name="re_downloaded">Re-Download</string>
     <string name="loading">Loading…</string>
+    <string name="loading_format" formatted="true">Loading %s…</string>
+    <string name="chapter_format" formatted="true">Chapter %s</string>
 
     <string name="default_sort">Default</string>
     <string name="recently_sort">Recently opened</string>

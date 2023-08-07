@@ -143,18 +143,8 @@ class ResultFragment : Fragment() {
                 binding.apply {
                     downloadWarning.isVisible = api.rateLimitTime > 1000
 
-                    resultPoster.setImage(
-                        res.posterUrl,
-                        api.mainUrl,
-                        res.posterHeaders,
-                    )
-
-                    resultPosterBlur.setImage(
-                        res.posterUrl,
-                        api.mainUrl,
-                        res.posterHeaders,
-                        blur = true
-                    )
+                    resultPoster.setImage(res.image)
+                    resultPosterBlur.setImage(res.image, radius = 100, sample = 3)
 
                     resultTitle.text = res.name
                     resultAuthor.text = res.author ?: getString(R.string.no_author)

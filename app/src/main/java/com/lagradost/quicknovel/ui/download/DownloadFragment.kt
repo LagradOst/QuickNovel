@@ -20,6 +20,7 @@ import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.databinding.FragmentDownloadsBinding
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.ReadType
+import com.lagradost.quicknovel.ui.img
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
@@ -70,7 +71,9 @@ class DownloadFragment : Fragment() {
         var state: DownloadState,
         val id: Int,
         var generating : Boolean,
-    )
+    ) {
+        val image get() = img(posterUrl)
+    }
 
     data class SortingMethod(@StringRes val name: Int, val id: Int)
 

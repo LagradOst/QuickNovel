@@ -15,6 +15,8 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.text.Spanned
 import android.view.KeyEvent
 import androidx.media.session.MediaButtonReceiver
+import com.lagradost.quicknovel.ui.UiText
+import com.lagradost.quicknovel.ui.txt
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.mvvm.debugAssert
@@ -282,7 +284,7 @@ abstract class SpanDisplay {
 data class ChapterStartSpanned(
     override val index: Int,
     override val innerIndex: Int,
-    val name: String
+    val name: UiText
 ) : SpanDisplay() {
     override fun id(): Long {
         return generateId(1, index, 0, 0)
@@ -294,9 +296,11 @@ data class LoadingSpanned(val url: String?, override val index: Int) : SpanDispl
     override fun id(): Long {
         return generateId(2, index, 0, 0)
     }
+
+    val text get() = url?.let { txt(R.string.loading_format, it) } ?: txt(R.string.loading)
 }
 
-data class FailedSpanned(val reason: String, override val index: Int, val canReload : Boolean) : SpanDisplay() {
+data class FailedSpanned(val reason: UiText, override val index: Int, val canReload : Boolean) : SpanDisplay() {
     override val innerIndex: Int = 0
     override fun id(): Long {
         return generateId(3, index, 0, 0)

@@ -48,12 +48,7 @@ class SearchAdapter2(
                         coverHeight
                     )
                     setLayerType(View.LAYER_TYPE_SOFTWARE, null)
-                    setImage(
-                        card.posterUrl,
-                        Apis.getApiFromNameOrNull(card.apiName)?.mainUrl,
-                        card.posterHeaders,
-                        skipCache = false
-                    )
+                    setImage(card.image)
 
                     setOnClickListener {
                         viewModel.load(card)

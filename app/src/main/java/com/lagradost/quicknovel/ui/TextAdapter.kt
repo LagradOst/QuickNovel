@@ -4,19 +4,18 @@ import android.content.res.ColorStateList
 import android.graphics.Typeface
 import android.text.Spannable
 import android.text.SpannableString
+import android.text.method.LinkMovementMethod
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.text.getSpans
-import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
 import com.lagradost.quicknovel.ChapterStartSpanned
-import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.FailedSpanned
 import com.lagradost.quicknovel.LoadingSpanned
@@ -31,6 +30,7 @@ import com.lagradost.quicknovel.databinding.SingleImageBinding
 import com.lagradost.quicknovel.databinding.SingleLoadingBinding
 import com.lagradost.quicknovel.databinding.SingleTextBinding
 import com.lagradost.quicknovel.mvvm.logError
+import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.util.UIHelper.systemFonts
 import io.noties.markwon.image.AsyncDrawableSpan
@@ -513,10 +513,20 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
                 }
 
                 is SingleTextBinding -> {
-                    binding.root.setOnClickListener {
-                        viewModel.switchVisibility()
+                    binding.root.apply {
+                        // this is set to fix the nonclick https://stackoverflow.com/questions/8641343/android-clickablespan-not-calling-onclick
+                        movementMethod = LinkMovementMethod.getInstance()
+                        text = obj.text
+
+                        //val links = obj.text.getSpans<io.noties.markwon.core.spans.LinkSpan>()
+                        //if (links.isNotEmpty()) {
+                        //   println("URLS: ${links.size} : ${links.map { it.url }}")
+                        //}
+
+                        setOnClickListener {
+                            viewModel.switchVisibility()
+                        }
                     }
-                    binding.root.text = obj.text
                 }
 
                 else -> throw NotImplementedError()
@@ -525,7 +535,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
 
         private fun bindLoading(obj: LoadingSpanned) {
             if (binding !is SingleLoadingBinding) throw NotImplementedError()
-            binding.text.text = obj.url?.let { "Loading $it" } ?: "Loading"
+            binding.text.setText(obj.text)
             binding.root.setOnClickListener {
                 viewModel.switchVisibility()
             }
@@ -533,13 +543,12 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
 
         private fun bindFailed(obj: FailedSpanned) {
             if (binding !is SingleFailedBinding) throw NotImplementedError()
-            binding.root.text = obj.reason
+            binding.root.setText(obj.reason)
 
             binding.root.setOnClickListener {
                 if (obj.canReload) {
                     showToast(
-                        binding.root.context.getString(R.string.reload_chapter_format)
-                            .format((obj.index + 1).toString())
+                        txt(R.string.reload_chapter_format, (obj.index + 1).toString())
                     )
                     viewModel.reloadChapter(obj.index)
                 } else {
@@ -550,9 +559,23 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
 
         private fun bindChapter(obj: ChapterStartSpanned) {
             if (binding !is SingleFinishedChapterBinding) throw NotImplementedError()
-            binding.root.text = obj.name
+            binding.root.setText(obj.name)
             binding.root.setOnClickListener {
                 viewModel.switchVisibility()
+            }
+            binding.root.setOnLongClickListener {
+                it?.popupMenu(
+                    items = listOf(1 to R.string.reload_chapter),
+                    selectedItemId = -1
+                ) {
+                    if (itemId == 1) {
+                        showToast(
+                            txt(R.string.reload_chapter_format, (obj.index + 1).toString())
+                        )
+                        viewModel.reloadChapter(obj.index)
+                    }
+                }
+                return@setOnLongClickListener true
             }
         }
 

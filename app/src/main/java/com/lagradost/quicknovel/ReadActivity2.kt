@@ -769,7 +769,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         }
 
         observe(viewModel.chapterTile) { title ->
-            binding.readToolbar.subtitle = title
+            binding.readToolbar.subtitle = title.asString(binding.readToolbar.context)
         }
 
         observe(viewModel.chaptersTitles) { titles ->
@@ -781,14 +781,14 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 val validChapter =
                     currentChapter != null && currentChapter >= 0 && currentChapter < titles.size
                 if (validChapter && currentChapter != null) {
-                    builderSingle.setTitle(titles[currentChapter]) //  "Select Chapter"
+                    builderSingle.setTitle(titles[currentChapter].asString(this)) //  "Select Chapter"
                 } else {
                     builderSingle.setTitle(R.string.select_chapter)
                 }
 
                 val arrayAdapter = ArrayAdapter<String>(this, R.layout.chapter_select_dialog)
 
-                arrayAdapter.addAll(titles)
+                arrayAdapter.addAll(titles.map { it.asString(this) })
 
                 builderSingle.setNegativeButton(R.string.cancel) { dialog, _ -> dialog.dismiss() }
 

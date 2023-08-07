@@ -4,7 +4,6 @@ import android.animation.ObjectAnimator
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
-import android.widget.FrameLayout
 import android.widget.LinearLayout
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
@@ -12,16 +11,13 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
-import com.lagradost.quicknovel.BookDownloader2Helper
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.DownloadResultCompactBinding
 import com.lagradost.quicknovel.databinding.DownloadResultGridBinding
-import com.lagradost.quicknovel.databinding.HistoryResultCompactBinding
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import com.lagradost.quicknovel.util.UIHelper.setImage
-import com.lagradost.quicknovel.util.toPx
 import com.lagradost.quicknovel.widget.AutofitRecyclerView
 import kotlin.math.roundToInt
 
@@ -84,7 +80,7 @@ class DownloadAdapter2(
                         val diff = card.downloadedCount - epubSize
                         imageTextMore.text = if (diff > 0) "+$diff " else ""
 
-                        imageView.setImage(card.posterUrl, fade = false, skipCache = false)
+                        imageView.setImage(card.image, fadeIn = false, skipCache = false)
 
                         downloadProgressbar.isVisible = !card.generating
                         downloadProgressbarIndeterment.isVisible = card.generating
@@ -195,7 +191,7 @@ class DownloadAdapter2(
                         imageTextMore.text = "+$diff "
                         imageTextMore.isVisible = diff > 0 && !showDownloadLoading
                         imageText.text = card.name
-                        imageView.setImage(card.posterUrl, fade = false, skipCache = false)
+                        imageView.setImage(card.image, fadeIn = false, skipCache = false)
                     }
                 }
             }

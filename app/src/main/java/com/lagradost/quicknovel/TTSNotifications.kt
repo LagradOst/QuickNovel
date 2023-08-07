@@ -9,10 +9,9 @@ import android.graphics.Bitmap
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.lagradost.quicknovel.ui.UiText
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.services.TTSPauseService
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.util.ArrayList
 
 object TTSNotifications {
@@ -44,7 +43,7 @@ object TTSNotifications {
 
     fun notify(
         title: String,
-        chapter: String,
+        chapter: UiText,
         icon: Bitmap?,
         status: TTSHelper.TTSStatus,
         context: Context?
@@ -63,7 +62,7 @@ object TTSNotifications {
         val builder = NotificationCompat.Builder(context, TTS_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_baseline_volume_up_24)
             .setContentTitle(title)
-            .setContentText(chapter)
+            .setContentText(chapter.asString(context))
 
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOnlyAlertOnce(true)

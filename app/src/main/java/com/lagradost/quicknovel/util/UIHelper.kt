@@ -33,12 +33,12 @@ import androidx.core.text.toSpanned
 import androidx.core.view.forEach
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.load.model.LazyHeaders
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions.bitmapTransform
+import com.lagradost.quicknovel.ui.UiImage
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.mvvm.logError
 import jp.wasabeef.glide.transformations.BlurTransformation
@@ -46,6 +46,7 @@ import java.io.File
 import java.text.CharacterIterator
 import java.text.StringCharacterIterator
 import kotlin.math.roundToInt
+//import androidx.palette.graphics.Palette
 
 
 val Int.toPx: Int get() = (this * Resources.getSystem().displayMetrics.density).toInt()
@@ -118,8 +119,115 @@ object UIHelper {
         attributes.recycle()
         return color
     }
+    fun ImageView?.setImage(
+        url: String?,
+        headers: Map<String, String>? = null,
+        @DrawableRes
+        errorImageDrawable: Int? = null,
+        fadeIn: Boolean = true,
+        radius: Int = 0,
+        sample: Int = 3,
+        //colorCallback: ((Palette) -> Unit)? = null
+    ): Boolean {
+        if (url.isNullOrBlank()) return false
+        this.setImage(
+            UiImage.Image(url, headers, errorImageDrawable),
+            errorImageDrawable,
+            fadeIn,
+            radius,
+            sample,
+            //colorCallback
+        )
+        return true
+    }
 
     fun ImageView?.setImage(
+        uiImage: UiImage?,
+        @DrawableRes
+        errorImageDrawable: Int? = null,
+        fadeIn: Boolean = true,
+        radius: Int = 0,
+        sample: Int = 3,
+        skipCache: Boolean = true,
+
+        //colorCallback: ((Palette) -> Unit)? = null,
+    ): Boolean {
+        if (this == null || uiImage == null) return false
+
+        val (glideImage, _) =
+            (uiImage as? UiImage.Drawable)?.resId?.let {
+                it to it.toString()
+            } ?: (uiImage as? UiImage.Image)?.let { image ->
+                val glideHeaders = LazyHeaders.Builder().apply {
+                    image.headers?.forEach {
+                        addHeader(it.key, it.value)
+                    }
+                }.build()
+
+                GlideUrl(image.url, glideHeaders) to image.url
+            } ?: return false
+
+        return try {
+            var builder = GlideApp.with(this)
+                .load(glideImage)
+                .skipMemoryCache(skipCache)
+                .diskCacheStrategy(DiskCacheStrategy.ALL).let { req ->
+                    if (fadeIn)
+                        req.transition(DrawableTransitionOptions.withCrossFade())
+                    else req
+                }
+
+            if (radius > 0) {
+                builder = builder.apply(bitmapTransform(BlurTransformation(radius, sample)))
+            }
+
+            /*if (colorCallback != null) {
+                builder = builder.listener(object : RequestListener<Drawable> {
+                    @SuppressLint("CheckResult")
+                    override fun onResourceReady(
+                        resource: Drawable?,
+                        model: Any?,
+                        target: Target<Drawable>?,
+                        dataSource: DataSource?,
+                        isFirstResource: Boolean
+                    ): Boolean {
+                        resource?.toBitmapOrNull()
+                            ?.let { bitmap ->
+                                createPaletteAsync(
+                                    identifier,
+                                    bitmap,
+                                    colorCallback
+                                )
+                            }
+                        return false
+                    }
+
+                    @SuppressLint("CheckResult")
+                    override fun onLoadFailed(
+                        e: GlideException?,
+                        model: Any?,
+                        target: Target<Drawable>?,
+                        isFirstResource: Boolean
+                    ): Boolean {
+                        return false
+                    }
+                })
+            }*/
+
+            val res = if (errorImageDrawable != null)
+                builder.error(errorImageDrawable).into(this)
+            else
+                builder.into(this)
+            res.clearOnDetach()
+
+            true
+        } catch (e: Exception) {
+            logError(e)
+            false
+        }
+    }
+
+    /*fun ImageView?.setImage(
         url: String?,
         referer: String? = null,
         headers: Map<String, String>? = null,
@@ -170,7 +278,7 @@ object UIHelper {
             logError(e)
             false
         }
-    }
+    }*/
 
     val systemFonts : Array<File> by lazy {
         getAllFonts()
