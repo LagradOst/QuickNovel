@@ -419,6 +419,16 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        observe(viewModel.downloadState) { progressState ->
+            val hasDownload = progressState != null && progressState.progress > 0
+
+
+            bottomPreviewBinding?.downloadDeleteTrashFromResult?.apply {
+                isVisible = hasDownload
+                isClickable = hasDownload
+            }
+        }
+
         observeNullable(viewModel.loadResponse) { resource ->
             if (resource == null) {
                 bottomPreviewPopup.dismissSafe(this)
@@ -440,6 +450,9 @@ class MainActivity : AppCompatActivity() {
                 is Resource.Success -> {
                     val d = resource.value
                     showPreviewPopupDialog().apply {
+                        downloadDeleteTrashFromResult.setOnClickListener {
+                            viewModel.deleteAlert()
+                        }
 
                         bookmark.setOnClickListener { view ->
                             view.popupMenu(
@@ -493,7 +506,7 @@ class MainActivity : AppCompatActivity() {
 
                         resultviewPreviewMetaStatus.apply {
                             val statusTxt = when (d.status) {
-                                1 ->  getString(R.string.ongoing)
+                                1 -> getString(R.string.ongoing)
                                 2 -> getString(R.string.completed)
                                 3 -> getString(R.string.paused)
                                 4 -> getString(R.string.dropped)

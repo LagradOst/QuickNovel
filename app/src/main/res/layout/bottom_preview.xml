@@ -40,17 +40,33 @@
                     android:layout_marginStart="10dp"
                     android:orientation="vertical">
 
-                <TextView
-                        android:id="@+id/resultview_preview_title"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="?attr/textColor"
-                        android:textSize="16sp"
+                <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
 
-                        android:textStyle="bold"
-                        tools:text="The Perfect Run">
+                    <TextView
+                            android:layout_marginEnd="25dp"
+                            android:id="@+id/resultview_preview_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="?attr/textColor"
+                            android:textSize="16sp"
 
-                </TextView>
+                            android:textStyle="bold"
+                            tools:text="The Perfect Run" />
+
+                    <ImageView
+                            android:id="@+id/download_delete_trash_from_result"
+                            android:background="?selectableItemBackgroundBorderless"
+                            android:src="@drawable/ic_baseline_delete_outline_24"
+                            android:layout_width="25dp"
+                            android:layout_height="match_parent"
+                            android:layout_gravity="end"
+                            android:layout_marginEnd="5dp"
+                            android:contentDescription="@string/delete"
+                            app:tint="?attr/textColor" />
+                </FrameLayout>
+
 
                 <com.lagradost.quicknovel.widget.FlowLayout
                         android:layout_width="match_parent"
@@ -117,7 +133,7 @@
                     tools:visibility="visible"
 
                     app:icon="@drawable/ic_baseline_bookmark_24"
-                    android:text="Bookmark"
+                    tools:text="Bookmark"
                     style="@style/BlackButton"
 
                     android:layout_width="50dp" />
@@ -129,7 +145,7 @@
                     tools:visibility="visible"
 
                     app:icon="@drawable/ic_baseline_open_in_new_24"
-                    android:text="More Info"
+                    android:text="@string/more_info"
                     style="@style/WhiteButton"
 
                     android:layout_width="50dp" />
@@ -154,7 +170,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:visibility="gone"
-            tools:visibility="visible">
+            tools:visibility="gone">
 
         <com.facebook.shimmer.ShimmerFrameLayout
                 android:id="@+id/resultview_preview_loading_shimmer"

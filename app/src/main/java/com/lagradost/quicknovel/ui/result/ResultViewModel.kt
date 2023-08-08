@@ -344,7 +344,7 @@ class ResultViewModel : ViewModel() {
                         System.currentTimeMillis(),
                         null
                     )
-                    BookDownloader2.downloadProgress[loadId] = new
+                    //BookDownloader2.downloadProgress[loadId] = new
                     downloadState.postValue(new)
                 } else {
                     downloadState.postValue(current)

@@ -196,4 +196,5 @@
     <string name="download_perc_lh">Download percentage (low to high)</string>
     <string name="reload_chapter_format">Reloading chapter %s</string>
     <string name="ok">OK</string>
+    <string name="more_info">More Info</string>
 </resources>

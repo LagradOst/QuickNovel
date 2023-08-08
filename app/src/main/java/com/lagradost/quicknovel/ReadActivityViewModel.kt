@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Rect
 import android.graphics.drawable.Drawable
 import android.speech.tts.Voice
+import android.text.Spanned
 import androidx.annotation.WorkerThread
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LiveData
@@ -266,11 +267,18 @@ class RegularBook(val data: Book) : AbstractBook() {
 }
 
 data class LiveChapterData(
+    val index: Int,
+    val render : Spanned,
     val spans: List<TextSpan>,
     val title: UiText,
     val rawText: String,
-    val ttsLines: List<TTSHelper.TTSLine>
-)
+    //val ttsLines: List<TTSHelper.TTSLine>
+) {
+    // tts lines are lazy because not everyone uses tts
+    val ttsLines by lazy {
+        ttsParseText(render.substring(0, render.length), index)
+    }
+}
 
 data class ChapterUpdate(
     val data: ArrayList<SpanDisplay>,
@@ -527,14 +535,14 @@ class ReadActivityViewModel : ViewModel() {
             book.getChapterData(index, reload)
         }.map { text ->
             val rawText = preParseHtml(text)
-
             val render = markwonMutex.withLock { render(rawText, markwon) }
 
             LiveChapterData(
+                index = index,
+                render = render,
                 rawText = rawText,
                 spans = parseTextToSpans(render, index),
                 title = book.getChapterTitle(index),
-                ttsLines = ttsParseText(render.substring(0, render.length), index)
             )
         }
 

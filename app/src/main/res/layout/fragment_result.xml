@@ -428,7 +428,7 @@
 
                         <FrameLayout
                                 android:visibility="gone"
-                                tools:visibility="visible"
+                                tools:visibility="gone"
                                 android:id="@+id/result_reviewsholder"
                                 android:orientation="vertical"
                                 android:minHeight="500dp"
