@@ -54,7 +54,7 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
     private var TTSStartSpeakId = 0
     private var TTSEndSpeakId = 0
 
-    private fun clearTTS(tts : TextToSpeech) {
+    private fun clearTTS(tts: TextToSpeech) {
         tts.stop()
         TTSQueue = null
     }
@@ -68,7 +68,7 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
     }
 
     fun setVoice(voice: Voice?) {
-        if(voice == null) {
+        if (voice == null) {
             removeKey(EPUB_VOICE)
         } else {
             setKey(EPUB_VOICE, voice.name)
@@ -85,7 +85,7 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
         }
     }
 
-    fun ttsInitalized() : Boolean {
+    fun ttsInitalized(): Boolean {
         return tts != null
     }
 
@@ -112,11 +112,11 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
 
     /** waits for sentence to be finished or action to be true, if action is true then
      * break early and interrupt TTS */
-    suspend fun waitForOr(id: Int?, action : () -> Boolean, then : () -> Unit) {
+    suspend fun waitForOr(id: Int?, action: () -> Boolean, then: () -> Unit) {
         if (id == null) return
         while (id > TTSEndSpeakId) {
             delay(50)
-            if(action()) {
+            if (action()) {
                 interruptTTS()
                 then()
                 break
@@ -154,7 +154,7 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
                 delay(100)
             }
 
-            if(!success) return null
+            if (!success) return null
 
             val voiceName = BaseApplication.getKey<String>(EPUB_VOICE)
             val langName = BaseApplication.getKey<String>(EPUB_LANG)
@@ -300,7 +300,8 @@ data class LoadingSpanned(val url: String?, override val index: Int) : SpanDispl
     val text get() = url?.let { txt(R.string.loading_format, it) } ?: txt(R.string.loading)
 }
 
-data class FailedSpanned(val reason: UiText, override val index: Int, val canReload : Boolean) : SpanDisplay() {
+data class FailedSpanned(val reason: UiText, override val index: Int, val canReload: Boolean) :
+    SpanDisplay() {
     override val innerIndex: Int = 0
     override fun id(): Long {
         return generateId(3, index, 0, 0)
@@ -384,7 +385,10 @@ object TTSHelper {
         }
     }
 
-    private fun parseSpan(unsegmented: Spanned, index: Int): List<TextSpan> {
+    private fun parseSpan(
+        unsegmented: Spanned,
+        index: Int,
+    ): List<TextSpan> {
         val spans: ArrayList<TextSpan> = ArrayList()
 
         var currentOffset = 0
@@ -451,25 +455,26 @@ object TTSHelper {
         document.select("style").remove()
         document.select("script").remove()
 
-        val html = document.html()
-            .replace("<tr>", "<div style=\"text-align: center\">")
-            .replace("</tr>", "</div>")
-            .replace("<td>", "")
-            .replace("</td>", " ")
-            //.replace("\n\n", "\n") // REMOVES EMPTY SPACE
-            .replace("...", "…") // MAKES EASIER TO WORK WITH
+        return document.html()
+            // this makes tables readable, more or less places a newline between rows
+            // and space between columns
+            .replace("</td>", " </td>")
+            .replace("</tr>", "<br/></tr>")
+
+            // MAKES EASIER TO WORK WITH
+            .replace("...", "…")
+            // FUCK THIS, LEGIT IN EVERY CHAPTER
             .replace(
                 "<p>.*<strong>Translator:.*?Editor:.*>".toRegex(),
                 ""
-            ) // FUCK THIS, LEGIT IN EVERY CHAPTER
+            )
             .replace(
                 "<.*?Translator:.*?Editor:.*?>".toRegex(),
                 ""
             )
-        return text
     }
 
-    fun render(html: String, markwon: Markwon) : Spanned {
+    fun render(html: String, markwon: Markwon): Spanned {
         return markwon.render(
             markwon.parse(
                 html
@@ -482,8 +487,11 @@ object TTSHelper {
         )
     }
 
-    fun parseTextToSpans(render : Spanned, index: Int): List<TextSpan> {
-        return parseSpan(render, index = index)
+    fun parseTextToSpans(
+        render: Spanned,
+        index: Int
+    ): List<TextSpan> {
+        return parseSpan(render, index)
     }
 
     private fun isValidSpeakOutMsg(msg: String): Boolean {
@@ -499,7 +507,7 @@ object TTSHelper {
                 "$1$2, $3"
             )
 
-        debugAssert({cleanText.length != text.length}) {
+        debugAssert({ cleanText.length != text.length }) {
             "TTS requires same length"
         }
 

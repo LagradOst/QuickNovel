@@ -18,9 +18,6 @@ import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.request.target.Target
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.lagradost.quicknovel.ui.UiText
-import com.lagradost.quicknovel.ui.toUiText
-import com.lagradost.quicknovel.ui.txt
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeyClass
@@ -31,7 +28,6 @@ import com.lagradost.quicknovel.BookDownloader2Helper.getQuickChapter
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.TTSHelper.parseTextToSpans
 import com.lagradost.quicknovel.TTSHelper.preParseHtml
-import com.lagradost.quicknovel.TTSHelper.render
 import com.lagradost.quicknovel.TTSHelper.ttsParseText
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.letInner
@@ -42,7 +38,10 @@ import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.ui.OrientationType
 import com.lagradost.quicknovel.ui.ScrollIndex
 import com.lagradost.quicknovel.ui.ScrollVisibilityIndex
+import com.lagradost.quicknovel.ui.UiText
 import com.lagradost.quicknovel.ui.toScroll
+import com.lagradost.quicknovel.ui.toUiText
+import com.lagradost.quicknovel.ui.txt
 import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.runOnMainThread
@@ -60,6 +59,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import nl.siegmann.epublib.domain.Book
 import nl.siegmann.epublib.epub.EpubReader
+import org.commonmark.node.Node
 import org.jsoup.Jsoup
 import java.lang.ref.WeakReference
 import java.net.URLDecoder
@@ -268,8 +268,8 @@ class RegularBook(val data: Book) : AbstractBook() {
 
 data class LiveChapterData(
     val index: Int,
-    val render : Spanned,
-    val spans: List<TextSpan>,
+    val render: Spanned,
+    val spans: List<SpanDisplay>,
     val title: UiText,
     val rawText: String,
     //val ttsLines: List<TTSHelper.TTSLine>
@@ -288,6 +288,7 @@ data class ChapterUpdate(
 class ReadActivityViewModel : ViewModel() {
     private lateinit var book: AbstractBook
     private lateinit var markwon: Markwon
+    //private lateinit var reducer: MarkwonReducer
 
     fun canReload(): Boolean {
         return book.canReload
@@ -535,13 +536,37 @@ class ReadActivityViewModel : ViewModel() {
             book.getChapterData(index, reload)
         }.map { text ->
             val rawText = preParseHtml(text)
-            val render = markwonMutex.withLock { render(rawText, markwon) }
+           // val renderedBuilder = SpannableStringBuilder()
+           // val lengths : IntArray
+            //val nodes : Array<Node>
+            val rendered : Spanned
+            val parsed : Node
+            markwonMutex.withLock {
+                parsed = markwon.parse(rawText)
+                rendered = markwon.render(parsed)
 
+                //render(rawText, markwon)
+                // this was removed because the reducer did not work
+                /*val split = reducer.reduce(parsed)
+                val splitRendered = split.map { node ->
+                    markwon.render(node)
+                }
+
+                lengths = IntArray(splitRendered.size)
+                nodes = split.toTypedArray()
+
+                splitRendered.forEachIndexed { index, spanned ->
+                    renderedBuilder.append(spanned)
+                    lengths[index] = renderedBuilder.length
+                }*/
+            }
+
+            //val rendered = renderedBuilder.toSpannable()
             LiveChapterData(
                 index = index,
-                render = render,
+                render = rendered,
                 rawText = rawText,
-                spans = parseTextToSpans(render, index),
+                spans = parseTextToSpans(rendered, index),
                 title = book.getChapterTitle(index),
             )
         }
@@ -682,6 +707,7 @@ class ReadActivityViewModel : ViewModel() {
             })
             .usePlugin(SoftBreakAddsNewLinePlugin.create())
             .build()
+        //reducer = MarkwonReducer.directChildren()
     }
 
     // ========================================  TTS STUFF ========================================
@@ -924,7 +950,7 @@ class ReadActivityViewModel : ViewModel() {
         // the lock is so short it does not matter I *hope*
         return runBlocking {
             chapterMutex.withLock { chapterData[index] }?.letInner { live ->
-                live.spans.firstOrNull { it.start >= char }?.innerIndex
+                live.spans.firstOrNull { it is TextSpan && it.start >= char }?.innerIndex
             }
         }
     }
