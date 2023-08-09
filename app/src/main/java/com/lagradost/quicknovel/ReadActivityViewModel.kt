@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Rect
 import android.graphics.drawable.Drawable
+import android.media.MediaPlayer
 import android.speech.tts.Voice
 import android.text.Spanned
 import androidx.annotation.WorkerThread
@@ -25,6 +26,7 @@ import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKeyClass
 import com.lagradost.quicknovel.BookDownloader2Helper.getQuickChapter
+import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.TTSHelper.parseTextToSpans
 import com.lagradost.quicknovel.TTSHelper.preParseHtml
@@ -725,6 +727,7 @@ class ReadActivityViewModel : ViewModel() {
     var currentTTSStatus: TTSHelper.TTSStatus
         get() = _currentTTSStatus
         set(value) {
+            playDummySound()
             if (_currentTTSStatus == TTSHelper.TTSStatus.IsStopped && value == TTSHelper.TTSStatus.IsRunning) {
                 startTTSThread()
             }
@@ -1037,6 +1040,15 @@ class ReadActivityViewModel : ViewModel() {
         // load forwards and backwards
         updateIndex(visibility.firstInMemory.index)
         updateIndex(visibility.lastInMemory.index)
+    }
+
+    // FUCK ANDROID WITH ALL MY HEART
+    // SEE https://stackoverflow.com/questions/45960265/android-o-oreo-8-and-higher-media-buttons-issue WHY
+    private fun playDummySound() {
+        val act = activity ?: return
+        val mMediaPlayer: MediaPlayer = MediaPlayer.create(act, R.raw.dummy_sound_500ms)
+        mMediaPlayer.setOnCompletionListener { mMediaPlayer.release() }
+        mMediaPlayer.start()
     }
 
     override fun onCleared() {

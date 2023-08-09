@@ -1,11 +1,13 @@
 package com.lagradost.quicknovel
 
+import android.Manifest
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.*
+import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.*
@@ -34,6 +36,7 @@ import androidx.annotation.NonNull
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.doOnEnd
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -633,6 +636,14 @@ class ReadActivity : AppCompatActivity(), ColorPickerDialogListener {
 
                     with(NotificationManagerCompat.from(this)) {
                         // notificationId is a unique int for each notification that you must define
+                        if (ActivityCompat.checkSelfPermission(
+                                this@ReadActivity,
+                                Manifest.permission.POST_NOTIFICATIONS
+                            ) != PackageManager.PERMISSION_GRANTED
+                        ) {
+                            return@with
+                        }
+
                         notify(TTS_NOTIFICATION_ID, builder.build())
                     }
                 }
