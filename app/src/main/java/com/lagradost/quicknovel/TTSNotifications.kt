@@ -1,12 +1,15 @@
 package com.lagradost.quicknovel
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.os.Build
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.lagradost.quicknovel.ui.UiText
@@ -16,7 +19,7 @@ import java.util.ArrayList
 
 object TTSNotifications {
     private const val TTS_CHANNEL_ID = "QuickNovelTTS"
-    private const val TTS_NOTIFICATION_ID = 133742
+    const val TTS_NOTIFICATION_ID = 133742
 
     private var hasCreateedNotificationChannel = false
 
@@ -28,7 +31,7 @@ object TTSNotifications {
             val descriptionText = context.getString(R.string.text_to_speech_channel_description)
             val importance = NotificationManager.IMPORTANCE_DEFAULT
             val channel = NotificationChannel(
-                com.lagradost.quicknovel.TTS_CHANNEL_ID,
+                TTS_CHANNEL_ID,
                 name,
                 importance
             ).apply {
@@ -74,14 +77,14 @@ object TTSNotifications {
         builder.setStyle(androidx.media.app.NotificationCompat.MediaStyle())
         // .setMediaSession(mediaSession?.sessionToken))
 
-        val actionTypes: MutableList<TTSActionType> = ArrayList()
+        val actionTypes: MutableList<TTSHelper.TTSActionType> = ArrayList()
 
         if (status == TTSHelper.TTSStatus.IsPaused) {
-            actionTypes.add(TTSActionType.Resume)
+            actionTypes.add(TTSHelper.TTSActionType.Resume)
         } else if (status == TTSHelper.TTSStatus.IsRunning) {
-            actionTypes.add(TTSActionType.Pause)
+            actionTypes.add(TTSHelper.TTSActionType.Pause)
         }
-        actionTypes.add(TTSActionType.Stop)
+        actionTypes.add(TTSHelper.TTSActionType.Stop)
 
         for ((index, i) in actionTypes.withIndex()) {
             val resultIntent = Intent(context, TTSPauseService::class.java)
@@ -97,13 +100,15 @@ object TTSNotifications {
             builder.addAction(
                 NotificationCompat.Action(
                     when (i) {
-                        TTSActionType.Resume -> R.drawable.ic_baseline_play_arrow_24
-                        TTSActionType.Pause -> R.drawable.ic_baseline_pause_24
-                        TTSActionType.Stop -> R.drawable.ic_baseline_stop_24
+                        TTSHelper.TTSActionType.Resume -> R.drawable.ic_baseline_play_arrow_24
+                        TTSHelper.TTSActionType.Pause -> R.drawable.ic_baseline_pause_24
+                        TTSHelper.TTSActionType.Stop -> R.drawable.ic_baseline_stop_24
+                        else -> return
                     }, when (i) {
-                        TTSActionType.Resume -> "Resume"
-                        TTSActionType.Pause -> "Pause"
-                        TTSActionType.Stop -> "Stop"
+                        TTSHelper.TTSActionType.Resume -> "Resume"
+                        TTSHelper.TTSActionType.Pause -> "Pause"
+                        TTSHelper.TTSActionType.Stop -> "Stop"
+                        else -> return
                     }, pending
                 )
             )
@@ -112,6 +117,14 @@ object TTSNotifications {
         with(NotificationManagerCompat.from(context)) {
             // notificationId is a unique int for each notification that you must define
             try {
+                if (ActivityCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.POST_NOTIFICATIONS
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    return
+                }
+
                 notify(TTS_NOTIFICATION_ID, builder.build())
             } catch (t: Throwable) {
                 logError(t)

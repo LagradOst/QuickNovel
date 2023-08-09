@@ -42,6 +42,7 @@ import com.jaredrummler.android.colorpicker.ColorPickerDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.getKey
+import com.lagradost.quicknovel.TTSNotifications.TTS_NOTIFICATION_ID
 import com.lagradost.quicknovel.databinding.ColorRoundCheckmarkBinding
 import com.lagradost.quicknovel.databinding.ReadBottomSettingsBinding
 import com.lagradost.quicknovel.databinding.ReadMainBinding

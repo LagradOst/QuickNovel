@@ -2,9 +2,7 @@ package com.lagradost.quicknovel.services
 
 import android.app.IntentService
 import android.content.Intent
-import com.lagradost.quicknovel.ReadActivity
 import com.lagradost.quicknovel.ReadActivity2
-import com.lagradost.quicknovel.TTSActionType
 import com.lagradost.quicknovel.TTSHelper
 
 class TTSPauseService : IntentService("TTSPauseService") {
