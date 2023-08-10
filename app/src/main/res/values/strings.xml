@@ -82,6 +82,11 @@
     <string name="rotation_force_portrait">Locked portrait</string>
     <string name="rotation_force_landscape">Locked landscape</string>
 
+    <!-- scroll -->
+    <string name="inf_scroll">Infinite scroll</string>
+    <string name="button_scroll">Chapter buttons</string>
+
+
     <!-- read -->
     <string name="type_reading">Reading</string>
     <string name="type_on_hold">On-Hold</string>
@@ -119,6 +124,7 @@
     <string name="text_padding">Text Side Margin</string>
     <string name="reset_value">Reset to default</string>
     <string name="text_font">Text Font</string>
+    <string name="scroll_type">Scroll Type</string>
     <string name="no_chapters_found">No chapters found</string>
     <string name="error_loading_novel">Error loading novel</string>
     <string name="error_loading_chapter">Error loading chapter</string>

@@ -53,6 +53,7 @@ import com.lagradost.quicknovel.ui.CONFIG_COLOR
 import com.lagradost.quicknovel.ui.CONFIG_FONT
 import com.lagradost.quicknovel.ui.CONFIG_FONT_BOLD
 import com.lagradost.quicknovel.ui.OrientationType
+import com.lagradost.quicknovel.ui.ReadingType
 import com.lagradost.quicknovel.ui.ScrollIndex
 import com.lagradost.quicknovel.ui.ScrollVisibilityIndex
 import com.lagradost.quicknovel.ui.ScrollVisibilityItem
@@ -656,7 +657,8 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 defaultFont = binding.readText.typeface,
                 textColor = viewModel.textColor,
                 textSize = viewModel.textSize,
-                textFont = viewModel.textFont
+                textFont = viewModel.textFont,
+                backgroundColor = viewModel.backgroundColor
             ).also { config ->
                 updateOtherTextConfig(config)
             }
@@ -683,6 +685,9 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         observe(viewModel.backgroundColorLive) { color ->
             binding.root.setBackgroundColor(color)
             binding.readOverlay.setBackgroundColor(color)
+            if (textAdapter.changeBackgroundColor(color)) {
+                updateTextAdapterConfig()
+            }
         }
 
         observe(viewModel.showBatteryLive) { show ->
@@ -929,6 +934,27 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             bottomSheetDialog.setContentView(binding.root)
 
             val fontSizeProgressOffset = 10
+
+            binding.readReadingType.setText(viewModel.readerType.stringRes)
+            binding.readReadingType.setOnLongClickListener {
+                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
+                    if (itemId == 1) {
+                        binding.readReadingType.setText(ReadingType.DEFAULT.stringRes)
+                        viewModel.readerType = ReadingType.DEFAULT
+                    }
+                }
+                return@setOnLongClickListener true
+            }
+            binding.readReadingType.setOnClickListener {
+                it.popupMenu(
+                    items = ReadingType.values().map { v -> v.prefValue to v.stringRes },
+                    selectedItemId = viewModel.readerType.prefValue
+                ) {
+                    val set = ReadingType.fromSpinner(itemId)
+                    binding.readReadingType.setText(set.stringRes)
+                    viewModel.readerType = set
+                }
+            }
 
             binding.readSettingsTextSizeText.setOnClickListener {
                 it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {

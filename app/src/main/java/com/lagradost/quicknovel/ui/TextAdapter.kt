@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
+import com.lagradost.quicknovel.ChapterLoadSpanned
 import com.lagradost.quicknovel.ChapterStartSpanned
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.FailedSpanned
@@ -27,6 +28,7 @@ import com.lagradost.quicknovel.TextSpan
 import com.lagradost.quicknovel.databinding.SingleFailedBinding
 import com.lagradost.quicknovel.databinding.SingleFinishedChapterBinding
 import com.lagradost.quicknovel.databinding.SingleImageBinding
+import com.lagradost.quicknovel.databinding.SingleLoadBinding
 import com.lagradost.quicknovel.databinding.SingleLoadingBinding
 import com.lagradost.quicknovel.databinding.SingleTextBinding
 import com.lagradost.quicknovel.mvvm.logError
@@ -41,6 +43,7 @@ const val DRAW_TEXT = 0
 const val DRAW_LOADING = 2
 const val DRAW_FAILED = 3
 const val DRAW_CHAPTER = 4
+const val DRAW_LOAD = 5
 
 
 data class ScrollVisibilityItem(
@@ -154,6 +157,7 @@ const val CONFIG_FONT = 1 shl 1
 const val CONFIG_SIZE = 1 shl 2
 const val CONFIG_FONT_BOLD = 1 shl 3
 const val CONFIG_FONT_ITALIC = 1 shl 4
+const val CONFIG_BG_COLOR = 1 shl 5
 
 // this uses val to make it explicit copy because of lazy properties
 data class TextConfig(
@@ -161,7 +165,8 @@ data class TextConfig(
     val textColor: Int,
     val textSize: Int,
     val textFont: String,
-    val defaultFont: Typeface
+    val defaultFont: Typeface,
+    val backgroundColor : Int,
 ) {
     private val fontFile: File? by lazy {
         if (textFont == "") null else systemFonts.firstOrNull { it.name == textFont }
@@ -194,7 +199,9 @@ data class TextConfig(
     private fun setTextColor(textView: TextView) {
         textView.setTextColor(textColor)
     }
-
+    private fun setBgTextColor(textView: TextView) {
+        textView.setTextColor(backgroundColor)
+    }
     fun setArgs(progressBar: ProgressBar) {
         progressBar.progressTintList = ColorStateList.valueOf(textColor)
         progressBar.indeterminateTintList = ColorStateList.valueOf(textColor)
@@ -203,6 +210,9 @@ data class TextConfig(
     fun setArgs(textView: TextView, args: Int) {
         if ((args and CONFIG_COLOR) != 0) {
             setTextColor(textView)
+        }
+        if ((args and CONFIG_BG_COLOR) != 0) {
+            setBgTextColor(textView)
         }
         if ((args and CONFIG_FONT) != 0) {
             val bold = (args and CONFIG_FONT_BOLD) != 0
@@ -251,7 +261,11 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
         config = config.copy(textFont = font)
         return true
     }
-
+    fun changeBackgroundColor(color: Int): Boolean {
+        if (config.backgroundColor == color) return false
+        config = config.copy(backgroundColor = color)
+        return true
+    }
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TextAdapterHolder {
         val inflater = LayoutInflater.from(parent.context)
         val binding: ViewBinding = when (viewType) {
@@ -260,6 +274,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
             DRAW_LOADING -> SingleLoadingBinding.inflate(inflater, parent, false)
             DRAW_FAILED -> SingleFailedBinding.inflate(inflater, parent, false)
             DRAW_CHAPTER -> SingleFinishedChapterBinding.inflate(inflater, parent, false)
+            DRAW_LOAD -> SingleLoadBinding.inflate(inflater, parent, false)
             else -> throw NotImplementedError()
         }
 
@@ -432,6 +447,10 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
                 DRAW_CHAPTER
             }
 
+            is ChapterLoadSpanned -> {
+                DRAW_LOAD
+            }
+
             else -> throw NotImplementedError()
         }
     }
@@ -468,6 +487,11 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
                 is SingleFinishedChapterBinding -> {
                     config.setArgs(binding.root, CONFIG_COLOR or CONFIG_FONT or CONFIG_FONT_BOLD)
                     binding.root.minHeight = config.toolbarHeight
+                }
+
+                is SingleLoadBinding -> {
+                    config.setArgs(binding.root, CONFIG_BG_COLOR or CONFIG_FONT or CONFIG_FONT_BOLD)
+                    binding.root.backgroundTintList = ColorStateList.valueOf(config.textColor)
                 }
 
                 else -> {}
@@ -557,6 +581,14 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
             }
         }
 
+        private fun bindLoadChapter(obj: ChapterLoadSpanned) {
+            if (binding !is SingleLoadBinding) throw NotImplementedError()
+            binding.root.setText(obj.name)
+            binding.root.setOnClickListener {
+                viewModel.seekToChapter(obj.loadIndex)
+            }
+        }
+
         private fun bindChapter(obj: ChapterStartSpanned) {
             if (binding !is SingleFinishedChapterBinding) throw NotImplementedError()
             binding.root.setText(obj.name)
@@ -602,6 +634,10 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
                     this.bindChapter(obj)
                 }
 
+                is ChapterLoadSpanned -> {
+                    this.bindLoadChapter(obj)
+                }
+
                 else -> throw NotImplementedError()
             }
             setConfig(config)
@@ -635,6 +671,11 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
                 is ChapterStartSpanned -> {
                     if (newItem !is ChapterStartSpanned) return false
 
+                    newItem.id == oldItem.id && oldItem.name == newItem.name
+                }
+
+                is ChapterLoadSpanned -> {
+                    if (newItem !is ChapterLoadSpanned) return false
                     newItem.id == oldItem.id && oldItem.name == newItem.name
                 }
 

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
         android:orientation="vertical"
         android:id="@+id/read_settings_root"
         android:background="?attr/primaryBlackBackground"
@@ -108,6 +109,20 @@
                     app:buttonTint="?attr/colorOnPrimary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content" />
+
+            <TextView
+                    android:layout_marginTop="15dp"
+                    android:text="@string/scroll_type"
+                    android:textSize="16sp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+            <com.google.android.material.button.MaterialButton
+                    android:layout_marginTop="10dp"
+                    android:id="@+id/read_reading_type"
+                    android:layout_width="wrap_content"
+                    tools:text="@string/inf_scroll"
+                    style="@style/BlackButton" />
 
             <TextView
                     android:id="@+id/read_settings_text_font_text"

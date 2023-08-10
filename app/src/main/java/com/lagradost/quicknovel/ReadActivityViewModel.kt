@@ -38,6 +38,7 @@ import com.lagradost.quicknovel.mvvm.map
 import com.lagradost.quicknovel.mvvm.safeApiCall
 import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.ui.OrientationType
+import com.lagradost.quicknovel.ui.ReadingType
 import com.lagradost.quicknovel.ui.ScrollIndex
 import com.lagradost.quicknovel.ui.ScrollVisibilityIndex
 import com.lagradost.quicknovel.ui.UiText
@@ -426,33 +427,69 @@ class ReadActivityViewModel : ViewModel() {
         }
     }
 
+    private fun chapterIdxToSpanDisplay(index: Int): List<SpanDisplay> {
+        return when (val data = chapterData[index]) {
+            null -> emptyList()
+            is Resource.Loading -> {
+                listOf<SpanDisplay>(LoadingSpanned(data.url, index))
+            }
+
+            is Resource.Success -> {
+                data.value.spans
+            }
+
+            is Resource.Failure -> listOf<SpanDisplay>(
+                FailedSpanned(
+                    reason = data.errorString.toUiText(),
+                    index = index,
+                    canReload = data.isNetworkError
+                )
+            )
+        }
+    }
+
+    private fun chapterIdxToSpanDisplayNext(index: Int, fromIndex : Int) : SpanDisplay? {
+        return when (val data = chapterData[index]) {
+            is Resource.Loading -> LoadingSpanned(data.url, index)
+            is Resource.Failure ->
+                FailedSpanned(
+                    reason = data.errorString.toUiText(),
+                    index = index,
+                    canReload = data.isNetworkError
+                )
+            else -> chaptersTitlesInternal.getOrNull(index)?.let { text -> ChapterLoadSpanned(fromIndex, 0, index, text) }
+        }
+    }
+
     private fun updateReadArea(seekToDesired: Boolean = false) {
         val cIndex = currentIndex
         val chapters = ArrayList<SpanDisplay>()
-        for (idx in cIndex - chapterPaddingBottom..cIndex + chapterPaddingTop) {
-            val append: List<SpanDisplay> = when (val data = chapterData[idx]) {
-                null -> emptyList()
-                is Resource.Loading -> {
-                    listOf<SpanDisplay>(LoadingSpanned(data.url, idx))
+        when (readerType) {
+            ReadingType.DEFAULT, ReadingType.INF_SCROLL -> {
+                for (idx in cIndex - chapterPaddingBottom..cIndex + chapterPaddingTop) {
+                    if (idx < chaptersTitlesInternal.size && idx >= 0)
+                        chapters.add(ChapterStartSpanned(idx, 0, chaptersTitlesInternal[idx]))
+                    chapters.addAll(chapterIdxToSpanDisplay(idx))
                 }
-
-                is Resource.Success -> {
-                    data.value.spans
-                }
-
-                is Resource.Failure -> listOf<SpanDisplay>(
-                    FailedSpanned(
-                        reason = data.errorString.toUiText(),
-                        index = idx,
-                        canReload = data.isNetworkError
-                    )
-                )
             }
 
-            if (idx < chaptersTitlesInternal.size && idx >= 0)
-                chapters.add(ChapterStartSpanned(idx, 0, chaptersTitlesInternal[idx]))
-            chapters.addAll(append)
+            ReadingType.BTT_SCROLL -> {
+                chapterIdxToSpanDisplayNext(cIndex - 1, cIndex)?.let {
+                    chapters.add(it)
+                }
+
+                chaptersTitlesInternal.getOrNull(cIndex)?.let { text ->
+                    chapters.add(ChapterStartSpanned(cIndex, 0, text))
+                }
+
+                chapters.addAll(chapterIdxToSpanDisplay(cIndex))
+
+                chapterIdxToSpanDisplayNext(cIndex + 1, cIndex)?.let {
+                    chapters.add(it)
+                }
+            }
         }
+
         _chapterData.postValue(ChapterUpdate(data = chapters, seekToDesired = seekToDesired))
     }
 
@@ -538,11 +575,11 @@ class ReadActivityViewModel : ViewModel() {
             book.getChapterData(index, reload)
         }.map { text ->
             val rawText = preParseHtml(text)
-           // val renderedBuilder = SpannableStringBuilder()
-           // val lengths : IntArray
+            // val renderedBuilder = SpannableStringBuilder()
+            // val lengths : IntArray
             //val nodes : Array<Node>
-            val rendered : Spanned
-            val parsed : Node
+            val rendered: Spanned
+            val parsed: Node
             markwonMutex.withLock {
                 parsed = markwon.parse(rawText)
                 rendered = markwon.render(parsed)
@@ -1056,6 +1093,20 @@ class ReadActivityViewModel : ViewModel() {
 
         super.onCleared()
     }
+
+
+    private var readerTypeInternal by PreferenceDelegate(
+        EPUB_READER_TYPE,
+        ReadingType.DEFAULT.prefValue,
+        Int::class
+    )
+
+    var readerType
+        get() = ReadingType.fromSpinner(readerTypeInternal)
+        set(value) {
+            readerTypeInternal = value.prefValue
+            updateReadArea(seekToDesired = true)
+        }
 
 
     var scrollWithVolume by PreferenceDelegate(EPUB_SCROLL_VOL, true, Boolean::class)

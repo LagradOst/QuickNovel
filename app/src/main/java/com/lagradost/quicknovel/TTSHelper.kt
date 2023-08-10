@@ -308,6 +308,17 @@ data class FailedSpanned(val reason: UiText, override val index: Int, val canRel
     }
 }
 
+data class ChapterLoadSpanned(
+    override val index: Int,
+    override val innerIndex: Int,
+    val loadIndex : Int,
+    val name: UiText
+) : SpanDisplay() {
+    override fun id(): Long {
+        return generateId(4, index, 0, 0)
+    }
+}
+
 object TTSHelper {
     data class TTSLine(
         val speakOutMsg: String,
