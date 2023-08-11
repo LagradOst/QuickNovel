@@ -29,6 +29,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.doOnEnd
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.GestureDetectorCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -73,6 +74,7 @@ import java.lang.Integer.max
 import java.lang.ref.WeakReference
 import java.util.Locale
 import kotlin.properties.Delegates
+
 
 class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     companion object {
@@ -636,8 +638,25 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
           binding.readTime.text = currentTime
           binding.readTime.postDelayed({ -> updateTimeText() }, 1000)
       }*/
-
     private var topBarHeight by Delegates.notNull<Int>()
+
+    /*private var currentOverScrollValue = 0.0f
+    val overscrollMaxTranslation = 300.0f
+    private var currentOverScroll: Float
+        get() = currentOverScrollValue
+        set(value) {
+            currentOverScrollValue = value.coerceIn(-1.0f, 1.0f)
+            binding.realText.translationY =
+                overscrollMaxTranslation * currentOverScrollValue //alpha = (1.0f - currentOverScrollValue.absoluteValue)
+        }
+    private var currentOverScrollTranslation
+        get() = currentOverScroll * overscrollMaxTranslation
+        set(value) {
+            currentOverScroll = value / overscrollMaxTranslation
+        }
+
+    @SuppressLint("ClickableViewAccessibility")*/
+
     override fun onCreate(savedInstanceState: Bundle?) {
         CommonActivity.loadThemes(this)
         super.onCreate(savedInstanceState)
@@ -664,6 +683,13 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             }
         ).apply {
             setHasStableIds(true)
+        }
+
+        binding.readToolbar.apply {
+            setNavigationIcon(R.drawable.ic_baseline_arrow_back_24)
+            setNavigationOnClickListener {
+                this@ReadActivity2.onBackPressed()
+            }
         }
 
         //updateTimeText()
@@ -880,11 +906,54 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             }
         }
 
-
         binding.realText.apply {
             layoutManager = textLayoutManager
             adapter = textAdapter
             itemAnimator = null
+            // testing overscroll
+            /*setOnTouchListener { v, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_MOVE -> {
+                        if (event.historySize <= 1) return@setOnTouchListener false
+                        val start = event.getHistoricalY(0, event.historySize - 1)
+                        val end = event.getY(0)
+                        val dy = end - start
+                        // if cant scroll in the direction then translate Y with the dy
+                        val translated = !canScrollVertically(-1) || !canScrollVertically(1)
+                        if (translated) {
+                            // * (maxScrollOver - currentOverScroll.absoluteValue))
+                            currentOverScroll += dy * 0.1f
+                        }
+
+                        /*// if we can scroll down then we cant translate down
+                        if (canScrollVertically(1) && currentOverScroll < 0.0f) {
+                            currentOverScroll = 0.0f
+                            return@setOnTouchListener false
+                        }
+
+                        // if we can scroll up then we cant translate up
+                        if (canScrollVertically(-1) && currentOverScroll > 0.0f) {
+                            currentOverScroll = 0.0f
+                            return@setOnTouchListener false
+                        }*/
+
+                        return@setOnTouchListener false
+                    }
+
+                    MotionEvent.ACTION_UP -> {
+                        if (currentOverScroll.absoluteValue > 10.0f) {
+
+                        } else {
+
+                        }
+                        currentOverScroll = 0.0f
+                    }
+
+                    else -> {}
+                }
+                return@setOnTouchListener false
+            }*/
+
 
             addOnScrollListener(object :
                 RecyclerView.OnScrollListener() {
@@ -909,7 +978,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                     currentScroll += dy
                     val delta = rdy - dy
                     if (delta != 0) scrollBy(0, delta)
-                    super.onScrolled(recyclerView, dx, dx)
+                    super.onScrolled(recyclerView, dx, dy)
 
                     // binding.tmpTtsEnd.fixLine((getBottomY()- remainingBottom) + 7.toPx)
                     // binding.tmpTtsStart.fixLine(remainingTop + 7.toPx)
