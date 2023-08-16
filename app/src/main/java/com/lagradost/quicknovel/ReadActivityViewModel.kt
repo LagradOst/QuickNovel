@@ -384,7 +384,8 @@ class ReadActivityViewModel : ViewModel() {
     private val chapterData: HashMap<Int, Resource<LiveChapterData>?> = hashMapOf()
     private val hasExpanded: HashSet<Int> = hashSetOf()
 
-    private var currentIndex = Int.MIN_VALUE
+    var currentIndex = Int.MIN_VALUE
+        private set
 
     /** lower padding for preloading current-chapterPaddingBottom*/
     private var chapterPaddingBottom: Int = 1
@@ -448,7 +449,20 @@ class ReadActivityViewModel : ViewModel() {
         }
     }
 
-    private fun chapterIdxToSpanDisplayNext(index: Int, fromIndex : Int) : SpanDisplay? {
+    // ChapterLoadSpanned(fromIndex, 0, index, text)
+    private fun chapterIdxToSpanDisplayNextButton(index: Int, fromIndex : Int) : SpanDisplay? {
+        return chapterIdxToSpanDisplayNext(index, fromIndex) { cIndex, innerIndex, loadIndex, name ->
+            ChapterLoadSpanned(cIndex, innerIndex, loadIndex, name)
+        }
+    }
+
+    private fun chapterIdxToSpanDisplayOverscrollButton(index: Int, fromIndex : Int) : SpanDisplay? {
+        return chapterIdxToSpanDisplayNext(index, fromIndex) { cIndex, innerIndex, loadIndex, name ->
+            ChapterOverscrollSpanned(cIndex, innerIndex, loadIndex, name)
+        }
+    }
+
+    private fun chapterIdxToSpanDisplayNext(index: Int, fromIndex : Int, constructor : (Int, Int, Int, UiText) -> SpanDisplay) : SpanDisplay? {
         return when (val data = chapterData[index]) {
             is Resource.Loading -> LoadingSpanned(data.url, index)
             is Resource.Failure ->
@@ -457,7 +471,7 @@ class ReadActivityViewModel : ViewModel() {
                     index = index,
                     canReload = data.isNetworkError
                 )
-            else -> chaptersTitlesInternal.getOrNull(index)?.let { text -> ChapterLoadSpanned(fromIndex, 0, index, text) }
+            else -> chaptersTitlesInternal.getOrNull(index)?.let { text -> constructor(fromIndex,0,index,text) }
         }
     }
 
@@ -474,7 +488,7 @@ class ReadActivityViewModel : ViewModel() {
             }
 
             ReadingType.BTT_SCROLL -> {
-                chapterIdxToSpanDisplayNext(cIndex - 1, cIndex)?.let {
+                chapterIdxToSpanDisplayNextButton(cIndex - 1, cIndex)?.let {
                     chapters.add(it)
                 }
 
@@ -484,7 +498,23 @@ class ReadActivityViewModel : ViewModel() {
 
                 chapters.addAll(chapterIdxToSpanDisplay(cIndex))
 
-                chapterIdxToSpanDisplayNext(cIndex + 1, cIndex)?.let {
+                chapterIdxToSpanDisplayNextButton(cIndex + 1, cIndex)?.let {
+                    chapters.add(it)
+                }
+            }
+
+            ReadingType.OVERSCROLL_SCROLL -> {
+                chapterIdxToSpanDisplayOverscrollButton(cIndex - 1, cIndex)?.let {
+                    chapters.add(it)
+                }
+
+                chaptersTitlesInternal.getOrNull(cIndex)?.let { text ->
+                    chapters.add(ChapterStartSpanned(cIndex, 0, text))
+                }
+
+                chapters.addAll(chapterIdxToSpanDisplay(cIndex))
+
+                chapterIdxToSpanDisplayOverscrollButton(cIndex + 1, cIndex)?.let {
                     chapters.add(it)
                 }
             }

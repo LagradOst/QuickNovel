@@ -11,11 +11,13 @@ import android.view.ViewGroup
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.text.getSpans
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
 import com.lagradost.quicknovel.ChapterLoadSpanned
+import com.lagradost.quicknovel.ChapterOverscrollSpanned
 import com.lagradost.quicknovel.ChapterStartSpanned
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.FailedSpanned
@@ -30,6 +32,7 @@ import com.lagradost.quicknovel.databinding.SingleFinishedChapterBinding
 import com.lagradost.quicknovel.databinding.SingleImageBinding
 import com.lagradost.quicknovel.databinding.SingleLoadBinding
 import com.lagradost.quicknovel.databinding.SingleLoadingBinding
+import com.lagradost.quicknovel.databinding.SingleOverscrollChapterBinding
 import com.lagradost.quicknovel.databinding.SingleTextBinding
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
@@ -44,6 +47,7 @@ const val DRAW_LOADING = 2
 const val DRAW_FAILED = 3
 const val DRAW_CHAPTER = 4
 const val DRAW_LOAD = 5
+const val DRAW_OVERSCROLL = 6
 
 
 data class ScrollVisibilityItem(
@@ -261,11 +265,13 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
         config = config.copy(textFont = font)
         return true
     }
+
     fun changeBackgroundColor(color: Int): Boolean {
         if (config.backgroundColor == color) return false
         config = config.copy(backgroundColor = color)
         return true
     }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TextAdapterHolder {
         val inflater = LayoutInflater.from(parent.context)
         val binding: ViewBinding = when (viewType) {
@@ -275,6 +281,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
             DRAW_FAILED -> SingleFailedBinding.inflate(inflater, parent, false)
             DRAW_CHAPTER -> SingleFinishedChapterBinding.inflate(inflater, parent, false)
             DRAW_LOAD -> SingleLoadBinding.inflate(inflater, parent, false)
+            DRAW_OVERSCROLL -> SingleOverscrollChapterBinding.inflate(inflater,parent,false)
             else -> throw NotImplementedError()
         }
 
@@ -450,7 +457,9 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
             is ChapterLoadSpanned -> {
                 DRAW_LOAD
             }
-
+            is ChapterOverscrollSpanned -> {
+                DRAW_OVERSCROLL
+            }
             else -> throw NotImplementedError()
         }
     }
@@ -492,6 +501,11 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
                 is SingleLoadBinding -> {
                     config.setArgs(binding.root, CONFIG_BG_COLOR or CONFIG_FONT or CONFIG_FONT_BOLD)
                     binding.root.backgroundTintList = ColorStateList.valueOf(config.textColor)
+                }
+
+                is SingleOverscrollChapterBinding -> {
+                    config.setArgs(binding.text, CONFIG_COLOR or CONFIG_FONT or CONFIG_FONT_BOLD)
+                    binding.progress.progressTintList = ColorStateList.valueOf(config.textColor)
                 }
 
                 else -> {}
@@ -589,6 +603,16 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
             }
         }
 
+        private fun bindOverscrollChapter(obj: ChapterOverscrollSpanned) {
+            if (binding !is SingleOverscrollChapterBinding) throw NotImplementedError()
+            //binding.text.setText(obj.name)
+            binding.text.isVisible = false
+            binding.progress.progress = 0
+            //binding.root.setOnClickListener {
+            //    viewModel.seekToChapter(obj.loadIndex)
+            //}
+        }
+
         private fun bindChapter(obj: ChapterStartSpanned) {
             if (binding !is SingleFinishedChapterBinding) throw NotImplementedError()
             binding.root.setText(obj.name)
@@ -638,6 +662,10 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
                     this.bindLoadChapter(obj)
                 }
 
+                is ChapterOverscrollSpanned -> {
+                    this.bindOverscrollChapter(obj)
+                }
+
                 else -> throw NotImplementedError()
             }
             setConfig(config)
@@ -676,6 +704,11 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
 
                 is ChapterLoadSpanned -> {
                     if (newItem !is ChapterLoadSpanned) return false
+                    newItem.id == oldItem.id && oldItem.name == newItem.name
+                }
+
+                is ChapterOverscrollSpanned -> {
+                    if (newItem !is ChapterOverscrollSpanned) return false
                     newItem.id == oldItem.id && oldItem.name == newItem.name
                 }
 

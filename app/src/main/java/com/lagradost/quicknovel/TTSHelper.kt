@@ -315,7 +315,18 @@ data class ChapterLoadSpanned(
     val name: UiText
 ) : SpanDisplay() {
     override fun id(): Long {
-        return generateId(4, index, 0, 0)
+        return generateId(4, loadIndex, 0, 0)
+    }
+}
+
+data class ChapterOverscrollSpanned(
+    override val index: Int,
+    override val innerIndex: Int,
+    val loadIndex : Int,
+    val name: UiText
+) : SpanDisplay() {
+    override fun id(): Long {
+        return generateId(5, loadIndex, 0, 0)
     }
 }
 

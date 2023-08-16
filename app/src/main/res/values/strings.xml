@@ -85,6 +85,7 @@
     <!-- scroll -->
     <string name="inf_scroll">Infinite scroll</string>
     <string name="button_scroll">Chapter buttons</string>
+    <string name="overscroll_scroll">Overscroll</string>
 
 
     <!-- read -->

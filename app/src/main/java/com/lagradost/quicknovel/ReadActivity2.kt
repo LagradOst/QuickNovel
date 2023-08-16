@@ -8,14 +8,17 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.ColorStateList
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.graphics.Color
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
 import android.speech.tts.Voice
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.view.animation.DecelerateInterpolator
 import android.widget.AbsListView
 import android.widget.ArrayAdapter
 import android.widget.FrameLayout
@@ -29,7 +32,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.doOnEnd
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import androidx.core.view.GestureDetectorCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -47,6 +49,7 @@ import com.lagradost.quicknovel.TTSNotifications.TTS_NOTIFICATION_ID
 import com.lagradost.quicknovel.databinding.ColorRoundCheckmarkBinding
 import com.lagradost.quicknovel.databinding.ReadBottomSettingsBinding
 import com.lagradost.quicknovel.databinding.ReadMainBinding
+import com.lagradost.quicknovel.databinding.SingleOverscrollChapterBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.mvvm.observeNullable
@@ -73,6 +76,7 @@ import java.io.File
 import java.lang.Integer.max
 import java.lang.ref.WeakReference
 import java.util.Locale
+import kotlin.math.absoluteValue
 import kotlin.properties.Delegates
 
 
@@ -640,22 +644,54 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
       }*/
     private var topBarHeight by Delegates.notNull<Int>()
 
-    /*private var currentOverScrollValue = 0.0f
-    val overscrollMaxTranslation = 300.0f
+
+    private var currentOverScrollValue = 0.0f
+
+    private fun setProgressOfOverscroll(index: Int, progress: Float) {
+        val id = generateId(5, index, 0, 0)
+        ((binding.realText.findViewHolderForItemId(id) as? TextAdapter.TextAdapterHolder)?.binding as? SingleOverscrollChapterBinding)?.let {
+            it.progress.max = 10000
+            it.progress.progress = (progress.absoluteValue * 10000.0f).toInt()
+            it.progress.alpha = if(progress.absoluteValue > 0.05f) 1.0f else 0.0f
+        }
+    }
+
     private var currentOverScroll: Float
         get() = currentOverScrollValue
         set(value) {
-            currentOverScrollValue = value.coerceIn(-1.0f, 1.0f)
-            binding.realText.translationY =
-                overscrollMaxTranslation * currentOverScrollValue //alpha = (1.0f - currentOverScrollValue.absoluteValue)
-        }
-    private var currentOverScrollTranslation
-        get() = currentOverScroll * overscrollMaxTranslation
-        set(value) {
-            currentOverScroll = value / overscrollMaxTranslation
+            currentOverScrollValue = if (viewModel.readerType != ReadingType.OVERSCROLL_SCROLL) {
+                0.0f
+            } else {
+                val setTo = value.coerceIn(-1.0f, 1.0f)
+                if (setTo == 0.0f) {
+                    setProgressOfOverscroll(viewModel.currentIndex + 1, setTo)
+                    setProgressOfOverscroll(viewModel.currentIndex - 1, setTo)
+                    if(currentOverScrollValue > 0.9) {
+                        viewModel.seekToChapter(viewModel.currentIndex - 1)
+                    }
+                    else if(currentOverScrollValue < -0.9) {
+                        viewModel.seekToChapter(viewModel.currentIndex + 1)
+                    }
+                } else {
+                    setProgressOfOverscroll(
+                        viewModel.currentIndex + if (setTo < 0.0f) 1 else -1,
+                        setTo
+                    )
+                }
+                setTo
+            }
+            // binding.realText.alpha = (1.0f - currentOverScrollValue.absoluteValue)
+
+
+            //  val nextId = generateId(5, viewModel.currentIndex+1,0,0)
+            //  val prevId = generateId(5, viewModel.currentIndex-1,0,0)
+
+
+            // binding.realText.translationY =
+            //     overscrollMaxTranslation * currentOverScrollValue //alpha = (1.0f - currentOverScrollValue.absoluteValue)
         }
 
-    @SuppressLint("ClickableViewAccessibility")*/
+    @SuppressLint("ClickableViewAccessibility")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         CommonActivity.loadThemes(this)
@@ -911,21 +947,21 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             adapter = textAdapter
             itemAnimator = null
             // testing overscroll
-            /*setOnTouchListener { v, event ->
+            setOnTouchListener { _, event ->
                 when (event.action) {
                     MotionEvent.ACTION_MOVE -> {
                         if (event.historySize <= 1) return@setOnTouchListener false
                         val start = event.getHistoricalY(0, event.historySize - 1)
                         val end = event.getY(0)
-                        val dy = end - start
+                        val dy = (end - start).div(Resources.getSystem().displayMetrics.density).coerceIn(-1.0f,1.0f)
                         // if cant scroll in the direction then translate Y with the dy
                         val translated = !canScrollVertically(-1) || !canScrollVertically(1)
                         if (translated) {
                             // * (maxScrollOver - currentOverScroll.absoluteValue))
-                            currentOverScroll += dy * 0.1f
+                            currentOverScroll += dy * 0.3f
                         }
 
-                        /*// if we can scroll down then we cant translate down
+                        // if we can scroll down then we cant translate down
                         if (canScrollVertically(1) && currentOverScroll < 0.0f) {
                             currentOverScroll = 0.0f
                             return@setOnTouchListener false
@@ -935,49 +971,69 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                         if (canScrollVertically(-1) && currentOverScroll > 0.0f) {
                             currentOverScroll = 0.0f
                             return@setOnTouchListener false
-                        }*/
+                        }
 
                         return@setOnTouchListener false
                     }
 
                     MotionEvent.ACTION_UP -> {
-                        if (currentOverScroll.absoluteValue > 10.0f) {
-
-                        } else {
-
-                        }
                         currentOverScroll = 0.0f
                     }
 
                     else -> {}
                 }
                 return@setOnTouchListener false
-            }*/
+            }
 
 
             addOnScrollListener(object :
                 RecyclerView.OnScrollListener() {
+                var updateFromCode = false
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                    var rdy = dy
+                    if (dy != 0 && !updateFromCode) {
+                        var rdy = dy
+
+                        lockTop?.let { lock ->
+                            if (currentScroll + rdy > lock) {
+                                rdy = lock - currentScroll
+                                fling(0, 0)
+                            }
+                        }
+
+                        lockBottom?.let { lock ->
+                            if (currentScroll + rdy < lock) {
+                                rdy = lock - currentScroll
+                                fling(0, 0)
+                            }
+                        }
+
+                        if (currentOverScroll < 0.0f && rdy < 0) {
+                            rdy = 0
+                        } else if (currentOverScroll > 0.0f && rdy > 0) {
+                            rdy = 0
+                        }
+                        /*println("currentOverScrollTranslation=$currentOverScrollTranslation rdy=$rdy")
+                        val dscroll = minOf(currentOverScrollTranslation.absoluteValue.toInt(), rdy.absoluteValue)
+                        if(currentOverScrollTranslation < 0 && rdy < 0) {
+                            currentOverScrollTranslation += dscroll
+                            rdy += dscroll
+                        }
+                        if(currentOverScrollTranslation > 0 && rdy > 0) {
+                            currentOverScrollTranslation -= dscroll
+                            rdy -= dscroll
+                        }*/
+
+                        currentScroll += dy
+                        val delta = rdy - dy
+                        if (delta != 0 && canScrollVertically(delta)) {
+                            updateFromCode = true
+                            scrollBy(0, delta)
+                        }
+                    } else {
+                        updateFromCode = false
+                    }
 
                     onScroll()
-                    lockTop?.let { lock ->
-                        if (currentScroll + rdy > lock) {
-                            rdy = lock - currentScroll
-                            fling(0, 0)
-                        }
-                    }
-
-                    lockBottom?.let { lock ->
-                        if (currentScroll + rdy < lock) {
-                            rdy = lock - currentScroll
-                            fling(0, 0)
-                        }
-                    }
-
-                    currentScroll += dy
-                    val delta = rdy - dy
-                    if (delta != 0) scrollBy(0, delta)
                     super.onScrolled(recyclerView, dx, dy)
 
                     // binding.tmpTtsEnd.fixLine((getBottomY()- remainingBottom) + 7.toPx)
