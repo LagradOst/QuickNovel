@@ -300,13 +300,24 @@ object BookDownloader2Helper {
                 ), LOCAL_EPUB
             )
 
-            val count = if (epub.exists() && epub.length() > LOCAL_EPUB_MIN_SIZE) 1 else File(
-                context.filesDir.toString() + getDirectory(
-                    sApiname,
-                    sAuthor,
-                    sName
-                )
-            ).listFiles()?.count { it.name.endsWith(".txt") } ?: return null
+            val count =
+                if (epub.exists()) {
+                    val length = epub.length()
+                    if(length > LOCAL_EPUB_MIN_SIZE) {
+                        1
+                    } else {
+                        0
+                    }
+                } else {
+                    File(
+                        context.filesDir.toString() + getDirectory(
+                            sApiname,
+                            sAuthor,
+                            sName
+                        )
+                    ).listFiles()?.count { it.name.endsWith(".txt") } ?: return null
+                }
+            if(count <= 0) return null
 
             /*var sStart = start
             if (sStart == -1) { // CACHE DATA
