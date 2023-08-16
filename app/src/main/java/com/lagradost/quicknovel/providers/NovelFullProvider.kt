@@ -1,11 +1,18 @@
 package com.lagradost.quicknovel.providers
 
-import com.lagradost.quicknovel.*
-import com.lagradost.quicknovel.MainActivity.Companion.app
-import org.jsoup.Jsoup
-import java.lang.Exception
-import kotlin.collections.ArrayList
+import com.lagradost.quicknovel.R
 
+class NovelFullProvider : AllNovelProvider() {
+    override val name = "NovelFull"
+    override val mainUrl = "https://novelfull.com"
+    override val hasMainPage = true
+
+    override val iconId = R.drawable.icon_novelfull
+
+    override val iconBackgroundId = R.color.white
+}
+
+/*
 class NovelFullProvider : MainAPI() {
     override val name = "NovelFull"
     override val mainUrl = "https://novelfull.com"
@@ -236,3 +243,4 @@ class NovelFullProvider : MainAPI() {
         )
     }
 }
+*/

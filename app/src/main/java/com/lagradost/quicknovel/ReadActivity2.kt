@@ -524,11 +524,11 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         val topScroll = top.top - getTopY()
         lockTop = currentScroll + topScroll
         val bottomScroll =
-            bottom.bottom - getBottomY() + if (binding.readOverlay.isVisible) binding.readOverlay.height else 0
+            bottom.bottom - getBottomY()
         lockBottom = currentScroll + bottomScroll
 
         // binding.tmpTtsStart.fixLine(top.top)
-        // binding.tmpTtsEnd.fixLine(bottom.bottom)
+        //binding.tmpTtsEnd.fixLine(bottom.bottom)
 
         // we have reached the end, scroll to the top
         if (bottomScroll > 0) {
@@ -953,12 +953,12 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                         if (event.historySize <= 1) return@setOnTouchListener false
                         val start = event.getHistoricalY(0, event.historySize - 1)
                         val end = event.getY(0)
-                        val dy = (end - start).div(Resources.getSystem().displayMetrics.density).coerceIn(-1.0f,1.0f)
+                        val dy = (end - start).div(Resources.getSystem().displayMetrics.density).coerceIn(-2.0f,2.0f)
                         // if cant scroll in the direction then translate Y with the dy
                         val translated = !canScrollVertically(-1) || !canScrollVertically(1)
                         if (translated) {
                             // * (maxScrollOver - currentOverScroll.absoluteValue))
-                            currentOverScroll += dy * 0.3f
+                            currentOverScroll += dy * 0.4f
                         }
 
                         // if we can scroll down then we cant translate down
@@ -1026,7 +1026,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                         currentScroll += dy
                         val delta = rdy - dy
                         if (delta != 0 && canScrollVertically(delta)) {
-                            updateFromCode = true
+                            //updateFromCode = true
                             scrollBy(0, delta)
                         }
                     } else {

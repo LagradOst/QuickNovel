@@ -23,10 +23,10 @@ class Apis {
 //            WuxiaWorldOnlineProvider(), // Site does not work
             RoyalRoadProvider(),
             FreewebnovelProvider(),
-            AzynovelProvider(),
+            //AzynovelProvider(), // dont exist anymore
             ReadfromnetProvider(),
             AllNovelProvider(),
-            RanobesProvider(),
+            //RanobesProvider(), // custom capcha
             NovelFullProvider(),
             //MNovelFreeProvider(), // same as NovelFullVipProvider
             EngNovelProvider(),

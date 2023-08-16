@@ -4,7 +4,7 @@ import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 
-class AllNovelProvider : MainAPI() {
+open class AllNovelProvider : MainAPI() {
     override val name = "AllNovel"
     override val mainUrl = "https://allnovel.org"
     override val hasMainPage = true
@@ -64,14 +64,23 @@ class AllNovelProvider : MainAPI() {
         Pair("invayne", "invayne"),
         Pair("LitRPG", "LitRPG"),
         Pair("LGBT", "LGBT"),
-        Pair(
-            "Comedy Drama Romance Shounen Ai Supernatural",
-            "Comedy Drama Romance Shounen Ai Supernatural"
-        ),
+        "Comedy" to "Comedy",
+        "Drama" to "Drama",
+        "Shounen+Ai" to "Shounen+Ai",
+        "Supernatural" to "Supernatural",
         Pair("Shoujo Ai", "Shoujo Ai"),
         Pair("Supernatura", "Supernatura"),
         Pair("Canopy", "Canopy")
     )
+
+    override val orderBys = listOf(
+        "Genre" to "",
+        "Latest Release" to "latest-release-novel",
+        "Hot Novel" to "hot-novel",
+        "Completed Novel" to "completed-novel",
+        "Most Popular" to "most-popular",
+    )
+
 
     override suspend fun loadMainPage(
         page: Int,
@@ -79,40 +88,51 @@ class AllNovelProvider : MainAPI() {
         orderBy: String?,
         tag: String?
     ): HeadMainPageResponse {
-        val firstresponse = app.get(mainUrl)
-        val firstdocument = Jsoup.parse(firstresponse.text)
-        fun getId(tagvalue: String?): String? {
-            return firstdocument.select("#hot-genre-select>option")
-                .firstOrNull { it.text() == tagvalue }?.attr("value")
-        }
+        val url =
+            if (orderBy == "" && tag != "All") "$mainUrl/genre/$tag?page=$page" else "$mainUrl/${if (orderBy.isNullOrBlank()) "hot-novel" else orderBy}?page=$page"
+        val document = app.get(url).document
 
-        // I cant fix this because idk how it works
-        val url = "$mainUrl/ajax-search?type=hot&genre=${getId(tag)}"
-        val response = app.get(url)
-        val document = Jsoup.parse(response.text)
-        val headers = document.select("div.item")
-        if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
-        val returnValue: ArrayList<SearchResponse> = ArrayList()
-        for (h in headers) {
-            val h3 = h?.selectFirst("a")
-            val cUrl = mainUrl + h3?.attr("href")
-            val name = h3?.attr("title") ?: throw ErrorLoadingException("Invalid name")
-
-            val posterUrl =
-                mainUrl + h.selectFirst("img")?.attr("src")
-
-            returnValue.add(
+        return HeadMainPageResponse(
+            url,
+            list = document.select("div.list>div.row").mapNotNull { element ->
+                val a =
+                    element.selectFirst("div > div > h3.truyen-title > a") ?: return@mapNotNull null
                 SearchResponse(
-                    name,
-                    cUrl,
-                    fixUrlNull(posterUrl),
+                    name = a.text(),
+                    url = fixUrlNull(a.attr("href")) ?: return@mapNotNull null,
+                    fixUrlNull(element.selectFirst("div > div > img")?.attr("src")),
                     null,
                     null,
                     this.name
                 )
-            )
-        }
-        return HeadMainPageResponse(url, returnValue)
+            })
+
+        /*val url = "$mainUrl/ajax-search?type=hot&genre=${getId(tag)}"
+            val response = app.get(url)
+            val document = Jsoup.parse(response.text)
+            val headers = document.select("div.item")
+            if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
+            val returnValue: ArrayList<SearchResponse> = ArrayList()
+            for (h in headers) {
+                val h3 = h?.selectFirst("a")
+                val cUrl = mainUrl + h3?.attr("href")
+                val name = h3?.attr("title") ?: throw ErrorLoadingException("Invalid name")
+
+                val posterUrl =
+                    mainUrl + h.selectFirst("img")?.attr("src")
+
+                returnValue.add(
+                    SearchResponse(
+                        name,
+                        cUrl,
+                        fixUrlNull(posterUrl),
+                        null,
+                        null,
+                        this.name
+                    )
+                )
+            }
+            return HeadMainPageResponse(url, returnValue)*/
     }
 
     override suspend fun loadHtml(url: String): String? {

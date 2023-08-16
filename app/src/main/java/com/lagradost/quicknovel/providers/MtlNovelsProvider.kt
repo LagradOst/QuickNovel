@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.app
+import com.lagradost.quicknovel.network.CloudflareKiller
 import org.jsoup.Jsoup
 
 class MtlNovelProvider : MainAPI() {
@@ -17,47 +18,48 @@ class MtlNovelProvider : MainAPI() {
 
     override val tags = listOf(
         Pair("All", ""),
-        Pair("Adult","adult"),
-        Pair("Adventure","adventure"),
-        Pair("Comedy","comedy"),
-        Pair("Drama","drama"),
-        Pair("Ecchi","ecchi"),
-        Pair("Erciyuan","erciyuan"),
-        Pair("Fan-Fiction","fan-fiction"),
-        Pair("Fantasy","fantasy"),
-        Pair("Game","game"),
-        Pair("Gender Bender","Gender-Bender"),
-        Pair("Harem","harem"),
-        Pair("Historical","historical"),
-        Pair("Horror","horror"),
-        Pair("Josei","josei"),
-        Pair("Martial Arts","martial-arts"),
-        Pair("Mature","mature"),
-        Pair("Mecha","mecha"),
-        Pair("Military","military"),
-        Pair("Mystery","mystery"),
-        Pair("Psychological","psychological"),
-        Pair("Romance","romance"),
-        Pair("School Life","school-life"),
-        Pair("Sci-fi","sci-fi"),
-        Pair("Seinen","seinen"),
-        Pair("Shoujo","shoujo"),
-        Pair("Shoujo Ai","shoujo-ai"),
-        Pair("Shounen","shounen"),
-        Pair("Shounen Ai","shounen-ai"),
-        Pair("Slice of Life","slice-of-life"),
-        Pair("Smut","smut"),
-        Pair("Sports","sports"),
-        Pair("Supernatural","supernatural"),
-        Pair("Tragedy","tragedy"),
-        Pair("Two-dimensional","two-dimensional"),
-        Pair("Urban Life","urban-life"),
-        Pair("Wuxia","wuxia"),
-        Pair("Xianxia","xianxia"),
-        Pair("Xuanhuan","xuanhuan"),
-        Pair("Yaoi","yaoi"),
-        Pair("Yuri","yuri"),
+        Pair("Adult", "adult"),
+        Pair("Adventure", "adventure"),
+        Pair("Comedy", "comedy"),
+        Pair("Drama", "drama"),
+        Pair("Ecchi", "ecchi"),
+        Pair("Erciyuan", "erciyuan"),
+        Pair("Fan-Fiction", "fan-fiction"),
+        Pair("Fantasy", "fantasy"),
+        Pair("Game", "game"),
+        Pair("Gender Bender", "Gender-Bender"),
+        Pair("Harem", "harem"),
+        Pair("Historical", "historical"),
+        Pair("Horror", "horror"),
+        Pair("Josei", "josei"),
+        Pair("Martial Arts", "martial-arts"),
+        Pair("Mature", "mature"),
+        Pair("Mecha", "mecha"),
+        Pair("Military", "military"),
+        Pair("Mystery", "mystery"),
+        Pair("Psychological", "psychological"),
+        Pair("Romance", "romance"),
+        Pair("School Life", "school-life"),
+        Pair("Sci-fi", "sci-fi"),
+        Pair("Seinen", "seinen"),
+        Pair("Shoujo", "shoujo"),
+        Pair("Shoujo Ai", "shoujo-ai"),
+        Pair("Shounen", "shounen"),
+        Pair("Shounen Ai", "shounen-ai"),
+        Pair("Slice of Life", "slice-of-life"),
+        Pair("Smut", "smut"),
+        Pair("Sports", "sports"),
+        Pair("Supernatural", "supernatural"),
+        Pair("Tragedy", "tragedy"),
+        Pair("Two-dimensional", "two-dimensional"),
+        Pair("Urban Life", "urban-life"),
+        Pair("Wuxia", "wuxia"),
+        Pair("Xianxia", "xianxia"),
+        Pair("Xuanhuan", "xuanhuan"),
+        Pair("Yaoi", "yaoi"),
+        Pair("Yuri", "yuri"),
     )
+    val interceptor = CloudflareKiller()
 
     override suspend fun loadMainPage(
         page: Int,
@@ -69,13 +71,14 @@ class MtlNovelProvider : MainAPI() {
             if (tag.isNullOrBlank()) "$mainUrl/alltime-rank/page/$page" else "$mainUrl/genre/$tag/page/$page"
 
 
-        val document = app.get(url).document
+        val document = app.get(url, interceptor = interceptor).document
 
-        val headers =  document.select("div.box")
+        val headers = document.select("div.box")
         if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
-            val name = h?.selectFirst("a")?.attr("aria-label")?.substringBeforeLast("Cover") ?: continue
+            val name =
+                h?.selectFirst("a")?.attr("aria-label")?.substringBeforeLast("Cover") ?: continue
             val cUrl = h.selectFirst("a")?.attr("href") ?: throw ErrorLoadingException()
             val posterUrl = h.selectFirst("amp-img amp-img")?.attr("src")
             returnValue.add(
@@ -93,14 +96,29 @@ class MtlNovelProvider : MainAPI() {
     }
 
     override suspend fun loadHtml(url: String): String? {
-        return app.get(url).document.selectFirst("div.par")?.html()
+        return app.get(url, interceptor = interceptor).document.selectFirst("div.par")?.html()
     }
 
 
     override suspend fun search(query: String): List<SearchResponse> {
         val response =
-            SearchResults.fromJson(app.get("https://www.mtlnovel.com/wp-admin/admin-ajax.php?action=autosuggest&q=$query").text)
-        return response?.items?.first()?.results?.map { SearchResponse(Jsoup.parse(it.title).text(), it.permalink!!, it.thumbnail, null, null, name) }!! }
+            SearchResults.fromJson(
+                app.get(
+                    "$mainUrl/wp-admin/admin-ajax.php?action=autosuggest&q=$query",
+                    interceptor = interceptor
+                ).text
+            )
+        return response.items?.first()?.results?.mapNotNull {
+            SearchResponse(
+                name = Jsoup.parse(it.title ?: return@mapNotNull null).text(),
+                url = it.permalink ?: return@mapNotNull null,
+                it.thumbnail,
+                null,
+                null,
+                name
+            )
+        }!!
+    }
 
 
     override suspend fun load(url: String): LoadResponse? {
@@ -119,7 +137,10 @@ class MtlNovelProvider : MainAPI() {
         val synopsis = document.selectFirst("div.desc")?.text()
 
         val data: ArrayList<ChapterData> = ArrayList()
-        val chapters = app.get(url+"/chapter-list/").document.select("div.ch-list a").reversed()
+        val chapters = app.get(
+            "$url/chapter-list/",
+            interceptor = interceptor
+        ).document.select("div.ch-list a").reversed()
         for (c in chapters) {
             val href = c?.attr("href") ?: continue
             val cName = c.text()
@@ -127,8 +148,12 @@ class MtlNovelProvider : MainAPI() {
 
         }
 
-        val rating = document.selectFirst("span.rating-info")?.selectFirst("strong")?.text()?.toFloat()?.times(200)?.toInt()
-        val peopleVoted = "\\((.+) re".toRegex().find(document.selectFirst("span.rating-info")?.text().toString())?.groupValues?.last()?.toInt()
+        val rating =
+            document.selectFirst("span.rating-info")?.selectFirst("strong")?.text()?.toFloat()
+                ?.times(200)?.toInt()
+        val peopleVoted = "\\((.+) re".toRegex()
+            .find(document.selectFirst("span.rating-info")?.text().toString())?.groupValues?.last()
+            ?.toInt()
 
 
         return StreamResponse(
@@ -148,19 +173,20 @@ class MtlNovelProvider : MainAPI() {
 }
 
 
-private data class SearchResults (
+private data class SearchResults(
     @get:JsonProperty("items") val items: List<Item>? = null
 ) {
     companion object {
         fun fromJson(json: String) = mapper.readValue<SearchResults>(json)
     }
 }
-private data class Item (
+
+private data class Item(
     @get:JsonProperty("query") val query: String? = null,
     @get:JsonProperty("results") val results: List<Result>? = null
 )
 
-private data class Result (
+private data class Result(
     @get:JsonProperty("title") val title: String? = null,
     @get:JsonProperty("permalink") val permalink: String? = null,
     @get:JsonProperty("thumbnail") val thumbnail: String? = null,
