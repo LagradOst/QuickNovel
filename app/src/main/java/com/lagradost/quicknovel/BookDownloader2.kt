@@ -563,17 +563,17 @@ object BookDownloader2Helper {
         maxTries: Int = 5
     ): Boolean = withContext(Dispatchers.IO) {
         val rFile = File(filepath)
-        if (rFile.exists() && !forceReload) {
+        if (rFile.exists() && rFile.length() > 0 && !forceReload) {
             return@withContext true
         }
         rFile.parentFile?.mkdirs()
         if (rFile.isDirectory) rFile.delete()
-        rFile.createNewFile()
 
         for (i in 0..maxTries) {
             val page = api.loadHtml(data.url)
 
-            if (page != null) {
+            if (!page.isNullOrBlank()) {
+                rFile.createNewFile() // only create the file when actually needed
                 rFile.writeText("${data.name}\n${page}")
                 return@withContext true
             } else {

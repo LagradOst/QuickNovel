@@ -953,12 +953,12 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                         if (event.historySize <= 1) return@setOnTouchListener false
                         val start = event.getHistoricalY(0, event.historySize - 1)
                         val end = event.getY(0)
-                        val dy = (end - start).div(Resources.getSystem().displayMetrics.density).coerceIn(-2.0f,2.0f)
+                        val dy = (end - start).div(Resources.getSystem().displayMetrics.density).coerceIn(-1.5f,1.5f)
                         // if cant scroll in the direction then translate Y with the dy
                         val translated = !canScrollVertically(-1) || !canScrollVertically(1)
                         if (translated) {
                             // * (maxScrollOver - currentOverScroll.absoluteValue))
-                            currentOverScroll += dy * 0.4f
+                            currentOverScroll += dy * 0.3f
                         }
 
                         // if we can scroll down then we cant translate down
