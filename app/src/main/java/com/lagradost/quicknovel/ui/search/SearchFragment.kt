@@ -10,8 +10,8 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
+import androidx.core.view.doOnLayout
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -19,22 +19,15 @@ import androidx.fragment.app.viewModels
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.GridLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.lagradost.quicknovel.APIRepository.Companion.providersActive
-import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.HomePageList
-import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.FragmentSearchBinding
 import com.lagradost.quicknovel.databinding.HomeEpisodesExpandedBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.normalSafeApiCall
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.settings.SettingsFragment
-import com.lagradost.quicknovel.util.Apis.Companion.apis
-import com.lagradost.quicknovel.util.Apis.Companion.getApiProviderLangSettings
-import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.Event
-import com.lagradost.quicknovel.util.SettingsHelper.getGridIsCompact
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 
 class SearchFragment : Fragment() {
@@ -44,10 +37,10 @@ class SearchFragment : Fragment() {
     companion object {
         val configEvent = Event<Int>()
         var currentSpan = 1
-        var currentDialog : Dialog? = null
+        var currentDialog: Dialog? = null
 
         fun loadHomepageList(viewModel: SearchViewModel, item: HomePageList) {
-            if(currentDialog != null) return
+            if (currentDialog != null) return
             val act = activity ?: return
 
             val bottomSheetDialog = BottomSheetDialog(act)
@@ -192,11 +185,11 @@ class SearchFragment : Fragment() {
         binding.mainSearch.setOnQueryTextFocusChangeListener { searchView, b ->
             if (b) {
                 // https://stackoverflow.com/questions/12022715/unable-to-show-keyboard-automatically-in-the-searchview
-                searchView.postDelayed({
+                searchView.doOnLayout {
                     val imm: InputMethodManager? =
-                        requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager?
+                        activity?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager?
                     imm?.showSoftInput(searchView.findFocus(), 0)
-                }, 200)
+                }
             }
         }
         binding.mainSearch.onActionViewExpanded()

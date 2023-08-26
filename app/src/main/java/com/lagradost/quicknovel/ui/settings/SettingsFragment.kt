@@ -102,7 +102,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
         updatePrefrence.setOnPreferenceClickListener {
             ioSafe {
-                if (!requireActivity().runAutoUpdate(false)) {
+                if (true != activity?.runAutoUpdate(false)) {
                     showToast("No Update Found", Toast.LENGTH_SHORT)
                 }
             }

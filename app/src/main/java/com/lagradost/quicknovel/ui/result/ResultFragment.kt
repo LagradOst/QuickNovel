@@ -208,21 +208,21 @@ class ResultFragment : Fragment() {
                                 map[tag]?.let { index ->
                                     chip.isClickable = true
                                     chip.setOnClickListener {
-                                        requireActivity().supportFragmentManager.beginTransaction()
-                                            .setCustomAnimations(
+                                        activity?.supportFragmentManager?.beginTransaction()
+                                            ?.setCustomAnimations(
                                                 R.anim.enter_anim,
                                                 R.anim.exit_anim,
                                                 R.anim.pop_enter,
                                                 R.anim.pop_exit
                                             )
-                                            .add(
+                                            ?.add(
                                                 R.id.homeRoot,
                                                 MainPageFragment().newInstance(
                                                     api.name,
                                                     tag = index
                                                 )
                                             )
-                                            .commit()
+                                            ?.commit()
                                     }
                                 }
 
@@ -312,20 +312,20 @@ class ResultFragment : Fragment() {
             val backParameter = resultBack.layoutParams as CoordinatorLayout.LayoutParams
             backParameter.setMargins(
                 backParameter.leftMargin,
-                backParameter.topMargin + requireActivity().getStatusBarHeight(),
+                backParameter.topMargin + (activity?.getStatusBarHeight() ?: 0),
                 backParameter.rightMargin,
                 backParameter.bottomMargin
             )
             resultBack.layoutParams = backParameter
 
             resultBack.setOnClickListener {
-                (requireActivity() as AppCompatActivity).backPressed()
+                (activity as? AppCompatActivity)?.backPressed()
             }
 
             val parameter = resultEmptyView.layoutParams as LinearLayout.LayoutParams
             parameter.setMargins(
                 parameter.leftMargin,
-                parameter.topMargin + requireActivity().getStatusBarHeight(),
+                parameter.topMargin + (activity?.getStatusBarHeight() ?: 0),
                 parameter.rightMargin,
                 parameter.bottomMargin
             )
