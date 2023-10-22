@@ -9,6 +9,7 @@ import android.graphics.drawable.Drawable
 import android.media.MediaPlayer
 import android.speech.tts.Voice
 import android.text.Spanned
+import android.widget.Toast
 import androidx.annotation.WorkerThread
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LiveData
@@ -450,19 +451,29 @@ class ReadActivityViewModel : ViewModel() {
     }
 
     // ChapterLoadSpanned(fromIndex, 0, index, text)
-    private fun chapterIdxToSpanDisplayNextButton(index: Int, fromIndex : Int) : SpanDisplay? {
-        return chapterIdxToSpanDisplayNext(index, fromIndex) { cIndex, innerIndex, loadIndex, name ->
+    private fun chapterIdxToSpanDisplayNextButton(index: Int, fromIndex: Int): SpanDisplay? {
+        return chapterIdxToSpanDisplayNext(
+            index,
+            fromIndex
+        ) { cIndex, innerIndex, loadIndex, name ->
             ChapterLoadSpanned(cIndex, innerIndex, loadIndex, name)
         }
     }
 
-    private fun chapterIdxToSpanDisplayOverscrollButton(index: Int, fromIndex : Int) : SpanDisplay? {
-        return chapterIdxToSpanDisplayNext(index, fromIndex) { cIndex, innerIndex, loadIndex, name ->
+    private fun chapterIdxToSpanDisplayOverscrollButton(index: Int, fromIndex: Int): SpanDisplay? {
+        return chapterIdxToSpanDisplayNext(
+            index,
+            fromIndex
+        ) { cIndex, innerIndex, loadIndex, name ->
             ChapterOverscrollSpanned(cIndex, innerIndex, loadIndex, name)
         }
     }
 
-    private fun chapterIdxToSpanDisplayNext(index: Int, fromIndex : Int, constructor : (Int, Int, Int, UiText) -> SpanDisplay) : SpanDisplay? {
+    private fun chapterIdxToSpanDisplayNext(
+        index: Int,
+        fromIndex: Int,
+        constructor: (Int, Int, Int, UiText) -> SpanDisplay
+    ): SpanDisplay? {
         return when (val data = chapterData[index]) {
             is Resource.Loading -> LoadingSpanned(data.url, index)
             is Resource.Failure ->
@@ -471,7 +482,9 @@ class ReadActivityViewModel : ViewModel() {
                     index = index,
                     canReload = data.isNetworkError
                 )
-            else -> chaptersTitlesInternal.getOrNull(index)?.let { text -> constructor(fromIndex,0,index,text) }
+
+            else -> chaptersTitlesInternal.getOrNull(index)
+                ?.let { text -> constructor(fromIndex, 0, index, text) }
         }
     }
 
@@ -691,6 +704,25 @@ class ReadActivityViewModel : ViewModel() {
 
                 currentIndex = loadedChapter
                 updateIndexAsync(loadedChapter, notify = false)
+
+                if (book.size() <= 0) {
+                    _loadingStatus.postValue(
+                        Resource.Failure(
+                            false,
+                            null,
+                            null,
+                            "Invalid chapter data when trying to load chapter $loadedChapter when the book only has ${book.size()} chapters"
+                        )
+                    )
+                    return@ioSafe
+                }
+
+                // if we are reading a book that sub/resize for some reason, this will clamp it into the correct range
+                if (loadedChapter >= book.size()) {
+                    currentIndex = book.size() - 1
+                    updateIndexAsync(currentIndex, notify = false)
+                    showToast("Resize $loadedChapter -> $currentIndex",  Toast.LENGTH_LONG)
+                }
 
                 val char = getKey(
                     EPUB_CURRENT_POSITION_SCROLL_CHAR, book.title()
