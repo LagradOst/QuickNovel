@@ -100,6 +100,10 @@
                         android:scheme="https"
                         android:host="www.wattpad.com"
                         android:pathPrefix="/story/" />
+                <data
+                        android:scheme="https"
+                        android:host="www.dreame.com"
+                        android:pathPrefix="/story/" />
             </intent-filter>
         </activity>
 
