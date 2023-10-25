@@ -125,7 +125,7 @@ fun <T> safeFail(throwable: Throwable): Resource<T> {
         ) {
             "${it.fileName} ${it.lineNumber}"
         }
-    return Resource.Failure(false, null, null, stackTraceMsg)
+    return Resource.Failure(true, null, null, stackTraceMsg)
 }
 
 fun CoroutineScope.launchSafe(
@@ -176,7 +176,7 @@ suspend fun <T> safeApiCall(
                     for (line in throwable.stackTrace) {
                         if (line?.fileName?.endsWith("provider.kt", ignoreCase = true) == true) {
                             return@withContext Resource.Failure(
-                                false,
+                                true,
                                 null,
                                 null,
                                 "NullPointerException at ${line.fileName} ${line.lineNumber}\nSite might have updated or added Cloudflare/DDOS protection"
@@ -195,7 +195,7 @@ suspend fun <T> safeApiCall(
                 }
                 is HttpException -> {
                     Resource.Failure(
-                        false,
+                        true,
                         throwable.statusCode,
                         null,
                         throwable.message ?: "HttpException"
@@ -213,7 +213,7 @@ suspend fun <T> safeApiCall(
                     )
                 }
                 is NotImplementedError -> {
-                    Resource.Failure(false, null, null, "This operation is not implemented.")
+                    Resource.Failure(true, null, null, "This operation is not implemented.")
                 }
                 is SSLHandshakeException -> {
                     Resource.Failure(
