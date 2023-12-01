@@ -103,4 +103,5 @@
 
     <color name="colorTestPass">#48E484</color>
     <color name="colorTestFail">#ea596e</color>
+    <color name="libread_header_color">#009688</color>
 </resources>
