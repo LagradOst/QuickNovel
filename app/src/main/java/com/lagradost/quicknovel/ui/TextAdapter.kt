@@ -1,13 +1,19 @@
 package com.lagradost.quicknovel.ui
 
+import android.app.Dialog
+import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.method.LinkMovementMethod
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.view.Window
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.text.getSpans
@@ -19,6 +25,7 @@ import androidx.viewbinding.ViewBinding
 import com.lagradost.quicknovel.ChapterLoadSpanned
 import com.lagradost.quicknovel.ChapterOverscrollSpanned
 import com.lagradost.quicknovel.ChapterStartSpanned
+import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.FailedSpanned
 import com.lagradost.quicknovel.LoadingSpanned
@@ -27,6 +34,7 @@ import com.lagradost.quicknovel.ReadActivityViewModel
 import com.lagradost.quicknovel.SpanDisplay
 import com.lagradost.quicknovel.TTSHelper
 import com.lagradost.quicknovel.TextSpan
+import com.lagradost.quicknovel.databinding.ImageLayoutBinding
 import com.lagradost.quicknovel.databinding.SingleFailedBinding
 import com.lagradost.quicknovel.databinding.SingleFinishedChapterBinding
 import com.lagradost.quicknovel.databinding.SingleImageBinding
@@ -35,11 +43,14 @@ import com.lagradost.quicknovel.databinding.SingleLoadingBinding
 import com.lagradost.quicknovel.databinding.SingleOverscrollChapterBinding
 import com.lagradost.quicknovel.databinding.SingleTextBinding
 import com.lagradost.quicknovel.mvvm.logError
+import com.lagradost.quicknovel.util.UIHelper.dismissSafe
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.util.UIHelper.systemFonts
+import io.noties.markwon.image.AsyncDrawable
 import io.noties.markwon.image.AsyncDrawableSpan
 import java.io.File
+
 
 const val DRAW_DRAWABLE = 1
 const val DRAW_TEXT = 0
@@ -536,18 +547,71 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
             )
         }
 
+        private fun bindImage(imageView: ImageView, img :AsyncDrawable) {
+            val url = img.destination
+            img.result?.let { drawable ->
+                imageView.setImageDrawable(drawable)
+            } ?: kotlin.run {
+                imageView.setImage(url)
+            }
+        }
+
+        private fun bindImage(binding : SingleImageBinding, img :AsyncDrawable) {
+            val url = img.destination
+            if (binding.root.url == url) return
+            binding.root.url = url // don't reload if already set
+            bindImage(binding.root,img)
+        }
+
+        private fun showImage(context : Context?, drawable : AsyncDrawable) {
+            if (context == null) return
+            val settingsDialog = Dialog(context)
+            settingsDialog.window!!.requestFeature(Window.FEATURE_NO_TITLE)
+            settingsDialog.window!!.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            val binding = ImageLayoutBinding.inflate(LayoutInflater.from(context))
+            bindImage(binding.image,drawable)
+            binding.image.setOnClickListener {
+                settingsDialog.dismissSafe(activity)
+            }
+            settingsDialog.setContentView(
+                binding.root
+            )
+
+            settingsDialog.show()
+        }
         private fun bindText(obj: TextSpan) {
             when (binding) {
                 is SingleImageBinding -> {
                     val img = obj.text.getSpans<AsyncDrawableSpan>(0, obj.text.length)[0]
-                    val url = img.drawable.destination
-                    if (binding.root.url == url) return
-                    binding.root.url = url // don't reload if already set
-                    img.drawable.result?.let { drawable ->
-                        binding.root.setImageDrawable(drawable)
-                    } ?: kotlin.run {
-                        binding.root.setImage(url)
+                    bindImage(binding,img.drawable)
+
+                    binding.root.setOnClickListener { root ->
+                        if (root !is TextImageView) {
+                            return@setOnClickListener
+                        }
+                        showImage(root.context,img.drawable)
                     }
+
+                    /*val size = 300.toPx
+
+                    binding.root.layoutParams = binding.root.layoutParams.apply {
+                        height = size
+                    }
+
+                    binding.root.setOnClickListener { root ->
+                        if (root !is TextImageView) {
+                            return@setOnClickListener
+                        }
+                        root.layoutParams = root.layoutParams.apply {
+                            height = if (height == ViewGroup.LayoutParams.WRAP_CONTENT) {
+                                size
+                            } else {
+                                ViewGroup.LayoutParams.WRAP_CONTENT
+                            }
+                        }
+                        root.requestLayout()
+                    }
+                    bindImage(binding,img)*/
                 }
 
                 is SingleTextBinding -> {

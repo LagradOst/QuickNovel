@@ -468,7 +468,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     var lockBottom: Int? = null
     var currentScroll: Int = 0
 
-    private fun updateTTSLine(line: TTSHelper.TTSLine?) {
+    private fun updateTTSLine(line: TTSHelper.TTSLine?, depth : Int = 0) {
         // update the visual component
         textAdapter.updateTTSLine(line)
         for (position in textLayoutManager.findFirstVisibleItemPosition()..textLayoutManager.findLastVisibleItemPosition()) {
@@ -514,10 +514,14 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 return
             }
 
-            textLayoutManager.scrollToPositionWithOffset(adapterPosition, 1)
-            textLayoutManager.postOnAnimation {
-                updateTTSLine(line)
+            // only call itself if it is called from UI
+            if (depth == 0) {
+                textLayoutManager.scrollToPositionWithOffset(adapterPosition, 1)
+                textLayoutManager.postOnAnimation {
+                    updateTTSLine(line, depth = 1)
+                }
             }
+
             return
         }
 
