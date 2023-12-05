@@ -8,6 +8,7 @@
 
     <color name="novelPassionColor">#FFF</color>
     <color name="wuxiaWorldOnlineColor">#24242B</color>
+    <color name="fanFictionDotNetColor">#4150B5</color>
     <color name="royalRoadColor">@color/primaryGrayBackground</color>
     <color name="wuxiaWorldSiteColor">#1670bf</color>
     <color name="readLightNovelColor">#FFF</color>
