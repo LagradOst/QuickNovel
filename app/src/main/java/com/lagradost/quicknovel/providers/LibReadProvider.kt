@@ -124,7 +124,6 @@ class LibReadProvider : MainAPI() {
             val h3 = h?.selectFirst("h3.tit > a")
             val cUrl = fixUrl(h3?.attr("href") ?: continue)
 
-            val rating = h.selectFirst("div.core > span")!!.text().toFloat().times(200).toInt()
             val name = h3.attr("title") ?: continue
             val posterUrl = h.selectFirst("div.pic > a > img")?.attr("src")
 
@@ -134,7 +133,7 @@ class LibReadProvider : MainAPI() {
                     name,
                     cUrl,
                     fixUrlNull(posterUrl),
-                    rating,
+                    null,
                     latestChap,
                     this.name
                 )
