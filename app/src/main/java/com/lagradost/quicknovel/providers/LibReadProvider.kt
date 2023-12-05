@@ -61,8 +61,7 @@ class LibReadProvider : MainAPI() {
         orderBy: String?,
         tag: String?
     ): HeadMainPageResponse {
-        val url =
-            if (tag.isNullOrBlank()) "$mainUrl/latest-novel/tag/$page.html" else "$mainUrl/genre/$tag/$page.html"
+        val url = if (tag.isNullOrBlank()) "$mainUrl/sort/latest-release/$page" else "$mainUrl/genre/$tag/$page"
         val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
@@ -96,8 +95,8 @@ class LibReadProvider : MainAPI() {
         val response = app.get(url)
         val document = Jsoup.parse(
             response.text
-                .replace("New novel chapters are published on Libread.com.", "")
-                .replace("The source of this content is Libread.com.", "")
+                .replace("\uD835\uDCF5\uD835\uDC8A\uD835\uDC83\uD835\uDE67\uD835\uDE5A\uD835\uDC82\uD835\uDCED.\uD835\uDCEC\uD835\uDE64\uD835\uDE62", "", true)
+                .replace("libread.com", "", true)
         )
         return document.selectFirst("div.txt")?.html()
     }
@@ -125,6 +124,7 @@ class LibReadProvider : MainAPI() {
             val h3 = h?.selectFirst("h3.tit > a")
             val cUrl = fixUrl(h3?.attr("href") ?: continue)
 
+            val rating = h.selectFirst("div.core > span")!!.text().toFloat().times(200).toInt()
             val name = h3.attr("title") ?: continue
             val posterUrl = h.selectFirst("div.pic > a > img")?.attr("src")
 
@@ -134,7 +134,7 @@ class LibReadProvider : MainAPI() {
                     name,
                     cUrl,
                     fixUrlNull(posterUrl),
-                    null,
+                    rating,
                     latestChap,
                     this.name
                 )
@@ -199,14 +199,11 @@ class LibReadProvider : MainAPI() {
 
         var rating = 0
         var peopleVoted = 0
-        try {
-            rating = (document.selectFirst("div.m-desc > div.score > p:nth-child(2)")?.text()!!
-                .substringBefore("/").toFloat() * 200).toInt()
 
-            peopleVoted = document.selectFirst("div.m-desc > div.score > p:nth-child(2)")?.text()!!
-                .substringAfter("(").filter { it.isDigit() }.toInt()
-        } catch (e: Exception) {
-            // NO RATING
+        val votes = document.selectFirst("div.m-desc > div.score > p:nth-child(2)")
+        if (votes != null) {
+            rating = votes.text().substringBefore('/').toFloat().times(200).toInt()
+            peopleVoted = votes.text().substringAfter('(').filter { it.isDigit() }.toInt()
         }
 
         return StreamResponse(
