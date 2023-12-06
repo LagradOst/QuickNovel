@@ -22,6 +22,7 @@ class Apis {
             BestLightNovelProvider(),
 //            WuxiaWorldOnlineProvider(), // Site does not work
             RoyalRoadProvider(),
+            LibReadProvider(),
             FreewebnovelProvider(),
             //AzynovelProvider(), // dont exist anymore
             ReadfromnetProvider(),
