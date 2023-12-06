@@ -514,11 +514,10 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 return
             }
 
-            // only call itself if it is called from UI
-            if (depth == 0) {
+            if (depth < 3) {
                 textLayoutManager.scrollToPositionWithOffset(adapterPosition, 1)
                 textLayoutManager.postOnAnimation {
-                    updateTTSLine(line, depth = 1)
+                    updateTTSLine(line, depth = depth + 1)
                 }
             }
 
