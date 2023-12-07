@@ -1,10 +1,13 @@
 package com.lagradost.quicknovel.ui.settings
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
-import androidx.preference.ListPreference
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.net.toUri
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
@@ -12,6 +15,7 @@ import com.lagradost.quicknovel.APIRepository.Companion.providersActive
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.mvvm.logError
+import com.lagradost.quicknovel.mvvm.normalSafeApiCall
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiProviderLangSettings
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
@@ -19,11 +23,13 @@ import com.lagradost.quicknovel.util.BackupUtils.backup
 import com.lagradost.quicknovel.util.BackupUtils.restorePrompt
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
-import com.lagradost.quicknovel.util.SingleSelectionHelper
 import com.lagradost.quicknovel.util.SingleSelectionHelper.showBottomDialog
 import com.lagradost.quicknovel.util.SingleSelectionHelper.showDialog
 import com.lagradost.quicknovel.util.SingleSelectionHelper.showMultiDialog
 import com.lagradost.quicknovel.util.SubtitleHelper
+import com.lagradost.safefile.MediaFileContentType
+import com.lagradost.safefile.SafeFile
+import java.io.File
 
 class SettingsFragment : PreferenceFragmentCompat() {
     private fun PreferenceFragmentCompat?.getPref(id: Int): Preference? {
@@ -62,8 +68,85 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 }
             }
         }
+
+        fun getDefaultDir(context: Context): SafeFile? {
+            // See https://www.py4u.net/discuss/614761
+            return SafeFile.fromMedia(
+                context, MediaFileContentType.Downloads
+            )?.gotoDirectory("Epub")
+        }/**
+         * Turns a string to an UniFile. Used for stored string paths such as settings.
+         * Should only be used to get a download path.
+         * */
+        private fun basePathToFile(context: Context, path: String?): SafeFile? {
+            return when {
+                path.isNullOrBlank() -> getDefaultDir(context)
+                path.startsWith("content://") -> SafeFile.fromUri(context, path.toUri())
+                else -> SafeFile.fromFile(context, File(path))
+            }
+        }
+
+
+
+        /**
+         * Base path where downloaded things should be stored, changes depending on settings.
+         * Returns the file and a string to be stored for future file retrieval.
+         * UniFile.filePath is not sufficient for storage.
+         * */
+        fun Context.getBasePath(): Pair<SafeFile?, String?> {
+            val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
+            val basePathSetting = settingsManager.getString(getString(R.string.download_path_key), null)
+            return basePathToFile(this, basePathSetting) to basePathSetting
+        }
+
+        fun getDownloadDirs(context: Context?): List<String> {
+            return normalSafeApiCall {
+                context?.let { ctx ->
+                    val defaultDir = getDefaultDir(ctx)?.filePath()
+
+                    val first = listOf(defaultDir)
+                    (try {
+                        val currentDir = ctx.getBasePath().let { it.first?.filePath() ?: it.second }
+
+                        (first +
+                                ctx.getExternalFilesDirs("").mapNotNull { it.path } +
+                                currentDir)
+                    } catch (e: Exception) {
+                        first
+                    }).filterNotNull().distinct()
+                }
+            } ?: emptyList()
+        }
     }
 
+    // Open file picker
+    private val pathPicker =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            // It lies, it can be null if file manager quits.
+            if (uri == null) return@registerForActivityResult
+            val context = context ?: return@registerForActivityResult
+            // RW perms for the path
+            val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+
+            context.contentResolver.takePersistableUriPermission(uri, flags)
+
+            val file = SafeFile.fromUri(context, uri)
+            val filePath = file?.filePath()
+            println("Selected URI path: $uri - Full path: $filePath")
+
+            // Stores the real URI using download_path_key
+            // Important that the URI is stored instead of filepath due to permissions.
+            PreferenceManager.getDefaultSharedPreferences(context)
+                .edit().putString(getString(R.string.download_path_key), uri.toString()).apply()
+
+            // From URI -> File path
+            // File path here is purely for cosmetic purposes in settings
+            (filePath ?: uri.toString()).let {
+                PreferenceManager.getDefaultSharedPreferences(context)
+                    .edit().putString(getString(R.string.download_path_pref), it).apply()
+            }
+        }
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.settings, rootKey)
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(requireContext())
@@ -97,6 +180,39 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
         getPref(R.string.restore_key)?.setOnPreferenceClickListener {
             activity?.restorePrompt()
+            return@setOnPreferenceClickListener true
+        }
+
+        getPref(R.string.download_path_key)?.setOnPreferenceClickListener {
+            val dirs = getDownloadDirs(context)
+
+            val currentDir =
+                settingsManager.getString(getString(R.string.download_path_pref), null)
+                    ?: context?.let { ctx -> getDefaultDir(ctx)?.filePath() }
+
+            activity?.showBottomDialog(
+                dirs + listOf("Custom"),
+                dirs.indexOf(currentDir),
+                getString(R.string.download_path_pref),
+                true,
+                {}) {
+                // Last = custom
+                if (it == dirs.size) {
+                    try {
+                        pathPicker.launch(Uri.EMPTY)
+                    } catch (e: Exception) {
+                        logError(e)
+                    }
+                } else {
+                    // Sets both visual and actual paths.
+                    // key = used path
+                    // pref = visual path
+                    settingsManager.edit()
+                        .putString(getString(R.string.download_path_key), dirs[it]).apply()
+                    settingsManager.edit()
+                        .putString(getString(R.string.download_path_pref), dirs[it]).apply()
+                }
+            }
             return@setOnPreferenceClickListener true
         }
 

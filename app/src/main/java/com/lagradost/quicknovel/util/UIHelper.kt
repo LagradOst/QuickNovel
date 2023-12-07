@@ -6,14 +6,18 @@ import android.app.Dialog
 import android.content.Context
 import android.content.res.Resources
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Build
 import android.text.Spanned
 import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.Window
 import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
 import androidx.annotation.AttrRes
@@ -38,9 +42,14 @@ import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.load.model.LazyHeaders
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions.bitmapTransform
+import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.ui.UiImage
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.databinding.ImageLayoutBinding
+import com.lagradost.quicknovel.databinding.SingleImageBinding
 import com.lagradost.quicknovel.mvvm.logError
+import com.lagradost.quicknovel.util.UIHelper.setImage
+import io.noties.markwon.image.AsyncDrawable
 import jp.wasabeef.glide.transformations.BlurTransformation
 import java.io.File
 import java.text.CharacterIterator
@@ -88,6 +97,51 @@ object UIHelper {
         if (this?.isShowing == true && activity?.isFinishing == false) {
             this.dismiss()
         }
+    }
+
+    fun bindImage(imageView: ImageView, img : AsyncDrawable) {
+        val url = img.destination
+        img.result?.let { drawable ->
+            imageView.setImageDrawable(drawable)
+        } ?: kotlin.run {
+            imageView.setImage(url)
+        }
+    }
+
+    fun showImage(context : Context?, image : UiImage) {
+        if (context == null) return
+        val settingsDialog = Dialog(context)
+        settingsDialog.window!!.requestFeature(Window.FEATURE_NO_TITLE)
+        settingsDialog.window!!.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        val binding = ImageLayoutBinding.inflate(LayoutInflater.from(context))
+        binding.image.setImage(image)
+
+        binding.image.setOnClickListener {
+            settingsDialog.dismissSafe(CommonActivity.activity)
+        }
+        settingsDialog.setContentView(
+            binding.root
+        )
+
+        settingsDialog.show()
+    }
+
+    fun showImage(context : Context?, drawable : AsyncDrawable) {
+        if (context == null) return
+        val settingsDialog = Dialog(context)
+        settingsDialog.window!!.requestFeature(Window.FEATURE_NO_TITLE)
+        settingsDialog.window!!.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        val binding = ImageLayoutBinding.inflate(LayoutInflater.from(context))
+        bindImage(binding.image,drawable)
+
+        binding.image.setOnClickListener {
+            settingsDialog.dismissSafe(CommonActivity.activity)
+        }
+        settingsDialog.setContentView(
+            binding.root
+        )
+
+        settingsDialog.show()
     }
 
     fun FragmentActivity.popCurrentPage() {

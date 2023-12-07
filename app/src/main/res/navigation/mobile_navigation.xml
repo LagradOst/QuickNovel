@@ -43,4 +43,51 @@
             android:label="@string/title_download"
             android:layout_height="match_parent">
     </fragment>
+
+    <fragment
+            android:id="@+id/navigation_results"
+            android:name="com.lagradost.quicknovel.ui.result.ResultFragment"
+            android:layout_height="match_parent">
+    </fragment>
+
+
+    <action
+            android:id="@+id/global_to_navigation_results"
+            app:destination="@id/navigation_results"
+            app:enterAnim="@anim/enter_anim"
+            app:exitAnim="@anim/exit_anim"
+            app:popEnterAnim="@anim/enter_anim"
+            app:popExitAnim="@anim/exit_anim">
+        <argument
+                android:name="url"
+                app:argType="string" />
+        <argument
+                android:name="apiName"
+                app:argType="string" />
+        <argument
+                android:name="startAction"
+                android:defaultValue="0"
+                app:argType="integer" />
+    </action>
+
+    <action
+            android:id="@+id/global_to_navigation_mainpage"
+            app:destination="@id/navigation_mainpage"
+            app:enterAnim="@anim/enter_anim"
+            app:exitAnim="@anim/exit_anim"
+            app:popEnterAnim="@anim/enter_anim"
+            app:popExitAnim="@anim/exit_anim">
+        <argument
+                android:name="url"
+                app:argType="string" />
+        <argument
+                android:name="mainCategory"
+                app:argType="integer" />
+        <argument
+                android:name="orderBy"
+                app:argType="integer" />
+        <argument
+                android:name="tag"
+                app:argType="integer" />
+    </action>
 </navigation>

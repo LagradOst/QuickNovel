@@ -12,7 +12,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.FragmentActivity
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.hippo.unifile.UniFile
 import com.lagradost.quicknovel.BookDownloader2Helper.checkWrite
 import com.lagradost.quicknovel.BookDownloader2Helper.requestRW
 import com.lagradost.quicknovel.CommonActivity.showToast
@@ -22,7 +21,7 @@ import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.DataStore.setKeyRaw
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.mvvm.logError
-import java.io.File
+import com.lagradost.quicknovel.ui.settings.SettingsFragment
 import java.io.IOException
 import java.io.PrintWriter
 import java.lang.System.currentTimeMillis
@@ -31,7 +30,7 @@ import java.util.*
 import kotlin.concurrent.thread
 
 object BackupUtils {
-    var restoreFileSelector: ActivityResultLauncher<Array<String>>? = null
+    private var restoreFileSelector: ActivityResultLauncher<Array<String>>? = null
 
     // Kinda hack, but I couldn't think of a better way
     data class BackupVars(
@@ -48,27 +47,10 @@ object BackupUtils {
         @JsonProperty("settings") val settings: BackupVars
     )
 
-    /**
-     * Gets the default download path as an UniFile.
-     * Vital for legacy downloads, be careful about changing anything here.
-     *
-     * As of writing UniFile is used for everything but download directory on scoped storage.
-     * Special ContentResolver fuckery is needed for that as UniFile doesn't work.
-     * */
-    private fun getDownloadDir(): UniFile? {
-        // See https://www.py4u.net/discuss/614761
-        return UniFile.fromFile(
-            File(
-                Environment.getExternalStorageDirectory().absolutePath + File.separatorChar +
-                        Environment.DIRECTORY_DOWNLOADS
-            )
-        )
-    }
-
     fun FragmentActivity.backup() {
         try {
             if (checkWrite()) {
-                val subDir = getDownloadDir()//getBasePath().first
+                val subDir = SettingsFragment.getDefaultDir(context = this)//getBasePath().first
                 val date = SimpleDateFormat("yyyy_MM_dd_HH_mm").format(Date(currentTimeMillis()))
                 val ext = "json"
                 val displayName = "QN_Backup_${date}"
@@ -127,7 +109,7 @@ object BackupUtils {
                         val file =
                             subDir?.createFile(fileName)
                                 ?: throw IOException("Error creating file")
-                        if (!file.exists()) throw IOException("File does not exist")
+                        if (file.exists() != true) throw IOException("File does not exist")
                         file.openOutputStream()
                     }
 

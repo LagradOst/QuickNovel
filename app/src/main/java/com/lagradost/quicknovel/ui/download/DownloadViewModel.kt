@@ -49,6 +49,14 @@ class DownloadViewModel : ViewModel() {
     private val cards: MutableLiveData<ArrayList<DownloadFragment.DownloadDataLoaded>> by lazy {
         MutableLiveData<ArrayList<DownloadFragment.DownloadDataLoaded>>()
     }
+    val readList = arrayListOf(
+        ReadType.READING,
+        ReadType.ON_HOLD,
+        ReadType.PLAN_TO_READ,
+        ReadType.COMPLETED,
+        ReadType.DROPPED,
+    )
+
 
     val downloadCards: LiveData<ArrayList<DownloadFragment.DownloadDataLoaded>> = cards
 
@@ -64,7 +72,8 @@ class DownloadViewModel : ViewModel() {
 
     var currentNormalSortingMethod: MutableLiveData<Int> =
         MutableLiveData<Int>()
-
+    var currentTab: MutableLiveData<Int> =
+        MutableLiveData<Int>()
     fun refreshCard(card: DownloadFragment.DownloadDataLoaded) = viewModelScope.launch {
         BookDownloader2.downloadFromCard(card)
     }
@@ -272,7 +281,7 @@ class DownloadViewModel : ViewModel() {
         }
     }
 
-    fun loadData() = viewModelScope.launch {
+    private fun loadData() = viewModelScope.launch {
         currentReadType.postValue(null)
         isOnDownloads.postValue(true)
         cardsDataMutex.withLock {
@@ -280,7 +289,16 @@ class DownloadViewModel : ViewModel() {
         }
     }
 
-    fun loadNormalData(state: ReadType) = viewModelScope.launch {
+    fun selectTab(index : Int) {
+        currentTab.postValue(index)
+        if (index == 0) {
+            loadData()
+        } else {
+            loadNormalData(readList[index - 1])
+        }
+    }
+
+    private fun loadNormalData(state: ReadType) = viewModelScope.launch {
         currentNormalSortingMethod.postValue(
             getKey(DOWNLOAD_SETTINGS, DOWNLOAD_NORMAL_SORTING_METHOD, LAST_ACCES_SORT)
                 ?: LAST_ACCES_SORT

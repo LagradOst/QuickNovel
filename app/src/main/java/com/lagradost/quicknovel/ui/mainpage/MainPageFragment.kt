@@ -39,15 +39,14 @@ class MainPageFragment : Fragment() {
         binding = FragmentMainpageBinding.inflate(inflater)
         return binding.root
     }
-
+    companion object {
     fun newInstance(
         apiName: String,
         mainCategory: Int? = null,
         orderBy: Int? = null,
         tag: Int? = null
-    ) =
-        MainPageFragment().apply {
-            arguments = Bundle().apply {
+    ) : Bundle =
+           Bundle().apply {
                 putString("apiName", apiName)
 
                 if (mainCategory != null)
@@ -57,7 +56,7 @@ class MainPageFragment : Fragment() {
                 if (tag != null)
                     putInt("tag", tag)
             }
-        }
+    }
 
     var isLoading = false
     var pastVisiblesItems = 0

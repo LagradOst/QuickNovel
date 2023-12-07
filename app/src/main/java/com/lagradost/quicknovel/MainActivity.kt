@@ -4,11 +4,20 @@ import android.app.Activity
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import android.view.WindowManager
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels
+import androidx.annotation.IdRes
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
+import androidx.fragment.app.FragmentActivity
+import androidx.navigation.NavController
+import androidx.navigation.NavDestination
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavOptions
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.NavHostFragment
@@ -33,6 +42,7 @@ import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
 import com.lagradost.quicknovel.NotificationHelper.requestNotifications
+import com.lagradost.quicknovel.databinding.ActivityMainBinding
 import com.lagradost.quicknovel.databinding.BottomPreviewBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.logError
@@ -129,11 +139,24 @@ class MainActivity : AppCompatActivity() {
         fun loadResult(url: String, apiName: String, startAction: Int = 0) {
             (activity as? AppCompatActivity)?.loadResult(url, apiName, startAction)
         }
-
-        fun AppCompatActivity.loadResult(url: String, apiName: String, startAction: Int = 0) {
+        fun Activity?.navigate(@IdRes navigation: Int, arguments: Bundle? = null) {
+            try {
+                if (this is FragmentActivity) {
+                    val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment?
+                    navHostFragment?.navController?.navigate(navigation, arguments)
+                }
+            } catch (t: Throwable) {
+                logError(t)
+            }
+        }
+        fun FragmentActivity.loadResult(url: String, apiName: String, startAction: Int = 0) {
             SearchFragment.currentDialog?.dismiss()
             runOnUiThread {
-                supportFragmentManager.beginTransaction()
+                this.navigate(
+                    R.id.global_to_navigation_results,
+                    ResultFragment.newInstance(url, apiName, startAction)
+                )
+            /*supportFragmentManager.beginTransaction()
                     .setCustomAnimations(
                         R.anim.enter_anim,
                         R.anim.exit_anim,
@@ -141,7 +164,7 @@ class MainActivity : AppCompatActivity() {
                         R.anim.pop_exit
                     )
                     .add(R.id.homeRoot, ResultFragment().newInstance(url, apiName, startAction))
-                    .commit()
+                    .commit()*/
             }
         }
 
@@ -184,7 +207,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        fun AppCompatActivity.backPressed(): Boolean {
+        /*fun AppCompatActivity.backPressed(): Boolean {
             this.window?.navigationBarColor =
                 this.colorFromAttribute(R.attr.primaryGrayBackground)
 
@@ -222,7 +245,7 @@ class MainActivity : AppCompatActivity() {
                 return true
             }
             return false
-        }
+        }*/
 
         /* fun semihideNavbar() {
              activity
@@ -257,6 +280,29 @@ class MainActivity : AppCompatActivity() {
                  }
              }
          }*/
+    }
+    private fun NavDestination.matchDestination(@IdRes destId: Int): Boolean =
+        hierarchy.any { it.id == destId }
+    private fun onNavDestinationSelected(item: MenuItem, navController: NavController): Boolean {
+        val builder = NavOptions.Builder().setLaunchSingleTop(true).setRestoreState(true)
+            .setEnterAnim(R.anim.enter_anim)
+            .setExitAnim(R.anim.exit_anim)
+            .setPopEnterAnim(R.anim.pop_enter)
+            .setPopExitAnim(R.anim.pop_exit)
+        if (item.order and Menu.CATEGORY_SECONDARY == 0) {
+            builder.setPopUpTo(
+                navController.graph.findStartDestination().id,
+                inclusive = false,
+                saveState = true
+            )
+        }
+        val options = builder.build()
+        return try {
+            navController.navigate(item.itemId, null, options)
+            navController.currentDestination?.matchDestination(item.itemId) == true
+        } catch (e: IllegalArgumentException) {
+            false
+        }
     }
 
     private val viewModel: ResultViewModel by viewModels()
@@ -317,10 +363,10 @@ class MainActivity : AppCompatActivity() {
         mainActivity = this
     }
 
-    override fun onBackPressed() {
+    /*override fun onBackPressed() {
         if (backPressed()) return
         super.onBackPressed()
-    }
+    }*/
 
     private fun handleIntent(intent: Intent?) {
         if (intent == null) return
@@ -352,6 +398,24 @@ class MainActivity : AppCompatActivity() {
         super.onNewIntent(intent)
     }
 
+
+    private fun updateNavBar(destination: NavDestination) {
+        //this.hideKeyboard()
+
+        val isNavVisible = listOf(
+            R.id.navigation_mainpage,
+            R.id.navigation_homepage,
+            R.id.navigation_history,
+            R.id.navigation_download,
+            R.id.navigation_search,
+            R.id.navigation_settings,
+        ).contains(destination.id)
+
+        binding?.apply {
+            navView.isVisible = isNavVisible
+        }
+    }
+    var binding : ActivityMainBinding? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         mainActivity = this
         activity = this
@@ -362,9 +426,30 @@ class MainActivity : AppCompatActivity() {
         CommonActivity.loadThemes(this)
 
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding!!.root)
 
         setUpBackup()
+
+        val navHostFragment =
+            supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        val navController = navHostFragment.navController
+
+        navController.addOnDestinationChangedListener { _: NavController, navDestination: NavDestination, bundle: Bundle? ->
+            // Intercept search and add a query
+            updateNavBar(navDestination)
+            /*if (navDestination.matchDestination(R.id.navigation_search) && !nextSearchQuery.isNullOrBlank()) {
+                bundle?.apply {
+                    this.putString(SearchFragment.SEARCH_QUERY, nextSearchQuery)
+                }
+            }
+
+            if (isTvSettings()) {
+                if (navDestination.matchDestination(R.id.navigation_home)) {
+                    attachBackPressedCallback()
+                } else detachBackPressedCallback()
+            }*/
+        }
 
         val navView: BottomNavigationView = findViewById(R.id.nav_view)
 
@@ -372,7 +457,14 @@ class MainActivity : AppCompatActivity() {
         navView.itemRippleColor = rippleColor
         navView.itemActiveIndicatorColor = rippleColor
 
-        val navController = findNavController(R.id.nav_host_fragment)
+        navView.setOnItemSelectedListener { item ->
+            onNavDestinationSelected(
+                item,
+                navController = navController
+            )
+        }
+
+        //val navController = findNavController(R.id.nav_host_fragment)
 
         //window.navigationBarColor = colorFromAttribute(R.attr.darkBackground)
         navOptions = NavOptions.Builder()
@@ -387,7 +479,7 @@ class MainActivity : AppCompatActivity() {
                 navView.setOnNavigationItemReselectedListener { item ->
                     return@setOnNavigationItemReselectedListener
                 }*/
-        navView.setOnNavigationItemSelectedListener { item ->
+        /*navView.setOnNavigationItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.navigation_homepage -> {
                     navController.navigate(R.id.navigation_homepage, null, navOptions)
@@ -410,7 +502,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             true
-        }
+        }*/
 
         observe(viewModel.readState) {
             bottomPreviewBinding?.apply {
@@ -570,7 +662,22 @@ class MainActivity : AppCompatActivity() {
         thread {
             test()
         }
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    window?.navigationBarColor = colorFromAttribute(R.attr.primaryGrayBackground)
+                    //updateLocale()
 
+                    // If we don't disable we end up in a loop with default behavior calling
+                    // this callback as well, so we disable it, run default behavior,
+                    // then re-enable this callback so it can be used for next back press.
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                    isEnabled = true
+                }
+            }
+        )
     }
 
     fun test() {

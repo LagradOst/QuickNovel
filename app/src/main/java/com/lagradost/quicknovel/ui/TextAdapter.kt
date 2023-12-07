@@ -1,19 +1,13 @@
 package com.lagradost.quicknovel.ui
 
-import android.app.Dialog
-import android.content.Context
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.graphics.Typeface
-import android.graphics.drawable.ColorDrawable
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.method.LinkMovementMethod
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import android.view.Window
-import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.text.getSpans
@@ -25,7 +19,6 @@ import androidx.viewbinding.ViewBinding
 import com.lagradost.quicknovel.ChapterLoadSpanned
 import com.lagradost.quicknovel.ChapterOverscrollSpanned
 import com.lagradost.quicknovel.ChapterStartSpanned
-import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.FailedSpanned
 import com.lagradost.quicknovel.LoadingSpanned
@@ -34,7 +27,6 @@ import com.lagradost.quicknovel.ReadActivityViewModel
 import com.lagradost.quicknovel.SpanDisplay
 import com.lagradost.quicknovel.TTSHelper
 import com.lagradost.quicknovel.TextSpan
-import com.lagradost.quicknovel.databinding.ImageLayoutBinding
 import com.lagradost.quicknovel.databinding.SingleFailedBinding
 import com.lagradost.quicknovel.databinding.SingleFinishedChapterBinding
 import com.lagradost.quicknovel.databinding.SingleImageBinding
@@ -43,9 +35,9 @@ import com.lagradost.quicknovel.databinding.SingleLoadingBinding
 import com.lagradost.quicknovel.databinding.SingleOverscrollChapterBinding
 import com.lagradost.quicknovel.databinding.SingleTextBinding
 import com.lagradost.quicknovel.mvvm.logError
-import com.lagradost.quicknovel.util.UIHelper.dismissSafe
+import com.lagradost.quicknovel.util.UIHelper
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
-import com.lagradost.quicknovel.util.UIHelper.setImage
+import com.lagradost.quicknovel.util.UIHelper.showImage
 import com.lagradost.quicknovel.util.UIHelper.systemFonts
 import io.noties.markwon.image.AsyncDrawable
 import io.noties.markwon.image.AsyncDrawableSpan
@@ -547,38 +539,14 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
             )
         }
 
-        private fun bindImage(imageView: ImageView, img :AsyncDrawable) {
-            val url = img.destination
-            img.result?.let { drawable ->
-                imageView.setImageDrawable(drawable)
-            } ?: kotlin.run {
-                imageView.setImage(url)
-            }
-        }
 
-        private fun bindImage(binding : SingleImageBinding, img :AsyncDrawable) {
+        private fun bindImage(binding : SingleImageBinding, img : AsyncDrawable) {
             val url = img.destination
             if (binding.root.url == url) return
             binding.root.url = url // don't reload if already set
-            bindImage(binding.root,img)
+            UIHelper.bindImage(binding.root, img)
         }
 
-        private fun showImage(context : Context?, drawable : AsyncDrawable) {
-            if (context == null) return
-            val settingsDialog = Dialog(context)
-            settingsDialog.window!!.requestFeature(Window.FEATURE_NO_TITLE)
-            settingsDialog.window!!.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            val binding = ImageLayoutBinding.inflate(LayoutInflater.from(context))
-            bindImage(binding.image,drawable)
-            binding.image.setOnClickListener {
-                settingsDialog.dismissSafe(activity)
-            }
-            settingsDialog.setContentView(
-                binding.root
-            )
-
-            settingsDialog.show()
-        }
         private fun bindText(obj: TextSpan) {
             when (binding) {
                 is SingleImageBinding -> {

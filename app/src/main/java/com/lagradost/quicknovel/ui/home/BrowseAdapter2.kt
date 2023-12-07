@@ -12,8 +12,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity
+import com.lagradost.quicknovel.MainActivity.Companion.navigate
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.BrowseListCompactBinding
+import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 
 class BrowseAdapter2 : ListAdapter<MainAPI, BrowseAdapter2.BrowseAdapter2Holder>(DiffCallback()) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BrowseAdapter2Holder {
@@ -33,11 +35,7 @@ class BrowseAdapter2 : ListAdapter<MainAPI, BrowseAdapter2.BrowseAdapter2Holder>
                 api.iconId?.let { browseIcon.setImageResource(it) }
                 browseIconBackground.setCardBackgroundColor(ContextCompat.getColor(browseIconBackground.context, api.iconBackgroundId))
                 browseBackground.setOnClickListener {
-                    // TODO MAKE BETTER
-                    val navController = activity?.findNavController(R.id.nav_host_fragment)
-                    navController?.navigate(R.id.navigation_mainpage, Bundle().apply {
-                        putString("apiName", api.name)
-                    }, MainActivity.navOptions)
+                    activity?.navigate(R.id.global_to_navigation_mainpage,MainPageFragment.newInstance(api.name))
                 }
             }
         }

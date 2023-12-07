@@ -18,6 +18,10 @@
                 android:key="@string/search_providers_list_key"
                 android:title="Search Providers"
                 app:useSimpleSummaryProvider="true" />
+        <Preference
+                android:key="@string/download_path_key"
+                android:title="@string/download_path_pref"
+                android:icon="@drawable/netflix_download" />
         <!--<ListPreference
                 app:icon="@drawable/ic_baseline_grid_view_24"
                 android:key="@string/grid_format_key"

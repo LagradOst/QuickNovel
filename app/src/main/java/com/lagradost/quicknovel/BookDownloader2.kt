@@ -9,7 +9,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.ContentResolver
 import android.content.ContentUris
-import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -27,7 +26,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.preference.PreferenceManager
 import com.bumptech.glide.Glide
@@ -50,6 +48,8 @@ import com.lagradost.quicknovel.extractors.ExtractorApi
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.services.DownloadService
 import com.lagradost.quicknovel.ui.download.DownloadFragment
+import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getBasePath
+import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getDefaultDir
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.main
@@ -69,8 +69,7 @@ import nl.siegmann.epublib.domain.Resource
 import nl.siegmann.epublib.epub.EpubWriter
 import nl.siegmann.epublib.service.MediatypeService
 import java.io.File
-import java.io.FileOutputStream
-import java.io.OutputStream
+import java.io.IOException
 
 
 enum class DownloadActionType {
@@ -135,7 +134,7 @@ object BookDownloader2Helper {
         for (c in reservedChars) {
             tempName = tempName.replace(c, ' ')
         }
-        return tempName.replace("  ", " ")
+        return tempName.replace(Regex("\\s+"), " ").trim()
     }
 
     fun getDirectory(apiName: String, author: String, name: String): String {
@@ -458,6 +457,15 @@ object BookDownloader2Helper {
         }
 
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(activity)
+        val subDir = activity.getBasePath().first ?: getDefaultDir(activity) ?: throw IOException("No file")
+
+        //val subDir = baseFile.gotoDirectory("Epub", createMissingDirectories = false) ?: return false
+        val displayName = "${sanitizeFilename(name)}.epub"
+
+        val foundFile = subDir.findFile(displayName) ?: return false
+
+        //val relativePath = (Environment.DIRECTORY_DOWNLOADS + "${fs}Epub${fs}")
+
 
         if (openInApp ?: !(settingsManager.getBoolean(
                 activity.getString(R.string.external_reader_key),
@@ -466,8 +474,7 @@ object BookDownloader2Helper {
         ) {
             val myIntent = Intent(activity, ReadActivity2::class.java)
 
-            val relativePath = (Environment.DIRECTORY_DOWNLOADS + "${fs}Epub${fs}")
-            val displayName = "${sanitizeFilename(name)}.epub"
+            /*val relativePath = (Environment.DIRECTORY_DOWNLOADS + "${fs}Epub${fs}")
 
             val fileUri = if (isScopedStorage()) {
                 val cr = activity.contentResolver ?: return false
@@ -478,15 +485,15 @@ object BookDownloader2Helper {
 
                 val bookFile = File(normalPath)
                 bookFile.toUri()
-            }
-            myIntent.setDataAndType(fileUri, "application/epub+zip")
+            }*/
+
+            myIntent.setDataAndType(foundFile.uri() ?: return false, "application/epub+zip")
 
             activity.startActivity(myIntent)
             return true
         }
 
-        val relativePath = (Environment.DIRECTORY_DOWNLOADS + "${fs}Epub${fs}")
-        val displayName = "${sanitizeFilename(name)}.epub"
+       // val relativePath = (Environment.DIRECTORY_DOWNLOADS + "${fs}Epub${fs}")
 
         try {
             val intent = Intent()
@@ -498,8 +505,10 @@ object BookDownloader2Helper {
             // val mime = MimeTypeMap.getSingleton()
             //  val ext: String = ".epub" //bookFile.name.substring(bookFile.name.lastIndexOf(".") + 1)
             val type = "application/epub+zip"//mime.getMimeTypeFromExtension(ext)
-
-            if (isScopedStorage()) {
+            intent.setDataAndType(
+                foundFile.uri() ?: return false, type
+            )
+            /*if (isScopedStorage()) {
                 val cr = activity.contentResolver ?: return false
 
                 val fileUri =
@@ -520,7 +529,7 @@ object BookDownloader2Helper {
                         bookFile
                     ), type
                 ) // THIS IS NEEDED BECAUSE A REGULAR INTENT WONT OPEN MOONREADER
-            }
+            }*/
 
             activity.startActivity(intent)
             //this.startActivityForResult(intent,1337) // SEE @moonreader
@@ -600,12 +609,18 @@ object BookDownloader2Helper {
             val sName = sanitizeFilename(name)
             val id = "$sApiName$sAuthor$sName".hashCode()
 
-            val fileStream: OutputStream
+            val subDir = activity.getBasePath().first ?: getDefaultDir(activity) ?: throw IOException("No file")
 
-            val relativePath = (Environment.DIRECTORY_DOWNLOADS + "${fs}Epub${fs}")
+            //val subDir = baseFile.gotoDirectoryOrThrow("Epub", createMissingDirectories = true)
             val displayName = "${sanitizeFilename(name)}.epub"
 
-            if (isScopedStorage()) {
+            //val relativePath = (Environment.DIRECTORY_DOWNLOADS + "${fs}Epub${fs}")
+            subDir.findFile(displayName)?.delete()
+            val file = subDir.createFileOrThrow(displayName)
+
+            val fileStream = file.openOutputStream(append = false) ?: throw IOException("No outputfile")
+
+            /*if (isScopedStorage()) {
                 val cr = activity.contentResolver ?: return false
 
                 val currentExistingFile =
@@ -654,7 +669,7 @@ object BookDownloader2Helper {
                     if (!rFile.createNewFile()) return false
                 }
                 fileStream = FileOutputStream(rFile, false)
-            }
+            }*/
 
             val epubFile = File(
                 activity.filesDir.toString() + getDirectory(sApiName, sAuthor, sName),

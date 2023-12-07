@@ -395,6 +395,7 @@ class ReadActivityViewModel : ViewModel() {
     private var chapterPaddingTop: Int = 2
 
     fun reloadChapter(index: Int) = ioSafe {
+        hasExpanded.clear() // will unfuck the rest
         loadIndividualChapter(index, reload = true, notify = false)
         updateReadArea(seekToDesired = false)
     }
@@ -672,7 +673,7 @@ class ReadActivityViewModel : ViewModel() {
             val data = intent.data ?: throw ErrorLoadingException("Empty intent")
             val input = context.contentResolver.openInputStream(data)
                 ?: throw ErrorLoadingException("Empty data")
-            val isFromEpub = intent.type == "application/epub+zip"
+            val isFromEpub = intent.type != "quickstream"
 
             val epub = if (isFromEpub) {
                 val epubReader = EpubReader()

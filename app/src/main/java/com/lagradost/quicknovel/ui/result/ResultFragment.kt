@@ -24,7 +24,7 @@ import com.google.android.material.tabs.TabLayout
 import com.lagradost.quicknovel.BookDownloader2Helper
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.LoadResponse
-import com.lagradost.quicknovel.MainActivity.Companion.backPressed
+import com.lagradost.quicknovel.MainActivity.Companion.navigate
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.databinding.FragmentResultBinding
@@ -34,6 +34,7 @@ import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.util.SettingsHelper.getRating
+import com.lagradost.quicknovel.util.UIHelper
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.util.UIHelper.getStatusBarHeight
@@ -50,16 +51,17 @@ const val MAX_SYNO_LENGH = 300
 class ResultFragment : Fragment() {
     lateinit var binding: FragmentResultBinding
     private val viewModel: ResultViewModel by viewModels()
+    companion object {
+        fun newInstance(url: String, apiName: String, startAction: Int = 0) : Bundle =
+            Bundle().apply {
+                    //println(data)
+                    putString("url", url)
+                    putString("apiName", apiName)
+                    putInt("startAction", startAction)
+                }
 
-    fun newInstance(url: String, apiName: String, startAction: Int = 0) =
-        ResultFragment().apply {
-            arguments = Bundle().apply {
-                //println(data)
-                putString("url", url)
-                putString("apiName", apiName)
-                putInt("startAction", startAction)
-            }
-        }
+    }
+
 
     //private lateinit var viewModel: ResultViewModel
 
@@ -143,6 +145,12 @@ class ResultFragment : Fragment() {
                 binding.apply {
                     downloadWarning.isVisible = api.rateLimitTime > 1000
 
+                    res.image?.let {img ->
+                        resultEmptyView.setOnClickListener {
+                            UIHelper.showImage(it.context, img)
+                        }
+                    }
+
                     resultPoster.setImage(res.image)
                     resultPosterBlur.setImage(res.image, radius = 100, sample = 3)
 
@@ -208,21 +216,10 @@ class ResultFragment : Fragment() {
                                 map[tag]?.let { index ->
                                     chip.isClickable = true
                                     chip.setOnClickListener {
-                                        activity?.supportFragmentManager?.beginTransaction()
-                                            ?.setCustomAnimations(
-                                                R.anim.enter_anim,
-                                                R.anim.exit_anim,
-                                                R.anim.pop_enter,
-                                                R.anim.pop_exit
-                                            )
-                                            ?.add(
-                                                R.id.homeRoot,
-                                                MainPageFragment().newInstance(
-                                                    api.name,
-                                                    tag = index
-                                                )
-                                            )
-                                            ?.commit()
+                                        activity?.navigate(R.id.global_to_navigation_mainpage,MainPageFragment.newInstance(
+                                            api.name,
+                                            tag = index
+                                        ))
                                     }
                                 }
 
@@ -277,8 +274,8 @@ class ResultFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val url = arguments?.getString("url") ?: throw NotImplementedError()
-        val apiName = arguments?.getString("apiName") ?: throw NotImplementedError()
+        val url = savedInstanceState?.getString("url") ?: arguments?.getString("url") ?: throw NotImplementedError()
+        val apiName = savedInstanceState?.getString("apiName") ?: arguments?.getString("apiName") ?: throw NotImplementedError()
 
         activity?.window?.decorView?.clearFocus()
         hideKeyboard()
@@ -319,7 +316,9 @@ class ResultFragment : Fragment() {
             resultBack.layoutParams = backParameter
 
             resultBack.setOnClickListener {
-                (activity as? AppCompatActivity)?.backPressed()
+                activity?.onBackPressedDispatcher?.onBackPressed()
+                //activity?.onBackPressed()
+            //    (activity as? AppCompatActivity)?.backPressed()
             }
 
             val parameter = resultEmptyView.layoutParams as LinearLayout.LayoutParams

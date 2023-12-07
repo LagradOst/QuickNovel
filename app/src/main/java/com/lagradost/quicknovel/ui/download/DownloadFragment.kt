@@ -141,28 +141,23 @@ class DownloadFragment : Fragment() {
             binding.swipeContainer.isVisible = onDownloads
         }
 
+        observe(viewModel.currentTab) { tab ->
+            if (binding.bookmarkTabs.selectedTabPosition != tab) {
+                binding.bookmarkTabs.selectTab(binding.bookmarkTabs.getTabAt(tab))
+            }
+        }
 
-        val readList = arrayListOf(
-            ReadType.READING,
-            ReadType.ON_HOLD,
-            ReadType.PLAN_TO_READ,
-            ReadType.COMPLETED,
-            ReadType.DROPPED,
-        )
+
         binding.bookmarkTabs.apply {
             addTab(newTab().setText(getString(R.string.tab_downloads)))
-            for (read in readList) {
+            for (read in viewModel.readList) {
                 addTab(newTab().setText(getString(read.stringRes)))
             }
             addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
                 override fun onTabSelected(tab: TabLayout.Tab?) {
                     val pos = tab?.position
                     if (pos != null) {
-                        if(pos > 0) {
-                            viewModel.loadNormalData(readList[pos - 1])
-                        } else {
-                            viewModel.loadData()
-                        }
+                        viewModel.selectTab(pos)
                     }
                 }
 
