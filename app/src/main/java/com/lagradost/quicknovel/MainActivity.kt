@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.WindowManager
+import android.webkit.CookieManager
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -74,7 +75,7 @@ class MainActivity : AppCompatActivity() {
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build()!!
 
         private var _mainActivity: WeakReference<MainActivity>? = null
-        private var mainActivity
+        var mainActivity
             get() = _mainActivity?.get()
             private set(value) {
                 _mainActivity = WeakReference(value)

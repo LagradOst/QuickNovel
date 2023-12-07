@@ -8,6 +8,9 @@
 
     <string name="provider_lang_key" translatable="false">provider_lang_key</string>
     <string name="restore_key" translatable="false">restore_key</string>
+    <string name="ao3_email_key" translatable="false">ao3_email</string>
+    <string name="ao3_password_key" translatable="false">ao3_password</string>
+
     <string name="restore_settings">Restore data from backup</string>
 
     <string name="search_hint">Search Novels</string>
@@ -136,6 +139,7 @@
     <string name="home_expanded_hide">Hide</string>
     <string name="reload_chapter">Reload Chapter</string>
     <string name="provider_lang_settings">Provider Languages</string>
+    <string name="provider_settings">Provider Settings</string>
     <string name="sort_apply">Apply</string>
     <string name="sort_cancel">Cancel</string>
     <string name="keep_screen_active">Keep screen active</string>

@@ -29,7 +29,13 @@
         <Preference
                 android:icon="@drawable/ic_baseline_language_24"
                 android:key="@string/provider_lang_key"
-                android:title="@string/provider_lang_settings" />
+                android:title="@string/provider_lang_settings">
+        </Preference>
+        <Preference
+                android:icon="@drawable/ic_baseline_menu_book_24"
+                app:fragment="com.lagradost.quicknovel.ui.settings.ProviderSettingsFragment"
+                android:title="@string/provider_settings">
+        </Preference>
     </PreferenceCategory>
 
 
@@ -100,6 +106,8 @@
                 android:icon="@drawable/baseline_restore_page_24"
                 android:key="@string/restore_key"
                 android:title="@string/restore_settings" />
+
+
     </PreferenceCategory>
 
     <PreferenceCategory

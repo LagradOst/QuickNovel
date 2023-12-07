@@ -13,7 +13,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.lagradost.quicknovel.R
 
 object SingleSelectionHelper {
-    fun Context.showDialog(
+    private fun Context.showDialog(
         dialog: Dialog,
         items: List<String>,
         selectedIndex: List<Int>,
@@ -110,6 +110,7 @@ object SingleSelectionHelper {
         )
     }
 
+
     fun Context.showDialog(
         items: List<String>,
         selectedIndex: Int,
@@ -160,4 +161,5 @@ object SingleSelectionHelper {
             dismissCallback
         )
     }
+
 }
