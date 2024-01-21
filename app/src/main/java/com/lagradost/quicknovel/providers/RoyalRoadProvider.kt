@@ -375,6 +375,8 @@ class RoyalRoadProvider : MainAPI() {
     override suspend fun loadHtml(url: String): String? {
         val response = app.get(url)
         val document = Jsoup.parse(response.text)
-        return document.selectFirst("div.chapter-content")?.html()
+        val chap = document.selectFirst("div.chapter-content")
+        chap?.select("p:not([style])")?.remove()
+        return chap?.html()
     }
 }
