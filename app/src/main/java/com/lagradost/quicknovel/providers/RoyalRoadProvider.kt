@@ -376,7 +376,7 @@ class RoyalRoadProvider : MainAPI() {
         val response = app.get(url)
         val document = Jsoup.parse(response.text)
         val styles = document.select("style")
-        val hiddenRegex = Regex("^\\s*(\\..*)\\s*\\{")
+        val hiddenRegex = Regex("^\\s*(\\..*)\\s*\\{", RegexOptions.MULTILINE)
         val chap = document.selectFirst("div.chapter-content")
         styles.forEach { style ->
             hiddenRegex.findAll(style.toString()).forEach {
