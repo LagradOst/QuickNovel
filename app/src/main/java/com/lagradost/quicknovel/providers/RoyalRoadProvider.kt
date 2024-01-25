@@ -375,6 +375,18 @@ class RoyalRoadProvider : MainAPI() {
     override suspend fun loadHtml(url: String): String? {
         val response = app.get(url)
         val document = Jsoup.parse(response.text)
-        return document.selectFirst("div.chapter-content")?.html()
+        val styles = document.select("style")
+        val hiddenRegex = Regex("^\\s*(\\..*)\\s*\\{", RegexOption.MULTILINE)
+        val chap = document.selectFirst("div.chapter-content")
+        styles.forEach { style ->
+            hiddenRegex.findAll(style.toString()).forEach {
+                val className = it.groupValues.get(1)
+                if (!className.isNullOrEmpty()) {
+                    chap?.select(className)?.remove()
+                }
+            }
+        }
+
+        return chap?.html()
     }
 }
