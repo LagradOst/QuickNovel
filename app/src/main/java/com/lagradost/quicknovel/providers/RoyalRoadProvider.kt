@@ -7,7 +7,7 @@ import org.jsoup.Jsoup
 import java.lang.Exception
 import java.util.*
 import kotlin.collections.ArrayList
-
+// TODO https://www.royalroad.com/fictions/similar?fictionId=68679
 class RoyalRoadProvider : MainAPI() {
     override val name = "Royal Road"
     override val mainUrl = "https://www.royalroad.com"
@@ -26,10 +26,12 @@ class RoyalRoadProvider : MainAPI() {
         "Latest Updates" to "latest-updates",
         "New Releases" to "new-releases",
         "Trending" to "trending",
+        "Rising Stars" to "rising-stars",
+        "Writathon" to "writathon"
     )
 
     override val tags = listOf(
-        "All" to "",
+        "All" to "") + (listOf(
         "Wuxia" to "wuxia",
         "Xianxia" to "xianxia",
         "War and Military" to "war_and_military",
@@ -69,7 +71,6 @@ class RoyalRoadProvider : MainAPI() {
         Pair("Female Lead", "female_lead"),
         Pair("Portal Fantasy / Isekai", "summoned_hero"),
         Pair("Reincarnation", "reincarnation"),
-        Pair("High Fantasy", "high_fantasy"),
         Pair("Harem", "harem"),
         Pair("Gender Bender", "gender_bender"),
         Pair("Anti-Hero Lead", "anti-hero_lead"),
@@ -77,7 +78,7 @@ class RoyalRoadProvider : MainAPI() {
         Pair("Strategy", "strategy"),
         Pair("Short Story", "one_shot"),
         Pair("Tragedy", "tragedy")
-    ).sortedBy { it.first }
+    ).sortedBy { it.first })
 
     override val hasReviews = true
 

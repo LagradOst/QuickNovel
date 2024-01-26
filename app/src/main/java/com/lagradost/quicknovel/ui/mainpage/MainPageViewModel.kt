@@ -9,11 +9,13 @@ import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.mvvm.Resource
+import com.lagradost.quicknovel.util.Apis
 import kotlinx.coroutines.launch
 
 class MainPageViewModel : ViewModel() {
     lateinit var repo : MainPageRepository
     val api: APIRepository get() = repo.api
+    private var hasInit = false
 
     /*private val searchCards: MutableLiveData<ArrayList<SearchResponse>> by lazy {
         MutableLiveData<ArrayList<SearchResponse>>()
@@ -78,6 +80,20 @@ class MainPageViewModel : ViewModel() {
             currentCards.postValue(Resource.Success(it))
         }
         isInSearch.postValue(false)
+    }
+
+    fun init(apiName : String, mainCategory: Int?,
+             orderBy: Int?,
+             tag: Int?) {
+        if (hasInit) return
+        hasInit = true
+        repo = MainPageRepository(Apis.getApiFromName(apiName))
+        load(
+            0,
+            mainCategory,
+            orderBy,
+            tag
+        )
     }
 
     fun load(

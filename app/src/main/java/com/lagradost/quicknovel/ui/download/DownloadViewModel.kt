@@ -74,6 +74,7 @@ class DownloadViewModel : ViewModel() {
         MutableLiveData<Int>()
     var currentTab: MutableLiveData<Int> =
         MutableLiveData<Int>()
+
     fun refreshCard(card: DownloadFragment.DownloadDataLoaded) = viewModelScope.launch {
         BookDownloader2.downloadFromCard(card)
     }
@@ -121,7 +122,8 @@ class DownloadViewModel : ViewModel() {
             cardsData.values
         }
         for (card in values) {
-            if ((card.downloadedCount * 100 / card.downloadedTotal) > 90) {
+            // avoid div by zero
+            if (card.downloadedTotal <= 0 || (card.downloadedCount * 100 / card.downloadedTotal) > 90) {
                 BookDownloader2.downloadFromCard(card)
             }
         }
@@ -289,7 +291,7 @@ class DownloadViewModel : ViewModel() {
         }
     }
 
-    fun selectTab(index : Int) {
+    fun selectTab(index: Int) {
         currentTab.postValue(index)
         if (index == 0) {
             loadData()

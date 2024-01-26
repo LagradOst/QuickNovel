@@ -39,14 +39,15 @@ class MainPageFragment : Fragment() {
         binding = FragmentMainpageBinding.inflate(inflater)
         return binding.root
     }
+
     companion object {
-    fun newInstance(
-        apiName: String,
-        mainCategory: Int? = null,
-        orderBy: Int? = null,
-        tag: Int? = null
-    ) : Bundle =
-           Bundle().apply {
+        fun newInstance(
+            apiName: String,
+            mainCategory: Int? = null,
+            orderBy: Int? = null,
+            tag: Int? = null
+        ): Bundle =
+            Bundle().apply {
                 putString("apiName", apiName)
 
                 if (mainCategory != null)
@@ -88,7 +89,6 @@ class MainPageFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val apiName = requireArguments().getString("apiName")!!
-        viewModel.repo = MainPageRepository(Apis.getApiFromName(apiName))
 
         defMainCategory = arguments?.getInt("mainCategory", 0)
         defOrderBy = arguments?.getInt("orderBy", 0)
@@ -101,9 +101,8 @@ class MainPageFragment : Fragment() {
 
         activity?.fixPaddingStatusbar(binding.mainpageToolbar)
 
-        viewModel.load(
-            0,
-            defMainCategory,
+        viewModel.init(
+            apiName, defMainCategory,
             defOrderBy,
             defTag
         )
@@ -195,18 +194,20 @@ class MainPageFragment : Fragment() {
                         binding.mainpageLoadingError.isVisible = false
 
                         mainPageAdapter.submitList(value)
+                        // mainPageAdapter.setLoading(false)
                     }
 
                     is Resource.Loading -> {
                         binding.mainpageLoading.isVisible = true
                         binding.mainpageLoadingError.isVisible = false
+                        // mainPageAdapter.setLoading(true)
                     }
 
                     is Resource.Failure -> {
                         binding.mainpageErrorText.text = data.errorString
                         binding.mainpageLoading.isVisible = false
                         binding.mainpageLoadingError.isVisible = true
-
+                        // mainPageAdapter.setLoading(false)
                     }
                 }
 
