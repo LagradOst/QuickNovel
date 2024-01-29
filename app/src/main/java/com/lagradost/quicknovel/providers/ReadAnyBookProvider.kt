@@ -5,6 +5,7 @@ import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 import kotlin.math.roundToInt
 
+/*
 class ReadAnyBookProvider : MainAPI() {
     override val name = "ReadAnyBook"
     override val mainUrl = "https://www.readanybook.com"
@@ -231,4 +232,4 @@ class ReadAnyBookProvider : MainAPI() {
 
 //        return super.loadHtml(url)*/
     }
-}
+}*/

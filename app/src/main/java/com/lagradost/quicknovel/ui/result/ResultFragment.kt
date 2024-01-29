@@ -51,14 +51,15 @@ const val MAX_SYNO_LENGH = 300
 class ResultFragment : Fragment() {
     lateinit var binding: FragmentResultBinding
     private val viewModel: ResultViewModel by viewModels()
+
     companion object {
-        fun newInstance(url: String, apiName: String, startAction: Int = 0) : Bundle =
+        fun newInstance(url: String, apiName: String, startAction: Int = 0): Bundle =
             Bundle().apply {
-                    //println(data)
-                    putString("url", url)
-                    putString("apiName", apiName)
-                    putInt("startAction", startAction)
-                }
+                //println(data)
+                putString("url", url)
+                putString("apiName", apiName)
+                putInt("startAction", startAction)
+            }
 
     }
 
@@ -145,7 +146,7 @@ class ResultFragment : Fragment() {
                 binding.apply {
                     downloadWarning.isVisible = api.rateLimitTime > 1000
 
-                    res.image?.let {img ->
+                    res.image?.let { img ->
                         resultEmptyView.setOnClickListener {
                             UIHelper.showImage(it.context, img)
                         }
@@ -216,10 +217,13 @@ class ResultFragment : Fragment() {
                                 map[tag]?.let { index ->
                                     chip.isClickable = true
                                     chip.setOnClickListener {
-                                        activity?.navigate(R.id.global_to_navigation_mainpage,MainPageFragment.newInstance(
-                                            api.name,
-                                            tag = index
-                                        ))
+                                        activity?.navigate(
+                                            R.id.global_to_navigation_mainpage,
+                                            MainPageFragment.newInstance(
+                                                api.name,
+                                                tag = index
+                                            )
+                                        )
                                     }
                                 }
 
@@ -274,8 +278,10 @@ class ResultFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val url = savedInstanceState?.getString("url") ?: arguments?.getString("url") ?: throw NotImplementedError()
-        val apiName = savedInstanceState?.getString("apiName") ?: arguments?.getString("apiName") ?: throw NotImplementedError()
+        val url = savedInstanceState?.getString("url") ?: arguments?.getString("url")
+        ?: throw NotImplementedError()
+        val apiName = savedInstanceState?.getString("apiName") ?: arguments?.getString("apiName")
+        ?: throw NotImplementedError()
 
         activity?.window?.decorView?.clearFocus()
         hideKeyboard()
@@ -318,7 +324,7 @@ class ResultFragment : Fragment() {
             resultBack.setOnClickListener {
                 activity?.onBackPressedDispatcher?.onBackPressed()
                 //activity?.onBackPressed()
-            //    (activity as? AppCompatActivity)?.backPressed()
+                //    (activity as? AppCompatActivity)?.backPressed()
             }
 
             val parameter = resultEmptyView.layoutParams as LinearLayout.LayoutParams
@@ -373,7 +379,7 @@ class ResultFragment : Fragment() {
 
             resultBookmark.setOnClickListener { view ->
                 view.popupMenu(
-                    ReadType.values().map { Pair(it.prefValue, it.stringRes) },
+                    ReadType.values().map { it.prefValue to it.stringRes },
                     selectedItemId = viewModel.readState.value?.prefValue
                 ) {
                     viewModel.bookmark(itemId)

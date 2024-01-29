@@ -20,17 +20,15 @@ class BestLightNovelProvider : MainAPI() {
 
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.danh_sach > div.list_category")
-        if (headers.size <= 0) return ArrayList()
         return headers.mapNotNull {
             val head = it.selectFirst("> a")
             val name = head?.attr("title") ?: return@mapNotNull null
             val url = head.attr("href") ?: return@mapNotNull null
 
-            val posterUrl = head.selectFirst("> img")?.attr("src")
-
-            val rating = null
-            val latestChapter = it.selectFirst("> a.chapter")?.text()
-            SearchResponse(name, url, posterUrl, rating, latestChapter, this.name)
+            newSearchResponse(name = name, url = url) {
+                latestChapter = it.selectFirst("> a.chapter")?.text()
+                posterUrl = fixUrlNull(head.selectFirst("> img")?.attr("src"))
+            }
         }
     }
 
@@ -41,72 +39,46 @@ class BestLightNovelProvider : MainAPI() {
         val infoHeaders = document.select("ul.truyen_info_right > li")
 
         val name = infoHeaders[0].selectFirst("> h1")?.text() ?: return null
-        val authors = infoHeaders[1].select("> a")
-        var author = ""
-        for (a in authors) {
-            val href = a?.attr("href")
-            if (a.hasText() && (href?.length
-                    ?: continue) > "$mainUrl/search_author/".length && href.startsWith("$mainUrl/search_author/")
-            ) {
-                author = a.text()
-                break
-            }
-        }
-
-        val posterUrl = document.select("span.info_image > img").attr("src")
-
-        val tags: ArrayList<String> = ArrayList()
-        val tagsHeader = infoHeaders[2].select("> a")
-        for (t in tagsHeader) {
-            tags.add(t.text())
-        }
-        val synopsis = document.select("div.entry-header > div")[1].text().textClean
 
         val chapterHeaders = document.select("div.chapter-list > div").mapNotNull {
             val spans = it.select("> span")
             val text = spans[0].selectFirst("> a")
             val cUrl = text?.attr("href") ?: return@mapNotNull null
             val cName = text.text() ?: return@mapNotNull null
-            val added = spans[1].text()
-            val views = null
-            ChapterData(cName, cUrl, added, views)
+            newChapterData(name = cName, url = cUrl) {
+                dateOfRelease = spans[1].text()
+            }
         }.reversed()
 
-        var rating = 0
-        var peopleVoted = 0
-        try {
-            val ratingHeader = infoHeaders[9].selectFirst("> em > em")?.select("> em")
-            rating = (ratingHeader?.get(1)?.selectFirst("> em > em")?.text()?.toFloat()
-                ?.times(200))?.toInt() ?: 0
-
-            peopleVoted = ratingHeader?.get(2)?.text()?.replace(",", "")?.toInt() ?: 0
-        } catch (e: Exception) {
-            // NO RATING
-        }
-
-        val views = infoHeaders[6].text()
-            .replace(",", "")
-            .replace("\"", "").substring("View : ".length).toInt()
-
-        val status =
-            when (infoHeaders[3].selectFirst("> a")?.text()?.lowercase()) {
-                "ongoing" -> STATUS_ONGOING
-                "completed" -> STATUS_COMPLETE
-                else -> STATUS_NULL
+        return newStreamResponse(url = url, name = name, data= chapterHeaders) {
+            for (a in infoHeaders[1].select("> a")) {
+                val href = a?.attr("href")
+                if (a.hasText() && (href?.length
+                        ?: continue) > "$mainUrl/search_author/".length && href.startsWith("$mainUrl/search_author/")
+                ) {
+                    author = a.text()
+                    break
+                }
             }
+            posterUrl = document.select("span.info_image > img").attr("src")
+            tags = infoHeaders[2].select("> a").map { it.text() }
+            synopsis = document.select("div.entry-header > div")[1].text().textClean
+            status =
+                when (infoHeaders[3].selectFirst("> a")?.text()?.lowercase()) {
+                    "ongoing" -> STATUS_ONGOING
+                    "completed" -> STATUS_COMPLETE
+                    else -> STATUS_NULL
+                }
+            views = infoHeaders[6].text()
+                .replace(",", "")
+                .replace("\"", "").substring("View : ".length).toInt()
+            try {
+                val ratingHeader = infoHeaders[9].selectFirst("> em > em")?.select("> em")
+                rating = (ratingHeader?.get(1)?.selectFirst("> em > em")?.text()?.toFloat()
+                    ?.times(200))?.toInt() ?: 0
 
-        return StreamResponse(
-            url,
-            name,
-            chapterHeaders,
-            author,
-            posterUrl,
-            rating,
-            peopleVoted,
-            views,
-            synopsis,
-            tags,
-            status
-        )
+                peopleVoted = ratingHeader?.get(2)?.text()?.replace(",", "")?.toInt() ?: 0
+            } catch (_: Throwable) { }
+        }
     }
 }

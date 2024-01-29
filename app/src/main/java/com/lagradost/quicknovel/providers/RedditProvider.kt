@@ -10,20 +10,18 @@ class RedditProvider : MainAPI() {
     override val name = "Reddit"
 
     companion object {
-    fun getName(url: String?): String? {
-        return Regex("reddit\\.com/r/.*?/comments.*?/.*?/(.*)/").find(
-            url ?: return null
-        )?.groupValues?.getOrNull(1)?.replace('_', ' ')
+        fun getName(url: String?): String? {
+            return Regex("reddit\\.com/r/.*?/comments.*?/.*?/(.*)/").find(
+                url ?: return null
+            )?.groupValues?.getOrNull(1)?.replace('_', ' ')
+        }
     }
-    }
-    fun isValidLink() {
 
-    }
 
     private fun findComment(url: String): String? {
         val str = Regex("comment/(\\w*?)/").find(url)?.groupValues?.get(1)
             ?: Regex("comments/\\w*?/\\w*?/(\\w*?)/").find(url)?.groupValues?.get(1)
-        if(str.isNullOrBlank() || str.length < 4) {
+        if (str.isNullOrBlank() || str.length < 4) {
             return null
         }
         return str
@@ -31,7 +29,7 @@ class RedditProvider : MainAPI() {
 
     // ":{"document":[{"c":[{"e":"text","t":"
     override suspend fun loadHtml(url: String): String? {
-        val curl = url.replace("http://","https://")
+        val curl = url.replace("http://", "https://")
         //println("LOADING: ${curl}")
         val response = app.get(
             curl, headers = mapOf(
@@ -44,16 +42,18 @@ class RedditProvider : MainAPI() {
             )
         )
         if (response.text.contains("Log in to confirm you")) {
-           // println("NSFW")
+            // println("NSFW")
             val range = findComment(curl)?.let { result ->
-                val start = Regex(""""id":"\w\d_$result","isAdmin""").find(response.text)?.range?.first ?: return@let null
+                val start =
+                    Regex(""""id":"\w\d_$result","isAdmin""").find(response.text)?.range?.first
+                        ?: return@let null
                 //val lookStart = response.text.indexOf("sendReplies")
                 //Regex("")
                 //var start = response.text.indexOf(checkfor, lookStart)
                 //if (start == -1) {
                 //    start = 0
                 //}
-                var end = response.text.indexOf("\"id\"", start+4)
+                var end = response.text.indexOf("\"id\"", start + 4)
                 if (end == -1) {
                     end = response.text.length
                 }
@@ -69,11 +69,11 @@ class RedditProvider : MainAPI() {
 
             val str = response.text.subSequence(range)
             //println("STRING: $str")
-            val regex = Regex(""""e":"text","t":"((?:\\"|[^"])*?)"""")//""""e":"text","t":"(.*?)"""") // \{"c":\[\{
-            println("Finding shit")
-            return regex.findAll(str).joinToString(separator = "<br>") { it.groupValues[1] }.replace("\\\"","\"")
+            val regex =
+                Regex(""""e":"text","t":"((?:\\"|[^"])*?)"""")//""""e":"text","t":"(.*?)"""") // \{"c":\[\{
+            return regex.findAll(str).joinToString(separator = "<br>") { it.groupValues[1] }
+                .replace("\\\"", "\"")
         } else {
-            println("REGULAR")
             val document = Jsoup.parse(response.text)
             return document.allElements.firstOrNull { it.attr("slot") == "text-body" }?.html()
         }

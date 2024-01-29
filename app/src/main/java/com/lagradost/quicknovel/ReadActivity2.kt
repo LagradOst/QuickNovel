@@ -468,7 +468,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     var lockBottom: Int? = null
     var currentScroll: Int = 0
 
-    private fun updateTTSLine(line: TTSHelper.TTSLine?, depth : Int = 0) {
+    private fun updateTTSLine(line: TTSHelper.TTSLine?, depth: Int = 0) {
         // update the visual component
         textAdapter.updateTTSLine(line)
         for (position in textLayoutManager.findFirstVisibleItemPosition()..textLayoutManager.findLastVisibleItemPosition()) {
@@ -655,7 +655,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         ((binding.realText.findViewHolderForItemId(id) as? TextAdapter.TextAdapterHolder)?.binding as? SingleOverscrollChapterBinding)?.let {
             it.progress.max = 10000
             it.progress.progress = (progress.absoluteValue * 10000.0f).toInt()
-            it.progress.alpha = if(progress.absoluteValue > 0.05f) 1.0f else 0.0f
+            it.progress.alpha = if (progress.absoluteValue > 0.05f) 1.0f else 0.0f
         }
     }
 
@@ -669,10 +669,9 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 if (setTo == 0.0f) {
                     setProgressOfOverscroll(viewModel.currentIndex + 1, setTo)
                     setProgressOfOverscroll(viewModel.currentIndex - 1, setTo)
-                    if(currentOverScrollValue > 0.9) {
+                    if (currentOverScrollValue > 0.9) {
                         viewModel.seekToChapter(viewModel.currentIndex - 1)
-                    }
-                    else if(currentOverScrollValue < -0.9) {
+                    } else if (currentOverScrollValue < -0.9) {
                         viewModel.seekToChapter(viewModel.currentIndex + 1)
                     }
                 } else {
@@ -956,7 +955,8 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                         if (event.historySize <= 1) return@setOnTouchListener false
                         val start = event.getHistoricalY(0, event.historySize - 1)
                         val end = event.getY(0)
-                        val dy = (end - start).div(Resources.getSystem().displayMetrics.density).coerceIn(-1.5f,1.5f)
+                        val dy = (end - start).div(Resources.getSystem().displayMetrics.density)
+                            .coerceIn(-1.5f, 1.5f)
                         // if cant scroll in the direction then translate Y with the dy
                         val translated = !canScrollVertically(-1) || !canScrollVertically(1)
                         if (translated) {
@@ -1065,7 +1065,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
             binding.readReadingType.setText(viewModel.readerType.stringRes)
             binding.readReadingType.setOnLongClickListener {
-                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
+                it.popupMenu(items = listOf(1 to R.string.reset_value),selectedItemId = null) {
                     if (itemId == 1) {
                         binding.readReadingType.setText(ReadingType.DEFAULT.stringRes)
                         viewModel.readerType = ReadingType.DEFAULT
@@ -1085,7 +1085,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             }
 
             binding.readSettingsTextSizeText.setOnClickListener {
-                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
+                it.popupMenu(items = listOf(1 to R.string.reset_value),selectedItemId = null) {
                     if (itemId == 1) {
                         viewModel.textSize = DEF_FONT_SIZE
                         binding.readSettingsTextSize.progress =
@@ -1115,7 +1115,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
             binding.readSettingsTextPaddingText.setOnClickListener {
                 it.popupMenu(
-                    items = listOf(Pair(1, R.string.reset_value)),
+                    items = listOf(1 to R.string.reset_value),
                     selectedItemId = null
                 ) {
                     if (itemId == 1) {
@@ -1127,7 +1127,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
             binding.readSettingsTextPaddingTextTop.setOnClickListener {
                 it.popupMenu(
-                    items = listOf(Pair(1, R.string.reset_value)),
+                    items = listOf(1 to R.string.reset_value),
                     selectedItemId = null
                 ) {
                     if (itemId == 1) {
@@ -1183,7 +1183,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             }
 
             binding.readSettingsTextFontText.setOnClickListener {
-                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
+                it.popupMenu(items = listOf(1 to R.string.reset_value), selectedItemId = null) {
                     if (itemId == 1) {
                         viewModel.textFont = ""
                     }
@@ -1213,7 +1213,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             }
 
             binding.readLanguage.setOnLongClickListener {
-                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
+                it.popupMenu(items = listOf(1 to R.string.reset_value), selectedItemId = null) {
                     if (itemId == 1) {
                         viewModel.setTTSLanguage(null)
                     }
@@ -1223,7 +1223,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             }
 
             binding.readVoice.setOnLongClickListener {
-                it.popupMenu(items = listOf(Pair(1, R.string.reset_value)), selectedItemId = null) {
+                it.popupMenu(items = listOf(1 to R.string.reset_value), selectedItemId = null) {
                     if (itemId == 1) {
                         viewModel.setTTSVoice(null)
                     }

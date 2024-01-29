@@ -13,9 +13,6 @@ class WattpadProvider : MainAPI() {
     override val mainUrl = "https://www.wattpad.com"
     override val name = "Wattpad"
 
-
-
-
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "https://www.wattpad.com/search/$query"
         val document = app.get(url).document
@@ -184,25 +181,28 @@ class WattpadProvider : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
-        val description = document.selectFirst(".description-text")?.text()
-        val tags = document.select("ul.tag-items > li > a").map { element ->
-            element.text()
-        }
-        val author = document.selectFirst(".author-info__username > a")
-            ?.text() //?: throw ErrorLoadingException("No author")
+
         val toc = document.select(".story-parts > ul > li > a").mapNotNull { a ->
             val href = fixUrlNull(a.attr("href")) ?: return@mapNotNull null
             val name = (a.selectFirst("div") ?: a.selectFirst(".part__label"))?.text()
                 ?: return@mapNotNull null
-            ChapterData(url = href, name = name)
+            newChapterData(url = href, name = name)
         }
 
         val title = document.selectFirst(".story-info > .sr-only")?.text()
             ?: document.selectFirst(".item-title")?.text()
             ?: throw ErrorLoadingException("No title")
-        val poster = document.selectFirst(".story-cover > img")?.attr("src")
 
-        return StreamResponse(url, title, toc, author, poster, synopsis = description, tags = tags)
+
+        return newStreamResponse(name = title, url = url, data = toc) {
+            posterUrl = fixUrlNull(document.selectFirst(".story-cover > img")?.attr("src"))
+            author = document.selectFirst(".author-info__username > a")
+                ?.text()
+            tags = document.select("ul.tag-items > li > a").map { element ->
+                element.text()
+            }
+            synopsis = document.selectFirst(".description-text")?.text()
+        }
     }
 
     /*window.prefetched = */

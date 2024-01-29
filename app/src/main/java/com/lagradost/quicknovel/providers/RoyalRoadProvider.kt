@@ -7,6 +7,7 @@ import org.jsoup.Jsoup
 import java.lang.Exception
 import java.util.*
 import kotlin.collections.ArrayList
+
 // TODO https://www.royalroad.com/fictions/similar?fictionId=68679
 class RoyalRoadProvider : MainAPI() {
     override val name = "Royal Road"
@@ -31,7 +32,8 @@ class RoyalRoadProvider : MainAPI() {
     )
 
     override val tags = listOf(
-        "All" to "") + (listOf(
+        "All" to ""
+    ) + (listOf(
         "Wuxia" to "wuxia",
         "Xianxia" to "xianxia",
         "War and Military" to "war_and_military",
@@ -49,49 +51,49 @@ class RoyalRoadProvider : MainAPI() {
         "Strong Lead" to "strong_lead",
         "Time Travel" to "time_travel",
         "Ruling Class" to "ruling_class",
-        Pair("Action", "action"),
-        Pair("Adventure", "adventure"),
-        Pair("Comedy", "comedy"),
-        Pair("Contemporary", "contemporary"),
-        Pair("Drama", "drama"),
-        Pair("Fantasy", "fantasy"),
-        Pair("Historical", "historical"),
-        Pair("Horror", "horror"),
-        Pair("Mystery", "mystery"),
-        Pair("Psychological", "psychological"),
-        Pair("Romance", "romance"),
-        Pair("Satire", "satire"),
-        Pair("Sci-fi", "sci_fi"),
+        "Action" to "action",
+        "Adventure" to "adventure",
+        "Comedy" to "comedy",
+        "Contemporary" to "contemporary",
+        "Drama" to "drama",
+        "Fantasy" to "fantasy",
+        "Historical" to "historical",
+        "Horror" to "horror",
+        "Mystery" to "mystery",
+        "Psychological" to "psychological",
+        "Romance" to "romance",
+        "Satire" to "satire",
+        "Sci-fi" to "sci_fi",
         "Hard Sci-fi" to "hard_sci-fi",
         "Soft Sci-fi" to "soft_sci-fi",
-        Pair("LitRPG", "litrpg"),
-        Pair("Magic", "magic"),
-        Pair("GameLit", "gamelit"),
-        Pair("Male Lead", "male_lead"),
-        Pair("Female Lead", "female_lead"),
-        Pair("Portal Fantasy / Isekai", "summoned_hero"),
-        Pair("Reincarnation", "reincarnation"),
-        Pair("Harem", "harem"),
-        Pair("Gender Bender", "gender_bender"),
-        Pair("Anti-Hero Lead", "anti-hero_lead"),
-        Pair("Progression", "progression"),
-        Pair("Strategy", "strategy"),
-        Pair("Short Story", "one_shot"),
-        Pair("Tragedy", "tragedy")
+        "LitRPG" to "litrpg",
+        "Magic" to "magic",
+        "GameLit" to "gamelit",
+        "Male Lead" to "male_lead",
+        "Female Lead" to "female_lead",
+        "Portal Fantasy / Isekai" to "summoned_hero",
+        "Reincarnation" to "reincarnation",
+        "Harem" to "harem",
+        "Gender Bender" to "gender_bender",
+        "Anti-Hero Lead" to "anti-hero_lead",
+        "Progression" to "progression",
+        "Strategy" to "strategy",
+        "Short Story" to "one_shot",
+        "Tragedy" to "tragedy"
     ).sortedBy { it.first })
 
     override val hasReviews = true
 
     @SuppressLint("SimpleDateFormat")
-    override suspend fun loadReviews(url: String, page: Int, showSpoilers: Boolean): ArrayList<UserReview> {
+    override suspend fun loadReviews(
+        url: String,
+        page: Int,
+        showSpoilers: Boolean
+    ): List<UserReview> {
         val realUrl = "$url?sorting=top&reviews=$page" //SORTING ??
-        val response = app.get(realUrl)
-
-        val document = Jsoup.parse(response.text)
+        val document = app.get(realUrl).document
         val reviews = document.select("div.reviews-container > div.review")
-        if (reviews.size <= 0) return ArrayList()
-        val returnValue: ArrayList<UserReview> = ArrayList()
-        for (r in reviews) {
+        return reviews.mapNotNull { r ->
             val textContent = r?.selectFirst("> div.review-right-content")
             val scoreContent = r?.selectFirst("> div.review-side")
             fun parseScore(data: String?): Int? {
@@ -116,33 +118,43 @@ class RoyalRoadProvider : MainAPI() {
                         names.hasClass("star-50") -> {
                             50
                         }
+
                         names.hasClass("star-45") -> {
                             45
                         }
+
                         names.hasClass("star-40") -> {
                             40
                         }
+
                         names.hasClass("star-35") -> {
                             35
                         }
+
                         names.hasClass("star-30") -> {
                             30
                         }
+
                         names.hasClass("star-25") -> {
                             25
                         }
+
                         names.hasClass("star-20") -> {
                             20
                         }
+
                         names.hasClass("star-15") -> {
                             15
                         }
+
                         names.hasClass("star-10") -> {
                             10
                         }
+
                         names.hasClass("star-5") -> {
                             5
                         }
+
                         else -> {
                             null
                         }
@@ -184,20 +196,16 @@ class RoyalRoadProvider : MainAPI() {
             if (!showSpoilers) reviewContent?.removeClass("spoiler")
             val reviewTxt = reviewContent?.text()
 
-            returnValue.add(
-                UserReview(
-                    reviewTxt ?: continue,
-                    reviewTitle,
-                    username,
-                    reviewTime,
-                    fixUrlNull(avatarUrl),
-                    overallScore,
-                    scoresData
-                )
+            UserReview(
+                reviewTxt ?: return@mapNotNull null,
+                reviewTitle,
+                username,
+                reviewTime,
+                fixUrlNull(avatarUrl),
+                overallScore,
+                scoresData
             )
         }
-        return returnValue
-
     }
 
     override suspend fun loadMainPage(
@@ -216,161 +224,107 @@ class RoyalRoadProvider : MainAPI() {
         val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
-        val headers = document.select("div.fiction-list-item")
-        if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
 
-        val returnValue: ArrayList<SearchResponse> = ArrayList()
-        for (h in headers) {
+        val returnValue = document.select("div.fiction-list-item").mapNotNull { h ->
             val head = h?.selectFirst("> div")
             val hInfo = head?.selectFirst("> h2.fiction-title > a")
 
-            val name = hInfo?.text() ?: continue
-            val cUrl = mainUrl + hInfo.attr("href")
-
-            val posterUrl = h.selectFirst("> figure > a > img")?.attr("src")
-
-            val rating =
-                head.selectFirst("> div.stats")?.select("> div")?.get(1)?.selectFirst("> span")
-                    ?.attr("title")?.toFloatOrNull()?.times(200)?.toInt()
-
-
-            val latestChapter = try {
-                if (orderBy == "latest-updates") {
-                    head.selectFirst("> ul.list-unstyled > li.list-item > a > span")?.text()
-                } else {
-                    h.select("div.stats > div.col-sm-6 > span")[4].text()
-                }
-            } catch (e: Exception) {
-                null
-            }
+            val name = hInfo?.text() ?: return@mapNotNull null
+            val cUrl = hInfo.attr("href")
 
             //val tags = ArrayList(h.select("span.tags > a").map { t -> t.text() })
-            returnValue.add(
-                SearchResponse(
-                    name,
-                    fixUrl(cUrl),
-                    fixUrlNull(posterUrl),
-                    rating,
-                    latestChapter,
-                    this.name
-                )
-            )
-            //tags))
+            newSearchResponse(name = name, url = cUrl) {
+                latestChapter = try {
+                    if (orderBy == "latest-updates") {
+                        head.selectFirst("> ul.list-unstyled > li.list-item > a > span")?.text()
+                    } else {
+                        h.select("div.stats > div.col-sm-6 > span")[4].text()
+                    }
+                } catch (_: Throwable) {
+                    null
+                }
+                rating =
+                    head.selectFirst("> div.stats")?.select("> div")?.get(1)?.selectFirst("> span")
+                        ?.attr("title")?.toFloatOrNull()?.times(200)?.toInt()
+                posterUrl = fixUrlNull(h.selectFirst("> figure > a > img")?.attr("src"))
+            }
         }
         return HeadMainPageResponse(url, returnValue)
     }
 
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val response = app.get("$mainUrl/fictions/search?title=$query")
+        val document = app.get("$mainUrl/fictions/search?title=$query").document
 
-        val document = Jsoup.parse(response.text)
-        val headers = document.select("div.fiction-list-item")
-        if (headers.size <= 0) return ArrayList()
-        val returnValue: ArrayList<SearchResponse> = ArrayList()
-        for (h in headers) {
+        return document.select("div.fiction-list-item").mapNotNull { h ->
             val head = h?.selectFirst("> div.search-content")
             val hInfo = head?.selectFirst("> h2.fiction-title > a")
 
-            val name = hInfo?.text() ?: continue
-            val url = mainUrl + hInfo.attr("href")
+            val name = hInfo?.text() ?: return@mapNotNull null
+            val url = hInfo.attr("href")
 
-            val posterUrl = h.selectFirst("> figure.text-center > a > img")?.attr("src")
-
-            val rating =
-                head.selectFirst("> div.stats")?.select("> div")?.get(1)?.selectFirst("> span")
-                    ?.attr("title")?.toFloatOrNull()?.times(200)?.toInt()
-            val latestChapter = h.select("div.stats > div.col-sm-6 > span")[4].text()
-            returnValue.add(
-                SearchResponse(
-                    name,
-                    url,
-                    fixUrlNull(posterUrl),
-                    rating,
-                    latestChapter,
-                    this.name
-                )
-            )
+            newSearchResponse(url = url, name = name) {
+                posterUrl = fixUrlNull(h.selectFirst("> figure.text-center > a > img")?.attr("src"))
+                rating =
+                    head.selectFirst("> div.stats")?.select("> div")?.get(1)?.selectFirst("> span")
+                        ?.attr("title")?.toFloatOrNull()?.times(200)?.toInt()
+                latestChapter = h.select("div.stats > div.col-sm-6 > span")[4].text()
+            }
         }
-        return returnValue
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        val response = app.get(url)
+        val document = app.get(url).document
 
-        val document = Jsoup.parse(response.text)
-
-        val ratingAttr = document.selectFirst("span.font-red-sunglo")?.attr("data-content")
-        val rating =
-            (ratingAttr?.substring(0, ratingAttr.indexOf('/'))?.toFloat()?.times(200))?.toInt()
         val name = document.selectFirst("h1.font-white")?.text() ?: return null
-        val author = document.selectFirst("h4.font-white > span > a")?.text()
-        val tagsDoc = document.select("span.tags > a")
-        val tags: ArrayList<String> = ArrayList()
-        for (t in tagsDoc) {
-            tags.add(t.text())
-        }
 
-        var synopsis = ""
-        val synoDescript = document.select("div.description > div")
-        val synoParts = synoDescript.select("> p")
-        if (synoParts.size == 0 && synoDescript.hasText()) {
-            synopsis = synoDescript.text().replace("\n", "\n\n") // JUST IN CASE
-        } else {
-            for (s in synoParts) {
-                synopsis += s.text() + "\n\n"
-            }
-        }
-
-        val data: ArrayList<ChapterData> = ArrayList()
         val chapterHeaders = document.select("div.portlet-body > table > tbody > tr")
-        for (c in chapterHeaders) {
-            val cUrl = c?.attr("data-url") ?: continue
+        val data = chapterHeaders.mapNotNull { c ->
+            val cUrl = c?.attr("data-url") ?: return@mapNotNull null
             val td = c.select("> td") // 0 = Name, 1 = Upload
-            val cName = td[0].selectFirst("> a")?.text() ?: continue
-            val added = td[1].selectFirst("> a > time")?.text()
-            val views = null
-            data.add(ChapterData(cName, fixUrl(cUrl), added, views))
-        }
-        val posterUrl =
-            document.selectFirst("div.fic-header > div > .cover-art-container > img")?.attr("src")
+            val cName = td[0].selectFirst("> a")?.text() ?: return@mapNotNull null
 
-        val hStates = document.select("ul.list-unstyled")[1]
-        val stats = hStates.select("> li")
-        val views = stats[1]?.text()?.replace(",", "")?.replace(".", "")?.toInt()
-        //val peopleRatedHeader = document.select("div.stats-content > div > ul > li")
-        //val peopleRated = peopleRatedHeader[1]?.attr("data-content")?.takeWhile { c -> c != '/' }?.toIntOrNull()
-
-        val statusTxt = document.select("div.col-md-8 > div.margin-bottom-10 > span.label")
-
-        var status = 0
-        for (s in statusTxt) {
-            if (s.hasText()) {
-                status = when (s.text()) {
-                    "ONGOING" -> STATUS_ONGOING
-                    "COMPLETED" -> STATUS_COMPLETE
-                    "HIATUS" -> STATUS_PAUSE
-                    "STUB" -> STATUS_DROPPED
-                    "DROPPED" -> STATUS_DROPPED
-                    else -> STATUS_NULL
-                }
-                if (status > 0) break
+            newChapterData(name = cName, url = cUrl) {
+                dateOfRelease = td[1].selectFirst("> a > time")?.text()
             }
         }
 
-        return StreamResponse(
-            url,
-            name,
-            data,
-            author,
-            fixUrlNull(posterUrl),
-            rating,
-            null,//peopleRated,
-            views,
-            synopsis,
-            tags,
-            status
-        )
+        return newStreamResponse(url = url, name = name, data = data) {
+            val statusTxt = document.select("div.col-md-8 > div.margin-bottom-10 > span.label")
+            for (s in statusTxt) {
+                if (s.hasText()) {
+                    status = when (s.text()) {
+                        "ONGOING" -> STATUS_ONGOING
+                        "COMPLETED" -> STATUS_COMPLETE
+                        "HIATUS" -> STATUS_PAUSE
+                        "STUB" -> STATUS_DROPPED
+                        "DROPPED" -> STATUS_DROPPED
+                        else -> continue
+                    }
+                    break
+                }
+            }
+
+            val hStates = document.select("ul.list-unstyled")[1]
+            val stats = hStates.select("> li")
+            views = stats[1]?.text()?.replace(",", "")?.replace(".", "")?.toInt()
+            posterUrl =
+                document.selectFirst("div.fic-header > div > .cover-art-container > img")
+                    ?.attr("src")
+
+            val synoDescript = document.select("div.description > div")
+            val synoParts = synoDescript.select("> p")
+            synopsis = if (synoParts.size == 0 && synoDescript.hasText()) {
+                synoDescript.text().replace("\n", "\n\n") // JUST IN CASE
+            } else {
+                synoParts.joinToString(separator = "\n\n") { it.text() }
+            }
+            author = document.selectFirst("h4.font-white > span > a")?.text()
+            val ratingAttr = document.selectFirst("span.font-red-sunglo")?.attr("data-content")
+            tags = document.select("span.tags > a").map { it.text() }
+            rating =
+                (ratingAttr?.substring(0, ratingAttr.indexOf('/'))?.toFloat()?.times(200))?.toInt()
+        }
     }
 
     override suspend fun loadHtml(url: String): String? {
@@ -381,8 +335,8 @@ class RoyalRoadProvider : MainAPI() {
         val chap = document.selectFirst("div.chapter-content")
         styles.forEach { style ->
             hiddenRegex.findAll(style.toString()).forEach {
-                val className = it.groupValues.get(1)
-                if (!className.isNullOrEmpty()) {
+                val className = it.groupValues[1]
+                if (className.isNotEmpty()) {
                     chap?.select(className)?.remove()
                 }
             }

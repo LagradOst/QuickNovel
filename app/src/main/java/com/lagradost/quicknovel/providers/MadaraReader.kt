@@ -1,23 +1,28 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.ChapterData
+import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.add
 import com.lagradost.quicknovel.addPath
 import com.lagradost.quicknovel.clean
+import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.ifCase
-import com.lagradost.quicknovel.jConnect
+import com.lagradost.quicknovel.newSearchResponse
+import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.synopsis
 import com.lagradost.quicknovel.toRate
 import com.lagradost.quicknovel.toStatus
 import com.lagradost.quicknovel.toUrlBuilderSafe
 import com.lagradost.quicknovel.toVote
 
+/*
 abstract class MadaraReader : MainAPI() {
     override val name = ""
     override val mainUrl = ""
@@ -31,55 +36,55 @@ abstract class MadaraReader : MainAPI() {
     open val novelPath: String = "novel"
 
     override val mainCategories: List<Pair<String, String>> = listOf(
-        Pair("All", ""),
-        Pair("Novel Tamat", "tamat"),
-        Pair("Novel Korea", "novel-korea"),
-        Pair("Novel China", "novel-china"),
-        Pair("Novel Jepang", "novel-jepang"),
-        Pair("Novel HTL (Human Translate)", "htl"),
+        "All" to "",
+        "Novel Tamat" to "tamat",
+        "Novel Korea" to "novel-korea",
+        "Novel China" to "novel-china",
+        "Novel Jepang" to "novel-jepang",
+        "Novel HTL (Human Translate)" to "htl",
     )
 
     override val tags: List<Pair<String, String>> = listOf(
-        Pair("All", ""),
-        Pair("Action", "action"),
-        Pair("Adventure", "adventure"),
-        Pair("Romance", "romance"),
-        Pair("Comedy", "comedy"),
-        Pair("Drama", "drama"),
-        Pair("Shounen", "shounen"),
-        Pair("School Life", "school-life"),
-        Pair("Shoujo", "shoujo"),
-        Pair("Ecchi", "ecchi"),
-        Pair("Fantasy", "fantasy"),
-        Pair("Gender Bender", "gender-bender"),
-        Pair("Harem", "harem"),
-        Pair("Historical", "historical"),
-        Pair("Horror", "horror"),
-        Pair("Josei", "josei"),
-        Pair("Martial Arts", "martial-arts"),
-        Pair("Mature", "mature"),
-        Pair("Mecha", "mecha"),
-        Pair("Mystery", "mystery"),
-        Pair("One shot", "one-shot"),
-        Pair("Psychological", "psychological"),
-        Pair("Sci-fi", "sci-fi"),
-        Pair("Seinen", "seinen"),
-        Pair("Shoujo Ai", "shoujo-ai"),
-        Pair("Shounen Ai", "shounen-ai"),
-        Pair("Slice of Life", "slice-of-life"),
-        Pair("Smut", "smut"),
-        Pair("Sports", "sports"),
-        Pair("Supernatural", "supernatural"),
+        "All" to "",
+        "Action" to "action",
+        "Adventure" to "adventure",
+        "Romance" to "romance",
+        "Comedy" to "comedy",
+        "Drama" to "drama",
+        "Shounen" to "shounen",
+        "School Life" to "school-life",
+        "Shoujo" to "shoujo",
+        "Ecchi" to "ecchi",
+        "Fantasy" to "fantasy",
+        "Gender Bender" to "gender-bender",
+        "Harem" to "harem",
+        "Historical" to "historical",
+        "Horror" to "horror",
+        "Josei" to "josei",
+        "Martial Arts" to "martial-arts",
+        "Mature" to "mature",
+        "Mecha" to "mecha",
+        "Mystery" to "mystery",
+        "One shot" to "one-shot",
+        "Psychological" to "psychological",
+        "Sci-fi" to "sci-fi",
+        "Seinen" to "seinen",
+        "Shoujo Ai" to "shoujo-ai",
+        "Shounen Ai" to "shounen-ai",
+        "Slice of Life" to "slice-of-life",
+        "Smut" to "smut",
+        "Sports" to "sports",
+        "Supernatural" to "supernatural",
     )
 
     override val orderBys: List<Pair<String, String>> = listOf(
-        Pair("Nothing", ""),
-        Pair("New", "new-manga"),
-        Pair("Most Views", "views"),
-        Pair("Trending", "trending"),
-        Pair("Rating", "rating"),
-        Pair("A-Z", "alphabet"),
-        Pair("Latest", "latest"),
+        "Nothing" to "",
+        "New" to "new-manga",
+        "Most Views" to "views",
+        "Trending" to "trending",
+        "Rating" to "rating",
+        "A-Z" to "alphabet",
+        "Latest" to "latest",
     )
 
     override suspend fun loadMainPage(
@@ -98,34 +103,34 @@ abstract class MadaraReader : MainAPI() {
         val url = mainUrl.toUrlBuilderSafe()
             .addPath(order)
             .ifCase(page > 1) { addPath("page", page.toString()) }
-            ?.ifCase(orderBy !in cek) { add("m_orderby", "$orderBy") }
+            .ifCase(orderBy !in cek) { add("m_orderby", "$orderBy") }
             .toString()
 
-        val headers = jConnect(url)?.select("div.page-item-detail")
-        if (headers == null || headers.size <= 0) {
-            return HeadMainPageResponse(url, listOf())
-        }
+        val headers = app.get(url).document.select("div.page-item-detail")
 
         val returnValue = headers
             .mapNotNull {
                 val imageHeader = it.selectFirst("div.item-thumb > a")
                 val cName = imageHeader?.attr("title") ?: return@mapNotNull null
                 val cUrl = imageHeader.attr("href") ?: return@mapNotNull null
-                val posterUrl = imageHeader.selectFirst("> img")?.attr(covelAttr) ?: ""
-                val sum = it.selectFirst("div.item-summary")
-                val rating = sum?.selectFirst("> div.rating > div.post-total-rating > span.score")
-                    ?.text()
-                    ?.toRate()
-                val latestChap =
-                    sum?.selectFirst("> div.list-chapter > div.chapter-item > span > a")?.text()
-                SearchResponse(cName, cUrl, posterUrl, rating, latestChap, this.name)
+
+                newSearchResponse(name = cName, url = cUrl) {
+                    val sum = it.selectFirst("div.item-summary")
+
+                    rating = sum?.selectFirst("> div.rating > div.post-total-rating > span.score")
+                        ?.text()
+                        ?.toRate()
+                    posterUrl = fixUrlNull(imageHeader.selectFirst("> img")?.attr(covelAttr))
+                    latestChapter =
+                        sum?.selectFirst("> div.list-chapter > div.chapter-item > span > a")?.text()
+                }
             }
 
         return HeadMainPageResponse(url, returnValue)
     }
 
     override suspend fun loadHtml(url: String): String? {
-        val res = jConnect(url)!!.selectFirst("div.text-left")
+        val res = app.get(url).document.selectFirst("div.text-left")
         if (res == null || res.html() == "") return null
         return res.let { adv ->
             adv.select("p:has(a)").forEach { it.remove() }
@@ -134,11 +139,9 @@ abstract class MadaraReader : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val headers = jConnect("$mainUrl/?s=$query&post_type=wp-manga")
-            ?.select("div.c-tabs-item__content")
-        if (headers == null || headers.size <= 0) {
-            return listOf()
-        }
+        val headers = app.get("$mainUrl/?s=$query&post_type=wp-manga").document
+            .select("div.c-tabs-item__content")
+
         return headers
             .mapNotNull {
                 // val head = it.selectFirst("> div > div.tab-summary")
@@ -156,31 +159,33 @@ abstract class MadaraReader : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val doc = jConnect(url)
-        return StreamResponse(
-            url = url,
-            name = doc?.selectFirst("div.post-title > h1")
-                ?.text()?.clean() ?: "",
-            author = doc?.selectFirst(".author-content > a")?.text() ?: "",
-            posterUrl = doc?.select("div.summary_image > a > img")?.attr(covelAttr) ?: "",
-            tags = doc?.select("div.genres-content > a")?.mapNotNull { it?.text()?.clean() },
-            synopsis = doc?.select("div.summary__content")?.text()?.synopsis() ?: "",
-            data = jConnect("${url}ajax/chapters/", method = "POST")
-                ?.select(".wp-manga-chapter > a[href]")
-                ?.mapNotNull {
-                    ChapterData(
-                        name = it?.selectFirst("a")?.text()?.clean() ?: "",
-                        url = it?.selectFirst("a")?.attr("href") ?: "",
-                        dateOfRelease = it.selectFirst("span > i")?.text(),
-                        views = 0
-                    )
-                }
-                ?.reversed() ?: listOf(),
-            rating = doc?.selectFirst("span#averagerate")?.text()?.toRate(),
-            peopleVoted = doc?.selectFirst("span#countrate")?.text()?.toVote(),
-            views = null,
-            status = doc?.select(".post-content_item:contains(Status) > .summary-content")
-                ?.text()?.toStatus(),
-        )
+        val doc = app.get(url).document
+        val data = app.post("${url}ajax/chapters/").document
+            .select(".wp-manga-chapter > a[href]")
+            .mapNotNull {
+                ChapterData(
+                    name = it?.selectFirst("a")?.text()?.clean() ?: "",
+                    url = it?.selectFirst("a")?.attr("href") ?: "",
+                    dateOfRelease = it.selectFirst("span > i")?.text(),
+                    views = 0
+                )
+            }
+            .reversed()
+        return newStreamResponse(
+            url = url, name = doc.selectFirst("div.post-title > h1")
+                ?.text()?.clean() ?: throw ErrorLoadingException("Bad name"), data = data
+        ) {
+            author = doc.selectFirst(".author-content > a")?.text()
+            posterUrl = doc.select("div.summary_image > a > img").attr(covelAttr)
+            tags = doc.select("div.genres-content > a").mapNotNull { it?.text()?.clean() }
+            synopsis = doc.select("div.summary__content").text().synopsis()
+
+            rating = doc.selectFirst("span#averagerate")?.text()?.toRate()
+            peopleVoted = doc.selectFirst("span#countrate")?.text()?.toVote()
+            status = doc.select(".post-content_item:contains(Status) > .summary-content")
+                .text().toStatus()
+        }
     }
 }
+
+*/

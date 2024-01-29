@@ -2,7 +2,12 @@ package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.R
 
-class MeioNovelProvider : MadaraReader() {
+/*
+// https://boxnovel.com/
+// https://morenovel.net/
+// https://meionovel.id/
+ */
+class MeioNovelProvider : BoxNovelProvider() {
     override val name = "MeioNovel"
     override val mainUrl = "https://meionovel.id"
     override val iconId = R.drawable.ic_meionovel

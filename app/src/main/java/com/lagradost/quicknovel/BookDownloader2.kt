@@ -302,7 +302,7 @@ object BookDownloader2Helper {
             val count =
                 if (epub.exists()) {
                     val length = epub.length()
-                    if(length > LOCAL_EPUB_MIN_SIZE) {
+                    if (length > LOCAL_EPUB_MIN_SIZE) {
                         1
                     } else {
                         0
@@ -316,7 +316,7 @@ object BookDownloader2Helper {
                         )
                     ).listFiles()?.count { it.name.endsWith(".txt") } ?: return null
                 }
-            if(count <= 0) return null
+            if (count <= 0) return null
 
             /*var sStart = start
             if (sStart == -1) { // CACHE DATA
@@ -457,7 +457,8 @@ object BookDownloader2Helper {
         }
 
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(activity)
-        val subDir = activity.getBasePath().first ?: getDefaultDir(activity) ?: throw IOException("No file")
+        val subDir =
+            activity.getBasePath().first ?: getDefaultDir(activity) ?: throw IOException("No file")
 
         //val subDir = baseFile.gotoDirectory("Epub", createMissingDirectories = false) ?: return false
         val displayName = "${sanitizeFilename(name)}.epub"
@@ -493,7 +494,7 @@ object BookDownloader2Helper {
             return true
         }
 
-       // val relativePath = (Environment.DIRECTORY_DOWNLOADS + "${fs}Epub${fs}")
+        // val relativePath = (Environment.DIRECTORY_DOWNLOADS + "${fs}Epub${fs}")
 
         try {
             val intent = Intent()
@@ -609,7 +610,8 @@ object BookDownloader2Helper {
             val sName = sanitizeFilename(name)
             val id = "$sApiName$sAuthor$sName".hashCode()
 
-            val subDir = activity.getBasePath().first ?: getDefaultDir(activity) ?: throw IOException("No file")
+            val subDir = activity.getBasePath().first ?: getDefaultDir(activity)
+            ?: throw IOException("No file")
 
             //val subDir = baseFile.gotoDirectoryOrThrow("Epub", createMissingDirectories = true)
             val displayName = "${sanitizeFilename(name)}.epub"
@@ -618,7 +620,8 @@ object BookDownloader2Helper {
             subDir.findFile(displayName)?.delete()
             val file = subDir.createFileOrThrow(displayName)
 
-            val fileStream = file.openOutputStream(append = false) ?: throw IOException("No outputfile")
+            val fileStream =
+                file.openOutputStream(append = false) ?: throw IOException("No outputfile")
 
             /*if (isScopedStorage()) {
                 val cr = activity.contentResolver ?: return false
@@ -1247,7 +1250,7 @@ object BookDownloader2 {
             }
         }
 
-        downloadProgressChanged.invoke(Pair(id, data ?: return null))
+        downloadProgressChanged.invoke(id to (data ?: return null))
         return data
     }
 
@@ -1321,7 +1324,7 @@ object BookDownloader2 {
             downloadProgress[card.id]?.apply {
                 state = DownloadState.IsPending
                 lastUpdatedMs = System.currentTimeMillis()
-                downloadProgressChanged.invoke(Pair(card.id, this))
+                downloadProgressChanged.invoke(card.id to this)
             }
         }
 
@@ -1360,7 +1363,7 @@ object BookDownloader2 {
                     downloadProgress[card.id]?.apply {
                         state = DownloadState.IsFailed
                         lastUpdatedMs = System.currentTimeMillis()
-                        downloadProgressChanged.invoke(Pair(card.id, this))
+                        downloadProgressChanged.invoke(card.id to this)
                     }
                 }
             }
@@ -1410,13 +1413,13 @@ object BookDownloader2 {
 
         downloadInfoMutex.withLock {
             downloadData[id] = currentDownloadData
-            downloadDataChanged.invoke(Pair(id, currentDownloadData))
+            downloadDataChanged.invoke(id to currentDownloadData)
 
             downloadProgress[id]?.apply {
                 state = DownloadState.IsPending
                 lastUpdatedMs = System.currentTimeMillis()
                 this.total = total
-                downloadProgressChanged.invoke(Pair(id, this))
+                downloadProgressChanged.invoke(id to this)
             } ?: run {
                 downloadProgress[id] = DownloadProgressState(
                     DownloadState.IsPending,
@@ -1425,7 +1428,7 @@ object BookDownloader2 {
                     System.currentTimeMillis(),
                     null
                 ).also {
-                    downloadProgressChanged.invoke(Pair(id, it))
+                    downloadProgressChanged.invoke(id to it)
                 }
             }
         }
@@ -1444,8 +1447,8 @@ object BookDownloader2 {
     suspend fun downloadAsync(load: EpubResponse, api: APIRepository) {
         val filesDir = activity?.filesDir ?: return
         val sApiName = BookDownloader2Helper.sanitizeFilename(api.name)
-        val sAuthor =
-            if (load.author == null) "" else BookDownloader2Helper.sanitizeFilename(load.author)
+        val author = load.author
+        val sAuthor = BookDownloader2Helper.sanitizeFilename(load.author ?: "")
         val sName = BookDownloader2Helper.sanitizeFilename(load.name)
         val id = generateId(load, api.name)
 
@@ -1666,7 +1669,7 @@ object BookDownloader2 {
         val filesDir = activity?.filesDir ?: return@ioSafe
         val sApiName = BookDownloader2Helper.sanitizeFilename(api.name)
         val sAuthor =
-            if (load.author == null) "" else BookDownloader2Helper.sanitizeFilename(load.author)
+             BookDownloader2Helper.sanitizeFilename(load.author ?: "")
         val sName = BookDownloader2Helper.sanitizeFilename(load.name)
         val id = generateId(load, api.name)
 

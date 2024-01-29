@@ -15,64 +15,64 @@ class KolNovelProvider : MainAPI() {
     override val lang = "ar"
 
     override val tags = listOf(
-        Pair("أكشن", "action"),
-        Pair("أصلية", "original"),
-        Pair("إثارة", "excitement"),
-        Pair("إنتقال الى عالم أخر", "isekai"),
-        Pair("إيتشي", "etchi"),
-        Pair("بوليسي", "policy"),
-        Pair("تقمص شخصيات", "rpg"),
-        Pair("جريمة", "crime"),
-        Pair("سحر", "magic"),
-        Pair("سينن", "senen"),
-        Pair("شونين", "shonen"),
-        Pair("صيني", "chinese"),
-        Pair("غموض", "mysteries"),
-        Pair("قوى خارقة", "superpower"),
-        Pair("كوري", "korean"),
-        Pair("كوميدى", "comedy"),
-        Pair("ما بعد الكارثة", "after-the-disaster"),
-        Pair("مغامرة", "adventure"),
-        Pair("ميكا", "mechanical"),
-        Pair("ناض", "%d9%86%d8%a7%d8%b6"),
-        Pair("ناضج", "mature"),
-        Pair("ياباني", "japanese"),
-        Pair("دراما", "drama"),
-        Pair("خيالي", "fantasy"),
-        Pair("حريم", "harem"),
-        Pair("جوسى", "josei"),
-        Pair("فنون القتال", "martial-arts"),
-        Pair("تاريخي", "historical"),
-        Pair("رعب", "horror"),
-        Pair("نفسي", "psychological"),
-        Pair("رومانسي", "romantic"),
-        Pair("حياة مدرسية", "school-life"),
-        Pair("الخيال العلمي", "sci-fi"),
-        Pair("شريحة من الحياة", "slice-of-life"),
-        Pair("خارقة للطبيعة", "supernatural"),
-        Pair("مأساوي", "tragedy"),
-        Pair("Wuxia", "wuxia"),
-        Pair("Xianxia", "xianxia"),
-        Pair("Xuanhuan", "xuanhuan"),
+        "أكشن" to "action",
+        "أصلية" to "original",
+        "إثارة" to "excitement",
+        "إنتقال الى عالم أخر" to "isekai",
+        "إيتشي" to "etchi",
+        "بوليسي" to "policy",
+        "تقمص شخصيات" to "rpg",
+        "جريمة" to "crime",
+        "سحر" to "magic",
+        "سينن" to "senen",
+        "شونين" to "shonen",
+        "صيني" to "chinese",
+        "غموض" to "mysteries",
+        "قوى خارقة" to "superpower",
+        "كوري" to "korean",
+        "كوميدى" to "comedy",
+        "ما بعد الكارثة" to "after-the-disaster",
+        "مغامرة" to "adventure",
+        "ميكا" to "mechanical",
+        "ناض" to "%d9%86%d8%a7%d8%b6",
+        "ناضج" to "mature",
+        "ياباني" to "japanese",
+        "دراما" to "drama",
+        "خيالي" to "fantasy",
+        "حريم" to "harem",
+        "جوسى" to "josei",
+        "فنون القتال" to "martial-arts",
+        "تاريخي" to "historical",
+        "رعب" to "horror",
+        "نفسي" to "psychological",
+        "رومانسي" to "romantic",
+        "حياة مدرسية" to "school-life",
+        "الخيال العلمي" to "sci-fi",
+        "شريحة من الحياة" to "slice-of-life",
+        "خارقة للطبيعة" to "supernatural",
+        "مأساوي" to "tragedy",
+        "Wuxia" to "wuxia",
+        "Xianxia" to "xianxia",
+        "Xuanhuan" to "xuanhuan",
     )
 
     override val orderBys: List<Pair<String, String>>
         get() = listOf(
-            Pair("إفتراضي", ""),
-            Pair("A-Z", "title"),
-            Pair("Z-A", "titlereverse"),
-            Pair("أخر التحديثات", "update"),
-            Pair("أخر الإضافات", "latest"),
-            Pair("رائج", "popular"),
+            "إفتراضي" to "",
+            "A-Z" to "title",
+            "Z-A" to "titlereverse",
+            "أخر التحديثات" to "update",
+            "أخر الإضافات" to "latest",
+            "رائج" to "popular",
         )
 
 
     override val mainCategories: List<Pair<String, String>>
         get() = listOf(
-            Pair("الكل", ""),
-            Pair("Ongoing", "ongoing"),
-            Pair("Hiatus", "hiatus"),
-            Pair("Completed", "completed"),
+            "الكل" to "",
+            "Ongoing" to "ongoing",
+            "Hiatus" to "hiatus",
+            "Completed" to "completed",
         )
 
     override suspend fun loadMainPage(
@@ -82,25 +82,20 @@ class KolNovelProvider : MainAPI() {
         tag: String?,
     ): HeadMainPageResponse {
         val url = "$mainUrl/series/?page=$page&genre[]=$tag&status=$mainCategory&order=$orderBy"
-
-        val response = app.get(url)
-
-        val document = Jsoup.parse(response.text)
+        val document = app.get(url).document
         val headers = document.select("div.bsx")
-        if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
-
-        val returnValue: ArrayList<SearchResponse> = ArrayList()
-        for (h in headers) {
+        val returnValue = headers.mapNotNull { h ->
             val imageHeader = h?.selectFirst("a.tip")
 
-            val cUrl = imageHeader?.attr("abs:href") ?: continue
-            val posterUrl = imageHeader.selectFirst("div.limit img")?.attr("src")
-            val name = imageHeader.select("div.tt span.ntitle").text() ?: continue
-            val rating =
-                (imageHeader.selectFirst("> div.tt > div > div > div.numscore")?.text()
-                    ?.toFloat()?.times(100))?.toInt()
-            val latestChap = h.selectFirst("a.tip div.tt span.nchapter")?.text()
-            returnValue.add(SearchResponse(name, cUrl, posterUrl, rating, latestChap, this.name))
+            val cUrl = imageHeader?.attr("abs:href") ?: return@mapNotNull null
+            val name = imageHeader.select("div.tt span.ntitle").text() ?: return@mapNotNull null
+            newSearchResponse(name = name, url = cUrl) {
+                posterUrl = fixUrlNull(imageHeader.selectFirst("div.limit img")?.attr("src"))
+                rating =
+                    (imageHeader.selectFirst("> div.tt > div > div > div.numscore")?.text()
+                        ?.toFloat()?.times(100))?.toInt()
+                latestChapter = h.selectFirst("a.tip div.tt span.nchapter")?.text()
+            }
         }
 
         return HeadMainPageResponse(url, returnValue)
@@ -113,11 +108,10 @@ class KolNovelProvider : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val response = app.get("$mainUrl/?s=$query")
+        val document = app.get("$mainUrl/?s=$query").document
 
-        val document = Jsoup.parse(response.text)
         val headers = document.select("div.bsx")
-        if (headers.size <= 0) return ArrayList()
+
         val returnValue: ArrayList<SearchResponse> = ArrayList()
         for (h in headers) {
             val head = h?.selectFirst("a.tip")
@@ -145,32 +139,10 @@ class KolNovelProvider : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        val response = app.get(url)
-
-        val document = Jsoup.parse(response.text)
+        val document = app.get(url).document
         val name = document.select("div.thumb > img").attr("title")
             ?: return null//select("h1.entry-title")?.text()
         val authors = document.select("div.spe span:contains(المؤلف) > a")
-        var author = ""
-        for (a in authors) {
-            val atter = a?.attr("href")
-            if ((atter?.length
-                    ?: continue) > "$mainUrl/writer/".length && atter.startsWith("$mainUrl/writer/")
-            ) {
-                author = a.text()
-                break
-            }
-        }
-
-        val posterUrl = document.select("div.thumb > img").attr("data-lazy-src")
-
-        val tags: ArrayList<String> = ArrayList()
-        val tagsHeader = document.select("div.genxed a")
-        for (t in tagsHeader) {
-            tags.add(t.text())
-        }
-
-        val synopsis = document.select("div.entry-content p:first-of-type").text()
 
         val data: ArrayList<ChapterData> = ArrayList()
         val chapterHeaders = document.select("li[data-id] > a")//.eplister ul
@@ -183,34 +155,31 @@ class KolNovelProvider : MainAPI() {
         }
         data.reverse()
 
-        val rating =
-            ((document.selectFirst("div.rating > strong")?.text()?.replace("درجة", "")?.toFloat()
-                ?: 0f) * 100).toInt()
-        val peopleVoted = null
-
-        val views = null
-
         val aHeaders = document.select("span:contains(الحالة)")
 
-        val status =
-            when (aHeaders.text().replace("الحالة: ", "").lowercase(Locale.getDefault())) {
-                "ongoing" -> STATUS_ONGOING
-                "completed" -> STATUS_COMPLETE
-                else -> STATUS_NULL
+        return newStreamResponse(url = url, name = name, data = data) {
+            for (a in authors) {
+                val atter = a?.attr("href")
+                if ((atter?.length
+                        ?: continue) > "$mainUrl/writer/".length && atter.startsWith("$mainUrl/writer/")
+                ) {
+                    author = a.text()
+                    break
+                }
             }
-
-        return StreamResponse(
-            url,
-            name,
-            data,
-            author,
-            posterUrl,
-            rating,
-            peopleVoted,
-            views,
-            synopsis,
-            tags,
-            status
-        )
+            tags = document.select("div.genxed a").map { it.text() }
+            posterUrl = document.select("div.thumb > img").attr("data-lazy-src")
+            synopsis = document.select("div.entry-content p:first-of-type").text()
+            status =
+                when (aHeaders.text().replace("الحالة: ", "").lowercase(Locale.getDefault())) {
+                    "ongoing" -> STATUS_ONGOING
+                    "completed" -> STATUS_COMPLETE
+                    else -> STATUS_NULL
+                }
+            rating =
+                ((document.selectFirst("div.rating > strong")?.text()?.replace("درجة", "")
+                    ?.toFloat()
+                    ?: 0f) * 100).toInt()
+        }
     }
 }

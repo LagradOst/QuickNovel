@@ -5,6 +5,11 @@ import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
+class ReadNovelFullProvider : AllNovelProvider() { // todo check
+    override val mainUrl = "https://readnovelfull.com"
+    override val name = "ReadNovelFull"
+}
+/*
 class ReadNovelFullProvider : MainAPI() {
     override val mainUrl = "https://readnovelfull.com"
     override val name = "ReadNovelFull"
@@ -113,3 +118,4 @@ class ReadNovelFullProvider : MainAPI() {
         )
     }
 }
+*/

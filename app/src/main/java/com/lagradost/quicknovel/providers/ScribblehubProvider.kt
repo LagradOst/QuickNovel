@@ -44,53 +44,39 @@ class ScribblehubProvider : MainAPI() {
 
         val doc = Jsoup.parse(listResponse.text)
         val items = doc.select("ol.toc_ol > li")
-        var index = 0
-        val data = items.mapNotNull {
-            index++
-            val aHeader = it.selectFirst("> a")
+        val data = items.mapIndexedNotNull { index, element ->
+            val aHeader = element.selectFirst("> a")
             val href = aHeader?.attr("href")
-            val date = it.selectFirst("> span")?.text()
+            val date = element.selectFirst("> span")?.text()
             val chapterName = aHeader?.ownText()
-            ChapterData(
-                if (chapterName.isNullOrBlank()) "Chapter $index" else chapterName,
-                href ?: return@mapNotNull null,
-                date,
-                null
-            )
+            newChapterData(name = if (chapterName.isNullOrBlank()) "Chapter $index" else chapterName, url = href ?: return@mapIndexedNotNull null) {
+                dateOfRelease = date
+            }
         }
 
-        val poster = document.selectFirst("div.fic_image > img")?.attr("src")
         val title = document.selectFirst("div.fic_title")?.text()
-        val synopsis = document.selectFirst("div.wi_fic_desc")?.text()
-        val genres = document.select("span.wi_fic_genre > span > a.fic_genre").map { it.text() }
-        //val tags = document.select("span.wi_fic_showtags > span.wi_fic_showtags_inner > a").map { it.text() }
-        val ratings = document.select("span#ratefic_user > span > span")
-        val ratingEval = ratings.first()?.text()?.toFloatOrNull()?.times(200)?.toInt()
-        val ratingsTotal =
-            ratings[1]?.selectFirst("> span")?.text()?.replace(" ratings", "")?.toIntOrNull()
-        val author = document.selectFirst("span.auth_name_fic")?.text()
 
-        val statusSpan =
-            document.selectFirst("ul.widget_fic_similar > li > span")?.lastElementSibling()
-                ?.ownText()
-        val status = when {
-            statusSpan?.contains("Hiatus") == true -> STATUS_PAUSE
-            statusSpan?.contains("Ongoing") == true -> STATUS_ONGOING
-            else -> STATUS_NULL
+        //val tags = document.select("span.wi_fic_showtags > span.wi_fic_showtags_inner > a").map { it.text() }
+
+        return newStreamResponse(url = url, name =title ?: throw ErrorLoadingException("invalid name"), data = data) {
+            posterUrl = fixUrlNull(document.selectFirst("div.fic_image > img")?.attr("src"))
+            synopsis = document.selectFirst("div.wi_fic_desc")?.text()
+            val ratings = document.select("span#ratefic_user > span > span")
+            tags = document.select("span.wi_fic_genre > span > a.fic_genre").map { it.text() }
+            rating = ratings.first()?.text()?.toFloatOrNull()?.times(200)?.toInt()
+            peopleVoted =
+                ratings[1]?.selectFirst("> span")?.text()?.replace(" ratings", "")?.toIntOrNull()
+            author = document.selectFirst("span.auth_name_fic")?.text()
+            val statusSpan =
+                document.selectFirst("ul.widget_fic_similar > li > span")?.lastElementSibling()
+                    ?.ownText()
+
+            status = when {
+                statusSpan?.contains("Hiatus") == true -> STATUS_PAUSE
+                statusSpan?.contains("Ongoing") == true -> STATUS_ONGOING
+                else -> STATUS_NULL
+            }
         }
-        return StreamResponse(
-            url,
-            title ?: throw ErrorLoadingException("invalid name"),
-            data,
-            author,
-            poster,
-            ratingEval,
-            ratingsTotal,
-            null,
-            synopsis,
-            genres,
-            status
-        )
     }
 
     override suspend fun loadHtml(url: String): String? {

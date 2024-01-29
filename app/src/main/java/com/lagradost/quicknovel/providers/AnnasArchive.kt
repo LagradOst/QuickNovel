@@ -11,6 +11,7 @@ import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.mvvm.logError
+import com.lagradost.quicknovel.newEpubResponse
 
 class AnnasArchive : MainAPI() {
     override val hasMainPage = false
@@ -50,21 +51,20 @@ class AnnasArchive : MainAPI() {
 
     private suspend fun loadFromJsonUrl(md5: String): LoadResponse {
         return app.get("$mainUrl/db/md5/$md5.json").parsed<AnnasArchiveRoot>().let { root ->
-            EpubResponse(
+            newEpubResponse(
+                name = root.fileUnifiedData?.titleBest ?: root.additional.topBox.title?: root.fileUnifiedData?.titleAdditional!!.first(),
                 url = "$mainUrl/md5/$md5",
-                name = root.fileUnifiedData?.titleBest ?: root.additional.topBox.title
-                ?: root.fileUnifiedData?.titleAdditional!!.first(),
-                links = root.additional.downloadUrls.mapNotNull { list ->
+                links =  root.additional.downloadUrls.mapNotNull { list ->
                     val name = list.getOrNull(0) ?: return@mapNotNull null
                     val link = list.getOrNull(1) ?: return@mapNotNull null
                     extract(link, name)
-                },
+                }) {
                 author = root.fileUnifiedData?.authorBest ?: root.additional.topBox.author
-                ?: root.fileUnifiedData?.authorAdditional?.firstOrNull(),
+                        ?: root.fileUnifiedData?.authorAdditional?.firstOrNull()
                 posterUrl = root.fileUnifiedData?.coverUrlBest ?: root.additional.topBox.coverUrl
-                ?: root.fileUnifiedData?.coverUrlAdditional?.firstOrNull(),
+                        ?: root.fileUnifiedData?.coverUrlAdditional?.firstOrNull()
                 synopsis = root.additional.topBox.description
-            )
+            }
         }
     }
 
@@ -81,17 +81,14 @@ class AnnasArchive : MainAPI() {
         // backup non json parser
         val response = app.get(url).document
 
-        return EpubResponse(
-            url = url,
-            posterUrl = response.selectFirst("main > div > img")?.attr("src"),
-            author = response.selectFirst("main > div > div.italic")?.ownText(),
-            synopsis = response.selectFirst("main > div > div.js-md5-top-box-description")?.text(),
-            name = response.selectFirst("main > div > div.text-3xl")?.ownText()!!,
-            links = response.select("div.mb-6 > ul.mb-4 > li > a").mapNotNull { element ->
-                val link = fixUrlNull(element.attr("href")) ?: return@mapNotNull null
-                extract(link, element.text())
-            }
-        )
+        return newEpubResponse(name = response.selectFirst("main > div > div.text-3xl")?.ownText()!!,url = url, links = response.select("div.mb-6 > ul.mb-4 > li > a").mapNotNull { element ->
+            val link = fixUrlNull(element.attr("href")) ?: return@mapNotNull null
+            extract(link, element.text())
+        }) {
+            posterUrl = response.selectFirst("main > div > img")?.attr("src")
+            author = response.selectFirst("main > div > div.italic")?.ownText()
+            synopsis = response.selectFirst("main > div > div.js-md5-top-box-description")?.text()
+        }
     }
 
     // ================================ JSON ================================

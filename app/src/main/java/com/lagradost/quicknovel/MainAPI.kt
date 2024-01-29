@@ -171,13 +171,26 @@ data class MainPageResponse(
 data class SearchResponse(
     val name: String,
     val url: String,
-    val posterUrl: String? = null,
-    val rating: Int? = null,
-    val latestChapter: String? = null,
+    var posterUrl: String? = null,
+    var rating: Int? = null,
+    var latestChapter: String? = null,
     val apiName: String,
     var posterHeaders: Map<String, String>? = null
 ) {
     val image get() = img(posterUrl, posterHeaders)
+}
+
+fun MainAPI.newSearchResponse(
+    name: String,
+    url: String,
+    fix: Boolean = true,
+    initializer: SearchResponse.() -> Unit = { },
+): SearchResponse {
+    val builder =
+        SearchResponse(name = name, url = if (fix) fixUrl(url) else url, apiName = this.name)
+    builder.initializer()
+
+    return builder
 }
 
 const val STATUS_NULL = 0
@@ -189,35 +202,56 @@ const val STATUS_DROPPED = 4
 interface LoadResponse {
     val url: String
     val name: String
-    val author: String?
-    val posterUrl: String?
+    var author: String?
+    var posterUrl: String?
 
     //RATING IS FROM 0-1000
-    val rating: Int?
-    val peopleVoted: Int?
-    val views: Int?
-    val synopsis: String?
-    val tags: List<String>?
-    val status: Int? // 0 = null - implemented but not found, 1 = Ongoing, 2 = Complete, 3 = Pause/HIATUS, 4 = Dropped
+    var rating: Int?
+    var peopleVoted: Int?
+    var views: Int?
+    var synopsis: String?
+    var tags: List<String>?
+    var status: Int? // 0 = null - implemented but not found, 1 = Ongoing, 2 = Complete, 3 = Pause/HIATUS, 4 = Dropped
     var posterHeaders: Map<String, String>?
 
-    val image : UiImage? get() = img(url = posterUrl, headers = posterHeaders)
+    val image: UiImage? get() = img(url = posterUrl, headers = posterHeaders)
+    val apiName: String
 }
 
 data class StreamResponse(
     override val url: String,
     override val name: String,
     val data: List<ChapterData>,
-    override val author: String? = null,
-    override val posterUrl: String? = null,
-    override val rating: Int? = null,
-    override val peopleVoted: Int? = null,
-    override val views: Int? = null,
-    override val synopsis: String? = null,
-    override val tags: List<String>? = null,
-    override val status: Int? = null,
+    override val apiName: String,
+    override var author: String? = null,
+    override var posterUrl: String? = null,
+    override var rating: Int? = null,
+    override var peopleVoted: Int? = null,
+    override var views: Int? = null,
+    override var synopsis: String? = null,
+    override var tags: List<String>? = null,
+    override var status: Int? = null,
     override var posterHeaders: Map<String, String>? = null,
+    var nextChapter: ChapterData? = null,
 ) : LoadResponse
+
+fun MainAPI.newStreamResponse(
+    name: String,
+    url: String,
+    data: List<ChapterData>,
+    fix: Boolean = true,
+    initializer: StreamResponse.() -> Unit = { },
+): StreamResponse {
+    val builder = StreamResponse(
+        name = name,
+        url = if (fix) fixUrl(url) else url,
+        apiName = this.name,
+        data = data
+    )
+    builder.initializer()
+
+    return builder
+}
 
 data class DownloadLink(
     override val url: String,
@@ -227,7 +261,7 @@ data class DownloadLink(
     val params: Map<String, String> = mapOf(),
     val cookies: Map<String, String> = mapOf(),
     /// used for sorting, here you input the approx download speed in kb/s
-    val kbPerSec : Long = 1,
+    val kbPerSec: Long = 1,
 ) : DownloadLinkType
 
 data class DownloadExtractLink(
@@ -239,17 +273,17 @@ data class DownloadExtractLink(
     val cookies: Map<String, String> = mapOf(),
 ) : DownloadLinkType
 
-fun makeLinkSafe(url : String) : String {
+fun makeLinkSafe(url: String): String {
     return url.replace("http://", "https://")
 }
 
 @WorkerThread
-suspend fun DownloadExtractLink.get() : NiceResponse {
+suspend fun DownloadExtractLink.get(): NiceResponse {
     return app.get(makeLinkSafe(url), headers, referer, params, cookies)
 }
 
 @WorkerThread
-suspend fun DownloadLink.get() : NiceResponse {
+suspend fun DownloadLink.get(): NiceResponse {
     return app.get(makeLinkSafe(url), headers, referer, params, cookies)
 }
 
@@ -261,23 +295,55 @@ interface DownloadLinkType {
 data class EpubResponse(
     override val url: String,
     override val name: String,
-    override val author: String? = null,
-    override val posterUrl: String? = null,
-    override val rating: Int? = null,
-    override val peopleVoted: Int? = null,
-    override val views: Int? = null,
-    override val synopsis: String? = null,
-    override val tags: List<String>? = null,
-    override val status: Int? = null,
+    override var author: String? = null,
+    override var posterUrl: String? = null,
+    override var rating: Int? = null,
+    override var peopleVoted: Int? = null,
+    override var views: Int? = null,
+    override var synopsis: String? = null,
+    override var tags: List<String>? = null,
+    override var status: Int? = null,
     override var posterHeaders: Map<String, String>? = null,
     val links: List<DownloadLinkType>,
+    override val apiName: String,
 ) : LoadResponse
+
+fun MainAPI.newEpubResponse(
+    name: String,
+    url: String,
+    links: List<DownloadLinkType>,
+    fix: Boolean = true,
+    initializer: EpubResponse.() -> Unit = { },
+): EpubResponse {
+    val builder = EpubResponse(
+        name = name,
+        url = if (fix) fixUrl(url) else url,
+        apiName = this.name,
+        links = links
+    )
+    builder.initializer()
+
+    return builder
+}
 
 data class ChapterData(
     val name: String,
     val url: String,
-    val dateOfRelease: String? = null,
+    var dateOfRelease: String? = null,
     val views: Int? = null,
-    val regerer: String? = null
+    //val regerer: String? = null
     //val index : Int,
 )
+
+
+fun MainAPI.newChapterData(
+    name: String,
+    url: String,
+    fix: Boolean = true,
+    initializer: ChapterData.() -> Unit = { },
+): ChapterData {
+    val builder = ChapterData(name = name, url = if (fix) fixUrl(url) else url)
+    builder.initializer()
+
+    return builder
+}

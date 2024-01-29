@@ -6,23 +6,24 @@ import java.util.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
-suspend fun jConnect(
-    url: String,
-    params: Map<String, String> = mapOf(),
-    method: String = "GET"
-): Document? {
-    val head = mapOf(
-        "Accept" to "*/*",
-        "Accept-Encoding" to "gzip, deflate",
-        "User-Agent" to USER_AGENT
-    )
-    return try {
-        val res = app.custom(method, url = url, headers = head, params = params)
-        if (res.code == 200) Jsoup.parse(res.text) else null
-    } catch (e: Exception) {
-        null
-    }
-}
+
+//suspend fun jConnect(
+//    url: String,
+//    params: Map<String, String> = mapOf(),
+//    method: String = "GET"
+//): Document? {
+//    val head = mapOf(
+//        "Accept" to "*/*",
+//        "Accept-Encoding" to "gzip, deflate",
+//        "User-Agent" to USER_AGENT
+//    )
+//    return try {
+//        val res = app.custom(method, url = url, headers = head, params = params)
+//        if (res.code == 200) Jsoup.parse(res.text) else null
+//    } catch (e: Exception) {
+//        null
+//    }
+//}
 
 fun String.toRate(maxRate: Int = 10): Int {
     return this

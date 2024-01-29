@@ -67,40 +67,40 @@ class RanobesProvider : MainAPI() {
     override val iconBackgroundId = R.color.white
 
     override val tags = listOf(
-        Pair("Action", "Action"),
-        Pair("Adult", "Adult"),
-        Pair("Adventure", "Adventure"),
-        Pair("Comedy", "Comedy"),
-        Pair("Drama", "Drama"),
-        Pair("Ecchi", "Ecchi"),
-        Pair("Fantasy", "Fantasy"),
-        Pair("Game", "Game"),
-        Pair("Gender Bender", "Gender%20Bender"),
-        Pair("Harem", "Harem"),
-        Pair("Josei", "Josei"),
-        Pair("Historical", "Historical"),
-        Pair("Horror", "Horror"),
-        Pair("Martial Arts", "Martial%20Arts"),
-        Pair("Mature", "Mature"),
-        Pair("Mecha", "Mecha"),
-        Pair("Mystery", "Mystery"),
-        Pair("Psychological", "Psychological"),
-        Pair("Romance", "Romance"),
-        Pair("School Life", "School%20Life"),
-        Pair("Sci-fi", "Sci-fi"),
-        Pair("Seinen", "Seinen"),
-        Pair("Shoujo", "Shoujo"),
-        Pair("Shounen", "Shounen"),
-        Pair("Slice of Life", "Slice%20of%20Life"),
-        Pair("Shounen Ai", "Shounen%20Ai"),
-        Pair("Sports", "Sports"),
-        Pair("Supernatural", "Supernatural"),
-        Pair("Smut", "Smut"),
-        Pair("Tragedy", "Tragedy"),
-        Pair("Xianxia", "Xianxia"),
-        Pair("Xuanhuan", "Xuanhuan"),
-        Pair("Wuxia", "Wuxia"),
-        Pair("Yaoi", "Yaoi"),
+        "Action" to "Action",
+        "Adult" to "Adult",
+        "Adventure" to "Adventure",
+        "Comedy" to "Comedy",
+        "Drama" to "Drama",
+        "Ecchi" to "Ecchi",
+        "Fantasy" to "Fantasy",
+        "Game" to "Game",
+        "Gender Bender" to "Gender%20Bender",
+        "Harem" to "Harem",
+        "Josei" to "Josei",
+        "Historical" to "Historical",
+        "Horror" to "Horror",
+        "Martial Arts" to "Martial%20Arts",
+        "Mature" to "Mature",
+        "Mecha" to "Mecha",
+        "Mystery" to "Mystery",
+        "Psychological" to "Psychological",
+        "Romance" to "Romance",
+        "School Life" to "School%20Life",
+        "Sci-fi" to "Sci-fi",
+        "Seinen" to "Seinen",
+        "Shoujo" to "Shoujo",
+        "Shounen" to "Shounen",
+        "Slice of Life" to "Slice%20of%20Life",
+        "Shounen Ai" to "Shounen%20Ai",
+        "Sports" to "Sports",
+        "Supernatural" to "Supernatural",
+        "Smut" to "Smut",
+        "Tragedy" to "Tragedy",
+        "Xianxia" to "Xianxia",
+        "Xuanhuan" to "Xuanhuan",
+        "Wuxia" to "Wuxia",
+        "Yaoi" to "Yaoi",
     )
 
     private val baseHeaders = mapOf(
@@ -125,30 +125,17 @@ class RanobesProvider : MainAPI() {
 
         val document = Jsoup.parse(response.text)
 
-        val headers = document.select("div.short-cont")
-        if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
-        val returnValue: ArrayList<SearchResponse> = ArrayList()
-        for (h in headers) {
-            val h2 = h?.selectFirst("h2.title > a")
-            val cUrl = h2?.attr("href") ?: continue
-
-            val name = h2.text()
-            val posterUrl = h.selectFirst("div.cont.showcont > div > a > figure")?.attr("style")
-                ?.replace("""background-image: url(""", "")?.replace(");", "")
-
-            val latestChap =
-                mainUrl + (h.nextElementSibling()?.selectFirst("div > a")?.attr("href")
-                    ?: continue)
-            returnValue.add(
-                SearchResponse(
-                    name,
-                    cUrl,
-                    fixUrlNull(posterUrl),
-                    null,
-                    latestChap,
-                    this.name
+        val returnValue = document.select("div.short-cont").mapNotNull { h ->
+            val h2 = h?.selectFirst("h2.title > a") ?: return@mapNotNull null
+            //val latestChap =
+            //    mainUrl + (h.nextElementSibling()?.selectFirst("div > a")?.attr("href")
+            //        ?: return@mapNotNull null)
+            newSearchResponse(name = h2.text(), url = h2.attr("href") ?: return@mapNotNull null) {
+                posterUrl = fixUrlNull(
+                    h.selectFirst("div.cont.showcont > div > a > figure")?.attr("style")
+                        ?.replace("""background-image: url(""", "")?.replace(");", "")
                 )
-            )
+            }
         }
         return HeadMainPageResponse(url, returnValue)
     }
@@ -163,7 +150,7 @@ class RanobesProvider : MainAPI() {
 
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val response = app.post(
+        val document = app.post(
             "$mainUrl/index.php?do=search/",
             headers = mapOf(
                 "referer" to mainUrl,
@@ -179,49 +166,27 @@ class RanobesProvider : MainAPI() {
                 "dosearch" to "Start search",
                 """dofullsearch\""" to "Advanced"
             )
-        )
-        val document = Jsoup.parse(response.text)
+        ).document
 
-        val headers = document.select("div.short-cont")
-        if (headers.size <= 0) return ArrayList()
-        val returnValue: ArrayList<SearchResponse> = ArrayList()
-        for (h in headers) {
+
+        return document.select("div.short-cont").mapNotNull { h ->
             val h2 = h?.selectFirst("h2.title > a")
-            val cUrl = h2?.attr("href") ?: continue
-
-            val name = h2.text() ?: continue
-            val posterUrl = h.selectFirst("div.cont.showcont > div > a > figure")?.attr("style")
-                ?.replace("""background-image: url(""", "")?.replace(");", "")
-
-            val latestChap = mainUrl + h.nextElementSibling()?.selectFirst("div > a")?.attr("href")
-            returnValue.add(
-                SearchResponse(
-                    name,
-                    cUrl,
-                    fixUrlNull(posterUrl),
-                    null,
-                    latestChap,
-                    this.name
+            val cUrl = h2?.attr("href") ?: return@mapNotNull null
+            val name = h2.text() ?: return@mapNotNull null
+            newSearchResponse(name = name, url = cUrl) {
+                posterUrl = fixUrlNull(
+                    h.selectFirst("div.cont.showcont > div > a > figure")?.attr("style")
+                        ?.replace("""background-image: url(""", "")?.replace(");", "")
                 )
-            )
+                //latestChapter = h.nextElementSibling()?.selectFirst("div > a")?.attr("href")
+            }
         }
-
-
-        return returnValue
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        val response = app.post(url, interceptor = interceptor)
-        val document = Jsoup.parse(response.text)
+        val document = app.post(url, interceptor = interceptor).document
         val name = document.selectFirst("h1.title > span")?.text() ?: return null
-        val author = document.select("h1.title > span").last()?.text()
-        val tags = document.select("#mc-fs-genre > div > a").map {
-            it.text()
-        }
 
-        val posterUrl =
-            fixUrl(document.select("div.poster > a > img").attr("src").substringAfter("/"))
-        val synopsis = document.selectFirst("div.moreless")?.text()
         val listdata = mutableListOf<Chapterdatajson>()
         val data: ArrayList<ChapterData> = ArrayList()
         val chapretspageresponse =
@@ -265,46 +230,37 @@ class RanobesProvider : MainAPI() {
             chapslist.chapters?.reversed()?.map { it ->
                 data.add(ChapterData(it.title!!, it.link!!, it.date!!, null))
             }
-
         }
 
-        val statusHeader =
-            // Copy pasted from browser, hopefully does not break 💀
-            document.selectFirst(".r-fullstory-spec > ul:nth-child(1) > li:nth-child(7) > span:nth-child(1) > a:nth-child(1)")
+        return newStreamResponse(url = url, name = name, data = data) {
+            author = document.select("h1.title > span").last()?.text()
+            tags = document.select("#mc-fs-genre > div > a").map {
+                it.text()
+            }
+            try {
+                rating = (document.selectFirst("#rate_b > div > div > div > span.bold")?.text()
+                    ?.substringBefore("/")?.toFloatOrNull()?.times(200))?.toInt()!!
 
-        val status = when (statusHeader?.text()) {
-            "Ongoing" -> STATUS_ONGOING
-            "Completed" -> STATUS_COMPLETE
-            else -> STATUS_NULL
-        }
-        val views =
-            document.selectFirst("#fs-info > div.r-fullstory-spec > ul:nth-child(2) > li:nth-child(1) > span")
-                ?.text()?.filter { it.isDigit() }?.toIntOrNull()
-        var rating = 0
-        var peopleVoted = 0
-        try {
-            rating = (document.selectFirst("#rate_b > div > div > div > span.bold")?.text()
-                ?.substringBefore("/")?.toFloatOrNull()?.times(200))?.toInt()!!
+                peopleVoted =
+                    document.selectFirst("div.rate-stat-num > span.small.grey")?.text()!!
+                        .filter { it.isDigit() }.toInt()
+            } catch (_: Throwable) {
+            }
+            synopsis = document.selectFirst("div.moreless")?.text()
+            views =
+                document.selectFirst("#fs-info > div.r-fullstory-spec > ul:nth-child(2) > li:nth-child(1) > span")
+                    ?.text()?.filter { it.isDigit() }?.toIntOrNull()
+            posterUrl =
+                fixUrl(document.select("div.poster > a > img").attr("src").substringAfter("/"))
+            val statusHeader =
+                // Copy pasted from browser, hopefully does not break 💀
+                document.selectFirst(".r-fullstory-spec > ul:nth-child(1) > li:nth-child(7) > span:nth-child(1) > a:nth-child(1)")
 
-            peopleVoted =
-                document.selectFirst("div.rate-stat-num > span.small.grey")?.text()!!
-                    .filter { it.isDigit() }.toInt()
-        } catch (e: Exception) {
-            // NO RATING
+            status = when (statusHeader?.text()) {
+                "Ongoing" -> STATUS_ONGOING
+                "Completed" -> STATUS_COMPLETE
+                else -> STATUS_NULL
+            }
         }
-        return StreamResponse(
-            url,
-            name,
-            data,
-            author,
-            posterUrl,
-            rating,
-            peopleVoted,
-            views,
-            synopsis,
-            tags,
-            status,
-//            posterHeaders = interceptor.getCookieHeaders(mainUrl).toMap()
-        )
     }
 }

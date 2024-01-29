@@ -139,16 +139,19 @@ class MainActivity : AppCompatActivity() {
         fun loadResult(url: String, apiName: String, startAction: Int = 0) {
             (activity as? AppCompatActivity)?.loadResult(url, apiName, startAction)
         }
+
         fun Activity?.navigate(@IdRes navigation: Int, arguments: Bundle? = null) {
             try {
                 if (this is FragmentActivity) {
-                    val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment?
+                    val navHostFragment =
+                        supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment?
                     navHostFragment?.navController?.navigate(navigation, arguments)
                 }
             } catch (t: Throwable) {
                 logError(t)
             }
         }
+
         fun FragmentActivity.loadResult(url: String, apiName: String, startAction: Int = 0) {
             SearchFragment.currentDialog?.dismiss()
             runOnUiThread {
@@ -156,15 +159,15 @@ class MainActivity : AppCompatActivity() {
                     R.id.global_to_navigation_results,
                     ResultFragment.newInstance(url, apiName, startAction)
                 )
-            /*supportFragmentManager.beginTransaction()
-                    .setCustomAnimations(
-                        R.anim.enter_anim,
-                        R.anim.exit_anim,
-                        R.anim.pop_enter,
-                        R.anim.pop_exit
-                    )
-                    .add(R.id.homeRoot, ResultFragment().newInstance(url, apiName, startAction))
-                    .commit()*/
+                /*supportFragmentManager.beginTransaction()
+                        .setCustomAnimations(
+                            R.anim.enter_anim,
+                            R.anim.exit_anim,
+                            R.anim.pop_enter,
+                            R.anim.pop_exit
+                        )
+                        .add(R.id.homeRoot, ResultFragment().newInstance(url, apiName, startAction))
+                        .commit()*/
             }
         }
 
@@ -195,7 +198,7 @@ class MainActivity : AppCompatActivity() {
                                         reddit.name,
                                     ),
                                     null,
-                                    mutableListOf(ChapterData("Single Post", url, null, null, null))
+                                    mutableListOf(ChapterData("Single Post", url, null, null))
                                 )
                             )
                         }
@@ -281,8 +284,10 @@ class MainActivity : AppCompatActivity() {
              }
          }*/
     }
+
     private fun NavDestination.matchDestination(@IdRes destId: Int): Boolean =
         hierarchy.any { it.id == destId }
+
     private fun onNavDestinationSelected(item: MenuItem, navController: NavController): Boolean {
         val builder = NavOptions.Builder().setLaunchSingleTop(true).setRestoreState(true)
             .setEnterAnim(R.anim.enter_anim)
@@ -415,7 +420,8 @@ class MainActivity : AppCompatActivity() {
             navView.isVisible = isNavVisible
         }
     }
-    var binding : ActivityMainBinding? = null
+
+    var binding: ActivityMainBinding? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         mainActivity = this
         activity = this
@@ -548,7 +554,7 @@ class MainActivity : AppCompatActivity() {
 
                         bookmark.setOnClickListener { view ->
                             view.popupMenu(
-                                ReadType.values().map { Pair(it.prefValue, it.stringRes) },
+                                ReadType.values().map { it.prefValue to it.stringRes },
                                 selectedItemId = viewModel.readState.value?.prefValue
                             ) {
                                 viewModel.bookmark(itemId)

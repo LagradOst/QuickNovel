@@ -360,19 +360,17 @@ class ResultViewModel : ViewModel() {
             loadUrl = card.source
 
             val data = StreamResponse(
-                card.source,
-                card.name,
-                listOf(),
-                card.author,
-                card.poster,
-                card.rating,
-                null,
-                null,
-                card.synopsis,
-                card.tags,
-                null,
-                null
+                url = card.source,
+                name = card.name,
+                data = listOf(),
+                author = card.author,
+                posterUrl = card.poster,
+                rating = card.rating,
+                synopsis = card.synopsis,
+                tags = card.tags,
+                apiName = card.apiName
             )
+
             load = data
             loadResponse.postValue(Resource.Success(data))
 
@@ -412,18 +410,15 @@ class ResultViewModel : ViewModel() {
             loadUrl = card.source
 
             val data = StreamResponse(
-                card.source,
-                card.name,
-                listOf(),
-                card.author,
-                card.posterUrl,
-                card.rating,
-                null,
-                null,
-                card.synopsis,
-                card.tags,
-                null,
-                null
+                url = card.source,
+                name = card.name,
+                data = listOf(),
+                author = card.author,
+                posterUrl = card.posterUrl,
+                rating = card.rating,
+                synopsis = card.synopsis,
+                tags = card.tags,
+                apiName = card.apiName
             )
             load = data
             loadResponse.postValue(Resource.Success(data))

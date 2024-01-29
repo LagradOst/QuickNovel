@@ -14,63 +14,63 @@ open class AllNovelProvider : MainAPI() {
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
 
     override val tags = listOf(
-        Pair("All", "All"),
-        Pair("Shounen", "Shounen"),
-        Pair("Harem", "Harem"),
-        Pair("Comedy", "Comedy"),
-        Pair("Martial Arts", "Martial Arts"),
-        Pair("School Life", "School Life"),
-        Pair("Mystery", "Mystery"),
-        Pair("Shoujo", "Shoujo"),
-        Pair("Romance", "Romance"),
-        Pair("Sci-fi", "Sci-fi"),
-        Pair("Gender Bender", "Gender Bender"),
-        Pair("Mature", "Mature"),
-        Pair("Fantasy", "Fantasy"),
-        Pair("Horror", "Horror"),
-        Pair("Drama", "Drama"),
-        Pair("Tragedy", "Tragedy"),
-        Pair("Supernatural", "Supernatural"),
-        Pair("Ecchi", "Ecchi"),
-        Pair("Xuanhuan", "Xuanhuan"),
-        Pair("Adventure", "Adventure"),
-        Pair("Action", "Action"),
-        Pair("Psychological", "Psychological"),
-        Pair("Xianxia", "Xianxia"),
-        Pair("Wuxia", "Wuxia"),
-        Pair("Historical", "Historical"),
-        Pair("Slice of Life", "Slice of Life"),
-        Pair("Seinen", "Seinen"),
-        Pair("Lolicon", "Lolicon"),
-        Pair("Adult", "Adult"),
-        Pair("Josei", "Josei"),
-        Pair("Sports", "Sports"),
-        Pair("Smut", "Smut"),
-        Pair("Mecha", "Mecha"),
-        Pair("Yaoi", "Yaoi"),
-        Pair("Shounen Ai", "Shounen Ai"),
-        Pair("History", "History"),
-        Pair("Reincarnation", "Reincarnation"),
-        Pair("Martial", "Martial"),
-        Pair("Game", "Game"),
-        Pair("Eastern", "Eastern"),
-        Pair("FantasyHarem", "FantasyHarem"),
-        Pair("Yuri", "Yuri"),
-        Pair("Magical Realism", "Magical Realism"),
-        Pair("Isekai", "Isekai"),
-        Pair("Supernatural Source:Explore", "Supernatural Source:Explore"),
-        Pair("Video Games", "Video Games"),
-        Pair("Contemporary Romance", "Contemporary Romance"),
-        Pair("invayne", "invayne"),
-        Pair("LitRPG", "LitRPG"),
-        Pair("LGBT", "LGBT"),
+        "All" to "All",
+        "Shounen" to "Shounen",
+        "Harem" to "Harem",
+        "Comedy" to "Comedy",
+        "Martial Arts" to "Martial Arts",
+        "School Life" to "School Life",
+        "Mystery" to "Mystery",
+        "Shoujo" to "Shoujo",
+        "Romance" to "Romance",
+        "Sci-fi" to "Sci-fi",
+        "Gender Bender" to "Gender Bender",
+        "Mature" to "Mature",
+        "Fantasy" to "Fantasy",
+        "Horror" to "Horror",
+        "Drama" to "Drama",
+        "Tragedy" to "Tragedy",
+        "Supernatural" to "Supernatural",
+        "Ecchi" to "Ecchi",
+        "Xuanhuan" to "Xuanhuan",
+        "Adventure" to "Adventure",
+        "Action" to "Action",
+        "Psychological" to "Psychological",
+        "Xianxia" to "Xianxia",
+        "Wuxia" to "Wuxia",
+        "Historical" to "Historical",
+        "Slice of Life" to "Slice of Life",
+        "Seinen" to "Seinen",
+        "Lolicon" to "Lolicon",
+        "Adult" to "Adult",
+        "Josei" to "Josei",
+        "Sports" to "Sports",
+        "Smut" to "Smut",
+        "Mecha" to "Mecha",
+        "Yaoi" to "Yaoi",
+        "Shounen Ai" to "Shounen Ai",
+        "History" to "History",
+        "Reincarnation" to "Reincarnation",
+        "Martial" to "Martial",
+        "Game" to "Game",
+        "Eastern" to "Eastern",
+        "FantasyHarem" to "FantasyHarem",
+        "Yuri" to "Yuri",
+        "Magical Realism" to "Magical Realism",
+        "Isekai" to "Isekai",
+        "Supernatural Source:Explore" to "Supernatural Source:Explore",
+        "Video Games" to "Video Games",
+        "Contemporary Romance" to "Contemporary Romance",
+        "invayne" to "invayne",
+        "LitRPG" to "LitRPG",
+        "LGBT" to "LGBT",
         "Comedy" to "Comedy",
         "Drama" to "Drama",
         "Shounen+Ai" to "Shounen+Ai",
         "Supernatural" to "Supernatural",
-        Pair("Shoujo Ai", "Shoujo Ai"),
-        Pair("Supernatura", "Supernatura"),
-        Pair("Canopy", "Canopy")
+        "Shoujo Ai" to "Shoujo Ai",
+        "Supernatura" to "Supernatura",
+        "Canopy" to "Canopy"
     )
 
     override val orderBys = listOf(
@@ -106,139 +106,67 @@ open class AllNovelProvider : MainAPI() {
                     this.name
                 )
             })
-
-        /*val url = "$mainUrl/ajax-search?type=hot&genre=${getId(tag)}"
-            val response = app.get(url)
-            val document = Jsoup.parse(response.text)
-            val headers = document.select("div.item")
-            if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
-            val returnValue: ArrayList<SearchResponse> = ArrayList()
-            for (h in headers) {
-                val h3 = h?.selectFirst("a")
-                val cUrl = mainUrl + h3?.attr("href")
-                val name = h3?.attr("title") ?: throw ErrorLoadingException("Invalid name")
-
-                val posterUrl =
-                    mainUrl + h.selectFirst("img")?.attr("src")
-
-                returnValue.add(
-                    SearchResponse(
-                        name,
-                        cUrl,
-                        fixUrlNull(posterUrl),
-                        null,
-                        null,
-                        this.name
-                    )
-                )
-            }
-            return HeadMainPageResponse(url, returnValue)*/
     }
 
     override suspend fun loadHtml(url: String): String? {
-        val response = app.get(url)
-        val document = Jsoup.parse(response.text)
+        val document = app.get(url).document
         return document.selectFirst("#chapter-content")?.html()?.replace(
             " If you find any errors ( broken links, non-standard content, etc.. ), Please let us know &lt; report chapter &gt; so we can fix it as soon as possible.",
             " "
-        )
+        )?.replace("[Updated from F r e e w e b n o v e l. c o m]", "")
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val response =
-            app.get("$mainUrl/search?keyword=$query") // AJAX, MIGHT ADD QUICK SEARCH
+        val document =
+            app.get("$mainUrl/search?keyword=$query").document // AJAX, MIGHT ADD QUICK SEARCH
 
-        val document = Jsoup.parse(response.text)
-
-
-        val headers =
-            document.select("#list-page > div.col-xs-12.col-sm-12.col-md-9.col-truyen-main.archive > div > div.row")
-        if (headers.size <= 0) return ArrayList()
-        val returnValue: ArrayList<SearchResponse> = ArrayList()
-        for (h in headers) {
-            val h3 = h?.selectFirst("h3.truyen-title > a")
-            val cUrl = mainUrl + h3?.attr("href")
-            val name = h3?.attr("title") ?: throw ErrorLoadingException("Invalid name")
-
-            val posterUrl =
-                mainUrl + Jsoup.parse(app.get(cUrl).text).select("div.book > img").attr("src")
-            /*
-            mainUrl+h?.selectFirst("div.col-xs-3 > div > img")?.attr("src")
-
-             */
-
-            val latestChap = h.selectFirst("div.col-xs-2.text-info > div > a")?.attr("title")
-            returnValue.add(
-                SearchResponse(
-                    name,
-                    cUrl,
-                    fixUrlNull(posterUrl),
-                    null,
-                    latestChap,
-                    this.name
-                )
-            )
+        return document.select("#list-page>.archive>.list>.row").mapNotNull { h ->
+            val title = h.selectFirst(">div>div>.truyen-title>a") ?: return@mapNotNull null
+            newSearchResponse(title.text(), title.attr("href") ?: return@mapNotNull null) {
+                posterUrl = fixUrlNull(h.selectFirst(">div>div>img")?.attr("href"))
+            }
         }
-        return returnValue
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val response = app.get(url)
+        val document = app.get(url).document
 
-        val document = Jsoup.parse(response.text)
-        val name = document.selectFirst("h3.title")?.text()
+        val name =
+            document.selectFirst("h3.title")?.text() ?: throw ErrorLoadingException("invalid name")
 
-        val author = document.selectFirst("div.info > div:nth-child(1) > a")?.text()
+        val dataNovelId = document.select("#rating").attr("data-novel-id")
 
-        val posterUrl = document.select("div.book > img").attr("src")
+        val chapterData = app.get("$mainUrl/ajax-chapter-option?novelId=$dataNovelId").document
+        val parsed = chapterData.select("select > option")
 
-        val tags = document.select("div.info > div:nth-child(3) a").map {
-            it.text()
-        }
-        val synopsis = document.selectFirst("div.desc-text")?.text()
-
-        val datanovelid = document.select("#rating").attr("data-novel-id")
-        val chaptersData =
-            app.get("https://allnovel.org/ajax-chapter-option?novelId=$datanovelid")
-        val parsedchaptersData = Jsoup.parse(chaptersData.text)
-        val parsed = parsedchaptersData.select("select > option")
-
-        val data = parsed.map { c ->
-            val cUrl = mainUrl + c?.attr("value")
-            val cName = if (c.text().isEmpty()) {
+        val data = parsed.mapNotNull { c ->
+            val cUrl = c?.attr("value") ?: return@mapNotNull null
+            val cName = c.text().ifEmpty {
                 "chapter $c"
-            } else {
-                c.text()
             }
-            ChapterData(cName, cUrl, null, null)
+            newChapterData(cName, cUrl)
         }
 
-        val statusHeader0 = document.selectFirst("div.info > div:nth-child(5) > a")
-        val status = when (statusHeader0?.selectFirst("a")?.text()) {
-            "Ongoing" -> STATUS_ONGOING
-            "Completed" -> STATUS_COMPLETE
-            else -> STATUS_NULL
-        }
-
-
-        val rating = document.selectFirst(" div.small > em > strong:nth-child(1) > span")?.text()
-            ?.toIntOrNull() ?: 0
-        val peopleVoted =
-            document.selectFirst(" div.small > em > strong:nth-child(3) > span")?.text()
+        return newStreamResponse(name, url, data) {
+            tags = document.select("div.info > div:nth-child(3) a").map {
+                it.text()
+            }
+            author = document.selectFirst("div.info > div:nth-child(1) > a")?.text()
+            posterUrl = fixUrlNull(document.select("div.book > img").attr("src"))
+            synopsis = document.selectFirst("div.desc-text")?.text()
+            peopleVoted =
+                document.selectFirst(" div.small > em > strong:nth-child(3) > span")?.text()
+                    ?.toIntOrNull() ?: 0
+            rating = document.selectFirst(" div.small > em > strong:nth-child(1) > span")?.text()
                 ?.toIntOrNull() ?: 0
 
-        return StreamResponse(
-            url,
-            name ?: throw ErrorLoadingException("invalid name"),
-            data,
-            author,
-            fixUrlNull(posterUrl),
-            rating,
-            peopleVoted,
-            null,
-            synopsis,
-            tags,
-            status
-        )
+            this.status =
+                when (document.selectFirst("div.info > div:nth-child(5) > a")?.selectFirst("a")
+                    ?.text()) {
+                    "Ongoing" -> STATUS_ONGOING
+                    "Completed" -> STATUS_COMPLETE
+                    else -> STATUS_NULL
+                }
+        }
     }
 }

@@ -6,6 +6,7 @@ import com.lagradost.quicknovel.network.CloudflareKiller
 import org.jsoup.Jsoup
 import kotlin.math.roundToInt
 
+// cloudflare
 class NovelsOnlineProvider : MainAPI() {
     override val name = "NovelsOnline"
     override val mainUrl = "https://novelsonline.net"
@@ -15,42 +16,42 @@ class NovelsOnlineProvider : MainAPI() {
     override val usesCloudFlareKiller = true
 
     override val tags = listOf(
-        Pair("All", ""),
-        Pair("Action", "action"),
-        Pair("Adventure", "adventure"),
-        Pair("Celebrity", "celebrity"),
-        Pair("Comedy", "comedy"),
-        Pair("Drama", "drama"),
-        Pair("Ecchi", "ecchi"),
-        Pair("Fantasy", "fantasy"),
-        Pair("Gender Bender", "gender-bender"),
-        Pair("Harem", "harem"),
-        Pair("Historical", "historical"),
-        Pair("Horror", "horror"),
-        Pair("Josei", "josei"),
-        Pair("Martial Arts", "martial-arts"),
-        Pair("Mature", "mature"),
-        Pair("Mecha", "mecha"),
-        Pair("Mystery", "mystery"),
-        Pair("Psychological", "psychological"),
-        Pair("Romance", "romance"),
-        Pair("School Life", "school-life"),
-        Pair("Sci-fi", "sci-fi"),
-        Pair("Seinen", "seinen"),
-        Pair("Shotacon", "shotacon"),
-        Pair("Shoujo", "shoujo"),
-        Pair("Shoujo Ai", "shoujo-ai"),
-        Pair("Shounen", "shounen"),
-        Pair("Shounen Ai", "shounen-ai"),
-        Pair("Slice of Life", "slice-of-life"),
-        Pair("Sports", "sports"),
-        Pair("Supernatural", "supernatural"),
-        Pair("Tragedy", "tragedy"),
-        Pair("Wuxia", "wuxia"),
-        Pair("Xianxia", "xianxia"),
-        Pair("Xuanhuan", "xuanhuan"),
-        Pair("Yaoi", "yaoi"),
-        Pair("Yuri", "yuri"),
+        "All" to "",
+        "Action" to "action",
+        "Adventure" to "adventure",
+        "Celebrity" to "celebrity",
+        "Comedy" to "comedy",
+        "Drama" to "drama",
+        "Ecchi" to "ecchi",
+        "Fantasy" to "fantasy",
+        "Gender Bender" to "gender-bender",
+        "Harem" to "harem",
+        "Historical" to "historical",
+        "Horror" to "horror",
+        "Josei" to "josei",
+        "Martial Arts" to "martial-arts",
+        "Mature" to "mature",
+        "Mecha" to "mecha",
+        "Mystery" to "mystery",
+        "Psychological" to "psychological",
+        "Romance" to "romance",
+        "School Life" to "school-life",
+        "Sci-fi" to "sci-fi",
+        "Seinen" to "seinen",
+        "Shotacon" to "shotacon",
+        "Shoujo" to "shoujo",
+        "Shoujo Ai" to "shoujo-ai",
+        "Shounen" to "shounen",
+        "Shounen Ai" to "shounen-ai",
+        "Slice of Life" to "slice-of-life",
+        "Sports" to "sports",
+        "Supernatural" to "supernatural",
+        "Tragedy" to "tragedy",
+        "Wuxia" to "wuxia",
+        "Xianxia" to "xianxia",
+        "Xuanhuan" to "xuanhuan",
+        "Yaoi" to "yaoi",
+        "Yuri" to "yuri",
     )
     val interceptor = CloudflareKiller()
 
@@ -69,19 +70,13 @@ class NovelsOnlineProvider : MainAPI() {
 
         val list = headers.map { h ->
             val adata = h.selectFirst("div.top-novel-header > h2 > a")
-            val name = adata!!.text()
-            val cUrl = adata.attr("href")
-            val posterUrl =
-                h.selectFirst("div.top-novel-content > div.top-novel-cover > a > img")!!.attr("src")
-
-            SearchResponse(
-                name,
-                cUrl,
-                posterUrl,
-                null,
-                null,
-                this.name, interceptor.getCookieHeaders(url).toMap()
-            )
+            newSearchResponse(
+                name = adata!!.text(),
+                url = adata.attr("href"),
+            ) {
+                posterHeaders = interceptor.getCookieHeaders(url).toMap()
+                posterUrl = h.selectFirst("div.top-novel-content > div.top-novel-cover > a > img")!!.attr("src")
+            }
         }
         return HeadMainPageResponse(url, list)
     }
@@ -99,64 +94,40 @@ class NovelsOnlineProvider : MainAPI() {
             interceptor = interceptor,
             data = mapOf("q" to query)
         ).document
-        val headers = document.select("li")
-        return headers.mapNotNull { h ->
-            val name = h.text()
-            val cUrl = h.selectFirst("a")?.attr("href") ?: return@mapNotNull null
-            val posterUrl = h.selectFirst("img")?.attr("src")
-
-            SearchResponse(
-                name,
-                cUrl,
-                posterUrl,
-                null,
-                null,
-                this.name
-            )
+        return document.select("li").mapNotNull { h ->
+            newSearchResponse(
+                name = h.text(),
+                url = h.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+            ) {
+                posterUrl = h.selectFirst("img")?.attr("src")
+            }
         }
     }
 
     override suspend fun load(url: String): LoadResponse {
-
         val document = app.get(url, interceptor = interceptor).document
-
         val name = document.selectFirst("h1")!!.text()
 
-        val author =
-            document.selectFirst("div.novel-details > div:nth-child(5) > div.novel-detail-body")
-                ?.select("li")?.map { it.text() }?.joinToString()
-        val tags =
-            document.selectFirst("div.novel-details > div:nth-child(2) > div.novel-detail-body")
-                ?.select("li")?.map { it.text() }
-
-        val posterUrl = document.select("div.novel-left > div.novel-cover > a > img").attr("src")
-        val synopsis =
-            document.selectFirst("div.novel-right > div > div:nth-child(1) > div.novel-detail-body")
-                ?.text()
-
         val data = document.select("ul.chapter-chs > li > a").map { c ->
-            val cUrl = c.attr("href")
-            val cName = c.text()
-            ChapterData(cName, cUrl, null, null)
+            newChapterData(name = c.text(), url = c.attr("href"))
         }
 
-
-        val rating =
-            document.selectFirst("div.novel-right > div > div:nth-child(6) > div.novel-detail-body")
-                ?.text()?.toFloatOrNull()?.times(100)?.roundToInt()
-
-        return StreamResponse(
-            url,
-            name,
-            data,
-            author,
-            fixUrl(posterUrl),
-            rating,
-            null,
-            null,
-            synopsis,
-            tags,
-            null,
-        )
+        return newStreamResponse(url = url, name = name, data = data) {
+            author =
+                document.selectFirst("div.novel-details > div:nth-child(5) > div.novel-detail-body")
+                    ?.select("li")?.joinToString { it.text() }
+            tags =
+                document.selectFirst("div.novel-details > div:nth-child(2) > div.novel-detail-body")
+                    ?.select("li")?.map { it.text() }
+            rating =
+                document.selectFirst("div.novel-right > div > div:nth-child(6) > div.novel-detail-body")
+                    ?.text()?.toFloatOrNull()?.times(100)?.roundToInt()
+            synopsis =
+                document.selectFirst("div.novel-right > div > div:nth-child(1) > div.novel-detail-body")
+                    ?.text()
+            posterUrl = fixUrlNull(
+                document.select("div.novel-left > div.novel-cover > a > img").attr("src")
+            )
+        }
     }
 }

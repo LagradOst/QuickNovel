@@ -15,48 +15,48 @@ class ReadLightNovelProvider : MainAPI() {
 
     override val orderBys: List<Pair<String, String>>
         get() = listOf(
-            Pair("Top Rated", "top-rated"),
-            Pair("Most Viewed", "most-viewed")
+            "Top Rated" to "top-rated",
+            "Most Viewed" to "most-viewed"
         )
 
     override val tags = listOf(
-        Pair("All", ""),
-        Pair("Action", "action"),
-        Pair("Adventure", "adventure"),
-        Pair("Celebrity", "celebrity"),
-        Pair("Comedy", "comedy"),
-        Pair("Drama", "drama"),
-        Pair("Ecchi", "ecchi"),
-        Pair("Fantasy", "fantasy"),
-        Pair("Gender Bender", "gender-bender"),
-        Pair("Harem", "harem"),
-        Pair("Historical", "historical"),
-        Pair("Horror", "horror"),
-        Pair("Josei", "josei"),
-        Pair("Martial Arts", "martial-arts"),
-        Pair("Mature", "mature"),
-        Pair("Mecha", "mecha"),
-        Pair("Mystery", "mystery"),
-        Pair("Psychological", "psychological"),
-        Pair("Romance", "romance"),
-        Pair("School Life", "school-life"),
-        Pair("Sci-fi", "sci-fi"),
-        Pair("Seinen", "seinen"),
-        Pair("Shotacon", "shotacon"),
-        Pair("Shoujo", "shoujo"),
-        Pair("Shoujo Ai", "shoujo-ai"),
-        Pair("Shounen", "shounen"),
-        Pair("Shounen Ai", "shounen-ai"),
-        Pair("Slice of Life", "slice-of-life"),
-        Pair("Smut", "smut"),
-        Pair("Sports", "sports"),
-        Pair("Supernatural", "supernatural"),
-        Pair("Tragedy", "tragedy"),
-        Pair("Wuxia", "wuxia"),
-        Pair("Xianxia", "xianxia"),
-        Pair("Xuanhuan", "xuanhuan"),
-        Pair("Yaoi", "yaoi"),
-        Pair("Yuri", "yuri")
+        "All" to "",
+        "Action" to "action",
+        "Adventure" to "adventure",
+        "Celebrity" to "celebrity",
+        "Comedy" to "comedy",
+        "Drama" to "drama",
+        "Ecchi" to "ecchi",
+        "Fantasy" to "fantasy",
+        "Gender Bender" to "gender-bender",
+        "Harem" to "harem",
+        "Historical" to "historical",
+        "Horror" to "horror",
+        "Josei" to "josei",
+        "Martial Arts" to "martial-arts",
+        "Mature" to "mature",
+        "Mecha" to "mecha",
+        "Mystery" to "mystery",
+        "Psychological" to "psychological",
+        "Romance" to "romance",
+        "School Life" to "school-life",
+        "Sci-fi" to "sci-fi",
+        "Seinen" to "seinen",
+        "Shotacon" to "shotacon",
+        "Shoujo" to "shoujo",
+        "Shoujo Ai" to "shoujo-ai",
+        "Shounen" to "shounen",
+        "Shounen Ai" to "shounen-ai",
+        "Slice of Life" to "slice-of-life",
+        "Smut" to "smut",
+        "Sports" to "sports",
+        "Supernatural" to "supernatural",
+        "Tragedy" to "tragedy",
+        "Wuxia" to "wuxia",
+        "Xianxia" to "xianxia",
+        "Xuanhuan" to "xuanhuan",
+        "Yaoi" to "yaoi",
+        "Yuri" to "yuri"
     )
 
     override suspend fun loadMainPage(
@@ -71,27 +71,18 @@ class ReadLightNovelProvider : MainAPI() {
 
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.top-novel-block")
-        if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
-
         val returnValue = headers.mapNotNull {
             val content = it.selectFirst("> div.top-novel-content")
             val nameHeader = it.selectFirst("div.top-novel-header > h2 > a")
             val cUrl = nameHeader?.attr("href") ?: return@mapNotNull null
             val name = nameHeader.text() ?: return@mapNotNull null
-            val posterUrl = content?.selectFirst("> div.top-novel-cover > a > img")?.attr("src")
             /* val tags = ArrayList(
                  content.select("> div.top-novel-body > div.novel-item > div.content")
                      .last().select("> ul > li > a").map { t -> t.text() })*/
-
-            SearchResponse(
-                name,
-                fixUrl(cUrl),
-                fixUrlNull(posterUrl),
-                null,
-                null,
-                this.name
-            )
-            //tags
+            newSearchResponse(name = name, url = cUrl) {
+                posterUrl =
+                    fixUrlNull(content?.selectFirst("> div.top-novel-cover > a > img")?.attr("src"))
+            }
         }
         return HeadMainPageResponse(url, returnValue)
     }
@@ -135,26 +126,20 @@ class ReadLightNovelProvider : MainAPI() {
             data = mapOf("q" to query)
         )
         val document = Jsoup.parse(response.text)
-        val headers = document.select("li > a")
-        if (headers.size <= 0) return ArrayList()
-        val returnValue: ArrayList<SearchResponse> = ArrayList()
-        for (h in headers) {
+        return document.select("li > a").mapNotNull { h ->
             val spans = h.select("> span")
 
             val name = spans[1].text()
-            val url = h?.attr("href") ?: continue
+            val url = h?.attr("href") ?: return@mapNotNull null
 
-            val posterUrl = spans[0].selectFirst("> img")?.attr("src")
-
-            returnValue.add(SearchResponse(name, url, posterUrl, null, null, this.name))
+            newSearchResponse(name = name, url = url) {
+                posterUrl = spans[0].selectFirst("> img")?.attr("src")
+            }
         }
-        return returnValue
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        val response = app.get(url.replace("http://", "https://"))
-
-        val document = Jsoup.parse(response.text)
+        val document = app.get(url.replace("http://", "https://")).document
 
         val info =
             document.select("div.novel-detail-body") //div.novel-details > div.novel-detail-item >
@@ -178,22 +163,8 @@ class ReadLightNovelProvider : MainAPI() {
             return info[names.indexOf(name)]
         }
 
-        val rating = (getIndex("Rating").text().toFloat() * 100).toInt()
         val name = document.selectFirst("div.block-title")?.text() ?: return null
-        var author = getIndex("Author(s)").selectFirst("> ul > li")?.text()
-        if (author == "N/A") author = null
 
-        val tagsDoc = getIndex("Genre").select("ul > li > a")
-        val tags: ArrayList<String> = ArrayList()
-        for (t in tagsDoc) {
-            tags.add(t.text())
-        }
-
-        var synopsis = ""
-        val synoParts = getIndex("Description").select("> p")
-        for (s in synoParts) {
-            synopsis += s.text() + "\n\n"
-        }
 
         val data: ArrayList<ChapterData> = ArrayList()
         val panels = document.select("div.panel")
@@ -220,29 +191,20 @@ class ReadLightNovelProvider : MainAPI() {
             }
         }
 
-        val posterUrl = document.selectFirst("div.novel-cover > a > img")?.attr("src")
-
-        val views = getIndex("Total Views").text().replace(",", "").replace(".", "").toInt()
-        val peopleRated = null
-
-        val status = when (getIndex("Status").text()) {
-            "Ongoing" -> STATUS_ONGOING
-            "Completed" -> STATUS_COMPLETE
-            else -> STATUS_NULL
+        return newStreamResponse(url = url, name = name, data = data) {
+            posterUrl = fixUrlNull(document.selectFirst("div.novel-cover > a > img")?.attr("src"))
+            status = when (getIndex("Status").text()) {
+                "Ongoing" -> STATUS_ONGOING
+                "Completed" -> STATUS_COMPLETE
+                else -> STATUS_NULL
+            }
+            synopsis =
+                getIndex("Description").select("> p").joinToString(separator = "\n\n") { it.text() }
+            rating = (getIndex("Rating").text().toFloat() * 100).toInt()
+            author = getIndex("Author(s)").selectFirst("> ul > li")?.text()
+            if (author == "N/A") author = null
+            tags = getIndex("Genre").select("ul > li > a").map { it.text() }
+            views = getIndex("Total Views").text().replace(",", "").replace(".", "").toInt()
         }
-
-        return StreamResponse(
-            url,
-            name,
-            data,
-            author,
-            fixUrlNull(posterUrl),
-            rating,
-            peopleRated,
-            views,
-            synopsis,
-            tags,
-            status
-        )
     }
 }

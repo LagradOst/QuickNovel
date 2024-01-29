@@ -17,49 +17,49 @@ class MtlNovelProvider : MainAPI() {
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
 
     override val tags = listOf(
-        Pair("All", ""),
-        Pair("Adult", "adult"),
-        Pair("Adventure", "adventure"),
-        Pair("Comedy", "comedy"),
-        Pair("Drama", "drama"),
-        Pair("Ecchi", "ecchi"),
-        Pair("Erciyuan", "erciyuan"),
-        Pair("Fan-Fiction", "fan-fiction"),
-        Pair("Fantasy", "fantasy"),
-        Pair("Game", "game"),
-        Pair("Gender Bender", "Gender-Bender"),
-        Pair("Harem", "harem"),
-        Pair("Historical", "historical"),
-        Pair("Horror", "horror"),
-        Pair("Josei", "josei"),
-        Pair("Martial Arts", "martial-arts"),
-        Pair("Mature", "mature"),
-        Pair("Mecha", "mecha"),
-        Pair("Military", "military"),
-        Pair("Mystery", "mystery"),
-        Pair("Psychological", "psychological"),
-        Pair("Romance", "romance"),
-        Pair("School Life", "school-life"),
-        Pair("Sci-fi", "sci-fi"),
-        Pair("Seinen", "seinen"),
-        Pair("Shoujo", "shoujo"),
-        Pair("Shoujo Ai", "shoujo-ai"),
-        Pair("Shounen", "shounen"),
-        Pair("Shounen Ai", "shounen-ai"),
-        Pair("Slice of Life", "slice-of-life"),
-        Pair("Smut", "smut"),
-        Pair("Sports", "sports"),
-        Pair("Supernatural", "supernatural"),
-        Pair("Tragedy", "tragedy"),
-        Pair("Two-dimensional", "two-dimensional"),
-        Pair("Urban Life", "urban-life"),
-        Pair("Wuxia", "wuxia"),
-        Pair("Xianxia", "xianxia"),
-        Pair("Xuanhuan", "xuanhuan"),
-        Pair("Yaoi", "yaoi"),
-        Pair("Yuri", "yuri"),
+        "All" to "",
+        "Adult" to "adult",
+        "Adventure" to "adventure",
+        "Comedy" to "comedy",
+        "Drama" to "drama",
+        "Ecchi" to "ecchi",
+        "Erciyuan" to "erciyuan",
+        "Fan-Fiction" to "fan-fiction",
+        "Fantasy" to "fantasy",
+        "Game" to "game",
+        "Gender Bender" to "Gender-Bender",
+        "Harem" to "harem",
+        "Historical" to "historical",
+        "Horror" to "horror",
+        "Josei" to "josei",
+        "Martial Arts" to "martial-arts",
+        "Mature" to "mature",
+        "Mecha" to "mecha",
+        "Military" to "military",
+        "Mystery" to "mystery",
+        "Psychological" to "psychological",
+        "Romance" to "romance",
+        "School Life" to "school-life",
+        "Sci-fi" to "sci-fi",
+        "Seinen" to "seinen",
+        "Shoujo" to "shoujo",
+        "Shoujo Ai" to "shoujo-ai",
+        "Shounen" to "shounen",
+        "Shounen Ai" to "shounen-ai",
+        "Slice of Life" to "slice-of-life",
+        "Smut" to "smut",
+        "Sports" to "sports",
+        "Supernatural" to "supernatural",
+        "Tragedy" to "tragedy",
+        "Two-dimensional" to "two-dimensional",
+        "Urban Life" to "urban-life",
+        "Wuxia" to "wuxia",
+        "Xianxia" to "xianxia",
+        "Xuanhuan" to "xuanhuan",
+        "Yaoi" to "yaoi",
+        "Yuri" to "yuri",
     )
-    val interceptor = CloudflareKiller()
+    private val interceptor = CloudflareKiller()
 
     override suspend fun loadMainPage(
         page: Int,
@@ -69,29 +69,21 @@ class MtlNovelProvider : MainAPI() {
     ): HeadMainPageResponse {
         val url =
             if (tag.isNullOrBlank()) "$mainUrl/alltime-rank/page/$page" else "$mainUrl/genre/$tag/page/$page"
-
-
         val document = app.get(url, interceptor = interceptor).document
-
         val headers = document.select("div.box")
-        if (headers.size <= 0) return HeadMainPageResponse(url, ArrayList())
-        val returnValue: ArrayList<SearchResponse> = ArrayList()
-        for (h in headers) {
+
+        val returnValue = headers.mapNotNull { h ->
             val name =
-                h?.selectFirst("a")?.attr("aria-label")?.substringBeforeLast("Cover") ?: continue
+                h?.selectFirst("a")?.attr("aria-label")?.substringBeforeLast("Cover") ?: return@mapNotNull null
             val cUrl = h.selectFirst("a")?.attr("href") ?: throw ErrorLoadingException()
-            val posterUrl = h.selectFirst("amp-img amp-img")?.attr("src")
-            returnValue.add(
-                SearchResponse(
-                    name,
-                    cUrl,
-                    fixUrlNull(posterUrl),
-                    null,
-                    null,
-                    this.name
-                )
-            )
+            newSearchResponse(
+                name = name,
+                url = cUrl,
+            ) {
+                posterUrl = fixUrlNull(h.selectFirst("amp-img amp-img")?.attr("src"))
+            }
         }
+
         return HeadMainPageResponse(url, returnValue)
     }
 
@@ -109,66 +101,44 @@ class MtlNovelProvider : MainAPI() {
                 ).text
             )
         return response.items?.first()?.results?.mapNotNull {
-            SearchResponse(
+            newSearchResponse(
                 name = Jsoup.parse(it.title ?: return@mapNotNull null).text(),
-                url = it.permalink ?: return@mapNotNull null,
-                it.thumbnail,
-                null,
-                null,
-                name
-            )
+                url = it.permalink ?: return@mapNotNull null
+            ) {
+                posterUrl = it.thumbnail
+            }
         }!!
     }
 
 
     override suspend fun load(url: String): LoadResponse? {
         val document = app.get(url).document
-
         val name = document.selectFirst("h1.entry-title")?.text() ?: return null
-
-        val author = document.selectFirst("#author")?.text()
-
-        val posterUrl = document.select("div.nov-head amp-img amp-img").attr("src")
-
-        val tags = document.select("#currentgen > a").map {
-            it.text()
-        }
-
-        val synopsis = document.selectFirst("div.desc")?.text()
-
-        val data: ArrayList<ChapterData> = ArrayList()
-        val chapters = app.get(
+        val data = app.get(
             "$url/chapter-list/",
             interceptor = interceptor
-        ).document.select("div.ch-list a").reversed()
-        for (c in chapters) {
-            val href = c?.attr("href") ?: continue
+        ).document.select("div.ch-list a").reversed().mapNotNull { c ->
+            val href = c?.attr("href") ?: return@mapNotNull null
             val cName = c.text()
-            data.add(ChapterData(cName, href, null, null))
-
+            newChapterData(name = cName, url = href)
         }
 
-        val rating =
-            document.selectFirst("span.rating-info")?.selectFirst("strong")?.text()?.toFloat()
-                ?.times(200)?.toInt()
-        val peopleVoted = "\\((.+) re".toRegex()
-            .find(document.selectFirst("span.rating-info")?.text().toString())?.groupValues?.last()
-            ?.toInt()
-
-
-        return StreamResponse(
-            url,
-            name,
-            data,
-            author,
-            fixUrlNull(posterUrl),
-            rating,
-            peopleVoted,
-            null,
-            synopsis,
-            tags,
-            null,
-        )
+        return newStreamResponse(url = url, name = name, data = data) {
+            author = document.selectFirst("#author")?.text()
+            posterUrl = fixUrlNull(document.select("div.nov-head amp-img amp-img").attr("src"))
+            tags = document.select("#currentgen > a").map {
+                it.text()
+            }
+            synopsis = document.selectFirst("div.desc")?.text()
+            peopleVoted = "\\((.+) re".toRegex()
+                .find(
+                    document.selectFirst("span.rating-info")?.text().toString()
+                )?.groupValues?.last()
+                ?.toInt()
+            rating =
+                document.selectFirst("span.rating-info")?.selectFirst("strong")?.text()?.toFloat()
+                    ?.times(200)?.toInt()
+        }
     }
 }
 

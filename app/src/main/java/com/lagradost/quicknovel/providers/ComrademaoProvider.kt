@@ -15,11 +15,12 @@ class ComrademaoProvider : MainAPI() {
         val document = Jsoup.parse(response.text)
         val items = document.select(".bs")
         return items.mapNotNull {
-            val poster = it.selectFirst("img")?.attr("src")
             val titleHolder = it.selectFirst("a")
             val title = titleHolder?.text() ?: return@mapNotNull null
             val href = titleHolder.attr("href")
-            SearchResponse(title, href ?: return@mapNotNull null, poster, null, null, this.name)
+            newSearchResponse(name = title, url = href ?: return@mapNotNull null) {
+                posterUrl = it.selectFirst("img")?.attr("src")
+            }
         }
     }
 
@@ -37,9 +38,7 @@ class ComrademaoProvider : MainAPI() {
         val mainDivs = document.select("div.infox")
 
         val title = novelInfo?.attr("title")?.replace(" – Comrade Mao", "") ?: return null
-        val poster = novelInfo.attr("src")
 
-        val descript = document.select("div.wd-full p").lastOrNull()?.text()
         var genres: ArrayList<String>? = null
         var tags: ArrayList<String>? = null
         var author: String? = null
@@ -71,31 +70,24 @@ class ComrademaoProvider : MainAPI() {
             genres?.addAll(tags ?: listOf())
         }
 
-        val statusInt = when (status) {
-            "On-going" -> STATUS_ONGOING
-            "Complete" -> STATUS_COMPLETE
-            else -> STATUS_NULL
-        }
-
         val chapters = document.select("li[data-num]").mapNotNull {
             val name = it.select(".chapternum").text() ?: return@mapNotNull null
-            val date = it.select(".chapterdate").text() ?: return@mapNotNull null
             val chapUrl = it.select("a").attr("href")
-            ChapterData(name, chapUrl, date, null)
+            newChapterData(name = name, url = chapUrl) {
+                dateOfRelease = it.select(".chapterdate").text()
+            }
         }.reversed()
 
-        return StreamResponse(
-            url,
-            title,
-            chapters,
-            author,
-            poster,
-            null,
-            null,
-            null,
-            descript,
-            genres,
-            statusInt,
-        )
+        return newStreamResponse(url = url, name = title, data = chapters) {
+            this.status = when (status) {
+                "On-going" -> STATUS_ONGOING
+                "Complete" -> STATUS_COMPLETE
+                else -> STATUS_NULL
+            }
+            this.author = author
+            synopsis = document.select("div.wd-full p").lastOrNull()?.text()
+            posterUrl = fixUrlNull(novelInfo.attr("src"))
+            this.tags = (tags ?: emptyList()) + (genres ?: emptyList())
+        }
     }
 }

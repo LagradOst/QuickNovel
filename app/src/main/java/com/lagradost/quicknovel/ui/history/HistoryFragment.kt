@@ -17,8 +17,8 @@ import com.lagradost.quicknovel.util.UIHelper.popupMenu
 
 class HistoryFragment : Fragment() {
 
-    lateinit var binding : FragmentHistoryBinding
-    private val viewModel : HistoryViewModel by viewModels()
+    lateinit var binding: FragmentHistoryBinding
+    private val viewModel: HistoryViewModel by viewModels()
 
     private fun setupGridView() {
         val compactView = true //requireContext().getDownloadIsCompact()
@@ -71,12 +71,13 @@ class HistoryFragment : Fragment() {
             when (menuItem.itemId) {
                 R.id.action_history_more -> {
                     binding.historyToolbar.findViewById<View>(R.id.action_history_more)
-                        .popupMenu(listOf(Pair(1, R.string.clear_history))) {
+                        .popupMenu(listOf(1 to R.string.clear_history)) {
                             if (itemId == 1) {
                                 viewModel.deleteAllAlert()
                             }
                         }
                 }
+
                 else -> {
                 }
             }

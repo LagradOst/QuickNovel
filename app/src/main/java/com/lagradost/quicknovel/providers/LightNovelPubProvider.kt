@@ -9,7 +9,7 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import java.util.*
-
+/*
 class LightNovelPubProvider : MainAPI() {
     override val name = "LightNovelPub"
     override val mainUrl = "https://www.lightnovelpub.com"
@@ -79,9 +79,11 @@ class LightNovelPubProvider : MainAPI() {
                     viewsText.contains("m") -> {
                         1000000
                     }
+
                     viewsText.contains("k") -> {
                         1000
                     }
+
                     else -> 1
                 }
             (viewsText.replace("m", "").replace("k", "").toFloat() * times).toInt()
@@ -123,7 +125,7 @@ class LightNovelPubProvider : MainAPI() {
             link = fixUrl(link)
             val list = ArrayList<Pair<Int, String>>()
             for (i in 2..highestPage) {
-                list.add(Pair(i - 2, link + i))
+                list.add(i - 2 to link + i)
             }
 
             val dataList =
@@ -210,4 +212,4 @@ class LightNovelPubProvider : MainAPI() {
 
         return returnValue
     }
-}
+}*/

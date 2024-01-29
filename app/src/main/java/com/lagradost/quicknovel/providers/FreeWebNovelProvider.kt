@@ -3,7 +3,16 @@ package com.lagradost.quicknovel.providers
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
+class FreewebnovelProvider : LibReadProvider() {
+    override val name = "FreeWebNovel"
+    override val mainUrl = "https://freewebnovel.com"
+    override val hasMainPage = true
 
+    override val iconId = R.drawable.icon_freewebnovel
+
+    override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
+}
+/*
 class FreewebnovelProvider : MainAPI() {
     override val name = "FreeWebNovel"
     override val mainUrl = "https://freewebnovel.com"
@@ -14,44 +23,44 @@ class FreewebnovelProvider : MainAPI() {
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
 
     override val tags = listOf(
-        Pair("All", ""),
-        Pair("Action", "Action"),
-        Pair("Adult", "Adult"),
-        Pair("AdventCure", "AdventCure"),
-        Pair("Comedy", "Comedy"),
-        Pair("Drama", "Drama"),
-        Pair("Ecchi", "Ecchi"),
-        Pair("Fantasy", "Fantasy"),
-        //Pair("Editor's choice", "Editor's choice"),
-        Pair("Gender Bender", "Gender+Bender"),
-        Pair("Harem", "Harem"),
-        Pair("Historical", "Historical"),
-        Pair("Horror", "Horror"),
-        Pair("Josei", "Josei"),
-        Pair("Game", "Game"),
-        Pair("Martial Arts", "Martial+Art"),
-        Pair("Mature", "Mature"),
-        Pair("Mecha", "Mecha"),
-        Pair("Mystery", "Mystery"),
-        Pair("Psychological", "Psychological"),
-        Pair("Romance", "Romance"),
-        Pair("School Life", "School+Life"),
-        Pair("Sci-fi", "Sci-fi"),
-        Pair("Seinen", "Seinen"),
-        Pair("Shoujo", "Shoujo"),
-        Pair("Shounen Ai", "Shounen+Ai"),
-        Pair("Shounen", "Shounen"),
-        Pair("Slice of Life", "Slice+of+Life"),
-        Pair("Smut", "Smut"),
-        Pair("Sports", "Sports"),
-        Pair("Supernatural", "Supernatural"),
-        Pair("Tragedy", "Tragedy"),
-        Pair("Wuxia", "Wuxia"),
-        Pair("Xianxia", "Xianxia"),
-        Pair("Xuanhuan", "Xuanhuan"),
-        Pair("Yaoi", "Yaoi"),
-        Pair("Eastern", "Eastern"),
-        Pair("Reincarnation", "Reincarnation"),
+        "All" to "",
+        "Action" to "Action",
+        "Adult" to "Adult",
+        "AdventCure" to "AdventCure",
+        "Comedy" to "Comedy",
+        "Drama" to "Drama",
+        "Ecchi" to "Ecchi",
+        "Fantasy" to "Fantasy",
+        //"Editor's choice" to  "Editor's choice",
+        "Gender Bender" to "Gender+Bender",
+        "Harem" to "Harem",
+        "Historical" to "Historical",
+        "Horror" to "Horror",
+        "Josei" to "Josei",
+        "Game" to "Game",
+        "Martial Arts" to "Martial+Art",
+        "Mature" to "Mature",
+        "Mecha" to "Mecha",
+        "Mystery" to "Mystery",
+        "Psychological" to "Psychological",
+        "Romance" to "Romance",
+        "School Life" to "School+Life",
+        "Sci-fi" to "Sci-fi",
+        "Seinen" to "Seinen",
+        "Shoujo" to "Shoujo",
+        "Shounen Ai" to "Shounen+Ai",
+        "Shounen" to "Shounen",
+        "Slice of Life" to "Slice+of+Life",
+        "Smut" to "Smut",
+        "Sports" to "Sports",
+        "Supernatural" to "Supernatural",
+        "Tragedy" to "Tragedy",
+        "Wuxia" to "Wuxia",
+        "Xianxia" to "Xianxia",
+        "Xuanhuan" to "Xuanhuan",
+        "Yaoi" to "Yaoi",
+        "Eastern" to "Eastern",
+        "Reincarnation" to "Reincarnation",
     )
 
     override suspend fun loadMainPage(
@@ -109,7 +118,6 @@ class FreewebnovelProvider : MainAPI() {
                 "referer" to mainUrl,
                 "x-requested-with" to "XMLHttpRequest",
                 "content-type" to "application/x-www-form-urlencoded",
-                "accept" to "*/*",
                 "user-agent" to USER_AGENT
             ),
             data = mapOf("searchkey" to query)
@@ -229,4 +237,4 @@ class FreewebnovelProvider : MainAPI() {
             status
         )
     }
-}
+}*/

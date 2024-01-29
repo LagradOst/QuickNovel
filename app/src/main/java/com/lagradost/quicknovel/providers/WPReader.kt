@@ -1,17 +1,20 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.ChapterData
+import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
-import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.add
 import com.lagradost.quicknovel.addPath
 import com.lagradost.quicknovel.clean
+import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.ifCase
-import com.lagradost.quicknovel.jConnect
+import com.lagradost.quicknovel.newSearchResponse
+import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.synopsis
 import com.lagradost.quicknovel.toChapters
 import com.lagradost.quicknovel.toRate
@@ -27,46 +30,46 @@ abstract class WPReader : MainAPI() {
     override val hasMainPage = true
     override val iconBackgroundId = R.color.lightItemBackground
     override val tags = listOf(
-        Pair("All", ""),
-        Pair("Action", "action"),
-        Pair("Adult", "adult"),
-        Pair("Adventure", "adventure"),
-        Pair("China", "china"),
-        Pair("Comedy", "comedy"),
-        Pair("Drama", "drama"),
-        Pair("Ecchi", "ecchi"),
-        Pair("Fantasy", "fantasy"),
-        Pair("Harem", "harem"),
-        Pair("Historical", "historical"),
-        Pair("Horror", "horror"),
-        Pair("Jepang", "jepang"),
-        Pair("Josei", "josei"),
-        Pair("Martial Arts", "martial-arts"),
-        Pair("Mature", "mature"),
-        Pair("Mystery", "mystery"),
-        Pair("Original (Inggris)", "original-inggris"),
-        Pair("Psychological", "psychological"),
-        Pair("Romance", "romance"),
-        Pair("School Life", "school-life"),
-        Pair("Sci-fi", "sci-fi"),
-        Pair("Seinen", "seinen"),
-        Pair("Seinen Xuanhuan", "seinen-xuanhuan"),
-        Pair("Shounen", "shounen"),
-        Pair("Slice of Life", "slice-of-life"),
-        Pair("Smut", "smut"),
-        Pair("Sports", "sports"),
-        Pair("Supernatural", "supernatural"),
-        Pair("Tragedy", "tragedy"),
-        Pair("Xianxia", "xianxia"),
-        Pair("Xuanhuan", "xuanhuan"),
+        "All" to "",
+        "Action" to "action",
+        "Adult" to "adult",
+        "Adventure" to "adventure",
+        "China" to "china",
+        "Comedy" to "comedy",
+        "Drama" to "drama",
+        "Ecchi" to "ecchi",
+        "Fantasy" to "fantasy",
+        "Harem" to "harem",
+        "Historical" to "historical",
+        "Horror" to "horror",
+        "Jepang" to "jepang",
+        "Josei" to "josei",
+        "Martial Arts" to "martial-arts",
+        "Mature" to "mature",
+        "Mystery" to "mystery",
+        "Original (Inggris)" to "original-inggris",
+        "Psychological" to "psychological",
+        "Romance" to "romance",
+        "School Life" to "school-life",
+        "Sci-fi" to "sci-fi",
+        "Seinen" to "seinen",
+        "Seinen Xuanhuan" to "seinen-xuanhuan",
+        "Shounen" to "shounen",
+        "Slice of Life" to "slice-of-life",
+        "Smut" to "smut",
+        "Sports" to "sports",
+        "Supernatural" to "supernatural",
+        "Tragedy" to "tragedy",
+        "Xianxia" to "xianxia",
+        "Xuanhuan" to "xuanhuan",
     )
     /*
     open override val orderBys: List<Pair<String, String>> = listOf(
-        Pair("Latest Update", "update"),
-        Pair("Most Views", "popular"),
-        Pair("Rating", "rating"),
-        Pair("A-Z", "title"),
-        Pair("Latest Add", "latest"),
+        "Latest Update" to  "update",
+        "Most Views" to  "popular",
+        "Rating" to  "rating",
+        "A-Z" to  "title",
+        "Latest Add" to  "latest",
     )
     */
     // open val country: List<String> = listOf("jepang", "china", "korea", "unknown",)
@@ -83,72 +86,78 @@ abstract class WPReader : MainAPI() {
             .ifCase(page > 1) { addPath("page", page.toString()) }
             .toString()
 
-        val res = jConnect(url)
-            ?.select(if (tag == "") ".flexbox3-content > a" else ".flexbox2-content > a")
-            ?.mapNotNull {
-                SearchResponse(
-                    name = it?.attr("title") ?: "",
-                    url = it?.attr("href") ?: "",
-                    posterUrl = it?.selectFirst("img")?.attr("src") ?: "",
-                    rating = if (tag == "") it?.selectFirst(".score")?.text()?.toRate() else null,
-                    latestChapter = if (tag == "") it?.selectFirst("div.season")?.text()?.toChapters() else null,
-                    apiName = name
-                )
+        val res = app.get(url).document
+            .select(if (tag == "") ".flexbox3-content > a" else ".flexbox2-content > a")
+            .mapNotNull { element ->
+                newSearchResponse(
+                    name = element?.attr("title") ?: return@mapNotNull null,
+                    url = element.attr("href")
+                ) {
+                    posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
+                    rating = if (tag == "") element.selectFirst(".score")?.text()
+                        ?.toRate() else null
+                    latestChapter = if (tag == "") element.selectFirst("div.season")?.text()
+                        ?.toChapters() else null
+                }
             }
 
         return HeadMainPageResponse(url, res ?: ArrayList())
     }
 
     override suspend fun loadHtml(url: String): String? {
-        val con = jConnect(url)
-        val res = con?.selectFirst(".mn-novel-chapter-content-body") ?: con?.selectFirst(".reader-area")
+        val con = app.get(url).document
+        val res =
+            con.selectFirst(".mn-novel-chapter-content-body") ?: con.selectFirst(".reader-area")
         return res?.let { adv ->
-            adv.select("p")?.filter { it -> !it.hasText() }?.forEach { it.remove() }
+            adv.select("p").filter { it -> !it.hasText() }.forEach { it.remove() }
             adv.outerHtml()
         }
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
         val url = mainUrl.toUrlBuilderSafe().add("s" to query)
-        return jConnect(url = url.toString())
-            ?.select("div.flexbox2-content > a")
-            ?.mapNotNull {
-                SearchResponse(
-                    name = it?.attr("title") ?: "",
-                    url = it?.attr("href") ?: "",
-                    posterUrl = it?.selectFirst("img")?.attr("src") ?: "",
-                    rating = it?.selectFirst(".score")?.text()?.toRate(),
-                    latestChapter = it?.selectFirst("div.season")?.text()?.toChapters(),
-                    apiName = name
-                )
-            } ?: ArrayList()
+        return app.get(url = url.toString()).document
+            .select("div.flexbox2-content > a")
+            .mapNotNull { element ->
+                newSearchResponse(
+                    name = element?.attr("title") ?: return@mapNotNull null,
+                    url = element.attr("href") ?: return@mapNotNull null
+                ) {
+                    posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
+                    rating = element.selectFirst(".score")?.text()?.toRate()
+                    latestChapter = element.selectFirst("div.season")?.text()?.toChapters()
+                }
+            }
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val doc = jConnect(url)
-        return StreamResponse(
+        val doc = app.get(url).document
+        val data = doc.select("div.flexch-infoz > a")
+            .mapNotNull { dat ->
+                ChapterData(
+                    name = dat.attr("title").clean() ?: "",
+                    url = dat.attr("href").clean() ?: "",
+                    dateOfRelease = dat.selectFirst("span.date")?.text()?.clean() ?: "",
+                    views = 0,
+                )
+            }.reversed()
+
+        return newStreamResponse(
             url = url,
-            name = doc?.selectFirst(".series-titlex > h2")?.text()?.clean() ?: "",
-            data = doc?.select("div.flexch-infoz > a")
-                ?.mapNotNull { dat ->
-                    ChapterData(
-                        name = dat.attr("title").clean() ?: "",
-                        url = dat.attr("href").clean() ?: "",
-                        dateOfRelease = dat.selectFirst("span.date")?.text()?.clean() ?: "",
-                        views = 0,
-                    )
-                }?.reversed() ?: listOf(ChapterData("", "", null, null)),
-            author = doc?.selectFirst("li:contains(Author)")
-                ?.selectFirst("span")?.text()?.clean() ?: "",
-            posterUrl = doc?.selectFirst("div.series-thumb img")
-                ?.attr("src") ?: "",
-            rating = doc?.selectFirst("span[itemprop=ratingValue]")?.text()?.toRate(),
-            peopleVoted = 0,
-            views = 0,
-            synopsis = doc?.selectFirst(".series-synops")?.text()?.synopsis() ?: "",
-            tags = doc?.selectFirst("div.series-genres")?.select("a")
-                ?.mapNotNull { tag -> tag?.text()?.clean() },
-            status = doc?.selectFirst("span.status")?.text()?.toStatus(),
-        )
+            name = doc.selectFirst(".series-titlex > h2")?.text()?.clean()
+                ?: throw ErrorLoadingException("No name"),
+            data = data
+        ) {
+            author = doc.selectFirst("li:contains(Author)")
+                ?.selectFirst("span")?.text()?.clean()
+            posterUrl = doc.selectFirst("div.series-thumb img")
+                ?.attr("src")
+            rating = doc.selectFirst("span[itemprop=ratingValue]")?.text()?.toRate()
+
+            synopsis = doc.selectFirst(".series-synops")?.text()?.synopsis() ?: ""
+            tags = doc.selectFirst("div.series-genres")?.select("a")
+                ?.mapNotNull { tag -> tag?.text()?.clean() }
+            status = doc.selectFirst("span.status")?.text()?.toStatus()
+        }
     }
 }

@@ -53,7 +53,7 @@ class APIRepository(val api: MainAPI) {
     suspend fun load(url: String, allowCache: Boolean = true): Resource<LoadResponse> {
         return safeApiCall {
             val fixedUrl = api.fixUrl(url)
-            val lookingForHash = Pair(api.name, fixedUrl)
+            val lookingForHash = api.name to fixedUrl
 
             if (allowCache) {
                 synchronized(cache) {

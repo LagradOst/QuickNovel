@@ -74,7 +74,9 @@ class SettingsFragment : PreferenceFragmentCompat() {
             return SafeFile.fromMedia(
                 context, MediaFileContentType.Downloads
             )?.gotoDirectory("Epub")
-        }/**
+        }
+
+        /**
          * Turns a string to an UniFile. Used for stored string paths such as settings.
          * Should only be used to get a download path.
          * */
@@ -87,7 +89,6 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
 
 
-
         /**
          * Base path where downloaded things should be stored, changes depending on settings.
          * Returns the file and a string to be stored for future file retrieval.
@@ -95,7 +96,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
          * */
         fun Context.getBasePath(): Pair<SafeFile?, String?> {
             val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
-            val basePathSetting = settingsManager.getString(getString(R.string.download_path_key), null)
+            val basePathSetting =
+                settingsManager.getString(getString(R.string.download_path_key), null)
             return basePathToFile(this, basePathSetting) to basePathSetting
         }
 
@@ -147,6 +149,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                     .edit().putString(getString(R.string.download_path_pref), it).apply()
             }
         }
+
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.settings, rootKey)
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(requireContext())
@@ -245,7 +248,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                         return@mapNotNull null
                     }
 
-                    Pair(it, fullName)
+                    it to fullName
                 }
 
                 context?.showMultiDialog(
