@@ -178,6 +178,7 @@
     <string name="battery_format">%d%%</string>
     <string name="novel">Novel</string>
     <string name="reviews">Reviews</string>
+    <string name="related">Related</string>
     <string name="votes_format">%d Votes</string>
     <string name="latest_format">Latest: %s</string>
     <string name="new_update_found_format">New update found!\n %s -> %s</string>

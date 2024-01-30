@@ -216,6 +216,7 @@ interface LoadResponse {
 
     val image: UiImage? get() = img(url = posterUrl, headers = posterHeaders)
     val apiName: String
+    var related : List<SearchResponse>?
 }
 
 data class StreamResponse(
@@ -233,14 +234,15 @@ data class StreamResponse(
     override var status: Int? = null,
     override var posterHeaders: Map<String, String>? = null,
     var nextChapter: ChapterData? = null,
+    override var related: List<SearchResponse>? = null
 ) : LoadResponse
 
-fun MainAPI.newStreamResponse(
+suspend fun MainAPI.newStreamResponse(
     name: String,
     url: String,
     data: List<ChapterData>,
     fix: Boolean = true,
-    initializer: StreamResponse.() -> Unit = { },
+    initializer: suspend StreamResponse.() -> Unit = { },
 ): StreamResponse {
     val builder = StreamResponse(
         name = name,
@@ -306,14 +308,15 @@ data class EpubResponse(
     override var posterHeaders: Map<String, String>? = null,
     val links: List<DownloadLinkType>,
     override val apiName: String,
+    override var related: List<SearchResponse>? = null
 ) : LoadResponse
 
-fun MainAPI.newEpubResponse(
+suspend fun MainAPI.newEpubResponse(
     name: String,
     url: String,
     links: List<DownloadLinkType>,
     fix: Boolean = true,
-    initializer: EpubResponse.() -> Unit = { },
+    initializer: suspend EpubResponse.() -> Unit = { },
 ): EpubResponse {
     val builder = EpubResponse(
         name = name,

@@ -1,14 +1,15 @@
 package com.lagradost.quicknovel.providers
 
 import android.annotation.SuppressLint
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.app
+import com.lagradost.quicknovel.mvvm.logError
 import org.jsoup.Jsoup
 import java.lang.Exception
 import java.util.*
 import kotlin.collections.ArrayList
 
-// TODO https://www.royalroad.com/fictions/similar?fictionId=68679
 class RoyalRoadProvider : MainAPI() {
     override val name = "Royal Road"
     override val mainUrl = "https://www.royalroad.com"
@@ -208,6 +209,40 @@ class RoyalRoadProvider : MainAPI() {
         }
     }
 
+    data class RelatedData(
+        @JsonProperty("synopsis")
+        val synopsis: String?,
+        @JsonProperty("overallScore")
+        val overallScore: Double?,
+        @JsonProperty("cover")
+        val cover: String?,
+        @JsonProperty("title")
+        val title: String?,
+        @JsonProperty("url")
+        val url: String?,
+        @JsonProperty("id")
+        val id: Int?,
+    )
+
+    private suspend fun loadRelated(id: Int?): List<SearchResponse>? {
+        if (id == null) return null
+        return try {
+            // https://www.royalroad.com/fictions/similar?fictionId=68679
+            app.get("$mainUrl/fictions/similar?fictionId=$id").parsed<Array<RelatedData>>()
+                .mapNotNull { data ->
+                    newSearchResponse(
+                        name = data.title ?: return@mapNotNull null,
+                        url = data.url ?: return@mapNotNull null
+                    ) {
+                        posterUrl = fixUrlNull(data.cover)
+                    }
+                }
+        } catch (t: Throwable) {
+            logError(t)
+            null
+        }
+    }
+
     override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
@@ -274,9 +309,13 @@ class RoyalRoadProvider : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        val document = app.get(url).document
+        val response = app.get(url)
+        val document = response.document
 
         val name = document.selectFirst("h1.font-white")?.text() ?: return null
+
+        val fictionId =
+            response.text.substringAfter("window.fictionId = ").substringBefore(";").toIntOrNull()
 
         val chapterHeaders = document.select("div.portlet-body > table > tbody > tr")
         val data = chapterHeaders.mapNotNull { c ->
@@ -290,6 +329,8 @@ class RoyalRoadProvider : MainAPI() {
         }
 
         return newStreamResponse(url = url, name = name, data = data) {
+            related = loadRelated(fictionId)
+
             val statusTxt = document.select("div.col-md-8 > div.margin-bottom-10 > span.label")
             for (s in statusTxt) {
                 if (s.hasText()) {

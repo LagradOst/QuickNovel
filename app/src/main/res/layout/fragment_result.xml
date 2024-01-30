@@ -425,7 +425,6 @@
                                 app:tabTextColor="?attr/textColor" />
 
 
-
                         <FrameLayout
                                 android:visibility="gone"
                                 tools:visibility="gone"
@@ -434,6 +433,7 @@
                                 android:minHeight="500dp"
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent">
+
                             <FrameLayout
                                     android:id="@+id/resultview_reviews_loading"
                                     android:layout_width="match_parent"
@@ -459,7 +459,9 @@
                                             android:orientation="vertical">
 
                                         <include layout="@layout/loading_review" />
+
                                         <include layout="@layout/loading_review" />
+
                                         <include layout="@layout/loading_review" />
 
                                     </LinearLayout>
@@ -475,7 +477,27 @@
                             </androidx.recyclerview.widget.RecyclerView>
                         </FrameLayout>
 
+                        <FrameLayout
+                                android:visibility="gone"
+                                tools:visibility="visible"
+                                android:id="@+id/result_relatedholder"
+                                android:orientation="vertical"
+                                android:minHeight="500dp"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent">
+
+                            <com.lagradost.quicknovel.widget.AutofitRecyclerView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:clipToPadding="false"
+                                    android:paddingTop="5dp"
+                                    app:spanCount="3"
+                                    android:id="@+id/related_list"
+                                    android:orientation="vertical" />
+                        </FrameLayout>
+
                         <LinearLayout
+                                tools:visibility="gone"
                                 android:id="@+id/result_novel_holder"
                                 android:orientation="vertical"
                                 android:layout_width="match_parent"
@@ -724,6 +746,8 @@ Translator: Rainbow Turtle"
                                         android:layout_width="match_parent" />
                             </LinearLayout>
                         </LinearLayout>
+
+
                     </LinearLayout>
                 </FrameLayout>
             </LinearLayout>

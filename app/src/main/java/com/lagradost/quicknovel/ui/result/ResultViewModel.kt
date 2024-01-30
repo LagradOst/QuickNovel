@@ -55,6 +55,10 @@ class ResultViewModel : ViewModel() {
         MutableLiveData<Int>(0)
     }
 
+    val currentTabPosition: MutableLiveData<Int> by lazy {
+        MutableLiveData<Int>(0)
+    }
+
     private val loadMutex = Mutex()
     private lateinit var load: LoadResponse
     private var loadId: Int = 0
@@ -107,8 +111,9 @@ class ResultViewModel : ViewModel() {
         }
     }
 
-    fun switchTab(pos: Int?) {
-        val newPos = pos ?: return
+    fun switchTab(index: Int?, position : Int? ) {
+        val newPos = index ?: return
+        currentTabPosition.postValue(position ?: return)
         currentTabIndex.postValue(newPos)
         if (newPos == 1 && currentReviews.isEmpty()) {
             loadMoreReviews(verify = false)

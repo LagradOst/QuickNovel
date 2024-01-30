@@ -32,6 +32,7 @@ import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.debugException
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.ReadType
+import com.lagradost.quicknovel.ui.mainpage.MainAdapter2
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.util.SettingsHelper.getRating
 import com.lagradost.quicknovel.util.UIHelper
@@ -84,6 +85,25 @@ class ResultFragment : Fragment() {
         //return inflater.inflate(R.layout.fragment_result, container, false)
     }
 
+    private fun setupGridView() {
+        val compactView = false //activity?.getGridIsCompact() ?: return
+        val spanCountLandscape = if (compactView) 2 else 6
+        val spanCountPortrait = if (compactView) 1 else 3
+        val orientation = resources.configuration.orientation
+        if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            binding.relatedList.spanCount = spanCountLandscape
+        } else {
+            binding.relatedList.spanCount = spanCountPortrait
+        }
+    }
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        setupGridView()
+        binding.resultHolder.post { // BUG FIX
+            updateScrollHeight()
+        }
+    }
+
     override fun onResume() {
         super.onResume()
 
@@ -108,14 +128,8 @@ class ResultFragment : Fragment() {
         }
     }
 
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        super.onConfigurationChanged(newConfig)
-        binding.resultHolder.post { // BUG FIX
-            updateScrollHeight()
-        }
-    }
 
-    fun newState(loadResponse: Resource<LoadResponse>?) {
+    private fun newState(loadResponse: Resource<LoadResponse>?) {
         if (loadResponse == null) return
         //activity?.window?.navigationBarColor =
         //    requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground)
@@ -174,10 +188,33 @@ class ResultFragment : Fragment() {
                     resultBack.setColorFilter(Color.WHITE)
                     resultTabs.removeAllTabs()
                     resultTabs.isVisible = api.hasReviews
-                    if (api.hasReviews) {
-                        resultTabs.addTab(resultTabs.newTab().setText(R.string.novel))
-                        resultTabs.addTab(resultTabs.newTab().setText(R.string.reviews))
+                    val hasRelated = !res.related.isNullOrEmpty()
+                    if (api.hasReviews || hasRelated) {
+                        resultTabs.addTab(resultTabs.newTab().setText(R.string.novel).setId(0))
+                        if (api.hasReviews) {
+                            resultTabs.addTab(
+                                resultTabs.newTab().setText(R.string.reviews).setId(1)
+                            )
+                        }
+                        if (hasRelated) {
+                            resultTabs.addTab(
+                                resultTabs.newTab().setText(R.string.related).setId(2)
+                            )
+                            relatedList.apply {
+                                val mainPageAdapter = MainAdapter2(this)
+                                adapter = mainPageAdapter
+                                mainPageAdapter.submitList(res.related)
+                            }
+                            setupGridView()
+                        }
                     }
+                    val target = viewModel.currentTabIndex.value
+                    if (target != null) {
+                        resultTabs.getTabAt(target)?.let { new ->
+                            resultTabs.selectTab(new)
+                        }
+                    }
+
 
                     viewsAndRating.isVisible = res.views != null || res.peopleVoted != null
 
@@ -369,7 +406,8 @@ class ResultFragment : Fragment() {
 
             resultTabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
                 override fun onTabSelected(tab: TabLayout.Tab?) {
-                    viewModel.switchTab(tab?.position)
+                    println("addOnTabSelectedListener ${resultTabs.selectedTabPosition}")
+                    viewModel.switchTab(tab?.id, resultTabs.selectedTabPosition)
                 }
 
                 override fun onTabUnselected(tab: TabLayout.Tab?) {}
@@ -402,13 +440,22 @@ class ResultFragment : Fragment() {
                 viewModel.deleteAlert()
             }
         }
+
         observe(viewModel.currentTabIndex) { pos ->
             binding.apply {
                 resultNovelHolder.isVisible = 0 == pos
                 resultReviewsholder.isVisible = 1 == pos
                 reviewsFab.isVisible = 1 == pos
+                resultRelatedholder.isVisible = 2 == pos
             }
         }
+
+        observe(viewModel.currentTabPosition) { pos ->
+            if (binding.resultTabs.selectedTabPosition != pos) {
+                binding.resultTabs.selectTab(binding.resultTabs.getTabAt(pos))
+            }
+        }
+
         observe(viewModel.readState) {
             binding.resultBookmark.setImageResource(if (it == ReadType.NONE) R.drawable.ic_baseline_bookmark_border_24 else R.drawable.ic_baseline_bookmark_24)
         }
