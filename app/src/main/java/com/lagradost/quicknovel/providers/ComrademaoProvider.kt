@@ -11,8 +11,8 @@ class ComrademaoProvider : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/?s=$query&post_type=novel"
-        val response = app.get(url)
-        val document = Jsoup.parse(response.text)
+        val document = app.get(url).document
+
         val items = document.select(".bs")
         return items.mapNotNull {
             val titleHolder = it.selectFirst("a")
@@ -25,15 +25,15 @@ class ComrademaoProvider : MainAPI() {
     }
 
     override suspend fun loadHtml(url: String): String? {
-        val response = app.get(url)
-        val document = Jsoup.parse(response.text)
+        val document = app.get(url).document
+
         return document.selectFirst("div[readability]")?.html()
             ?.replace("(end of this chapter)", "", ignoreCase = true)
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        val response = app.get(url)
-        val document = Jsoup.parse(response.text)
+        val document = app.get(url).document
+
         val novelInfo = document.selectFirst("div.thumb > img")
         val mainDivs = document.select("div.infox")
 
@@ -50,12 +50,15 @@ class ComrademaoProvider : MainAPI() {
                 txt.contains("Genre") -> {
                     genres = ArrayList(element.select("a").map { it.text() })
                 }
+
                 txt.contains("Tag") -> {
                     tags = ArrayList(element.select("a").map { it.text() })
                 }
+
                 txt.contains("Publisher") -> {
                     author = element.selectFirst("a")?.text()
                 }
+
                 txt.contains("Status") -> {
                     status = element.selectFirst("a")?.text()
                 }

@@ -207,7 +207,7 @@ class WattpadProvider : MainAPI() {
 
     /*window.prefetched = */
 
-    override suspend fun loadHtml(url: String): String? {
+    override suspend fun loadHtml(url: String): String {
         val response = app.get(url)
         val htmlJson =
             response.text.substringAfter("window.prefetched = ").substringBefore("</script>")

@@ -1,8 +1,20 @@
 package com.lagradost.quicknovel.providers
 
-import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.ErrorLoadingException
+import com.lagradost.quicknovel.HeadMainPageResponse
+import com.lagradost.quicknovel.LoadResponse
+import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
-import org.jsoup.Jsoup
+import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.STATUS_COMPLETE
+import com.lagradost.quicknovel.STATUS_NULL
+import com.lagradost.quicknovel.STATUS_ONGOING
+import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.fixUrlNull
+import com.lagradost.quicknovel.newChapterData
+import com.lagradost.quicknovel.newSearchResponse
+import com.lagradost.quicknovel.newStreamResponse
+import kotlin.math.roundToInt
 
 open class AllNovelProvider : MainAPI() {
     override val name = "AllNovel"
@@ -121,9 +133,10 @@ open class AllNovelProvider : MainAPI() {
             app.get("$mainUrl/search?keyword=$query").document // AJAX, MIGHT ADD QUICK SEARCH
 
         return document.select("#list-page>.archive>.list>.row").mapNotNull { h ->
-            val title = h.selectFirst(">div>div>.truyen-title>a") ?: return@mapNotNull null
+            val title = h.selectFirst(">div>div>.truyen-title>a")
+                ?: h.selectFirst(">div>div>.novel-title>a") ?: return@mapNotNull null
             newSearchResponse(title.text(), title.attr("href") ?: return@mapNotNull null) {
-                posterUrl = fixUrlNull(h.selectFirst(">div>div>img")?.attr("href"))
+                posterUrl = fixUrlNull(h.selectFirst(">div>div>img")?.attr("src"))
             }
         }
     }
@@ -157,8 +170,8 @@ open class AllNovelProvider : MainAPI() {
             peopleVoted =
                 document.selectFirst(" div.small > em > strong:nth-child(3) > span")?.text()
                     ?.toIntOrNull() ?: 0
-            rating = document.selectFirst(" div.small > em > strong:nth-child(1) > span")?.text()
-                ?.toIntOrNull() ?: 0
+            rating = document.selectFirst("div.small > em > strong:nth-child(1) > span")?.text()
+                ?.toFloatOrNull()?.times(100)?.roundToInt()
 
             this.status =
                 when (document.selectFirst("div.info > div:nth-child(5) > a")?.selectFirst("a")

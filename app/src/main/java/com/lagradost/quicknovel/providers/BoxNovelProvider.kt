@@ -169,18 +169,6 @@ open class BoxNovelProvider : MainAPI() {
                 ?.replace("\n", "")
                 ?.replace("\t", "") ?: return null
 
-        var synopsis = ""
-        var synopsisParts = document.select("#editdescription > p")
-        if (synopsisParts.size == 0) synopsisParts = document.select("div.j_synopsis > p")
-        if (synopsisParts.size == 0) synopsisParts = document.select("div.summary__content > p")
-        for (s in synopsisParts) {
-            if (s.hasText() && !s.text().lowercase(Locale.getDefault())
-                    .contains(mainUrl)
-            ) { // FUCK ADS
-                synopsis += s.text() + "\n\n"
-            }
-        }
-
         val data = getChapters(
             app.post(
                 "${url}ajax/chapters/",
@@ -200,7 +188,20 @@ open class BoxNovelProvider : MainAPI() {
                     break
                 }
             }
-
+            var synopsis = ""
+            var synopsisParts = document.select("#editdescription > p")
+            if (synopsisParts.size == 0) synopsisParts = document.select("div.j_synopsis > p")
+            if (synopsisParts.size == 0) synopsisParts = document.select("div.summary__content > p")
+            for (s in synopsisParts) {
+                if (s.hasText() && !s.text().lowercase(Locale.getDefault())
+                        .contains(mainUrl)
+                ) { // FUCK ADS
+                    synopsis += s.text() + "\n\n"
+                }
+            }
+            if (synopsis.isNotEmpty()) {
+                this.synopsis = synopsis
+            }
             status =
                 when (document.select("div.post-status > div.post-content_item > div.summary-content")
                     .last()?.text()?.lowercase()) {

@@ -10,8 +10,7 @@ class ScribblehubProvider : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/?s=$query&post_type=fictionposts"
-        val response = app.get(url)
-        val document = Jsoup.parse(response.text)
+        val document = app.get(url).document
         return document.select("div.search_main_box").mapNotNull { item ->
             val img = item?.selectFirst("> div.search_img > img")?.attr("src")
             val body = item?.selectFirst("> div.search_body > div.search_title > a")
@@ -49,7 +48,10 @@ class ScribblehubProvider : MainAPI() {
             val href = aHeader?.attr("href")
             val date = element.selectFirst("> span")?.text()
             val chapterName = aHeader?.ownText()
-            newChapterData(name = if (chapterName.isNullOrBlank()) "Chapter $index" else chapterName, url = href ?: return@mapIndexedNotNull null) {
+            newChapterData(
+                name = if (chapterName.isNullOrBlank()) "Chapter $index" else chapterName,
+                url = href ?: return@mapIndexedNotNull null
+            ) {
                 dateOfRelease = date
             }
         }
@@ -58,7 +60,11 @@ class ScribblehubProvider : MainAPI() {
 
         //val tags = document.select("span.wi_fic_showtags > span.wi_fic_showtags_inner > a").map { it.text() }
 
-        return newStreamResponse(url = url, name =title ?: throw ErrorLoadingException("invalid name"), data = data) {
+        return newStreamResponse(
+            url = url,
+            name = title ?: throw ErrorLoadingException("invalid name"),
+            data = data
+        ) {
             posterUrl = fixUrlNull(document.selectFirst("div.fic_image > img")?.attr("src"))
             synopsis = document.selectFirst("div.wi_fic_desc")?.text()
             val ratings = document.select("span#ratefic_user > span > span")

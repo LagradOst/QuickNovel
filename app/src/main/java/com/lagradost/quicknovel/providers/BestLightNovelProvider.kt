@@ -1,24 +1,35 @@
 package com.lagradost.quicknovel.providers
 
-import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.LoadResponse
+import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
-import org.jsoup.Jsoup
+import com.lagradost.quicknovel.STATUS_COMPLETE
+import com.lagradost.quicknovel.STATUS_NULL
+import com.lagradost.quicknovel.STATUS_ONGOING
+import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.fixUrlNull
+import com.lagradost.quicknovel.newChapterData
+import com.lagradost.quicknovel.newSearchResponse
+import com.lagradost.quicknovel.newStreamResponse
+import com.lagradost.quicknovel.textClean
 
 class BestLightNovelProvider : MainAPI() {
     override val name = "BestLightNovel"
     override val mainUrl = "https://bestlightnovel.com"
 
     override suspend fun loadHtml(url: String): String? {
-        val response = app.get(url)
-        val document = Jsoup.parse(response.text)
+        val document = app.get(url).document
         val res = document.selectFirst("div.vung_doc")
-        return res?.html().textClean?.replace("[Updated from F r e e w e b n o v e l. c o m]", "")?.replace("Find authorized novels in Webnovel，faster updates, better experience，Please click for visiting. ","")
+        return res?.html().textClean?.replace("[Updated from F r e e w e b n o v e l. c o m]", "")
+            ?.replace(
+                "Find authorized novels in Webnovel，faster updates, better experience，Please click for visiting. ",
+                ""
+            )
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val response = app.get("$mainUrl/search_novels/${query.replace(' ', '_')}")
+        val document = app.get("$mainUrl/search_novels/${query.replace(' ', '_')}").document
 
-        val document = Jsoup.parse(response.text)
         val headers = document.select("div.danh_sach > div.list_category")
         return headers.mapNotNull {
             val head = it.selectFirst("> a")
@@ -33,9 +44,8 @@ class BestLightNovelProvider : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        val response = app.get(url)
+        val document = app.get(url).document
 
-        val document = Jsoup.parse(response.text)
         val infoHeaders = document.select("ul.truyen_info_right > li")
 
         val name = infoHeaders[0].selectFirst("> h1")?.text() ?: return null
@@ -50,7 +60,7 @@ class BestLightNovelProvider : MainAPI() {
             }
         }.reversed()
 
-        return newStreamResponse(url = url, name = name, data= chapterHeaders) {
+        return newStreamResponse(url = url, name = name, data = chapterHeaders) {
             for (a in infoHeaders[1].select("> a")) {
                 val href = a?.attr("href")
                 if (a.hasText() && (href?.length
@@ -78,7 +88,8 @@ class BestLightNovelProvider : MainAPI() {
                     ?.times(200))?.toInt() ?: 0
 
                 peopleVoted = ratingHeader?.get(2)?.text()?.replace(",", "")?.toInt() ?: 0
-            } catch (_: Throwable) { }
+            } catch (_: Throwable) {
+            }
         }
     }
 }

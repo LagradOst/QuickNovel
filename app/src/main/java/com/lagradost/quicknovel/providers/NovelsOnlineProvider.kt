@@ -53,7 +53,7 @@ class NovelsOnlineProvider : MainAPI() {
         "Yaoi" to "yaoi",
         "Yuri" to "yuri",
     )
-    val interceptor = CloudflareKiller()
+    private val interceptor = CloudflareKiller()
 
     override suspend fun loadMainPage(
         page: Int,
@@ -75,7 +75,8 @@ class NovelsOnlineProvider : MainAPI() {
                 url = adata.attr("href"),
             ) {
                 posterHeaders = interceptor.getCookieHeaders(url).toMap()
-                posterUrl = h.selectFirst("div.top-novel-content > div.top-novel-cover > a > img")!!.attr("src")
+                posterUrl = h.selectFirst("div.top-novel-content > div.top-novel-cover > a > img")!!
+                    .attr("src")
             }
         }
         return HeadMainPageResponse(url, list)

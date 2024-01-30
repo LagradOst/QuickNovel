@@ -1381,7 +1381,7 @@ open class ReadfromnetProvider : MainAPI() {
 
         val returnValue = document.select("div.box_in").mapNotNull { h ->
             val name = h?.selectFirst("h2")?.text() ?: return@mapNotNull null
-            val cUrl = h.selectFirst(" div > h2.title > a ")?.attr("href")  ?: return@mapNotNull null
+            val cUrl = h.selectFirst(" div > h2.title > a ")?.attr("href") ?: return@mapNotNull null
 
             newSearchResponse(name = name, url = cUrl) {
                 posterUrl = fixUrlNull(h.selectFirst("div > a.highslide > img")?.attr("src"))
@@ -1391,8 +1391,7 @@ open class ReadfromnetProvider : MainAPI() {
     }
 
     override suspend fun loadHtml(url: String): String? {
-        val response = app.get(url, headers = baseHeaders)
-        val document = Jsoup.parse(response.text)
+        val document = app.get(url, headers = baseHeaders).document
         document.select("div.splitnewsnavigation").remove()
         document.select("div.splitnewsnavigation2").remove()
         return document.selectFirst("#textToRead")?.html()
@@ -1462,7 +1461,10 @@ open class ReadfromnetProvider : MainAPI() {
                     ?.text()
 
             posterUrl =
-                fixUrlNull(document.selectFirst("div.box_in > center:nth-child(1) > div > a > img")?.attr("src"))
+                fixUrlNull(
+                    document.selectFirst("div.box_in > center:nth-child(1) > div > a > img")
+                        ?.attr("src")
+                )
         }
     }
 }

@@ -102,8 +102,7 @@ class KolNovelProvider : MainAPI() {
     }
 
     override suspend fun loadHtml(url: String): String? {
-        val response = app.get(url)
-        val document = Jsoup.parse(response.text)
+        val document = app.get(url).document
         return document.selectFirst("div.entry-content")?.html()
     }
 

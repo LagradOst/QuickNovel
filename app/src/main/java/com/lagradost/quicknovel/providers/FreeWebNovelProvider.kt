@@ -3,15 +3,52 @@ package com.lagradost.quicknovel.providers
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
+
 class FreewebnovelProvider : LibReadProvider() {
     override val name = "FreeWebNovel"
     override val mainUrl = "https://freewebnovel.com"
     override val hasMainPage = true
-
     override val iconId = R.drawable.icon_freewebnovel
-
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
+
+    override suspend fun loadMainPage(
+        page: Int,
+        mainCategory: String?,
+        orderBy: String?,
+        tag: String?
+    ): HeadMainPageResponse {
+        val url =
+            if (tag.isNullOrBlank()) "$mainUrl/latest-release/$page" else "$mainUrl/genres/$tag/$page"
+        val document = app.get(url).document
+        val headers = document.select("div.ul-list1.ul-list1-2.ss-custom > div.li-row")
+        val returnValue = headers.mapNotNull { h ->
+            val h3 = h?.selectFirst("h3.tit > a") ?: return@mapNotNull null
+            newSearchResponse(
+                name = h3.attr("title"),
+                url = h3.attr("href") ?: return@mapNotNull null
+            ) {
+                posterUrl = fixUrlNull(h.selectFirst("div.pic > a > img")?.attr("src"))
+                latestChapter = h.select("div.item")[2].selectFirst("> div > a")?.text()
+            }
+        }
+        return HeadMainPageResponse(url, returnValue)
+    }
+
+    override suspend fun loadHtml(url: String): String? {
+        val response = app.get(url)
+        val document = Jsoup.parse(
+            response.text
+                .replace("New novel chapters are published on Freewebnovel.com.", "")
+                .replace("The source of this content is Freewebnᴏvel.com.", "").replace(
+                    "☞ We are moving Freewebnovel.com to Libread.com, Please visit libread.com for more chapters! ☜",
+                    ""
+                )
+        )
+        return document.selectFirst("div.txt>.notice-text")?.html()
+    }
 }
+
+
 /*
 class FreewebnovelProvider : MainAPI() {
     override val name = "FreeWebNovel"

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.DownloadExtractLink
 import com.lagradost.quicknovel.DownloadLink
 import com.lagradost.quicknovel.DownloadLinkType
-import com.lagradost.quicknovel.EpubResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
@@ -52,9 +51,10 @@ class AnnasArchive : MainAPI() {
     private suspend fun loadFromJsonUrl(md5: String): LoadResponse {
         return app.get("$mainUrl/db/md5/$md5.json").parsed<AnnasArchiveRoot>().let { root ->
             newEpubResponse(
-                name = root.fileUnifiedData?.titleBest ?: root.additional.topBox.title?: root.fileUnifiedData?.titleAdditional!!.first(),
+                name = root.fileUnifiedData?.titleBest ?: root.additional.topBox.title
+                ?: root.fileUnifiedData?.titleAdditional!!.first(),
                 url = "$mainUrl/md5/$md5",
-                links =  root.additional.downloadUrls.mapNotNull { list ->
+                links = root.additional.downloadUrls.mapNotNull { list ->
                     val name = list.getOrNull(0) ?: return@mapNotNull null
                     val link = list.getOrNull(1) ?: return@mapNotNull null
                     extract(link, name)
@@ -79,15 +79,18 @@ class AnnasArchive : MainAPI() {
         }
 
         // backup non json parser
-        val response = app.get(url).document
+        val document = app.get(url).document
 
-        return newEpubResponse(name = response.selectFirst("main > div > div.text-3xl")?.ownText()!!,url = url, links = response.select("div.mb-6 > ul.mb-4 > li > a").mapNotNull { element ->
-            val link = fixUrlNull(element.attr("href")) ?: return@mapNotNull null
-            extract(link, element.text())
-        }) {
-            posterUrl = response.selectFirst("main > div > img")?.attr("src")
-            author = response.selectFirst("main > div > div.italic")?.ownText()
-            synopsis = response.selectFirst("main > div > div.js-md5-top-box-description")?.text()
+        return newEpubResponse(
+            name = document.selectFirst("main > div > div.text-3xl")?.ownText()!!,
+            url = url,
+            links = document.select("div.mb-6 > ul.mb-4 > li > a").mapNotNull { element ->
+                val link = fixUrlNull(element.attr("href")) ?: return@mapNotNull null
+                extract(link, element.text())
+            }) {
+            posterUrl = document.selectFirst("main > div > img")?.attr("src")
+            author = document.selectFirst("main > div > div.italic")?.ownText()
+            synopsis = document.selectFirst("main > div > div.js-md5-top-box-description")?.text()
         }
     }
 
