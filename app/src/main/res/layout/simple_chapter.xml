@@ -5,7 +5,8 @@
         android:backgroundTint="?attr/primaryBlackBackground"
         android:layout_marginBottom="5dp"
         android:layout_width="match_parent"
-        app:cardCornerRadius="@dimen/rounded_button_radius"
+        app:cardCornerRadius="0dp"
+        android:foreground="?android:attr/selectableItemBackgroundBorderless"
         android:layout_height="50dp">
 
     <LinearLayout

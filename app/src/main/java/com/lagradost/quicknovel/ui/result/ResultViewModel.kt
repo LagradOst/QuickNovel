@@ -13,17 +13,23 @@ import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.BookDownloader2Helper.generateId
+import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DownloadActionType
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
+import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
+import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_SCROLL
+import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_SCROLL_CHAR
 import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
+import com.lagradost.quicknovel.ReadActivity2
+import com.lagradost.quicknovel.ReadActivityViewModel
 import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.mvvm.Resource
@@ -134,10 +140,23 @@ class ResultViewModel : ViewModel() {
         }
     }
 
-    fun streamRead() = ioSafe {
+    fun streamRead(chapter : ChapterData? = null) = ioSafe {
         loadMutex.withLock {
             if (!hasLoaded) return@ioSafe
             addToHistory()
+
+            chapter?.let {
+                // TODO BETTER STORE
+                val streamResponse = ((loadResponse.value as? Resource.Success)?.value as? StreamResponse)
+                val index = streamResponse?.data?.indexOf(chapter)
+                if (index!= null && index >= 0) {
+                    setKey(EPUB_CURRENT_POSITION, streamResponse.name, index)
+                    setKey(
+                        EPUB_CURRENT_POSITION_SCROLL_CHAR, streamResponse.name,0,
+                    )
+                }
+            }
+
             BookDownloader2.stream(load, apiName)
         }
     }

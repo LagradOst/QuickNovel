@@ -20,7 +20,7 @@ import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.util.toPx
 import com.lagradost.quicknovel.widget.AutofitRecyclerView
 import kotlin.math.roundToInt
-class ChapterAdapter : ListAdapter<ChapterData, RecyclerView.ViewHolder>(DiffCallback()) {
+class ChapterAdapter(val viewmodel : ResultViewModel) : ListAdapter<ChapterData, RecyclerView.ViewHolder>(DiffCallback()) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         return ChapterAdapterHolder(SimpleChapterBinding.inflate(LayoutInflater.from(parent.context),parent,false))
     }
@@ -29,17 +29,20 @@ class ChapterAdapter : ListAdapter<ChapterData, RecyclerView.ViewHolder>(DiffCal
         when(holder) {
             is ChapterAdapterHolder -> {
                 val currentItem = getItem(position)
-                holder.bind(currentItem)
+                holder.bind(currentItem, viewmodel)
             }
         }
     }
 
     class ChapterAdapterHolder(private val binding : SimpleChapterBinding) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(card : ChapterData) {
+        fun bind(card : ChapterData, viewmodel : ResultViewModel) {
             binding.apply {
                 name.text = card.name
                 releaseDate.text = card.dateOfRelease
                 releaseDate.isGone = card.dateOfRelease.isNullOrBlank()
+                root.setOnClickListener {
+                    viewmodel.streamRead(card)
+                }
             }
         }
     }

@@ -763,7 +763,7 @@ Translator: Rainbow Turtle"
                                     app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
 
                                     android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
+                                    android:layout_height="500dp"
                                     android:clipToPadding="false"
                                     android:paddingTop="5dp"
                                     app:spanCount="1"
@@ -775,14 +775,6 @@ Translator: Rainbow Turtle"
                 </FrameLayout>
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
-
-        <FrameLayout
-                android:id="@+id/scroll_holder"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
-
-
-        </FrameLayout>
     </FrameLayout>
 
     <ImageView

@@ -127,6 +127,11 @@ class ResultFragment : Fragment() {
                 maxOf(0, total)
             )
         }
+        val parameter = binding.chapterList.layoutParams
+        parameter.height = displayMetrics.heightPixels - binding.viewsAndRating.height-binding.resultTabs.height - binding.resultScrollPadding.paddingTop
+
+        binding.chapterList.layoutParams = parameter
+    //ViewGroup.LayoutParams(binding.chapterList.layoutParams.width,displayMetrics.heightPixels)
         /*binding.hiddenView.apply {
             setPadding(
                 paddingLeft,
@@ -198,7 +203,7 @@ class ResultFragment : Fragment() {
                     resultTabs.removeAllTabs()
                     resultTabs.isVisible = false
                     val hasRelated = !res.related.isNullOrEmpty()
-                    val hasChapters = false //res is StreamResponse && res.data.isNotEmpty() // this was removed because of lag, because of shitty android
+                    val hasChapters = res is StreamResponse && res.data.isNotEmpty() // this was removed because of lag, because of shitty android
                     if (api.hasReviews || hasRelated || hasChapters) {
                         resultTabs.isVisible = true
                         resultTabs.addTab(resultTabs.newTab().setText(R.string.novel).setId(0))
@@ -223,8 +228,9 @@ class ResultFragment : Fragment() {
                                 resultTabs.newTab().setText(R.string.read_action_chapters).setId(3)
                             )
                             chapterList.apply {
-                                val mainPageAdapter = ChapterAdapter()
+                                val mainPageAdapter = ChapterAdapter(viewModel)
                                 adapter = mainPageAdapter
+                                setHasFixedSize(true)
                                 if (res is StreamResponse) {
                                     mainPageAdapter.submitList(res.data)
                                 }
