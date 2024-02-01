@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
+import androidx.core.view.marginTop
 import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -126,6 +127,14 @@ class ResultFragment : Fragment() {
                 maxOf(0, total)
             )
         }
+        /*binding.hiddenView.apply {
+            setPadding(
+                paddingLeft,
+                paddingTop,
+                paddingRight,
+                maxOf(0, total)
+            )
+        }*/
     }
 
 
@@ -187,9 +196,11 @@ class ResultFragment : Fragment() {
 
                     resultBack.setColorFilter(Color.WHITE)
                     resultTabs.removeAllTabs()
-                    resultTabs.isVisible = api.hasReviews
+                    resultTabs.isVisible = false
                     val hasRelated = !res.related.isNullOrEmpty()
-                    if (api.hasReviews || hasRelated) {
+                    val hasChapters = false //res is StreamResponse && res.data.isNotEmpty() // this was removed because of lag, because of shitty android
+                    if (api.hasReviews || hasRelated || hasChapters) {
+                        resultTabs.isVisible = true
                         resultTabs.addTab(resultTabs.newTab().setText(R.string.novel).setId(0))
                         if (api.hasReviews) {
                             resultTabs.addTab(
@@ -206,6 +217,18 @@ class ResultFragment : Fragment() {
                                 mainPageAdapter.submitList(res.related)
                             }
                             setupGridView()
+                        }
+                        if (hasChapters) {
+                            resultTabs.addTab(
+                                resultTabs.newTab().setText(R.string.read_action_chapters).setId(3)
+                            )
+                            chapterList.apply {
+                                val mainPageAdapter = ChapterAdapter()
+                                adapter = mainPageAdapter
+                                if (res is StreamResponse) {
+                                    mainPageAdapter.submitList(res.data)
+                                }
+                            }
                         }
                     }
                     val target = viewModel.currentTabIndex.value
@@ -444,9 +467,11 @@ class ResultFragment : Fragment() {
         observe(viewModel.currentTabIndex) { pos ->
             binding.apply {
                 resultNovelHolder.isVisible = 0 == pos
+               // hiddenView.isGone = 0 == pos
                 resultReviewsholder.isVisible = 1 == pos
                 reviewsFab.isVisible = 1 == pos
                 resultRelatedholder.isVisible = 2 == pos
+                resultChapterholder.isVisible = 3 == pos
             }
         }
 
@@ -529,7 +554,14 @@ class ResultFragment : Fragment() {
         //result_container.setBackgroundColor(requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground))
 
         binding.resultMainscroll.setOnScrollChangeListener { v: NestedScrollView, _, scrollY, _, oldScrollY ->
-            if (viewModel.isInReviews()) {
+            val arr = IntArray(2)
+            binding.resultScrollPadding.getLocationOnScreen(arr)
+            /*context?.resources?.displayMetrics?.let { displayMetrics->
+                binding.scrollHolder.setPadding(0, (displayMetrics.heightPixels - arr[1]),0,0)
+                println("scrolled: ${binding.scrollHolder.paddingTop}")
+
+            }*/
+           if (viewModel.isInReviews()) {
                 binding.reviewsFab.alpha = scrollY / 50.toPx.toFloat()
             }
 

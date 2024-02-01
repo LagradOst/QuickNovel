@@ -25,6 +25,8 @@ open class AllNovelProvider : MainAPI() {
 
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
 
+    open val ajaxUrl = "ajax-chapter-option"
+
     override val tags = listOf(
         "All" to "All",
         "Shounen" to "Shounen",
@@ -122,7 +124,8 @@ open class AllNovelProvider : MainAPI() {
 
     override suspend fun loadHtml(url: String): String? {
         val document = app.get(url).document
-        return document.selectFirst("#chapter-content")?.html()?.replace(
+        return (document.selectFirst("#chapter-content")
+            ?: document.selectFirst("#chr-content"))?.html()?.replace(
             " If you find any errors ( broken links, non-standard content, etc.. ), Please let us know &lt; report chapter &gt; so we can fix it as soon as possible.",
             " "
         )?.replace("[Updated from F r e e w e b n o v e l. c o m]", "")
@@ -148,12 +151,21 @@ open class AllNovelProvider : MainAPI() {
             document.selectFirst("h3.title")?.text() ?: throw ErrorLoadingException("invalid name")
 
         val dataNovelId = document.select("#rating").attr("data-novel-id")
-
-        val chapterData = app.get("$mainUrl/ajax-chapter-option?novelId=$dataNovelId").document
-        val parsed = chapterData.select("select > option")
+        val ajaxUrl = "$mainUrl/$ajaxUrl?novelId=$dataNovelId"
+        val chapterData = app.get(ajaxUrl).document
+        var parsed = chapterData.select("select > option")
+        if (parsed.isEmpty()) {
+            parsed = chapterData.select(".list-chapter>li>a")
+        }
 
         val data = parsed.mapNotNull { c ->
-            val cUrl = c?.attr("value") ?: return@mapNotNull null
+            var cUrl = c?.attr("value")
+            if (cUrl.isNullOrBlank()) {
+                cUrl = c.attr("href")
+            }
+            if (cUrl.isNullOrBlank()) {
+                return@mapNotNull null
+            }
             val cName = c.text().ifEmpty {
                 "chapter $c"
             }

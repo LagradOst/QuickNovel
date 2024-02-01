@@ -8,6 +8,7 @@ import org.jsoup.nodes.Element
 class ReadNovelFullProvider : AllNovelProvider() { // todo check
     override val mainUrl = "https://readnovelfull.com"
     override val name = "ReadNovelFull"
+    override val ajaxUrl = "ajax/chapter-archive"
 }
 /*
 class ReadNovelFullProvider : MainAPI() {
