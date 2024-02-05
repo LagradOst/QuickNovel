@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
+import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.BookDownloader2Helper.generateId
@@ -21,6 +22,7 @@ import com.lagradost.quicknovel.DownloadActionType
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
+import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_READ_AT
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_SCROLL
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_SCROLL_CHAR
 import com.lagradost.quicknovel.HISTORY_FOLDER
@@ -45,6 +47,37 @@ import kotlinx.coroutines.sync.withLock
 class ResultViewModel : ViewModel() {
     fun clear() {
         loadResponse.postValue(null)
+    }
+
+    fun hasReadChapter(chapter: ChapterData): Boolean {
+        val streamResponse =
+            (load as? StreamResponse) ?: return false
+        val index = chapterIndex(chapter) ?: return false
+        return getKey<Long>(
+            EPUB_CURRENT_POSITION_READ_AT,
+            "${streamResponse.name}/$index"
+        ) != null
+    }
+
+    fun setReadChapter(chapter: ChapterData, value: Boolean): Boolean {
+        val streamResponse =
+            (load as? StreamResponse) ?: return false
+        val index = chapterIndex(chapter) ?: return false
+
+        if (value) {
+            setKey(
+                EPUB_CURRENT_POSITION_READ_AT,
+                "${streamResponse.name}/$index",
+                System.currentTimeMillis()
+            )
+        } else {
+            removeKey(
+                EPUB_CURRENT_POSITION_READ_AT,
+                "${streamResponse.name}/$index",
+            )
+        }
+
+        return true
     }
 
     lateinit var repo: APIRepository
@@ -78,7 +111,7 @@ class ResultViewModel : ViewModel() {
     val reviews: MutableLiveData<Resource<ArrayList<UserReview>>> by lazy {
         MutableLiveData<Resource<ArrayList<UserReview>>>()
     }
-    var currentReviews: ArrayList<UserReview> = arrayListOf()
+    private var currentReviews: ArrayList<UserReview> = arrayListOf()
 
     private val reviewPage: MutableLiveData<Int> by lazy {
         MutableLiveData<Int>(0)
@@ -117,7 +150,7 @@ class ResultViewModel : ViewModel() {
         }
     }
 
-    fun switchTab(index: Int?, position : Int? ) {
+    fun switchTab(index: Int?, position: Int?) {
         val newPos = index ?: return
         currentTabPosition.postValue(position ?: return)
         currentTabIndex.postValue(newPos)
@@ -140,19 +173,41 @@ class ResultViewModel : ViewModel() {
         }
     }
 
-    fun streamRead(chapter : ChapterData? = null) = ioSafe {
+    private var cachedChapters: HashMap<ChapterData, Int> = hashMapOf()
+
+    private fun chapterIndex(chapter: ChapterData): Int? {
+        return cachedChapters[chapter]
+    }
+
+    private fun reCacheChapters() {
+        val streamResponse = (load as? StreamResponse)
+        if (streamResponse == null) {
+            cachedChapters = hashMapOf()
+            return
+        }
+        val out = hashMapOf<ChapterData, Int>()
+        streamResponse.data.mapIndexed { index, chapterData ->
+            out[chapterData] = index
+        }
+        cachedChapters = out
+    }
+
+    fun streamRead(chapter: ChapterData? = null) = ioSafe {
         loadMutex.withLock {
             if (!hasLoaded) return@ioSafe
             addToHistory()
 
             chapter?.let {
                 // TODO BETTER STORE
-                val streamResponse = ((loadResponse.value as? Resource.Success)?.value as? StreamResponse)
-                val index = streamResponse?.data?.indexOf(chapter)
-                if (index!= null && index >= 0) {
+                val streamResponse =
+                    ((loadResponse.value as? Resource.Success)?.value as? StreamResponse)
+                        ?: return@let
+                val index = chapterIndex(chapter)
+                if (index != null && index >= 0) {
+                    setReadChapter(chapter, true)
                     setKey(EPUB_CURRENT_POSITION, streamResponse.name, index)
                     setKey(
-                        EPUB_CURRENT_POSITION_SCROLL_CHAR, streamResponse.name,0,
+                        EPUB_CURRENT_POSITION_SCROLL_CHAR, streamResponse.name, 0,
                     )
                 }
             }
@@ -416,7 +471,7 @@ class ResultViewModel : ViewModel() {
         setKey(
             DOWNLOAD_EPUB_LAST_ACCESS, tid.toString(), System.currentTimeMillis()
         )
-
+        reCacheChapters()
         updateBookmarkData()
 
         hasLoaded = true

@@ -1,26 +1,15 @@
 package com.lagradost.quicknovel.ui.result
 
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
 import androidx.core.view.isGone
-import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.ChapterData
-import com.lagradost.quicknovel.MainActivity
-import com.lagradost.quicknovel.MainActivity.Companion.loadResult
-import com.lagradost.quicknovel.SearchResponse
-import com.lagradost.quicknovel.databinding.LoadingBottomBinding
-import com.lagradost.quicknovel.databinding.SearchResultGridBinding
 import com.lagradost.quicknovel.databinding.SimpleChapterBinding
-import com.lagradost.quicknovel.util.UIHelper.setImage
-import com.lagradost.quicknovel.util.toPx
-import com.lagradost.quicknovel.widget.AutofitRecyclerView
-import kotlin.math.roundToInt
-class ChapterAdapter(val viewmodel : ResultViewModel) : ListAdapter<ChapterData, RecyclerView.ViewHolder>(DiffCallback()) {
+
+class ChapterAdapter(val viewModel : ResultViewModel) : ListAdapter<ChapterData, RecyclerView.ViewHolder>(DiffCallback()) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         return ChapterAdapterHolder(SimpleChapterBinding.inflate(LayoutInflater.from(parent.context),parent,false))
     }
@@ -29,20 +18,32 @@ class ChapterAdapter(val viewmodel : ResultViewModel) : ListAdapter<ChapterData,
         when(holder) {
             is ChapterAdapterHolder -> {
                 val currentItem = getItem(position)
-                holder.bind(currentItem, viewmodel)
+                holder.bind(currentItem, viewModel)
             }
         }
     }
 
     class ChapterAdapterHolder(private val binding : SimpleChapterBinding) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(card : ChapterData, viewmodel : ResultViewModel) {
+        private fun refresh(card : ChapterData, viewModel : ResultViewModel) {
+            binding.apply {
+                root.alpha = if (viewModel.hasReadChapter(chapter = card)) 0.5F else 1.0F
+            }
+        }
+        fun bind(card : ChapterData, viewModel : ResultViewModel) {
             binding.apply {
                 name.text = card.name
                 releaseDate.text = card.dateOfRelease
                 releaseDate.isGone = card.dateOfRelease.isNullOrBlank()
                 root.setOnClickListener {
-                    viewmodel.streamRead(card)
+                    viewModel.streamRead(card)
+                    refresh(card,viewModel)
                 }
+                root.setOnLongClickListener {
+                    viewModel.setReadChapter(chapter = card, !viewModel.hasReadChapter(card))
+                    refresh(card,viewModel)
+                    return@setOnLongClickListener true
+                }
+                refresh(card,viewModel)
             }
         }
     }

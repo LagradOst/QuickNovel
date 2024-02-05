@@ -1066,6 +1066,12 @@ class ReadActivityViewModel : ViewModel() {
         currentIndex = scrollIndex.index
 
         setKey(
+            EPUB_CURRENT_POSITION_READ_AT,
+            "${book.title()}/${scrollIndex.index}",
+            System.currentTimeMillis()
+        )
+
+        setKey(
             EPUB_CURRENT_POSITION_SCROLL_CHAR,
             book.title(),
             scrollIndex.char
