@@ -106,7 +106,8 @@ class DownloadViewModel : ViewModel() {
                 card.downloadedCount,
                 card.author,
                 card.name,
-                card.apiName
+                card.apiName,
+                card.synopsis
             )
         } finally {
             setKey(DOWNLOAD_EPUB_LAST_ACCESS, card.id.toString(), System.currentTimeMillis())

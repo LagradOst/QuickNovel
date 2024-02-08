@@ -597,7 +597,7 @@ object BookDownloader2Helper {
     }
 
     @WorkerThread
-    fun turnToEpub(activity: Activity?, author: String?, name: String, apiName: String): Boolean {
+    fun turnToEpub(activity: Activity?, author: String?, name: String, apiName: String, synopsis: String?): Boolean {
         if (activity == null) return false
         if (!activity.checkWrite()) {
             activity.requestRW()
@@ -689,6 +689,11 @@ object BookDownloader2Helper {
                 if (author != null) {
                     metadata.addAuthor(Author(author))
                 }
+
+                if (synopsis != null) {
+                    metadata.addDescription(synopsis)
+                }
+
                 metadata.addTitle(name)
 
                 val posterFilepath =
@@ -1017,7 +1022,7 @@ object BookDownloader2 {
     @WorkerThread
     suspend fun stream(res: EpubResponse, apiName: String) {
         downloadAsync(res, getApiFromName(apiName))
-        readEpub(res.author, res.name, apiName)
+        readEpub(res.author, res.name, apiName, res.synopsis)
     }
 
     @WorkerThread
@@ -1064,20 +1069,20 @@ object BookDownloader2 {
         }
     }
 
-    private fun generateAndReadEpub(author: String?, name: String, apiName: String) {
+    private fun generateAndReadEpub(author: String?, name: String, apiName: String, synopsis: String?) {
         showToast(R.string.generating_epub)
-        if (!turnToEpub(author, name, apiName)) {
+        if (!turnToEpub(author, name, apiName, synopsis)) {
             showToast(R.string.error_loading_novel)
             return
         }
         openEpub(name)
     }
 
-    private fun readEpub(author: String?, name: String, apiName: String) {
+    private fun readEpub(author: String?, name: String, apiName: String, synopsis: String?) {
         if (hasEpub(name)) {
             openEpub(name)
         } else {
-            generateAndReadEpub(author, name, apiName)
+            generateAndReadEpub(author, name, apiName, synopsis)
         }
     }
 
@@ -1089,16 +1094,17 @@ object BookDownloader2 {
         downloadedCount: Int,
         author: String?,
         name: String,
-        apiName: String
+        apiName: String,
+        synopsis: String?
     ) {
         if (readEpubMutex.isLocked) return
         readEpubMutex.withLock {
             val downloaded = getKey(DOWNLOAD_EPUB_SIZE, id.toString(), 0)!!
             val shouldUpdate = downloadedCount - downloaded != 0
             if (shouldUpdate) {
-                generateAndReadEpub(author, name, apiName)
+                generateAndReadEpub(author, name, apiName, synopsis)
             } else {
-                readEpub(author, name, apiName)
+                readEpub(author, name, apiName, synopsis)
             }
         }
     }
@@ -1138,8 +1144,8 @@ object BookDownloader2 {
         deleteNovelAsync(author, name, apiName)
     }
 
-    private fun turnToEpub(author: String?, name: String, apiName: String): Boolean {
-        return BookDownloader2Helper.turnToEpub(activity, author, name, apiName)
+    private fun turnToEpub(author: String?, name: String, apiName: String, synopsis: String?): Boolean {
+        return BookDownloader2Helper.turnToEpub(activity, author, name, apiName, synopsis)
     }
 
     private fun hasEpub(name: String): Boolean {

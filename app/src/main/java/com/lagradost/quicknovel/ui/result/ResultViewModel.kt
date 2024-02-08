@@ -168,7 +168,8 @@ class ResultViewModel : ViewModel() {
                 downloadState.value?.progress ?: return@launch,
                 load.author,
                 load.name,
-                apiName
+                apiName,
+                load.synopsis
             )
         }
     }
