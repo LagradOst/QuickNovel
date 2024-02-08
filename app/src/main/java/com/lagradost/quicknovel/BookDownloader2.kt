@@ -597,7 +597,13 @@ object BookDownloader2Helper {
     }
 
     @WorkerThread
-    fun turnToEpub(activity: Activity?, author: String?, name: String, apiName: String, synopsis: String?): Boolean {
+    fun turnToEpub(
+        activity: Activity?,
+        author: String?,
+        name: String,
+        apiName: String,
+        synopsis: String?
+    ): Boolean {
         if (activity == null) return false
         if (!activity.checkWrite()) {
             activity.requestRW()
@@ -1069,7 +1075,12 @@ object BookDownloader2 {
         }
     }
 
-    private fun generateAndReadEpub(author: String?, name: String, apiName: String, synopsis: String?) {
+    private fun generateAndReadEpub(
+        author: String?,
+        name: String,
+        apiName: String,
+        synopsis: String?
+    ) {
         showToast(R.string.generating_epub)
         if (!turnToEpub(author, name, apiName, synopsis)) {
             showToast(R.string.error_loading_novel)
@@ -1144,7 +1155,12 @@ object BookDownloader2 {
         deleteNovelAsync(author, name, apiName)
     }
 
-    private fun turnToEpub(author: String?, name: String, apiName: String, synopsis: String?): Boolean {
+    private fun turnToEpub(
+        author: String?,
+        name: String,
+        apiName: String,
+        synopsis: String?
+    ): Boolean {
         return BookDownloader2Helper.turnToEpub(activity, author, name, apiName, synopsis)
     }
 
@@ -1675,7 +1691,7 @@ object BookDownloader2 {
         val filesDir = activity?.filesDir ?: return@ioSafe
         val sApiName = BookDownloader2Helper.sanitizeFilename(api.name)
         val sAuthor =
-             BookDownloader2Helper.sanitizeFilename(load.author ?: "")
+            BookDownloader2Helper.sanitizeFilename(load.author ?: "")
         val sName = BookDownloader2Helper.sanitizeFilename(load.name)
         val id = generateId(load, api.name)
 
