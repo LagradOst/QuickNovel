@@ -9,8 +9,9 @@ import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
-import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.newEpubResponse
+import com.lagradost.quicknovel.newSearchResponse
+import org.jsoup.Jsoup
 
 class AnnasArchive : MainAPI() {
     override val hasMainPage = false
@@ -23,13 +24,17 @@ class AnnasArchive : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/search?lang=&content=&ext=epub&sort=&q=$query"
-
-        val document = app.get(url).document
+        // they somehow comment out the shit????
+        val text = app.get(url).text.replace(Regex("<!--([\\W\\w]*?)-->")) {
+            it.groupValues[1]
+        }
+        val document = Jsoup.parse(text)
         return document.select("div.mb-4 > div > a").mapNotNull { element ->
             val href = fixUrlNull(element.attr("href")) ?: return@mapNotNull null
-            val poster = fixUrlNull(element.selectFirst("div.flex-none > div > img")?.attr("src"))
             val name = element.selectFirst("div.relative > h3")?.text() ?: return@mapNotNull null
-            SearchResponse(name = name, url = href, posterUrl = poster, apiName = this.name)
+            newSearchResponse(name = name, url = href) {
+                posterUrl = fixUrlNull(element.selectFirst("div.flex-none > div > img")?.attr("src"))
+            }
         }
     }
 
@@ -69,6 +74,7 @@ class AnnasArchive : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
+        /* cloudflare
         val md5Prefix = "$mainUrl/md5/"
         if (url.startsWith(md5Prefix)) {
             try {
@@ -76,7 +82,7 @@ class AnnasArchive : MainAPI() {
             } catch (t: Throwable) {
                 logError(t)
             }
-        }
+        }*/
 
         // backup non json parser
         val document = app.get(url).document
@@ -84,11 +90,23 @@ class AnnasArchive : MainAPI() {
         return newEpubResponse(
             name = document.selectFirst("main > div > div.text-3xl")?.ownText()!!,
             url = url,
-            links = document.select("div.mb-6 > ul.mb-4 > li > a").mapNotNull { element ->
+            links = document.select("ul.mb-4 > li > a.js-download-link").mapNotNull { element ->
                 val link = fixUrlNull(element.attr("href")) ?: return@mapNotNull null
+                // member
+                if (link.contains("fast_download")) {
+                    return@mapNotNull null
+                }
+                // cloudflare
+                if (link.contains("slow_download")) {
+                    return@mapNotNull null
+                }
+                // no idea why this is in the js dl link
+                if (link.endsWith("/datasets")) {
+                    return@mapNotNull null
+                }
                 extract(link, element.text())
             }) {
-            posterUrl = document.selectFirst("main > div > img")?.attr("src")
+            posterUrl = document.selectFirst("main > div > div > img")?.attr("src")
             author = document.selectFirst("main > div > div.italic")?.ownText()
             synopsis = document.selectFirst("main > div > div.js-md5-top-box-description")?.text()
         }

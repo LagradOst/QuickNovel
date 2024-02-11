@@ -1556,7 +1556,7 @@ object BookDownloader2 {
                 val totalBytes = ArrayList<Byte>()
                 var progress = 0
                 val startedTime = System.currentTimeMillis()
-
+                file.parentFile?.mkdirs()
                 file.createNewFile()
                 val size = DEFAULT_BUFFER_SIZE
                 var lastUpdatedMs = 0L

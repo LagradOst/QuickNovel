@@ -9,6 +9,7 @@ open class LibReadProvider : MainAPI() {
     override val name = "LibRead"
     override val mainUrl = "https://libread.com"
     override val hasMainPage = true
+    open val removeHtml = false // because the two sites use .html or not for no reason
 
     override val iconId = R.drawable.icon_libread
 
@@ -119,6 +120,7 @@ open class LibReadProvider : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse? {
+        val trimmed = url.trim().removeSuffix("/")
         val response = app.get(url)
         val document = response.document
         val name = document.selectFirst("h1.tit")?.text() ?: return null
@@ -131,9 +133,15 @@ open class LibReadProvider : MainAPI() {
             )
         )
 
+        val prefix = if (removeHtml) {
+            trimmed.removeSuffix(".html")
+        } else {
+            trimmed
+        }
+
         val data =
             Jsoup.parse(chaptersDataphp.text.replace("""\""", "")).select("option").map { c ->
-                val cUrl = url + '/' + c.attr("value").split('/').last()
+                val cUrl = "$prefix/${c.attr("value").split('/').last()}" // url + '/' +
                 val cName = c.text().ifEmpty {
                     "chapter $c"
                 }

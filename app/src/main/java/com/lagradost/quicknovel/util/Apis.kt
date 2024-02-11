@@ -10,7 +10,7 @@ import com.lagradost.quicknovel.providers.*
 
 class Apis {
     companion object {
-        val apis: Array<MainAPI> = arrayOf(
+        val apis: List<MainAPI> = arrayOf(
             //AllProvider(),
 //            NovelPassionProvider(), // Site gone
             BestLightNovelProvider(),
@@ -48,7 +48,7 @@ class Apis {
             IndoWebNovelProvider(),
             SakuraNovelProvider(),
             WattpadProvider(),
-        )
+        ).sortedBy { it.name }
 
         fun getApiFromName(name: String): APIRepository {
             return getApiFromNameOrNull(name) ?: APIRepository(apis[1])

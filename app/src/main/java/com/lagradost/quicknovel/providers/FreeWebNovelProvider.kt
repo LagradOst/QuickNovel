@@ -10,6 +10,7 @@ class FreewebnovelProvider : LibReadProvider() {
     override val hasMainPage = true
     override val iconId = R.drawable.icon_freewebnovel
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
+    override val removeHtml = true
 
     override suspend fun loadMainPage(
         page: Int,
@@ -36,6 +37,7 @@ class FreewebnovelProvider : LibReadProvider() {
 
     override suspend fun loadHtml(url: String): String? {
         val response = app.get(url)
+
         val document = Jsoup.parse(
             response.text
                 .replace("New novel chapters are published on Freewebnovel.com.", "")
@@ -44,7 +46,14 @@ class FreewebnovelProvider : LibReadProvider() {
                     ""
                 )
         )
-        return document.selectFirst("div.txt>.notice-text")?.html()
+        document.selectFirst("p")?.remove() // .m-read .txt sub, .m-read .txt p:nth-child(1)
+        /*for (e in document.select("p")) {
+            if (e.text().contains("The source of this ") || e.selectFirst("a")?.hasAttr("href") == true) {
+                e.remove()
+            }
+        }*/
+        document.selectFirst("div.txt>.notice-text")?.remove()
+        return document.selectFirst("div.txt")?.html()
     }
 }
 
