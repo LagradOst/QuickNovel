@@ -62,6 +62,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import nl.siegmann.epublib.domain.Book
+import nl.siegmann.epublib.domain.TOCReference
 import nl.siegmann.epublib.epub.EpubReader
 import org.commonmark.node.Node
 import org.jsoup.Jsoup
@@ -238,6 +239,17 @@ class QuickBook(val data: QuickStreamData) : AbstractBook() {
 }
 
 class RegularBook(val data: Book) : AbstractBook() {
+    init {
+        var refs = mutableListOf<TOCReference>()
+        data.tableOfContents.tocReferences.forEach { ref ->
+            refs.add(ref)
+            if (ref.children != null) {
+                refs.addAll(ref.children)
+            }
+        }
+        data.tableOfContents.tocReferences = refs
+    }
+
     override val canReload = false
 
     override fun size(): Int {
