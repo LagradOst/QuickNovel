@@ -174,6 +174,7 @@ data class TextConfig(
     val textFont: String,
     val defaultFont: Typeface,
     val backgroundColor : Int,
+    val bionicReading : Boolean
 ) {
     private val fontFile: File? by lazy {
         if (textFont == "") null else systemFonts.firstOrNull { it.name == textFont }
@@ -248,6 +249,12 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
     fun changeHeight(height: Int): Boolean {
         if (config.toolbarHeight == height) return false
         config = config.copy(toolbarHeight = height)
+        return true
+    }
+
+    fun changeBionicReading(to : Boolean) : Boolean {
+        if (config.bionicReading == to) return false
+        config = config.copy(bionicReading = to)
         return true
     }
 
@@ -547,7 +554,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
             UIHelper.bindImage(binding.root, img)
         }
 
-        private fun bindText(obj: TextSpan) {
+        private fun bindText(obj: TextSpan, config: TextConfig) {
             when (binding) {
                 is SingleImageBinding -> {
                     val img = obj.text.getSpans<AsyncDrawableSpan>(0, obj.text.length)[0]
@@ -586,7 +593,11 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
                     binding.root.apply {
                         // this is set to fix the nonclick https://stackoverflow.com/questions/8641343/android-clickablespan-not-calling-onclick
                         movementMethod = LinkMovementMethod.getInstance()
-                        text = obj.text
+                        text = if (config.bionicReading) {
+                            obj.bionicText
+                        } else {
+                            obj.text
+                        }
 
                         //val links = obj.text.getSpans<io.noties.markwon.core.spans.LinkSpan>()
                         //if (links.isNotEmpty()) {
@@ -671,7 +682,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
             span = obj
             when (obj) {
                 is TextSpan -> {
-                    this.bindText(obj)
+                    this.bindText(obj, config)
                     // because we bind text here we know that it will be cleared and thus
                     // we do not have to update it with null
                     if (ttsLine != null)

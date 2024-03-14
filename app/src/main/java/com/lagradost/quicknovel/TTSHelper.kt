@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Typeface
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -12,21 +13,26 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
 import android.support.v4.media.session.MediaSessionCompat
+import android.text.Spannable
+import android.text.SpannableString
 import android.text.Spanned
+import android.text.style.StyleSpan
 import android.view.KeyEvent
 import androidx.media.session.MediaButtonReceiver
-import com.lagradost.quicknovel.ui.UiText
-import com.lagradost.quicknovel.ui.txt
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.mvvm.debugAssert
 import com.lagradost.quicknovel.receivers.BecomingNoisyReceiver
+import com.lagradost.quicknovel.ui.UiText
+import com.lagradost.quicknovel.ui.txt
 import com.lagradost.quicknovel.util.UIHelper.requestAudioFocus
 import io.noties.markwon.Markwon
 import kotlinx.coroutines.delay
 import org.jsoup.Jsoup
 import java.util.Locale
 import java.util.Stack
+import kotlin.math.roundToInt
+
 
 class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boolean) {
     private val intentFilter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
@@ -266,6 +272,30 @@ data class TextSpan(
     override val index: Int,
     override var innerIndex: Int,
 ) : SpanDisplay() {
+    val bionicText : Spanned by lazy {
+        val wordToSpan: Spannable = SpannableString(text)
+        val length = wordToSpan.length
+        Regex("([a-zà-ýA-ZÀ-ÝåäöÅÄÖ].*?)[^a-zà-ýA-ZÀ-ÝåäöÅÄÖ'’]").findAll(text).forEach { match ->
+            val range = match.groups[1]!!.range
+            // https://github.com/gBloxy/Bionic-Reader/blob/main/bionic-reader.py#L167
+            val correctLength = when (val rangeLength = range.last + 1 - range.first) {
+                0 -> return@forEach // this should never happened
+                1, 2, 3 -> 1
+                4 -> 2
+                else -> {
+                    (rangeLength.toFloat() * 0.4).roundToInt()
+                }
+            }
+            wordToSpan.setSpan(
+                StyleSpan(Typeface.BOLD),
+                minOf(maxOf(match.range.first, 0), length),
+                minOf(maxOf(match.range.first + correctLength, 0), length),
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+
+        wordToSpan
+    }
     override fun id(): Long {
         return generateId(0, index, start, end)
     }

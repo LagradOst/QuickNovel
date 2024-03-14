@@ -553,7 +553,6 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         config.setArgs(binding.loadingText, CONFIG_FONT or CONFIG_COLOR)
         config.setArgs(binding.readBattery, CONFIG_FONT or CONFIG_COLOR or CONFIG_FONT_BOLD)
         config.setArgs(binding.readTimeClock, CONFIG_FONT or CONFIG_COLOR or CONFIG_FONT_BOLD)
-
         config.setArgs(binding.readLoadingBar)
     }
 
@@ -715,7 +714,8 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 textColor = viewModel.textColor,
                 textSize = viewModel.textSize,
                 textFont = viewModel.textFont,
-                backgroundColor = viewModel.backgroundColor
+                backgroundColor = viewModel.backgroundColor,
+                bionicReading = viewModel.bionicReading
             ).also { config ->
                 updateOtherTextConfig(config)
             }
@@ -750,6 +750,12 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             binding.root.setBackgroundColor(color)
             binding.readOverlay.setBackgroundColor(color)
             if (textAdapter.changeBackgroundColor(color)) {
+                updateTextAdapterConfig()
+            }
+        }
+
+        observe(viewModel.bionicReadingLive) { color ->
+            if (textAdapter.changeBionicReading(color)) {
                 updateTextAdapterConfig()
             }
         }
@@ -1264,6 +1270,11 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 readSettingsScrollVol.isChecked = viewModel.scrollWithVolume
                 readSettingsScrollVol.setOnCheckedChangeListener { _, isChecked ->
                     viewModel.scrollWithVolume = isChecked
+                }
+
+                readSettingsShowBionic.isChecked = viewModel.bionicReading
+                readSettingsShowBionic.setOnCheckedChangeListener { _, isChecked ->
+                    viewModel.bionicReading = isChecked
                 }
 
                 readSettingsLockTts.isChecked = viewModel.ttsLock

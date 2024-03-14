@@ -103,6 +103,17 @@
                     android:textSize="16sp"
                     android:paddingStart="5dp"
                     android:paddingEnd="5dp"
+                    android:text="@string/bionic_reading"
+                    android:id="@+id/read_settings_show_bionic"
+                    android:textColor="?attr/textColor"
+                    app:buttonTint="?attr/colorOnPrimary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                    android:textSize="16sp"
+                    android:paddingStart="5dp"
+                    android:paddingEnd="5dp"
                     android:text="@string/keep_screen_active"
                     android:id="@+id/read_settings_keep_screen_active"
                     android:textColor="?attr/textColor"
