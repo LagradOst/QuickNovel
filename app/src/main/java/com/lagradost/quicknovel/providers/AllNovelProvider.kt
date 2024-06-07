@@ -124,11 +124,22 @@ open class AllNovelProvider : MainAPI() {
 
     override suspend fun loadHtml(url: String): String? {
         val document = app.get(url).document
-        return (document.selectFirst("#chapter-content")
-            ?: document.selectFirst("#chr-content"))?.html()?.replace(
-            " If you find any errors ( broken links, non-standard content, etc.. ), Please let us know &lt; report chapter &gt; so we can fix it as soon as possible.",
-            " "
-        )?.replace("[Updated from F r e e w e b n o v e l. c o m]", "")
+        val content = (document.selectFirst("#chapter-content")
+            ?: document.selectFirst("#chr-content"))
+        if (content == null) return null
+
+        return content.html()
+            .replace(
+                "<iframe .* src=\"//ad.{0,2}-ads.com/.*\" style=\".*\"></iframe>".toRegex(),
+                " "
+            ).replace(
+                " If you find any errors ( broken links, non-standard content, etc.. ), Please let us know &lt; report chapter &gt; so we can fix it as soon as possible.",
+                " "
+            ).replace(
+                "If you find any errors ( Ads popup, ads redirect, broken links, non-standard content, etc.. ), Please let us know &lt; report chapter &gt; so we can fix it as soon as possible.",
+                " "
+            ).replace("[Updated from F r e e w e b n o v e l. c o m]", "")
+
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
