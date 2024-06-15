@@ -2,6 +2,7 @@ package com.lagradost.quicknovel
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Rect
@@ -12,6 +13,8 @@ import android.text.Spanned
 import android.widget.Toast
 import androidx.annotation.WorkerThread
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toDrawable
+import androidx.core.text.getSpans
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -55,6 +58,7 @@ import io.noties.markwon.MarkwonConfiguration
 import io.noties.markwon.SoftBreakAddsNewLinePlugin
 import io.noties.markwon.html.HtmlPlugin
 import io.noties.markwon.image.AsyncDrawable
+import io.noties.markwon.image.AsyncDrawableSpan
 import io.noties.markwon.image.ImageSizeResolver
 import io.noties.markwon.image.glide.GlideImagesPlugin
 import kotlinx.coroutines.delay
@@ -140,6 +144,21 @@ abstract class AbstractBook {
     abstract fun title(): String
     abstract fun getChapterTitle(index: Int): UiText
     abstract fun getLoadingStatus(index: Int): String?
+
+    @Throws
+    open fun loadImage(image: String): ByteArray? {
+        return null
+    }
+
+    fun loadImageBitmap(image: String): Bitmap? {
+        try {
+            val data = this.loadImage(image) ?: return null
+            return BitmapFactory.decodeByteArray(data, 0, data.size)
+        } catch (t: Throwable) {
+            logError(t)
+            return null
+        }
+    }
 
     @WorkerThread
     @Throws
@@ -239,6 +258,7 @@ class QuickBook(val data: QuickStreamData) : AbstractBook() {
 }
 
 class RegularBook(val data: Book) : AbstractBook() {
+
     init {
         var refs = mutableListOf<TOCReference>()
         data.tableOfContents.tocReferences.forEach { ref ->
@@ -251,6 +271,10 @@ class RegularBook(val data: Book) : AbstractBook() {
     }
 
     override val canReload = false
+
+    override fun loadImage(image: String): ByteArray? {
+        return data.resources.resourceMap.values.find { x -> x.mediaType.name.contains("image") && image.endsWith(x.href) }?.data
+    }
 
     override fun size(): Int {
         return data.tableOfContents.tocReferences.size
@@ -270,7 +294,25 @@ class RegularBook(val data: Book) : AbstractBook() {
     }
 
     override suspend fun getChapterData(index: Int, reload: Boolean): String {
-        return data.tableOfContents.tocReferences[index].resource.reader.readText()
+        val start = data.tableOfContents.tocReferences[index].resource
+        val startIdx = data.spine.getResourceIndex(start)
+
+        val end = data.tableOfContents.tocReferences.getOrNull(index + 1)?.resource
+        var endIdx = data.spine.getResourceIndex(end)
+        if (endIdx == -1) {
+            endIdx = data.spine.size()
+        }
+        val builder = StringBuilder()
+        for (i in startIdx until endIdx) {
+            val ref = data.spine.spineReferences[i]
+            // I have no idea, but nonlinear = stop?
+            if (!ref.isLinear && i != startIdx) {
+                break
+            }
+            builder.append(ref.resource.reader.readText())
+        }
+
+        return builder.toString()
     }
 
     override fun expand(last: String): Boolean {
@@ -639,7 +681,13 @@ class ReadActivityViewModel : ViewModel() {
             markwonMutex.withLock {
                 parsed = markwon.parse(rawText)
                 rendered = markwon.render(parsed)
-
+                val asyncDrawables = rendered.getSpans<AsyncDrawableSpan>()
+                for (async in asyncDrawables) {
+                    async.drawable.result =
+                        book.loadImageBitmap(async.drawable.destination)?.toDrawable(
+                            Resources.getSystem()
+                        )
+                }
                 //render(rawText, markwon)
                 // this was removed because the reducer did not work
                 /*val split = reducer.reduce(parsed)
@@ -734,7 +782,7 @@ class ReadActivityViewModel : ViewModel() {
                 if (loadedChapter >= book.size()) {
                     currentIndex = book.size() - 1
                     updateIndexAsync(currentIndex, notify = false)
-                    showToast("Resize $loadedChapter -> $currentIndex",  Toast.LENGTH_LONG)
+                    showToast("Resize $loadedChapter -> $currentIndex", Toast.LENGTH_LONG)
                 }
 
                 val char = getKey(
@@ -782,6 +830,7 @@ class ReadActivityViewModel : ViewModel() {
             .usePlugin(GlideImagesPlugin.create(object : GlideImagesPlugin.GlideStore {
                 override fun load(drawable: AsyncDrawable): RequestBuilder<Drawable> {
                     return try {
+
                         val newUrl = drawable.destination.substringAfter("&url=")
                         val url =
                             book.resolveUrl(
@@ -794,6 +843,7 @@ class ReadActivityViewModel : ViewModel() {
 
                         Glide.with(context)
                             .load(GlideUrl(url) { mapOf("user-agent" to USER_AGENT) })
+
                     } catch (e: Exception) {
                         logError(e)
                         Glide.with(context)

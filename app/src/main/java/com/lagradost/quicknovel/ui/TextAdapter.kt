@@ -173,8 +173,8 @@ data class TextConfig(
     val textSize: Int,
     val textFont: String,
     val defaultFont: Typeface,
-    val backgroundColor : Int,
-    val bionicReading : Boolean
+    val backgroundColor: Int,
+    val bionicReading: Boolean
 ) {
     private val fontFile: File? by lazy {
         if (textFont == "") null else systemFonts.firstOrNull { it.name == textFont }
@@ -207,9 +207,11 @@ data class TextConfig(
     private fun setTextColor(textView: TextView) {
         textView.setTextColor(textColor)
     }
+
     private fun setBgTextColor(textView: TextView) {
         textView.setTextColor(backgroundColor)
     }
+
     fun setArgs(progressBar: ProgressBar) {
         progressBar.progressTintList = ColorStateList.valueOf(textColor)
         progressBar.indeterminateTintList = ColorStateList.valueOf(textColor)
@@ -252,7 +254,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
         return true
     }
 
-    fun changeBionicReading(to : Boolean) : Boolean {
+    fun changeBionicReading(to: Boolean): Boolean {
         if (config.bionicReading == to) return false
         config = config.copy(bionicReading = to)
         return true
@@ -291,7 +293,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
             DRAW_FAILED -> SingleFailedBinding.inflate(inflater, parent, false)
             DRAW_CHAPTER -> SingleFinishedChapterBinding.inflate(inflater, parent, false)
             DRAW_LOAD -> SingleLoadBinding.inflate(inflater, parent, false)
-            DRAW_OVERSCROLL -> SingleOverscrollChapterBinding.inflate(inflater,parent,false)
+            DRAW_OVERSCROLL -> SingleOverscrollChapterBinding.inflate(inflater, parent, false)
             else -> throw NotImplementedError()
         }
 
@@ -467,9 +469,11 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
             is ChapterLoadSpanned -> {
                 DRAW_LOAD
             }
+
             is ChapterOverscrollSpanned -> {
                 DRAW_OVERSCROLL
             }
+
             else -> throw NotImplementedError()
         }
     }
@@ -547,7 +551,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
         }
 
 
-        private fun bindImage(binding : SingleImageBinding, img : AsyncDrawable) {
+        private fun bindImage(binding: SingleImageBinding, img: AsyncDrawable) {
             val url = img.destination
             if (binding.root.url == url) return
             binding.root.url = url // don't reload if already set
@@ -558,13 +562,13 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
             when (binding) {
                 is SingleImageBinding -> {
                     val img = obj.text.getSpans<AsyncDrawableSpan>(0, obj.text.length)[0]
-                    bindImage(binding,img.drawable)
+                    bindImage(binding, img.drawable)
 
                     binding.root.setOnClickListener { root ->
                         if (root !is TextImageView) {
                             return@setOnClickListener
                         }
-                        showImage(root.context,img.drawable)
+                        showImage(root.context, img.drawable)
                     }
 
                     /*val size = 300.toPx
