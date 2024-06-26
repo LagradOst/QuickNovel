@@ -2,18 +2,30 @@ package com.lagradost.quicknovel.providers
 
 import android.annotation.SuppressLint
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.ErrorLoadingException
+import com.lagradost.quicknovel.HeadMainPageResponse
+import com.lagradost.quicknovel.LoadResponse
+import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
+import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.STATUS_COMPLETE
+import com.lagradost.quicknovel.STATUS_DROPPED
+import com.lagradost.quicknovel.STATUS_ONGOING
+import com.lagradost.quicknovel.STATUS_PAUSE
+import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.UserReview
+import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.mvvm.logError
+import com.lagradost.quicknovel.newChapterData
+import com.lagradost.quicknovel.newSearchResponse
+import com.lagradost.quicknovel.newStreamResponse
 import org.jsoup.Jsoup
-import java.lang.Exception
-import java.util.*
-import kotlin.collections.ArrayList
+import java.util.Date
 
 class RoyalRoadProvider : MainAPI() {
     override val name = "Royal Road"
     override val mainUrl = "https://www.royalroad.com"
-
+    override val rateLimitTime = 5000L
     override val hasMainPage = true
 
     override val iconId = R.drawable.big_icon_royalroad
@@ -311,9 +323,8 @@ class RoyalRoadProvider : MainAPI() {
     override suspend fun load(url: String): LoadResponse? {
         val response = app.get(url)
         val document = response.document
-
-        val name = document.selectFirst("h1.font-white")?.text() ?: return null
-
+        val name = document.selectFirst("h1.font-white")?.text()
+            ?: throw ErrorLoadingException("Null name")
         val fictionId =
             response.text.substringAfter("window.fictionId = ").substringBefore(";").toIntOrNull()
 

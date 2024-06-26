@@ -9,6 +9,7 @@ open class LibReadProvider : MainAPI() {
     override val name = "LibRead"
     override val mainUrl = "https://libread.com"
     override val hasMainPage = true
+
     open val removeHtml = false // because the two sites use .html or not for no reason
 
     override val iconId = R.drawable.icon_libread
@@ -156,7 +157,7 @@ open class LibReadProvider : MainAPI() {
                     ?.get(0)
                     ?.text()
                     ?.splitToSequence(", ")?.toList()
-            posterUrl = document.select(" div.pic > img").attr("src")
+            posterUrl = fixUrlNull(document.select(" div.pic > img").attr("src"))
             synopsis = document.selectFirst("div.inner")?.text()
             val votes = document.selectFirst("div.m-desc > div.score > p:nth-child(2)")
             if (votes != null) {

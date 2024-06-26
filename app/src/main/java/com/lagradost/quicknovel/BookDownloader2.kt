@@ -578,19 +578,28 @@ object BookDownloader2Helper {
         }
         rFile.parentFile?.mkdirs()
         if (rFile.isDirectory) rFile.delete()
-
+        val rateLimit = api.rateLimitTime > 0
         for (i in 0..maxTries) {
-            val page = api.loadHtml(data.url)
-
-            if (!page.isNullOrBlank()) {
-                rFile.createNewFile() // only create the file when actually needed
-                rFile.writeText("${data.name}\n${page}")
-                return@withContext true
-            } else {
-                delay(5000) // ERROR
+            if (rateLimit) {
+                api.api.rateLimitMutex.lock()
             }
-            if (api.rateLimitTime > 0) {
-                delay(api.rateLimitTime)
+            try {
+                val page = api.loadHtml(data.url)
+
+                if (!page.isNullOrBlank()) {
+                    rFile.createNewFile() // only create the file when actually needed
+                    rFile.writeText("${data.name}\n${page}")
+                    return@withContext true
+                } else {
+                    delay(5000) // ERROR
+                }
+                if (api.rateLimitTime > 0) {
+                    delay(api.rateLimitTime)
+                }
+            } finally {
+                if (rateLimit) {
+                    api.api.rateLimitMutex.unlock()
+                }
             }
         }
         return@withContext false
@@ -852,7 +861,6 @@ object NotificationHelper {
                 .setColor(context.colorFromAttribute(R.attr.colorPrimary))
                 .setContentText(
                     if (stateProgressState.total > 1) {
-
                         val extra = if (progressInBytes) {
                             val bytesToKiloBytes = 1024
                             "${stateProgressState.progress / bytesToKiloBytes} Kb/${stateProgressState.total / bytesToKiloBytes} Kb"
@@ -985,23 +993,29 @@ object ImageDownloader {
     private val cachedBitmaps = hashMapOf<String, Bitmap>()
 
     suspend fun getImageBitmapFromUrl(url: String): Bitmap? {
-        cachedBitmapMutex.withLock {
-            if (cachedBitmaps.containsKey(url)) {
-                return cachedBitmaps[url]
+        try {
+            cachedBitmapMutex.withLock {
+                if (cachedBitmaps.containsKey(url)) {
+                    return cachedBitmaps[url]
+                }
             }
+
+            val bitmap =
+                withContext(Dispatchers.IO) {
+                    Glide.with(activity ?: return@withContext null)
+                        .asBitmap()
+                        .load(url).submit(720, 720).get()
+                } ?: return null
+
+            cachedBitmapMutex.withLock {
+                cachedBitmaps[url] = bitmap
+            }
+            return bitmap
+        } catch (t: Throwable) {
+            logError(t)
+            return null
         }
 
-        val bitmap =
-            withContext(Dispatchers.IO) {
-                Glide.with(activity ?: return@withContext null)
-                    .asBitmap()
-                    .load(url).submit(720, 720).get()
-            } ?: return null
-
-        cachedBitmapMutex.withLock {
-            cachedBitmaps[url] = bitmap
-        }
-        return bitmap
     }
 }
 
@@ -1681,8 +1695,8 @@ object BookDownloader2 {
                     pFile.writeBytes(bytes)
                 }
             }
-        } catch (e: Exception) {
-            logError(e)
+        } catch (t: Throwable) {
+            logError(t)
             //delay(1000)
         }
     }
@@ -1801,6 +1815,8 @@ object BookDownloader2 {
                         progressState
                     )
             }
+        } catch (t: Throwable) {
+            logError(t)
         } finally {
             currentDownloadsMutex.withLock {
                 currentDownloads -= id

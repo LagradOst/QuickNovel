@@ -6,6 +6,7 @@ import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.UiImage
 import com.lagradost.quicknovel.ui.img
+import kotlinx.coroutines.sync.Mutex
 import org.jsoup.Jsoup
 
 const val USER_AGENT =
@@ -18,6 +19,8 @@ abstract class MainAPI {
     open val lang = "en" // ISO_639_1 check SubtitleHelper
 
     open val rateLimitTime: Long = 0
+    val hasRateLimit : Boolean get() = rateLimitTime > 0L
+    val rateLimitMutex : Mutex = Mutex()
 
     open val usesCloudFlareKiller = false
 

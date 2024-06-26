@@ -2,7 +2,6 @@ package com.lagradost.quicknovel
 
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.logError
-import com.lagradost.quicknovel.mvvm.normalSafeApiCall
 import com.lagradost.quicknovel.mvvm.safeApiCall
 import com.lagradost.quicknovel.util.Coroutines.threadSafeListOf
 
@@ -52,34 +51,43 @@ class APIRepository(val api: MainAPI) {
 
     suspend fun load(url: String, allowCache: Boolean = true): Resource<LoadResponse> {
         return safeApiCall {
-            val fixedUrl = api.fixUrl(url)
-            val lookingForHash = api.name to fixedUrl
-
-            if (allowCache) {
-                synchronized(cache) {
-                    for (item in cache) {
-                        // 10 min save
-                        if (item.hash == lookingForHash && (unixTime - item.unixTime) < cacheTimeSec) {
-                            return@safeApiCall item.response
-                        }
-                    }
+            try {
+                if (api.hasRateLimit) {
+                    api.rateLimitMutex.lock()
                 }
-            }
+                val fixedUrl = api.fixUrl(url)
+                val lookingForHash = api.name to fixedUrl
 
-            api.load(fixedUrl)?.also { response ->
-                // Remove all blank tags as early as possible
-                val add = SavedLoadResponse(unixTime, response, lookingForHash)
                 if (allowCache) {
                     synchronized(cache) {
-                        if (cache.size > cacheSize) {
-                            cache[cacheIndex] = add // rolling cache
-                            cacheIndex = (cacheIndex + 1) % cacheSize
-                        } else {
-                            cache.add(add)
+                        for (item in cache) {
+                            // 10 min save
+                            if (item.hash == lookingForHash && (unixTime - item.unixTime) < cacheTimeSec) {
+                                return@safeApiCall item.response
+                            }
                         }
                     }
                 }
-            } ?: throw ErrorLoadingException("No data")
+
+                api.load(fixedUrl)?.also { response ->
+                    // Remove all blank tags as early as possible
+                    val add = SavedLoadResponse(unixTime, response, lookingForHash)
+                    if (allowCache) {
+                        synchronized(cache) {
+                            if (cache.size > cacheSize) {
+                                cache[cacheIndex] = add // rolling cache
+                                cacheIndex = (cacheIndex + 1) % cacheSize
+                            } else {
+                                cache.add(add)
+                            }
+                        }
+                    }
+                } ?: throw ErrorLoadingException("No data")
+            } finally {
+                if (api.hasRateLimit) {
+                    api.rateLimitMutex.unlock()
+                }
+            }
         }
     }
 
