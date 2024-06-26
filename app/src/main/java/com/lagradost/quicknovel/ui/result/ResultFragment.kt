@@ -172,7 +172,7 @@ class ResultFragment : Fragment() {
                 val res = loadResponse.value
 
                 binding.apply {
-                    downloadWarning.isVisible = api.rateLimitTime > 1000
+                    downloadWarning.isVisible = api.rateLimitTime > 2000
 
                     res.image?.let { img ->
                         resultEmptyView.setOnClickListener {

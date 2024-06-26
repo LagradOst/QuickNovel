@@ -589,12 +589,15 @@ object BookDownloader2Helper {
                 if (!page.isNullOrBlank()) {
                     rFile.createNewFile() // only create the file when actually needed
                     rFile.writeText("${data.name}\n${page}")
+                    if (api.rateLimitTime > 0) {
+                        delay(api.rateLimitTime)
+                    }
                     return@withContext true
                 } else {
                     delay(5000) // ERROR
-                }
-                if (api.rateLimitTime > 0) {
-                    delay(api.rateLimitTime)
+                    if (api.rateLimitTime > 0) {
+                        delay(api.rateLimitTime)
+                    }
                 }
             } finally {
                 if (rateLimit) {

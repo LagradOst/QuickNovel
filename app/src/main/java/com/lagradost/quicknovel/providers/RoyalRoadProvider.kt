@@ -25,7 +25,7 @@ import java.util.Date
 class RoyalRoadProvider : MainAPI() {
     override val name = "Royal Road"
     override val mainUrl = "https://www.royalroad.com"
-    override val rateLimitTime = 5000L
+    override val rateLimitTime = 500L
     override val hasMainPage = true
 
     override val iconId = R.drawable.big_icon_royalroad
