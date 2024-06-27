@@ -6,6 +6,13 @@ android {
     compileSdkVersion 34
     buildToolsVersion "30.0.3"
 
+    dependenciesInfo {
+        // Disables dependency metadata when building APKs.
+        includeInApk = false
+        // Disables dependency metadata when building Android App Bundles.
+        includeInBundle = false
+    }
+
     viewBinding {
         enabled = true
     }
