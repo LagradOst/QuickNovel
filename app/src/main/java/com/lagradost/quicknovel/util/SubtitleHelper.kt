@@ -1,8 +1,8 @@
 package com.lagradost.quicknovel.util
 
-//yoinked from cloudstream-3
-
+import com.lagradost.quicknovel.mvvm.logError
 import java.util.*
+
 
 object SubtitleHelper {
     data class Language639(
@@ -15,26 +15,70 @@ object SubtitleHelper {
         val ISO_639_6: String,
     )
 
-    /** lang -> ISO_639_1*/
-    fun fromLanguageToTwoLetters(input: String): String? {
-        for (lang in languages) {
-            if (lang.languageName == input || lang.nativeName == input) {
-                return lang.ISO_639_1
-            }
+    /*fun createISO() {
+        val url = "https://infogalactic.com/info/List_of_ISO_639-1_codes"
+        val response = get(url).text
+        val document = Jsoup.parse(response)
+        val headers = document.select("table.wikitable > tbody > tr")
+
+        var text = "listOf(\n"
+        for (head in headers) {
+            val tds = head.select("td")
+            if (tds.size < 8) continue
+            val name = tds[2].selectFirst("> a").text()
+            val native = tds[3].text()
+            val ISO_639_1 = tds[4].ownText().replace("+", "").replace(" ", "")
+            val ISO_639_2_T = tds[5].ownText().replace("+", "").replace(" ", "")
+            val ISO_639_2_B = tds[6].ownText().replace("+", "").replace(" ", "")
+            val ISO_639_3 = tds[7].ownText().replace("+", "").replace(" ", "")
+            val ISO_639_6 = tds[8].ownText().replace("+", "").replace(" ", "")
+
+            val txtAdd =
+                "Language(\"$name\", \"$native\", \"$ISO_639_1\", \"$ISO_639_2_T\", \"$ISO_639_2_B\", \"$ISO_639_3\", \"$ISO_639_6\"),\n"
+            text += txtAdd
         }
+        text += ")"
+        println("ISO CREATED:\n$text")
+    }*/
+
+    /** lang -> ISO_639_1
+     * @param looseCheck will use .contains in addition to .equals
+     * */
+    fun fromLanguageToTwoLetters(input: String, looseCheck: Boolean): String? {
+        languages.forEach {
+            if (it.languageName.equals(input, ignoreCase = true)
+                || it.nativeName.equals(input, ignoreCase = true)
+            ) return it.ISO_639_1
+        }
+
+        // Runs as a separate loop as to prioritize fully matching languages.
+        if (looseCheck)
+            languages.forEach {
+                if (input.contains(it.languageName, ignoreCase = true)
+                    || input.contains(it.nativeName, ignoreCase = true)
+                ) return it.ISO_639_1
+            }
+
         return null
+    }
+
+    private var ISO_639_1Map: HashMap<String, String> = hashMapOf()
+    private fun initISO6391Map() {
+        for (lang in languages) {
+            ISO_639_1Map[lang.ISO_639_1] = lang.languageName
+        }
     }
 
     /** ISO_639_1 -> lang*/
     fun fromTwoLettersToLanguage(input: String): String? {
-        if (input.length != 2) return null
-        val comparison = input.lowercase(Locale.ROOT)
-        for (lang in languages) {
-            if (lang.ISO_639_1 == comparison) {
-                return lang.languageName
-            }
+        // pr-BR
+        if (input.substringBefore("-").length != 2) return null
+        if (ISO_639_1Map.isEmpty()) {
+            initISO6391Map()
         }
-        return null
+        val comparison = input.lowercase(Locale.ROOT)
+
+        return ISO_639_1Map[comparison]
     }
 
     /**ISO_639_2_B or ISO_639_2_T or ISO_639_3-> lang*/
@@ -68,6 +112,213 @@ object SubtitleHelper {
         }
         return null
     }
+
+    private const val flagOffset = 0x1F1E6
+    private const val asciiOffset = 0x41
+    private const val offset = flagOffset - asciiOffset
+
+    private val flagRegex = Regex("[\uD83C\uDDE6-\uD83C\uDDFF]{2}")
+
+    fun getFlagFromIso(inp: String?): String? {
+        if (inp.isNullOrBlank() || inp.length < 2) return null
+
+        try {
+            val ret = getFlagFromIsoShort(flags[inp])
+                ?: getFlagFromIsoShort(inp.uppercase()) ?: return null
+
+            return if (flagRegex.matches(ret)) {
+                ret
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            logError(e)
+            return null
+        }
+    }
+
+    private fun getFlagFromIsoShort(flagAscii: String?): String? {
+        if (flagAscii.isNullOrBlank() || flagAscii.length < 2) return null
+        return try {
+            val firstChar: Int = Character.codePointAt(flagAscii, 0) + offset
+            val secondChar: Int = Character.codePointAt(flagAscii, 1) + offset
+
+            (String(Character.toChars(firstChar)) + String(Character.toChars(secondChar)))
+        } catch (e: Exception) {
+            logError(e)
+            null
+        }
+    }
+
+    private val flags = mapOf(
+        "af" to "ZA",
+        "agq" to "CM",
+        "ajp" to "SY",
+        "ak" to "GH",
+        "am" to "ET",
+        "ar" to "AE",
+        "ars" to "SA",
+        "as" to "IN",
+        "asa" to "TZ",
+        "az" to "AZ",
+        "bas" to "CM",
+        "be" to "BY",
+        "bem" to "ZM",
+        "bez" to "IT",
+        "bg" to "BG",
+        "bm" to "ML",
+        "bn" to "BD",
+        "bo" to "CN",
+        "br" to "FR",
+        "brx" to "IN",
+        "bs" to "BA",
+        "ca" to "ES",
+        "cgg" to "UG",
+        "chr" to "US",
+        "cs" to "CZ",
+        "cy" to "GB",
+        "da" to "DK",
+        "dav" to "KE",
+        "de" to "DE",
+        "dje" to "NE",
+        "dua" to "CM",
+        "dyo" to "SN",
+        "ebu" to "KE",
+        "ee" to "GH",
+        "en" to "GB",
+        "el" to "GR",
+        "es" to "ES",
+        "et" to "EE",
+        "eu" to "ES",
+        "ewo" to "CM",
+        "fa" to "IR",
+        "fil" to "PH",
+        "fr" to "FR",
+        "ga" to "IE",
+        "gl" to "ES",
+        "gsw" to "CH",
+        "gu" to "IN",
+        "guz" to "KE",
+        "gv" to "GB",
+        "ha" to "NG",
+        "haw" to "US",
+        "he" to "IL",
+        "hi" to "IN",
+        "ff" to "CN",
+        "fi" to "FI",
+        "fo" to "FO",
+        "hr" to "HR",
+        "hu" to "HU",
+        "hy" to "AM",
+        "id" to "ID",
+        "ig" to "NG",
+        "ii" to "CN",
+        "is" to "IS",
+        "it" to "IT",
+        "ita" to "IT",
+        "ja" to "JP",
+        "jmc" to "TZ",
+        "ka" to "GE",
+        "kab" to "DZ",
+        "ki" to "KE",
+        "kam" to "KE",
+        "mer" to "KE",
+        "kde" to "TZ",
+        "kea" to "CV",
+        "khq" to "ML",
+        "kk" to "KZ",
+        "kl" to "GL",
+        "kln" to "KE",
+        "km" to "KH",
+        "kn" to "IN",
+        "ko" to "KR",
+        "kok" to "IN",
+        "ksb" to "TZ",
+        "ksf" to "CM",
+        "kw" to "GB",
+        "lag" to "TZ",
+        "lg" to "UG",
+        "ln" to "CG",
+        "lt" to "LT",
+        "lu" to "CD",
+        "lv" to "LV",
+        "lat" to "LV",
+        "luo" to "KE",
+        "luy" to "KE",
+        "mas" to "TZ",
+        "mfe" to "MU",
+        "mg" to "MG",
+        "mgh" to "MZ",
+        "ml" to "IN",
+        "mk" to "MK",
+        "mr" to "IN",
+        "ms" to "MY",
+        "mt" to "MT",
+        "mua" to "CM",
+        "my" to "MM",
+        "naq" to "NA",
+        "nb" to "NO",
+        "no" to "NO",
+        "nn" to "NO",
+        "nd" to "ZW",
+        "ne" to "NP",
+        "nl" to "NL",
+        "nmg" to "CM",
+        "nus" to "SD",
+        "nyn" to "UG",
+        "om" to "ET",
+        "or" to "IN",
+        "pa" to "PK",
+        "pl" to "PL",
+        "ps" to "AF",
+        "pt" to "PT",
+        "pt-pt" to "PT",
+        "pt-br" to "BR",
+        "rm" to "CH",
+        "rn" to "BI",
+        "ro" to "RO",
+        "ru" to "RU",
+        "rw" to "RW",
+        "rof" to "TZ",
+        "rwk" to "TZ",
+        "saq" to "KE",
+        "sbp" to "TZ",
+        "seh" to "MZ",
+        "ses" to "ML",
+        "sg" to "CF",
+        "shi" to "MA",
+        "si" to "LK",
+        "sk" to "SK",
+        "sl" to "SI",
+        "sn" to "ZW",
+        "so" to "SO",
+        "sq" to "AL",
+        "sr" to "RS",
+        "sv" to "SE",
+        "sw" to "TZ",
+        "swc" to "CD",
+        "ta" to "IN",
+        "te" to "IN",
+        "teo" to "UG",
+        "th" to "TH",
+        "ti" to "ET",
+        "to" to "TO",
+        "tr" to "TR",
+        "twq" to "NE",
+        "tzm" to "MA",
+        "uk" to "UA",
+        "ur" to "PK",
+        "uz" to "UZ",
+        "vai" to "LR",
+        "vi" to "VN",
+        "vun" to "TZ",
+        "xog" to "UG",
+        "yav" to "CM",
+        "yo" to "NG",
+        "zh" to "CN",
+        "zu" to "ZA",
+        "tl" to "PH",
+    )
 
     val languages = listOf(
         Language639("Abkhaz", "аҧсуа бызшәа, аҧсшәа", "ab", "abk", "abk", "abk", "abks"),
@@ -206,7 +457,9 @@ object SubtitleHelper {
         Language639("Persian", "فارسی", "fa", "fas", "", "fas", ""),
         Language639("Polish", "język polski, polszczyzna", "pl", "pol", "pol", "pol", "pols"),
         Language639("Pashto", "پښتو", "ps", "pus", "pus", "pus", ""),
-        Language639("Portuguese", "português", "pt", "por", "por", "por", ""),
+        Language639("Portuguese", "português", "pt-pt", "por", "por", "por", ""),
+        // Addition to support Brazilian Portuguese properly, might break other things
+        Language639("Portuguese (Brazilian)", "português", "pt-br", "por", "por", "por", ""),
         Language639("Quechua", "Runa Simi, Kichwa", "qu", "que", "que", "que", ""),
         Language639("Romansh", "rumantsch grischun", "rm", "roh", "roh", "roh", ""),
         Language639("Kirundi", "Ikirundi", "rn", "run", "run", "run", ""),

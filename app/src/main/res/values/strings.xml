@@ -6,6 +6,7 @@
     <string name="title_home">Explore</string>
     <string name="title_download">Library</string>
 
+    <string name="locale_key" translatable="false">locale_key</string>
     <string name="provider_lang_key" translatable="false">provider_lang_key</string>
     <string name="restore_key" translatable="false">restore_key</string>
     <string name="restore_settings">Restore data from backup</string>
@@ -136,6 +137,7 @@
     <string name="home_expanded_hide">Hide</string>
     <string name="reload_chapter">Reload Chapter</string>
     <string name="provider_lang_settings">Provider Languages</string>
+    <string name="locale_settings">App Languages</string>
     <string name="sort_apply">Apply</string>
     <string name="sort_cancel">Cancel</string>
     <string name="keep_screen_active">Keep screen active</string>

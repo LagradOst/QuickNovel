@@ -12,6 +12,7 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
+import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.mvvm.logError
@@ -43,7 +44,31 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
     }
 
+
     companion object {
+        fun getCurrentLocale(context: Context): String {
+            val res = context.resources
+            val conf = res.configuration
+
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                conf?.locales?.get(0)?.toString() ?: "en"
+            } else {
+                @Suppress("DEPRECATION")
+                conf?.locale?.toString() ?: "en"
+            }
+        }
+
+        // idk, if you find a way of automating this it would be great
+        // https://www.iemoji.com/view/emoji/1794/flags/antarctica
+        // Emoji Character Encoding Data --> C/C++/Java Src
+        // https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes leave blank for auto
+        val appLanguages = arrayListOf(
+            /* begin language list */
+            Triple("", "English", "en"),
+            Triple("", "Türkçe", "tr"),
+            /* end language list */
+        ).sortedBy { it.second.lowercase() } //ye, we go alphabetical, so ppl don't put their lang on top
+
         fun showSearchProviders(context: Context?) {
             if (context == null) return
             val apiNames = apis.map { it.name }
@@ -175,6 +200,31 @@ class SettingsFragment : PreferenceFragmentCompat() {
             }
             return@setOnPreferenceChangeListener true
         }*/
+
+        getPref(R.string.locale_key)?.setOnPreferenceClickListener { pref ->
+            val tempLangs = appLanguages.toMutableList()
+            val current = getCurrentLocale(pref.context)
+            val languageCodes = tempLangs.map { (_, _, iso) -> iso }
+            val languageNames = tempLangs.map { (emoji, name, iso) ->
+                val flag = emoji.ifBlank { SubtitleHelper.getFlagFromIso(iso) ?: "ERROR" }
+                "$flag $name"
+            }
+            val index = languageCodes.indexOf(current)
+
+            activity?.showDialog(
+                languageNames, index, getString(R.string.provider_lang_settings), true, { }
+            ) { languageIndex ->
+                try {
+                    val code = languageCodes[languageIndex]
+                    CommonActivity.setLocale(activity, code)
+                    settingsManager.edit().putString(getString(R.string.locale_key), code).apply()
+                    activity?.recreate()
+                } catch (e: Exception) {
+                    logError(e)
+                }
+            }
+            return@setOnPreferenceClickListener true
+        }
 
         getPref(R.string.backup_key)?.setOnPreferenceClickListener {
             activity?.backup()

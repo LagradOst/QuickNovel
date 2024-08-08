@@ -34,6 +34,11 @@
                 android:icon="@drawable/ic_baseline_language_24"
                 android:key="@string/provider_lang_key"
                 android:title="@string/provider_lang_settings" />
+
+        <Preference
+                android:icon="@drawable/ic_baseline_language_24"
+                android:key="@string/locale_key"
+                android:title="@string/locale_settings" />
     </PreferenceCategory>
 
 

@@ -1,6 +1,8 @@
 package com.lagradost.quicknovel
 
 import android.app.Activity
+import android.content.Context
+import android.content.res.Resources
 import android.os.Build
 import android.util.Log
 import android.view.Gravity
@@ -18,6 +20,7 @@ import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.toPx
 import java.lang.ref.WeakReference
+import java.util.Locale
 
 object CommonActivity {
     private var _activity: WeakReference<Activity>? = null
@@ -89,6 +92,30 @@ object CommonActivity {
         } catch (e: Exception) {
             logError(e)
         }
+    }
+    fun init(act: Activity) {
+        this.activity = act
+        act.updateLocale()
+    }
+
+    fun setLocale(context: Context?, languageCode: String?) {
+        if (context == null || languageCode == null) return
+        val locale = Locale(languageCode)
+        val resources: Resources = context.resources
+        val config = resources.configuration
+        Locale.setDefault(locale)
+        config.setLocale(locale)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
+            context.createConfigurationContext(config)
+        resources.updateConfiguration(config, resources.displayMetrics)
+    }
+
+    fun Context?.updateLocale() {
+        if (this == null) return
+        val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
+        val localeCode = settingsManager.getString(this.getString(R.string.locale_key), null)
+        setLocale(this, localeCode)
     }
 
     fun loadThemes(act: Activity?) {

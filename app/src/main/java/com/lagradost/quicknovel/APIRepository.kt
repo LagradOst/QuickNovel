@@ -4,15 +4,32 @@ import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.safeApiCall
 import com.lagradost.quicknovel.util.Coroutines.threadSafeListOf
+import org.jsoup.Jsoup
 
 data class OnGoingSearch(
     val apiName: String,
     val data: Resource<List<SearchResponse>>
 )
 
+// This function is somewhat like preParseHtml
 private fun String?.removeAds(): String? {
     if (this.isNullOrBlank()) return null
-    return this.replace("(adsbygoogle = window.adsbygoogle || []).push({});", "")
+    return try {
+        val document = Jsoup.parse(this)
+        //document.select("style").remove() // Style might be good, but is removed in the internal reader
+        document.select("small.ads-title").remove()
+        document.select("script").remove()
+        document.select("iframe").remove()
+        document.select(".adsbygoogle").remove()
+
+        // Remove aside https://html.spec.whatwg.org/multipage/sections.html#the-aside-element?
+        // https://stackoverflow.com/questions/14384431/html-element-for-ad
+
+        document.html()
+    } catch (t : Throwable) {
+        logError(t)
+        this
+    }
 }
 
 class APIRepository(val api: MainAPI) {

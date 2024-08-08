@@ -3,6 +3,7 @@ package com.lagradost.quicknovel
 import android.app.Activity
 import android.content.Intent
 import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -19,7 +20,6 @@ import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavOptions
-import androidx.navigation.findNavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.preference.PreferenceManager
 import com.fasterxml.jackson.databind.DeserializationFeature
@@ -39,6 +39,7 @@ import com.lagradost.quicknovel.BookDownloader2Helper.createQuickStream
 import com.lagradost.quicknovel.BookDownloader2Helper.requestRW
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
+import com.lagradost.quicknovel.CommonActivity.updateLocale
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
 import com.lagradost.quicknovel.NotificationHelper.requestNotifications
@@ -51,7 +52,6 @@ import com.lagradost.quicknovel.mvvm.observeNullable
 import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.download.DownloadFragment
-import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.ui.result.ResultFragment
 import com.lagradost.quicknovel.ui.result.ResultViewModel
 import com.lagradost.quicknovel.ui.search.SearchFragment
@@ -421,15 +421,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        updateLocale() // android fucks me by chaining lang when rotating the phone
+    }
+
     var binding: ActivityMainBinding? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         mainActivity = this
-        activity = this
 
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
 
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
         CommonActivity.loadThemes(this)
+        CommonActivity.init(this)
 
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -673,7 +678,7 @@ class MainActivity : AppCompatActivity() {
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
                     window?.navigationBarColor = colorFromAttribute(R.attr.primaryGrayBackground)
-                    //updateLocale()
+                    updateLocale()
 
                     // If we don't disable we end up in a loop with default behavior calling
                     // this callback as well, so we disable it, run default behavior,
