@@ -11,4 +11,5 @@ class MeioNovelProvider : BoxNovelProvider() {
     override val name = "MeioNovel"
     override val mainUrl = "https://meionovel.id"
     override val iconId = R.drawable.ic_meionovel
+    override val iconBackgroundId = R.color.colorPrimaryBlue
 }
