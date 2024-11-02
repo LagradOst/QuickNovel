@@ -43,7 +43,47 @@ const val RESULT_BOOKMARK: String = "result_bookmarked"
 const val RESULT_BOOKMARK_STATE: String = "result_bookmarked_state"
 const val HISTORY_FOLDER: String = "result_history"
 
+/** When inserting many keys use this function, this is because apply for every key is very expensive on memory */
+data class Editor(
+    val editor : SharedPreferences.Editor
+) {
+    /** Always remember to call apply after */
+    fun<T> setKeyRaw(path: String, value: T) {
+        @Suppress("UNCHECKED_CAST")
+        if (isStringSet(value)) {
+            editor.putStringSet(path, value as Set<String>)
+        } else {
+            when (value) {
+                is Boolean -> editor.putBoolean(path, value)
+                is Int -> editor.putInt(path, value)
+                is String -> editor.putString(path, value)
+                is Float -> editor.putFloat(path, value)
+                is Long -> editor.putLong(path, value)
+            }
+        }
+    }
+
+    private fun isStringSet(value: Any?) : Boolean {
+        if (value is Set<*>) {
+            return value.filterIsInstance<String>().size == value.size
+        }
+        return false
+    }
+
+    fun apply() {
+        editor.apply()
+        System.gc()
+    }
+}
+
 object DataStore {
+
+    fun editor(context : Context, isEditingAppSettings: Boolean = false) : Editor {
+        val editor: SharedPreferences.Editor =
+            if (isEditingAppSettings) context.getDefaultSharedPrefs().edit() else context.getSharedPrefs().edit()
+        return Editor(editor)
+    }
+
     val mapper: JsonMapper = JsonMapper.builder().addModule(
         KotlinModule.Builder()
             .withReflectionCacheSize(512)
@@ -66,24 +106,6 @@ object DataStore {
 
     fun getFolderName(folder: String, path: String): String {
         return "${folder}/${path}"
-    }
-
-    fun <T> Context.setKeyRaw(path: String, value: T, isEditingAppSettings: Boolean = false) {
-        try {
-            val editor: SharedPreferences.Editor =
-                if (isEditingAppSettings) getDefaultSharedPrefs().edit() else getSharedPrefs().edit()
-            when (value) {
-                is Boolean -> editor.putBoolean(path, value)
-                is Int -> editor.putInt(path, value)
-                is String -> editor.putString(path, value)
-                is Float -> editor.putFloat(path, value)
-                is Long -> editor.putLong(path, value)
-                (value as? Set<String> != null) -> editor.putStringSet(path, value as Set<String>)
-            }
-            editor.apply()
-        } catch (e: Exception) {
-            logError(e)
-        }
     }
 
     fun Context.getDefaultSharedPrefs(): SharedPreferences {

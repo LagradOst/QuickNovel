@@ -15,10 +15,10 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.quicknovel.BookDownloader2Helper.checkWrite
 import com.lagradost.quicknovel.BookDownloader2Helper.requestRW
 import com.lagradost.quicknovel.CommonActivity.showToast
+import com.lagradost.quicknovel.DataStore
 import com.lagradost.quicknovel.DataStore.getDefaultSharedPrefs
 import com.lagradost.quicknovel.DataStore.getSharedPrefs
 import com.lagradost.quicknovel.DataStore.mapper
-import com.lagradost.quicknovel.DataStore.setKeyRaw
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.settings.SettingsFragment
@@ -206,9 +206,11 @@ object BackupUtils {
         map: Map<String, T>?,
         isEditingAppSettings: Boolean = false
     ) {
+        val editor = DataStore.editor(this, isEditingAppSettings)
         map?.forEach {
-            setKeyRaw(it.key, it.value, isEditingAppSettings)
+            editor.setKeyRaw(it.key, it.value)
         }
+        editor.apply()
     }
 
     fun Context.restore(
