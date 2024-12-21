@@ -417,7 +417,7 @@ object UIHelper {
         noinline initMenu: (Menu.() -> Unit)? = null,
         noinline onMenuItemClick: MenuItem.() -> Unit,
     ): PopupMenu {
-        val popup = PopupMenu(context, this, Gravity.NO_GRAVITY, R.attr.actionOverflowMenuStyle, 0)
+        val popup = PopupMenu(context, this, Gravity.NO_GRAVITY, androidx.appcompat.R.attr.actionOverflowMenuStyle, 0)
         popup.menuInflater.inflate(menuRes, popup.menu)
 
         if (initMenu != null) {
@@ -447,7 +447,7 @@ object UIHelper {
         noinline onMenuItemClick: MenuItem.() -> Unit,
     ): PopupMenu {
         val ctw = ContextThemeWrapper(context, R.style.PopupMenu)
-        val popup = PopupMenu(ctw, this, Gravity.NO_GRAVITY, R.attr.actionOverflowMenuStyle, 0)
+        val popup = PopupMenu(ctw, this, Gravity.NO_GRAVITY, androidx.appcompat.R.attr.actionOverflowMenuStyle, 0)
 
         items.forEach { (id, stringRes) ->
             popup.menu.add(0, id, 0, stringRes)
@@ -484,7 +484,7 @@ object UIHelper {
         noinline onMenuItemClick: MenuItem.() -> Unit,
     ): PopupMenu {
         val ctw = ContextThemeWrapper(context, R.style.PopupMenu)
-        val popup = PopupMenu(ctw, this, Gravity.NO_GRAVITY, R.attr.actionOverflowMenuStyle, 0)
+        val popup = PopupMenu(ctw, this, Gravity.NO_GRAVITY, androidx.appcompat.R.attr.actionOverflowMenuStyle, 0)
 
         items.forEach { (id, icon, stringRes) ->
             popup.menu.add(0, id, 0, stringRes).setIcon(icon)
