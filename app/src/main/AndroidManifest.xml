@@ -15,6 +15,7 @@
     </queries>
 
     <application
+            android:usesCleartextTraffic="true"
             android:enableOnBackInvokedCallback="true"
             android:name=".BaseApplication"
             android:requestLegacyExternalStorage="true"
