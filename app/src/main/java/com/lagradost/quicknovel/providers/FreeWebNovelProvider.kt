@@ -116,7 +116,7 @@ class FreewebnovelProvider : MainAPI() {
         tag: String?
     ): HeadMainPageResponse {
         val url =
-            if (tag.isNullOrBlank()) "$mainUrl/latest-novel/tag/$page.html" else "$mainUrl/genre/$tag/$page.html"
+            if (tag.isNullOrBlank()) "$mainUrl/sort/latest-novel/$page" else "$mainUrl/genres/$tag/$page"
         val response = app.get(url)
 
         val document = Jsoup.parse(response.text)
