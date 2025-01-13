@@ -9,7 +9,7 @@ import org.jsoup.Jsoup
 
 class MtlNovelProvider : MainAPI() {
     override val name = "MtlNovel"
-    override val mainUrl = "https://www.mtlnovel.com"
+    override val mainUrl = "https://www.mtlnovels.com"
     override val hasMainPage = true
 
     override val iconId = R.drawable.icon_mtlnovel
@@ -18,6 +18,7 @@ class MtlNovelProvider : MainAPI() {
 
     override val tags = listOf(
         "All" to "",
+        "Action" to "action",
         "Adult" to "adult",
         "Adventure" to "adventure",
         "Comedy" to "comedy",
@@ -27,7 +28,7 @@ class MtlNovelProvider : MainAPI() {
         "Fan-Fiction" to "fan-fiction",
         "Fantasy" to "fantasy",
         "Game" to "game",
-        "Gender Bender" to "Gender-Bender",
+        "Gender Bender" to "gender-bender",
         "Harem" to "harem",
         "Historical" to "historical",
         "Horror" to "horror",
@@ -51,15 +52,14 @@ class MtlNovelProvider : MainAPI() {
         "Sports" to "sports",
         "Supernatural" to "supernatural",
         "Tragedy" to "tragedy",
-        "Two-dimensional" to "two-dimensional",
-        "Urban Life" to "urban-life",
+        "Two-dimensional" to "two-dimensional-novel",
+        "Urban Life" to "urban-fiction",
         "Wuxia" to "wuxia",
         "Xianxia" to "xianxia",
         "Xuanhuan" to "xuanhuan",
         "Yaoi" to "yaoi",
         "Yuri" to "yuri",
     )
-    private val interceptor = CloudflareKiller()
 
     override suspend fun loadMainPage(
         page: Int,
@@ -69,12 +69,12 @@ class MtlNovelProvider : MainAPI() {
     ): HeadMainPageResponse {
         val url =
             if (tag.isNullOrBlank()) "$mainUrl/alltime-rank/page/$page" else "$mainUrl/genre/$tag/page/$page"
-        val document = app.get(url, interceptor = interceptor).document
+        val document = app.get(url).document
         val headers = document.select("div.box")
 
         val returnValue = headers.mapNotNull { h ->
             val name =
-                h?.selectFirst("a")?.attr("aria-label")?.substringBeforeLast("Cover") ?: return@mapNotNull null
+                h.selectFirst("a")?.attr("aria-label")?.substringBeforeLast("Cover") ?: return@mapNotNull null
             val cUrl = h.selectFirst("a")?.attr("href") ?: throw ErrorLoadingException()
             newSearchResponse(
                 name = name,
@@ -88,7 +88,7 @@ class MtlNovelProvider : MainAPI() {
     }
 
     override suspend fun loadHtml(url: String): String? {
-        return app.get(url, interceptor = interceptor).document.selectFirst("div.par")?.html()
+        return app.get(url).document.selectFirst("div.par")?.html()
     }
 
 
@@ -96,8 +96,7 @@ class MtlNovelProvider : MainAPI() {
         val response =
             SearchResults.fromJson(
                 app.get(
-                    "$mainUrl/wp-admin/admin-ajax.php?action=autosuggest&q=$query",
-                    interceptor = interceptor
+                    "$mainUrl/wp-admin/admin-ajax.php?action=autosuggest&q=$query"
                 ).text
             )
         return response.items?.first()?.results?.mapNotNull {
@@ -115,10 +114,9 @@ class MtlNovelProvider : MainAPI() {
         val document = app.get(url).document
         val name = document.selectFirst("h1.entry-title")?.text() ?: return null
         val data = app.get(
-            "$url/chapter-list/",
-            interceptor = interceptor
+            "$url/chapter-list/"
         ).document.select("div.ch-list a").reversed().mapNotNull { c ->
-            val href = c?.attr("href") ?: return@mapNotNull null
+            val href = c.attr("href") ?: return@mapNotNull null
             val cName = c.text()
             newChapterData(name = cName, url = href)
         }

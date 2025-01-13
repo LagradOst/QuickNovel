@@ -28,7 +28,7 @@ class Apis {
             NovelsOnlineProvider(),
             EfremnetProvider(),
             GraycityProvider(),
-            //MtlNovelProvider(),
+            MtlNovelProvider(),
 
             AnnasArchive(),
 
