@@ -30,7 +30,6 @@ import com.lagradost.quicknovel.util.SingleSelectionHelper.showMultiDialog
 import com.lagradost.quicknovel.util.SubtitleHelper
 import com.lagradost.safefile.MediaFileContentType
 import com.lagradost.safefile.SafeFile
-import java.io.File
 
 class SettingsFragment : PreferenceFragmentCompat() {
     private fun PreferenceFragmentCompat?.getPref(id: Int): Preference? {
@@ -109,7 +108,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
             return when {
                 path.isNullOrBlank() -> getDefaultDir(context)
                 path.startsWith("content://") -> SafeFile.fromUri(context, path.toUri())
-                else -> SafeFile.fromFile(context, File(path))
+                else -> SafeFile.fromFilePath(context, path)
             }
         }
 
