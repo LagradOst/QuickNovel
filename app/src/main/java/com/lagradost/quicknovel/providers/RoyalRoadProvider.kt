@@ -16,6 +16,7 @@ import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.mvvm.logError
+import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
@@ -315,7 +316,7 @@ class RoyalRoadProvider : MainAPI() {
                 rating =
                     head.selectFirst("> div.stats")?.select("> div")?.get(1)?.selectFirst("> span")
                         ?.attr("title")?.toFloatOrNull()?.times(200)?.toInt()
-                latestChapter = h.select("div.stats > div.col-sm-6 > span")[4].text()
+                // latestChapter = h.select("div.stats > div.col-sm-6 > span")[4].text()
             }
         }
     }
@@ -374,8 +375,10 @@ class RoyalRoadProvider : MainAPI() {
             author = document.selectFirst("h4.font-white > span > a")?.text()
             val ratingAttr = document.selectFirst("span.font-red-sunglo")?.attr("data-content")
             tags = document.select("span.tags > a").map { it.text() }
-            rating =
-                (ratingAttr?.substring(0, ratingAttr.indexOf('/'))?.toFloat()?.times(200))?.toInt()
+            safe {
+                rating =
+                    (ratingAttr?.substring(0, ratingAttr.indexOf('/'))?.toFloat()?.times(200))?.toInt()
+            }
         }
     }
 
