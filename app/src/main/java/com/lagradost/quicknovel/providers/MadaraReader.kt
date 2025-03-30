@@ -18,7 +18,6 @@ import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.synopsis
 import com.lagradost.quicknovel.toRate
-import com.lagradost.quicknovel.toStatus
 import com.lagradost.quicknovel.toUrlBuilderSafe
 import com.lagradost.quicknovel.toVote
 

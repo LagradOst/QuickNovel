@@ -8,10 +8,6 @@ import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.STATUS_COMPLETE
-import com.lagradost.quicknovel.STATUS_DROPPED
-import com.lagradost.quicknovel.STATUS_ONGOING
-import com.lagradost.quicknovel.STATUS_PAUSE
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrlNull
@@ -20,6 +16,7 @@ import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
+import com.lagradost.quicknovel.setStatus
 import org.jsoup.Jsoup
 import java.util.Date
 
@@ -331,9 +328,9 @@ class RoyalRoadProvider : MainAPI() {
 
         val chapterHeaders = document.select("div.portlet-body > table > tbody > tr")
         val data = chapterHeaders.mapNotNull { c ->
-            val cUrl = c?.attr("data-url") ?: return@mapNotNull null
+            val cUrl = c.attr("data-url") ?: return@mapNotNull null
             val td = c.select("> td") // 0 = Name, 1 = Upload
-            val cName = td[0].selectFirst("> a")?.text() ?: return@mapNotNull null
+            val cName = td.getOrNull(0)?.selectFirst("> a")?.text() ?: return@mapNotNull null
 
             newChapterData(name = cName, url = cUrl) {
                 dateOfRelease = td[1].selectFirst("> a > time")?.text()
@@ -346,21 +343,13 @@ class RoyalRoadProvider : MainAPI() {
             val statusTxt = document.select("div.col-md-8 > div.margin-bottom-10 > span.label")
             for (s in statusTxt) {
                 if (s.hasText()) {
-                    status = when (s.text()) {
-                        "ONGOING" -> STATUS_ONGOING
-                        "COMPLETED" -> STATUS_COMPLETE
-                        "HIATUS" -> STATUS_PAUSE
-                        "STUB" -> STATUS_DROPPED
-                        "DROPPED" -> STATUS_DROPPED
-                        else -> continue
-                    }
-                    break
+                    if (setStatus(s.text())) break
                 }
             }
 
             val hStates = document.select("ul.list-unstyled")[1]
             val stats = hStates.select("> li")
-            views = stats[1]?.text()?.replace(",", "")?.replace(".", "")?.toInt()
+            views = stats.getOrNull(1)?.text()?.replace(",", "")?.replace(".", "")?.toInt()
             posterUrl =
                 document.selectFirst("div.fic-header > div > .cover-art-container > img")
                     ?.attr("src")

@@ -94,11 +94,7 @@ class ReadNovelFullProvider : MainAPI() {
             author = getData("Author:")?.selectFirst("> a")?.text()
             tags = getData("Genre:")?.select("> a")?.map { it.text() }
             val statusText = getData("Status:")?.selectFirst("> a")?.text()
-            status = when (statusText) {
-                "Ongoing" -> STATUS_ONGOING
-                "Completed" -> STATUS_COMPLETE
-                else -> STATUS_NULL
-            }
+            setStatus(statusText)
             synopsis = document.selectFirst("div.desc-text")?.text()
             rating = rate.selectFirst("> input")?.attr("value")?.toFloatOrNull()?.times(100)
                 ?.toInt()

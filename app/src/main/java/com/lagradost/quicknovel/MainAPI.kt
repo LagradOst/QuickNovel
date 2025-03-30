@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel
 
+import androidx.annotation.StringRes
 import androidx.annotation.WorkerThread
 import com.lagradost.nicehttp.NiceResponse
 import com.lagradost.quicknovel.MainActivity.Companion.app
@@ -196,11 +197,28 @@ fun MainAPI.newSearchResponse(
     return builder
 }
 
-const val STATUS_NULL = 0
-const val STATUS_ONGOING = 1
-const val STATUS_COMPLETE = 2
-const val STATUS_PAUSE = 3
-const val STATUS_DROPPED = 4
+enum class ReleaseStatus(@StringRes val resource : Int) {
+    Ongoing(R.string.ongoing),
+    Completed(R.string.completed),
+    Paused(R.string.paused),
+    Dropped(R.string.dropped),
+    Stubbed(R.string.stubbed),
+}
+
+fun LoadResponse.setStatus(status : String?) : Boolean {
+    if(status == null) {
+        return false
+    }
+    this.status = when(status.lowercase().trim()) {
+        "ongoing", "on-going", "on_going" -> ReleaseStatus.Ongoing
+        "completed", "complete", "done" -> ReleaseStatus.Completed
+        "hiatus", "paused", "pause" -> ReleaseStatus.Paused
+        "dropped","drop" -> ReleaseStatus.Dropped
+        "stub","stubbed" -> ReleaseStatus.Stubbed
+        else -> return false
+    }
+    return true
+}
 
 interface LoadResponse {
     val url: String
@@ -214,7 +232,7 @@ interface LoadResponse {
     var views: Int?
     var synopsis: String?
     var tags: List<String>?
-    var status: Int? // 0 = null - implemented but not found, 1 = Ongoing, 2 = Complete, 3 = Pause/HIATUS, 4 = Dropped
+    var status: ReleaseStatus? // 0 = null - implemented but not found, 1 = Ongoing, 2 = Complete, 3 = Pause/HIATUS, 4 = Dropped
     var posterHeaders: Map<String, String>?
 
     val image: UiImage? get() = img(url = posterUrl, headers = posterHeaders)
@@ -234,7 +252,7 @@ data class StreamResponse(
     override var views: Int? = null,
     override var synopsis: String? = null,
     override var tags: List<String>? = null,
-    override var status: Int? = null,
+    override var status: ReleaseStatus? = null,
     override var posterHeaders: Map<String, String>? = null,
     var nextChapter: ChapterData? = null,
     override var related: List<SearchResponse>? = null
@@ -307,7 +325,7 @@ data class EpubResponse(
     override var views: Int? = null,
     override var synopsis: String? = null,
     override var tags: List<String>? = null,
-    override var status: Int? = null,
+    override var status: ReleaseStatus? = null,
     override var posterHeaders: Map<String, String>? = null,
     val links: List<DownloadLinkType>,
     override val apiName: String,

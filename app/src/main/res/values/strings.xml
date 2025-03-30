@@ -174,6 +174,7 @@
     <string name="ongoing">Ongoing</string>
     <string name="completed">Completed</string>
     <string name="dropped">Dropped</string>
+    <string name="stubbed">Stubbed</string>
     <string name="text_to_speech">Text To Speech</string>
     <string name="text_to_speech_channel_description">The TTS notification channel</string>
     <string name="overall_rating_format">Overall %s</string>

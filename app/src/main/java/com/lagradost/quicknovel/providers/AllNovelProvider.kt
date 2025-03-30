@@ -6,14 +6,12 @@ import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.STATUS_COMPLETE
-import com.lagradost.quicknovel.STATUS_NULL
-import com.lagradost.quicknovel.STATUS_ONGOING
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
+import com.lagradost.quicknovel.setStatus
 import kotlin.math.roundToInt
 
 open class AllNovelProvider : MainAPI() {
@@ -196,13 +194,10 @@ open class AllNovelProvider : MainAPI() {
             rating = document.selectFirst("div.small > em > strong:nth-child(1) > span")?.text()
                 ?.toFloatOrNull()?.times(100)?.roundToInt()
 
-            this.status =
-                when (document.selectFirst("div.info > div:nth-child(5) > a")?.selectFirst("a")
-                    ?.text()) {
-                    "Ongoing" -> STATUS_ONGOING
-                    "Completed" -> STATUS_COMPLETE
-                    else -> STATUS_NULL
-                }
+            setStatus(
+                document.selectFirst("div.info > div:nth-child(5) > a")?.selectFirst("a")
+                    ?.text()
+            )
         }
     }
 }

@@ -169,12 +169,7 @@ class KolNovelProvider : MainAPI() {
             tags = document.select("div.genxed a").map { it.text() }
             posterUrl = document.select("div.thumb > img").attr("data-lazy-src")
             synopsis = document.select("div.entry-content p:first-of-type").text()
-            status =
-                when (aHeaders.text().replace("الحالة: ", "").lowercase(Locale.getDefault())) {
-                    "ongoing" -> STATUS_ONGOING
-                    "completed" -> STATUS_COMPLETE
-                    else -> STATUS_NULL
-                }
+            setStatus(aHeaders.text().replace("الحالة: ", "").lowercase(Locale.getDefault()))
             rating =
                 ((document.selectFirst("div.rating > strong")?.text()?.replace("درجة", "")
                     ?.toFloat()

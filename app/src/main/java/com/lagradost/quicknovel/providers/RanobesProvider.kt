@@ -19,22 +19,17 @@ val mapper = jacksonObjectMapper().apply {
 }
 
 data class Chapterdatajson(
-    @get:JsonProperty("book_title")
-    val bookTitle: String? = null,
+    @get:JsonProperty("book_title") val bookTitle: String? = null,
 
-    @get:JsonProperty("book_link")
-    val bookLink: String? = null,
+    @get:JsonProperty("book_link") val bookLink: String? = null,
 
-    @get:JsonProperty("book_id")
-    val bookID: Long? = null,
+    @get:JsonProperty("book_id") val bookID: Long? = null,
 
     val chapters: List<Chapter>? = null,
 
-    @get:JsonProperty("pages_count")
-    val pagesCount: Long? = null,
+    @get:JsonProperty("pages_count") val pagesCount: Long? = null,
 
-    @get:JsonProperty("count_all")
-    val countAll: Long? = null,
+    @get:JsonProperty("count_all") val countAll: Long? = null,
     val cstart: Long? = null,
     val limit: Long? = null,
     val search: String? = null,
@@ -110,23 +105,17 @@ class RanobesProvider : MainAPI() {
     val interceptor = CloudflareKiller()
 
     override suspend fun loadMainPage(
-        page: Int,
-        mainCategory: String?,
-        orderBy: String?,
-        tag: String?
+        page: Int, mainCategory: String?, orderBy: String?, tag: String?
     ): HeadMainPageResponse {
-        val url =
-            if (page <= 1)
-                "$mainUrl/tags/genre/$tag/"
-            else
-                "$mainUrl/tags/genre/$tag/page/$page/"
+        val url = if (page <= 1) "$mainUrl/tags/genre/$tag/"
+        else "$mainUrl/tags/genre/$tag/page/$page/"
 
         val response = app.get(url, headers = baseHeaders)
 
         val document = Jsoup.parse(response.text)
 
         val returnValue = document.select("div.short-cont").mapNotNull { h ->
-            val h2 = h?.selectFirst("h2.title > a") ?: return@mapNotNull null
+            val h2 = h.selectFirst("h2.title > a") ?: return@mapNotNull null
             //val latestChap =
             //    mainUrl + (h.nextElementSibling()?.selectFirst("div > a")?.attr("href")
             //        ?: return@mapNotNull null)
@@ -151,12 +140,10 @@ class RanobesProvider : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val document = app.post(
-            "$mainUrl/index.php?do=search/",
-            headers = mapOf(
+            "$mainUrl/index.php?do=search/", headers = mapOf(
                 "referer" to mainUrl,
                 "content-type" to "application/x-www-form-urlencoded",
-            ),
-            data = mapOf(
+            ), data = mapOf(
                 "do" to "search",
                 "subaction" to "search",
                 "search_start" to "0",
@@ -170,7 +157,7 @@ class RanobesProvider : MainAPI() {
 
 
         return document.select("div.short-cont").mapNotNull { h ->
-            val h2 = h?.selectFirst("h2.title > a")
+            val h2 = h.selectFirst("h2.title > a")
             val cUrl = h2?.attr("href") ?: return@mapNotNull null
             val name = h2.text() ?: return@mapNotNull null
             newSearchResponse(name = name, url = cUrl) {
@@ -189,16 +176,14 @@ class RanobesProvider : MainAPI() {
 
         val listdata = mutableListOf<Chapterdatajson>()
         val data: ArrayList<ChapterData> = ArrayList()
-        val chapretspageresponse =
-            app.get(
-                "$mainUrl/chapters/${url.substringAfterLast("/").substringBefore("-")}",
-                headers = interceptor.getCookieHeaders(mainUrl).toMap()
-            )
+        val chapretspageresponse = app.get(
+            "$mainUrl/chapters/${url.substringAfterLast("/").substringBefore("-")}",
+            headers = interceptor.getCookieHeaders(mainUrl).toMap()
+        )
         val chapretspage = Jsoup.parse(chapretspageresponse.text)
         val cha1 = Chapterdatajson.fromJson(
             chapretspage.select("script")
-                .filter { it -> it.data().contains("window.__DATA") }[0].data()
-                .substringAfter("=")
+                .filter { it -> it.data().contains("window.__DATA") }[0].data().substringAfter("=")
         )
 
         val numberofchpages =
@@ -241,9 +226,8 @@ class RanobesProvider : MainAPI() {
                 rating = (document.selectFirst("#rate_b > div > div > div > span.bold")?.text()
                     ?.substringBefore("/")?.toFloatOrNull()?.times(200))?.toInt()!!
 
-                peopleVoted =
-                    document.selectFirst("div.rate-stat-num > span.small.grey")?.text()!!
-                        .filter { it.isDigit() }.toInt()
+                peopleVoted = document.selectFirst("div.rate-stat-num > span.small.grey")?.text()!!
+                    .filter { it.isDigit() }.toInt()
             } catch (_: Throwable) {
             }
             synopsis = document.selectFirst("div.moreless")?.text()
@@ -255,12 +239,7 @@ class RanobesProvider : MainAPI() {
             val statusHeader =
                 // Copy pasted from browser, hopefully does not break 💀
                 document.selectFirst(".r-fullstory-spec > ul:nth-child(1) > li:nth-child(7) > span:nth-child(1) > a:nth-child(1)")
-
-            status = when (statusHeader?.text()) {
-                "Ongoing" -> STATUS_ONGOING
-                "Completed" -> STATUS_COMPLETE
-                else -> STATUS_NULL
-            }
+            setStatus(statusHeader?.text())
         }
     }
 }

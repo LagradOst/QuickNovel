@@ -15,12 +15,11 @@ import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.ifCase
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
+import com.lagradost.quicknovel.setStatus
 import com.lagradost.quicknovel.synopsis
 import com.lagradost.quicknovel.toChapters
 import com.lagradost.quicknovel.toRate
-import com.lagradost.quicknovel.toStatus
 import com.lagradost.quicknovel.toUrlBuilderSafe
-import java.util.*
 
 abstract class WPReader : MainAPI() {
     override val name = ""
@@ -90,7 +89,7 @@ abstract class WPReader : MainAPI() {
             .select(if (tag == "") ".flexbox3-content > a" else ".flexbox2-content > a")
             .mapNotNull { element ->
                 newSearchResponse(
-                    name = element?.attr("title") ?: return@mapNotNull null,
+                    name = element.attr("title") ?: return@mapNotNull null,
                     url = element.attr("href")
                 ) {
                     posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
@@ -101,7 +100,7 @@ abstract class WPReader : MainAPI() {
                 }
             }
 
-        return HeadMainPageResponse(url, res ?: ArrayList())
+        return HeadMainPageResponse(url, res)
     }
 
     override suspend fun loadHtml(url: String): String? {
@@ -120,7 +119,7 @@ abstract class WPReader : MainAPI() {
             .select("div.flexbox2-content > a")
             .mapNotNull { element ->
                 newSearchResponse(
-                    name = element?.attr("title") ?: return@mapNotNull null,
+                    name = element.attr("title") ?: return@mapNotNull null,
                     url = element.attr("href") ?: return@mapNotNull null
                 ) {
                     posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
@@ -135,8 +134,8 @@ abstract class WPReader : MainAPI() {
         val data = doc.select("div.flexch-infoz > a")
             .mapNotNull { dat ->
                 ChapterData(
-                    name = dat.attr("title").clean() ?: "",
-                    url = dat.attr("href").clean() ?: "",
+                    name = dat.attr("title").clean(),
+                    url = dat.attr("href").clean(),
                     dateOfRelease = dat.selectFirst("span.date")?.text()?.clean() ?: "",
                     views = 0,
                 )
@@ -156,8 +155,8 @@ abstract class WPReader : MainAPI() {
 
             synopsis = doc.selectFirst(".series-synops")?.text()?.synopsis() ?: ""
             tags = doc.selectFirst("div.series-genres")?.select("a")
-                ?.mapNotNull { tag -> tag?.text()?.clean() }
-            status = doc.selectFirst("span.status")?.text()?.toStatus()
+                ?.mapNotNull { tag -> tag.text().clean() }
+            setStatus(doc.selectFirst("span.status")?.text())
         }
     }
 }

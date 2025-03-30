@@ -193,11 +193,7 @@ class ReadLightNovelProvider : MainAPI() {
 
         return newStreamResponse(url = url, name = name, data = data) {
             posterUrl = fixUrlNull(document.selectFirst("div.novel-cover > a > img")?.attr("src"))
-            status = when (getIndex("Status").text()) {
-                "Ongoing" -> STATUS_ONGOING
-                "Completed" -> STATUS_COMPLETE
-                else -> STATUS_NULL
-            }
+            setStatus(getIndex("Status").text())
             synopsis =
                 getIndex("Description").select("> p").joinToString(separator = "\n\n") { it.text() }
             rating = (getIndex("Rating").text().toFloat() * 100).toInt()
