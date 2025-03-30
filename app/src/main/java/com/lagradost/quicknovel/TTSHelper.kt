@@ -37,7 +37,7 @@ import kotlin.math.roundToInt
 class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boolean) {
     private val intentFilter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
     private val myNoisyAudioStreamReceiver = BecomingNoisyReceiver()
-    private var mediaSession: MediaSessionCompat
+    //private var mediaSession: MediaSessionCompat
     private var focusRequest: AudioFocusRequest? = null
     private val myAudioFocusListener =
         AudioManager.OnAudioFocusChangeListener {
@@ -84,14 +84,14 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
         tts.voice = voice ?: tts.defaultVoice
     }
 
-    private fun interruptTTS() {
+    fun interruptTTS() {
         // we don't actually want to initialize tts here
         tts?.let { tts ->
             clearTTS(tts)
         }
     }
 
-    fun ttsInitalized(): Boolean {
+    fun ttsInitialized(): Boolean {
         return tts != null
     }
 
@@ -234,7 +234,7 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
     }
 
     init {
-        mediaSession = TTSHelper.initMediaSession(context, event)
+       // mediaSession = TTSHelper.initMediaSession(context, event)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).run {
@@ -382,7 +382,7 @@ object TTSHelper {
     }
 
 
-    fun initMediaSession(context: Context, event: (TTSActionType) -> Boolean): MediaSessionCompat {
+    /*fun initMediaSession(context: Context, event: (TTSActionType) -> Boolean): MediaSessionCompat {
         val mediaButtonReceiver = ComponentName(context, MediaButtonReceiver::class.java)
         return MediaSessionCompat(context, "TTS", mediaButtonReceiver, null).apply {
             setCallback(
@@ -407,7 +407,7 @@ object TTSHelper {
             )
             setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS)
         }
-    }
+    }*/
 
     fun String.replaceAfterIndex(
         oldValue: String,

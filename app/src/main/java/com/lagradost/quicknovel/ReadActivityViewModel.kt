@@ -61,7 +61,11 @@ import io.noties.markwon.image.AsyncDrawable
 import io.noties.markwon.image.AsyncDrawableSpan
 import io.noties.markwon.image.ImageSizeResolver
 import io.noties.markwon.image.glide.GlideImagesPlugin
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -273,7 +277,11 @@ class RegularBook(val data: Book) : AbstractBook() {
     override val canReload = false
 
     override fun loadImage(image: String): ByteArray? {
-        return data.resources.resourceMap.values.find { x -> x.mediaType.name.contains("image") && image.endsWith(x.href) }?.data
+        return data.resources.resourceMap.values.find { x ->
+            x.mediaType.name.contains("image") && image.endsWith(
+                x.href
+            )
+        }?.data
     }
 
     override fun size(): Int {
@@ -344,7 +352,7 @@ data class ChapterUpdate(
 )
 
 class ReadActivityViewModel : ViewModel() {
-    private lateinit var book: AbstractBook
+    lateinit var book: AbstractBook
     private lateinit var markwon: Markwon
     //private lateinit var reducer: MarkwonReducer
 
@@ -891,7 +899,7 @@ class ReadActivityViewModel : ViewModel() {
         set(value) {
             playDummySound()
             if (_currentTTSStatus == TTSHelper.TTSStatus.IsStopped && value == TTSHelper.TTSStatus.IsRunning) {
-                startTTSThread()
+                startTTSWorker()
             }
 
             _ttsStatus.postValue(value)
@@ -899,7 +907,7 @@ class ReadActivityViewModel : ViewModel() {
         }
 
     fun stopTTS() {
-        if (!ttsSession.ttsInitalized()) return
+        if (!ttsSession.ttsInitialized()) return
         currentTTSStatus = TTSHelper.TTSStatus.IsStopped
     }
 
@@ -912,8 +920,10 @@ class ReadActivityViewModel : ViewModel() {
     }
 
     fun pauseTTS() {
-        if (!ttsSession.ttsInitalized()) return
-        currentTTSStatus = TTSHelper.TTSStatus.IsPaused
+        if (!ttsSession.ttsInitialized()) return
+        if(currentTTSStatus == TTSHelper.TTSStatus.IsRunning) {
+            currentTTSStatus = TTSHelper.TTSStatus.IsPaused
+        }
     }
 
     fun startTTS() {
@@ -921,15 +931,17 @@ class ReadActivityViewModel : ViewModel() {
     }
 
     fun forwardsTTS() {
-        if (!ttsSession.ttsInitalized()) return
+        if (!ttsSession.ttsInitialized()) return
         pendingTTSSkip += 1
     }
 
     fun backwardsTTS() {
-        if (!ttsSession.ttsInitalized()) return
+        if (!ttsSession.ttsInitialized()) return
         pendingTTSSkip -= 1
     }
-
+    fun playTTS() {
+        currentTTSStatus = TTSHelper.TTSStatus.IsRunning
+    }
     fun pausePlayTTS() {
         if (currentTTSStatus == TTSHelper.TTSStatus.IsRunning) {
             currentTTSStatus = TTSHelper.TTSStatus.IsPaused
@@ -944,136 +956,149 @@ class ReadActivityViewModel : ViewModel() {
 
 
     private val ttsThreadMutex = Mutex()
-    private fun startTTSThread() = ioSafe {
-        val dIndex = desiredTTSIndex ?: desiredIndex ?: return@ioSafe
 
-        if (ttsThreadMutex.isLocked) return@ioSafe
-        ttsThreadMutex.withLock {
-            ttsSession.register()
+    fun startTTSWorker() = ioSafe {
+        TTSNotificationService.start(this@ReadActivityViewModel, context ?: return@ioSafe)
+    }
 
-            var innerIndex = 0
-            var index = dIndex.index
+    suspend fun startTTSThread() = coroutineScope {
+        try {
+            val dIndex = desiredTTSIndex ?: desiredIndex ?: return@coroutineScope
 
-            let {
-                val startChar = dIndex.char
+            if (ttsThreadMutex.isLocked) return@coroutineScope
+            ttsThreadMutex.withLock {
+                ttsSession.register()
 
-                val lines = chapterMutex.withLock {
-                    chapterData[index].letInner {
-                        it.ttsLines
+                var innerIndex = 0
+                var index = dIndex.index
+
+                let {
+                    val startChar = dIndex.char
+
+                    val lines = chapterMutex.withLock {
+                        chapterData[index].letInner {
+                            it.ttsLines
+                        }
+                    } ?: run {
+                        // in case of error just go to the next chapter
+                        index++
+                        return@let
                     }
-                } ?: run {
-                    // in case of error just go to the next chapter
-                    index++
-                    return@let
+
+                    val idx = lines.indexOfFirst { it.startChar >= startChar }
+                    if (idx != -1)
+                        innerIndex = idx
                 }
+                while (isActive) {
+                    if (currentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
+                    val lines =
+                        when (val currentData = chapterMutex.withLock { chapterData[index] }) {
+                            null -> {
+                                showToast("Got null data")
+                                break
+                            }
 
-                val idx = lines.indexOfFirst { it.startChar >= startChar }
-                if (idx != -1)
-                    innerIndex = idx
-            }
-            while (true) {
-                if (currentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
-                val lines = when (val currentData = chapterMutex.withLock { chapterData[index] }) {
-                    null -> {
-                        showToast("Got null data")
-                        break
+                            is Resource.Failure -> {
+                                showToast(currentData.errorString)
+                                break
+                            }
+
+                            is Resource.Loading -> {
+                                if (currentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
+                                delay(100)
+                                continue
+                            }
+
+                            is Resource.Success -> {
+                                currentData.value.ttsLines
+                            }
+                        }
+
+                    fun notify() {
+                        TTSNotifications.notify(
+                            book.title(),
+                            chaptersTitlesInternal[index],
+                            book.poster(),
+                            currentTTSStatus,
+                            context
+                        )
+                    }
+                    notify()
+
+                    // this is because if you go back one line you will be on the previous chapter with
+                    // a negative innerIndex, this makes the wrapping good
+                    if (innerIndex < 0) {
+                        innerIndex += lines.size
                     }
 
-                    is Resource.Failure -> {
-                        showToast(currentData.errorString)
-                        break
-                    }
+                    updateIndex(index)
 
-                    is Resource.Loading -> {
+                    // speak all lines
+                    while (innerIndex < lines.size && innerIndex >= 0) {
+                        ensureActive()
                         if (currentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
-                        delay(100)
-                        continue
+
+                        val line = lines[innerIndex]
+                        val nextLine = lines.getOrNull(innerIndex + 1)
+
+                        // set keys
+                        setKey(
+                            EPUB_CURRENT_POSITION_SCROLL_CHAR,
+                            book.title(),
+                            line.startChar
+                        )
+                        setKey(EPUB_CURRENT_POSITION, book.title(), line.index)
+
+                        // post visual
+                        _ttsLine.postValue(line)
+
+                        // wait for next line
+                        val waitFor = ttsSession.speak(line, nextLine)
+                        ttsSession.waitForOr(waitFor, {
+                            currentTTSStatus != TTSHelper.TTSStatus.IsRunning || pendingTTSSkip != 0
+                        }) {
+                            notify()
+                        }
+
+                        // wait for pause
+                        var isPauseDuration = 0
+                        while (currentTTSStatus == TTSHelper.TTSStatus.IsPaused) {
+                            isPauseDuration++
+                            delay(100)
+                        }
+
+                        // if we pause then we resume on the same line
+                        if (isPauseDuration > 0) {
+                            notify()
+                            pendingTTSSkip = 0
+                            continue
+                        }
+
+                        if (pendingTTSSkip != 0) {
+                            innerIndex += pendingTTSSkip
+                            pendingTTSSkip = 0
+                        } else {
+                            innerIndex += 1
+                        }
                     }
-
-                    is Resource.Success -> {
-                        currentData.value.ttsLines
-                    }
-                }
-
-                fun notify() {
-                    TTSNotifications.notify(
-                        book.title(),
-                        chaptersTitlesInternal[index],
-                        book.poster(),
-                        currentTTSStatus,
-                        context
-                    )
-                }
-                notify()
-
-                // this is because if you go back one line you will be on the previous chapter with
-                // a negative innerIndex, this makes the wrapping good
-                if (innerIndex < 0) {
-                    innerIndex += lines.size
-                }
-
-                updateIndex(index)
-
-                // speak all lines
-                while (innerIndex < lines.size && innerIndex >= 0) {
                     if (currentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
 
-                    val line = lines[innerIndex]
-                    val nextLine = lines.getOrNull(innerIndex + 1)
-
-                    // set keys
-                    setKey(
-                        EPUB_CURRENT_POSITION_SCROLL_CHAR,
-                        book.title(),
-                        line.startChar
-                    )
-                    setKey(EPUB_CURRENT_POSITION, book.title(), line.index)
-
-                    // post visual
-                    _ttsLine.postValue(line)
-
-                    // wait for next line
-                    val waitFor = ttsSession.speak(line, nextLine)
-                    ttsSession.waitForOr(waitFor, {
-                        currentTTSStatus != TTSHelper.TTSStatus.IsRunning || pendingTTSSkip != 0
-                    }) {
-                        notify()
-                    }
-
-                    // wait for pause
-                    var isPauseDuration = 0
-                    while (currentTTSStatus == TTSHelper.TTSStatus.IsPaused) {
-                        isPauseDuration++
-                        delay(100)
-                    }
-
-                    // if we pause then we resume on the same line
-                    if (isPauseDuration > 0) {
-                        notify()
-                        pendingTTSSkip = 0
-                        continue
-                    }
-
-                    if (pendingTTSSkip != 0) {
-                        innerIndex += pendingTTSSkip
-                        pendingTTSSkip = 0
+                    if (innerIndex > 0) {
+                        // goto next chapter and set inner to 0
+                        index++
+                        innerIndex = 0
+                    } else if (index > 0) {
+                        index--
                     } else {
-                        innerIndex += 1
+                        innerIndex = 0
                     }
-                }
-                if (currentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
-
-                if (innerIndex > 0) {
-                    // goto next chapter and set inner to 0
-                    index++
-                    innerIndex = 0
-                } else if (index > 0) {
-                    index--
-                } else {
-                    innerIndex = 0
                 }
             }
+        } catch (_: TimeoutCancellationException) {
 
+        } catch (t: Throwable) {
+            logError(t)
+        } finally {
             currentTTSStatus = TTSHelper.TTSStatus.IsStopped
             TTSNotifications.notify(
                 book.title(),
@@ -1082,6 +1107,7 @@ class ReadActivityViewModel : ViewModel() {
                 TTSHelper.TTSStatus.IsStopped,
                 context
             )
+            ttsSession.interruptTTS()
             ttsSession.unregister()
             _ttsLine.postValue(null)
         }
@@ -1099,7 +1125,7 @@ class ReadActivityViewModel : ViewModel() {
             return false
         }
 
-        if (!ttsSession.ttsInitalized()) return false
+        if (!ttsSession.ttsInitialized()) return false
 
         when (input) {
             TTSHelper.TTSActionType.Pause -> pauseTTS()

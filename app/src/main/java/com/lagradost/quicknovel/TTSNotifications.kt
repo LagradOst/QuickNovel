@@ -1,21 +1,25 @@
 package com.lagradost.quicknovel
 
 import android.Manifest
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.os.Build
+import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.session.MediaSessionCompat
+import android.support.v4.media.session.PlaybackStateCompat
+import android.view.KeyEvent
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.lagradost.quicknovel.ui.UiText
+import androidx.media.session.MediaButtonReceiver
 import com.lagradost.quicknovel.mvvm.logError
-import com.lagradost.quicknovel.services.TTSPauseService
-import java.util.ArrayList
+import com.lagradost.quicknovel.ui.UiText
 
 object TTSNotifications {
     private const val TTS_CHANNEL_ID = "QuickNovelTTS"
@@ -44,18 +48,87 @@ object TTSNotifications {
         }
     }
 
-    fun notify(
+    var mediaSession: MediaSessionCompat? = null
+
+    fun setMediaSession(viewModel: ReadActivityViewModel) {
+        val context = viewModel.context ?: return
+
+        val mbrIntent = MediaButtonReceiver.buildMediaButtonPendingIntent(
+            context,
+            PlaybackStateCompat.ACTION_PLAY_PAUSE
+        )
+
+        mediaSession = MediaSessionCompat(
+            context,
+            "TTS",
+            ComponentName(context, MediaButtonReceiver::class.java),
+            mbrIntent
+        ).apply {
+            setCallback(
+                object : MediaSessionCompat.Callback() {
+                    override fun onMediaButtonEvent(mediaButtonEvent: Intent): Boolean {
+                        val keyEvent =
+                            mediaButtonEvent.getParcelableExtra(Intent.EXTRA_KEY_EVENT) as KeyEvent?
+                        if (keyEvent != null && keyEvent.action == KeyEvent.ACTION_DOWN) { // NO DOUBLE SKIP
+                            when (keyEvent.keyCode) {
+                                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                                    viewModel.pausePlayTTS()
+                                }
+
+                                KeyEvent.KEYCODE_MEDIA_PAUSE -> {
+                                    viewModel.pauseTTS()
+                                }
+
+                                KeyEvent.KEYCODE_MEDIA_PLAY -> {
+                                    viewModel.playTTS()
+                                }
+
+                                KeyEvent.KEYCODE_MEDIA_STOP -> {
+                                    viewModel.stopTTS()
+                                }
+
+                                KeyEvent.KEYCODE_MEDIA_NEXT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD, KeyEvent.KEYCODE_MEDIA_SKIP_FORWARD, KeyEvent.KEYCODE_MEDIA_STEP_FORWARD -> {
+                                    viewModel.forwardsTTS()
+                                }
+
+                                KeyEvent.KEYCODE_MEDIA_PREVIOUS, KeyEvent.KEYCODE_MEDIA_REWIND -> {
+                                    viewModel.backwardsTTS()
+                                }
+
+                                else -> return super.onMediaButtonEvent(mediaButtonEvent)
+                            }
+                            return true
+                        }
+
+                        return super.onMediaButtonEvent(mediaButtonEvent)
+                    }
+                }
+            )
+
+            val mediaMetadata = MediaMetadataCompat.Builder().putLong(MediaMetadataCompat.METADATA_KEY_DURATION, -1L).build()
+            setMetadata(mediaMetadata)
+            //setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS)
+            //isActive = true
+        }
+    }
+
+    fun releaseMediaSession() {
+        mediaSession?.release()
+        mediaSession = null
+    }
+
+    fun createNotification(
         title: String,
         chapter: UiText,
         icon: Bitmap?,
         status: TTSHelper.TTSStatus,
         context: Context?
-    ) {
-        if (context == null) return
+    ): Notification? {
+        if (context == null) return null
 
         if (status == TTSHelper.TTSStatus.IsStopped) {
             NotificationManagerCompat.from(context).cancel(TTS_NOTIFICATION_ID)
-            return
+            return null
         }
 
         if (!hasCreateedNotificationChannel) {
@@ -66,7 +139,6 @@ object TTSNotifications {
             .setSmallIcon(R.drawable.ic_baseline_volume_up_24)
             .setContentTitle(title)
             .setContentText(chapter.asString(context))
-
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOnlyAlertOnce(true)
             .setShowWhen(false)
@@ -74,10 +146,84 @@ object TTSNotifications {
 
         if (icon != null) builder.setLargeIcon(icon)
 
-        builder.setStyle(androidx.media.app.NotificationCompat.MediaStyle())
-        // .setMediaSession(mediaSession?.sessionToken))
+        val cancelButton = MediaButtonReceiver.buildMediaButtonPendingIntent(
+            context,
+            PlaybackStateCompat.ACTION_STOP
+        )
+        val style = androidx.media.app.NotificationCompat.MediaStyle()
+        mediaSession?.sessionToken?.let { token ->
+            style.setShowCancelButton(true).setShowActionsInCompactView(1, 2)
+                .setCancelButtonIntent(cancelButton)
+                .setMediaSession(token)
+        }
+        builder.setStyle(style)
 
-        val actionTypes: MutableList<TTSHelper.TTSActionType> = ArrayList()
+        val actionPlay = NotificationCompat.Action(
+            R.drawable.ic_baseline_play_arrow_24,
+            "Resume",
+            MediaButtonReceiver.buildMediaButtonPendingIntent(
+                context,
+                PlaybackStateCompat.ACTION_PLAY
+            )
+        )
+
+        val actionStop = NotificationCompat.Action(
+            R.drawable.ic_baseline_stop_24,
+            "Stop",
+            MediaButtonReceiver.buildMediaButtonPendingIntent(
+                context,
+                PlaybackStateCompat.ACTION_STOP
+            )
+        )
+
+        val actionPause = NotificationCompat.Action(
+            R.drawable.ic_baseline_pause_24,
+            "Pause",
+            MediaButtonReceiver.buildMediaButtonPendingIntent(
+                context,
+                PlaybackStateCompat.ACTION_PAUSE
+            )
+        )
+
+        val actionRewind = NotificationCompat.Action(
+            R.drawable.ic_baseline_fast_rewind_24,
+            "Rewind",
+            MediaButtonReceiver.buildMediaButtonPendingIntent(
+                context,
+                PlaybackStateCompat.ACTION_REWIND
+            )
+        )
+
+        val actionFastForward = NotificationCompat.Action(
+            R.drawable.ic_baseline_fast_forward_24,
+            "Fast Forward",
+            MediaButtonReceiver.buildMediaButtonPendingIntent(
+                context,
+                PlaybackStateCompat.ACTION_FAST_FORWARD
+            )
+        )
+
+        when (status) {
+            TTSHelper.TTSStatus.IsRunning -> {
+                builder.addAction(actionRewind)
+                builder.addAction(actionStop)
+                builder.addAction(actionPause)
+                builder.addAction(actionFastForward)
+            }
+
+            TTSHelper.TTSStatus.IsPaused -> {
+                builder.addAction(actionRewind)
+                builder.addAction(actionStop)
+                builder.addAction(actionPlay)
+                builder.addAction(actionFastForward)
+            }
+
+            else -> {
+                // unreachable
+            }
+        }
+
+        /*val actionTypes: MutableList<TTSHelper.TTSActionType> = ArrayList()
 
         if (status == TTSHelper.TTSStatus.IsPaused) {
             actionTypes.add(TTSHelper.TTSActionType.Resume)
@@ -103,16 +249,28 @@ object TTSNotifications {
                         TTSHelper.TTSActionType.Resume -> R.drawable.ic_baseline_play_arrow_24
                         TTSHelper.TTSActionType.Pause -> R.drawable.ic_baseline_pause_24
                         TTSHelper.TTSActionType.Stop -> R.drawable.ic_baseline_stop_24
-                        else -> return
+                        else -> return null
                     }, when (i) {
                         TTSHelper.TTSActionType.Resume -> "Resume"
                         TTSHelper.TTSActionType.Pause -> "Pause"
                         TTSHelper.TTSActionType.Stop -> "Stop"
-                        else -> return
+                        else -> return null
                     }, pending
                 )
             )
-        }
+        }*/
+        return builder.build()
+    }
+
+    fun notify(
+        title: String,
+        chapter: UiText,
+        icon: Bitmap?,
+        status: TTSHelper.TTSStatus,
+        context: Context?
+    ) {
+        if (context == null) return
+        val notification = createNotification(title, chapter, icon, status, context) ?: return
 
         with(NotificationManagerCompat.from(context)) {
             // notificationId is a unique int for each notification that you must define
@@ -125,7 +283,7 @@ object TTSNotifications {
                     return
                 }
 
-                notify(TTS_NOTIFICATION_ID, builder.build())
+                notify(TTS_NOTIFICATION_ID, notification)
             } catch (t: Throwable) {
                 logError(t)
             }

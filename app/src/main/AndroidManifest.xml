@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <queries>
         <intent>
@@ -26,6 +29,25 @@
             android:supportsRtl="true"
             android:theme="@style/AppTheme">
 
+
+        <service
+                android:name=".TTSNotificationService"
+                android:enabled="true"
+                android:foregroundServiceType="mediaPlayback"
+                android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </service>
+
+        <receiver
+                android:name="androidx.media.session.MediaButtonReceiver"
+                android:exported="true"
+                >
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
 
         <activity
                 android:name=".MainActivity"
@@ -117,6 +139,7 @@
                 <data android:mimeType="application/epub+zip" />
             </intent-filter>
         </activity>
+
         <service
                 android:name=".services.DownloadService"
                 android:enabled="true"
