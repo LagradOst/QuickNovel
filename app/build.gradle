@@ -22,7 +22,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 35
         versionCode 56
-        versionName "3.2.3"
+        versionName "3.2.4"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -98,7 +98,7 @@ dependencies {
     implementation 'com.github.LagradOst:SafeFile:a926e7615a' // To Prevent the URI File Fu*kery
     implementation 'com.jaredrummler:colorpicker:1.1.0'
 
-    implementation 'com.github.Blatzar:NiceHttp:0.4.12'
+    implementation 'com.github.Blatzar:NiceHttp:0.4.13'
 
     implementation "io.noties.markwon:core:4.6.2"
     implementation "io.noties.markwon:image-glide:4.6.2"
