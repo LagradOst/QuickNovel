@@ -692,6 +692,11 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             //     overscrollMaxTranslation * currentOverScrollValue //alpha = (1.0f - currentOverScrollValue.absoluteValue)
         }
 
+    override fun onStop() {
+        viewModel.stopTTS()
+        super.onStop()
+    }
+
     @SuppressLint("ClickableViewAccessibility")
 
     override fun onCreate(savedInstanceState: Bundle?) {

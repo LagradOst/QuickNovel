@@ -1,6 +1,9 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.Material3.Dark.NoActionBar">
+        <!-- Opt out of edgeToEdge enforcement in >= Android 15 -->
+        <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>
+
         <item name="android:windowBackground">@drawable/splash_background</item>
         <item name="android:navigationBarColor">?attr/primaryBlackBackground</item>
         <item name="android:colorEdgeEffect">?attr/textColor</item>
