@@ -993,7 +993,10 @@ class ReadActivityViewModel : ViewModel() {
                 while (isActive) {
                     if (currentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
                     val lines =
-                        when (val currentData = chapterMutex.withLock { chapterData[index] }) {
+                        when (val currentData = chapterMutex.withLock { chapterData[index] } ?: run {
+                            loadIndividualChapter(index)
+                            chapterMutex.withLock { chapterData[index] }
+                        }) {
                             null -> {
                                 showToast("Got null data")
                                 break
