@@ -990,8 +990,7 @@ class ReadActivityViewModel : ViewModel() {
                     if (idx != -1)
                         innerIndex = idx
                 }
-                while (isActive) {
-                    if (currentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
+                while (isActive && currentTTSStatus != TTSHelper.TTSStatus.IsStopped) {
                     val lines =
                         when (val currentData = chapterMutex.withLock { chapterData[index] } ?: run {
                             loadIndividualChapter(index)
@@ -1092,7 +1091,9 @@ class ReadActivityViewModel : ViewModel() {
                     }
                     if (currentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
 
-                    if (innerIndex > 0) {
+                    // this may case a bug where you cant seek back if the entire chapter is none
+                    // but this is better than restarting the chapter
+                    if (innerIndex > 0 || lines.size == 0) {
                         // goto next chapter and set inner to 0
                         index++
                         innerIndex = 0
