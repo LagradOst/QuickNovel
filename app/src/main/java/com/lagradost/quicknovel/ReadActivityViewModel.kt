@@ -896,7 +896,7 @@ class ReadActivityViewModel : ViewModel() {
     private var _currentTTSStatus: TTSHelper.TTSStatus = TTSHelper.TTSStatus.IsStopped
     var currentTTSStatus: TTSHelper.TTSStatus
         get() = _currentTTSStatus
-        set(value) {
+        set(value) = synchronized(this@ReadActivityViewModel) {
             playDummySound()
             if (_currentTTSStatus == TTSHelper.TTSStatus.IsStopped && value == TTSHelper.TTSStatus.IsRunning) {
                 startTTSWorker()
@@ -907,7 +907,6 @@ class ReadActivityViewModel : ViewModel() {
         }
 
     fun stopTTS() {
-        if (!ttsSession.ttsInitialized()) return
         currentTTSStatus = TTSHelper.TTSStatus.IsStopped
     }
 
@@ -921,7 +920,7 @@ class ReadActivityViewModel : ViewModel() {
 
     fun pauseTTS() {
         if (!ttsSession.ttsInitialized()) return
-        if(currentTTSStatus == TTSHelper.TTSStatus.IsRunning) {
+        if (currentTTSStatus == TTSHelper.TTSStatus.IsRunning) {
             currentTTSStatus = TTSHelper.TTSStatus.IsPaused
         }
     }
@@ -939,9 +938,11 @@ class ReadActivityViewModel : ViewModel() {
         if (!ttsSession.ttsInitialized()) return
         pendingTTSSkip -= 1
     }
+
     fun playTTS() {
         currentTTSStatus = TTSHelper.TTSStatus.IsRunning
     }
+
     fun pausePlayTTS() {
         if (currentTTSStatus == TTSHelper.TTSStatus.IsRunning) {
             currentTTSStatus = TTSHelper.TTSStatus.IsPaused
@@ -1053,7 +1054,12 @@ class ReadActivityViewModel : ViewModel() {
                         _ttsLine.postValue(line)
 
                         // wait for next line
-                        val waitFor = ttsSession.speak(line, nextLine)
+                        val waitFor = ttsSession.speak(
+                            line,
+                            nextLine
+                        ) {
+                            currentTTSStatus != TTSHelper.TTSStatus.IsRunning || pendingTTSSkip != 0
+                        }
                         ttsSession.waitForOr(waitFor, {
                             currentTTSStatus != TTSHelper.TTSStatus.IsRunning || pendingTTSSkip != 0
                         }) {

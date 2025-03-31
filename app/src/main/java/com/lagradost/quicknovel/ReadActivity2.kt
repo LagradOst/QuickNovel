@@ -692,9 +692,9 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             //     overscrollMaxTranslation * currentOverScrollValue //alpha = (1.0f - currentOverScrollValue.absoluteValue)
         }
 
-    override fun onStop() {
+    override fun onDestroy() {
         viewModel.stopTTS()
-        super.onStop()
+        super.onDestroy()
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -1203,7 +1203,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
             binding.readLanguage.setOnClickListener { _ ->
                 ioSafe {
-                    viewModel.ttsSession.requireTTS { tts ->
+                    viewModel.ttsSession.requireTTS({ tts ->
                         runOnUiThread {
                             val languages = mutableListOf<Locale?>(null).apply {
                                 addAll(tts.availableLanguages?.filterNotNull() ?: emptySet())
@@ -1219,7 +1219,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                                 viewModel.setTTSLanguage(languages.getOrNull(index))
                             }
                         }
-                    }
+                    },action = {false})
                 }
             }
 
@@ -1245,7 +1245,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
             binding.readVoice.setOnClickListener {
                 ioSafe {
-                    viewModel.ttsSession.requireTTS { tts ->
+                    viewModel.ttsSession.requireTTS( { tts ->
                         runOnUiThread {
                             val matchAgainst = tts.voice.locale.language
                             val voices = mutableListOf<Voice?>(null).apply {
@@ -1261,7 +1261,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                                 viewModel.setTTSVoice(voices.getOrNull(index))
                             }
                         }
-                    }
+                    }, action = {false})
                 }
             }
 
