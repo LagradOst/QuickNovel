@@ -50,9 +50,9 @@ open class HiraethTranslationProvider : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val document = app.get("$mainUrl/?s=$query&post_type=wp-manga").document
+        val document = app.get("$mainUrl/?s=$query&post_type=wp-manga&m_orderby=latest").document
 
-        return document.select("div.li-row").mapNotNull { h ->
+        return document.select("div.c-tabs-item > div.row.c-tabs-item__content").mapNotNull { h ->
             val h3 = h.selectFirst("h3.h4 > a") ?: return@mapNotNull null
 
             newSearchResponse(
