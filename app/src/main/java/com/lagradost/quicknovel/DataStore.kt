@@ -42,6 +42,7 @@ const val EPUB_CURRENT_POSITION_READ_AT: String = "reader_epub_position_read"
 const val RESULT_BOOKMARK: String = "result_bookmarked"
 const val RESULT_BOOKMARK_STATE: String = "result_bookmarked_state"
 const val HISTORY_FOLDER: String = "result_history"
+const val CURRENT_TAB : String = "current_tab"
 
 /** When inserting many keys use this function, this is because apply for every key is very expensive on memory */
 data class Editor(

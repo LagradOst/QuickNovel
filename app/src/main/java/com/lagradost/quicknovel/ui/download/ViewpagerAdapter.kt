@@ -17,6 +17,7 @@ import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 
 data class Page(
     val title: String,
+    val unsortedItems: List<Any>,
     val items: List<Any>
 )
 

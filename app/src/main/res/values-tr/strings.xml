@@ -37,7 +37,7 @@
     <string name="rating_format_key">rating_format</string>
     <string name="grid_format_key">grid_format</string>
     <string name="download_format_key">download_format</string>
-    <string name="exampleTXT">"bu <annotation key=\"rounded\">normal bir</annotation> paragraf."</string>
+    <string name="exampleTXT">"bu <annotation key="rounded">normal bir</annotation> paragraf."</string>
     <string name="tags">Etiketler</string>
     <string name="views">Görüntülemeler</string>
     <string name="delete">Sil</string>

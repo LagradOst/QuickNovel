@@ -125,6 +125,7 @@
 
 
                     <ImageView
+                            android:visibility="gone"
                             android:id="@+id/download_delete_trash"
                             android:background="?selectableItemBackgroundBorderless"
                             android:src="@drawable/ic_baseline_delete_outline_24"
@@ -152,7 +153,6 @@
                             android:gravity="start|center_vertical"
                             android:textColor="?attr/textColor"
                             android:id="@+id/imageText"
-                            android:textStyle="bold"
                             android:ellipsize="end"
                             android:maxLines="2" />
 
@@ -166,13 +166,12 @@
                             android:layout_height="wrap_content"
 
                             android:textColor="?attr/grayTextColor"
-                            android:textStyle="bold"
                             android:maxLines="3" />
                 </LinearLayout>
 
                 <TextView
                         tools:text="+27  "
-                        android:layout_marginEnd="90dp"
+                        android:layout_marginEnd="50dp"
                         android:layout_gravity="center_vertical"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -180,7 +179,6 @@
 
                         android:textColor="?attr/colorPrimary"
                         android:id="@+id/imageTextMore"
-                        android:textStyle="bold"
                         android:ellipsize="end"
                         android:maxLines="1" />
             </FrameLayout>
