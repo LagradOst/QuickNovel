@@ -196,7 +196,7 @@ class DownloadViewModel : ViewModel() {
         BookDownloader2.deleteNovel(card.author, card.name, card.apiName)
     }
 
-    fun matchesQuery(x: String): Boolean {
+    private fun matchesQuery(x: String): Boolean {
         return activeQuery.isBlank() || FuzzySearch.partialRatio(x.lowercase(), activeQuery) > 50
     }
 
@@ -249,24 +249,28 @@ class DownloadViewModel : ViewModel() {
             }
 
             LAST_UPDATED_SORT -> {
-                currentArray.sortByDescending { t ->
-                    (getKey<Long>(
-                        DOWNLOAD_EPUB_LAST_ACCESS,
-                        t.id.toString(),
-                        0
-                    )!!)
+                if (currentArray.any { it.lastDownloaded == null }) {
+                    currentArray.sortByDescending { t ->
+                        (getKey<Long>(
+                            DOWNLOAD_EPUB_LAST_ACCESS,
+                            t.id.toString(),
+                            0
+                        )!!)
+                    }
                 }
                 currentArray.sortByDescending { it.lastDownloaded ?: 0L }
                 currentArray
             }
 
             REVERSE_LAST_UPDATED_SORT -> {
-                currentArray.sortByDescending { t ->
-                    (getKey<Long>(
-                        DOWNLOAD_EPUB_LAST_ACCESS,
-                        t.id.toString(),
-                        0
-                    )!!)
+                if (currentArray.any { it.lastDownloaded == null }) {
+                    currentArray.sortByDescending { t ->
+                        (getKey<Long>(
+                            DOWNLOAD_EPUB_LAST_ACCESS,
+                            t.id.toString(),
+                            0
+                        )!!)
+                    }
                 }
                 currentArray.sortBy { it.lastDownloaded ?: 0L }
                 currentArray
