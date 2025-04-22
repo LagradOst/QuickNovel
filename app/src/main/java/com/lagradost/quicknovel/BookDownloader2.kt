@@ -1469,7 +1469,7 @@ object BookDownloader2 {
             load.tags,
             api.name,
             System.currentTimeMillis(),
-            prevDownloadData?.lastUpdated
+            prevDownloadData?.lastDownloaded
         )
         setKey(DOWNLOAD_FOLDER, id.toString(), currentDownloadData)
         setKey(DOWNLOAD_TOTAL, id.toString(), total)
@@ -1741,7 +1741,7 @@ object BookDownloader2 {
         val totalItems = range.endInclusive + 1
         setPrefixData(load, api, totalItems)
 
-        var downloadedTotal = 0 // how many sucessfull get requests
+        var downloadedTotal = 0 // how many successful get requests
         try {
             // 1. download the image
             downloadImage(load, sApiName, sAuthor, sName, filesDir)

@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.ui.home
 
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -24,11 +25,29 @@ class HomeFragment : Fragment() {
         return binding.root
     }
 
+    private fun setupGridView() {
+        val compactView = false
+        val spanCountLandscape = if (compactView) 2 else 6
+        val spanCountPortrait = if (compactView) 1 else 3
+        val orientation = resources.configuration.orientation
+        if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            binding.homeBrowselist.spanCount = spanCountLandscape
+        } else {
+            binding.homeBrowselist.spanCount = spanCountPortrait
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        setupGridView()
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        setupGridView()
         val browseAdapter = BrowseAdapter2()
         binding.homeBrowselist.apply {
             adapter = browseAdapter
-            layoutManager = GridLayoutManager(context, 1)
+            // layoutManager = GridLayoutManager(context, 1)
             setHasFixedSize(true)
         }
 

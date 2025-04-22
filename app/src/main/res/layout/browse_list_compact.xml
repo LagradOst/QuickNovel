@@ -17,11 +17,15 @@
             android:clickable="true"
             android:focusable="true">
 
-        <FrameLayout
+        <LinearLayout
+                android:layout_marginHorizontal="5dp"
+                android:layout_marginVertical="10dp"
+                android:orientation="vertical"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
             <androidx.cardview.widget.CardView
+                    android:layout_gravity="center"
                     android:layout_margin="5dp"
                     android:id="@+id/browse_icon_background"
                     android:layout_width="wrap_content"
@@ -40,15 +44,12 @@
                     tools:text="Royal Road"
                     android:id="@+id/browse_text"
                     android:textColor="?attr/textColor"
-                    android:paddingStart="10dp"
-                    android:layout_marginStart="50dp"
-                    android:layout_marginEnd="50dp"
-                    android:gravity="start"
+                    android:gravity="center"
                     android:layout_gravity="center"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent">
 
             </TextView>
-        </FrameLayout>
+        </LinearLayout>
     </androidx.cardview.widget.CardView>
 </LinearLayout>

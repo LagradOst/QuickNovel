@@ -85,15 +85,12 @@
 
                 android:id="@+id/swipe_container"
                 android:layout_width="match_parent"
-                android:paddingLeft="5dp"
-                android:paddingRight="5dp"
                 app:layout_behavior="@string/appbar_scrolling_view_behavior"
                 android:layout_height="match_parent">
 
             <androidx.viewpager2.widget.ViewPager2
                     android:id="@+id/viewpager"
                     android:paddingBottom="40dp"
-                    android:paddingTop="5dp"
                     android:clipToPadding="false"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
