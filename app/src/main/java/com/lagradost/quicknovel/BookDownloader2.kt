@@ -1210,7 +1210,6 @@ object BookDownloader2 {
 
                 val localId = generateId(res.apiName, res.author, res.name)
 
-
                 BookDownloader2Helper.downloadInfo(
                     context,
                     res.author,
@@ -1424,6 +1423,27 @@ object BookDownloader2 {
         }
     }
 
+    private fun setSuffixData(load: LoadResponse, api: APIRepository) {
+        val id = generateId(load, api.name)
+
+        setKey(
+            DOWNLOAD_FOLDER, id.toString(), DownloadFragment.DownloadData(
+                load.url,
+                load.name,
+                load.author,
+                load.posterUrl,
+                load.rating,
+                load.peopleVoted,
+                load.views,
+                load.synopsis,
+                load.tags,
+                api.name,
+                System.currentTimeMillis(),
+                System.currentTimeMillis()
+            )
+        )
+    }
+
     private suspend fun setPrefixData(load: LoadResponse, api: APIRepository, total: Int) {
         val id = generateId(load, api.name)
 
@@ -1434,6 +1454,8 @@ object BookDownloader2 {
             }
             currentDownloads += id
         }
+        val prevDownloadData =
+            getKey<DownloadFragment.DownloadData>(DOWNLOAD_FOLDER, id.toString())
 
         val currentDownloadData = DownloadFragment.DownloadData(
             load.url,
@@ -1445,7 +1467,9 @@ object BookDownloader2 {
             load.views,
             load.synopsis,
             load.tags,
-            api.name
+            api.name,
+            System.currentTimeMillis(),
+            prevDownloadData?.lastDownloaded
         )
         setKey(DOWNLOAD_FOLDER, id.toString(), currentDownloadData)
         setKey(DOWNLOAD_TOTAL, id.toString(), total)
@@ -1521,7 +1545,7 @@ object BookDownloader2 {
 
             var links = ExtractorApi.extract(load.links)
             links = links.sortedByDescending { it.kbPerSec }
-            println("links $links")
+            //println("links $links")
             for (link in links) {
                 // consume any action and wait until not paused
                 run {
@@ -1638,6 +1662,8 @@ object BookDownloader2 {
 
                 file.writeBytes(totalBytes.toByteArray())
 
+                setSuffixData(load, api)
+
                 changeDownload(id) {
                     state = DownloadState.IsDone
                     this.progress = this.total
@@ -1715,6 +1741,7 @@ object BookDownloader2 {
         val totalItems = range.endInclusive + 1
         setPrefixData(load, api, totalItems)
 
+        var downloadedTotal = 0 // how many successful get requests
         try {
             // 1. download the image
             downloadImage(load, sApiName, sAuthor, sName, filesDir)
@@ -1722,7 +1749,6 @@ object BookDownloader2 {
             // 2. download the text files
             var currentState = DownloadState.IsDownloading
             var timePerLoadMs = 1000.0
-            var downloadedTotal = 0 // how many sucessfull get requests
 
             for (index in range.start..range.endInclusive) {
                 val data = load.data.getOrNull(index) ?: continue
@@ -1806,6 +1832,11 @@ object BookDownloader2 {
                     else -> {}
                 }
             }
+
+            if (downloadedTotal > 0) {
+                setSuffixData(load, api)
+            }
+
             changeDownload(id) {
                 this.progress = totalItems
                 state = DownloadState.IsDone
@@ -1819,6 +1850,11 @@ object BookDownloader2 {
                     )
             }
         } catch (t: Throwable) {
+            // also set it here in case of exeption
+            if (downloadedTotal > 0) {
+                setSuffixData(load, api)
+            }
+
             logError(t)
         } finally {
             currentDownloadsMutex.withLock {

@@ -24,7 +24,7 @@ import com.lagradost.quicknovel.HomePageList
 import com.lagradost.quicknovel.databinding.FragmentSearchBinding
 import com.lagradost.quicknovel.databinding.HomeEpisodesExpandedBinding
 import com.lagradost.quicknovel.mvvm.Resource
-import com.lagradost.quicknovel.mvvm.normalSafeApiCall
+import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.settings.SettingsFragment
 import com.lagradost.quicknovel.util.Event
@@ -146,7 +146,7 @@ class SearchFragment : Fragment() {
         }
 
         observe(viewModel.currentSearch) { list ->
-            normalSafeApiCall {
+            safe {
                 masterAdapter.submitList(list.map {
                     HomePageList(
                         it.apiName,

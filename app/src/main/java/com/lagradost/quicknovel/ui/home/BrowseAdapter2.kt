@@ -1,17 +1,13 @@
 package com.lagradost.quicknovel.ui.home
 
-import android.content.Context
-import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
-import androidx.navigation.findNavController
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.navigate
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.BrowseListCompactBinding

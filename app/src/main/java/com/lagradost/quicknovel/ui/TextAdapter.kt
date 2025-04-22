@@ -165,6 +165,7 @@ const val CONFIG_SIZE = 1 shl 2
 const val CONFIG_FONT_BOLD = 1 shl 3
 const val CONFIG_FONT_ITALIC = 1 shl 4
 const val CONFIG_BG_COLOR = 1 shl 5
+const val CONFIG_SELECTABLE = 1 shl 6
 
 // this uses val to make it explicit copy because of lazy properties
 data class TextConfig(
@@ -174,7 +175,8 @@ data class TextConfig(
     val textFont: String,
     val defaultFont: Typeface,
     val backgroundColor: Int,
-    val bionicReading: Boolean
+    val bionicReading: Boolean,
+    val isTextSelectable: Boolean,
 ) {
     private val fontFile: File? by lazy {
         if (textFont == "") null else systemFonts.firstOrNull { it.name == textFont }
@@ -212,6 +214,10 @@ data class TextConfig(
         textView.setTextColor(backgroundColor)
     }
 
+    private fun setTextSelectable(textView: TextView) {
+        textView.setTextIsSelectable(isTextSelectable)
+    }
+
     fun setArgs(progressBar: ProgressBar) {
         progressBar.progressTintList = ColorStateList.valueOf(textColor)
         progressBar.indeterminateTintList = ColorStateList.valueOf(textColor)
@@ -223,6 +229,9 @@ data class TextConfig(
         }
         if ((args and CONFIG_BG_COLOR) != 0) {
             setBgTextColor(textView)
+        }
+        if ((args and CONFIG_SELECTABLE) != 0) {
+            setTextSelectable(textView)
         }
         if ((args and CONFIG_FONT) != 0) {
             val bold = (args and CONFIG_FONT_BOLD) != 0
@@ -281,6 +290,12 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
     fun changeBackgroundColor(color: Int): Boolean {
         if (config.backgroundColor == color) return false
         config = config.copy(backgroundColor = color)
+        return true
+    }
+
+    fun changeTextSelectable(isTextSelectable: Boolean): Boolean {
+        if (config.isTextSelectable == isTextSelectable) return false
+        config = config.copy(isTextSelectable = isTextSelectable)
         return true
     }
 
@@ -493,7 +508,10 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
         private fun setConfig(config: TextConfig) {
             when (binding) {
                 is SingleTextBinding -> {
-                    config.setArgs(binding.root, CONFIG_SIZE or CONFIG_COLOR or CONFIG_FONT)
+                    config.setArgs(
+                        binding.root,
+                        CONFIG_SIZE or CONFIG_COLOR or CONFIG_FONT or CONFIG_SELECTABLE
+                    )
                 }
 
                 is SingleLoadingBinding -> {

@@ -247,16 +247,10 @@ class ResultFragment : Fragment() {
 
                     viewsAndRating.isVisible = res.views != null || res.peopleVoted != null
 
-                    resultStatus.text = when (res.status) {
-                        1 -> getString(R.string.ongoing)
-                        2 -> getString(R.string.completed)
-                        3 -> getString(R.string.paused)
-                        4 -> getString(R.string.dropped)
-                        else -> ""
-                    }
+                    resultStatus.text = res.status?.resource?.let { getString(it) } ?: ""
 
                     resultTag.removeAllViews()
-                    if (res.tags == null && ((res.status ?: 0) <= 0)) {
+                    if (res.tags == null && res.status == null) {
                         resultTagHolder.isVisible = false
                     } else {
                         resultTagHolder.isGone = res.tags.isNullOrEmpty()

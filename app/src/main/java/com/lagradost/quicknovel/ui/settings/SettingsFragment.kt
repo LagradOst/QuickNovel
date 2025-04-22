@@ -16,7 +16,7 @@ import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.mvvm.logError
-import com.lagradost.quicknovel.mvvm.normalSafeApiCall
+import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiProviderLangSettings
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
@@ -126,7 +126,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
 
         fun getDownloadDirs(context: Context?): List<String> {
-            return normalSafeApiCall {
+            return safe {
                 context?.let { ctx ->
                     val defaultDir = getDefaultDir(ctx)?.filePath()
 

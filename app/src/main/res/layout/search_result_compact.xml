@@ -53,7 +53,6 @@
                     android:textSize="17sp"
                     android:textColor="?attr/textColor"
                     android:id="@+id/imageText"
-                    android:textStyle="bold"
                     android:maxLines="3" />
 
             <TextView
@@ -63,7 +62,6 @@
                     android:textColor="?attr/textColor"
                     android:id="@+id/imageTextExtra"
                     android:textSize="13sp"
-                    android:textStyle="bold"
                     android:maxLines="3" />
 
             <TextView

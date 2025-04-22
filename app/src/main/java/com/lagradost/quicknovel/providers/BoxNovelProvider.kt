@@ -202,14 +202,9 @@ open class BoxNovelProvider : MainAPI() {
             if (synopsis.isNotEmpty()) {
                 this.synopsis = synopsis
             }
-            status =
-                when (document.select("div.post-status > div.post-content_item > div.summary-content")
-                    .last()?.text()?.lowercase()) {
-                    "ongoing" -> STATUS_ONGOING
-                    "completed" -> STATUS_COMPLETE
-                    else -> STATUS_NULL
-                }
-            posterUrl = fixUrlNull(document.select("div.summary_image > a > img").let{if(it.hasAttr("data-src")) it.attr("data-src") else it.attr("src")})
+            setStatus(document.select("div.post-status > div.post-content_item > div.summary-content")
+                .last()?.text())
+            posterUrl = fixUrlNull(document.select("div.summary_image > a > img").attr("data-src"))
             rating = ((document.selectFirst("span#averagerate")?.text()?.toFloatOrNull()
                 ?: 0f) * 200).toInt()
 

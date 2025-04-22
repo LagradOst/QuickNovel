@@ -44,18 +44,6 @@ fun String.toVote(): Int {
 
 fun String.toChapters(): String = this.replace(Regex("[^0-9]"), "")
 
-fun String.toStatus(): Int {
-    return this
-        .clean()
-        .lowercase(Locale.getDefault())
-        .let {
-            when (it) {
-                "completed" -> STATUS_COMPLETE
-                "ongoing" -> STATUS_ONGOING
-                else -> STATUS_NULL
-            }
-        }
-}
 
 fun String.clean(): String {
     return this

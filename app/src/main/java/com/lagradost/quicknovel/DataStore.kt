@@ -21,6 +21,7 @@ const val DOWNLOAD_SETTINGS: String = "download_settings"
 const val EPUB_LOCK_ROTATION: String = "reader_epub_rotation"
 const val EPUB_TEXT_SIZE: String = "reader_epub_text_size"
 const val EPUB_TEXT_BIONIC: String = "reader_epub_bionic_reading"
+const val EPUB_TEXT_SELECTABLE: String = "reader_epub_text_selectable"
 const val EPUB_SCROLL_VOL: String = "reader_epub_scroll_volume"
 const val EPUB_TTS_LOCK: String = "reader_epub_scroll_lock"
 const val EPUB_BG_COLOR: String = "reader_epub_bg_color"
@@ -42,6 +43,7 @@ const val EPUB_CURRENT_POSITION_READ_AT: String = "reader_epub_position_read"
 const val RESULT_BOOKMARK: String = "result_bookmarked"
 const val RESULT_BOOKMARK_STATE: String = "result_bookmarked_state"
 const val HISTORY_FOLDER: String = "result_history"
+const val CURRENT_TAB : String = "current_tab"
 
 /** When inserting many keys use this function, this is because apply for every key is very expensive on memory */
 data class Editor(

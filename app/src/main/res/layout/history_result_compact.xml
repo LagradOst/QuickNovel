@@ -92,7 +92,6 @@
                         android:gravity="start|center_vertical"
                         android:textColor="?attr/textColor"
                         android:id="@+id/imageText"
-                        android:textStyle="bold"
                         android:ellipsize="end"
                         android:maxLines="2" />
 
@@ -106,7 +105,6 @@
                         android:layout_height="wrap_content"
 
                         android:textColor="?attr/grayTextColor"
-                        android:textStyle="bold"
                         android:maxLines="3" />
             </LinearLayout>
         </FrameLayout>

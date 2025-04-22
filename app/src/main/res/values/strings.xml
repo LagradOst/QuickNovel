@@ -58,7 +58,7 @@
     <string name="user_image_avatar">Avatar</string>
     <string name="change_providers_descript">Change Provider</string>
     <string name="poster_open_source_descript">Open Source</string>
-    <string name="mainpage_sort_by_button_text">Sort By</string>
+    <string name="mainpage_sort_by_button_text">Sort</string>
     <string name="read_action_settings">Settings</string>
     <string name="read_action_chapters">Chapters</string>
     <string name="read_action_chapters_formatted" formatted="true">%d Chapters</string>
@@ -174,6 +174,7 @@
     <string name="ongoing">Ongoing</string>
     <string name="completed">Completed</string>
     <string name="dropped">Dropped</string>
+    <string name="stubbed">Stubbed</string>
     <string name="text_to_speech">Text To Speech</string>
     <string name="text_to_speech_channel_description">The TTS notification channel</string>
     <string name="overall_rating_format">Overall %s</string>
@@ -198,16 +199,23 @@
 
     <string name="default_sort">Default</string>
     <string name="recently_sort">Recently opened</string>
+    <string name="alpha_sort">Alphabetical</string>
+    <string name="download_sort">Download count</string>
+    <string name="download_perc">Download percentage</string>
+    <string name="recently_updated_sort">Recently updated</string>
+
     <string name="alpha_sort_az">Alphabetical (A-Z)</string>
     <string name="alpha_sort_za">Alphabetical (Z-A)</string>
     <string name="download_sort_hl">"Download count (high to low)"</string>
     <string name="download_sort_lh">"Download count (low to high)"</string>
     <string name="download_perc_hl">Download percentage (high to low)</string>
     <string name="download_perc_lh">Download percentage (low to high)</string>
+
     <string name="reload_chapter_format">Reloading chapter %s</string>
     <string name="ok">OK</string>
     <string name="more_info">More Info</string>
     <string name="download_path_key">download_path_key</string>
     <string name="download_path_pref">Download path</string>
     <string name="bionic_reading">Bionic Reading</string>
+    <string name="selectable_text">Selectable text</string>
 </resources>

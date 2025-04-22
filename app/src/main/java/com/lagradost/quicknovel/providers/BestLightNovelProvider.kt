@@ -3,14 +3,12 @@ package com.lagradost.quicknovel.providers
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
-import com.lagradost.quicknovel.STATUS_COMPLETE
-import com.lagradost.quicknovel.STATUS_NULL
-import com.lagradost.quicknovel.STATUS_ONGOING
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
+import com.lagradost.quicknovel.setStatus
 import com.lagradost.quicknovel.textClean
 
 class BestLightNovelProvider : MainAPI() {
@@ -73,12 +71,7 @@ class BestLightNovelProvider : MainAPI() {
             posterUrl = document.select("span.info_image > img").attr("src")
             tags = infoHeaders[2].select("> a").map { it.text() }
             synopsis = document.select("div.entry-header > div")[1].text().textClean
-            status =
-                when (infoHeaders[3].selectFirst("> a")?.text()?.lowercase()) {
-                    "ongoing" -> STATUS_ONGOING
-                    "completed" -> STATUS_COMPLETE
-                    else -> STATUS_NULL
-                }
+            setStatus(infoHeaders[3].selectFirst("> a")?.text())
             views = infoHeaders[6].text()
                 .replace(",", "")
                 .replace("\"", "").substring("View : ".length).toInt()

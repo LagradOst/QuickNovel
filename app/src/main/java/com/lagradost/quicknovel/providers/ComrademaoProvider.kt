@@ -82,11 +82,7 @@ class ComrademaoProvider : MainAPI() {
         }.reversed()
 
         return newStreamResponse(url = url, name = title, data = chapters) {
-            this.status = when (status) {
-                "On-going" -> STATUS_ONGOING
-                "Complete" -> STATUS_COMPLETE
-                else -> STATUS_NULL
-            }
+            setStatus(status)
             this.author = author
             synopsis = document.select("div.wd-full p").lastOrNull()?.text()
             posterUrl = fixUrlNull(novelInfo.attr("src"))

@@ -559,7 +559,7 @@ class MainActivity : AppCompatActivity() {
 
                         bookmark.setOnClickListener { view ->
                             view.popupMenu(
-                                ReadType.values().map { it.prefValue to it.stringRes },
+                                ReadType.entries.map { it.prefValue to it.stringRes },
                                 selectedItemId = viewModel.readState.value?.prefValue
                             ) {
                                 viewModel.bookmark(itemId)
@@ -608,13 +608,7 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         resultviewPreviewMetaStatus.apply {
-                            val statusTxt = when (d.status) {
-                                1 -> getString(R.string.ongoing)
-                                2 -> getString(R.string.completed)
-                                3 -> getString(R.string.paused)
-                                4 -> getString(R.string.dropped)
-                                else -> ""
-                            }
+                            val statusTxt = d.status?.resource?.let { getString(it) } ?: ""
 
                             resultviewPreviewMetaStatus.text = statusTxt
                             resultviewPreviewMetaStatus.isVisible = statusTxt.isNotBlank()
