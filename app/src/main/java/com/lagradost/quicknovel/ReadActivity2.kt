@@ -720,7 +720,8 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 textSize = viewModel.textSize,
                 textFont = viewModel.textFont,
                 backgroundColor = viewModel.backgroundColor,
-                bionicReading = viewModel.bionicReading
+                bionicReading = viewModel.bionicReading,
+                isTextSelectable = viewModel.isTextSelectable
             ).also { config ->
                 updateOtherTextConfig(config)
             }
@@ -761,6 +762,12 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
         observe(viewModel.bionicReadingLive) { color ->
             if (textAdapter.changeBionicReading(color)) {
+                updateTextAdapterConfig()
+            }
+        }
+
+        observe(viewModel.isTextSelectableLive) { isTextSelectable ->
+            if (textAdapter.changeTextSelectable(isTextSelectable)) {
                 updateTextAdapterConfig()
             }
         }
@@ -1076,7 +1083,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
             binding.readReadingType.setText(viewModel.readerType.stringRes)
             binding.readReadingType.setOnLongClickListener {
-                it.popupMenu(items = listOf(1 to R.string.reset_value),selectedItemId = null) {
+                it.popupMenu(items = listOf(1 to R.string.reset_value), selectedItemId = null) {
                     if (itemId == 1) {
                         binding.readReadingType.setText(ReadingType.DEFAULT.stringRes)
                         viewModel.readerType = ReadingType.DEFAULT
@@ -1096,7 +1103,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             }
 
             binding.readSettingsTextSizeText.setOnClickListener {
-                it.popupMenu(items = listOf(1 to R.string.reset_value),selectedItemId = null) {
+                it.popupMenu(items = listOf(1 to R.string.reset_value), selectedItemId = null) {
                     if (itemId == 1) {
                         viewModel.textSize = DEF_FONT_SIZE
                         binding.readSettingsTextSize.progress =
@@ -1219,7 +1226,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                                 viewModel.setTTSLanguage(languages.getOrNull(index))
                             }
                         }
-                    },action = {false})
+                    }, action = { false })
                 }
             }
 
@@ -1245,7 +1252,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
             binding.readVoice.setOnClickListener {
                 ioSafe {
-                    viewModel.ttsSession.requireTTS( { tts ->
+                    viewModel.ttsSession.requireTTS({ tts ->
                         runOnUiThread {
                             val matchAgainst = tts.voice.locale.language
                             val voices = mutableListOf<Voice?>(null).apply {
@@ -1261,7 +1268,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                                 viewModel.setTTSVoice(voices.getOrNull(index))
                             }
                         }
-                    }, action = {false})
+                    }, action = { false })
                 }
             }
 
@@ -1280,6 +1287,11 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 readSettingsShowBionic.isChecked = viewModel.bionicReading
                 readSettingsShowBionic.setOnCheckedChangeListener { _, isChecked ->
                     viewModel.bionicReading = isChecked
+                }
+
+                readSettingsIsTextSelectable.isChecked = viewModel.isTextSelectable
+                readSettingsIsTextSelectable.setOnCheckedChangeListener { _, isChecked ->
+                    viewModel.isTextSelectable = isChecked
                 }
 
                 readSettingsLockTts.isChecked = viewModel.ttsLock

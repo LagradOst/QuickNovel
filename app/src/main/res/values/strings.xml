@@ -217,4 +217,5 @@
     <string name="download_path_key">download_path_key</string>
     <string name="download_path_pref">Download path</string>
     <string name="bionic_reading">Bionic Reading</string>
+    <string name="selectable_text">Selectable text</string>
 </resources>

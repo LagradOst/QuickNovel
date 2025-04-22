@@ -110,6 +110,19 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content" />
 
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                    android:textSize="16sp"
+                    android:paddingStart="5dp"
+                    android:paddingEnd="5dp"
+                    android:text="@string/selectable_text"
+                    android:id="@+id/read_settings_is_text_selectable"
+                    android:textColor="?attr/textColor"
+                    app:buttonTint="?attr/colorOnPrimary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+
             <com.google.android.material.checkbox.MaterialCheckBox
                     android:textSize="16sp"
                     android:paddingStart="5dp"

@@ -1296,6 +1296,14 @@ class ReadActivityViewModel : ViewModel() {
         bionicReadingLive
     )
 
+    val isTextSelectableLive: MutableLiveData<Boolean> = MutableLiveData(null)
+    var isTextSelectable by PreferenceDelegateLiveView(
+        EPUB_TEXT_SELECTABLE,
+        false,
+        Boolean::class,
+        isTextSelectableLive
+    )
+
     val orientationLive: MutableLiveData<Int> = MutableLiveData(null)
     var orientation by PreferenceDelegateLiveView(
         EPUB_LOCK_ROTATION,
