@@ -109,5 +109,4 @@ class HistoryViewModel : ViewModel() {
     fun stream(card: ResultCached) {
         BookDownloader2.stream(card)
     }
-
 }

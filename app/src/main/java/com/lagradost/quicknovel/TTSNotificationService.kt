@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel
 
+import android.app.ActivityManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -12,14 +13,15 @@ import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.txt
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
 import java.lang.ref.WeakReference
 
 class TTSNotificationService : Service() {
     companion object {
         private var _viewModel: WeakReference<ReadActivityViewModel> = WeakReference(null)
 
-        private var isRunning: Mutex = Mutex()
+        // we use a binary semaphore to avoid the exception of releasing from a different thread
+        private var isRunning: Semaphore = Semaphore(1)
         private var currentJob: Job? = null
         var viewModel: ReadActivityViewModel?
             get() = _viewModel.get()
@@ -28,8 +30,22 @@ class TTSNotificationService : Service() {
             }
 
         suspend fun start(viewModel: ReadActivityViewModel, ctx: Context) {
+            // if the server is not running, but we somehow did not call release due to android killing it
+            // then release a permit
+            if ((!isServiceRunning(
+                    ctx,
+                    TTSNotificationService::class.java
+                ) || this._viewModel.get() == null) && isRunning.availablePermits == 0
+            ) {
+                try {
+                    isRunning.release()
+                } catch (t: IllegalStateException) {
+                    logError(t)
+                }
+            }
+
             currentJob?.cancel()
-            isRunning.lock()
+            isRunning.acquire()
 
             this.viewModel = viewModel
             ContextCompat.startForegroundService(
@@ -37,12 +53,15 @@ class TTSNotificationService : Service() {
                 Intent(ctx, TTSNotificationService::class.java)
             )
         }
-        //fun stop(ctx: Context) {
-        //    ctx.stopService(Intent(ctx, TTSNotificationService::class.java))
-        //}
 
-        //private fun isRunning(ctx: Context): Boolean =
-        //    ctx.isServiceRunning(TTSNotificationService::class.java)
+        private fun isServiceRunning(ctx: Context, service: Class<*>): Boolean =
+            try {
+                (ctx.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager).getRunningServices(
+                    Integer.MAX_VALUE
+                ).any { cmp -> service.name == cmp.service.className }
+            } catch (t: Throwable) {
+                false
+            }
     }
 
     override fun onCreate() {
@@ -94,10 +113,14 @@ class TTSNotificationService : Service() {
             currentJob?.cancel()
             viewModel = null
             super.onDestroy()
-        } catch (t : Throwable) {
+        } catch (t: Throwable) {
             logError(t)
         } finally {
-            isRunning.unlock()
+            try {
+                isRunning.release()
+            } catch (t: IllegalStateException) {
+                logError(t)
+            }
         }
     }
 
