@@ -1,68 +1,69 @@
 <resources>
     <string name="app_name">QuickNovel</string>
-    <string name="title_search">Arama</string>
+    <string name="title_search">Ara</string>
     <string name="title_history">Geçmiş</string>
     <string name="title_settings">Ayarlar</string>
     <string name="title_home">Keşfet</string>
     <string name="title_download">Kütüphane</string>
 
+    <string name="locale_key" translatable="false">locale_key</string>
     <string name="provider_lang_key" translatable="false">provider_lang_key</string>
     <string name="restore_key" translatable="false">restore_key</string>
-    <string name="restore_settings">Yedekten verileri geri yükle</string>
+    <string name="restore_settings">Verileri yedekten geri yükle</string>
 
-    <string name="search_hint">Romanları Ara</string>
+    <string name="search_hint">Roman Ara</string>
     <string name="synopsis">Özet</string>
     <string name="no_data">Veri Yok</string>
     <string name="no_author">Yazar bulunamadı</string>
     <string name="no_chapters">Bölüm Yok</string>
     <string name="generate_epub">Epub Oluştur</string>
     <string name="generating_epub">Epub Oluşturuluyor</string>
-    <string name="reload_error">Bağlantıyı tekrar dene...</string>
+    <string name="reload_error">Bağlantıyı yeniden dene…</string>
     <string name="download_text">İndir</string>
     <string name="download">İndir</string>
-    <string name="novel_imagecover_descript">Roman Kapak Resmi</string>
-    <string name="background_image_descript">Arka Plan Resmi</string>
+    <string name="novel_imagecover_descript">Roman Kapak Görseli</string>
+    <string name="background_image_descript">Arka Plan Görseli</string>
     <string name="back_to_search">Aramaya geri dön</string>
     <string name="downloads_text">İndirilenler</string>
     <string name="open_text">Oku</string>
     <string name="update_text">Güncelle</string>
     <string name="provider_list_key">provider_list</string>
     <string name="search_providers_list_key">search_providers_list</string>
-    <string name="auto_update_key">otomatik_güncelle</string>
-    <string name="external_reader_key">harici_okuyucu</string>
-    <string name="remove_external_key">harici_kaldır</string>
-    <string name="manual_check_update_key">manuel_güncelleme_kontrolü</string>
-    <string name="backup_key">yedekleme_anahtarı</string>
-    <string name="rating_format_key">derecelendirme_formatı</string>
-    <string name="grid_format_key">ızgara_formatı</string>
-    <string name="download_format_key">indirme_formatı</string>
-    <string name="exampleTXT">"bu <annotation key="rounded">normal bir</annotation> paragraf."</string>
+    <string name="auto_update_key">auto_update</string>
+    <string name="external_reader_key">external_reader</string>
+    <string name="remove_external_key">remove_external</string>
+    <string name="manual_check_update_key">manual_check_update</string>
+    <string name="backup_key">backup_key</string>
+    <string name="rating_format_key">rating_format</string>
+    <string name="grid_format_key">grid_format</string>
+    <string name="download_format_key">download_format</string>
+    <string name="exampleTXT">"bu <annotation key=\"rounded\">normal bir</annotation> paragraf."</string>
     <string name="tags">Etiketler</string>
     <string name="views">Görüntülemeler</string>
     <string name="delete">Sil</string>
     <string name="open_in_browser">Tarayıcıda Aç</string>
     <string name="select_chapter">Bölüm Seç</string>
-    <string name="poster_descript">Poster</string>
+    <string name="poster_descript">Afiş</string>
     <string name="sort_downloads_descript">İndirilenleri Sırala</string>
 
     <string name="filter_dialog_sort_by">Sırala</string>
     <string name="filter_dialog_filter">Uygula</string>
     <string name="filter_dialog_general">Genel:</string>
-    <string name="filter_dialog_order_by">Sırala:</string>
+    <string name="filter_dialog_order_by">Sıralama ölçütü:</string>
     <string name="filter_dialog_genre">Tür:</string>
     <string name="browse_list_icon">Simge</string>
     <string name="home_title_text">Keşfet</string>
-    <string name="mainpage_filter">Filtrele</string>
+    <string name="mainpage_filter">Filtre</string>
     <string name="shadow_descript">Gölge</string>
     <string name="user_image_avatar">Avatar</string>
-    <string name="change_providers_descript">Sağlayıcıyı Değiştir</string>
+    <string name="change_providers_descript">Sağlayıcı Değiştir</string>
     <string name="poster_open_source_descript">Açık Kaynak</string>
     <string name="mainpage_sort_by_button_text">Sırala</string>
     <string name="read_action_settings">Ayarlar</string>
     <string name="read_action_chapters">Bölümler</string>
-    <string name="read_action_chapters_formatted" formatted="true">%d Bölümler</string>
+    <string name="read_action_chapters_formatted" formatted="true">%d Bölüm</string>
 
-    <string name="read_action_tts">Metin Konuşması</string>
+    <string name="read_action_tts">Metni Seslendirme</string>
     <string name="read_action_screen_rotation">Ekran Döndürme</string>
 
     <string name="grid_view">Izgara</string>
@@ -75,81 +76,81 @@
 
     <!-- rotations -->
     <string name="default_text">Varsayılan</string>
-    <string name="rotation_type">Döndürme Türü</string>
+    <string name="rotation_type">Döndürme türü</string>
     <string name="rotation_free">Serbest</string>
     <string name="rotation_portrait">Dikey</string>
     <string name="rotation_landscape">Yatay</string>
-    <string name="rotation_force_portrait">Kilitle Dikey</string>
-    <string name="rotation_force_landscape">Kilitle Yatay</string>
+    <string name="rotation_force_portrait">Kilitli dikey</string>
+    <string name="rotation_force_landscape">Kilitli yatay</string>
 
     <!-- scroll -->
-    <string name="inf_scroll">Sonsuz Kaydırma</string>
-    <string name="button_scroll">Bölüm Düğmeleri</string>
-    <string name="overscroll_scroll">Aşırı Kaydırma</string>
-
+    <string name="inf_scroll">Sonsuz kaydırma</string>
+    <string name="button_scroll">Bölüm düğmeleri</string>
+    <string name="overscroll_scroll">Aşırı kaydırma</string>
 
     <!-- read -->
     <string name="type_reading">Okunuyor</string>
     <string name="type_on_hold">Beklemede</string>
     <string name="type_completed">Tamamlandı</string>
-    <string name="type_dropped">Bırakıldı</string>
-    <string name="type_plan_to_read">Okuma Planı</string>
+    <string name="type_dropped">Terk Edildi</string>
+    <string name="type_plan_to_read">Okumayı Planla</string>
     <string name="type_none">Hiçbiri</string>
 
     <string name="read_display_settings">Ayarlar</string>
     <string name="read_text_size">Metin</string>
-    <string name="bigger_font">Büyük Yazı Tipi</string>
-    <string name="smaller_font">Küçük Yazı Tipi</string>
+    <string name="bigger_font">Daha Büyük Yazı Tipi</string>
+    <string name="smaller_font">Daha Küçük Yazı Tipi</string>
     <string name="scroll_with_volume_keys">Ses tuşlarıyla kaydır</string>
     <string name="general_settings">Genel</string>
-    <string name="lock_tts">TTS kaydırma alanını kilitle</string>
+    <string name="lock_tts">Metni seslendirme kaydırma alanını kilitle</string>
     <string name="reading_color">Okuma Rengi</string>
     <string name="read_color">Okuyucu Teması</string>
-    <string name="show_battery">Pili Göster</string>
-    <string name="show_time">Saati Göster</string>
+    <string name="show_battery">Pil Göster</string>
+    <string name="show_time">Zaman Göster</string>
     <string name="result_share">Paylaş</string>
     <string name="reader_font">Okuyucu Yazı Tipi</string>
     <string name="font">Yazı Tipi</string>
     <string name="background_color">Arka Plan Rengi</string>
     <string name="text_color">Metin Rengi</string>
-    <string name="long_download_time">Uyarı, Bu kaynağın indirme süresi çok uzun, akış önerilir</string>
-    <string name="quickstream_novel_text">Romanı akış olarak oku</string>
+    <string name="long_download_time">Uyarı, bu kaynak aşırı uzun indirme süresine sahip, akış önerilir</string>
+    <string name="quickstream_novel_text">Romanı akışla oku</string>
     <string name="history_more_options">Daha Fazla Seçenek</string>
-    <string name="stream_read">Akış Oku</string>
+    <string name="stream_read">Akışla Oku</string>
     <string name="clear_history">Geçmişi Temizle</string>
-    <string name="nothing_read_recently">Son zamanlarda hiçbir şey okunmadı</string>
+    <string name="nothing_read_recently">Yakın zamanda okunan bir şey yok</string>
     <string name="monke_eating">Maymun Yiyor</string>
     <string name="tab_downloads">İndirilenler</string>
-    <string name="reviews_to_top">En Üste</string>
+    <string name="reviews_to_top">Başa dön</string>
     <string name="text_size">Metin Boyutu</string>
-    <string name="text_padding">Metin Yan Kenar Boşluğu</string>
+    <string name="text_padding">Metin Yan Boşluğu</string>
     <string name="reset_value">Varsayılana sıfırla</string>
     <string name="text_font">Metin Yazı Tipi</string>
     <string name="scroll_type">Kaydırma Türü</string>
-    <string name="no_chapters_found">Hiç bölüm bulunamadı</string>
-    <string name="error_loading_novel">Roman yüklenirken hata</string>
-    <string name="error_loading_chapter">Bölüm yüklenirken hata</string>
+    <string name="no_chapters_found">Bölüm bulunamadı</string>
+    <string name="error_loading_novel">Roman yüklenirken hata oluştu</string>
+    <string name="error_loading_chapter">Bölüm yüklenirken hata oluştu</string>
 
-    <string name="text_padding_top">Metin Üst Kenar Boşluğu</string>
+    <string name="text_padding_top">Metin Üst Boşluğu</string>
 
     <string name="home_more_info">Daha fazla bilgi</string>
     <string name="home_expanded_hide">Gizle</string>
     <string name="reload_chapter">Bölümü Yeniden Yükle</string>
     <string name="provider_lang_settings">Sağlayıcı Dilleri</string>
+    <string name="locale_settings">Uygulama Dilleri</string>
     <string name="sort_apply">Uygula</string>
     <string name="sort_cancel">İptal</string>
-    <string name="keep_screen_active">Ekranı aktif tut</string>
-    <string name="twelve_hour_time">12 Saat formatı</string>
+    <string name="keep_screen_active">Ekranı açık tut</string>
+    <string name="twelve_hour_time">12 Saatlik zaman</string>
 
-    <string name="backup_settings">Veri yedekleme</string>
+    <string name="backup_settings">Verileri yedekle</string>
     <string name="restore_success">Yedek dosyası yüklendi</string>
-    <string name="restore_failed_format" formatted="true">Veriler dosyasından geri yüklenemedi %s</string>
-    <string name="backup_success">Veriler başarıyla saklandı</string>
+    <string name="restore_failed_format" formatted="true">%s dosyasından veri geri yüklenemedi</string>
+    <string name="backup_success">Veriler başarıyla kaydedildi</string>
     <string name="backup_failed">Depolama izinleri eksik, lütfen tekrar deneyin</string>
-    <string name="backup_failed_error_format">Yedekleme hatası %s</string>
+    <string name="backup_failed_error_format">%s yedeklenirken hata oluştu</string>
     <string name="tts_locale">Dil</string>
     <string name="tts_voice">Ses</string>
-    <string name="tts_voice_title">TTS Sesi</string>
+    <string name="tts_voice_title">Metni Seslendirme Sesi</string>
     <string name="theme_key">theme_key</string>
     <string name="theme">Tema</string>
     <string name="primary_color_key">primary_color_key</string>
@@ -158,50 +159,51 @@
     <string name="rating_format">Derecelendirme Formatı</string>
     <string name="cancel">İptal</string>
     <string name="remove">Kaldır</string>
-    <string name="remove_from_history_format">Bu, %s geçmişinizden kaldıracak.\nEmin misiniz?</string>
-    <string name="permanently_delete_format">Bu, %s kalıcı olarak silecek.\nEmin misiniz?</string>
-    <string name="remove_all_history">Emin misiniz?\nTüm geçmiş silinecek.</string>
+    <string name="remove_from_history_format">%s geçmişinizden kaldırılacak.\nEmin misiniz?</string>
+    <string name="permanently_delete_format">%s kalıcı olarak silinecek.\nEmin misiniz?</string>
+    <string name="remove_all_history">Emin misiniz?\nTüm geçmiş kaybolacak.</string>
     <string name="remove_history">Geçmişi Kaldır</string>
-    <string name="search_providers">Arama Sağlayıcıları</string>
-    <string name="no_more_chapters">Daha fazla bölüm yok</string>
+    <string name="search_providers">Sağlayıcıları Ara</string>
+    <string name="no_more_chapters">Başka bölüm yok</string>
     <string name="paused">Duraklatıldı</string>
     <string name="stopped">Durduruldu</string>
     <string name="failed">Başarısız</string>
     <string name="done">Tamamlandı</string>
     <string name="ongoing">Devam Ediyor</string>
     <string name="completed">Tamamlandı</string>
-    <string name="dropped">Bırakıldı</string>
-    <string name="text_to_speech">Metin Konuşması</string>
-    <string name="text_to_speech_channel_description">TTS bildirim kanalı</string>
+    <string name="dropped">Terk Edildi</string>
+    <string name="stubbed">Yarım Kaldı</string>
+    <string name="text_to_speech">Metni Seslendirme</string>
+    <string name="text_to_speech_channel_description">Metni seslendirme bildirim kanalı</string>
     <string name="overall_rating_format">Genel %s</string>
     <string name="battery_format">%d%%</string>
     <string name="novel">Roman</string>
-    <string name="reviews">İncelemeler</string>
+    <string name="reviews">Yorumlar</string>
     <string name="related">İlgili</string>
     <string name="votes_format">%d Oy</string>
-    <string name="latest_format">Son: %s</string>
+    <string name="latest_format">En son: %s</string>
     <string name="new_update_found_format">Yeni güncelleme bulundu!\n %s -> %s</string>
     <string name="download_started">İndirme başladı</string>
-    <string name="download_failed">İndirme başarısız oldu</string>
+    <string name="download_failed">İndirme başarısız</string>
     <string name="update">Güncelle</string>
     <string name="dont_show_again">Tekrar gösterme</string>
     <string name="downloaded">İndirildi</string>
     <string name="pause">Duraklat</string>
     <string name="resume">Devam Et</string>
     <string name="re_downloaded">Yeniden İndir</string>
-    <string name="loading">Yükleniyor...</string>
-    <string name="loading_format" formatted="true">Yükleniyor %s...</string>
+    <string name="loading">Yükleniyor…</string>
+    <string name="loading_format" formatted="true">%s Yükleniyor…</string>
     <string name="chapter_format" formatted="true">Bölüm %s</string>
 
     <string name="default_sort">Varsayılan</string>
-    <string name="recently_sort">Son açılanlar</string>
+    <string name="recently_sort">Yakın zamanda açılan</string>
     <string name="alpha_sort_az">Alfabetik (A-Z)</string>
     <string name="alpha_sort_za">Alfabetik (Z-A)</string>
     <string name="download_sort_hl">"İndirme sayısı (yüksekten düşüğe)"</string>
     <string name="download_sort_lh">"İndirme sayısı (düşükten yükseğe)"</string>
     <string name="download_perc_hl">İndirme yüzdesi (yüksekten düşüğe)</string>
     <string name="download_perc_lh">İndirme yüzdesi (düşükten yükseğe)</string>
-    <string name="reload_chapter_format">Bölüm %s yenileniyor</string>
+    <string name="reload_chapter_format">Bölüm %s yeniden yükleniyor</string>
     <string name="ok">Tamam</string>
     <string name="more_info">Daha Fazla Bilgi</string>
     <string name="download_path_key">download_path_key</string>
