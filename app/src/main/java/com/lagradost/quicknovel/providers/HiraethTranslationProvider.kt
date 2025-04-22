@@ -4,9 +4,6 @@ import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 
-import android.util.Log
-
-
 open class HiraethTranslationProvider : MainAPI() {
     override val name = "HiraethTranslation"
     override val mainUrl = "https://hiraethtranslation.com"
@@ -14,13 +11,23 @@ open class HiraethTranslationProvider : MainAPI() {
     override val iconId = R.drawable.icon_hiraethtranslation
     override val iconBackgroundId = R.color.hiraethtranslation_header_color
 
+    override val orderBys = listOf(
+        "Latest Release" to "latest",
+        "Relevance" to "",
+        "A-Z" to "alphabet",
+        "Rating" to "rating",
+        "Trending" to "trending",
+        "Most Views" to "views",
+        "New" to "new-manga",
+    )
+
     override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
         tag: String?
     ): HeadMainPageResponse {
-        val url = "$mainUrl/page/$page/?s&post_type=wp-manga&m_orderby=latest"
+        val url = "$mainUrl/page/$page/?s&post_type=wp-manga&m_orderby=$orderBy"
         val document = app.get(url).document
         val headers = document.select("div.c-tabs-item > div.row.c-tabs-item__content")
         val returnValue =
@@ -106,7 +113,6 @@ open class HiraethTranslationProvider : MainAPI() {
                     ?.splitToSequence(", ")
                     ?.toList()
             posterUrl = fixUrlNull(document.select("div.summary_image > a > img.img-responsive").attr("src"))
-            Log.d("myTag2", document.select("div.summary_image > a > img.img-responsive").attr("src") ?: "no data");
 
             synopsis = document.selectFirst("div.summary__content")?.text()
             val votes = document.select("div.summary-content.vote-details")
