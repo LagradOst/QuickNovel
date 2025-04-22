@@ -17,4 +17,8 @@ data class ResultCached(
     val synopsis : String? = null
 ) {
     val image : UiImage? get() = img(poster)
+
+    override fun hashCode(): Int {
+        return id
+    }
 }

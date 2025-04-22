@@ -1,8 +1,10 @@
 package com.lagradost.quicknovel.ui.download
 
+import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AbsListView.CHOICE_MODE_SINGLE
@@ -12,10 +14,14 @@ import androidx.annotation.StringRes
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayoutMediator
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.databinding.FragmentDownloadsBinding
 import com.lagradost.quicknovel.mvvm.observe
@@ -24,6 +30,7 @@ import com.lagradost.quicknovel.ui.img
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
+import com.lagradost.quicknovel.util.toPx
 
 class DownloadFragment : Fragment() {
     private val viewModel: DownloadViewModel by viewModels()
@@ -54,25 +61,28 @@ class DownloadFragment : Fragment() {
     )
 
     data class DownloadDataLoaded(
-        var source: String,
-        var name: String,
-        var author: String?,
-        var posterUrl: String?,
+        val source: String,
+        val name: String,
+        val author: String?,
+        val posterUrl: String?,
         //RATING IS FROM 0-100
-        var rating: Int?,
-        var peopleVoted: Int?,
-        var views: Int?,
-        var synopsis: String?,
-        var tags: List<String>?,
-        var apiName: String,
-        var downloadedCount: Int,
-        var downloadedTotal: Int,
-        var ETA: String,
-        var state: DownloadState,
+        val rating: Int?,
+        val peopleVoted: Int?,
+        val views: Int?,
+        val synopsis: String?,
+        val tags: List<String>?,
+        val apiName: String,
+        val downloadedCount: Int,
+        val downloadedTotal: Int,
+        val ETA: String,
+        val state: DownloadState,
         val id: Int,
-        var generating : Boolean,
+        val generating: Boolean,
     ) {
         val image get() = img(posterUrl)
+        override fun hashCode(): Int {
+            return id
+        }
     }
 
     data class SortingMethod(@StringRes val name: Int, val id: Int)
@@ -106,7 +116,7 @@ class DownloadFragment : Fragment() {
     }
 
     private fun setupGridView() {
-        val compactView = requireContext().getDownloadIsCompact()
+        /*val compactView = requireContext().getDownloadIsCompact()
         val spanCountLandscape = if (compactView) 2 else 6
         val spanCountPortrait = if (compactView) 1 else 3
         val orientation = resources.configuration.orientation
@@ -117,7 +127,7 @@ class DownloadFragment : Fragment() {
         } else {
             binding.downloadCardSpace.spanCount = spanCountPortrait
             binding.bookmarkCardSpace.spanCount = spanCountPortrait
-        }
+        }*/
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -125,21 +135,27 @@ class DownloadFragment : Fragment() {
         setupGridView()
     }
 
+    // https://stackoverflow.com/a/67441735/13746422
+    fun ViewPager2.reduceDragSensitivity(f: Int = 4) {
+        val recyclerViewField = ViewPager2::class.java.getDeclaredField("mRecyclerView")
+        recyclerViewField.isAccessible = true
+        val recyclerView = recyclerViewField.get(this) as RecyclerView
+
+        val touchSlopField = RecyclerView::class.java.getDeclaredField("mTouchSlop")
+        touchSlopField.isAccessible = true
+        val touchSlop = touchSlopField.get(recyclerView) as Int
+        touchSlopField.set(recyclerView, touchSlop * f)       // "8" was obtained experimentally
+    }
+
     var isOnDownloads = true
-    var currentReadType: ReadType? = null
 
-
+    @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        viewModel.loadAllData()
         activity?.fixPaddingStatusbar(binding.downloadToolbar)
 
         //viewModel = ViewModelProviders.of(activity!!).get(DownloadViewModel::class.java)
-
-        observe(viewModel.isOnDownloads) { onDownloads ->
-            isOnDownloads = onDownloads
-            binding.bookmarkCardSpace.isVisible = !onDownloads
-            binding.swipeContainer.isVisible = onDownloads
-        }
 
         observe(viewModel.currentTab) { tab ->
             if (binding.bookmarkTabs.selectedTabPosition != tab) {
@@ -148,22 +164,38 @@ class DownloadFragment : Fragment() {
         }
 
 
+        val adapter = ViewpagerAdapter(viewModel, this) { isScrollingDown ->
+
+        }
+
+        observe(viewModel.pages) { pages ->
+            adapter.submitList(pages)
+        }
+
+        binding.viewpager.adapter = adapter
+        //binding.viewpager.reduceDragSensitivity()
+
         binding.bookmarkTabs.apply {
-            addTab(newTab().setText(getString(R.string.tab_downloads)))
+            val tabs = mutableListOf(R.string.tab_downloads)
             for (read in viewModel.readList) {
-                addTab(newTab().setText(getString(read.stringRes)))
+                tabs.add(read.stringRes)
             }
+            TabLayoutMediator(this, binding.viewpager) { tab, position ->
+                tab.setId(tabs[position]).setText(tabs[position])
+            }.attach()
+
             addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
                 override fun onTabSelected(tab: TabLayout.Tab?) {
-                    val pos = tab?.position
-                    if (pos != null) {
-                        viewModel.selectTab(pos)
-                    }
+                    isOnDownloads = (tab ?: return).id == R.string.tab_downloads
+                    binding.swipeContainer.isEnabled = isOnDownloads
                 }
 
-                override fun onTabUnselected(tab: TabLayout.Tab?) {}
+                override fun onTabUnselected(tab: TabLayout.Tab?) {
+                }
 
-                override fun onTabReselected(tab: TabLayout.Tab?) {}
+                override fun onTabReselected(tab: TabLayout.Tab?) {
+                }
+
             })
         }
 
@@ -180,17 +212,20 @@ class DownloadFragment : Fragment() {
                     res.choiceMode = CHOICE_MODE_SINGLE
 
                     if (isOnDownloads) {
-                        arrayAdapter.addAll(ArrayList(sortingMethods.map { t -> getString(t.name)  }))
+                        arrayAdapter.addAll(ArrayList(sortingMethods.map { t -> getString(t.name) }))
                         res.adapter = arrayAdapter
 
+                        val current =
+                            getKey<Int>(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD) ?: DEFAULT_SORT
+
                         res.setItemChecked(
-                            sortingMethods.indexOfFirst { t -> t.id == viewModel.currentSortingMethod.value },
+                            sortingMethods.indexOfFirst { t -> t.id == current },
                             true
                         )
                         res.setOnItemClickListener { _, _, position, _ ->
                             val sel = sortingMethods[position].id
                             setKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, sel)
-                            viewModel.sortData(sel)
+                            viewModel.loadAllData()
 
                             bottomSheetDialog.dismiss()
                         }
@@ -198,15 +233,17 @@ class DownloadFragment : Fragment() {
                         arrayAdapter.addAll(ArrayList(normalSortingMethods.map { t -> getString(t.name) }))
                         res.adapter = arrayAdapter
 
+                        val current = getKey<Int>(DOWNLOAD_SETTINGS, DOWNLOAD_NORMAL_SORTING_METHOD)
+                            ?: DEFAULT_SORT
                         res.setItemChecked(
-                            normalSortingMethods.indexOfFirst { t -> t.id == viewModel.currentNormalSortingMethod.value },
+                            normalSortingMethods.indexOfFirst { t -> t.id == current },
                             true
                         )
                         res.setOnItemClickListener { _, _, position, _ ->
                             val sel = normalSortingMethods[position].id
 
                             setKey(DOWNLOAD_SETTINGS, DOWNLOAD_NORMAL_SORTING_METHOD, sel)
-                            viewModel.sortNormalData(sel)
+                            viewModel.loadAllData()
 
                             bottomSheetDialog.dismiss()
                         }
@@ -251,9 +288,16 @@ class DownloadFragment : Fragment() {
             }
         }
 
+        binding.viewpager.registerOnPageChangeCallback(object  : ViewPager2.OnPageChangeCallback() {
+            override fun onPageScrollStateChanged(state: Int) {
+                super.onPageScrollStateChanged(state)
+                binding.swipeContainer.isEnabled = isOnDownloads && state != ViewPager2.SCROLL_STATE_DRAGGING
+            }
+        })
+
         setupGridView()
 
-        binding.downloadCardSpace.apply {
+        /*binding.downloadCardSpace.apply {
             itemAnimator?.changeDuration = 0
             val downloadAdapter = DownloadAdapter2(viewModel, this)
             downloadAdapter.setHasStableIds(true)
@@ -270,10 +314,6 @@ class DownloadFragment : Fragment() {
             observe(viewModel.normalCards) { cards ->
                 bookmarkAdapter.submitList(cards.map { it.copy() })
             }
-        }
-
-        observe(viewModel.currentReadType) {
-            currentReadType = it
-        }
+        }*/
     }
 }

@@ -34,6 +34,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.util.concurrent.CopyOnWriteArrayList
 
 const val DEFAULT_SORT = 0
 const val ALPHA_SORT = 1
@@ -46,9 +47,7 @@ const val LAST_ACCES_SORT = 7
 const val REVERSE_LAST_ACCES_SORT = 8
 
 class DownloadViewModel : ViewModel() {
-    private val cards: MutableLiveData<ArrayList<DownloadFragment.DownloadDataLoaded>> by lazy {
-        MutableLiveData<ArrayList<DownloadFragment.DownloadDataLoaded>>()
-    }
+
     val readList = arrayListOf(
         ReadType.READING,
         ReadType.ON_HOLD,
@@ -57,21 +56,9 @@ class DownloadViewModel : ViewModel() {
         ReadType.DROPPED,
     )
 
+    val _pages: MutableLiveData<List<Page>> = MutableLiveData(null)
+    val pages: LiveData<List<Page>> = _pages
 
-    val downloadCards: LiveData<ArrayList<DownloadFragment.DownloadDataLoaded>> = cards
-
-    val normalCards: MutableLiveData<ArrayList<ResultCached>> by lazy {
-        MutableLiveData<ArrayList<ResultCached>>()
-    }
-
-    val isOnDownloads: MutableLiveData<Boolean> = MutableLiveData(true)
-    val currentReadType: MutableLiveData<ReadType?> = MutableLiveData(null)
-
-    var currentSortingMethod: MutableLiveData<Int> =
-        MutableLiveData<Int>()
-
-    var currentNormalSortingMethod: MutableLiveData<Int> =
-        MutableLiveData<Int>()
     var currentTab: MutableLiveData<Int> =
         MutableLiveData<Int>()
 
@@ -98,9 +85,9 @@ class DownloadViewModel : ViewModel() {
     fun readEpub(card: DownloadFragment.DownloadDataLoaded) = ioSafe {
         try {
             cardsDataMutex.withLock {
-                cardsData[card.id]?.generating = true
-                postCards()
+                cardsData[card.id] = cardsData[card.id]?.copy(generating = true) ?: return@withLock
             }
+            postCards()
             BookDownloader2.readEpub(
                 card.id,
                 card.downloadedCount,
@@ -112,9 +99,9 @@ class DownloadViewModel : ViewModel() {
         } finally {
             setKey(DOWNLOAD_EPUB_LAST_ACCESS, card.id.toString(), System.currentTimeMillis())
             cardsDataMutex.withLock {
-                cardsData[card.id]?.generating = false
-                postCards()
+                cardsData[card.id] = cardsData[card.id]?.copy(generating = false) ?: return@withLock
             }
+            postCards()
         }
     }
 
@@ -166,7 +153,7 @@ class DownloadViewModel : ViewModel() {
     fun delete(card: ResultCached) {
         removeKey(RESULT_BOOKMARK, card.id.toString())
         removeKey(RESULT_BOOKMARK_STATE, card.id.toString())
-        loadNormalData(currentReadType.value!!)
+        loadAllData()
     }
 
     fun deleteAlert(card: DownloadFragment.DownloadDataLoaded) {
@@ -200,7 +187,6 @@ class DownloadViewModel : ViewModel() {
     ): ArrayList<DownloadFragment.DownloadDataLoaded> {
         val newSortingMethod =
             sortMethod ?: getKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD) ?: DEFAULT_SORT
-        currentSortingMethod.postValue(newSortingMethod)
         setKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, newSortingMethod)
 
         return when (newSortingMethod) {
@@ -255,7 +241,6 @@ class DownloadViewModel : ViewModel() {
     ): ArrayList<ResultCached> {
         val newSortingMethod =
             sortMethod ?: getKey(DOWNLOAD_SETTINGS, DOWNLOAD_NORMAL_SORTING_METHOD) ?: DEFAULT_SORT
-        currentNormalSortingMethod.postValue(newSortingMethod)
         setKey(DOWNLOAD_SETTINGS, DOWNLOAD_NORMAL_SORTING_METHOD, newSortingMethod)
 
         return when (newSortingMethod) {
@@ -284,64 +269,56 @@ class DownloadViewModel : ViewModel() {
         }
     }
 
-    private fun loadData() = viewModelScope.launch {
-        currentReadType.postValue(null)
-        isOnDownloads.postValue(true)
-        cardsDataMutex.withLock {
-            postCards()
-        }
-    }
+    fun loadAllData() = viewModelScope.launch {
 
-    fun selectTab(index: Int) {
-        currentTab.postValue(index)
-        if (index == 0) {
-            loadData()
-        } else {
-            loadNormalData(readList[index - 1])
-        }
-    }
-
-    private fun loadNormalData(state: ReadType) = viewModelScope.launch {
-        currentNormalSortingMethod.postValue(
-            getKey(DOWNLOAD_SETTINGS, DOWNLOAD_NORMAL_SORTING_METHOD, LAST_ACCES_SORT)
-                ?: LAST_ACCES_SORT
+        val mapping: HashMap<Int, ArrayList<ResultCached>> = hashMapOf(
+            ReadType.PLAN_TO_READ.prefValue to arrayListOf(),
+            ReadType.DROPPED.prefValue to arrayListOf(),
+            ReadType.COMPLETED.prefValue to arrayListOf(),
+            ReadType.ON_HOLD.prefValue to arrayListOf(),
+            ReadType.READING.prefValue to arrayListOf(),
         )
 
-        normalCards.postValue(ArrayList())
-        isOnDownloads.postValue(false)
-        currentReadType.postValue(state)
-
-        val cards = withContext(Dispatchers.IO) {
-            val ids = ArrayList<String>()
-
+        withContext(Dispatchers.IO) {
             val keys = getKeys(RESULT_BOOKMARK_STATE)
             for (key in keys ?: emptyList()) {
-                if (getKey<Int>(key) == state.prefValue) {
-                    ids.add(
-                        key.replaceFirst(
-                            RESULT_BOOKMARK_STATE,
-                            RESULT_BOOKMARK
-                        )
-                    ) // I know kinda spaghetti
-                }
+                val type = getKey<Int>(key) ?: continue
+                val id = key.replaceFirst(
+                    RESULT_BOOKMARK_STATE,
+                    RESULT_BOOKMARK
+                )
+                val cached = getKey<ResultCached>(id) ?: continue
+                mapping[type]?.add(cached)
             }
-            ids.mapNotNull { id -> getKey<ResultCached>(id) }
         }
-        normalCards.postValue(sortNormalArray(ArrayList(cards)))
-    }
 
-    private fun postCards(sortMethod: Int? = null) {
-        cards.postValue(sortArray(ArrayList(cardsData.values), sortMethod))
-    }
-
-    fun sortData(sortMethod: Int? = null) = ioSafe {
-        cardsDataMutex.withLock {
-            postCards(sortMethod)
+        val pages = mutableListOf(
+            getDownloadedCards(),
+        )
+        for (read in readList) {
+            pages.add(
+                Page(read.name, sortNormalArray(mapping[read.prefValue]!!)),
+            )
         }
+        _pages.postValue(pages)
     }
 
-    fun sortNormalData(sortMethod: Int? = null) {
-        normalCards.postValue(sortNormalArray(normalCards.value ?: return, sortMethod))
+    suspend fun getDownloadedCards(): Page = Page(
+        ReadType.NONE.name, cardsDataMutex.withLock {
+            sortArray(ArrayList(cardsData.values))
+        }
+    )
+
+    suspend fun postCards() {
+        _pages.value?.let { data ->
+            val list = CopyOnWriteArrayList(data)
+            if (list.isEmpty()) {
+                list.add(getDownloadedCards())
+            } else {
+                list[0] = getDownloadedCards()
+            }
+            _pages.postValue(list)
+        }
     }
 
     init {
@@ -369,41 +346,40 @@ class DownloadViewModel : ViewModel() {
         ioSafe {
             cardsDataMutex.withLock {
                 val (id, state) = data
-                cardsData[id]?.apply {
-                    downloadedCount = state.progress
-                    downloadedTotal = state.total
-                    this.state = state.state
-                    context?.let { ctx ->
-                        this.ETA = state.eta(ctx)
-                    }
-                }
-                postCards()
+                val newState = state.eta(context ?: return@ioSafe)
+                cardsData[id] = cardsData[id]?.copy(
+                    downloadedCount = state.progress,
+                    downloadedTotal = state.total,
+                    state = state.state,
+                    ETA = newState,
+                ) ?: return@ioSafe
             }
+            postCards()
         }
 
     private fun downloadRemoved(id: Int) = ioSafe {
         cardsDataMutex.withLock {
             cardsData -= id
-            postCards()
         }
+        postCards()
     }
 
     private fun progressDataChanged(data: Pair<Int, DownloadFragment.DownloadData>) = ioSafe {
         cardsDataMutex.withLock {
             val (id, value) = data
-            cardsData[id]?.apply {
-                source = value.source
-                name = value.name
-                author = value.author
-                posterUrl = value.posterUrl
-                rating = value.rating
-                peopleVoted = value.peopleVoted
-                views = value.views
-                synopsis = value.synopsis
-                tags = value.tags
+            cardsData[id] = cardsData[id]?.copy(
+                source = value.source,
+                name = value.name,
+                author = value.author,
+                posterUrl = value.posterUrl,
+                rating = value.rating,
+                peopleVoted = value.peopleVoted,
+                views = value.views,
+                synopsis = value.synopsis,
+                tags = value.tags,
                 apiName = value.apiName
-            } ?: run {
-                cardsData[id] = DownloadFragment.DownloadDataLoaded(
+            ) ?: run {
+                DownloadFragment.DownloadDataLoaded(
                     source = value.source,
                     name = value.name,
                     author = value.author,
@@ -422,8 +398,8 @@ class DownloadViewModel : ViewModel() {
                     generating = false,
                 )
             }
-            postCards()
         }
+        postCards()
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -451,8 +427,8 @@ class DownloadViewModel : ViewModel() {
                         generating = false
                     )
                 }
-                postCards()
             }
+            postCards()
         }
     }
 }
