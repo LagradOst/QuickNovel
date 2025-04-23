@@ -97,6 +97,7 @@ class ResultFragment : Fragment() {
             binding.relatedList.spanCount = spanCountPortrait
         }
     }
+
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         setupGridView()
@@ -128,10 +129,11 @@ class ResultFragment : Fragment() {
             )
         }
         val parameter = binding.chapterList.layoutParams
-        parameter.height = displayMetrics.heightPixels - binding.viewsAndRating.height-binding.resultTabs.height - binding.resultScrollPadding.paddingTop
+        parameter.height =
+            displayMetrics.heightPixels - binding.viewsAndRating.height - binding.resultTabs.height - binding.resultScrollPadding.paddingTop
 
         binding.chapterList.layoutParams = parameter
-    //ViewGroup.LayoutParams(binding.chapterList.layoutParams.width,displayMetrics.heightPixels)
+        //ViewGroup.LayoutParams(binding.chapterList.layoutParams.width,displayMetrics.heightPixels)
         /*binding.hiddenView.apply {
             setPadding(
                 paddingLeft,
@@ -203,7 +205,8 @@ class ResultFragment : Fragment() {
                     resultTabs.removeAllTabs()
                     resultTabs.isVisible = false
                     val hasRelated = !res.related.isNullOrEmpty()
-                    val hasChapters = res is StreamResponse && res.data.isNotEmpty() // this was removed because of lag, because of shitty android
+                    val hasChapters =
+                        res is StreamResponse && res.data.isNotEmpty() // this was removed because of lag, because of shitty android
                     if (api.hasReviews || hasRelated || hasChapters) {
                         resultTabs.isVisible = true
                         resultTabs.addTab(resultTabs.newTab().setText(R.string.novel).setId(0))
@@ -217,7 +220,7 @@ class ResultFragment : Fragment() {
                                 resultTabs.newTab().setText(R.string.related).setId(2)
                             )
                             relatedList.apply {
-                                val mainPageAdapter = MainAdapter2(this)
+                                val mainPageAdapter = MainAdapter2(this, this@ResultFragment, 0)
                                 adapter = mainPageAdapter
                                 mainPageAdapter.submitList(res.related)
                             }
@@ -467,7 +470,7 @@ class ResultFragment : Fragment() {
         observe(viewModel.currentTabIndex) { pos ->
             binding.apply {
                 resultNovelHolder.isVisible = 0 == pos
-               // hiddenView.isGone = 0 == pos
+                // hiddenView.isGone = 0 == pos
                 resultReviewsholder.isVisible = 1 == pos
                 reviewsFab.isVisible = 1 == pos
                 resultRelatedholder.isVisible = 2 == pos
@@ -561,7 +564,7 @@ class ResultFragment : Fragment() {
                 println("scrolled: ${binding.scrollHolder.paddingTop}")
 
             }*/
-           if (viewModel.isInReviews()) {
+            if (viewModel.isInReviews()) {
                 binding.reviewsFab.alpha = scrollY / 50.toPx.toFloat()
             }
 

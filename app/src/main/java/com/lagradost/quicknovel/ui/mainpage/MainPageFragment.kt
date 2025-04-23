@@ -11,6 +11,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.isGone
+import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -22,8 +23,6 @@ import com.lagradost.quicknovel.databinding.FilterBottomSheetBinding
 import com.lagradost.quicknovel.databinding.FragmentMainpageBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.observe
-import com.lagradost.quicknovel.util.Apis
-import com.lagradost.quicknovel.util.SettingsHelper.getGridIsCompact
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 
 
@@ -158,7 +157,7 @@ class MainPageFragment : Fragment() {
         setupGridView()
 
         binding.mainpageList.apply {
-            val mainPageAdapter = MainAdapter2(this)
+            val mainPageAdapter = MainAdapter2(this, this@MainPageFragment, 1)
             adapter = mainPageAdapter
             addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
@@ -186,6 +185,10 @@ class MainPageFragment : Fragment() {
                 }
             })
 
+            observe(viewModel.loadingMoreItems) {
+                mainPageAdapter.setLoading(it)
+            }
+
             observe(viewModel.currentCards) { data ->
                 when (data) {
                     is Resource.Success -> {
@@ -194,16 +197,22 @@ class MainPageFragment : Fragment() {
                         binding.mainpageLoadingError.isVisible = false
 
                         mainPageAdapter.submitList(value)
+                        binding.mainpageList.isInvisible = false
+                        //binding.mainpageList.isVisible = true
                         // mainPageAdapter.setLoading(false)
                     }
 
                     is Resource.Loading -> {
+                        mainPageAdapter.submitList(listOf())
+                        binding.mainpageList.isInvisible = true
                         binding.mainpageLoading.isVisible = true
                         binding.mainpageLoadingError.isVisible = false
                         // mainPageAdapter.setLoading(true)
                     }
 
                     is Resource.Failure -> {
+                        mainPageAdapter.submitList(listOf())
+                        binding.mainpageList.isInvisible = false
                         binding.mainpageErrorText.text = data.errorString
                         binding.mainpageLoading.isVisible = false
                         binding.mainpageLoadingError.isVisible = true
@@ -261,7 +270,7 @@ class MainPageFragment : Fragment() {
 
                 filterButton.setOnClickListener {
                     fun getId(spinner: Spinner): Int? {
-                        return if (spinner.visibility == View.VISIBLE) spinner.selectedItemPosition else null
+                        return if (spinner.isVisible) spinner.selectedItemPosition else null
                     }
 
                     val generalId = getId(filterGeneralSpinner)

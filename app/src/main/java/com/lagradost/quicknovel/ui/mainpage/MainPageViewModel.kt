@@ -13,7 +13,7 @@ import com.lagradost.quicknovel.util.Apis
 import kotlinx.coroutines.launch
 
 class MainPageViewModel : ViewModel() {
-    lateinit var repo : MainPageRepository
+    lateinit var repo: MainPageRepository
     val api: APIRepository get() = repo.api
     private var hasInit = false
 
@@ -21,9 +21,8 @@ class MainPageViewModel : ViewModel() {
         MutableLiveData<ArrayList<SearchResponse>>()
     }*/
 
-    private val infCards: MutableLiveData<List<SearchResponse>> by lazy {
-        MutableLiveData<List<SearchResponse>>()
-    }
+    private val infCards: ArrayList<SearchResponse> = arrayListOf()
+    var oldResponse : Resource<List<SearchResponse>>? = null
 
     val currentCards: MutableLiveData<Resource<List<SearchResponse>>> by lazy {
         MutableLiveData<Resource<List<SearchResponse>>>()
@@ -43,6 +42,10 @@ class MainPageViewModel : ViewModel() {
         MutableLiveData<Int>(null)
     }
 
+    val loadingMoreItems: MutableLiveData<Boolean> by lazy {
+        MutableLiveData<Boolean>(false)
+    }
+
     val currentUrl: MutableLiveData<String> by lazy {
         MutableLiveData<String>(null)
     }
@@ -59,13 +62,17 @@ class MainPageViewModel : ViewModel() {
                 i.data = Uri.parse(url)
                 activity?.startActivity(i)
             }
-        } catch (_ : Throwable) {
+        } catch (_: Throwable) {
 
         }
     }
 
     fun search(query: String) {
-       // searchCards.postValue(ArrayList())
+        if(isInSearch.value == false) {
+            oldResponse = currentCards.value
+        }
+
+        // searchCards.postValue(ArrayList())
         currentCards.postValue(Resource.Loading())
         currentPage.postValue(0)
         isInSearch.postValue(true)
@@ -76,15 +83,18 @@ class MainPageViewModel : ViewModel() {
     }
 
     fun switchToMain() {
-        infCards.value?.let {
-            currentCards.postValue(Resource.Success(it))
-        }
+        if (isInSearch.value == false) return
+
+        currentCards.postValue(oldResponse ?: Resource.Success(infCards))
+        oldResponse = null
         isInSearch.postValue(false)
     }
 
-    fun init(apiName : String, mainCategory: Int?,
-             orderBy: Int?,
-             tag: Int?) {
+    fun init(
+        apiName: String, mainCategory: Int?,
+        orderBy: Int?,
+        tag: Int?
+    ) {
         if (hasInit) return
         hasInit = true
         repo = MainPageRepository(Apis.getApiFromName(apiName))
@@ -104,38 +114,40 @@ class MainPageViewModel : ViewModel() {
     ) {
         val cPage = page ?: ((currentPage.value ?: 0) + 1)
         if (cPage == 0) {
-            infCards.postValue(ArrayList())
+            infCards.clear()
             currentCards.postValue(Resource.Loading())
         }
 
         isInSearch.postValue(false)
-
+        if(page != 0) {
+            loadingMoreItems.postValue(true)
+        }
         viewModelScope.launch {
             //val copy = if (cPage == 0) ArrayList() else cards.value
-            val res = repo.loadMainPage(cPage + 1, mainCategory, orderBy, tag)
-            val copy = ArrayList(infCards.value ?: listOf())
-
-            when (res) {
+            when (val res = repo.loadMainPage(cPage + 1, mainCategory, orderBy, tag)) {
                 is Resource.Success -> {
                     val response = res.value
                     currentUrl.postValue(response.url)
-                    val list = response.list
-                    for (i in list) {
-                        copy.add(i)
-                    }
-                    infCards.postValue(copy)
-                    currentCards.postValue(Resource.Success(copy))
+                    infCards.addAll(response.list)
+
+                    currentCards.postValue(Resource.Success(infCards))
                 }
+
                 is Resource.Failure -> {
-                    infCards.postValue(copy)
-                    val result : Resource<List<SearchResponse>> = Resource.Failure(res.isNetworkError, res.errorCode,res.errorResponse,res.errorString)
+                    val result: Resource<List<SearchResponse>> = Resource.Failure(
+                        res.isNetworkError,
+                        res.errorCode,
+                        res.errorResponse,
+                        res.errorString
+                    )
                     currentCards.postValue(result)
-                    // TODO SHOW UI
                 }
+
                 is Resource.Loading -> {
                     //NOTHING
                 }
             }
+            loadingMoreItems.postValue(false)
 
             currentPage.postValue(cPage)
             currentTag.postValue(tag)
