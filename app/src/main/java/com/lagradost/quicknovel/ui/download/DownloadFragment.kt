@@ -318,6 +318,14 @@ class DownloadFragment : Fragment() {
             }
         }
 
+        binding.viewpager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageScrollStateChanged(state: Int) {
+                super.onPageScrollStateChanged(state)
+                binding.swipeContainer.isEnabled =
+                    isOnDownloads && state == ViewPager2.SCROLL_STATE_IDLE
+            }
+        })
+
         setupGridView()
 
         /*binding.downloadCardSpace.apply {
