@@ -839,9 +839,9 @@ object NotificationHelper {
     ) {
         if (context == null) return
         val state = stateProgressState.state
-        var timeformat = ""
+        var timeFormat = ""
         if (state == DownloadState.IsDownloading) { // ETA
-            timeformat = etaToString(stateProgressState.etaMs)
+            timeFormat = etaToString(stateProgressState.etaMs)
         }
 
         if (showNotification) {
@@ -903,7 +903,7 @@ object NotificationHelper {
                 .setContentIntent(pendingIntent)
 
             if (state == DownloadState.IsDownloading && stateProgressState.total > 2) {
-                builder.setSubText("$timeformat remaining")
+                builder.setSubText("$timeFormat remaining")
             }
 
             if (state == DownloadState.IsDownloading || state == DownloadState.IsPaused) {
@@ -1423,25 +1423,32 @@ object BookDownloader2 {
         }
     }
 
-    private fun setSuffixData(load: LoadResponse, api: APIRepository) {
+    private suspend fun setSuffixData(load: LoadResponse, api: APIRepository) {
         val id = generateId(load, api.name)
 
-        setKey(
-            DOWNLOAD_FOLDER, id.toString(), DownloadFragment.DownloadData(
-                load.url,
-                load.name,
-                load.author,
-                load.posterUrl,
-                load.rating,
-                load.peopleVoted,
-                load.views,
-                load.synopsis,
-                load.tags,
-                api.name,
-                System.currentTimeMillis(),
-                System.currentTimeMillis()
-            )
+        val newData = DownloadFragment.DownloadData(
+            load.url,
+            load.name,
+            load.author,
+            load.posterUrl,
+            load.rating,
+            load.peopleVoted,
+            load.views,
+            load.synopsis,
+            load.tags,
+            api.name,
+            System.currentTimeMillis(),
+            System.currentTimeMillis()
         )
+
+        setKey(
+            DOWNLOAD_FOLDER, id.toString(), newData
+        )
+
+        downloadInfoMutex.withLock {
+            downloadData[id] = newData
+            downloadDataChanged.invoke(id to newData)
+        }
     }
 
     private suspend fun setPrefixData(load: LoadResponse, api: APIRepository, total: Int) {
@@ -1501,7 +1508,6 @@ object BookDownloader2 {
     const val LOCAL_EPUB_MIN_SIZE: Long = 1000
 
 
-    @Suppress("BlockingMethodInNonBlockingContext")
     fun download(load: EpubResponse, api: APIRepository) = ioSafe {
         downloadAsync(load, api)
     }
@@ -1833,6 +1839,7 @@ object BookDownloader2 {
                 }
             }
 
+            // finally call it before changeDownload
             if (downloadedTotal > 0) {
                 setSuffixData(load, api)
             }
@@ -1850,7 +1857,7 @@ object BookDownloader2 {
                     )
             }
         } catch (t: Throwable) {
-            // also set it here in case of exeption
+            // also set it here in case of exception
             if (downloadedTotal > 0) {
                 setSuffixData(load, api)
             }

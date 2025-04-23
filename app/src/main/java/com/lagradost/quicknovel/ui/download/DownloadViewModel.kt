@@ -393,7 +393,7 @@ class DownloadViewModel : ViewModel() {
         _pages.postValue(pages)
     }
 
-    suspend fun getDownloadedCards(): Page = cardsDataMutex.withLock {
+    private suspend fun getDownloadedCards(): Page = cardsDataMutex.withLock {
         Page(
             ReadType.NONE.name, unsortedItems = ArrayList(cardsData.values),
             items =
@@ -402,7 +402,7 @@ class DownloadViewModel : ViewModel() {
     }
 
 
-    suspend fun postCards() {
+    private suspend fun postCards() {
         _pages.value?.let { data ->
             val list = CopyOnWriteArrayList(data)
             if (list.isEmpty()) {
