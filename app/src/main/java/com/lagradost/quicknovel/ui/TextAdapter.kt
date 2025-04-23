@@ -165,7 +165,6 @@ const val CONFIG_SIZE = 1 shl 2
 const val CONFIG_FONT_BOLD = 1 shl 3
 const val CONFIG_FONT_ITALIC = 1 shl 4
 const val CONFIG_BG_COLOR = 1 shl 5
-const val CONFIG_SELECTABLE = 1 shl 6
 
 // this uses val to make it explicit copy because of lazy properties
 data class TextConfig(
@@ -214,10 +213,6 @@ data class TextConfig(
         textView.setTextColor(backgroundColor)
     }
 
-    private fun setTextSelectable(textView: TextView) {
-        textView.setTextIsSelectable(isTextSelectable)
-    }
-
     fun setArgs(progressBar: ProgressBar) {
         progressBar.progressTintList = ColorStateList.valueOf(textColor)
         progressBar.indeterminateTintList = ColorStateList.valueOf(textColor)
@@ -229,9 +224,6 @@ data class TextConfig(
         }
         if ((args and CONFIG_BG_COLOR) != 0) {
             setBgTextColor(textView)
-        }
-        if ((args and CONFIG_SELECTABLE) != 0) {
-            setTextSelectable(textView)
         }
         if ((args and CONFIG_FONT) != 0) {
             val bold = (args and CONFIG_FONT_BOLD) != 0
@@ -510,7 +502,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
                 is SingleTextBinding -> {
                     config.setArgs(
                         binding.root,
-                        CONFIG_SIZE or CONFIG_COLOR or CONFIG_FONT or CONFIG_SELECTABLE
+                        CONFIG_SIZE or CONFIG_COLOR or CONFIG_FONT
                     )
                 }
 
@@ -614,21 +606,33 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
                 is SingleTextBinding -> {
                     binding.root.apply {
                         // this is set to fix the nonclick https://stackoverflow.com/questions/8641343/android-clickablespan-not-calling-onclick
-                        movementMethod = LinkMovementMethod.getInstance()
                         text = if (config.bionicReading) {
                             obj.bionicText
                         } else {
                             obj.text
                         }
 
+                        setTextIsSelectable(false) // this is so retarded
+
+                        // https://stackoverflow.com/questions/36801486/androidtextisselectable-true-not-working-for-textview-in-recyclerview
+                        if(config.isTextSelectable) {
+                            post {
+                                setTextIsSelectable(true)
+                                movementMethod = LinkMovementMethod.getInstance()
+                                setOnClickListener {
+                                    viewModel.switchVisibility()
+                                }
+                            }
+                        } else {
+                            movementMethod = LinkMovementMethod.getInstance()
+                            setOnClickListener {
+                                viewModel.switchVisibility()
+                            }
+                        }
                         //val links = obj.text.getSpans<io.noties.markwon.core.spans.LinkSpan>()
                         //if (links.isNotEmpty()) {
                         //   println("URLS: ${links.size} : ${links.map { it.url }}")
                         //}
-
-                        setOnClickListener {
-                            viewModel.switchVisibility()
-                        }
                     }
                 }
 
