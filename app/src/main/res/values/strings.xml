@@ -218,4 +218,7 @@
     <string name="download_path_pref">Download path</string>
     <string name="bionic_reading">Bionic Reading</string>
     <string name="selectable_text">Selectable text</string>
+    <string name="sleep_timer">Sleep</string>
+    <string name="sleep_format">%d min</string>
+    <string name="sleep_format_stop">TTS will stop in %d min</string>
 </resources>

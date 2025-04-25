@@ -964,13 +964,17 @@ class ReadActivityViewModel : ViewModel() {
 
     suspend fun startTTSThread() = coroutineScope {
         try {
+            val ttsStartTime = System.currentTimeMillis()
+            var ttsEndTime = ttsStartTime + ttsTimer
+            val ttsHasTimer = ttsEndTime > ttsStartTime
+
             val dIndex = desiredTTSIndex ?: desiredIndex ?: return@coroutineScope
 
             if (ttsThreadMutex.isLocked) return@coroutineScope
             ttsThreadMutex.withLock {
                 ttsSession.register()
 
-                var innerIndex = 0
+                var ttsInnerIndex = 0 // this inner index is different from what is set
                 var index = dIndex.index
 
                 let {
@@ -988,14 +992,15 @@ class ReadActivityViewModel : ViewModel() {
 
                     val idx = lines.indexOfFirst { it.startChar >= startChar }
                     if (idx != -1)
-                        innerIndex = idx
+                        ttsInnerIndex = idx
                 }
                 while (isActive && currentTTSStatus != TTSHelper.TTSStatus.IsStopped) {
                     val lines =
-                        when (val currentData = chapterMutex.withLock { chapterData[index] } ?: run {
-                            loadIndividualChapter(index)
-                            chapterMutex.withLock { chapterData[index] }
-                        }) {
+                        when (val currentData =
+                            chapterMutex.withLock { chapterData[index] } ?: run {
+                                loadIndividualChapter(index)
+                                chapterMutex.withLock { chapterData[index] }
+                            }) {
                             null -> {
                                 showToast("Got null data")
                                 break
@@ -1030,27 +1035,48 @@ class ReadActivityViewModel : ViewModel() {
 
                     // this is because if you go back one line you will be on the previous chapter with
                     // a negative innerIndex, this makes the wrapping good
-                    if (innerIndex < 0) {
-                        innerIndex += lines.size
+                    if (ttsInnerIndex < 0) {
+                        ttsInnerIndex += lines.size
                     }
 
                     updateIndex(index)
 
                     // speak all lines
-                    while (innerIndex < lines.size && innerIndex >= 0) {
+                    while (ttsInnerIndex < lines.size && ttsInnerIndex >= 0) {
                         ensureActive()
+
+                        // auto stop
+                        val currentTimeRemaining = ttsEndTime - System.currentTimeMillis()
+                        if (ttsHasTimer) {
+                            if (currentTimeRemaining < 0) {
+                                currentTTSStatus = TTSHelper.TTSStatus.IsStopped
+                            } else {
+                                ttsTimeRemaining.postValue(currentTimeRemaining)
+                            }
+                        }
+
                         if (currentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
 
-                        val line = lines[innerIndex]
-                        val nextLine = lines.getOrNull(innerIndex + 1)
+                        val line = lines[ttsInnerIndex]
+                        val nextLine = lines.getOrNull(ttsInnerIndex + 1)
 
                         // set keys
-                        setKey(
+                        /*setKey(
                             EPUB_CURRENT_POSITION_SCROLL_CHAR,
                             book.title(),
                             line.startChar
                         )
-                        setKey(EPUB_CURRENT_POSITION, book.title(), line.index)
+                        setKey(EPUB_CURRENT_POSITION, book.title(), line.index)*/
+                        innerCharToIndex(index, line.startChar)?.let {
+                            changeIndex(
+                                ScrollIndex(
+                                    index,
+                                    it,
+                                    line.startChar
+                                ), alsoTitle = false
+                            )
+                        }
+
 
                         // post visual
                         _ttsLine.postValue(line)
@@ -1069,11 +1095,14 @@ class ReadActivityViewModel : ViewModel() {
                         }
 
                         // wait for pause
-                        var isPauseDuration = 0
+                        var isPauseDuration = 0L
                         while (currentTTSStatus == TTSHelper.TTSStatus.IsPaused) {
                             isPauseDuration++
                             delay(100)
                         }
+
+                        // do not count in tts sleep
+                        ttsEndTime += 100L * isPauseDuration
 
                         // if we pause then we resume on the same line
                         if (isPauseDuration > 0) {
@@ -1083,24 +1112,24 @@ class ReadActivityViewModel : ViewModel() {
                         }
 
                         if (pendingTTSSkip != 0) {
-                            innerIndex += pendingTTSSkip
+                            ttsInnerIndex += pendingTTSSkip
                             pendingTTSSkip = 0
                         } else {
-                            innerIndex += 1
+                            ttsInnerIndex += 1
                         }
                     }
                     if (currentTTSStatus == TTSHelper.TTSStatus.IsStopped) break
 
                     // this may case a bug where you cant seek back if the entire chapter is none
                     // but this is better than restarting the chapter
-                    if (innerIndex > 0 || lines.size == 0) {
+                    if (ttsInnerIndex > 0 || lines.size == 0) {
                         // goto next chapter and set inner to 0
                         index++
-                        innerIndex = 0
+                        ttsInnerIndex = 0
                     } else if (index > 0) {
                         index--
                     } else {
-                        innerIndex = 0
+                        ttsInnerIndex = 0
                     }
                 }
             }
@@ -1120,6 +1149,7 @@ class ReadActivityViewModel : ViewModel() {
             ttsSession.interruptTTS()
             ttsSession.unregister()
             _ttsLine.postValue(null)
+            ttsTimeRemaining.postValue(null)
         }
     }
 
@@ -1151,14 +1181,17 @@ class ReadActivityViewModel : ViewModel() {
         // the lock is so short it does not matter I *hope*
         return runBlocking {
             chapterMutex.withLock { chapterData[index] }?.letInner { live ->
+                // todo binary search, but strip all but TextSpan first
                 live.spans.firstOrNull { it is TextSpan && it.start >= char }?.innerIndex
             }
         }
     }
 
     /** sets the metadata and global vars used as well as keys */
-    private fun changeIndex(scrollIndex: ScrollIndex) {
-        _chapterTile.postValue(chaptersTitlesInternal[scrollIndex.index])
+    private fun changeIndex(scrollIndex: ScrollIndex, alsoTitle: Boolean = true) {
+        if (alsoTitle) {
+            _chapterTile.postValue(chaptersTitlesInternal[scrollIndex.index])
+        }
 
         desiredIndex = scrollIndex
         currentIndex = scrollIndex.index
@@ -1356,4 +1389,12 @@ class ReadActivityViewModel : ViewModel() {
     var screenAwake by PreferenceDelegateLiveView(
         EPUB_KEEP_SCREEN_ACTIVE, true, Boolean::class, screenAwakeLive
     )
+
+    // in milliseconds
+    val ttsTimerLive: MutableLiveData<Long> = MutableLiveData(null)
+    var ttsTimer by PreferenceDelegateLiveView(
+        EPUB_SLEEP_TIMER, 0, Long::class, ttsTimerLive
+    )
+
+    val ttsTimeRemaining: MutableLiveData<Long?> = MutableLiveData(null)
 }

@@ -1,13 +1,11 @@
 package com.lagradost.quicknovel.providers
 
-import com.lagradost.quicknovel.*
-import org.jsoup.Jsoup
-import com.lagradost.quicknovel.MainActivity.Companion.app
+import com.lagradost.quicknovel.R
 
 class GraycityProvider : ReadfromnetProvider() {
     override val name: String = "Graycity"
     override val iconId = R.drawable.icon_efremnet
-    override val mainUrl = " https://graycity.net"
+    override val mainUrl = "https://graycity.net"
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
 }
 

@@ -18,7 +18,6 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import android.view.animation.DecelerateInterpolator
 import android.widget.AbsListView
 import android.widget.ArrayAdapter
 import android.widget.FrameLayout
@@ -66,11 +65,13 @@ import com.lagradost.quicknovel.ui.TextConfig
 import com.lagradost.quicknovel.ui.TextVisualLine
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.SingleSelectionHelper.showBottomDialog
+import com.lagradost.quicknovel.util.SingleSelectionHelper.showDialog
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.util.UIHelper.getStatusBarHeight
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.systemFonts
+import com.lagradost.quicknovel.util.divCeil
 import com.lagradost.quicknovel.util.toPx
 import java.io.File
 import java.lang.Integer.max
@@ -421,7 +422,6 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     private var cachedChapter: List<SpanDisplay> = emptyList()
     private fun scrollToDesired() {
         val desired: ScrollIndex = viewModel.desiredIndex ?: return
-
         val adapterPosition =
             cachedChapter.indexOfFirst { display -> display.index == desired.index && display.innerIndex == desired.innerIndex }
         if (adapterPosition == -1) return
@@ -586,13 +586,17 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     private fun postDesired(view: View) {
-
         val currentDesired = viewModel.desiredIndex
         view.post {
             viewModel.desiredIndex = currentDesired
             scrollToDesired()
             updateTTSLine(viewModel.ttsLine.value)
         }
+    }
+
+    override fun onResume() {
+        scrollToDesired()
+        super.onResume()
     }
 
     /*private fun pendingPost() {
@@ -839,7 +843,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             binding.readActionRotate.apply {
                 setOnClickListener {
                     popupMenu(
-                        items = OrientationType.values().map { it.prefValue to it.stringRes },
+                        items = OrientationType.entries.map { it.prefValue to it.stringRes },
                         selectedItemId = org.prefValue
                     ) {
                         viewModel.orientation = itemId
@@ -895,8 +899,25 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             }
         }
 
+        /*binding.readToolbar.setOnMenuItemClickListener {
+            TimePickerDialog(
+                binding.readToolbar.context,
+                { _, hourOfDay, minute -> println("TIME PICKED: $hourOfDay , $minute") },
+                Calendar.getInstance().get(Calendar.HOUR_OF_DAY),
+                Calendar.getInstance().get(Calendar.MINUTE),
+                true
+            )
+            true
+        }*/
+
         observe(viewModel.ttsStatus) { status ->
             val isTTSRunning = status != TTSHelper.TTSStatus.IsStopped
+
+            /*if (isTTSRunning) {
+                binding.readToolbar.inflateMenu(R.menu.sleep_timer)
+            } else {
+                binding.readToolbar.menu.clear()
+            }*/
 
             binding.readerBottomView.isGone = isTTSRunning
             binding.readerBottomViewTts.isVisible = isTTSRunning
@@ -922,10 +943,18 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         }
 
         observe(viewModel.bottomVisibility) { visibility ->
-            if (visibility)
+            if (visibility) {
                 showSystemUI()
-            else
+                // here we actually do not want to fix the tts bug, as it will cause a bad behavior
+                // when the text is very low
+            }
+            else {
                 hideSystemUI()
+                // otherwise we have a shitty bug with tts locking range
+                binding.root.post {
+                    updateTTSLine(viewModel.ttsLine.value)
+                }
+            }
         }
 
         observe(viewModel.loadingStatus) { loading ->
@@ -1073,6 +1102,17 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             }
         }
 
+        observeNullable(viewModel.ttsTimeRemaining) { time ->
+            if (time == null) {
+                binding.ttsStopTime.isVisible = false
+            } else {
+                binding.ttsStopTime.isVisible = true
+                binding.ttsStopTime.text =
+                    binding.ttsStopTime.context.getString(R.string.sleep_format_stop)
+                        .format(time.divCeil(60_000L))
+            }
+        }
+
         binding.readActionSettings.setOnClickListener {
             val bottomSheetDialog = BottomSheetDialog(this)
 
@@ -1093,7 +1133,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             }
             binding.readReadingType.setOnClickListener {
                 it.popupMenu(
-                    items = ReadingType.values().map { v -> v.prefValue to v.stringRes },
+                    items = ReadingType.entries.map { v -> v.prefValue to v.stringRes },
                     selectedItemId = viewModel.readerType.prefValue
                 ) {
                     val set = ReadingType.fromSpinner(itemId)
@@ -1248,6 +1288,32 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 }
 
                 return@setOnLongClickListener true
+            }
+
+            binding.readSleepTimer.setOnClickListener { view ->
+                if (view == null) return@setOnClickListener
+                val context = view.context
+
+                val items =
+                    mutableListOf(
+                        context.getString(R.string.default_text) to 0L,
+                    )
+
+                for (i in 1L..120L) {
+                    items.add(
+                        context.getString(R.string.sleep_format).format(i.toInt()) to (i * 60000L)
+                    )
+                }
+
+                context.showDialog(
+                    items.map {
+                        it.first
+                    },
+                    items.map { it.second }.indexOf(viewModel.ttsTimer),
+                    context.getString(R.string.sleep_timer), false, {}
+                ) { index ->
+                    viewModel.ttsTimer = items[index].second
+                }
             }
 
             binding.readVoice.setOnClickListener {

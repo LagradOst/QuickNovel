@@ -104,8 +104,7 @@
             <View
                     android:id="@+id/read_top_item"
                     android:layout_width="match_parent"
-                    android:layout_height="0dp">
-            </View>
+                    android:layout_height="0dp" />
 
             <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/real_text"
@@ -117,11 +116,12 @@
                     android:layout_height="match_parent">
 
             </androidx.recyclerview.widget.RecyclerView>
+
             <View
                     android:id="@+id/read_bottom_item"
                     android:layout_width="match_parent"
-                    android:layout_height="0dp">
-            </View>
+                    android:layout_height="0dp" />
+
             <ScrollView
                     android:visibility="gone"
                     android:id="@+id/read_scroll"
@@ -243,6 +243,7 @@
                 android:background="@color/transparent"
 
                 android:layout_height="25dp">
+
             <TextClock
                     tools:text="20:35"
                     android:textStyle="bold"
@@ -255,8 +256,8 @@
                     android:layout_height="match_parent"
                     tools:ignore="SmallSp"
                     android:format12Hour="hh:mm a"
-                    android:format24Hour="HH:mm">
-            </TextClock>
+                    android:format24Hour="HH:mm" />
+
             <TextView
                     android:visibility="gone"
                     tools:text="20:35"
@@ -329,21 +330,35 @@
 
         </androidx.core.widget.ContentLoadingProgressBar>
 
-        <FrameLayout
+
+        <LinearLayout
+                android:background="?attr/primaryGrayBackground"
+                android:orientation="vertical"
                 android:visibility="gone"
-                tools:visibility="gone"
+                tools:visibility="visible"
                 android:id="@+id/reader_bottom_view_holder"
                 android:layout_gravity="bottom"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                tools:ignore="UselessParent">
+
+            <TextView
+                    android:visibility="gone"
+                    android:id="@+id/tts_stop_time"
+                    android:gravity="center"
+                    tools:text="TTS will stop in 5 min"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+            </TextView>
+
             <androidx.constraintlayout.widget.ConstraintLayout
                     android:id="@+id/reader_bottom_view"
                     android:layout_width="match_parent"
                     android:layout_height="?attr/actionBarSize"
                     android:layout_gravity="bottom"
                     tools:visibility="visible"
-                    android:visibility="gone"
-                    android:background="?attr/primaryGrayBackground">
+                    android:visibility="gone">
 
                 <ImageButton
                         android:id="@+id/read_action_rotate"
@@ -406,8 +421,7 @@
                     android:layout_height="?attr/actionBarSize"
                     android:layout_gravity="bottom"
                     android:visibility="gone"
-                    tools:visibility="visible"
-                    android:background="?attr/primaryGrayBackground">
+                    tools:visibility="visible">
 
                 <ImageButton
                         android:id="@+id/tts_action_back"
@@ -463,7 +477,7 @@
                         app:tint="?attr/white" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
-        </FrameLayout>
+        </LinearLayout>
 
 
         <com.google.android.material.appbar.AppBarLayout

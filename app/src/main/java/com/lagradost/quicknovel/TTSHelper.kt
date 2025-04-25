@@ -571,7 +571,7 @@ object TTSHelper {
                 "([ \"“‘'])(Dr|Mr|Mrs)\\. ([A-Z])".toRegex(),
                 "$1$2, $3"
             )
-
+        println("SIZE: ${text.length}")
         debugAssert({ cleanText.length != text.length }) {
             "TTS requires same length"
         }

@@ -54,7 +54,10 @@ import jp.wasabeef.glide.transformations.BlurTransformation
 import java.io.File
 import java.text.CharacterIterator
 import java.text.StringCharacterIterator
+import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
+import kotlin.math.sign
+
 //import androidx.palette.graphics.Palette
 
 
@@ -62,6 +65,14 @@ val Int.toPx: Int get() = (this * Resources.getSystem().displayMetrics.density).
 val Float.toPx: Float get() = (this * Resources.getSystem().displayMetrics.density)
 val Int.toDp: Int get() = (this / Resources.getSystem().displayMetrics.density).toInt()
 val Float.toDp: Float get() = (this / Resources.getSystem().displayMetrics.density)
+
+fun Int.divCeil(other: Int): Int {
+    return this.floorDiv(other) + this.rem(other).sign.absoluteValue
+}
+
+fun Long.divCeil(other: Long): Long {
+    return this.floorDiv(other) + this.rem(other).sign.absoluteValue
+}
 
 object UIHelper {
     fun String?.html(): Spanned {
