@@ -1,8 +1,15 @@
 package com.lagradost.quicknovel.providers
 
-import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.HeadMainPageResponse
+import com.lagradost.quicknovel.LoadResponse
+import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
-import com.lagradost.quicknovel.network.CloudflareKiller
+import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.fixUrlNull
+import com.lagradost.quicknovel.newChapterData
+import com.lagradost.quicknovel.newSearchResponse
+import com.lagradost.quicknovel.newStreamResponse
 import org.jsoup.Jsoup
 import kotlin.math.roundToInt
 

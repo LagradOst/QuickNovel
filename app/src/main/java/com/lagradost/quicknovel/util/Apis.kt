@@ -1,7 +1,6 @@
 package com.lagradost.quicknovel.util
 
 import android.content.Context
-import android.net.Uri
 import android.util.Log
 import androidx.preference.PreferenceManager
 import com.lagradost.quicknovel.APIRepository
@@ -10,10 +9,30 @@ import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.StreamResponse
-import com.lagradost.quicknovel.providers.*
+import com.lagradost.quicknovel.providers.AllNovelProvider
+import com.lagradost.quicknovel.providers.AnnasArchive
+import com.lagradost.quicknovel.providers.BestLightNovelProvider
+import com.lagradost.quicknovel.providers.FreewebnovelProvider
+import com.lagradost.quicknovel.providers.GraycityProvider
+import com.lagradost.quicknovel.providers.HiraethTranslationProvider
+import com.lagradost.quicknovel.providers.IndoWebNovelProvider
+import com.lagradost.quicknovel.providers.KolNovelProvider
+import com.lagradost.quicknovel.providers.LibReadProvider
+import com.lagradost.quicknovel.providers.MeioNovelProvider
+import com.lagradost.quicknovel.providers.MoreNovelProvider
+import com.lagradost.quicknovel.providers.MtlNovelProvider
+import com.lagradost.quicknovel.providers.NovelBinProvider
+import com.lagradost.quicknovel.providers.NovelFullProvider
+import com.lagradost.quicknovel.providers.NovelsOnlineProvider
+import com.lagradost.quicknovel.providers.PawReadProver
+import com.lagradost.quicknovel.providers.ReadNovelFullProvider
+import com.lagradost.quicknovel.providers.ReadfromnetProvider
+import com.lagradost.quicknovel.providers.RedditProvider
+import com.lagradost.quicknovel.providers.RoyalRoadProvider
+import com.lagradost.quicknovel.providers.SakuraNovelProvider
+import com.lagradost.quicknovel.providers.ScribblehubProvider
+import com.lagradost.quicknovel.providers.WtrLabProvider
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
-import java.net.URL
-import androidx.core.net.toUri
 
 class Apis {
     companion object {
