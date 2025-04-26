@@ -7,43 +7,28 @@ Adfree FOSS Android app for downloading novels. It also functions as an Epub rea
 
 **Providers used:** 
 
-- https://freewebnovel.com (Made by Adippe & Sir Aguacata)
-
-- https://allnovel.org (Made by Adippe & Sir Aguacata)
-  
-- https://azynovel.com (Made by Adippe & Sir Aguacata)
-
-- https://readfrom.net (Made by Adippe & Sir Aguacata)
-
-- https://ranobes.net (Made by Adippe)
-
-- https://novelfull.com (Made by Sir Aguacata)
-
-- https://mnovelfree.com (Made by Adippe & Sir Aguacata)
-
-- https://novelfullvip.com (Made by Adippe & Sir Aguacata)
-
-- https://engnovel.com (Made by Adippe & Sir Aguacata)
-
-- https://www.novelpassion.com
-
+- https://allnovel.org
+- https://annas-archive.org
 - https://bestlightnovel.com
-
-- https://wuxiaworld.online
-
-- https://www.royalroad.com
-
-- https://wuxiaworld.site
-
-- https://www.readlightnovel.org
-
-- https://boxnovel.com
-
-- https://comrademao.com
-
-- https://www.lightnovelpub.com
-
+- https://freewebnovel.com
+- https://graycity.net
+- https://hiraethtranslation.com
+- https://indowebnovel.id
+- https://kolnovel.com
+- https://libread.com
+- https://meionovels.com
+- https://risenovel.com
+- https://www.mtlnovels.com
+- https://novelbin.com
+- https://novelfull.com
+- https://novelsonline.org
+- https://pawread.com
+- https://readfrom.net
 - https://readnovelfull.com
+- https://www.royalroad.com
+- https://sakuranovel.id
+- https://www.scribblehub.com
+- https://wtr-lab.com
 
 **Screenshoots:**
 

@@ -146,7 +146,7 @@ class KolNovelProvider : MainAPI() {
         val data: ArrayList<ChapterData> = ArrayList()
         val chapterHeaders = document.select("li[data-id] > a")//.eplister ul
         for (c in chapterHeaders) {
-            val cUrl = c?.attr("href") ?: continue
+            val cUrl = c.attr("href") ?: continue
             val cName = c.select("div.epl-title").text() + ":" + c.select("div.epl-num").text()
             val added = c.select("div.epl-date").text()
             val views = null

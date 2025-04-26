@@ -42,8 +42,7 @@
 
         <receiver
                 android:name="androidx.media.session.MediaButtonReceiver"
-                android:exported="true"
-                >
+                android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
@@ -78,52 +77,92 @@
 
                 <data
                         android:scheme="https"
+                        android:host="allnovel.org"
+                        android:pathPrefix="/" />
+                <data
+                        android:scheme="https"
+                        android:host="annas-archive.org"
+                        android:pathPrefix="/" />
+                <data
+                        android:scheme="https"
                         android:host="bestlightnovel.com"
                         android:pathPrefix="/" />
                 <data
                         android:scheme="https"
-                        android:host="www.novelpassion.com"
-                        android:pathPrefix="/novel" />
+                        android:host="freewebnovel.com"
+                        android:pathPrefix="/" />
+                <data
+                        android:scheme="https"
+                        android:host="graycity.net"
+                        android:pathPrefix="/" />
+                <data
+                        android:scheme="https"
+                        android:host="hiraethtranslation.com"
+                        android:pathPrefix="/" />
+                <data
+                        android:scheme="https"
+                        android:host="indowebnovel.id"
+                        android:pathPrefix="/" />
+                <data
+                        android:scheme="https"
+                        android:host="kolnovel.com"
+                        android:pathPrefix="/" />
+                <data
+                        android:scheme="https"
+                        android:host="libread.com"
+                        android:pathPrefix="/" />
+                <data
+                        android:scheme="https"
+                        android:host="meionovels.com"
+                        android:pathPrefix="/" />
+                <data
+                        android:scheme="https"
+                        android:host="risenovel.com"
+                        android:pathPrefix="/" />
+                <data
+                        android:scheme="https"
+                        android:host="www.mtlnovels.com"
+                        android:pathPrefix="/" />
+                <data
+                        android:scheme="https"
+                        android:host="novelbin.com"
+                        android:pathPrefix="/" />
+                <data
+                        android:scheme="https"
+                        android:host="novelfull.com"
+                        android:pathPrefix="/" />
+                <data
+                        android:scheme="https"
+                        android:host="novelsonline.org"
+                        android:pathPrefix="/" />
+                <data
+                        android:scheme="https"
+                        android:host="pawread.com"
+                        android:pathPrefix="/" />
+                <data
+                        android:scheme="https"
+                        android:host="readfrom.net"
+                        android:pathPrefix="/" />
+                <data
+                        android:scheme="https"
+                        android:host="readnovelfull.com"
+                        android:pathPrefix="/" />
                 <data
                         android:scheme="https"
                         android:host="www.royalroad.com"
                         android:pathPrefix="/fiction" />
                 <data
                         android:scheme="https"
-                        android:host="wuxiaworld.online"
+                        android:host="sakuranovel.id"
                         android:pathPrefix="/" />
-                <data
-                        android:scheme="https"
-                        android:host="wuxiaworld.site"
-                        android:pathPrefix="/" />
-                <data
-                        android:scheme="https"
-                        android:host="www.readlightnovel.org"
-                        android:pathPrefix="/" />
-                <data
-                        android:scheme="https"
-                        android:host="boxnovel.com"
-                        android:pathPrefix="/novel/" />
-                <data
-                        android:scheme="https"
-                        android:host="comrademao.com"
-                        android:pathPrefix="/novel/" />
-                <data
-                        android:scheme="https"
-                        android:host="www.lightnovelpub.com"
-                        android:pathPrefix="/novel/" />
                 <data
                         android:scheme="https"
                         android:host="www.scribblehub.com"
-                        android:pathPrefix="/series/" />
+                        android:pathPrefix="/" />
                 <data
                         android:scheme="https"
-                        android:host="www.readanybook.com"
-                        android:pathPrefix="/ebook/" />
-                <data
-                        android:scheme="https"
-                        android:host="www.wattpad.com"
-                        android:pathPrefix="/story/" />
+                        android:host="wtr-lab.com"
+                        android:pathPrefix="/" />
             </intent-filter>
         </activity>
 

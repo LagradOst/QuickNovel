@@ -9,7 +9,7 @@ import kotlin.math.roundToInt
 // cloudflare
 class NovelsOnlineProvider : MainAPI() {
     override val name = "NovelsOnline"
-    override val mainUrl = "https://novelsonline.net"
+    override val mainUrl = "https://novelsonline.org"
     override val hasMainPage = true
     override val iconId = R.drawable.icon_novelsonline
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
@@ -53,7 +53,7 @@ class NovelsOnlineProvider : MainAPI() {
         "Yaoi" to "yaoi",
         "Yuri" to "yuri",
     )
-    private val interceptor = CloudflareKiller()
+    //private val interceptor = CloudflareKiller()
 
     override suspend fun loadMainPage(
         page: Int,
@@ -64,7 +64,7 @@ class NovelsOnlineProvider : MainAPI() {
         val url =
             if (tag.isNullOrBlank()) "$mainUrl/top-novel/$page" else "$mainUrl/category/$tag/$page"
 
-        val document = app.get(url, interceptor = interceptor).document
+        val document = app.get(url).document
 
         val headers = document.select("div.top-novel-block")
 
@@ -74,7 +74,7 @@ class NovelsOnlineProvider : MainAPI() {
                 name = adata!!.text(),
                 url = adata.attr("href"),
             ) {
-                posterHeaders = interceptor.getCookieHeaders(url).toMap()
+                //posterHeaders = interceptor.getCookieHeaders(url).toMap()
                 posterUrl = h.selectFirst("div.top-novel-content > div.top-novel-cover > a > img")!!
                     .attr("src")
             }
@@ -83,7 +83,7 @@ class NovelsOnlineProvider : MainAPI() {
     }
 
     override suspend fun loadHtml(url: String): String? {
-        val response = app.get(url, interceptor = interceptor)
+        val response = app.get(url)
         val document =
             Jsoup.parse(response.text.replace("Your browser does not support JavaScript!", ""))
         return document.selectFirst("#contentall")!!.html()
@@ -92,7 +92,6 @@ class NovelsOnlineProvider : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val document = app.post(
             "$mainUrl/sResults.php",
-            interceptor = interceptor,
             data = mapOf("q" to query)
         ).document
         return document.select("li").mapNotNull { h ->
@@ -106,7 +105,7 @@ class NovelsOnlineProvider : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url, interceptor = interceptor).document
+        val document = app.get(url).document
         val name = document.selectFirst("h1")!!.text()
 
         val data = document.select("ul.chapter-chs > li > a").map { c ->

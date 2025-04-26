@@ -96,7 +96,7 @@ open class LibReadProvider : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val document = app.post(
-            "$mainUrl/search/",
+            "$mainUrl/search",
             headers = mapOf(
                 "referer" to mainUrl,
                 "x-requested-with" to "XMLHttpRequest",
@@ -107,15 +107,15 @@ open class LibReadProvider : MainAPI() {
             data = mapOf("searchkey" to query)
         ).document
 
-        return document.select("div.li-row").mapNotNull { h ->
-            val h3 = h.selectFirst("h3.tit > a") ?: return@mapNotNull null
+        return document.select("div.li-row > div.li > div.con").mapNotNull { h ->
+            val h3 = h.selectFirst("div.txt > h3.tit > a") ?: return@mapNotNull null
 
             newSearchResponse(
                 name = h3.attr("title") ?: return@mapNotNull null,
                 url = h3.attr("href") ?: return@mapNotNull null
             ) {
                 posterUrl = h.selectFirst("div.pic > a > img")?.attr("src")
-                latestChapter = h.select("div.item")[2].selectFirst("> div > a")?.text()
+                //latestChapter = h.select("div.item")[2].selectFirst("> div > a")?.text()
             }
         }
     }

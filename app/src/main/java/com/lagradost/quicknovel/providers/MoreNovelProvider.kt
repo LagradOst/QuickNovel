@@ -4,7 +4,7 @@ import com.lagradost.quicknovel.*
 
 class MoreNovelProvider : BoxNovelProvider() {
     override val name = "MoreNovel"
-    override val mainUrl = "https://morenovel.net"
+    override val mainUrl = "https://risenovel.com" // domain change
     override val iconId = R.drawable.ic_morenovel
     override val mainCategories = listOf(
         "All" to "",

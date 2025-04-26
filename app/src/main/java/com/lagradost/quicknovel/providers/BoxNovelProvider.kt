@@ -5,9 +5,10 @@ import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 import java.util.*
 
-open class BoxNovelProvider : MainAPI() {
+
+abstract class BoxNovelProvider : MainAPI() {
     override val name = "BoxNovel"
-    override val mainUrl = "https://boxnovel.com"
+    override val mainUrl = "https://boxnovel.com" // boxnovel is no more, replaced by novlove
     override val iconId = R.drawable.big_icon_boxnovel
 
     override val hasMainPage = true
@@ -78,7 +79,7 @@ open class BoxNovelProvider : MainAPI() {
 
         //""div.page-content-listing > div.page-listing-item > div > div > div.page-item-detail"
         val returnValue = document.select("div.page-item-detail").mapNotNull { h ->
-            val imageHeader = h?.selectFirst("div.item-thumb > a")
+            val imageHeader = h.selectFirst("div.item-thumb > a")
             val name = imageHeader?.attr("title")
             if (name?.contains("Comic") != false) return@mapNotNull null// I DON'T WANT MANGA!
             newSearchResponse(
@@ -121,7 +122,7 @@ open class BoxNovelProvider : MainAPI() {
         val document = Jsoup.parse(response.text)
         val headers = document.select("div.c-tabs-item__content")
         return headers.mapNotNull { h ->
-            val head = h?.selectFirst("> div > div.tab-summary")
+            val head = h.selectFirst("> div > div.tab-summary")
             val title = head?.selectFirst("> div.post-title > h3 > a")
             val name = title?.text()
 
@@ -151,7 +152,7 @@ open class BoxNovelProvider : MainAPI() {
         val data: ArrayList<ChapterData> = ArrayList()
         val chapterHeaders = document.select("ul.version-chap li.wp-manga-chapter")
         for (c in chapterHeaders) {
-            val header = c?.selectFirst("> a")
+            val header = c.selectFirst("> a")
             val cUrl = header?.attr("href")
             val cName = header?.text()?.replace("  ", " ")?.replace("\n", "")
                 ?.replace("\t", "") ?: continue
@@ -180,9 +181,8 @@ open class BoxNovelProvider : MainAPI() {
             val authors = document.select("div.author-content > a")
 
             for (a in authors) {
-                val attr = a?.attr("href")
-                if ((attr?.length
-                        ?: continue) > "$mainUrl/manga-author/".length && attr.startsWith("$mainUrl/manga-author/")
+                val attr = a.attr("href")
+                if (attr.length > "$mainUrl/manga-author/".length && attr.startsWith("$mainUrl/manga-author/")
                 ) {
                     author = a.text()
                     break
@@ -215,6 +215,32 @@ open class BoxNovelProvider : MainAPI() {
                 peopleVotedText?.replace("K", if (peopleVotedText.contains(".")) "00" else "000")
                     ?.replace(".", "")
                     ?.toIntOrNull() ?: 0
+        }
+    }
+}
+
+class NovLoveProvider : MainAPI() {
+    override val name = "NovLove"
+    override val mainUrl = "https://novlove.com"
+
+    override suspend fun search(query: String): List<SearchResponse> {
+        val url = "$mainUrl/?s=$query&post_type=wp-manga"
+        val response = app.get(url)
+
+        val document = response.document
+        val headers = document.select(".index-novel>div>a")
+        return headers.mapNotNull { h ->
+            val name = h.attr("title")
+            val href = h.attr("href")
+
+            if (name.contains("Comic")) return@mapNotNull null// I DON'T WANT MANGA!
+
+            newSearchResponse(name = name, url = href) {
+                posterUrl =
+                    fixUrlNull(
+                        h.selectFirst("> img")
+                            ?.let { if (it.hasAttr("data-src")) it.attr("data-src") else it.attr("src") })
+            }
         }
     }
 }

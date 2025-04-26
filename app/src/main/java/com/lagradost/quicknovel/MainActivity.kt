@@ -80,9 +80,6 @@ import kotlin.reflect.KClass
 
 class MainActivity : AppCompatActivity() {
     companion object {
-        private val mapper = JsonMapper.builder().addModule(KotlinModule())
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build()!!
-
         private var _mainActivity: WeakReference<MainActivity>? = null
         private var mainActivity
             get() = _mainActivity?.get()

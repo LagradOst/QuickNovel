@@ -29,7 +29,7 @@ class AnnasArchive : MainAPI() {
             it.groupValues[1]
         }
         val document = Jsoup.parse(text)
-        return document.select("div.mb-4 > div > a").mapNotNull { element ->
+        return document.select("#aarecord-list > div > div > div > a").mapNotNull { element ->
             val href = fixUrlNull(element.attr("href")) ?: return@mapNotNull null
             val name = element.selectFirst("div.relative > h3")?.text() ?: return@mapNotNull null
             newSearchResponse(name = name, url = href) {

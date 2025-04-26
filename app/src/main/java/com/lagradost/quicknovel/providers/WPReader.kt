@@ -13,6 +13,7 @@ import com.lagradost.quicknovel.addPath
 import com.lagradost.quicknovel.clean
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.ifCase
+import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
@@ -106,16 +107,14 @@ abstract class WPReader : MainAPI() {
     override suspend fun loadHtml(url: String): String? {
         val con = app.get(url).document
         val res =
-            con.selectFirst(".mn-novel-chapter-content-body") ?: con.selectFirst(".reader-area")
-        return res?.let { adv ->
-            adv.select("p").filter { it -> !it.hasText() }.forEach { it.remove() }
-            adv.outerHtml()
-        }
+            con.selectFirst("#content") ?: con.selectFirst(".mn-novel-chapter-content-body") ?: con.selectFirst(".reader-area")
+        return res.html()
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val url = mainUrl.toUrlBuilderSafe().add("s" to query)
-        return app.get(url = url.toString()).document
+        val url = "$mainUrl/?s=$query"
+
+        return app.get(url).document
             .select("div.flexbox2-content > a")
             .mapNotNull { element ->
                 newSearchResponse(
@@ -133,12 +132,9 @@ abstract class WPReader : MainAPI() {
         val doc = app.get(url).document
         val data = doc.select("div.flexch-infoz > a")
             .mapNotNull { dat ->
-                ChapterData(
-                    name = dat.attr("title").clean(),
-                    url = dat.attr("href").clean(),
-                    dateOfRelease = dat.selectFirst("span.date")?.text()?.clean() ?: "",
-                    views = 0,
-                )
+                newChapterData(name = dat.attr("title").clean(), url = dat.attr("href").clean()) {
+                    dateOfRelease = dat.selectFirst("span.date")?.text()?.clean() ?: ""
+                }
             }.reversed()
 
         return newStreamResponse(
