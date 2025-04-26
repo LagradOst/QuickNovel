@@ -84,6 +84,7 @@ class Apis {
         }
 
         fun printProviders() {
+            /*
             var str = ""
             for (api in apis) {
                 str += "- ${api.mainUrl}\n"
@@ -100,7 +101,7 @@ class Apis {
             }
             println(str2)
 
-            testProviders()
+            testProviders()*/
         }
 
         fun testProviders() = ioSafe {
