@@ -595,8 +595,13 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     override fun onResume() {
-        scrollToDesired()
+        viewModel.resumedApp()
         super.onResume()
+    }
+
+    override fun onPause() {
+        viewModel.leftApp()
+        super.onPause()
     }
 
     /*private fun pendingPost() {

@@ -354,6 +354,28 @@ data class ChapterUpdate(
 class ReadActivityViewModel : ViewModel() {
     lateinit var book: AbstractBook
     private lateinit var markwon: Markwon
+    private var isInApp : Boolean = true
+    private var leftAppAt : ScrollIndex? = null
+
+    fun leftApp() {
+        isInApp = false
+        leftAppAt = desiredIndex
+    }
+
+    fun resumedApp() {
+        val leftAt = leftAppAt
+        val resumeAt = desiredIndex
+
+        leftAppAt = null
+        isInApp = false
+
+        // if we resume the app and the desired index is different from what we are at currently
+        // then we scroll to it
+        if(leftAt != null && resumeAt != null && leftAt != resumeAt) {
+            scrollToDesired(resumeAt)
+        }
+    }
+
     //private lateinit var reducer: MarkwonReducer
 
     fun canReload(): Boolean {
@@ -1067,15 +1089,22 @@ class ReadActivityViewModel : ViewModel() {
                             line.startChar
                         )
                         setKey(EPUB_CURRENT_POSITION, book.title(), line.index)*/
-                        innerCharToIndex(index, line.startChar)?.let {
-                            changeIndex(
-                                ScrollIndex(
-                                    index,
-                                    it,
-                                    line.startChar
-                                ), alsoTitle = false
-                            )
+
+                        // if we are outside the app, then we post new desired location
+                        // as otherwise the scroll overrides it
+                        // this is done to scroll to latest when we go back to the app
+                        if (!isInApp) {
+                            innerCharToIndex(index, line.startChar)?.let {
+                                changeIndex(
+                                    ScrollIndex(
+                                        index,
+                                        it,
+                                        line.startChar
+                                    ), alsoTitle = false
+                                )
+                            }
                         }
+
 
 
                         // post visual
