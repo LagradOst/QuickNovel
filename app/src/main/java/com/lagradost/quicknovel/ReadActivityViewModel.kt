@@ -15,6 +15,7 @@ import androidx.annotation.WorkerThread
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.text.getSpans
+import androidx.core.text.toSpanned
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -22,7 +23,12 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.request.target.Target
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.google.android.gms.tasks.Tasks
+import com.google.mlkit.nl.translate.TranslateLanguage
+import com.google.mlkit.nl.translate.Translation
+import com.google.mlkit.nl.translate.TranslatorOptions
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeyClass
@@ -52,6 +58,7 @@ import com.lagradost.quicknovel.ui.txt
 import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.runOnMainThread
+import com.lagradost.safefile.closeQuietly
 import io.noties.markwon.AbstractMarkwonPlugin
 import io.noties.markwon.Markwon
 import io.noties.markwon.MarkwonConfiguration
@@ -77,6 +84,9 @@ import org.jsoup.Jsoup
 import java.lang.ref.WeakReference
 import java.net.URLDecoder
 import java.util.Locale
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 
@@ -334,15 +344,22 @@ class RegularBook(val data: Book) : AbstractBook() {
 
 data class LiveChapterData(
     val index: Int,
-    val render: Spanned,
-    val spans: List<SpanDisplay>,
+    /** Translated */
+    val spans: List<TextSpan>,
+    /** Translated */
+    val rendered: Spanned,
+    /** Non-Translated */
+    val originalRendered: Spanned,
+    /** Non-Translated */
+    val originalSpans: List<TextSpan>,
+
     val title: UiText,
     val rawText: String,
     //val ttsLines: List<TTSHelper.TTSLine>
 ) {
     // tts lines are lazy because not everyone uses tts
     val ttsLines by lazy {
-        ttsParseText(render.substring(0, render.length), index)
+        ttsParseText(rendered.substring(0, rendered.length), index)
     }
 }
 
@@ -354,8 +371,9 @@ data class ChapterUpdate(
 class ReadActivityViewModel : ViewModel() {
     lateinit var book: AbstractBook
     private lateinit var markwon: Markwon
-    private var isInApp : Boolean = true
-    private var leftAppAt : ScrollIndex? = null
+    private var isInApp: Boolean = true
+    private var leftAppAt: ScrollIndex? = null
+    private var mlTranslator: com.google.mlkit.nl.translate.Translator? = null
 
     fun leftApp() {
         isInApp = false
@@ -371,7 +389,7 @@ class ReadActivityViewModel : ViewModel() {
 
         // if we resume the app and the desired index is different from what we are at currently
         // then we scroll to it
-        if(leftAt != null && resumeAt != null && leftAt != resumeAt) {
+        if (leftAt != null && resumeAt != null && leftAt != resumeAt) {
             scrollToDesired(resumeAt)
         }
     }
@@ -480,7 +498,10 @@ class ReadActivityViewModel : ViewModel() {
 
     fun reloadChapter(index: Int) = ioSafe {
         hasExpanded.clear() // will unfuck the rest
-        loadIndividualChapter(index, reload = true, notify = false)
+        val notify = chapterMutex.withLock {
+            chapterData[index] is Resource.Failure
+        }
+        loadIndividualChapter(index, reload = true, notify = notify)
         updateReadArea(seekToDesired = false)
     }
 
@@ -490,11 +511,12 @@ class ReadActivityViewModel : ViewModel() {
 
     private suspend fun updateIndexAsync(
         index: Int,
-        notify: Boolean = true
+        notify: Boolean = true,
+        postLoading: Boolean = false,
     ) {
         for (idx in index - chapterPaddingBottom..index + chapterPaddingTop) {
             requested += index
-            loadIndividualChapter(idx, false, notify)
+            loadIndividualChapter(idx, reload = false, notify = notify, postLoading = postLoading)
         }
     }
 
@@ -634,17 +656,17 @@ class ReadActivityViewModel : ViewModel() {
     private suspend fun loadIndividualChapter(
         index: Int,
         reload: Boolean = false,
-        notify: Boolean = true
+        notify: Boolean = true,
+        reTranslate: Boolean = false,
+        postLoading: Boolean = false,
     ) {
         if (index < 0) return
 
         // set loading and return early if already loading or return cache
         chapterMutex.withLock {
             if (loading.contains(index)) return
-            if (!reload) {
-                if (chapterData.contains(index)) {
-                    return
-                }
+            if (!reload && !reTranslate && chapterData.contains(index)) {
+                return
             }
 
             loading += index
@@ -699,56 +721,237 @@ class ReadActivityViewModel : ViewModel() {
         }
 
         // load the data and precalculate everything needed
-        val data = safeApiCall {
-            book.getChapterData(index, reload)
-        }.map { text ->
-            val rawText = preParseHtml(text)
-            // val renderedBuilder = SpannableStringBuilder()
-            // val lengths : IntArray
-            //val nodes : Array<Node>
-            val rendered: Spanned
-            val parsed: Node
-            markwonMutex.withLock {
-                parsed = markwon.parse(rawText)
-                rendered = markwon.render(parsed)
-                val asyncDrawables = rendered.getSpans<AsyncDrawableSpan>()
-                for (async in asyncDrawables) {
-                    async.drawable.result =
-                        book.loadImageBitmap(async.drawable.destination)?.toDrawable(
-                            Resources.getSystem()
-                        )
-                }
-                //render(rawText, markwon)
-                // this was removed because the reducer did not work
-                /*val split = reducer.reduce(parsed)
-                val splitRendered = split.map { node ->
-                    markwon.render(node)
+        try {
+            val data = safeApiCall {
+                book.getChapterData(index, reload)
+            }.map { text ->
+                val rawText = preParseHtml(text)
+                // val renderedBuilder = SpannableStringBuilder()
+                // val lengths : IntArray
+                //val nodes : Array<Node>
+                val parsed: Node
+                var rendered: Spanned
+                val originalRendered: Spanned
+                val originalSpans: List<TextSpan>
+                var spans: List<TextSpan>
+
+                markwonMutex.withLock {
+                    parsed = markwon.parse(rawText)
+                    rendered = markwon.render(parsed)
+
+                    spans = parseTextToSpans(rendered, index)
+                    originalSpans = spans
+                    originalRendered = rendered
+
+                    val asyncDrawables = rendered.getSpans<AsyncDrawableSpan>()
+                    for (async in asyncDrawables) {
+                        async.drawable.result =
+                            book.loadImageBitmap(async.drawable.destination)?.toDrawable(
+                                Resources.getSystem()
+                            )
+                    }
+
+                    // translation may strip stuff, idk how to solve that in a clean way atm
+                    translate(spans) { (progressChapter, progressInnerIndex, progressInnerTotal) ->
+                        val progressText =
+                            "Translating chapter $progressChapter ($progressInnerIndex/$progressInnerTotal)"
+                        if (postLoading) {
+                            _loadingStatus.postValue(Resource.Loading(progressText))
+                        } else {
+                            chapterMutex.withLock {
+                                chapterData[index] =
+                                    Resource.Loading(progressText)
+                                if (notify) notifyChapterUpdate(index)
+                            }
+                        }
+                    }?.let { (mlRender, mlSpans) ->
+                        rendered = mlRender
+                        spans = mlSpans
+                    }
                 }
 
-                lengths = IntArray(splitRendered.size)
-                nodes = split.toTypedArray()
-
-                splitRendered.forEachIndexed { index, spanned ->
-                    renderedBuilder.append(spanned)
-                    lengths[index] = renderedBuilder.length
-                }*/
+                LiveChapterData(
+                    index = index,
+                    rendered = rendered,
+                    spans = spans,
+                    originalRendered = originalRendered,
+                    originalSpans = originalSpans,
+                    rawText = rawText,
+                    title = book.getChapterTitle(index),
+                )
             }
 
-            //val rendered = renderedBuilder.toSpannable()
-            LiveChapterData(
-                index = index,
-                render = rendered,
-                rawText = rawText,
-                spans = parseTextToSpans(rendered, index),
-                title = book.getChapterTitle(index),
-            )
+            // set the data and return
+            chapterMutex.withLock {
+                chapterData[index] = data
+            }
+        } catch (t: ErrorLoadingException) {
+            chapterMutex.withLock {
+                chapterData[index] = Resource.Failure(
+                    false,
+                    null,
+                    null,
+                    t.message ?: t.toString()
+                )
+            }
+        } catch (t: Throwable) {
+            // Tasks.await may throw
+            chapterMutex.withLock {
+                chapterData[index] = Resource.Failure(
+                    false,
+                    null,
+                    null,
+                    t.toString()
+                )
+            }
+        } finally {
+            chapterMutex.withLock {
+                loading -= index
+                if (notify) notifyChapterUpdate(index)
+            }
+        }
+    }
+
+    @Throws
+    private suspend fun translate(
+        text: List<TextSpan>,
+        loading: suspend (Triple<Int, Int, Int>) -> Unit
+    ): Pair<Spanned, ArrayList<TextSpan>>? {
+        val translator = mlTranslator ?: return null
+
+        try {
+            val builder = StringBuilder()
+            val out = ArrayList<TextSpan>()
+            for (span in text) {
+                loading.invoke(Triple(span.index, span.innerIndex, text.size))
+                val newText =
+                    Tasks.await(translator.translate(span.text.toString()))
+                val start = builder.length
+                builder.append(newText)
+                val end = builder.length
+                builder.append('\n')
+                out.add(TextSpan(newText.toSpanned(), start, end, span.index, span.innerIndex))
+            }
+
+            return builder.toSpanned() to out
+        } catch (t: ExecutionException) {
+            throw t.cause ?: t
+        }
+    }
+
+    fun applyMLSettings() = ioSafe {
+        val settings = MLSettings(from = mlFromLanguage, to = mlToLanguage)
+        if (settings.isValid()) {
+            _loadingStatus.postValue(Resource.Loading("Downloading language"))
+        }
+        initMLFromSettings(settings)
+        reloadMLForAllChapters()
+    }
+
+    private suspend fun reloadMLForAllChapters() {
+        _loadingStatus.postValue(Resource.Loading("Downloading language"))
+
+        chapterMutex.withLock {
+            val cIndex = currentIndex
+            val lower = cIndex - chapterPaddingBottom
+            val upper = cIndex + chapterPaddingTop
+
+            val keys =
+                chapterData.keys.toTypedArray() // deep copy it to avoid ConcurrentModificationException
+
+            // remove all irrelevant cache so we do not translate outdated shit
+            for (key in keys) {
+                if (key < lower || key > upper) {
+                    chapterData.remove(key)
+                }
+            }
+
+            // update the rem cache
+            for (entry in chapterData.entries) {
+                val value = entry.value
+                if (value !is Resource.Success) continue
+                val success = value.value
+
+                try {
+                    translate(success.originalSpans) { (progressChapter, progressInnerIndex, progressInnerTotal) ->
+                        _loadingStatus.postValue(Resource.Loading("Translating chapter $progressChapter ($progressInnerIndex/$progressInnerTotal)"))
+                    }?.let { (mlRender, mlSpans) ->
+                        entry.setValue(
+                            Resource.Success(
+                                success.copy(
+                                    rendered = mlRender,
+                                    spans = mlSpans,
+                                )
+                            )
+                        )
+                    } ?: run {
+                        entry.setValue(
+                            Resource.Success(
+                                success.copy(
+                                    rendered = success.originalRendered,
+                                    spans = success.originalSpans,
+                                )
+                            )
+                        )
+                    }
+                } catch (t: ErrorLoadingException) {
+                    entry.setValue(
+                        Resource.Failure(
+                            false,
+                            null,
+                            null,
+                            t.message ?: t.toString()
+                        )
+                    )
+                } catch (t: Throwable) {
+                    entry.setValue(
+                        Resource.Failure(
+                            false,
+                            null,
+                            null,
+                            t.toString()
+                        )
+                    )
+                }
+            }
         }
 
-        // set the data and return
-        chapterMutex.withLock {
-            chapterData[index] = data
-            loading -= index
-            if (notify) notifyChapterUpdate(index)
+        // update what we have read
+        updateReadArea()
+
+        _loadingStatus.postValue(
+            Resource.Success(true)
+        )
+    }
+
+    private suspend fun initMLFromSettings(settings: MLSettings) {
+        try {
+            mlTranslator?.closeQuietly()
+            mlTranslator = null
+
+            if (settings.isInvalid()) {
+                mlSettings = settings
+                return
+            }
+
+            val options = TranslatorOptions.Builder()
+                .setSourceLanguage(settings.from)
+                .setTargetLanguage(settings.to)
+                .build()
+            val translator = Translation.getClient(options)
+            mlTranslator = translator
+
+            Tasks.await(
+                translator.downloadModelIfNeeded(), 60L, TimeUnit.SECONDS
+            )
+
+            mlSettings = settings
+        } catch (_: TimeoutException) {
+            showToast("Unable to download language")
+            mlTranslator?.closeQuietly()
+            mlTranslator = null
+        } catch (t: Throwable) {
+            logError(t)
         }
     }
 
@@ -783,6 +986,11 @@ class ReadActivityViewModel : ViewModel() {
             is Resource.Success -> {
                 init(loadedBook.value, context)
 
+                if (mlSettings.isValid()) {
+                    _loadingStatus.postValue(Resource.Loading("Downloading translation"))
+                }
+                initMLFromSettings(mlSettings)
+
                 // cant assume we know a chapter max as it can expand
                 val loadedChapter =
                     maxOf(getKey(EPUB_CURRENT_POSITION, book.title()) ?: 0, 0)
@@ -794,7 +1002,7 @@ class ReadActivityViewModel : ViewModel() {
                 }
 
                 currentIndex = loadedChapter
-                updateIndexAsync(loadedChapter, notify = false)
+                updateIndexAsync(loadedChapter, notify = false, postLoading = true)
 
                 if (book.size() <= 0) {
                     _loadingStatus.postValue(
@@ -1106,7 +1314,6 @@ class ReadActivityViewModel : ViewModel() {
                         }
 
 
-
                         // post visual
                         _ttsLine.postValue(line)
 
@@ -1319,7 +1526,8 @@ class ReadActivityViewModel : ViewModel() {
 
     override fun onCleared() {
         ttsSession.release()
-
+        mlTranslator?.close()
+        mlTranslator = null
         super.onCleared()
     }
 
@@ -1426,4 +1634,133 @@ class ReadActivityViewModel : ViewModel() {
     )
 
     val ttsTimeRemaining: MutableLiveData<Long?> = MutableLiveData(null)
+
+    val mlFromLanguageLive: MutableLiveData<String> = MutableLiveData(null)
+    var mlFromLanguage by PreferenceDelegateLiveView(
+        EPUB_ML_FROM_LANGUAGE,
+        TranslateLanguage.ENGLISH,
+        String::class,
+        mlFromLanguageLive
+    )
+
+    val mlToLanguageLive: MutableLiveData<String> = MutableLiveData(null)
+    var mlToLanguage by PreferenceDelegateLiveView(
+        EPUB_ML_TO_LANGUAGE,
+        TranslateLanguage.ENGLISH,
+        String::class,
+        mlToLanguageLive
+    )
+
+    // Book specific
+    var mlSettings
+        get() = getKey<MLSettings>(EPUB_CURRENT_ML, book.title()) ?: MLSettings("en", "en")
+        set(value) = setKey(EPUB_CURRENT_ML, book.title(), value)
+
+    data class MLSettings(
+        @JsonProperty("from")
+        val from: String,
+        @JsonProperty("to")
+        val to: String,
+    ) {
+        companion object {
+            val map = mapOf(
+                "af" to "Afrikaans",
+                "ar" to "Arabic",
+                "be" to "Belarusian",
+                "bg" to "Bulgarian",
+                "bn" to "Bengali",
+                "ca" to "Catalan",
+                "cs" to "Czech",
+                "cy" to "Welsh",
+                "da" to "Danish",
+                "de" to "German",
+                "el" to "Greek",
+                "en" to "English",
+                "eo" to "Esperanto",
+                "es" to "Spanish",
+                "et" to "Estonian",
+                "fa" to "Persian",
+                "fi" to "Finnish",
+                "fr" to "French",
+                "ga" to "Irish",
+                "gl" to "Galician",
+                "gu" to "Gujarati",
+                "he" to "Hebrew",
+                "hi" to "Hindi",
+                "hr" to "Croatian",
+                "ht" to "Haitian",
+                "hu" to "Hungarian",
+                "id" to "Indonesian",
+                "is" to "Icelandic",
+                "it" to "Italian",
+                "ja" to "Japanese",
+                "ka" to "Georgian",
+                "kn" to "Kannada",
+                "ko" to "Korean",
+                "lt" to "Lithuanian",
+                "lv" to "Latvian",
+                "mk" to "Macedonian",
+                "mr" to "Marathi",
+                "ms" to "Malay",
+                "mt" to "Maltese",
+                "nl" to "Dutch",
+                "no" to "Norwegian",
+                "pl" to "Polish",
+                "pt" to "Portuguese",
+                "ro" to "Romanian",
+                "ru" to "Russian",
+                "sk" to "Slovak",
+                "sl" to "Slovenian",
+                "sq" to "Albanian",
+                "sv" to "Swedish",
+                "sw" to "Swahili",
+                "ta" to "Tamil",
+                "te" to "Telugu",
+                "th" to "Thai",
+                "tl" to "Tagalog",
+                "tr" to "Turkish",
+                "uk" to "Ukrainian",
+                "ur" to "Urdu",
+                "vi" to "Vietnamese",
+                "zh" to "Chinese",
+            )
+
+            val list = map.toList()
+
+            fun fromShortToDisplay(from: String): String {
+                return map[from] ?: "Unknown"
+            }
+        }
+
+        val fromDisplay get() = fromShortToDisplay(from)
+        val toDisplay get() = fromShortToDisplay(to)
+
+        fun isInvalid(): Boolean = !isValid()
+
+        fun isValid(): Boolean {
+            if (from.isBlank() || to.isBlank()) {
+                // nonsense
+                return false
+            }
+
+            val all = TranslateLanguage.getAllLanguages()
+
+            if (!all.contains(to)) {
+                // no translation
+                return false
+            }
+
+            if (!all.contains(from)) {
+                // no support for auto yet, see https://developers.google.com/ml-kit/language/identification/android
+                return false
+            }
+
+            if (from == to) {
+                // identity function
+                return false
+            }
+
+            return true
+        }
+    }
 }

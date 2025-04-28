@@ -706,7 +706,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         super.onDestroy()
     }
 
-    @SuppressLint("ClickableViewAccessibility")
+    @SuppressLint("ClickableViewAccessibility", "SetTextI18n")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         CommonActivity.loadThemes(this)
@@ -952,8 +952,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 showSystemUI()
                 // here we actually do not want to fix the tts bug, as it will cause a bad behavior
                 // when the text is very low
-            }
-            else {
+            } else {
                 hideSystemUI()
                 // otherwise we have a shitty bug with tts locking range
                 binding.root.post {
@@ -1251,6 +1250,62 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                         viewModel.textFont = ""
                     }
                 }
+            }
+
+            binding.readMlTo.setOnClickListener { view ->
+                if (view == null) return@setOnClickListener
+                val context = view.context
+
+                val items = ReadActivityViewModel.MLSettings.list
+
+                context.showDialog(
+                    items.map {
+                        it.second
+                    },
+                    items.map { it.first }.indexOf(viewModel.mlToLanguage),
+                    context.getString(R.string.sleep_timer), false, {}
+                ) { index ->
+                    viewModel.mlToLanguage = items[index].first
+                    binding.readMlTo.text =
+                        ReadActivityViewModel.MLSettings.fromShortToDisplay(viewModel.mlToLanguage)
+                }
+            }
+
+            binding.readMlFrom.setOnClickListener { view ->
+                if (view == null) return@setOnClickListener
+                val context = view.context
+
+                val items = ReadActivityViewModel.MLSettings.list
+
+                context.showDialog(
+                    items.map {
+                        it.second
+                    },
+                    items.map { it.first }.indexOf(viewModel.mlFromLanguage),
+                    context.getString(R.string.sleep_timer), false, {}
+                ) { index ->
+                    viewModel.mlFromLanguage = items[index].first
+                    binding.readMlFrom.text =
+                        ReadActivityViewModel.MLSettings.fromShortToDisplay(viewModel.mlFromLanguage)
+                }
+            }
+
+            binding.readApplyTranslation.setOnClickListener { _ ->
+                viewModel.applyMLSettings()
+                bottomSheetDialog.dismiss()
+            }
+
+            binding.readMlTo.text =
+                ReadActivityViewModel.MLSettings.fromShortToDisplay(viewModel.mlToLanguage)
+            binding.readMlFrom.text =
+                ReadActivityViewModel.MLSettings.fromShortToDisplay(viewModel.mlFromLanguage)
+
+            val mlSettings = viewModel.mlSettings
+
+            if (mlSettings.isInvalid()) {
+                binding.readMlTitle.setText(R.string.google_translate)
+            } else {
+                binding.readMlTitle.text = "${binding.readMlTitle.context.getString(R.string.google_translate)} (${mlSettings.fromDisplay} -> ${mlSettings.toDisplay})"
             }
 
             binding.readLanguage.setOnClickListener { _ ->

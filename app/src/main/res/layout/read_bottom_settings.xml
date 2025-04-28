@@ -165,6 +165,51 @@
 
 
             <TextView
+                    android:layout_marginTop="15dp"
+                    android:id="@+id/read_ml_title"
+                    android:text="@string/google_translate"
+                    android:textSize="16sp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+            <LinearLayout
+                    android:layout_marginTop="15dp"
+
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                <com.google.android.material.button.MaterialButton
+                        android:layout_marginStart="0dp"
+                        android:layout_weight="1"
+                        android:id="@+id/read_ml_from"
+                        app:icon="@drawable/ic_baseline_menu_book_24"
+                        android:text="@string/tts_locale"
+                        tools:text="English"
+                        style="@style/BlackButton"
+                        android:layout_width="wrap_content" />
+
+                <com.google.android.material.button.MaterialButton
+                        android:layout_weight="1"
+                        android:id="@+id/read_ml_to"
+                        app:icon="@drawable/fiber_new_24px"
+                        android:text=""
+                        tools:text="English"
+                        style="@style/BlackButton"
+                        android:layout_width="wrap_content" />
+
+                <com.google.android.material.button.MaterialButton
+                        android:layout_marginEnd="0dp"
+                        app:icon="@drawable/translate_24px"
+                        android:id="@+id/read_apply_translation"
+                        android:text="@string/sort_apply"
+                        style="@style/WhiteButton"
+                        android:layout_weight="1"
+                        android:layout_width="wrap_content" />
+            </LinearLayout>
+
+
+            <TextView
                     android:id="@+id/read_settings_text_size_text"
                     android:layout_marginTop="15dp"
                     android:text="@string/text_size"

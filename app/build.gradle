@@ -106,4 +106,6 @@ dependencies {
     implementation "io.noties.markwon:html:4.6.2"
 
     implementation "com.facebook.shimmer:shimmer:0.5.0"
+
+    implementation "com.google.mlkit:translate:17.0.3"
 }

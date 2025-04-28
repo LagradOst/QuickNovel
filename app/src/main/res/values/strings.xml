@@ -221,4 +221,5 @@
     <string name="sleep_timer">Sleep</string>
     <string name="sleep_format">%d min</string>
     <string name="sleep_format_stop">TTS will stop in %d min</string>
+    <string name="google_translate">Google translate</string>
 </resources>
