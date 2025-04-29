@@ -1290,9 +1290,33 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 }
             }
 
-            binding.readApplyTranslation.setOnClickListener { _ ->
-                viewModel.applyMLSettings()
-                bottomSheetDialog.dismiss()
+            binding.readApplyTranslation.setOnClickListener { view ->
+                if (view == null) return@setOnClickListener
+                ioSafe {
+                    try {
+                        if (!viewModel.requireMLDownload()) {
+                            viewModel.applyMLSettings(true)
+                            runOnUiThread { bottomSheetDialog.dismiss() }
+
+                            return@ioSafe
+                        }
+                        runOnUiThread {
+                            val builder: AlertDialog.Builder =
+                                AlertDialog.Builder(view.context, R.style.AlertDialogCustom)
+                            builder.setTitle(R.string.download_ml)
+                            builder.setMessage(R.string.download_ml_long)
+                            builder.setPositiveButton(R.string.download) { _, _ ->
+                                viewModel.applyMLSettings(true)
+                                bottomSheetDialog.dismiss()
+                            }
+                            builder.setCancelable(true)
+                            builder.setNegativeButton(R.string.cancel) { _, _ -> }
+                            builder.show()
+                        }
+                    } catch (t: Throwable) {
+                        showToast(t.message ?: t.toString())
+                    }
+                }
             }
 
             binding.readMlTo.text =
@@ -1305,7 +1329,8 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             if (mlSettings.isInvalid()) {
                 binding.readMlTitle.setText(R.string.google_translate)
             } else {
-                binding.readMlTitle.text = "${binding.readMlTitle.context.getString(R.string.google_translate)} (${mlSettings.fromDisplay} -> ${mlSettings.toDisplay})"
+                binding.readMlTitle.text =
+                    "${binding.readMlTitle.context.getString(R.string.google_translate)} (${mlSettings.fromDisplay} -> ${mlSettings.toDisplay})"
             }
 
             binding.readLanguage.setOnClickListener { _ ->

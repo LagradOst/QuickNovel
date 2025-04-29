@@ -27,7 +27,9 @@ import com.bumptech.glide.request.target.Target
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.google.android.gms.tasks.Tasks
+import com.google.mlkit.common.model.RemoteModelManager
 import com.google.mlkit.nl.translate.TranslateLanguage
+import com.google.mlkit.nl.translate.TranslateRemoteModel
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.TranslatorOptions
 import com.lagradost.quicknovel.BaseApplication.Companion.context
@@ -49,6 +51,7 @@ import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.map
 import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.mvvm.safeApiCall
+import com.lagradost.quicknovel.mvvm.safeAsync
 import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.ui.OrientationType
 import com.lagradost.quicknovel.ui.ReadingType
@@ -900,18 +903,41 @@ class ReadActivityViewModel : ViewModel() {
         }
     }
 
-    fun applyMLSettings() = ioSafe {
+    @Throws
+    suspend fun requireMLDownload(): Boolean {
         val settings = MLSettings(from = mlFromLanguage, to = mlToLanguage)
-        if (settings.isValid()) {
+        if (settings.isInvalid()) {
+            return false
+        }
+        val modelManager = RemoteModelManager.getInstance()
+
+        for (model in arrayOf(settings.from, settings.to)) {
+            if (model == "en") continue
+
+            if (!Tasks.await(
+                    modelManager.isModelDownloaded(
+                        TranslateRemoteModel.Builder(model).build()
+                    )
+                )
+            ) {
+                return true
+            }
+        }
+
+        return false
+    }
+
+    fun applyMLSettings(allowDownload: Boolean) = ioSafe {
+        val settings = MLSettings(from = mlFromLanguage, to = mlToLanguage)
+        if (settings.isValid() && allowDownload && safeAsync { requireMLDownload() } == true) {
             _loadingStatus.postValue(Resource.Loading("Downloading language"))
         }
-        initMLFromSettings(settings)
+        initMLFromSettings(settings, allowDownload)
         reloadMLForAllChapters()
     }
 
     private suspend fun reloadMLForAllChapters() {
-        _loadingStatus.postValue(Resource.Loading("Downloading language"))
-
+        _loadingStatus.postValue(Resource.Loading("Translating..."))
         chapterMutex.withLock {
             val cIndex = currentIndex
             val lower = cIndex - chapterPaddingBottom
@@ -979,7 +1005,7 @@ class ReadActivityViewModel : ViewModel() {
         )
     }
 
-    private suspend fun initMLFromSettings(settings: MLSettings) {
+    private suspend fun initMLFromSettings(settings: MLSettings, allowDownload: Boolean) {
         try {
             mlTranslator?.closeQuietly()
             mlTranslator = null
@@ -997,9 +1023,11 @@ class ReadActivityViewModel : ViewModel() {
             val translator = Translation.getClient(options)
             mlTranslator = translator
 
-            Tasks.await(
-                translator.downloadModelIfNeeded(), 60L, TimeUnit.SECONDS
-            )
+            if (allowDownload) {
+                Tasks.await(
+                    translator.downloadModelIfNeeded(), 60L, TimeUnit.SECONDS
+                )
+            }
 
             mlSettings = settings
         } catch (_: TimeoutException) {
@@ -1042,10 +1070,7 @@ class ReadActivityViewModel : ViewModel() {
             is Resource.Success -> {
                 init(loadedBook.value, context)
 
-                if (mlSettings.isValid()) {
-                    _loadingStatus.postValue(Resource.Loading("Downloading translation"))
-                }
-                initMLFromSettings(mlSettings)
+                initMLFromSettings(mlSettings, false)
 
                 // cant assume we know a chapter max as it can expand
                 val loadedChapter =

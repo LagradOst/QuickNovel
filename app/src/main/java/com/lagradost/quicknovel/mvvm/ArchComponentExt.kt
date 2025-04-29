@@ -107,6 +107,15 @@ fun <T> safe(apiCall: () -> T): T? {
     }
 }
 
+suspend fun <T> safeAsync(apiCall: suspend () -> T): T? {
+    return try {
+        apiCall.invoke()
+    } catch (throwable: Throwable) {
+        logError(throwable)
+        return null
+    }
+}
+
 suspend fun <T> suspendSafeApiCall(apiCall: suspend () -> T): T? {
     return try {
         apiCall.invoke()
