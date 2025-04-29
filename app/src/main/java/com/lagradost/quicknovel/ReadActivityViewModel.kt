@@ -10,6 +10,7 @@ import android.graphics.drawable.Drawable
 import android.media.MediaPlayer
 import android.speech.tts.Voice
 import android.text.Spanned
+import android.util.Log
 import android.widget.Toast
 import androidx.annotation.WorkerThread
 import androidx.core.content.ContextCompat
@@ -36,6 +37,7 @@ import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKeyClass
 import com.lagradost.quicknovel.BookDownloader2Helper.getQuickChapter
+import com.lagradost.quicknovel.CommonActivity.TAG
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.TTSHelper.parseTextToSpans
@@ -45,6 +47,7 @@ import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.letInner
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.map
+import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.mvvm.safeApiCall
 import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.ui.OrientationType
@@ -81,8 +84,10 @@ import nl.siegmann.epublib.domain.TOCReference
 import nl.siegmann.epublib.epub.EpubReader
 import org.commonmark.node.Node
 import org.jsoup.Jsoup
+import java.io.File
 import java.lang.ref.WeakReference
 import java.net.URLDecoder
+import java.security.MessageDigest
 import java.util.Locale
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
@@ -351,7 +356,7 @@ data class LiveChapterData(
     /** Non-Translated */
     val originalRendered: Spanned,
     /** Non-Translated */
-    val originalSpans: List<TextSpan>,
+    val originalSpans: ArrayList<TextSpan>,
 
     val title: UiText,
     val rawText: String,
@@ -732,8 +737,8 @@ class ReadActivityViewModel : ViewModel() {
                 val parsed: Node
                 var rendered: Spanned
                 val originalRendered: Spanned
-                val originalSpans: List<TextSpan>
-                var spans: List<TextSpan>
+                val originalSpans: ArrayList<TextSpan>
+                var spans: ArrayList<TextSpan>
 
                 markwonMutex.withLock {
                     parsed = markwon.parse(rawText)
@@ -752,7 +757,10 @@ class ReadActivityViewModel : ViewModel() {
                     }
 
                     // translation may strip stuff, idk how to solve that in a clean way atm
-                    translate(spans) { (progressChapter, progressInnerIndex, progressInnerTotal) ->
+                    translate(
+                        rendered,
+                        spans
+                    ) { (progressChapter, progressInnerIndex, progressInnerTotal) ->
                         val progressText =
                             "Translating chapter $progressChapter ($progressInnerIndex/$progressInnerTotal)"
                         if (postLoading) {
@@ -764,7 +772,7 @@ class ReadActivityViewModel : ViewModel() {
                                 if (notify) notifyChapterUpdate(index)
                             }
                         }
-                    }?.let { (mlRender, mlSpans) ->
+                    }.let { (mlRender, mlSpans) ->
                         rendered = mlRender
                         spans = mlSpans
                     }
@@ -812,18 +820,59 @@ class ReadActivityViewModel : ViewModel() {
         }
     }
 
+    private fun hashString(text: ByteArray): String {
+        val digest = MessageDigest.getInstance("MD5").digest(text)
+        val sb = StringBuilder()
+        for (b in digest) {
+            sb.append(String.format("%02x", b))
+        }
+        return sb.toString()
+    }
+
     @Throws
     private suspend fun translate(
-        text: List<TextSpan>,
+        text: Spanned,
+        spans: ArrayList<TextSpan>,
         loading: suspend (Triple<Int, Int, Int>) -> Unit
-    ): Pair<Spanned, ArrayList<TextSpan>>? {
-        val translator = mlTranslator ?: return null
+    ): Pair<Spanned, ArrayList<TextSpan>> {
+        val translator = mlTranslator
+        val currentSettings = mlSettings
+        if (spans.isEmpty() || translator == null || currentSettings.isInvalid()) {
+            return text to spans
+        }
+
+        // the file
+        val filePrefix =
+            "ml_${
+                hashString(
+                    text.trim().toString().toByteArray()
+                )
+            }.${currentSettings.from}_to_${currentSettings.to}"
+
+        Log.i(TAG, "Translating $filePrefix")
+
+        // read from cache if it exists
+        // we assume that parseTextToSpans is equivalent from restoring from the builder
+        // aka out == parseTextToSpans(builder)
+        safe {
+            context?.cacheDir?.let {
+                val cache = File(it, "$filePrefix.txt")
+                if (cache.exists()) {
+                    Log.i(TAG, "Cache exists for $filePrefix")
+                    val mlText = cache.readText().toSpanned()
+                    return@safe mlText to parseTextToSpans(mlText, spans[0].index)
+                }
+            }
+            null
+        }?.let {
+            return it
+        }
 
         try {
             val builder = StringBuilder()
             val out = ArrayList<TextSpan>()
-            for (span in text) {
-                loading.invoke(Triple(span.index, span.innerIndex, text.size))
+            for (span in spans) {
+                loading.invoke(Triple(span.index, span.innerIndex, spans.size))
                 val newText =
                     Tasks.await(translator.translate(span.text.toString()))
                 val start = builder.length
@@ -833,7 +882,19 @@ class ReadActivityViewModel : ViewModel() {
                 out.add(TextSpan(newText.toSpanned(), start, end, span.index, span.innerIndex))
             }
 
-            return builder.toSpanned() to out
+            val mlRawText = builder.toString()
+
+            // atomically write the file
+            safe {
+                context?.cacheDir?.let {
+                    val cache = File(it, "$filePrefix.tmp")
+                    cache.writeText(mlRawText)
+                    cache.renameTo(File(it, "$filePrefix.txt"))
+                    Log.i(TAG, "Cached $filePrefix")
+                }
+            }
+
+            return mlRawText.toSpanned() to out
         } catch (t: ExecutionException) {
             throw t.cause ?: t
         }
@@ -873,23 +934,17 @@ class ReadActivityViewModel : ViewModel() {
                 val success = value.value
 
                 try {
-                    translate(success.originalSpans) { (progressChapter, progressInnerIndex, progressInnerTotal) ->
+                    translate(
+                        success.originalRendered,
+                        success.originalSpans
+                    ) { (progressChapter, progressInnerIndex, progressInnerTotal) ->
                         _loadingStatus.postValue(Resource.Loading("Translating chapter $progressChapter ($progressInnerIndex/$progressInnerTotal)"))
-                    }?.let { (mlRender, mlSpans) ->
+                    }.let { (mlRender, mlSpans) ->
                         entry.setValue(
                             Resource.Success(
                                 success.copy(
                                     rendered = mlRender,
                                     spans = mlSpans,
-                                )
-                            )
-                        )
-                    } ?: run {
-                        entry.setValue(
-                            Resource.Success(
-                                success.copy(
-                                    rendered = success.originalRendered,
-                                    spans = success.originalSpans,
                                 )
                             )
                         )
@@ -938,6 +993,7 @@ class ReadActivityViewModel : ViewModel() {
                 .setSourceLanguage(settings.from)
                 .setTargetLanguage(settings.to)
                 .build()
+
             val translator = Translation.getClient(options)
             mlTranslator = translator
 

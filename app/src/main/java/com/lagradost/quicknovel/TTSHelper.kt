@@ -453,7 +453,7 @@ object TTSHelper {
     private fun parseSpan(
         unsegmented: Spanned,
         index: Int,
-    ): List<TextSpan> {
+    ): ArrayList<TextSpan> {
         val spans: ArrayList<TextSpan> = ArrayList()
 
         var currentOffset = 0
@@ -555,7 +555,7 @@ object TTSHelper {
     fun parseTextToSpans(
         render: Spanned,
         index: Int
-    ): List<TextSpan> {
+    ): ArrayList<TextSpan> {
         return parseSpan(render, index)
     }
 
