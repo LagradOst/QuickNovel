@@ -82,7 +82,7 @@ dependencies {
     implementation "androidx.preference:preference-ktx:1.2.1"
     implementation "me.xdrop:fuzzywuzzy:1.4.0"
 
-    implementation('nl.siegmann.epublib:epublib-core:3.1') {
+    implementation('io.documentnode:epub4j-core:4.2.1') {
         exclude group: 'org.slf4j'
         exclude group: 'xmlpull'
     }

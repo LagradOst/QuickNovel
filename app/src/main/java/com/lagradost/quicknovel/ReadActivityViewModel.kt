@@ -82,9 +82,9 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import nl.siegmann.epublib.domain.Book
-import nl.siegmann.epublib.domain.TOCReference
-import nl.siegmann.epublib.epub.EpubReader
+import io.documentnode.epub4j.domain.Book
+import io.documentnode.epub4j.domain.TOCReference
+import io.documentnode.epub4j.epub.EpubReader
 import org.commonmark.node.Node
 import org.jsoup.Jsoup
 import java.io.File

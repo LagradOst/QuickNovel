@@ -62,12 +62,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import nl.siegmann.epublib.domain.Author
-import nl.siegmann.epublib.domain.Book
-import nl.siegmann.epublib.domain.MediaType
-import nl.siegmann.epublib.domain.Resource
-import nl.siegmann.epublib.epub.EpubWriter
-import nl.siegmann.epublib.service.MediatypeService
+import io.documentnode.epub4j.domain.Author
+import io.documentnode.epub4j.domain.Book
+import io.documentnode.epub4j.domain.MediaType
+import io.documentnode.epub4j.domain.MediaTypes
+import io.documentnode.epub4j.domain.Resource
+import io.documentnode.epub4j.epub.EpubWriter
 import java.io.File
 import java.io.IOException
 
@@ -739,7 +739,7 @@ object BookDownloader2Helper {
                             "id$threadIndex",
                             chap.html.toByteArray(),
                             "chapter$threadIndex.html",
-                            MediatypeService.XHTML
+                            MediaTypes.XHTML
                         ),
                         threadIndex,
                         chap.title
