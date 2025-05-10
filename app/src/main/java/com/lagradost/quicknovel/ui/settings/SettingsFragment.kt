@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.net.toUri
@@ -30,6 +31,7 @@ import com.lagradost.quicknovel.util.SingleSelectionHelper.showMultiDialog
 import com.lagradost.quicknovel.util.SubtitleHelper
 import com.lagradost.safefile.MediaFileContentType
 import com.lagradost.safefile.SafeFile
+import java.io.File
 
 class SettingsFragment : PreferenceFragmentCompat() {
     private fun PreferenceFragmentCompat?.getPref(id: Int): Preference? {
@@ -108,7 +110,12 @@ class SettingsFragment : PreferenceFragmentCompat() {
             return when {
                 path.isNullOrBlank() -> getDefaultDir(context)
                 path.startsWith("content://") -> SafeFile.fromUri(context, path.toUri())
-                else -> SafeFile.fromFilePath(context, path)
+                else -> SafeFile.fromFilePath(
+                    context,
+                    path.removePrefix(Environment.getExternalStorageDirectory().path).removePrefix(
+                        File.separator
+                    ).removeSuffix(File.separator) + File.separator
+                )
             }
         }
 
