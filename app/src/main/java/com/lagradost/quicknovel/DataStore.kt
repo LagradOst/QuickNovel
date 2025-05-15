@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.lagradost.quicknovel.mvvm.logError
+import androidx.core.content.edit
 
 const val PREFERENCES_NAME: String = "rebuild_preference"
 const val DOWNLOAD_FOLDER: String = "downloads_data"
@@ -158,9 +159,9 @@ object DataStore {
 
     fun <T> Context.setKey(path: String, value: T) {
         try {
-            val editor: SharedPreferences.Editor = getSharedPrefs().edit()
-            editor.putString(path, mapper.writeValueAsString(value))
-            editor.apply()
+            getSharedPrefs().edit {
+                putString(path, mapper.writeValueAsString(value))
+            }
         } catch (e: Exception) {
             logError(e)
         }

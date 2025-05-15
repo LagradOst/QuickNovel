@@ -364,12 +364,8 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             return
         }
 
-        // val bottomPadding = binding.realText.paddingTop
         val topY = getTopY()
         val bottomY = getBottomY()
-
-        // binding.tmpTtsStart.fixLine(getTopY())
-        //  binding.tmpTtsEnd.fixLine(getBottomY())
 
         viewModel.onScroll(
             ScrollVisibilityIndex(
@@ -386,37 +382,10 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 },
             )
         )
-
-        /*val desired = viewModel.desiredIndex
-
-        lines.firstOrNull {
-            it.startChar >= desired.char
-        }?.let { line ->
-            binding.tmpTtsStart.fixLine(line.top)
-            binding.tmpTtsEnd.fixLine(line.bottom)
-        }*/
-
     }
 
     fun onScroll() {
-        val lines = getAllLines()
-        postLines(lines)
-
-
-        /*val topY = getTopY()
-        val bottomY = getBottomY()
-
-        val visibility = ScrollVisibility(
-            firstVisible = transformIndexToScrollVisibilityItem(textLayoutManager.findFirstVisibleItemPosition()),
-            firstFullyVisible = transformIndexToScrollVisibilityItem(textLayoutManager.findFirstCompletelyVisibleItemPosition()),
-            lastVisible = transformIndexToScrollVisibilityItem(textLayoutManager.findLastVisibleItemPosition()),
-            lastFullyVisible = transformIndexToScrollVisibilityItem(textLayoutManager.findLastCompletelyVisibleItemPosition()),
-            screenTop = topY,
-            screenBottom = bottomY,
-            screenTopBar = binding.readToolbarHolder.height
-        )
-
-        viewModel.onScroll(textAdapter.getIndex(visibility))*/
+        postLines(getAllLines())
     }
 
     private var cachedChapter: List<SpanDisplay> = emptyList()

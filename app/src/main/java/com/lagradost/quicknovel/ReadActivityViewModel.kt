@@ -384,6 +384,7 @@ class ReadActivityViewModel : ViewModel() {
     private var mlTranslator: com.google.mlkit.nl.translate.Translator? = null
 
     fun leftApp() {
+        lastChangeIndex?.let { setScrollKeys(it) }
         isInApp = false
         leftAppAt = desiredIndex
     }
@@ -1505,6 +1506,8 @@ class ReadActivityViewModel : ViewModel() {
     }
 
     /** sets the metadata and global vars used as well as keys */
+    private var lastChangeIndex: ScrollIndex? = null
+    private var lastScrollMs: Long = 0
     private fun changeIndex(scrollIndex: ScrollIndex, alsoTitle: Boolean = true) {
         if (alsoTitle) {
             _chapterTile.postValue(chaptersTitlesInternal[scrollIndex.index])
@@ -1513,6 +1516,16 @@ class ReadActivityViewModel : ViewModel() {
         desiredIndex = scrollIndex
         currentIndex = scrollIndex.index
 
+        // the majority of the time is spent on setKey, and because this is called from onscroll
+        // this fixes lag
+        lastChangeIndex = scrollIndex
+        if (System.currentTimeMillis() > lastScrollMs + 200L) {
+            lastScrollMs = System.currentTimeMillis()
+            setScrollKeys(scrollIndex)
+        }
+    }
+
+    private fun setScrollKeys(scrollIndex: ScrollIndex) {
         setKey(
             EPUB_CURRENT_POSITION_READ_AT,
             "${book.title()}/${scrollIndex.index}",
@@ -1606,6 +1619,7 @@ class ReadActivityViewModel : ViewModel() {
     }
 
     override fun onCleared() {
+        lastChangeIndex?.let { setScrollKeys(it) }
         ttsSession.release()
         mlTranslator?.close()
         mlTranslator = null
