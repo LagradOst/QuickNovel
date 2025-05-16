@@ -365,15 +365,14 @@ class ResultFragment : Fragment() {
                 viewModel.openInBrowser()
             }
 
+            resultReloadConnectionOpenInBrowser.setOnClickListener {
+                viewModel.openInBrowser()
+            }
+
             reviewsFab.setOnClickListener {
                 resultReviews.smoothScrollToPosition(0) // NEEDS THIS TO RESET VELOCITY
                 resultMainscroll.smoothScrollTo(0, 0)
             }
-
-            resultOpeninbrower.setOnClickListener {
-                viewModel.openInBrowser()
-            }
-
 
             val backParameter = resultBack.layoutParams as CoordinatorLayout.LayoutParams
             backParameter.setMargins(

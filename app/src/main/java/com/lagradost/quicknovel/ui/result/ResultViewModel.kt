@@ -43,6 +43,7 @@ import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import androidx.core.net.toUri
 
 class ResultViewModel : ViewModel() {
     fun clear() {
@@ -145,7 +146,7 @@ class ResultViewModel : ViewModel() {
         loadMutex.withLock {
             if (loadUrl.isBlank()) return@launch
             val i = Intent(Intent.ACTION_VIEW)
-            i.data = Uri.parse(loadUrl)
+            i.data = loadUrl.toUri()
             activity?.startActivity(i)
         }
     }

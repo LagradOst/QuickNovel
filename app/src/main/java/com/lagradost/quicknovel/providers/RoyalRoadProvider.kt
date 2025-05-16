@@ -318,11 +318,11 @@ class RoyalRoadProvider : MainAPI() {
         }
     }
 
-    override suspend fun load(url: String): LoadResponse? {
+    override suspend fun load(url: String): LoadResponse {
         val response = app.get(url)
         val document = response.document
         val name = document.selectFirst("h1.font-white")?.text()
-            ?: throw ErrorLoadingException("Null name")
+            ?: throw ErrorLoadingException("Name not found for '$url'\nmight be deleted or simply a malformed url")
         val fictionId =
             response.text.substringAfter("window.fictionId = ").substringBefore(";").toIntOrNull()
 
