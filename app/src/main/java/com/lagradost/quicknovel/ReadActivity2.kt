@@ -981,7 +981,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                         val translated = !canScrollVertically(-1) || !canScrollVertically(1)
                         if (translated) {
                             // * (maxScrollOver - currentOverScroll.absoluteValue))
-                            currentOverScroll += dy * 0.3f
+                            currentOverScroll += dy * 0.1f
                         }
 
                         // if we can scroll down then we cant translate down
