@@ -5,6 +5,7 @@ import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 
 class ScribblehubProvider : MainAPI() {
+    override val rateLimitTime: Long = 500L
     override val name = "Scribblehub"
     override val mainUrl = "https://www.scribblehub.com"
 

@@ -2,9 +2,17 @@ package com.lagradost.quicknovel.providers
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.ErrorLoadingException
+import com.lagradost.quicknovel.HeadMainPageResponse
+import com.lagradost.quicknovel.LoadResponse
+import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
-import com.lagradost.quicknovel.network.CloudflareKiller
+import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.fixUrlNull
+import com.lagradost.quicknovel.newChapterData
+import com.lagradost.quicknovel.newSearchResponse
+import com.lagradost.quicknovel.newStreamResponse
 import org.jsoup.Jsoup
 
 class MtlNovelProvider : MainAPI() {
@@ -15,6 +23,13 @@ class MtlNovelProvider : MainAPI() {
     override val iconId = R.drawable.icon_mtlnovel
 
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
+
+    fun fixImage(url: String?): String? {
+        return url?.replace(
+            "https://www.mtlnovel.net/",
+            "https://www.mtlnovels.com/wp-content/uploads/"
+        )
+    }
 
     override val tags = listOf(
         "All" to "",
@@ -74,13 +89,14 @@ class MtlNovelProvider : MainAPI() {
 
         val returnValue = headers.mapNotNull { h ->
             val name =
-                h.selectFirst("a")?.attr("aria-label")?.substringBeforeLast("Cover") ?: return@mapNotNull null
+                h.selectFirst("a")?.attr("aria-label")?.substringBeforeLast("Cover")
+                    ?: return@mapNotNull null
             val cUrl = h.selectFirst("a")?.attr("href") ?: throw ErrorLoadingException()
             newSearchResponse(
                 name = name,
                 url = cUrl,
             ) {
-                posterUrl = fixUrlNull(h.selectFirst("amp-img amp-img")?.attr("src"))
+                posterUrl = fixImage(fixUrlNull(h.selectFirst("amp-img amp-img")?.attr("src")))
             }
         }
 
@@ -104,7 +120,7 @@ class MtlNovelProvider : MainAPI() {
                 name = Jsoup.parse(it.title ?: return@mapNotNull null).text(),
                 url = it.permalink ?: return@mapNotNull null
             ) {
-                posterUrl = it.thumbnail
+                posterUrl = fixImage(fixUrlNull(it.thumbnail))
             }
         }!!
     }
@@ -123,7 +139,7 @@ class MtlNovelProvider : MainAPI() {
 
         return newStreamResponse(url = url, name = name, data = data) {
             author = document.selectFirst("#author")?.text()
-            posterUrl = fixUrlNull(document.select("div.nov-head amp-img amp-img").attr("src"))
+            posterUrl = fixImage(fixUrlNull(document.select("div.nov-head amp-img amp-img").attr("src")))
             tags = document.select("#currentgen > a").map {
                 it.text()
             }

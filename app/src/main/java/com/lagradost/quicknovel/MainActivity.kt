@@ -170,12 +170,12 @@ class MainActivity : AppCompatActivity() {
             (this as AppCompatActivity?)?.loadResult(card.url, card.apiName, startAction)
         }
 
-        fun AppCompatActivity.loadResultFromUrl(url: String?) {
-            if (url == null) return
+        fun AppCompatActivity.loadResultFromUrl(url: String?): Boolean {
+            if (url == null) return false
             for (api in apis) {
                 if (url.contains(api.mainUrl)) {
                     loadResult(url, api.name)
-                    break
+                    return false
                 }
             }
 
@@ -202,7 +202,9 @@ class MainActivity : AppCompatActivity() {
                 } catch (e: Exception) {
                     logError(e)
                 }
+                return true
             }
+            return false
         }
 
         /*fun AppCompatActivity.backPressed(): Boolean {
@@ -371,7 +373,7 @@ class MainActivity : AppCompatActivity() {
     private fun handleIntent(intent: Intent?) {
         if (intent == null) return
         if (intent.action == Intent.ACTION_SEND) {
-            val extraText = try { // I dont trust android
+            val extraText = try { // I don't trust android
                 intent.getStringExtra(Intent.EXTRA_TEXT)
             } catch (e: Exception) {
                 null
@@ -381,13 +383,15 @@ class MainActivity : AppCompatActivity() {
             val url = item?.text?.toString()
 
             // idk what I am doing, just hope any of these work
-            if (item?.uri != null)
-                loadResultFromUrl(item.uri?.toString())
-            else if (url != null)
-                loadResultFromUrl(url)
-            else if (extraText != null)
-                loadResultFromUrl(extraText)
-
+            if (item?.uri != null && loadResultFromUrl(item.uri?.toString())) {
+                return
+            }
+            if (url != null && loadResultFromUrl(url)) {
+                return
+            }
+            if (extraText != null && loadResultFromUrl(extraText)) {
+                return
+            }
         }
         val data: String? = intent.data?.toString()
         loadResultFromUrl(data)

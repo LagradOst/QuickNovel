@@ -50,7 +50,7 @@ object TTSNotifications {
 
     var mediaSession: MediaSessionCompat? = null
 
-    fun setMediaSession(viewModel: ReadActivityViewModel) {
+    fun setMediaSession(viewModel: ReadActivityViewModel, book: AbstractBook) {
         val context = viewModel.context ?: return
 
         val mbrIntent = MediaButtonReceiver.buildMediaButtonPendingIntent(
@@ -105,7 +105,17 @@ object TTSNotifications {
                 }
             )
 
-            val mediaMetadata = MediaMetadataCompat.Builder().putLong(MediaMetadataCompat.METADATA_KEY_DURATION, -1L).build()
+            val mediaMetadata = MediaMetadataCompat.Builder()
+                .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, -1L).apply {
+                    // https://stackoverflow.com/questions/72750099/android-mediastyle-notification-image-largeicon-is-pixilated
+                    book.poster()?.let { icon ->
+                        putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, icon)
+                    }
+                    book.author()?.let { author ->
+                        putString(MediaMetadataCompat.METADATA_KEY_AUTHOR, author)
+                    }
+                }
+                .build()
             setMetadata(mediaMetadata)
             //setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS)
             //isActive = true
@@ -156,6 +166,7 @@ object TTSNotifications {
                 .setCancelButtonIntent(cancelButton)
                 .setMediaSession(token)
         }
+
         builder.setStyle(style)
 
         val actionPlay = NotificationCompat.Action(

@@ -69,7 +69,8 @@ class TTSNotificationService : Service() {
         currentJob = null
 
         viewModel?.let { viewModel ->
-            TTSNotifications.setMediaSession(viewModel)
+            TTSNotifications.setMediaSession(viewModel, viewModel.book)
+
             val notification = TTSNotifications.createNotification(
                 viewModel.book.title(),
                 txt(""),

@@ -205,11 +205,17 @@ abstract class AbstractBook {
     fun poster(): Bitmap? {
         return poster
     }
+
+    abstract fun author() : String?
 }
 
 class QuickBook(val data: QuickStreamData) : AbstractBook() {
     override fun resolveUrl(url: String): String {
         return Apis.getApiFromNameNull(data.meta.apiName)?.fixUrl(url) ?: url
+    }
+
+    override fun author() : String? {
+        return data.meta.author
     }
 
     override val canReload = true
@@ -280,7 +286,6 @@ class QuickBook(val data: QuickStreamData) : AbstractBook() {
 }
 
 class RegularBook(val data: Book) : AbstractBook() {
-
     init {
         var refs = mutableListOf<TOCReference>()
         data.tableOfContents.tocReferences.forEach { ref ->
@@ -293,6 +298,15 @@ class RegularBook(val data: Book) : AbstractBook() {
     }
 
     override val canReload = false
+    override fun author(): String? {
+        val mainAuthor = data.metadata.authors.firstOrNull() ?: return null
+        val firstName = mainAuthor.firstname
+        val lastName = mainAuthor.lastname ?: return firstName
+        if (firstName == null) {
+            return lastName
+        }
+        return "$firstName $lastName"
+    }
 
     override fun loadImage(image: String): ByteArray? {
         return data.resources.resourceMap.values.find { x ->

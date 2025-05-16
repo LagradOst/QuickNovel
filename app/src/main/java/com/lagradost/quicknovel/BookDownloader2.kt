@@ -448,25 +448,20 @@ object BookDownloader2Helper {
         }
     }
 
-    fun openEpub(activity: Activity?, name: String, openInApp: Boolean? = null): Boolean {
-        if (activity == null) return false
+    @Throws
+    fun openEpub(activity: Activity?, name: String, openInApp: Boolean? = null) {
+        if (activity == null) throw IOException("No activity")
 
         if (!activity.checkWrite()) {
             activity.requestRW()
-            return false
+            return
         }
 
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(activity)
         val subDir =
             activity.getBasePath().first ?: getDefaultDir(activity) ?: throw IOException("No file")
-
-        //val subDir = baseFile.gotoDirectory("Epub", createMissingDirectories = false) ?: return false
         val displayName = "${sanitizeFilename(name)}.epub"
-
-        val foundFile = subDir.findFile(displayName) ?: return false
-
-        //val relativePath = (Environment.DIRECTORY_DOWNLOADS + "${fs}Epub${fs}")
-
+        val foundFile = subDir.findFileOrThrow(displayName)
 
         if (openInApp ?: !(settingsManager.getBoolean(
                 activity.getString(R.string.external_reader_key),
@@ -474,70 +469,27 @@ object BookDownloader2Helper {
             ))
         ) {
             val myIntent = Intent(activity, ReadActivity2::class.java)
-
-            /*val relativePath = (Environment.DIRECTORY_DOWNLOADS + "${fs}Epub${fs}")
-
-            val fileUri = if (isScopedStorage()) {
-                val cr = activity.contentResolver ?: return false
-                cr.getExistingDownloadUriOrNullQ(relativePath, displayName) ?: return false
-            } else {
-                val normalPath =
-                    "${Environment.getExternalStorageDirectory()}${fs}$relativePath$displayName"
-
-                val bookFile = File(normalPath)
-                bookFile.toUri()
-            }*/
-
-            myIntent.setDataAndType(foundFile.uri() ?: return false, "application/epub+zip")
-
+            myIntent.setDataAndType(foundFile.uriOrThrow(), "application/epub+zip")
             activity.startActivity(myIntent)
-            return true
+            return
         }
 
-        // val relativePath = (Environment.DIRECTORY_DOWNLOADS + "${fs}Epub${fs}")
-
-        try {
-            val intent = Intent()
-            intent.action = Intent.ACTION_VIEW
-            intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
-            intent.addFlags(Intent.FLAG_GRANT_PREFIX_URI_PERMISSION)
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-            // val mime = MimeTypeMap.getSingleton()
-            //  val ext: String = ".epub" //bookFile.name.substring(bookFile.name.lastIndexOf(".") + 1)
-            val type = "application/epub+zip"//mime.getMimeTypeFromExtension(ext)
-            intent.setDataAndType(
-                foundFile.uri() ?: return false, type
+        val intent = Intent().apply {
+            action = Intent.ACTION_VIEW
+            addFlags(
+                Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                        or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                        or Intent.FLAG_GRANT_PREFIX_URI_PERMISSION
+                        or Intent.FLAG_GRANT_READ_URI_PERMISSION
             )
-            /*if (isScopedStorage()) {
-                val cr = activity.contentResolver ?: return false
-
-                val fileUri =
-                    cr.getExistingDownloadUriOrNullQ(relativePath, displayName) ?: return false
-                intent.setDataAndType(
-                    fileUri, type
-                )
-            } else {
-                val normalPath =
-                    "${Environment.getExternalStorageDirectory()}${fs}$relativePath$displayName"
-
-                val bookFile = File(normalPath)
-
-                intent.setDataAndType(
-                    FileProvider.getUriForFile(
-                        activity,
-                        activity.applicationContext.packageName + ".provider",
-                        bookFile
-                    ), type
-                ) // THIS IS NEEDED BECAUSE A REGULAR INTENT WONT OPEN MOONREADER
-            }*/
-
-            activity.startActivity(intent)
-            //this.startActivityForResult(intent,1337) // SEE @moonreader
-        } catch (e: Exception) {
-            return false
         }
-        return true
+
+        val type = "application/epub+zip"
+        intent.setDataAndType(
+            foundFile.uriOrThrow(), type
+        )
+        activity.startActivity(intent)
+        //this.startActivityForResult(intent,1337) // SEE @moonreader
     }
 
     private fun Context.getStripHtml(): Boolean {
@@ -609,17 +561,18 @@ object BookDownloader2Helper {
     }
 
     @WorkerThread
+    @Throws
     fun turnToEpub(
         activity: Activity?,
         author: String?,
         name: String,
         apiName: String,
         synopsis: String?
-    ): Boolean {
-        if (activity == null) return false
+    ) {
+        if (activity == null) throw ErrorLoadingException("No activity")
         if (!activity.checkWrite()) {
             activity.requestRW()
-            return false
+            return
         }
 
         try {
@@ -748,7 +701,7 @@ object BookDownloader2Helper {
                     it?.second
                 }.also { list ->
                     if (list.isEmpty()) {
-                        return false
+                        throw ErrorLoadingException("Unable to create an empty book")
                     }
                 }.forEach { chapter ->
                     if (chapter == null) {
@@ -762,10 +715,9 @@ object BookDownloader2Helper {
                 setKey(DOWNLOAD_EPUB_SIZE, id.toString(), book.contents.size)
             }
             fileStream.close()
-            return true
         } catch (e: Exception) {
             logError(e)
-            return false
+            throw e
         }
     }
 }
@@ -1099,9 +1051,22 @@ object BookDownloader2 {
         synopsis: String?
     ) {
         showToast(R.string.generating_epub)
-        if (!turnToEpub(author, name, apiName, synopsis)) {
+        try {
+            turnToEpub(author, name, apiName, synopsis)
+        } catch (e: ErrorLoadingException) {
+            if (e.message != null) {
+                showToast(e.message)
+            } else {
+                throw e
+            }
+        } catch (e: IOException) {
+            if (e.message != null) {
+                showToast(e.message)
+            } else {
+                throw e
+            }
+        } catch (t: Throwable) {
             showToast(R.string.error_loading_novel)
-            return
         }
         openEpub(name)
     }
@@ -1172,12 +1137,14 @@ object BookDownloader2 {
         deleteNovelAsync(author, name, apiName)
     }
 
+    @WorkerThread
+    @Throws
     private fun turnToEpub(
         author: String?,
         name: String,
         apiName: String,
         synopsis: String?
-    ): Boolean {
+    ) {
         return BookDownloader2Helper.turnToEpub(activity, author, name, apiName, synopsis)
     }
 
@@ -1186,7 +1153,21 @@ object BookDownloader2 {
     }
 
     private fun openEpub(name: String, openInApp: Boolean? = null) {
-        if (!BookDownloader2Helper.openEpub(activity, name, openInApp)) {
+        try {
+            BookDownloader2Helper.openEpub(activity, name, openInApp)
+        } catch (e: ErrorLoadingException) {
+            if (e.message != null) {
+                showToast(e.message)
+            } else {
+                throw e
+            }
+        } catch (e: IOException) {
+            if (e.message != null) {
+                showToast(e.message)
+            } else {
+                throw e
+            }
+        } catch (t: Throwable) {
             showToast(R.string.error_loading_novel)
         }
     }
