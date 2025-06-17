@@ -15,6 +15,7 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.core.widget.NestedScrollView
+import androidx.core.widget.addTextChangedListener
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -37,6 +38,7 @@ import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.mainpage.MainAdapter2
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.util.SettingsHelper.getRating
+import com.lagradost.quicknovel.util.SingleSelectionHelper.showDialog
 import com.lagradost.quicknovel.util.UIHelper
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
@@ -582,12 +584,20 @@ class ResultFragment : Fragment() {
                 return@setOnLongClickListener true
             }
 
-            resultDownloadBtt.setOnClickListener {
+            resultDownloadBtt.setOnClickListener { v ->
                 val actions = getActions()
-                if (actions?.size == 1) {
-                    doAction(actions[0])
-                } else {
+                if (actions == null) {
                     viewModel.downloadOrPause()
+                    return@setOnClickListener
+                }
+                if (actions.size == 1) {
+                    doAction(actions[0])
+                } else if (actions.contains(R.string.download) || actions.contains(R.string.pause)) {
+                    viewModel.downloadOrPause()
+                } else {
+                    v.popupMenu(actions.map { it to it }, null) {
+                        doAction(itemId)
+                    }
                 }
             }
 
