@@ -43,14 +43,24 @@ class WtrLabProvider : MainAPI() {
         val titleWrap =
             doc.selectFirst(".title-wrap") ?: throw ErrorLoadingException("No title wrapping")
         val title =
-            titleWrap.selectFirst(".text-uppercase")?.text() ?: throw ErrorLoadingException("No title")
+            titleWrap.selectFirst(".text-uppercase")?.text()
+                ?: throw ErrorLoadingException("No title")
         val jsonNode = doc.selectFirst("#__NEXT_DATA__")
         val json = jsonNode?.data() ?: throw ErrorLoadingException("no chapters")
 
         val chaptersJson = parseJson<ResultJsonResponse.Root>(json)
 
-        val chapters = chaptersJson.props.pageProps.serie.lastChapters.map { chapter ->
-            newChapterData("#${chapter.order} ${chapter.title}" , "${url.trimEnd('/')}/chapter-${chapter.order}") {
+        val chapterDataUrl =
+            "$mainUrl/api/chapters/${chaptersJson.props.pageProps.serie.serieData.id}?start=1&end=${chaptersJson.props.pageProps.serie.serieData.rawChapterCount}"
+        val chaptersDataJson =
+            app.get(chapterDataUrl).text
+        val chaptersData = parseJson<ResultChaptersJsonResponse.Root>(chaptersDataJson)
+
+        val chapters = chaptersData.chapters.map { chapter ->
+            newChapterData(
+                "#${chapter.order} ${chapter.title}",
+                "${url.trimEnd('/')}/chapter-${chapter.order}"
+            ) {
                 dateOfRelease = chapter.updatedAt
             }
         }
@@ -65,7 +75,7 @@ class WtrLabProvider : MainAPI() {
             views =
                 doc.select(".detail-line").find { it.text().contains("Views") }?.text()?.split(" ")
                     ?.getOrNull(0)?.toIntOrNull()
-           // author = doc.select(".author-wrap>a").text()
+            // author = doc.select(".author-wrap>a").text()
             rating = doc.selectFirst(".rating-text")?.text()?.toRate(5)
         }
     }
@@ -79,18 +89,20 @@ class WtrLabProvider : MainAPI() {
         val text = StringBuilder()
         val chapter = chaptersJson.props.pageProps.serie.chapter
 
-        val root = app.post("$mainUrl/api/reader/get", data = mapOf(
-            "chapter_id" to chapter.id.toString(),
-            "chapter_no" to chapter.slug,
-            "force_retry" to "false",
-            "language" to "en",
-            "raw_id" to chapter.rawId.toString(),
-            "retry" to "false",
-            "translate" to "ai",
-        )).parsed<LoadJsonResponse2.Root>()
+        val root = app.post(
+            "$mainUrl/api/reader/get", data = mapOf(
+                "chapter_id" to chapter.id.toString(),
+                "chapter_no" to chapter.slug,
+                "force_retry" to "false",
+                "language" to "en",
+                "raw_id" to chapter.rawId.toString(),
+                "retry" to "false",
+                "translate" to "ai",
+            )
+        ).parsed<LoadJsonResponse2.Root>()
 
         for (body in root.data.data.body) {
-            if(!body.contains("window._taboola")) {
+            if (!body.contains("window._taboola")) {
                 text.append("<p>")
                 text.append(body)
                 text.append("</p>")
@@ -104,6 +116,23 @@ class WtrLabProvider : MainAPI() {
 
         return text.toString()//doc.selectFirst(".chapter-body")?.html()
     }
+}
+
+object ResultChaptersJsonResponse {
+    data class Root(
+        val chapters: List<Chapter>,
+    )
+
+    data class Chapter(
+        @JsonProperty("serie_id")
+        val serieId: Long,
+        val id: Long,
+        val order: Long,
+        val title: String,
+        val name: String,
+        @JsonProperty("updated_at")
+        val updatedAt: String,
+    )
 }
 
 object ResultJsonResponse {
@@ -123,8 +152,8 @@ object ResultJsonResponse {
 
     data class Props(
         val pageProps: PageProps,
-       // @JsonProperty("__N_SSP")
-       /// val nSsp: Boolean,
+        // @JsonProperty("__N_SSP")
+        /// val nSsp: Boolean,
     )
 
     data class PageProps(
@@ -141,16 +170,16 @@ object ResultJsonResponse {
     )
 
     data class Serie(
-        /*@JsonProperty("serie_data")
+        @JsonProperty("serie_data")
         val serieData: SerieData,
-        val ranks: Ranks,
+        /*val ranks: Ranks,
         val recommendation: List<Recommendation>,
         val raws: List<Raw3>,
         val names: List<Name>,
         @JsonProperty("other_series")
-        val otherSeries: List<Series>,*/
+        val otherSeries: List<Series>,
         @JsonProperty("last_chapters")
-        val lastChapters: List<LastChapter>,
+        val lastChapters: List<LastChapter>,*/
         /*@JsonProperty("raw_rank")
         val rawRank: Any?,
         @JsonProperty("released_user")
@@ -159,7 +188,7 @@ object ResultJsonResponse {
 
     data class SerieData(
         val id: Long,
-        val slug: String,
+        /*val slug: String,
         @JsonProperty("search_text")
         val searchText: String,
         val status: Long,
@@ -189,9 +218,10 @@ object ResultJsonResponse {
         @JsonProperty("released_by")
         val releasedBy: Any?,
         @JsonProperty("raw_status")
-        val rawStatus: Long,
+        val rawStatus: Long,*/
         @JsonProperty("raw_chapter_count")
         val rawChapterCount: Long,
+        /*
         val genres: List<Long>,
         @JsonProperty("raw_verified")
         val rawVerified: Boolean,
@@ -202,7 +232,7 @@ object ResultJsonResponse {
         @JsonProperty("requested_member")
         val requestedMember: String,
         @JsonProperty("requested_role")
-        val requestedRole: Long,
+        val requestedRole: Long,*/
     )
 
     data class Data(
@@ -369,8 +399,8 @@ object ResultJsonResponse {
 object LoadJsonResponse2 {
 
     data class Root(
-       // val success: Boolean,
-       // val chapter: Chapter,
+        // val success: Boolean,
+        // val chapter: Chapter,
         val data: Data,
     )
 
@@ -388,7 +418,8 @@ object LoadJsonResponse2 {
         @JsonProperty("chapter_id")
         val chapterId: Long,
         val status: Long,
-        */val data: Data2,
+        */
+        val data: Data2,
         /*@JsonProperty("created_at")
         val createdAt: String,
         val language: String,*/
