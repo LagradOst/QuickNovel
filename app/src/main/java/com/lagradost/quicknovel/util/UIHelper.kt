@@ -7,7 +7,6 @@ import android.content.Context
 import android.content.res.Resources
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
-import android.graphics.drawable.Drawable
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Build
@@ -46,9 +45,7 @@ import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.ui.UiImage
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.ImageLayoutBinding
-import com.lagradost.quicknovel.databinding.SingleImageBinding
 import com.lagradost.quicknovel.mvvm.logError
-import com.lagradost.quicknovel.util.UIHelper.setImage
 import io.noties.markwon.image.AsyncDrawable
 import jp.wasabeef.glide.transformations.BlurTransformation
 import java.io.File
@@ -76,12 +73,11 @@ fun Long.divCeil(other: Long): Long {
 
 object UIHelper {
     fun String?.html(): Spanned {
-        return getHtmlText(this ?: return "".toSpanned())
+        return getHtmlText(this?.trim()?.replace("\n","<br>") ?: return "".toSpanned())
     }
-
     private fun getHtmlText(text: String): Spanned {
         return try {
-            // I have no idea if this can throw any error, but I dont want to try
+            // I have no idea if this can throw any error, but I don't want to try
             HtmlCompat.fromHtml(
                 text, HtmlCompat.FROM_HTML_MODE_LEGACY
             )

@@ -1,37 +1,36 @@
 package com.lagradost.quicknovel.ui.result
 
-import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
-import android.net.Uri
 import androidx.appcompat.app.AlertDialog
+import androidx.core.net.toUri
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lagradost.quicknovel.APIRepository
+import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
+import com.lagradost.quicknovel.BookDownloader2.downloadProgress
+import com.lagradost.quicknovel.BookDownloader2Helper
 import com.lagradost.quicknovel.BookDownloader2Helper.generateId
 import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
-import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DownloadActionType
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
+import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_CHAPTER
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_READ_AT
-import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_SCROLL
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_SCROLL_CHAR
 import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
-import com.lagradost.quicknovel.ReadActivity2
-import com.lagradost.quicknovel.ReadActivityViewModel
 import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.mvvm.Resource
@@ -43,7 +42,6 @@ import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import androidx.core.net.toUri
 
 class ResultViewModel : ViewModel() {
     fun clear() {
@@ -166,7 +164,7 @@ class ResultViewModel : ViewModel() {
             addToHistory()
             BookDownloader2.readEpub(
                 loadId,
-                downloadState.value?.progress ?: return@launch,
+                downloadState.value?.progress?.toInt() ?: return@launch,
                 load.author,
                 load.name,
                 apiName,
@@ -209,6 +207,11 @@ class ResultViewModel : ViewModel() {
                     setReadChapter(chapter, true)
                     setKey(EPUB_CURRENT_POSITION, streamResponse.name, index)
                     setKey(
+                        EPUB_CURRENT_POSITION_CHAPTER,
+                        streamResponse.name,
+                        streamResponse.data[index].name
+                    )
+                    setKey(
                         EPUB_CURRENT_POSITION_SCROLL_CHAR, streamResponse.name, 0,
                     )
                 }
@@ -228,7 +231,7 @@ class ResultViewModel : ViewModel() {
             if (!hasLoaded) return@launch
 
             BookDownloader2.downloadInfoMutex.withLock {
-                BookDownloader2.downloadProgress[loadId]?.let { downloadState ->
+                downloadProgress[loadId]?.let { downloadState ->
                     when (downloadState.state) {
                         DownloadState.IsPaused -> BookDownloader2.addPendingAction(
                             loadId,
@@ -238,6 +241,75 @@ class ResultViewModel : ViewModel() {
                         DownloadState.IsDownloading -> BookDownloader2.addPendingAction(
                             loadId,
                             DownloadActionType.Pause
+                        )
+
+                        DownloadState.IsDone, DownloadState.IsPending -> {
+
+                        }
+
+                        else -> BookDownloader2.download(load, api)
+                    }
+                } ?: run {
+                    BookDownloader2.download(load, api)
+                }
+            }
+        }
+    }
+
+    fun pause() = viewModelScope.launch {
+        loadMutex.withLock {
+            if (!hasLoaded) return@launch
+
+            BookDownloader2.downloadInfoMutex.withLock {
+                downloadProgress[loadId]?.let { downloadState ->
+                    when (downloadState.state) {
+                        DownloadState.IsDownloading -> BookDownloader2.addPendingAction(
+                            loadId,
+                            DownloadActionType.Pause
+                        )
+
+                        else -> {
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun stop() = viewModelScope.launch {
+        loadMutex.withLock {
+            if (!hasLoaded) return@launch
+
+            BookDownloader2.downloadInfoMutex.withLock {
+                downloadProgress[loadId]?.let { downloadState ->
+                    when (downloadState.state) {
+                        DownloadState.Nothing, DownloadState.IsDone, DownloadState.IsStopped, DownloadState.IsFailed -> {
+
+                        }
+
+                        else -> {
+                            BookDownloader2.addPendingAction(
+                                loadId,
+                                DownloadActionType.Stop
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun downloadFrom(start: Int?) = viewModelScope.launch {
+        loadMutex.withLock {
+            if (!hasLoaded) return@launch
+            BookDownloader2.downloadInfoMutex.withLock {
+                BookDownloader2.changeDownloadStart(load, api, start)
+                downloadProgress[loadId]?.let { downloadState ->
+                    when (downloadState.state) {
+                        DownloadState.IsPaused -> BookDownloader2.addPendingAction(
+                            loadId,
+                            DownloadActionType.Resume
                         )
 
                         DownloadState.IsDone, DownloadState.IsPending -> {
@@ -277,8 +349,8 @@ class ResultViewModel : ViewModel() {
         }
     }
 
-    // requireContext().setKey(DOWNLOAD_TOTAL, localId.toString(), res.data .size)
-    // loadReviews()
+// requireContext().setKey(DOWNLOAD_TOTAL, localId.toString(), res.data .size)
+// loadReviews()
 
     fun isInReviews(): Boolean {
         return currentTabIndex.value == 1
@@ -416,19 +488,37 @@ class ResultViewModel : ViewModel() {
             if (!hasLoaded) return@launch
 
             BookDownloader2.downloadInfoMutex.withLock {
-                val current = BookDownloader2.downloadProgress[loadId]
-                if (current == null) {
-                    val new = DownloadProgressState(
-                        DownloadState.Nothing,
-                        0,
-                        (load as? StreamResponse)?.data?.size ?: 1,
-                        System.currentTimeMillis(),
-                        null
-                    )
-                    //BookDownloader2.downloadProgress[loadId] = new
-                    downloadState.postValue(new)
-                } else {
+                val current = downloadProgress[loadId]
+                if (current != null) {
                     downloadState.postValue(current)
+                } else {
+                    BookDownloader2Helper.downloadInfo(
+                        context,
+                        load.author,
+                        load.name,
+                        load.apiName
+                    )?.let { info ->
+                        val new = DownloadProgressState(
+                            state = DownloadState.Nothing,
+                            progress = info.progress,
+                            total = info.total,
+                            downloaded = info.downloaded,
+                            lastUpdatedMs = System.currentTimeMillis(),
+                            etaMs = null
+                        )
+                        downloadProgress[loadId] = new
+                        downloadState.postValue(new)
+                    } ?: run {
+                        val new = DownloadProgressState(
+                            state = DownloadState.Nothing,
+                            progress = 0,
+                            total = (load as? StreamResponse)?.data?.size?.toLong() ?: 1,
+                            downloaded = 0,
+                            lastUpdatedMs = System.currentTimeMillis(),
+                            etaMs = null
+                        )
+                        downloadState.postValue(new)
+                    }
                 }
             }
         }

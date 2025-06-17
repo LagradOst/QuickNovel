@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.ui.result
 
 import android.animation.ObjectAnimator
+import android.content.DialogInterface
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Bundle
@@ -10,24 +11,24 @@ import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.widget.LinearLayout
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
-import androidx.core.view.marginTop
 import androidx.core.widget.NestedScrollView
+import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.GridLayoutManager
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipDrawable
 import com.google.android.material.tabs.TabLayout
-import com.lagradost.quicknovel.BookDownloader2Helper
+import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainActivity.Companion.navigate
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.StreamResponse
+import com.lagradost.quicknovel.databinding.ChapterDialogBinding
 import com.lagradost.quicknovel.databinding.FragmentResultBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.debugException
@@ -46,7 +47,6 @@ import com.lagradost.quicknovel.util.UIHelper.humanReadableByteCountSI
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.util.toPx
-import android.annotation.SuppressLint as SuppressLint1
 
 const val MAX_SYNO_LENGH = 300
 
@@ -338,6 +338,127 @@ class ResultFragment : Fragment() {
         }
     }
 
+    private fun doAction(action: Int) {
+        when (action) {
+            R.string.resume -> {
+                viewModel.downloadOrPause()
+            }
+
+            R.string.download, R.string.re_downloaded -> {
+                viewModel.downloadFrom(null)
+            }
+
+            R.string.download_from_chapter -> {
+                val chapters =
+                    ((viewModel.loadResponse.value as? Resource.Success)?.value as? StreamResponse)?.data
+                        ?: return
+
+                val act = CommonActivity.activity ?: return
+
+                val builder: AlertDialog.Builder =
+                    AlertDialog.Builder(act, R.style.AlertDialogCustom)
+
+                val binding = ChapterDialogBinding.inflate(layoutInflater, null, false)
+                val dialogClickListener =
+                    DialogInterface.OnClickListener { _, which ->
+                        when (which) {
+                            DialogInterface.BUTTON_POSITIVE -> {
+                                viewModel.downloadFrom(
+                                    binding.chapterEdit.text?.toString()?.toIntOrNull()
+                                )
+                            }
+
+                            DialogInterface.BUTTON_NEGATIVE -> {
+                            }
+                        }
+                    }
+
+                builder.setView(binding.root)
+                    .setTitle(R.string.download_from_chapter)
+                    .setPositiveButton(R.string.download, dialogClickListener)
+                    .setNegativeButton(R.string.cancel, dialogClickListener)
+                    .show()
+
+                binding.chapterEdit.doOnTextChanged { text, _, _, _ ->
+                    val parsedInt = text?.toString()?.toIntOrNull()
+                    if (parsedInt == null || parsedInt < 0 || parsedInt >= chapters.size) {
+                        binding.chapterEdit.error = act.getString(R.string.error_outside_chapter)
+                    } else {
+                        binding.chapterEdit.error = null
+                    }
+                }
+            }
+
+            R.string.delete -> {
+                viewModel.deleteAlert()
+            }
+
+            R.string.pause -> {
+                viewModel.pause()
+            }
+
+            R.string.stop -> {
+                viewModel.stop()
+            }
+        }
+    }
+
+    private fun getActions(): List<Int>? {
+        val items = mutableListOf<Int>()
+        val progressState =
+            viewModel.downloadState.value ?: return null
+        val canDownload =
+            progressState.progress < progressState.total
+        val canPartialDownload =
+            progressState.downloaded < progressState.total && progressState.total > 1
+
+        when (progressState.state) {
+            DownloadState.IsPaused -> {
+                items.add(R.string.resume)
+                items.add(R.string.stop)
+            }
+
+            DownloadState.IsDownloading -> {
+                items.add(R.string.pause)
+                items.add(R.string.stop)
+            }
+
+            DownloadState.IsDone -> {
+                if (canPartialDownload) {
+                    items.add(R.string.download_from_chapter)
+                }
+            }
+
+            DownloadState.IsPending -> {
+            }
+
+            DownloadState.IsFailed, DownloadState.IsStopped -> {
+                if (canDownload) {
+                    items.add(R.string.re_downloaded)
+                }
+
+                if (canPartialDownload) {
+                    items.add(R.string.download_from_chapter)
+                }
+            }
+
+            DownloadState.Nothing -> {
+                if (canDownload) {
+                    items.add(R.string.download)
+                }
+
+                if (canPartialDownload) {
+                    items.add(R.string.download_from_chapter)
+                }
+            }
+        }
+
+        if (progressState.progress > 0) {
+            items.add(R.string.delete)
+        }
+        return items
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -442,7 +563,7 @@ class ResultFragment : Fragment() {
 
             resultBookmark.setOnClickListener { view ->
                 view.popupMenu(
-                    ReadType.values().map { it.prefValue to it.stringRes },
+                    ReadType.entries.map { it.prefValue to it.stringRes },
                     selectedItemId = viewModel.readState.value?.prefValue
                 ) {
                     viewModel.bookmark(itemId)
@@ -453,17 +574,30 @@ class ResultFragment : Fragment() {
                 viewModel.readEpub()
             }
 
+            resultDownloadBtt.setOnLongClickListener { v ->
+                val items = getActions() ?: return@setOnLongClickListener true
+                v.popupMenu(items.map { it to it }, null) {
+                    doAction(itemId)
+                }
+                return@setOnLongClickListener true
+            }
+
             resultDownloadBtt.setOnClickListener {
-                viewModel.downloadOrPause()
+                val actions = getActions()
+                if (actions?.size == 1) {
+                    doAction(actions[0])
+                } else {
+                    viewModel.downloadOrPause()
+                }
             }
 
             resultQuickstream.setOnClickListener {
                 viewModel.streamRead()
             }
 
-            downloadDeleteTrashFromResult.setOnClickListener {
+            /*downloadDeleteTrashFromResult.setOnClickListener {
                 viewModel.deleteAlert()
-            }
+            }*/
         }
 
         observe(viewModel.currentTabIndex) { pos ->
@@ -489,66 +623,94 @@ class ResultFragment : Fragment() {
         observe(viewModel.loadResponse, ::newState)
 
         observe(viewModel.downloadState) { progressState ->
-            if (progressState != null) {
-                val hasDownload = progressState.progress > 0
+            if (progressState == null) {
+                //binding.downloadDeleteTrashFromResult.isVisible = false
+                return@observe
+            }
+            //val hasDownload = progressState.progress > 0
 
-                binding.downloadDeleteTrashFromResult.apply {
-                    isVisible = hasDownload
-                    isClickable = hasDownload
-                }
-                binding.resultDownloadProgressText.text =
-                    "${progressState.progress}/${progressState.total}"
+            /*binding.downloadDeleteTrashFromResult.apply {
+                isVisible = hasDownload
+                isClickable = hasDownload
+            }*/
+            binding.resultDownloadProgressText.text =
+                "${progressState.progress}/${progressState.total}"
 
-                binding.resultDownloadProgressBar.apply {
-                    max = progressState.total * 100
+            binding.resultDownloadProgressBarNotDownloaded.apply {
+                max = progressState.total.toInt() * 100
+                val animation: ObjectAnimator = ObjectAnimator.ofInt(
+                    this,
+                    "progress",
+                    this.progress,
+                    (progressState.progress - progressState.downloaded).toInt() * 100
+                )
+                animation.duration = 500
+                animation.setAutoCancel(true)
+                animation.interpolator = DecelerateInterpolator()
+                animation.start()
+            }
 
-                    val animation: ObjectAnimator = ObjectAnimator.ofInt(
-                        this,
-                        "progress",
-                        this.progress,
-                        progressState.progress * 100
-                    )
-                    animation.duration = 500
-                    animation.setAutoCancel(true)
-                    animation.interpolator = DecelerateInterpolator()
-                    animation.start()
-                }
+            binding.resultDownloadProgressBar.apply {
+                max = progressState.total.toInt() * 100
 
-                val ePubGeneration = progressState.progress > 0
-                binding.resultDownloadGenerateEpub.apply {
-                    isClickable = ePubGeneration
-                    alpha = if (ePubGeneration) 1f else 0.5f
-                }
+                val animation: ObjectAnimator = ObjectAnimator.ofInt(
+                    this,
+                    "progress",
+                    this.progress,
+                    progressState.progress.toInt() * 100
+                )
+                animation.duration = 500
+                animation.setAutoCancel(true)
+                animation.interpolator = DecelerateInterpolator()
+                animation.start()
+            }
 
-                val download = progressState.progress < progressState.total
+            val ePubGeneration = progressState.progress > 0
+            binding.resultDownloadGenerateEpub.apply {
+                isClickable = ePubGeneration
+                alpha = if (ePubGeneration) 1f else 0.5f
+            }
 
-                binding.resultDownloadBtt.apply {
-                    isClickable = download
-                    alpha = if (download) 1f else 0.5f
+            val canDownload =
+                progressState.progress < progressState.total
 
-                    //iconSize = 30.toPx
-                    text = when (progressState.state) {
-                        DownloadState.IsDone -> getString(R.string.downloaded)
-                        DownloadState.IsDownloading -> getString(R.string.pause)
-                        DownloadState.IsPaused -> getString(R.string.resume)
-                        DownloadState.IsFailed -> getString(R.string.re_downloaded)
-                        DownloadState.IsStopped -> getString(R.string.downloaded)
-                        DownloadState.Nothing -> getString(R.string.download)
-                        DownloadState.IsPending -> getString(R.string.loading)
-                    }
-                    setIconResource(
-                        when (progressState.state) {
-                            DownloadState.IsDownloading -> R.drawable.ic_baseline_pause_24
-                            DownloadState.IsPaused -> R.drawable.netflix_play
-                            DownloadState.IsFailed -> R.drawable.ic_baseline_autorenew_24
-                            DownloadState.IsDone -> R.drawable.ic_baseline_check_24
-                            else -> R.drawable.netflix_download
+            val canClick = progressState.total > 0
+            binding.resultDownloadBtt.apply {
+                isClickable = canClick
+                alpha = if (canClick) 1f else 0.5f
+
+                //iconSize = 30.toPx
+                setText(
+                    when (progressState.state) {
+                        DownloadState.IsDone -> R.string.manage
+                        DownloadState.IsDownloading -> R.string.pause
+                        DownloadState.IsPaused -> R.string.resume
+                        DownloadState.IsFailed -> R.string.re_downloaded
+                        DownloadState.IsStopped -> R.string.downloaded
+                        DownloadState.Nothing -> if (canDownload) {
+                            R.string.download
+                        } else {
+                            R.string.manage
                         }
-                    )
-                }
-            } else {
-                binding.downloadDeleteTrashFromResult.isVisible = false
 
+                        DownloadState.IsPending -> R.string.loading
+                    }
+                )
+                setIconResource(
+                    when (progressState.state) {
+                        DownloadState.IsDownloading -> R.drawable.ic_baseline_pause_24
+                        DownloadState.IsPaused -> R.drawable.netflix_play
+                        DownloadState.IsFailed -> R.drawable.ic_baseline_autorenew_24
+                        DownloadState.IsDone -> R.drawable.ic_outline_settings_24
+                        DownloadState.Nothing -> if (canDownload) {
+                            R.drawable.netflix_download
+                        } else {
+                            R.drawable.ic_outline_settings_24
+                        }
+
+                        else -> R.drawable.netflix_download
+                    }
+                )
             }
         }
 

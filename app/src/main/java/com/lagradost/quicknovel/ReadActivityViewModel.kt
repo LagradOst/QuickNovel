@@ -206,7 +206,7 @@ abstract class AbstractBook {
         return poster
     }
 
-    abstract fun author() : String?
+    abstract fun author(): String?
 }
 
 class QuickBook(val data: QuickStreamData) : AbstractBook() {
@@ -214,7 +214,7 @@ class QuickBook(val data: QuickStreamData) : AbstractBook() {
         return Apis.getApiFromNameNull(data.meta.apiName)?.fixUrl(url) ?: url
     }
 
-    override fun author() : String? {
+    override fun author(): String? {
         return data.meta.author
     }
 
@@ -1088,17 +1088,23 @@ class ReadActivityViewModel : ViewModel() {
                 initMLFromSettings(mlSettings, false)
 
                 // cant assume we know a chapter max as it can expand
-                val loadedChapter =
-                    maxOf(getKey(EPUB_CURRENT_POSITION, book.title()) ?: 0, 0)
 
+                val desiredChapterName = getKey<String>(EPUB_CURRENT_POSITION_CHAPTER, book.title())
+                val desiredChapterIndex =
+                    (0 until book.size()).firstOrNull {
+                        loadedBook.value.getChapterTitle(it)
+                            .asStringNull(context) == desiredChapterName
+                    } ?: getKey<Int>(EPUB_CURRENT_POSITION, book.title()) ?: 0
+                val loadedChapterIndex =
+                    maxOf(desiredChapterIndex, 0)
 
                 // we the current loaded thing here, but because loadedChapter can be >= book.size (expand) we have to check
-                if (loadedChapter < book.size()) {
-                    _loadingStatus.postValue(Resource.Loading(book.getLoadingStatus(loadedChapter)))
+                if (loadedChapterIndex < book.size()) {
+                    _loadingStatus.postValue(Resource.Loading(book.getLoadingStatus(loadedChapterIndex)))
                 }
 
-                currentIndex = loadedChapter
-                updateIndexAsync(loadedChapter, notify = false, postLoading = true)
+                currentIndex = loadedChapterIndex
+                updateIndexAsync(loadedChapterIndex, notify = false, postLoading = true)
 
                 if (book.size() <= 0) {
                     _loadingStatus.postValue(
@@ -1106,17 +1112,17 @@ class ReadActivityViewModel : ViewModel() {
                             false,
                             null,
                             null,
-                            "Invalid chapter data when trying to load chapter $loadedChapter when the book only has ${book.size()} chapters"
+                            "Invalid chapter data when trying to load chapter $loadedChapterIndex when the book only has ${book.size()} chapters"
                         )
                     )
                     return@ioSafe
                 }
 
                 // if we are reading a book that sub/resize for some reason, this will clamp it into the correct range
-                if (loadedChapter >= book.size()) {
+                if (loadedChapterIndex >= book.size()) {
                     currentIndex = book.size() - 1
                     updateIndexAsync(currentIndex, notify = false)
-                    showToast("Resize $loadedChapter -> $currentIndex", Toast.LENGTH_LONG)
+                    showToast("Resize $loadedChapterIndex -> $currentIndex", Toast.LENGTH_LONG)
                 }
 
                 val char = getKey(
@@ -1552,6 +1558,13 @@ class ReadActivityViewModel : ViewModel() {
             scrollIndex.char
         )
         setKey(EPUB_CURRENT_POSITION, book.title(), scrollIndex.index)
+        context?.let {
+            setKey(
+                EPUB_CURRENT_POSITION_CHAPTER,
+                book.title(),
+                book.getChapterTitle(scrollIndex.index).asString(it)
+            )
+        }
     }
 
     fun scrollToDesired(scrollIndex: ScrollIndex) {

@@ -105,8 +105,8 @@ class RoyalRoadProvider : MainAPI() {
         val document = app.get(realUrl).document
         val reviews = document.select("div.reviews-container > div.review")
         return reviews.mapNotNull { r ->
-            val textContent = r?.selectFirst("> div.review-right-content")
-            val scoreContent = r?.selectFirst("> div.review-side")
+            val textContent = r.selectFirst("> div.review-right-content")
+            val scoreContent = r.selectFirst("> div.review-side")
             fun parseScore(data: String?): Int? {
                 return (data?.replace("stars", "")
                     ?.toFloatOrNull()?.times(200))?.toInt()
@@ -205,7 +205,7 @@ class RoyalRoadProvider : MainAPI() {
 
             val reviewContent = textContent?.selectFirst("> div.review-content")
             if (!showSpoilers) reviewContent?.removeClass("spoiler")
-            val reviewTxt = reviewContent?.text()
+            val reviewTxt = reviewContent?.html()
 
             UserReview(
                 reviewTxt ?: return@mapNotNull null,
@@ -271,7 +271,7 @@ class RoyalRoadProvider : MainAPI() {
         val document = Jsoup.parse(response.text)
 
         val returnValue = document.select("div.fiction-list-item").mapNotNull { h ->
-            val head = h?.selectFirst("> div")
+            val head = h.selectFirst("> div")
             val hInfo = head?.selectFirst("> h2.fiction-title > a")
 
             val name = hInfo?.text() ?: return@mapNotNull null
@@ -302,7 +302,7 @@ class RoyalRoadProvider : MainAPI() {
         val document = app.get("$mainUrl/fictions/search?title=$query").document
 
         return document.select("div.fiction-list-item").mapNotNull { h ->
-            val head = h?.selectFirst("> div.search-content")
+            val head = h.selectFirst("> div.search-content")
             val hInfo = head?.selectFirst("> h2.fiction-title > a")
 
             val name = hInfo?.text() ?: return@mapNotNull null

@@ -566,29 +566,32 @@ object TTSHelper {
     fun ttsParseText(text: String, tag: Int): ArrayList<TTSLine> {
         val cleanText = text
             .replace("\\.([A-z])".toRegex(), ",$1")//\.([A-z]) \.([^-\s])
-            .replace("([0-9])([.:])([0-9])".toRegex(), "$1,$3") // GOOD FOR DECIMALS
+            .replace("([.:])([0-9])".toRegex(), ",$2") // GOOD FOR DECIMALS
             .replace(
-                "([ \"“‘'])(Dr|Mr|Mrs)\\. ([A-Z])".toRegex(),
+                "(^|[ \"“‘'])(Dr|Mr|Mrs)\\. ([A-Z])".toRegex(),
                 "$1$2, $3"
             )
-        println("SIZE: ${text.length}")
+
+        //println("SIZE: ${text.length}")
+
         debugAssert({ cleanText.length != text.length }) {
             "TTS requires same length"
         }
 
         val ttsLines = ArrayList<TTSLine>()
 
+
+        val invalidStartChars =
+            arrayOf(
+                ' ', '.', ',', '\n', '\"',
+                '\'', '’', '‘', '“', '”', '«', '»', '「', '」', '…', '[', ']'
+            )
+        val endingCharacters = arrayOf(".", "\n", ";", "?", ":")
         var index = 0
         while (true) {
             if (index >= text.length) {
                 break
             }
-
-            val invalidStartChars =
-                arrayOf(
-                    ' ', '.', ',', '\n', '\"',
-                    '\'', '’', '‘', '“', '”', '«', '»', '「', '」', '…'
-                )
             while (invalidStartChars.contains(text[index])) {
                 index++
                 if (index >= text.length) {
@@ -597,7 +600,7 @@ object TTSHelper {
             }
 
             var endIndex = Int.MAX_VALUE
-            for (a in arrayOf(".", "\n", ";", "?", ":")) {
+            for (a in endingCharacters) {
                 val indexEnd = cleanText.indexOf(a, index)
 
                 if (indexEnd == -1) continue

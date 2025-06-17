@@ -105,7 +105,7 @@ class DownloadViewModel : ViewModel() {
             postCards()
             BookDownloader2.readEpub(
                 card.id,
-                card.downloadedCount,
+                card.downloadedCount.toInt(),
                 card.author,
                 card.name,
                 card.apiName,

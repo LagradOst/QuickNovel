@@ -1,10 +1,9 @@
 package com.lagradost.quicknovel.ui.result
 
-import android.annotation.SuppressLint
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
+import androidx.core.view.isGone
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -15,6 +14,7 @@ import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.databinding.ResultReviewBinding
 import com.lagradost.quicknovel.util.SettingsHelper.getRatingReview
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
+import com.lagradost.quicknovel.util.UIHelper.html
 import com.lagradost.quicknovel.util.UIHelper.setImage
 
 class ReviewAdapter2 :
@@ -37,14 +37,14 @@ class ReviewAdapter2 :
             binding.apply {
                 val localContext = this.root.context ?: return
 
-                var reviewText = card.review
+                var reviewText = card.review.replace("\n", "")
                 if (reviewText.length > MAX_SYNO_LENGH) {
                     reviewText = reviewText.substring(0, MAX_SYNO_LENGH) + "..."
                 }
 
                 reviewBody.setOnClickListener {
                     val builder: AlertDialog.Builder = AlertDialog.Builder(localContext)
-                    builder.setMessage(card.review)
+                    builder.setMessage(reviewText.html())
                     val title = card.reviewTitle ?: card.username
                     ?: if (card.rating != null) localContext.getString(R.string.overall_rating_format)
                         .format(localContext.getRatingReview(card.rating)) else null
@@ -53,9 +53,9 @@ class ReviewAdapter2 :
                     builder.show()
                 }
 
-                reviewBody.text = reviewText
-                reviewTitle.text = card.reviewTitle ?: ""
-                reviewTitle.visibility = if (reviewTitle.text == "") View.GONE else View.VISIBLE
+                reviewBody.text = reviewText.html()
+                reviewTitle.text = card.reviewTitle.html()
+                reviewTitle.isGone = card.reviewTitle.isNullOrBlank()
 
                 reviewTime.text = card.reviewDate
                 reviewAuthor.text = card.username

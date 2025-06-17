@@ -89,7 +89,7 @@ class DownloadAdapter2(
                             "${card.downloadedCount}/${card.downloadedTotal}" + if (card.ETA == "") "" else " - ${card.ETA}"
 
                         downloadProgressbar.apply {
-                            max = card.downloadedTotal * 100
+                            max = card.downloadedTotal.toInt() * 100
 
                             // shitty check for non changed
                             if (same) {
@@ -97,7 +97,7 @@ class DownloadAdapter2(
                                     this,
                                     "progress",
                                     progress,
-                                    card.downloadedCount * 100
+                                    card.downloadedCount.toInt() * 100
                                 )
 
                                 animation.duration = 500
@@ -105,7 +105,7 @@ class DownloadAdapter2(
                                 animation.interpolator = DecelerateInterpolator()
                                 animation.start()
                             } else {
-                                progress = card.downloadedCount * 100
+                                progress = card.downloadedCount.toInt() * 100
                             }
                             //download_progressbar.progress = card.downloadedCount
                             alpha = if (card.downloadedCount >= card.downloadedTotal) 0f else 1f
