@@ -318,8 +318,28 @@ object BookDownloader2Helper {
                             sAuthor,
                             sName
                         )
-                    ).listFiles()?.mapNotNull { it.nameWithoutExtension.toIntOrNull() }
-                    (existingFiles?.maxOrNull()?.plus(1) ?: 0) to (existingFiles?.size ?: 0)
+                    ).listFiles()?.mapNotNull { it.nameWithoutExtension.toIntOrNull() }?.sorted()
+
+                    if (existingFiles.isNullOrEmpty()) {
+                        0 to 0
+                    } else {
+                        // find first continued subsequence after DOWNLOAD_OFFSET
+                        // and mark downloaded as <= sequence end
+                        val start = getKey<Int>(DOWNLOAD_OFFSET, id.toString()) ?: 0
+                        val startIndex = maxOf(existingFiles.indexOfFirst { x -> x >= start }, 0)
+                        var last = existingFiles[startIndex]
+                        var downloads = startIndex + 1
+                        for (i in startIndex + 1 until existingFiles.size) {
+                            if (existingFiles[i] == last + 1) {
+                                downloads += 1
+                                last = existingFiles[i]
+                            } else {
+                                break
+                            }
+                        }
+
+                        (last + 1) to downloads
+                    }
                 }
             if (count <= 0) return null
 
@@ -682,10 +702,11 @@ object BookDownloader2Helper {
                 val stripHtml = activity.getStripHtml()
                 val head = activity.filesDir.toString()
                 val dir = File(head + getDirectory(sApiName, sAuthor, sName))
-
+                // do not include chapters that are stream read downloaded in partial chapter generation
+                val start = getKey<Int>(DOWNLOAD_OFFSET, id.toString()) ?: 0
                 val chapters = dir.listFiles()?.toList()?.mapNotNull { fileName ->
                     fileName.nameWithoutExtension.toIntOrNull() ?: return@mapNotNull null
-                }
+                }?.filter { x -> x >= start }?.sorted()
 
                 chapters?.pmap { threadIndex ->
 
@@ -1810,7 +1831,6 @@ object BookDownloader2 {
 
             for (index in range.start..range.endInclusive) {
                 val data = load.data.getOrNull(index) ?: continue
-                val processedItems = index + 1 - range.start
 
                 // consume any action and wait until not paused
                 while (true) {
@@ -1852,12 +1872,21 @@ object BookDownloader2 {
                 }
 
                 val beforeDownloadTime = System.currentTimeMillis()
+                val hasDownloadedChapter =
+                    BookDownloader2Helper.downloadIndividualChapter(filepath, api, data)
 
-                if (!BookDownloader2Helper.downloadIndividualChapter(filepath, api, data)) {
+                if (hasDownloadedChapter) {
+                    downloadedTotal += 1
+                } else {
                     currentState = DownloadState.IsFailed
                 }
 
-                downloadedTotal += 1
+                val processedItems = index - range.start +
+                        if (hasDownloadedChapter) {
+                            1
+                        } else {
+                            0
+                        }
 
                 val afterDownloadTime = System.currentTimeMillis()
                 timePerLoadMs =
@@ -1865,7 +1894,7 @@ object BookDownloader2 {
 
                 changeDownload(id) {
                     this.progress = index.toLong() + 1L
-                    this.downloaded = processedItems + downloadedTotal
+                    this.downloaded = processedItems.toLong() + alreadyDownloaded
                     state = currentState
                     etaMs = (timePerLoadMs * (range.endInclusive - index)).toLong()
                 }?.let { progressState ->
@@ -1878,7 +1907,7 @@ object BookDownloader2 {
                         // we are only interested in a notification if we failed
                         changeDownload(id) {
                             this.progress = index.toLong() + 1L
-                            this.downloaded = processedItems + downloadedTotal
+                            this.downloaded = processedItems.toLong() + alreadyDownloaded
                             state = currentState
                         }?.let { newProgressState ->
                             createNotification(
@@ -1901,6 +1930,7 @@ object BookDownloader2 {
 
             changeDownload(id) {
                 this.progress = totalItems.toLong()
+                this.downloaded = range.endInclusive + 1 - range.start + alreadyDownloaded
                 state = DownloadState.IsDone
             }?.let { progressState ->
                 // only notify done if we have actually done some work

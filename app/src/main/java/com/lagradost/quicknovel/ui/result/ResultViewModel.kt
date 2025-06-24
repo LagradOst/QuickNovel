@@ -34,6 +34,7 @@ import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
 import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.mvvm.Resource
+import com.lagradost.quicknovel.mvvm.launchSafe
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.util.Apis
@@ -140,9 +141,9 @@ class ResultViewModel : ViewModel() {
         }
     }
 
-    fun openInBrowser() = viewModelScope.launch {
+    fun openInBrowser() = viewModelScope.launchSafe {
         loadMutex.withLock {
-            if (loadUrl.isBlank()) return@launch
+            if (loadUrl.isBlank()) return@launchSafe
             val i = Intent(Intent.ACTION_VIEW)
             i.data = loadUrl.toUri()
             activity?.startActivity(i)
@@ -158,13 +159,13 @@ class ResultViewModel : ViewModel() {
         }
     }
 
-    fun readEpub() = viewModelScope.launch {
+    fun readEpub() = viewModelScope.launchSafe {
         loadMutex.withLock {
-            if (!hasLoaded) return@launch
+            if (!hasLoaded) return@launchSafe
             addToHistory()
             BookDownloader2.readEpub(
                 loadId,
-                downloadState.value?.progress?.toInt() ?: return@launch,
+                downloadState.value?.progress?.toInt() ?: return@launchSafe,
                 load.author,
                 load.name,
                 apiName,
@@ -226,9 +227,9 @@ class ResultViewModel : ViewModel() {
      *  done / pending => nothing,
      *  else => download
      * */
-    fun downloadOrPause() = viewModelScope.launch {
+    fun downloadOrPause() = viewModelScope.launchSafe {
         loadMutex.withLock {
-            if (!hasLoaded) return@launch
+            if (!hasLoaded) return@launchSafe
 
             BookDownloader2.downloadInfoMutex.withLock {
                 downloadProgress[loadId]?.let { downloadState ->
@@ -247,18 +248,18 @@ class ResultViewModel : ViewModel() {
 
                         }
 
-                        else -> BookDownloader2.download(load, context ?: return@launch)
+                        else -> BookDownloader2.download(load, context ?: return@launchSafe)
                     }
                 } ?: run {
-                    BookDownloader2.download(load, context ?: return@launch)
+                    BookDownloader2.download(load, context ?: return@launchSafe)
                 }
             }
         }
     }
 
-    fun pause() = viewModelScope.launch {
+    fun pause() = viewModelScope.launchSafe {
         loadMutex.withLock {
-            if (!hasLoaded) return@launch
+            if (!hasLoaded) return@launchSafe
 
             BookDownloader2.downloadInfoMutex.withLock {
                 downloadProgress[loadId]?.let { downloadState ->
@@ -277,9 +278,9 @@ class ResultViewModel : ViewModel() {
         }
     }
 
-    fun stop() = viewModelScope.launch {
+    fun stop() = viewModelScope.launchSafe {
         loadMutex.withLock {
-            if (!hasLoaded) return@launch
+            if (!hasLoaded) return@launchSafe
 
             BookDownloader2.downloadInfoMutex.withLock {
                 downloadProgress[loadId]?.let { downloadState ->
@@ -300,11 +301,36 @@ class ResultViewModel : ViewModel() {
         }
     }
 
-    fun downloadFrom(start: Int?) = viewModelScope.launch {
+    fun downloadFrom(start: Int?) = viewModelScope.launchSafe {
         loadMutex.withLock {
-            if (!hasLoaded) return@launch
+            if (!hasLoaded) return@launchSafe
             BookDownloader2.downloadInfoMutex.withLock {
                 BookDownloader2.changeDownloadStart(load, api, start)
+                downloadProgress[loadId]?.let { downloadState ->
+                    when (downloadState.state) {
+                        DownloadState.IsPaused -> BookDownloader2.addPendingAction(
+                            loadId,
+                            DownloadActionType.Resume
+                        )
+
+                        DownloadState.IsPending -> {
+
+                        }
+
+                        // DownloadState.IsDone
+                        else -> BookDownloader2.download(load, context ?: return@launchSafe)
+                    }
+                } ?: run {
+                    BookDownloader2.download(load, context ?: return@launchSafe)
+                }
+            }
+        }
+    }
+
+    fun download() = viewModelScope.launchSafe {
+        loadMutex.withLock {
+            if (!hasLoaded) return@launchSafe
+            BookDownloader2.downloadInfoMutex.withLock {
                 downloadProgress[loadId]?.let { downloadState ->
                     when (downloadState.state) {
                         DownloadState.IsPaused -> BookDownloader2.addPendingAction(
@@ -316,21 +342,21 @@ class ResultViewModel : ViewModel() {
 
                         }
 
-                        else -> BookDownloader2.download(load, context ?: return@launch)
+                        else -> BookDownloader2.download(load, context ?: return@launchSafe)
                     }
                 } ?: run {
-                    BookDownloader2.download(load, context ?: return@launch)
+                    BookDownloader2.download(load, context ?: return@launchSafe)
                 }
             }
         }
     }
 
 
-    private fun addToHistory() = viewModelScope.launch {
+    private fun addToHistory() = viewModelScope.launchSafe {
         // we wont add it to history from cache
-        if (!isGetLoaded) return@launch
+        if (!isGetLoaded) return@launchSafe
         loadMutex.withLock {
-            if (!hasLoaded) return@launch
+            if (!hasLoaded) return@launchSafe
             setKey(
                 HISTORY_FOLDER, loadId.toString(), ResultCached(
                     loadUrl,

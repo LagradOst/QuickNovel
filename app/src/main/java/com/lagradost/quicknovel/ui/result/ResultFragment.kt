@@ -342,11 +342,15 @@ class ResultFragment : Fragment() {
     private fun doAction(action: Int) {
         when (action) {
             R.string.resume -> {
-                viewModel.downloadOrPause()
+                viewModel.download()
             }
 
-            R.string.download, R.string.re_downloaded -> {
+            R.string.download -> {
                 viewModel.downloadFrom(null)
+            }
+
+            R.string.re_downloaded -> {
+                viewModel.download()
             }
 
             R.string.download_from_chapter -> {
@@ -645,6 +649,7 @@ class ResultFragment : Fragment() {
                 "${progressState.progress}/${progressState.total}"
 
             binding.resultDownloadProgressBarNotDownloaded.apply {
+                println("progressState: ${progressState}")
                 max = progressState.total.toInt() * 100
                 val animation: ObjectAnimator = ObjectAnimator.ofInt(
                     this,

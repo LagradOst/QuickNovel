@@ -33,11 +33,11 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
             }
 
         private var workNumber: Int = 0
-        private val workData : HashMap<Int, Any> = hashMapOf()
+        private val workData: HashMap<Int, Any> = hashMapOf()
 
         // java.lang.IllegalStateException: Data cannot occupy more than 10240 bytes when serialized
         // This stores the actual data for the WorkManager to use
-        private fun insertWork(data : Any) : Int {
+        private fun insertWork(data: Any): Int {
             synchronized(workData) {
                 workNumber += 1
                 workData[workNumber] = data
@@ -45,7 +45,7 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
             }
         }
 
-        private fun popWork(key : Int) : Any? {
+        private fun popWork(key: Int): Any? {
             synchronized(workData) {
                 return workData.remove(key)
             }
@@ -69,7 +69,7 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
 
         private fun startDownload(data: Any, context: Context) {
             (WorkManager.getInstance(context)).enqueueUniqueWork(
-                ID_DOWNLOAD,
+                ID_DOWNLOAD + System.currentTimeMillis(),
                 ExistingWorkPolicy.APPEND,
                 OneTimeWorkRequest.Builder(DownloadFileWorkManager::class.java)
                     .setInputData(
@@ -114,6 +114,7 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
                     is DownloadFragment.DownloadDataLoaded -> {
                         BookDownloader2.downloadWorkThread(data)
                     }
+
                     else -> return Result.failure()
                 }
             }
