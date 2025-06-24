@@ -50,9 +50,7 @@ object TTSNotifications {
 
     var mediaSession: MediaSessionCompat? = null
 
-    fun setMediaSession(viewModel: ReadActivityViewModel, book: AbstractBook) {
-        val context = viewModel.context ?: return
-
+    fun setMediaSession(viewModel: ReadActivityViewModel, book: AbstractBook, context: Context) {
         val mbrIntent = MediaButtonReceiver.buildMediaButtonPendingIntent(
             context,
             PlaybackStateCompat.ACTION_PLAY_PAUSE

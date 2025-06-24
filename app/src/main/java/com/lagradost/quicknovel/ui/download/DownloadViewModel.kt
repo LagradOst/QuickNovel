@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.ui.download
 
 import android.content.DialogInterface
+import androidx.annotation.WorkerThread
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -12,7 +13,11 @@ import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
-import com.lagradost.quicknovel.BookDownloader2Helper
+import com.lagradost.quicknovel.BookDownloader2.currentDownloads
+import com.lagradost.quicknovel.BookDownloader2.currentDownloadsMutex
+import com.lagradost.quicknovel.BookDownloader2.downloadInfoMutex
+import com.lagradost.quicknovel.BookDownloader2.downloadProgress
+import com.lagradost.quicknovel.BookDownloader2.downloadProgressChanged
 import com.lagradost.quicknovel.CURRENT_TAB
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
@@ -20,6 +25,7 @@ import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
 import com.lagradost.quicknovel.DownloadActionType
+import com.lagradost.quicknovel.DownloadFileWorkManager
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.MainActivity
@@ -35,8 +41,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.util.concurrent.CopyOnWriteArrayList
 import me.xdrop.fuzzywuzzy.FuzzySearch
+import java.util.concurrent.CopyOnWriteArrayList
 
 const val DEFAULT_SORT = 0
 const val ALPHA_SORT = 1
@@ -72,8 +78,8 @@ class DownloadViewModel : ViewModel() {
         currentTab.postValue(position)
     }
 
-    fun refreshCard(card: DownloadFragment.DownloadDataLoaded) = viewModelScope.launch {
-        BookDownloader2.downloadFromCard(card)
+    fun refreshCard(card: DownloadFragment.DownloadDataLoaded) {
+        DownloadFileWorkManager.download(card, context ?: return)
     }
 
     fun pause(card: DownloadFragment.DownloadDataLoaded) {
@@ -120,16 +126,39 @@ class DownloadViewModel : ViewModel() {
         }
     }
 
-    fun refresh() = viewModelScope.launch {
-        val values = cardsDataMutex.withLock {
+    @WorkerThread
+    suspend fun refreshInternal() {
+        val allValues = cardsDataMutex.withLock {
             cardsData.values
         }
-        for (card in values) {
-            // avoid div by zero
-            if (card.downloadedTotal <= 0 || (card.downloadedCount * 100 / card.downloadedTotal) > 90) {
-                BookDownloader2.downloadFromCard(card)
+
+        val values = currentDownloadsMutex.withLock {
+            allValues.filter { card ->
+                card.downloadedTotal <= 0 || (card.downloadedCount * 100 / card.downloadedTotal) > 90 && !currentDownloads.contains(
+                    card.id
+                )
             }
         }
+
+        downloadInfoMutex.withLock {
+            for (card in values) {
+                downloadProgress[card.id]?.apply {
+                    state = DownloadState.IsPending
+                    lastUpdatedMs = System.currentTimeMillis()
+                    downloadProgressChanged.invoke(card.id to this)
+                }
+            }
+        }
+
+        for (card in values) {
+            if (card.downloadedTotal <= 0 || (card.downloadedCount * 100 / card.downloadedTotal) > 90) {
+                BookDownloader2.downloadWorkThread(card)
+            }
+        }
+    }
+
+    fun refresh() {
+        DownloadFileWorkManager.refreshAll(this@DownloadViewModel, context ?: return)
     }
 
     fun showMetadata(card: DownloadFragment.DownloadDataLoaded) {

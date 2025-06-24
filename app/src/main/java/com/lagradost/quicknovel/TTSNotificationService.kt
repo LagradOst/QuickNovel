@@ -1,6 +1,5 @@
 package com.lagradost.quicknovel
 
-import android.app.ActivityManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -11,6 +10,7 @@ import androidx.media.session.MediaButtonReceiver
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.txt
+import com.lagradost.quicknovel.util.AppUtils.isServiceRunning
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.sync.Semaphore
@@ -53,15 +53,6 @@ class TTSNotificationService : Service() {
                 Intent(ctx, TTSNotificationService::class.java)
             )
         }
-
-        private fun isServiceRunning(ctx: Context, service: Class<*>): Boolean =
-            try {
-                (ctx.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager).getRunningServices(
-                    Integer.MAX_VALUE
-                ).any { cmp -> service.name == cmp.service.className }
-            } catch (t: Throwable) {
-                false
-            }
     }
 
     override fun onCreate() {
@@ -69,19 +60,20 @@ class TTSNotificationService : Service() {
         currentJob = null
 
         viewModel?.let { viewModel ->
-            TTSNotifications.setMediaSession(viewModel, viewModel.book)
+            TTSNotifications.setMediaSession(viewModel, viewModel.book, this)
 
             val notification = TTSNotifications.createNotification(
                 viewModel.book.title(),
                 txt(""),
                 viewModel.book.poster(),
-                viewModel.currentTTSStatus,
-                viewModel.context
+                TTSHelper.TTSStatus.IsRunning,
+                this
             )
 
             try {
                 startForeground(TTSNotifications.TTS_NOTIFICATION_ID, notification)
             } catch (t: Throwable) {
+                logError(t)
                 showToast(t.toString())
                 stopSelf()
                 return@let

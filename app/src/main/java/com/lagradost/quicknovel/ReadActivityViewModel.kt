@@ -423,13 +423,6 @@ class ReadActivityViewModel : ViewModel() {
         return book.canReload
     }
 
-    private var _context: WeakReference<ReadActivity2>? = null
-    var context
-        get() = _context?.get()
-        private set(value) {
-            _context = WeakReference(value)
-        }
-
 
     private val _chapterData: MutableLiveData<ChapterUpdate> =
         MutableLiveData<ChapterUpdate>(null)
@@ -1056,7 +1049,6 @@ class ReadActivityViewModel : ViewModel() {
 
     fun init(intent: Intent?, context: ReadActivity2) = ioSafe {
         _loadingStatus.postValue(Resource.Loading())
-        this@ReadActivityViewModel.context = context
         initTTSSession(context)
 
         val loadedBook = safeApiCall {

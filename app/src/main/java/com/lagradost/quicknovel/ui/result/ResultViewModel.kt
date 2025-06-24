@@ -247,10 +247,10 @@ class ResultViewModel : ViewModel() {
 
                         }
 
-                        else -> BookDownloader2.download(load, api)
+                        else -> BookDownloader2.download(load, context ?: return@launch)
                     }
                 } ?: run {
-                    BookDownloader2.download(load, api)
+                    BookDownloader2.download(load, context ?: return@launch)
                 }
             }
         }
@@ -316,10 +316,10 @@ class ResultViewModel : ViewModel() {
 
                         }
 
-                        else -> BookDownloader2.download(load, api)
+                        else -> BookDownloader2.download(load, context ?: return@launch)
                     }
                 } ?: run {
-                    BookDownloader2.download(load, api)
+                    BookDownloader2.download(load, context ?: return@launch)
                 }
             }
         }

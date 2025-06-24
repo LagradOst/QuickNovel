@@ -37,20 +37,16 @@ class ReviewAdapter2 :
             binding.apply {
                 val localContext = this.root.context ?: return
 
-                var reviewText = card.review.replace("\n", "")
+                val expandedText = card.review.replace("\n", "")
+                var reviewText = expandedText
                 if (reviewText.length > MAX_SYNO_LENGH) {
                     reviewText = reviewText.substring(0, MAX_SYNO_LENGH) + "..."
                 }
+                var isExpanded = false
 
                 reviewBody.setOnClickListener {
-                    val builder: AlertDialog.Builder = AlertDialog.Builder(localContext)
-                    builder.setMessage(reviewText.html())
-                    val title = card.reviewTitle ?: card.username
-                    ?: if (card.rating != null) localContext.getString(R.string.overall_rating_format)
-                        .format(localContext.getRatingReview(card.rating)) else null
-                    if (title != null)
-                        builder.setTitle(title)
-                    builder.show()
+                    isExpanded = !isExpanded
+                    reviewBody.text = if(isExpanded) expandedText.html() else reviewText.html()
                 }
 
                 reviewBody.text = reviewText.html()

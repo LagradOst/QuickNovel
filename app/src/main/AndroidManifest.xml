@@ -40,6 +40,13 @@
             </intent-filter>
         </service>
 
+        <service
+                android:name=".DownloadNotificationService"
+                android:enabled="true"
+                android:foregroundServiceType="dataSync"
+                android:exported="false">
+        </service>
+
         <receiver
                 android:name="androidx.media.session.MediaButtonReceiver"
                 android:exported="true">
@@ -178,15 +185,6 @@
                 <data android:mimeType="application/epub+zip" />
             </intent-filter>
         </activity>
-
-        <service
-                android:name=".services.DownloadService"
-                android:enabled="true"
-                android:exported="false" />
-        <service
-                android:name=".services.TTSPauseService"
-                android:enabled="true"
-                android:exported="false" />
 
         <provider
                 android:name="androidx.core.content.FileProvider"

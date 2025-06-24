@@ -46,7 +46,6 @@ import com.lagradost.quicknovel.ImageDownloader.getImageBitmapFromUrl
 import com.lagradost.quicknovel.NotificationHelper.etaToString
 import com.lagradost.quicknovel.extractors.ExtractorApi
 import com.lagradost.quicknovel.mvvm.logError
-import com.lagradost.quicknovel.services.DownloadService
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getBasePath
 import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getDefaultDir
@@ -902,9 +901,9 @@ object NotificationHelper {
 
                 // ADD ACTIONS
                 for ((index, i) in actionTypes.withIndex()) {
-                    val _resultIntent = Intent(context, DownloadService::class.java)
+                    val resultIntent = Intent(context, DownloadNotificationService::class.java)
 
-                    _resultIntent.putExtra(
+                    resultIntent.putExtra(
                         "type", when (i) {
                             DownloadActionType.Resume -> "resume"
                             DownloadActionType.Pause -> "pause"
@@ -912,12 +911,12 @@ object NotificationHelper {
                         }
                     )
 
-                    _resultIntent.putExtra("id", id)
+                    resultIntent.putExtra("id", id)
 
                     val pending: PendingIntent =
                         PendingIntent.getService(
                             context, 4337 + index + id,
-                            _resultIntent,
+                            resultIntent,
                             PendingIntent.FLAG_UPDATE_CURRENT or
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
                                         PendingIntent.FLAG_MUTABLE else 0
@@ -1009,7 +1008,7 @@ object BookDownloader2 {
 
     @WorkerThread
     suspend fun stream(res: EpubResponse, apiName: String) {
-        downloadAsync(res, getApiFromName(apiName))
+        downloadWorkThread(res, getApiFromName(apiName))
         readEpub(res.author, res.name, apiName, res.synopsis)
     }
 
@@ -1227,8 +1226,8 @@ object BookDownloader2 {
         downloadDataRefreshed.invoke(0)
     }
 
-    private val currentDownloadsMutex = Mutex()
-    private val currentDownloads: HashSet<Int> = hashSetOf()
+    val currentDownloadsMutex = Mutex()
+    val currentDownloads: HashSet<Int> = hashSetOf()
 
     private val pendingActionMutex = Mutex()
     private val pendingAction: HashMap<Int, DownloadActionType> = hashMapOf()
@@ -1351,9 +1350,8 @@ object BookDownloader2 {
 
     private val migrationNovelMutex = Mutex()
 
-    // this is suspended because we want to as fast as possible set the card to pending before starting the multithreaded startup
-    // because this called from a for loop, the locks wont be a problem
-    suspend fun downloadFromCard(
+    @WorkerThread
+    suspend fun downloadWorkThread(
         card: DownloadFragment.DownloadDataLoaded,
     ) {
         currentDownloadsMutex.withLock {
@@ -1371,7 +1369,7 @@ object BookDownloader2 {
             }
         }
 
-        ioSafe {
+        try {
             val api = getApiFromName(card.apiName)
             val data = api.load(card.source, allowCache = false)
 
@@ -1397,9 +1395,20 @@ object BookDownloader2 {
                         deleteNovelAsync(card.author, card.name, card.apiName)
                     }
                 }
-                download(
-                    res, api
-                )
+
+                when (res) {
+                    is EpubResponse -> {
+                        downloadWorkThread(
+                            res, api
+                        )
+                    }
+
+                    is StreamResponse -> {
+                        downloadWorkThread(
+                            res, api
+                        )
+                    }
+                }
             } else {
                 // failed to get, but not inside download function, so fail here
                 downloadInfoMutex.withLock {
@@ -1410,6 +1419,8 @@ object BookDownloader2 {
                     }
                 }
             }
+        } catch (t: Throwable) {
+            logError(t)
         }
     }
 
@@ -1425,24 +1436,8 @@ object BookDownloader2 {
         )
     }
 
-    fun download(load: LoadResponse, api: APIRepository) {
-        when (load) {
-            is StreamResponse -> {
-                val id = generateId(load, api.name)
-                val desiredStart = (
-                        getKey<Int>(
-                            DOWNLOAD_OFFSET, id.toString(),
-                        ) ?: 0
-                        ).coerceIn(0, load.data.size)
-                download(load, api, desiredStart until load.data.size)
-            }
-
-            is EpubResponse -> {
-                download(load, api)
-            }
-
-            else -> throw NotImplementedError()
-        }
+    fun download(load: LoadResponse, context: Context) {
+        DownloadFileWorkManager.download(load, context)
     }
 
     private suspend fun setSuffixData(load: LoadResponse, api: APIRepository) {
@@ -1544,13 +1539,8 @@ object BookDownloader2 {
     const val LOCAL_EPUB: String = "local_epub.epub"
     const val LOCAL_EPUB_MIN_SIZE: Long = 1000
 
-
-    fun download(load: EpubResponse, api: APIRepository) = ioSafe {
-        downloadAsync(load, api)
-    }
-
     @WorkerThread
-    suspend fun downloadAsync(load: EpubResponse, api: APIRepository) {
+    suspend fun downloadWorkThread(load: EpubResponse, api: APIRepository) {
         val filesDir = activity?.filesDir ?: return
         val sApiName = BookDownloader2Helper.sanitizeFilename(api.name)
         val author = load.author
@@ -1586,7 +1576,7 @@ object BookDownloader2 {
                 )
             }
 
-            var links = ExtractorApi.extract(load.links)
+            var links = ExtractorApi.extract(load.downloadExtractLinks + load.downloadLinks)
             links = links.sortedByDescending { it.kbPerSec }
             //println("links $links")
             for (link in links) {
@@ -1739,6 +1729,7 @@ object BookDownloader2 {
         }
     }
 
+    @WorkerThread
     private suspend fun downloadImage(
         load: LoadResponse,
         sApiName: String,
@@ -1775,8 +1766,24 @@ object BookDownloader2 {
         }
     }
 
-    fun download(load: StreamResponse, api: APIRepository, range: ClosedRange<Int>) = ioSafe {
-        val filesDir = activity?.filesDir ?: return@ioSafe
+    @WorkerThread
+    suspend fun downloadWorkThread(load: StreamResponse, api: APIRepository) {
+        val id = generateId(load, api.name)
+        val desiredStart = (
+                getKey<Int>(
+                    DOWNLOAD_OFFSET, id.toString(),
+                ) ?: 0
+                ).coerceIn(0, load.data.size)
+        downloadWorkThread(load, api, desiredStart until load.data.size)
+    }
+
+    @WorkerThread
+    suspend fun downloadWorkThread(
+        load: StreamResponse,
+        api: APIRepository,
+        range: ClosedRange<Int>
+    ) {
+        val filesDir = activity?.filesDir ?: return
         val sApiName = BookDownloader2Helper.sanitizeFilename(api.name)
         val sAuthor =
             BookDownloader2Helper.sanitizeFilename(load.author ?: "")
@@ -1866,7 +1873,7 @@ object BookDownloader2 {
                 }
 
                 when (currentState) {
-                    DownloadState.IsStopped -> return@ioSafe
+                    DownloadState.IsStopped -> return
                     DownloadState.IsFailed -> {
                         // we are only interested in a notification if we failed
                         changeDownload(id) {
@@ -1880,7 +1887,7 @@ object BookDownloader2 {
                                 newProgressState,
                             )
                         }
-                        return@ioSafe
+                        return
                     }
 
                     else -> {}

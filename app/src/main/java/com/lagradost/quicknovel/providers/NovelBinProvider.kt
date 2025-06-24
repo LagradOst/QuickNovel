@@ -82,7 +82,7 @@ class NovelBinProvider : MainAPI() {
         "Store" to "store",
     )
 
-    val fullPosterRegex = Regex("/novel_[0-9]*_[0-9]*/")
+    private val fullPosterRegex = Regex("/novel_[0-9]*_[0-9]*/")
 
     override suspend fun loadMainPage(
         page: Int,

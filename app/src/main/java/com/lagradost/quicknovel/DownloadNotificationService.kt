@@ -1,26 +1,29 @@
-package com.lagradost.quicknovel.services
+package com.lagradost.quicknovel
 
-import android.app.IntentService
+import android.app.Service
 import android.content.Intent
-import com.lagradost.quicknovel.BookDownloader2
-import com.lagradost.quicknovel.DownloadActionType
+import android.os.IBinder
 
-class DownloadService : IntentService("DownloadService") {
-    override fun onHandleIntent(intent: Intent?) {
+class DownloadNotificationService : Service() {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null) {
             val id = intent.getIntExtra("id", -1)
             val type = intent.getStringExtra("type")
             if (id != -1 && type != null) {
-                val action = when(type) {
+                val action = when (type) {
                     "resume" -> DownloadActionType.Resume
                     "pause" -> DownloadActionType.Pause
                     "stop" -> DownloadActionType.Stop
                     else -> null
                 }
 
-                if(action != null)
+                if (action != null)
                     BookDownloader2.addPendingAction(id, action)
             }
         }
+        if (intent == null) return START_NOT_STICKY
+        return START_STICKY
     }
+
+    override fun onBind(intent: Intent?): IBinder? = null
 }

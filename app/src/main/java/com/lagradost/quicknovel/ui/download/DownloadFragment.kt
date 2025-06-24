@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AbsListView.CHOICE_MODE_SINGLE
@@ -13,29 +12,29 @@ import android.widget.ImageView
 import android.widget.ListView
 import androidx.annotation.StringRes
 import androidx.appcompat.widget.SearchView
-import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
-import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
+import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
+import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
+import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
+import com.lagradost.quicknovel.DownloadState
+import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.FragmentDownloadsBinding
 import com.lagradost.quicknovel.mvvm.observe
-import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.img
-import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
-import com.lagradost.quicknovel.util.toPx
 
 class DownloadFragment : Fragment() {
-    private val viewModel: DownloadViewModel by viewModels()
+    private lateinit var viewModel: DownloadViewModel
     lateinit var binding: FragmentDownloadsBinding
 
     data class DownloadData(
@@ -120,11 +119,13 @@ class DownloadFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
+        viewModel = ViewModelProvider(activity ?: this)[DownloadViewModel::class.java]
         binding = FragmentDownloadsBinding.inflate(inflater)
         return binding.root
         //return inflater.inflate(R.layout.fragment_downloads, container, false)
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private fun setupGridView() {
         (binding.viewpager.adapter as? ViewpagerAdapter)?.notifyDataSetChanged()
         /*val compactView = requireContext().getDownloadIsCompact()

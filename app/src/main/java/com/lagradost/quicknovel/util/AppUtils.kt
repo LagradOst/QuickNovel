@@ -1,5 +1,7 @@
 package com.lagradost.quicknovel.util
 
+import android.app.ActivityManager
+import android.content.Context
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -33,4 +35,13 @@ object AppUtils {
             null
         }
     }
+
+    fun isServiceRunning(ctx: Context, service: Class<*>): Boolean =
+        try {
+            (ctx.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager).getRunningServices(
+                Integer.MAX_VALUE
+            ).any { cmp -> service.name == cmp.service.className }
+        } catch (t: Throwable) {
+            false
+        }
 }
