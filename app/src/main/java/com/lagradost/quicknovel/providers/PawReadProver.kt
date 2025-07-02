@@ -71,11 +71,7 @@ class PawReadProver : MainAPI() {
         orderBy: String?,
         tag: String?
     ): HeadMainPageResponse {
-        val url = "$mainUrl/list/${mainCategory ?: "all-"}${tag ?: "All"}/${orderBy ?: "update"}/"
-
-        if (page > 1) {
-            return HeadMainPageResponse(url = url, emptyList())
-        }
+        val url = "$mainUrl/list/${mainCategory ?: "all-"}${tag ?: "All"}/${orderBy ?: "update"}/?page=$page"
         val document = app.get(url).document
         return HeadMainPageResponse(
             url,

@@ -195,8 +195,14 @@ class MainPageFragment : Fragment() {
                         val value = data.value
                         binding.mainpageLoading.isVisible = false
                         binding.mainpageLoadingError.isVisible = false
+                        mainPageAdapter.submitList(value.items)
 
-                        mainPageAdapter.submitList(value)
+                        // this is needed to fix the scroll issue when value.size % 3 == 0
+                        if (value.pages == 1) {
+                            binding.mainpageList.post {
+                                binding.mainpageList.scrollToPosition(0)
+                            }
+                        }
                         binding.mainpageList.isInvisible = false
                         //binding.mainpageList.isVisible = true
                         // mainPageAdapter.setLoading(false)
