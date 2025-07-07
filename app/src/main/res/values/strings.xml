@@ -229,4 +229,12 @@
     <string name="sleep_format_stop">TTS will stop in %d min</string>
     <string name="google_translate">Google translate</string>
     <string name="start_chapter">Skipped chapters</string>
+    
+    <!-- Chapter context menu -->
+    <string name="mark_as_read">Mark as Read</string>
+    <string name="mark_as_unread">Mark as Unread</string>
+    <string name="mark_all_previous_as_read">Mark All Previous as Read</string>
+    <string name="mark_all_previous_as_unread">Mark All Previous as Unread</string>
+    <string name="share_chapter">Share Chapter</string>
+    <string name="copy_url">Copy URL</string>
 </resources>

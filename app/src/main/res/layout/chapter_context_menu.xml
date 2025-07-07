@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:background="?attr/primaryBlackBackground"
+    android:layout_height="wrap_content">
+
+    <TextView
+        android:id="@+id/chapter_menu_title"
+        android:paddingStart="?android:attr/listPreferredItemPaddingStart"
+        android:paddingEnd="?android:attr/listPreferredItemPaddingEnd"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="10dp"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:textColor="?attr/textColor"
+        android:layout_width="match_parent"
+        android:layout_rowWeight="1"
+        tools:text="Chapter 25"
+        android:layout_height="wrap_content" />
+
+    <LinearLayout
+        android:id="@+id/chapter_menu_buttons_container"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="20dp">
+
+        <!-- Mark as Read/Unread Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/chapter_menu_mark_read"
+            style="@style/BlackButton"
+            android:layout_width="match_parent"
+            android:layout_marginBottom="8dp"
+            android:text="@string/mark_as_read"
+            app:icon="@drawable/ic_baseline_check_24" />
+
+        <!-- Mark All Previous as Read/Unread Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/chapter_menu_mark_all_previous"
+            style="@style/BlackButton"
+            android:layout_width="match_parent"
+            android:layout_marginBottom="8dp"
+            android:text="@string/mark_all_previous_as_read"
+            app:icon="@drawable/ic_baseline_check_24" />
+
+        <!-- Share Chapter Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/chapter_menu_share"
+            style="@style/BlackButton"
+            android:layout_width="match_parent"
+            android:layout_marginBottom="8dp"
+            android:text="@string/share_chapter"
+            app:icon="@drawable/ic_outline_share_24" />
+
+        <!-- Copy URL Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/chapter_menu_copy_url"
+            style="@style/BlackButton"
+            android:layout_width="match_parent"
+            android:layout_marginBottom="8dp"
+            android:text="@string/copy_url"
+            app:icon="@drawable/ic_baseline_open_in_new_24" />
+
+    </LinearLayout>
+
+</LinearLayout> 

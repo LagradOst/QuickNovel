@@ -39,8 +39,7 @@ class ChapterAdapter(val viewModel : ResultViewModel) : ListAdapter<ChapterData,
                     refresh(card,viewModel)
                 }
                 root.setOnLongClickListener {
-                    viewModel.setReadChapter(chapter = card, !viewModel.hasReadChapter(card))
-                    refresh(card,viewModel)
+                    viewModel.showChapterContextMenu(card)
                     return@setOnLongClickListener true
                 }
                 refresh(card,viewModel)

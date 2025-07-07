@@ -4,9 +4,11 @@ import android.content.DialogInterface
 import android.content.Intent
 import androidx.appcompat.app.AlertDialog
 import androidx.core.net.toUri
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
@@ -18,7 +20,9 @@ import com.lagradost.quicknovel.BookDownloader2Helper
 import com.lagradost.quicknovel.BookDownloader2Helper.generateId
 import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.CommonActivity.activity
+import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
+import com.lagradost.quicknovel.databinding.ChapterContextMenuBinding
 import com.lagradost.quicknovel.DownloadActionType
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
@@ -80,6 +84,104 @@ class ResultViewModel : ViewModel() {
         return true
     }
 
+    fun markAllPreviousChapters(chapter: ChapterData, value: Boolean): Boolean {
+        val streamResponse = (load as? StreamResponse) ?: return false
+        val currentIndex = chapterIndex(chapter) ?: return false
+        
+        // Mark all chapters from index 0 to currentIndex (inclusive) as read/unread
+        for (i in 0..currentIndex) {
+            if (value) {
+                setKey(
+                    EPUB_CURRENT_POSITION_READ_AT,
+                    "${streamResponse.name}/$i",
+                    System.currentTimeMillis()
+                )
+            } else {
+                removeKey(
+                    EPUB_CURRENT_POSITION_READ_AT,
+                    "${streamResponse.name}/$i",
+                )
+            }
+        }
+        
+        return true
+    }
+
+    fun hasAnyPreviousChapterUnread(chapter: ChapterData): Boolean {
+        val streamResponse = (load as? StreamResponse) ?: return false
+        val currentIndex = chapterIndex(chapter) ?: return false
+        
+        // Check if any chapter from index 0 to currentIndex (inclusive) is unread
+        for (i in 0..currentIndex) {
+            val isRead = getKey<Long>(
+                EPUB_CURRENT_POSITION_READ_AT,
+                "${streamResponse.name}/$i"
+            ) != null
+            if (!isRead) {
+                return true // Found at least one unread chapter
+            }
+        }
+        
+        return false // All chapters are read
+    }
+
+    fun showChapterContextMenu(chapter: ChapterData) {
+        val ctx = activity ?: return
+        val bottomSheetDialog = BottomSheetDialog(ctx)
+        val binding = ChapterContextMenuBinding.inflate(ctx.layoutInflater, null, false)
+        bottomSheetDialog.setContentView(binding.root)
+
+        // Set chapter title
+        binding.chapterMenuTitle.text = chapter.name
+
+        // Update mark as read button text and icon based on current state
+        val isRead = hasReadChapter(chapter)
+        binding.chapterMenuMarkRead.apply {
+            text = ctx.getString(if (isRead) R.string.mark_as_unread else R.string.mark_as_read)
+            setIconResource(if (isRead) R.drawable.ic_baseline_collections_bookmark_24 else R.drawable.ic_baseline_check_24)
+        }
+
+        // Update mark all previous button text and icon based on whether any previous chapters are unread
+        val hasUnreadPrevious = hasAnyPreviousChapterUnread(chapter)
+        binding.chapterMenuMarkAllPrevious.apply {
+            text = ctx.getString(if (hasUnreadPrevious) R.string.mark_all_previous_as_read else R.string.mark_all_previous_as_unread)
+            setIconResource(if (hasUnreadPrevious) R.drawable.ic_baseline_check_24 else R.drawable.ic_baseline_collections_bookmark_24)
+        }
+
+        // Set up button click listeners
+        binding.chapterMenuMarkRead.setOnClickListener {
+            setReadChapter(chapter, !isRead)
+            triggerChapterRefresh()
+            bottomSheetDialog.dismiss()
+        }
+
+        binding.chapterMenuMarkAllPrevious.setOnClickListener {
+            // If any previous chapters are unread, mark all as read; otherwise mark all as unread
+            markAllPreviousChapters(chapter, hasUnreadPrevious)
+            triggerChapterRefresh()
+            bottomSheetDialog.dismiss()
+        }
+
+        binding.chapterMenuShare.setOnClickListener {
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, "Check out this chapter: ${chapter.name} - ${chapter.url}")
+            }
+            ctx.startActivity(Intent.createChooser(shareIntent, "Share Chapter"))
+            bottomSheetDialog.dismiss()
+        }
+
+        binding.chapterMenuCopyUrl.setOnClickListener {
+            val clipboard = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val clip = android.content.ClipData.newPlainText("Chapter URL", chapter.url)
+            clipboard.setPrimaryClip(clip)
+            showToast(ctx, "URL copied to clipboard")
+            bottomSheetDialog.dismiss()
+        }
+
+        bottomSheetDialog.show()
+    }
+
     lateinit var repo: APIRepository
 
     var isGetLoaded = false
@@ -107,6 +209,13 @@ class ResultViewModel : ViewModel() {
     val loadResponse: MutableLiveData<Resource<LoadResponse>?> =
         MutableLiveData<Resource<LoadResponse>?>()
 
+    // LiveData to trigger chapter list refresh when read status changes
+    private val _chapterRefreshTrigger = MutableLiveData<Boolean>()
+    val chapterRefreshTrigger: LiveData<Boolean> = _chapterRefreshTrigger
+
+    private fun triggerChapterRefresh() {
+        _chapterRefreshTrigger.postValue(true)
+    }
 
     val reviews: MutableLiveData<Resource<ArrayList<UserReview>>> by lazy {
         MutableLiveData<Resource<ArrayList<UserReview>>>()

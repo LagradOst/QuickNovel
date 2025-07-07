@@ -53,6 +53,7 @@ const val MAX_SYNO_LENGH = 300
 class ResultFragment : Fragment() {
     lateinit var binding: FragmentResultBinding
     private val viewModel: ResultViewModel by viewModels()
+    private var chapterAdapter: ChapterAdapter? = null
 
     companion object {
         fun newInstance(url: String, apiName: String, startAction: Int = 0): Bundle =
@@ -233,6 +234,7 @@ class ResultFragment : Fragment() {
                             chapterList.apply {
                                 val mainPageAdapter = ChapterAdapter(viewModel)
                                 adapter = mainPageAdapter
+                                chapterAdapter = mainPageAdapter
                                 setHasFixedSize(true)
                                 if (res is StreamResponse) {
                                     mainPageAdapter.submitList(res.data)
@@ -727,6 +729,10 @@ class ResultFragment : Fragment() {
             }
         }
 
+        observe(viewModel.chapterRefreshTrigger) {
+            // Refresh the chapter adapter to update read status visual indicators
+            chapterAdapter?.notifyDataSetChanged()
+        }
 
         //result_container.setBackgroundColor(requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground))
 
