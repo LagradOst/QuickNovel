@@ -48,6 +48,15 @@
             android:text="@string/mark_all_previous_as_read"
             app:icon="@drawable/ic_baseline_check_24" />
 
+        <!-- Bookmark Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/chapter_menu_bookmark"
+            style="@style/BlackButton"
+            android:layout_width="match_parent"
+            android:layout_marginBottom="8dp"
+            android:text="@string/bookmark_chapter"
+            app:icon="@drawable/ic_baseline_bookmark_24" />
+
         <!-- Share Chapter Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/chapter_menu_share"

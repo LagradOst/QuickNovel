@@ -235,6 +235,9 @@
     <string name="mark_as_unread">Mark as Unread</string>
     <string name="mark_all_previous_as_read">Mark All Previous as Read</string>
     <string name="mark_all_previous_as_unread">Mark All Previous as Unread</string>
+    <string name="bookmark_chapter">Bookmark Chapter</string>
+    <string name="remove_bookmark">Remove Bookmark</string>
+    <string name="bookmarks">Bookmarks</string>
     <string name="share_chapter">Share Chapter</string>
     <string name="copy_url">Copy URL</string>
 </resources>

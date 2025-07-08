@@ -54,6 +54,7 @@ class ResultFragment : Fragment() {
     lateinit var binding: FragmentResultBinding
     private val viewModel: ResultViewModel by viewModels()
     private var chapterAdapter: ChapterAdapter? = null
+    private var bookmarksAdapter: ChapterAdapter? = null
 
     companion object {
         fun newInstance(url: String, apiName: String, startAction: Int = 0): Bundle =
@@ -129,20 +130,17 @@ class ResultFragment : Fragment() {
                 maxOf(0, total)
             )
         }
-        val parameter = binding.chapterList.layoutParams
-        parameter.height =
+        val calculatedHeight =
             displayMetrics.heightPixels - binding.viewsAndRating.height - binding.resultTabs.height - binding.resultScrollPadding.paddingTop
 
-        binding.chapterList.layoutParams = parameter
-        //ViewGroup.LayoutParams(binding.chapterList.layoutParams.width,displayMetrics.heightPixels)
-        /*binding.hiddenView.apply {
-            setPadding(
-                paddingLeft,
-                paddingTop,
-                paddingRight,
-                maxOf(0, total)
-            )
-        }*/
+        // Set height for both chapter list and bookmarks list
+        val chapterParameter = binding.chapterList.layoutParams
+        chapterParameter.height = calculatedHeight
+        binding.chapterList.layoutParams = chapterParameter
+
+        val bookmarksParameter = binding.bookmarksList.layoutParams
+        bookmarksParameter.height = calculatedHeight
+        binding.bookmarksList.layoutParams = bookmarksParameter
     }
 
 
@@ -239,6 +237,18 @@ class ResultFragment : Fragment() {
                                 if (res is StreamResponse) {
                                     mainPageAdapter.submitList(res.data)
                                 }
+                            }
+                            
+                            // Add bookmarks tab
+                            resultTabs.addTab(
+                                resultTabs.newTab().setText(R.string.bookmarks).setId(4)
+                            )
+                            bookmarksList.apply {
+                                val bookmarkPageAdapter = ChapterAdapter(viewModel)
+                                adapter = bookmarkPageAdapter
+                                bookmarksAdapter = bookmarkPageAdapter
+                                setHasFixedSize(true)
+                                // Will be populated when tab is selected
                             }
                         }
                     }
@@ -622,6 +632,17 @@ class ResultFragment : Fragment() {
                 reviewsFab.isVisible = 1 == pos
                 resultRelatedholder.isVisible = 2 == pos
                 resultChapterholder.isVisible = 3 == pos
+                resultBookmarksholder.isVisible = 4 == pos
+                
+                // Load bookmarked chapters when bookmarks tab is selected
+                if (pos == 4) {
+                    val bookmarkedChapters = viewModel.getBookmarkedChapters()
+                    bookmarksAdapter?.submitList(bookmarkedChapters)
+                    bookmarksEmptyText.isVisible = bookmarkedChapters.isEmpty()
+                    bookmarksList.isVisible = bookmarkedChapters.isNotEmpty()
+                    // Ensure proper height calculation for bookmarks tab
+                    binding.resultHolder.post { updateScrollHeight() }
+                }
             }
         }
 
@@ -732,6 +753,14 @@ class ResultFragment : Fragment() {
         observe(viewModel.chapterRefreshTrigger) {
             // Refresh the chapter adapter to update read status visual indicators
             chapterAdapter?.notifyDataSetChanged()
+            
+            // Also refresh bookmarks if bookmarks tab is currently visible
+            if (binding.resultBookmarksholder.isVisible) {
+                val bookmarkedChapters = viewModel.getBookmarkedChapters()
+                bookmarksAdapter?.submitList(bookmarkedChapters)
+                binding.bookmarksEmptyText.isVisible = bookmarkedChapters.isEmpty()
+                binding.bookmarksList.isVisible = bookmarkedChapters.isNotEmpty()
+            }
         }
 
         //result_container.setBackgroundColor(requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground))

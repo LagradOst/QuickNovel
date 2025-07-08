@@ -125,6 +125,52 @@ class ResultViewModel : ViewModel() {
         return false // All chapters are read
     }
 
+    fun isChapterBookmarked(chapter: ChapterData): Boolean {
+        val streamResponse = (load as? StreamResponse) ?: return false
+        val index = chapterIndex(chapter) ?: return false
+        return getKey<Long>(
+            "CHAPTER_BOOKMARK",
+            "${streamResponse.name}/$index"
+        ) != null
+    }
+
+    fun setChapterBookmark(chapter: ChapterData, value: Boolean): Boolean {
+        val streamResponse = (load as? StreamResponse) ?: return false
+        val index = chapterIndex(chapter) ?: return false
+
+        if (value) {
+            setKey(
+                "CHAPTER_BOOKMARK",
+                "${streamResponse.name}/$index",
+                System.currentTimeMillis()
+            )
+        } else {
+            removeKey(
+                "CHAPTER_BOOKMARK",
+                "${streamResponse.name}/$index"
+            )
+        }
+
+        return true
+    }
+
+    fun getBookmarkedChapters(): List<ChapterData> {
+        val streamResponse = (load as? StreamResponse) ?: return emptyList()
+        val bookmarkedChapters = mutableListOf<ChapterData>()
+        
+        streamResponse.data.forEachIndexed { index, chapter ->
+            val isBookmarked = getKey<Long>(
+                "CHAPTER_BOOKMARK",
+                "${streamResponse.name}/$index"
+            ) != null
+            if (isBookmarked) {
+                bookmarkedChapters.add(chapter)
+            }
+        }
+        
+        return bookmarkedChapters
+    }
+
     fun showChapterContextMenu(chapter: ChapterData) {
         val ctx = activity ?: return
         val bottomSheetDialog = BottomSheetDialog(ctx)
@@ -148,6 +194,13 @@ class ResultViewModel : ViewModel() {
             setIconResource(if (hasUnreadPrevious) R.drawable.ic_baseline_check_24 else R.drawable.ic_baseline_collections_bookmark_24)
         }
 
+        // Update bookmark button text and icon based on current bookmark state
+        val isBookmarked = isChapterBookmarked(chapter)
+        binding.chapterMenuBookmark.apply {
+            text = ctx.getString(if (isBookmarked) R.string.remove_bookmark else R.string.bookmark_chapter)
+            setIconResource(if (isBookmarked) R.drawable.ic_baseline_bookmark_24 else R.drawable.ic_baseline_bookmark_border_24)
+        }
+
         // Set up button click listeners
         binding.chapterMenuMarkRead.setOnClickListener {
             setReadChapter(chapter, !isRead)
@@ -158,6 +211,12 @@ class ResultViewModel : ViewModel() {
         binding.chapterMenuMarkAllPrevious.setOnClickListener {
             // If any previous chapters are unread, mark all as read; otherwise mark all as unread
             markAllPreviousChapters(chapter, hasUnreadPrevious)
+            triggerChapterRefresh()
+            bottomSheetDialog.dismiss()
+        }
+
+        binding.chapterMenuBookmark.setOnClickListener {
+            setChapterBookmark(chapter, !isBookmarked)
             triggerChapterRefresh()
             bottomSheetDialog.dismiss()
         }

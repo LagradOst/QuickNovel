@@ -516,7 +516,7 @@
 
                             <TextView
                                     tools:text="As Shin Youngwoo has had an unfortunate life and is now stuck carrying bricks on construction sites. He even had to do labor in the VR game, Satisfy!
-However, luck would soon enter his hopeless life. His character, ‘Grid’, would discover the Northern End Cave for a quest, and in that place, he would find ‘Pagma’s Rare Book’ and become a legendary class player…
+However, luck would soon enter his hopeless life. His character, 'Grid', would discover the Northern End Cave for a quest, and in that place, he would find 'Pagma's Rare Book' and become a legendary class player…
 Translator: Rainbow Turtle"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
@@ -756,12 +756,43 @@ Translator: Rainbow Turtle"
                                     app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
 
                                     android:layout_width="match_parent"
-                                    android:layout_height="500dp"
+                                    android:layout_height="match_parent"
                                     android:clipToPadding="false"
                                     android:paddingTop="5dp"
                                     app:spanCount="1"
                                     android:id="@+id/chapter_list"
                                     android:orientation="vertical" />
+                        </FrameLayout>
+
+                        <FrameLayout
+                                android:background="@drawable/white_card"
+                                android:visibility="gone"
+                                tools:visibility="gone"
+                                android:id="@+id/result_bookmarksholder"
+                                android:orientation="vertical"
+                                android:minHeight="500dp"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent">
+
+                            <androidx.recyclerview.widget.RecyclerView
+                                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:clipToPadding="false"
+                                    android:paddingTop="5dp"
+                                    app:spanCount="1"
+                                    android:id="@+id/bookmarks_list"
+                                    android:orientation="vertical" />
+
+                            <TextView
+                                    android:id="@+id/bookmarks_empty_text"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center"
+                                    android:text="No bookmarked chapters"
+                                    android:textSize="16sp"
+                                    android:textColor="?attr/grayTextColor"
+                                    android:visibility="gone" />
                         </FrameLayout>
 
                     </LinearLayout>
