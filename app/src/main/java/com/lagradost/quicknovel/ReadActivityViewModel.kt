@@ -82,9 +82,10 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import io.documentnode.epub4j.domain.Book
-import io.documentnode.epub4j.domain.TOCReference
-import io.documentnode.epub4j.epub.EpubReader
+import me.ag2s.epublib.domain.EpubBook
+import me.ag2s.epublib.domain.TOCReference
+import me.ag2s.epublib.epub.EpubReader
+import me.ag2s.epublib.util.zip.AndroidZipFile
 import org.commonmark.node.Node
 import org.jsoup.Jsoup
 import java.io.File
@@ -285,7 +286,7 @@ class QuickBook(val data: QuickStreamData) : AbstractBook() {
     }
 }
 
-class RegularBook(val data: Book) : AbstractBook() {
+class RegularBook(val data: EpubBook) : AbstractBook() {
     init {
         var refs = mutableListOf<TOCReference>()
         data.tableOfContents.tocReferences.forEach { ref ->
@@ -429,7 +430,7 @@ class ReadActivityViewModel : ViewModel() {
     val chapter: LiveData<ChapterUpdate> = _chapterData
 
     // we use bool as we cant construct Nothing, does not represent anything
-    private val _loadingStatus: MutableLiveData<Resource<Boolean>> =
+    val _loadingStatus: MutableLiveData<Resource<Boolean>> =
         MutableLiveData<Resource<Boolean>>(null)
     val loadingStatus: LiveData<Resource<Boolean>> = _loadingStatus
 
@@ -1008,9 +1009,9 @@ class ReadActivityViewModel : ViewModel() {
         // update what we have read
         updateReadArea()
 
-        _loadingStatus.postValue(
+        /*_loadingStatus.postValue(
             Resource.Success(true)
-        )
+        )*/
     }
 
     private suspend fun initMLFromSettings(settings: MLSettings, allowDownload: Boolean) {
@@ -1055,15 +1056,17 @@ class ReadActivityViewModel : ViewModel() {
             if (intent == null) throw ErrorLoadingException("No intent")
 
             val data = intent.data ?: throw ErrorLoadingException("Empty intent")
-            val input = context.contentResolver.openInputStream(data)
-                ?: throw ErrorLoadingException("Empty data")
             val isFromEpub = intent.type != "quickstream"
 
             val epub = if (isFromEpub) {
-                val epubReader = EpubReader()
-                val book = epubReader.readEpub(input)
+                val fd = context.contentResolver.openFileDescriptor(data, "r")
+                    ?: throw ErrorLoadingException("Unable to open file descriptor")
+                val zipFile = AndroidZipFile(fd, "")
+                val book = EpubReader().readEpubLazy(zipFile, "utf-8")
                 RegularBook(book)
             } else {
+                val input = context.contentResolver.openInputStream(data)
+                    ?: throw ErrorLoadingException("Empty data")
                 QuickBook(DataStore.mapper.readValue(input.reader().readText()))
             }
 
@@ -1092,7 +1095,13 @@ class ReadActivityViewModel : ViewModel() {
 
                 // we the current loaded thing here, but because loadedChapter can be >= book.size (expand) we have to check
                 if (loadedChapterIndex < book.size()) {
-                    _loadingStatus.postValue(Resource.Loading(book.getLoadingStatus(loadedChapterIndex)))
+                    _loadingStatus.postValue(
+                        Resource.Loading(
+                            book.getLoadingStatus(
+                                loadedChapterIndex
+                            )
+                        )
+                    )
                 }
 
                 currentIndex = loadedChapterIndex
@@ -1129,9 +1138,9 @@ class ReadActivityViewModel : ViewModel() {
                 // notify once because initial load is 3 chapters I don't care about 10 notifications when the user cant see it
                 updateReadArea(seekToDesired = true)
 
-                _loadingStatus.postValue(
+                /*_loadingStatus.postValue(
                     Resource.Success(true)
-                )
+                )*/
             }
 
             is Resource.Failure -> {
@@ -1578,7 +1587,6 @@ class ReadActivityViewModel : ViewModel() {
 
         // load the chapters
         updateIndexAsync(index, notify = false)
-
         // set the keys
         setKey(EPUB_CURRENT_POSITION, book.title(), index)
         setKey(EPUB_CURRENT_POSITION_SCROLL_CHAR, book.title(), 0)
@@ -1590,10 +1598,9 @@ class ReadActivityViewModel : ViewModel() {
 
         // push the update
         updateReadArea(seekToDesired = true)
-
         // update the view
         _chapterTile.postValue(chaptersTitlesInternal[index])
-        _loadingStatus.postValue(Resource.Success(true))
+        //_loadingStatus.postValue(Resource.Success(true))
     }
 
     /*private fun changeIndex(index: Int, updateArea: Boolean = true) {

@@ -22,7 +22,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 35
         versionCode 56
-        versionName "3.3.5"
+        versionName "3.3.6"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -45,12 +45,12 @@ android {
     buildFeatures.buildConfig true
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_1_9
+        targetCompatibility JavaVersion.VERSION_1_9
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8.toString()
+        jvmTarget = JavaVersion.VERSION_1_9.toString()
     }
     namespace 'com.lagradost.quicknovel'
 }
@@ -82,10 +82,10 @@ dependencies {
     implementation "androidx.preference:preference-ktx:1.2.1"
     implementation "me.xdrop:fuzzywuzzy:1.4.0"
 
-    implementation('io.documentnode:epub4j-core:4.2.1') {
-        exclude group: 'org.slf4j'
-        exclude group: 'xmlpull'
-    }
+    //implementation('com.positiondev.epublib:epublib-core:3.1') {
+        //exclude group: 'org.slf4j'
+        //exclude group: 'xmlpull'
+    //}
     implementation 'org.slf4j:slf4j-android:1.7.25'
 
     implementation "androidx.recyclerview:recyclerview:1.4.0"
