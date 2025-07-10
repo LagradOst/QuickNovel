@@ -56,12 +56,12 @@ import com.lagradost.quicknovel.util.Event
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.pmap
-import io.documentnode.epub4j.domain.Author
-import io.documentnode.epub4j.domain.Book
-import io.documentnode.epub4j.domain.MediaType
-import io.documentnode.epub4j.domain.MediaTypes
-import io.documentnode.epub4j.domain.Resource
-import io.documentnode.epub4j.epub.EpubWriter
+import me.ag2s.epublib.domain.Author
+import me.ag2s.epublib.domain.EpubBook
+import me.ag2s.epublib.domain.MediaType
+import me.ag2s.epublib.domain.Resource
+import me.ag2s.epublib.epub.EpubWriter
+import me.ag2s.epublib.domain.MediaTypes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
@@ -680,7 +680,7 @@ object BookDownloader2Helper {
                 setKey(DOWNLOAD_EPUB_SIZE, id.toString(), 1)
             } else {
 
-                val book = Book()
+                val book = EpubBook()
                 val metadata = book.metadata
                 if (author != null) {
                     metadata.addAuthor(Author(author))

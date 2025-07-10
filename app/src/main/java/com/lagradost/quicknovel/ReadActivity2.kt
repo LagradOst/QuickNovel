@@ -930,18 +930,26 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             }
         }
 
+        var last: Resource<Boolean> = Resource.Loading() // very dirty
         observe(viewModel.loadingStatus) { loading ->
+            val different = last != loading
+            last = loading
             when (loading) {
                 is Resource.Success -> {
                     binding.readLoading.isVisible = false
                     binding.readFail.isVisible = false
 
                     binding.readNormalLayout.isVisible = true
-                    binding.readNormalLayout.alpha = 0.01f
 
-                    ObjectAnimator.ofFloat(binding.readNormalLayout, "alpha", 1f).apply {
-                        duration = 300
-                        start()
+                    if (different) {
+                        binding.readNormalLayout.alpha = 0.01f
+
+                        ObjectAnimator.ofFloat(binding.readNormalLayout, "alpha", 1f).apply {
+                            duration = 300
+                            start()
+                        }
+                    } else {
+                        binding.readNormalLayout.alpha = 1.0f
                     }
                 }
 
@@ -1068,6 +1076,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         observe(viewModel.chapter) { chapter ->
             cachedChapter = chapter.data
             textAdapter.submitList(chapter.data) {
+                viewModel._loadingStatus.postValue(Resource.Success(true)) // submitList can take 500ms, very dirty :(
                 if (chapter.seekToDesired) {
                     scrollToDesired()
                 }
