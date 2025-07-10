@@ -752,27 +752,16 @@ Translator: Rainbow Turtle"
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent">
 
-                            <androidx.recyclerview.widget.RecyclerView
-                                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-
+                            <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="match_parent"
-                                    android:clipToPadding="false"
-                                    android:paddingTop="5dp"
-                                    app:spanCount="1"
-                                    android:id="@+id/chapter_list"
-                                    android:orientation="vertical" />
-                        </FrameLayout>
+                                    android:orientation="vertical">
 
-                        <FrameLayout
-                                android:background="@drawable/white_card"
-                                android:visibility="gone"
-                                tools:visibility="gone"
-                                android:id="@+id/result_bookmarksholder"
-                                android:orientation="vertical"
-                                android:minHeight="500dp"
+                                <include
+                                        android:id="@+id/chapter_filter"
+                                        layout="@layout/chapter_filter_layout"
                                 android:layout_width="match_parent"
-                                android:layout_height="match_parent">
+                                        android:layout_height="wrap_content" />
 
                             <androidx.recyclerview.widget.RecyclerView
                                     app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
@@ -781,19 +770,13 @@ Translator: Rainbow Turtle"
                                     android:clipToPadding="false"
                                     android:paddingTop="5dp"
                                     app:spanCount="1"
-                                    android:id="@+id/bookmarks_list"
+                                        android:id="@+id/chapter_list"
                                     android:orientation="vertical" />
 
-                            <TextView
-                                    android:id="@+id/bookmarks_empty_text"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_gravity="center"
-                                    android:text="No bookmarked chapters"
-                                    android:textSize="16sp"
-                                    android:textColor="?attr/grayTextColor"
-                                    android:visibility="gone" />
+                            </LinearLayout>
                         </FrameLayout>
+
+
 
                     </LinearLayout>
                 </FrameLayout>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="?attr/primaryBlackBackground"
+    android:padding="16dp">
+
+    <!-- Tab Layout -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/filter_menu_tabs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        app:tabMode="fixed"
+        app:tabGravity="fill"
+        app:tabTextColor="?attr/textColor"
+        app:tabSelectedTextColor="?attr/textColor"
+        app:tabIndicatorColor="?attr/textColor"
+        app:tabBackground="@drawable/tab_background_dark" />
+
+    <!-- Filter Content -->
+    <LinearLayout
+        android:id="@+id/filter_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="visible">
+
+        <CheckBox
+            android:id="@+id/filter_unread"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/unread"
+            android:textColor="?attr/textColor"
+            android:padding="8dp" />
+
+        <CheckBox
+            android:id="@+id/filter_bookmark"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/bookmarked"
+            android:textColor="?attr/textColor"
+            android:padding="8dp" />
+
+        <CheckBox
+            android:id="@+id/filter_downloaded"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/downloaded"
+            android:textColor="?attr/textColor"
+            android:padding="8dp" />
+
+    </LinearLayout>
+
+    <!-- Sort Content -->
+    <LinearLayout
+        android:id="@+id/sort_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:id="@+id/sort_by_source"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingVertical="12dp"
+            android:paddingHorizontal="4dp">
+
+            <ImageView
+                android:id="@+id/sort_source_arrow"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_baseline_arrow_upward_24"
+                app:tint="?attr/colorAccent"
+                android:layout_marginEnd="12dp"
+                android:visibility="visible" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/sort_by_source"
+                android:textColor="?attr/textColor"
+                android:textSize="16sp" />
+
+        </LinearLayout>
+
+
+
+    </LinearLayout>
+
+</LinearLayout> 

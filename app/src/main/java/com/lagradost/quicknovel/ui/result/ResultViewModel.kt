@@ -18,6 +18,10 @@ import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.BookDownloader2.downloadProgress
 import com.lagradost.quicknovel.BookDownloader2Helper
 import com.lagradost.quicknovel.BookDownloader2Helper.generateId
+import com.lagradost.quicknovel.BookDownloader2Helper.getDirectory
+import com.lagradost.quicknovel.BookDownloader2Helper.getFilename
+import com.lagradost.quicknovel.BookDownloader2Helper.sanitizeFilename
+import java.io.File
 import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
@@ -57,6 +61,12 @@ class ResultViewModel : ViewModel() {
         val streamResponse =
             (load as? StreamResponse) ?: return false
         val index = chapterIndex(chapter) ?: return false
+        
+        // Use cached data if available, otherwise fallback to direct query
+        if (statusCacheValid && index < cachedReadStatuses.size) {
+            return cachedReadStatuses[index]
+        }
+        
         return getKey<Long>(
             EPUB_CURRENT_POSITION_READ_AT,
             "${streamResponse.name}/$index"
@@ -81,6 +91,8 @@ class ResultViewModel : ViewModel() {
             )
         }
 
+        // Invalidate cache for instant filter updates
+        invalidateStatusCache()
         return true
     }
 
@@ -104,6 +116,8 @@ class ResultViewModel : ViewModel() {
             }
         }
         
+        // Invalidate cache for instant filter updates
+        invalidateStatusCache()
         return true
     }
 
@@ -128,6 +142,12 @@ class ResultViewModel : ViewModel() {
     fun isChapterBookmarked(chapter: ChapterData): Boolean {
         val streamResponse = (load as? StreamResponse) ?: return false
         val index = chapterIndex(chapter) ?: return false
+        
+        // Use cached data if available, otherwise fallback to direct query
+        if (statusCacheValid && index < cachedBookmarkStatuses.size) {
+            return cachedBookmarkStatuses[index]
+        }
+        
         return getKey<Long>(
             "CHAPTER_BOOKMARK",
             "${streamResponse.name}/$index"
@@ -151,24 +171,137 @@ class ResultViewModel : ViewModel() {
             )
         }
 
+        // Invalidate cache for instant filter updates
+        invalidateStatusCache()
         return true
+    }
+
+    fun isChapterDownloaded(chapter: ChapterData): Boolean {
+        val streamResponse = (load as? StreamResponse) ?: return false
+        val index = chapterIndex(chapter) ?: return false
+        
+        // Use cached data if available, otherwise fallback to direct file check
+        if (statusCacheValid && index < cachedDownloadStatuses.size) {
+            return cachedDownloadStatuses[index]
+        }
+        
+        val ctx = context ?: return false
+        
+        try {
+            val sApiName = sanitizeFilename(apiName)
+            val sAuthor = sanitizeFilename(streamResponse.author ?: "")
+            val sName = sanitizeFilename(streamResponse.name)
+            
+            val filepath = ctx.filesDir.toString() + getFilename(sApiName, sAuthor, sName, index)
+            val file = File(filepath)
+            
+            return file.exists() && file.length() > 10 // Minimum file size check
+        } catch (e: Exception) {
+            return false
+        }
     }
 
     fun getBookmarkedChapters(): List<ChapterData> {
         val streamResponse = (load as? StreamResponse) ?: return emptyList()
+        
+        // Ensure cache is built
+        if (!statusCacheValid) {
+            buildStatusCache()
+        }
+        
         val bookmarkedChapters = mutableListOf<ChapterData>()
         
         streamResponse.data.forEachIndexed { index, chapter ->
-            val isBookmarked = getKey<Long>(
-                "CHAPTER_BOOKMARK",
-                "${streamResponse.name}/$index"
-            ) != null
+            val isBookmarked = if (index < cachedBookmarkStatuses.size) {
+                cachedBookmarkStatuses[index]
+            } else {
+                getKey<Long>("CHAPTER_BOOKMARK", "${streamResponse.name}/$index") != null
+            }
             if (isBookmarked) {
                 bookmarkedChapters.add(chapter)
             }
         }
         
         return bookmarkedChapters
+    }
+
+    fun getUnreadChapters(): List<ChapterData> {
+        val streamResponse = (load as? StreamResponse) ?: return emptyList()
+        
+        // Ensure cache is built
+        if (!statusCacheValid) {
+            buildStatusCache()
+        }
+        
+        val unreadChapters = mutableListOf<ChapterData>()
+        
+        streamResponse.data.forEachIndexed { index, chapter ->
+            val isRead = if (index < cachedReadStatuses.size) {
+                cachedReadStatuses[index]
+            } else {
+                getKey<Long>(EPUB_CURRENT_POSITION_READ_AT, "${streamResponse.name}/$index") != null
+            }
+            if (!isRead) {
+                unreadChapters.add(chapter)
+            }
+        }
+        
+        return unreadChapters
+    }
+
+    fun getFilteredChapters(): List<ChapterData> {
+        val streamResponse = (load as? StreamResponse) ?: return emptyList()
+        val showUnreadOnly = _showUnreadOnly.value ?: false
+        val showBookmarkedOnly = _showBookmarkedOnly.value ?: false
+        val showDownloadedOnly = _showDownloadedOnly.value ?: false
+        val sortType = _currentSortType.value ?: SortType.BY_SOURCE
+        val isAscending = _isAscending.value ?: true
+        
+        // Start with all chapters
+        var chapters = streamResponse.data
+        
+        // Apply filtering if any filters are active
+        if (showUnreadOnly || showBookmarkedOnly || showDownloadedOnly) {
+            // Ensure cache is built and valid
+            if (!statusCacheValid) {
+                buildStatusCache()
+            }
+            
+            // Fast filtering using cached data
+            val filteredChapters = mutableListOf<ChapterData>()
+            
+            streamResponse.data.forEachIndexed { index, chapter ->
+                // Use cached statuses for instant filtering
+                val isRead = if (index < cachedReadStatuses.size) cachedReadStatuses[index] else false
+                val isBookmarked = if (index < cachedBookmarkStatuses.size) cachedBookmarkStatuses[index] else false
+                val isDownloaded = if (index < cachedDownloadStatuses.size) cachedDownloadStatuses[index] else false
+                
+                // Include chapter if it matches ALL active filters
+                val matchesUnreadFilter = !showUnreadOnly || !isRead
+                val matchesBookmarkFilter = !showBookmarkedOnly || isBookmarked
+                val matchesDownloadedFilter = !showDownloadedOnly || isDownloaded
+                
+                if (matchesUnreadFilter && matchesBookmarkFilter && matchesDownloadedFilter) {
+                    filteredChapters.add(chapter)
+                }
+            }
+            chapters = filteredChapters
+        }
+        
+        // Apply sorting
+        val sortedChapters = when (sortType) {
+            SortType.BY_SOURCE -> {
+                // By source: maintain original order or reverse it
+                if (isAscending) {
+                    chapters // Original provider order (ascending)
+                } else {
+                    chapters.reversed() // Reverse provider order (descending)
+                }
+            }
+            // Future sorting types can be added here with new when branches
+        }
+        
+        return sortedChapters
     }
 
     fun showChapterContextMenu(chapter: ChapterData) {
@@ -272,9 +405,158 @@ class ResultViewModel : ViewModel() {
     private val _chapterRefreshTrigger = MutableLiveData<Boolean>()
     val chapterRefreshTrigger: LiveData<Boolean> = _chapterRefreshTrigger
 
+    // LiveData to track filter states
+    private val _showUnreadOnly = MutableLiveData<Boolean>(false)
+    val showUnreadOnly: LiveData<Boolean> = _showUnreadOnly
+    
+    private val _showBookmarkedOnly = MutableLiveData<Boolean>(false)
+    val showBookmarkedOnly: LiveData<Boolean> = _showBookmarkedOnly
+    
+    private val _showDownloadedOnly = MutableLiveData<Boolean>(false)
+    val showDownloadedOnly: LiveData<Boolean> = _showDownloadedOnly
+
+    // LiveData to track sort states
+    enum class SortType {
+        BY_SOURCE
+        // Future sorting types can be added here
+    }
+    
+    private val _currentSortType = MutableLiveData<SortType>(SortType.BY_SOURCE)
+    val currentSortType: LiveData<SortType> = _currentSortType
+    
+    private val _isAscending = MutableLiveData<Boolean>(true)
+    val isAscending: LiveData<Boolean> = _isAscending
+
+    // Performance optimization: Cache chapter statuses for instant filtering
+    private var cachedReadStatuses: BooleanArray = BooleanArray(0)
+    private var cachedBookmarkStatuses: BooleanArray = BooleanArray(0)
+    private var cachedDownloadStatuses: BooleanArray = BooleanArray(0)
+    private var statusCacheValid = false
+
     private fun triggerChapterRefresh() {
         _chapterRefreshTrigger.postValue(true)
     }
+
+    private fun invalidateStatusCache() {
+        statusCacheValid = false
+    }
+
+    private fun buildStatusCache() {
+        val streamResponse = (load as? StreamResponse) ?: return
+        val chapterCount = streamResponse.data.size
+        
+        if (chapterCount == 0) return
+        
+        // Initialize arrays
+        cachedReadStatuses = BooleanArray(chapterCount)
+        cachedBookmarkStatuses = BooleanArray(chapterCount)
+        cachedDownloadStatuses = BooleanArray(chapterCount)
+        
+        // Batch load read statuses
+        for (index in 0 until chapterCount) {
+            cachedReadStatuses[index] = getKey<Long>(
+                EPUB_CURRENT_POSITION_READ_AT,
+                "${streamResponse.name}/$index"
+            ) != null
+        }
+        
+        // Batch load bookmark statuses
+        for (index in 0 until chapterCount) {
+            cachedBookmarkStatuses[index] = getKey<Long>(
+                "CHAPTER_BOOKMARK",
+                "${streamResponse.name}/$index"
+            ) != null
+        }
+        
+        // Batch check download statuses (optimized)
+        batchCheckDownloadedChapters(streamResponse)
+        
+        statusCacheValid = true
+    }
+
+    private fun batchCheckDownloadedChapters(streamResponse: StreamResponse) {
+        val ctx = context ?: return
+        val chapterCount = streamResponse.data.size
+        
+        try {
+            val sApiName = sanitizeFilename(apiName)
+            val sAuthor = sanitizeFilename(streamResponse.author ?: "")
+            val sName = sanitizeFilename(streamResponse.name)
+            
+            // Get the directory once
+            val dir = File(ctx.filesDir.toString() + getDirectory(sApiName, sAuthor, sName))
+            
+            if (!dir.exists()) {
+                // No downloads for this novel
+                for (index in 0 until chapterCount) {
+                    cachedDownloadStatuses[index] = false
+                }
+                return
+            }
+            
+            // Get all existing files at once
+            val existingFiles = dir.listFiles()?.mapNotNull { file ->
+                file.nameWithoutExtension.toIntOrNull()?.let { index ->
+                    index to (file.length() > 10)
+                }
+            }?.toMap() ?: emptyMap()
+            
+            // Set download status based on existing files
+            for (index in 0 until chapterCount) {
+                cachedDownloadStatuses[index] = existingFiles[index] == true
+            }
+            
+        } catch (e: Exception) {
+            // If there's an error, mark all as not downloaded
+            for (index in 0 until chapterCount) {
+                cachedDownloadStatuses[index] = false
+            }
+        }
+    }
+
+    fun toggleUnreadFilter() {
+        _showUnreadOnly.postValue(!(_showUnreadOnly.value ?: false))
+        triggerChapterRefresh()
+    }
+
+    fun setUnreadFilter(enabled: Boolean) {
+        _showUnreadOnly.postValue(enabled)
+        triggerChapterRefresh()
+    }
+
+    fun setBookmarkFilter(enabled: Boolean) {
+        _showBookmarkedOnly.postValue(enabled)
+        triggerChapterRefresh()
+    }
+
+    fun setDownloadedFilter(enabled: Boolean) {
+        _showDownloadedOnly.postValue(enabled)
+        triggerChapterRefresh()
+    }
+
+    // Sort methods
+    fun setSortBySource() {
+        val currentAscending = _isAscending.value ?: true
+        // Toggle direction (since we only have source sorting for now)
+        _isAscending.value = !currentAscending
+        triggerChapterRefresh()
+    }
+
+    // Template for future sort methods:
+    // fun setSortBy[NewType]() {
+    //     val currentType = _currentSortType.value
+    //     val currentAscending = _isAscending.value ?: true
+    //     
+    //     if (currentType == SortType.BY_[NEW_TYPE]) {
+    //         // Toggle direction if already on this sort
+    //         _isAscending.postValue(!currentAscending)
+    //     } else {
+    //         // Switch to new sort with ascending order
+    //         _currentSortType.postValue(SortType.BY_[NEW_TYPE])
+    //         _isAscending.postValue(true)
+    //     }
+    //     triggerChapterRefresh()
+    // }
 
     val reviews: MutableLiveData<Resource<ArrayList<UserReview>>> by lazy {
         MutableLiveData<Resource<ArrayList<UserReview>>>()
@@ -658,6 +940,12 @@ class ResultViewModel : ViewModel() {
             loadMutex.withLock {
                 if (!hasLoaded || id != loadId) return@launch
                 downloadState.postValue(state)
+                
+                // Invalidate download status cache when download state changes
+                // This ensures downloaded filter updates when chapters complete downloading
+                if (state.state == DownloadState.IsDone || state.progress > 0) {
+                    invalidateStatusCache()
+                }
             }
         }
 
@@ -674,6 +962,8 @@ class ResultViewModel : ViewModel() {
         loadMutex.withLock {
             if (!hasLoaded || id != loadId) return@launch
             insertZeroData()
+            // Invalidate download status cache when downloads are removed
+            invalidateStatusCache()
         }
     }
 
@@ -759,6 +1049,9 @@ class ResultViewModel : ViewModel() {
         )
         reCacheChapters()
         updateBookmarkData()
+        
+        // Invalidate status cache when loading a new novel
+        invalidateStatusCache()
 
         hasLoaded = true
 

@@ -238,6 +238,14 @@
     <string name="bookmark_chapter">Bookmark Chapter</string>
     <string name="remove_bookmark">Remove Bookmark</string>
     <string name="bookmarks">Bookmarks</string>
+    <string name="bookmarked">Bookmarked</string>
     <string name="share_chapter">Share Chapter</string>
     <string name="copy_url">Copy URL</string>
+    
+    <!-- Filter and Sort -->
+    <string name="filter_tab">Filter</string>
+    <string name="sort_tab">Sort</string>
+    <string name="display_tab">Display</string>
+    <string name="unread">Unread</string>
+    <string name="sort_by_source">By Source</string>
 </resources>

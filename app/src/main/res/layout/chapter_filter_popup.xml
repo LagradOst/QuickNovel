@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="?attr/primaryBlackBackground">
+
+    <!-- Tab Layout -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/filter_tabs"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:background="?attr/primaryBlackBackground"
+        app:tabGravity="fill"
+        app:tabMode="fixed"
+        app:tabIndicatorColor="?attr/colorAccent"
+        app:tabSelectedTextColor="?attr/colorAccent"
+        app:tabTextColor="?attr/grayTextColor"
+        app:tabIndicatorHeight="2dp"
+        app:tabTextAppearance="@style/TabNoCaps"
+        app:tabBackground="@drawable/tab_background_dark" />
+
+    <!-- Content Frame -->
+    <FrameLayout
+        android:id="@+id/tab_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <!-- Filter Tab Content -->
+        <LinearLayout
+            android:id="@+id/filter_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="visible">
+
+            <CheckBox
+                android:id="@+id/filter_downloaded"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/downloaded"
+                android:textColor="?attr/textColor"
+                android:textSize="16sp"
+                android:buttonTint="?attr/colorAccent"
+                android:paddingVertical="12dp"
+                android:checked="false" />
+
+            <CheckBox
+                android:id="@+id/filter_unread"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/unread"
+                android:textColor="?attr/textColor"
+                android:textSize="16sp"
+                android:buttonTint="?attr/colorAccent"
+                android:paddingVertical="12dp"
+                android:checked="false" />
+
+            <CheckBox
+                android:id="@+id/filter_bookmarked"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/bookmarks"
+                android:textColor="?attr/textColor"
+                android:textSize="16sp"
+                android:buttonTint="?attr/colorAccent"
+                android:paddingVertical="12dp"
+                android:checked="false" />
+
+        </LinearLayout>
+
+        <!-- Sort Tab Content -->
+        <LinearLayout
+            android:id="@+id/sort_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/sort_by_source"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:paddingVertical="16dp"
+                android:paddingHorizontal="4dp">
+
+                <ImageView
+                    android:id="@+id/sort_source_arrow"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_baseline_arrow_upward_24"
+                    app:tint="?attr/colorAccent"
+                    android:layout_marginEnd="12dp"
+                    android:visibility="visible" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/sort_by_source"
+                    android:textColor="?attr/textColor"
+                    android:textSize="16sp" />
+
+            </LinearLayout>
+
+
+
+        </LinearLayout>
+
+        <!-- Display Tab Content (placeholder for now) -->
+        <LinearLayout
+            android:id="@+id/display_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Display options coming soon"
+                android:textColor="?attr/grayTextColor"
+                android:textSize="16sp"
+                android:gravity="center"
+                android:paddingVertical="32dp" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+</LinearLayout> 
