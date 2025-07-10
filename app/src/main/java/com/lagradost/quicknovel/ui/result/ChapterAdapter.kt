@@ -3,6 +3,7 @@ package com.lagradost.quicknovel.ui.result
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.view.isGone
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -27,6 +28,7 @@ class ChapterAdapter(val viewModel : ResultViewModel) : ListAdapter<ChapterData,
         private fun refresh(card : ChapterData, viewModel : ResultViewModel) {
             binding.apply {
                 root.alpha = if (viewModel.hasReadChapter(chapter = card)) 0.5F else 1.0F
+                bookmarkIcon.isVisible = viewModel.isChapterBookmarked(card)
             }
         }
         fun bind(card : ChapterData, viewModel : ResultViewModel) {
@@ -39,8 +41,7 @@ class ChapterAdapter(val viewModel : ResultViewModel) : ListAdapter<ChapterData,
                     refresh(card,viewModel)
                 }
                 root.setOnLongClickListener {
-                    viewModel.setReadChapter(chapter = card, !viewModel.hasReadChapter(card))
-                    refresh(card,viewModel)
+                    viewModel.showChapterContextMenu(card)
                     return@setOnLongClickListener true
                 }
                 refresh(card,viewModel)

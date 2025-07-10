@@ -9,6 +9,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
+import android.widget.CheckBox
+import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.appcompat.app.AlertDialog
 import androidx.coordinatorlayout.widget.CoordinatorLayout
@@ -19,6 +21,7 @@ import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.GridLayoutManager
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipDrawable
 import com.google.android.material.tabs.TabLayout
@@ -53,6 +56,8 @@ const val MAX_SYNO_LENGH = 300
 class ResultFragment : Fragment() {
     lateinit var binding: FragmentResultBinding
     private val viewModel: ResultViewModel by viewModels()
+    private var chapterAdapter: ChapterAdapter? = null
+    private var bookmarksAdapter: ChapterAdapter? = null
 
     companion object {
         fun newInstance(url: String, apiName: String, startAction: Int = 0): Bundle =
@@ -128,22 +133,159 @@ class ResultFragment : Fragment() {
                 maxOf(0, total)
             )
         }
-        val parameter = binding.chapterList.layoutParams
-        parameter.height =
+        val calculatedHeight =
             displayMetrics.heightPixels - binding.viewsAndRating.height - binding.resultTabs.height - binding.resultScrollPadding.paddingTop
 
-        binding.chapterList.layoutParams = parameter
-        //ViewGroup.LayoutParams(binding.chapterList.layoutParams.width,displayMetrics.heightPixels)
-        /*binding.hiddenView.apply {
-            setPadding(
-                paddingLeft,
-                paddingTop,
-                paddingRight,
-                maxOf(0, total)
-            )
-        }*/
+        // Set height for chapter list
+        val chapterParameter = binding.chapterList.layoutParams
+        chapterParameter.height = calculatedHeight
+        binding.chapterList.layoutParams = chapterParameter
     }
 
+    private fun updateFilterButtonAppearance() {
+        val hasActiveFilters = (viewModel.showUnreadOnly.value == true) || 
+                              (viewModel.showBookmarkedOnly.value == true) ||
+                              (viewModel.showDownloadedOnly.value == true)
+        
+        binding.chapterFilter.filterMenuIcon.setColorFilter(
+            if (hasActiveFilters) {
+                requireContext().colorFromAttribute(R.attr.textColor)
+            } else {
+                requireContext().colorFromAttribute(R.attr.iconColor)
+            }
+        )
+    }
+
+    private fun showFilterMenu() {
+        try {
+            val context = context ?: return
+            val bottomSheetDialog = BottomSheetDialog(context)
+            val menuView = layoutInflater.inflate(R.layout.chapter_filter_menu, null)
+            bottomSheetDialog.setContentView(menuView)
+            
+            setupFilterMenuTabs(menuView)
+            setupFilterMenuContent(menuView)
+            setupSortMenuContent(menuView)
+            
+            bottomSheetDialog.show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // Fallback: just toggle the filter directly
+            viewModel.toggleUnreadFilter()
+        }
+    }
+
+    private fun setupFilterMenuTabs(menuView: View) {
+        val filterTabs = menuView.findViewById<TabLayout>(R.id.filter_menu_tabs)
+        val filterContent = menuView.findViewById<LinearLayout>(R.id.filter_content)
+        val sortContent = menuView.findViewById<LinearLayout>(R.id.sort_content)
+        
+        // Add tabs using string resources
+        filterTabs.addTab(filterTabs.newTab().setText(getString(R.string.filter_tab)))
+        filterTabs.addTab(filterTabs.newTab().setText(getString(R.string.sort_tab)))
+        
+        // Set up tab switching logic
+        filterTabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                when (tab?.position) {
+                    0 -> { // Filter tab
+                        filterContent?.visibility = View.VISIBLE
+                        sortContent?.visibility = View.GONE
+                    }
+                    1 -> { // Sort tab
+                        filterContent?.visibility = View.GONE
+                        sortContent?.visibility = View.VISIBLE
+                    }
+                }
+            }
+            
+            override fun onTabUnselected(tab: TabLayout.Tab?) {}
+            override fun onTabReselected(tab: TabLayout.Tab?) {}
+        })
+    }
+
+    private fun setupFilterMenuContent(menuView: View) {
+        // Set up filter checkboxes using helper function
+        setupFilterCheckbox(
+            menuView,
+            R.id.filter_unread,
+            viewModel.showUnreadOnly.value ?: false
+        ) { isChecked -> viewModel.setUnreadFilter(isChecked) }
+        
+        setupFilterCheckbox(
+            menuView,
+            R.id.filter_bookmark,
+            viewModel.showBookmarkedOnly.value ?: false
+        ) { isChecked -> viewModel.setBookmarkFilter(isChecked) }
+        
+        setupFilterCheckbox(
+            menuView,
+            R.id.filter_downloaded,
+            viewModel.showDownloadedOnly.value ?: false
+        ) { isChecked -> viewModel.setDownloadedFilter(isChecked) }
+    }
+
+    private fun setupFilterCheckbox(
+        menuView: View,
+        checkboxId: Int,
+        initialState: Boolean,
+        onStateChanged: (Boolean) -> Unit
+    ) {
+        val checkbox = menuView.findViewById<CheckBox>(checkboxId)
+        checkbox?.apply {
+            isChecked = initialState
+            setOnCheckedChangeListener { _, isChecked -> onStateChanged(isChecked) }
+        }
+    }
+
+    private fun setupSortMenuContent(menuView: View) {
+        val sortBySourceButton = menuView.findViewById<LinearLayout>(R.id.sort_by_source)
+        val sortSourceArrow = menuView.findViewById<ImageView>(R.id.sort_source_arrow)
+        
+        // Set initial appearance
+        updateSortButtonAppearance(sortSourceArrow)
+        
+        // Set up click listener
+        sortBySourceButton?.setOnClickListener {
+            viewModel.setSortBySource()
+            updateSortButtonAppearance(sortSourceArrow)
+        }
+        
+        // Future sort button setup can be added here using the same pattern:
+        // setupSortButton(menuView, R.id.sort_by_[new_type], R.id.sort_[new_type]_arrow) {
+        //     viewModel.setSortBy[NewType]()
+        // }
+    }
+
+    private fun updateSortButtonAppearance(sortArrow: ImageView?) {
+        val isAscending = viewModel.isAscending.value ?: true
+        
+        sortArrow?.apply {
+            visibility = View.VISIBLE
+            setImageResource(
+                if (isAscending) R.drawable.ic_baseline_arrow_upward_24 
+                else R.drawable.ic_baseline_arrow_downward_24
+            )
+            setColorFilter(requireContext().colorFromAttribute(R.attr.textColor))
+        }
+    }
+
+    // Template helper function for future sort types
+    private fun setupSortButton(
+        menuView: View,
+        buttonId: Int,
+        arrowId: Int,
+        onClicked: () -> Unit
+    ) {
+        val button = menuView.findViewById<LinearLayout>(buttonId)
+        val arrow = menuView.findViewById<ImageView>(arrowId)
+        
+        updateSortButtonAppearance(arrow)
+        button?.setOnClickListener {
+            onClicked()
+            updateSortButtonAppearance(arrow)
+        }
+    }
 
     private fun newState(loadResponse: Resource<LoadResponse>?) {
         if (loadResponse == null) return
@@ -233,6 +375,7 @@ class ResultFragment : Fragment() {
                             chapterList.apply {
                                 val mainPageAdapter = ChapterAdapter(viewModel)
                                 adapter = mainPageAdapter
+                                chapterAdapter = mainPageAdapter
                                 setHasFixedSize(true)
                                 if (res is StreamResponse) {
                                     mainPageAdapter.submitList(res.data)
@@ -727,6 +870,52 @@ class ResultFragment : Fragment() {
             }
         }
 
+        // Update chapter list based on filter state
+        fun updateChapterList() {
+            val streamResponse = (viewModel.loadResponse.value as? Resource.Success)?.value as? StreamResponse
+            streamResponse?.let { _ ->
+                val chapters = viewModel.getFilteredChapters()
+                chapterAdapter?.submitList(chapters) {
+                    // Force refresh of visual styling after submitList completes
+                    chapterAdapter?.notifyDataSetChanged()
+                }
+            }
+        }
+
+        observe(viewModel.chapterRefreshTrigger) {
+            // Update chapter list and refresh visual styling
+            updateChapterList()
+        }
+
+        // Set up filter button click handler
+        binding.chapterFilter.filterMenuIcon.setOnClickListener {
+            showFilterMenu()
+        }
+
+        // Observe filter states
+        observe(viewModel.showUnreadOnly) { 
+            updateFilterButtonAppearance()
+            updateChapterList()
+        }
+        
+        observe(viewModel.showBookmarkedOnly) { 
+            updateFilterButtonAppearance()
+            updateChapterList()
+        }
+        
+        observe(viewModel.showDownloadedOnly) { 
+            updateFilterButtonAppearance()
+            updateChapterList()
+        }
+
+        // Observe sort states
+        observe(viewModel.currentSortType) {
+            updateChapterList()
+        }
+        
+        observe(viewModel.isAscending) {
+            updateChapterList()
+        }
 
         //result_container.setBackgroundColor(requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground))
 
