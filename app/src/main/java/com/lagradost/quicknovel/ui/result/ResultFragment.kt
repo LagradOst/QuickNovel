@@ -220,7 +220,7 @@ class ResultFragment : Fragment() {
                                 resultTabs.newTab().setText(R.string.related).setId(2)
                             )
                             relatedList.apply {
-                                val mainPageAdapter = MainAdapter2(this, this@ResultFragment, 0)
+                                val mainPageAdapter = MainAdapter2(this, 0)
                                 adapter = mainPageAdapter
                                 mainPageAdapter.submitList(res.related)
                             }

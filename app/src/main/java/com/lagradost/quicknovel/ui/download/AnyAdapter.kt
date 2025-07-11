@@ -44,6 +44,8 @@ class AnyAdapter(
         }
     )
 ) {
+    override val detectMoves: Boolean? = null
+
     companion object {
         const val RESULT_CACHED: Int = 1
         const val DOWNLOAD_DATA_LOADED: Int = 2

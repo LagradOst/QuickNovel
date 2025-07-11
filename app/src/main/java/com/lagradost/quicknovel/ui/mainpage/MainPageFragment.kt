@@ -157,7 +157,7 @@ class MainPageFragment : Fragment() {
         setupGridView()
 
         binding.mainpageList.apply {
-            val mainPageAdapter = MainAdapter2(this, this@MainPageFragment, 1)
+            val mainPageAdapter = MainAdapter2(this, 1)
             adapter = mainPageAdapter
             addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {

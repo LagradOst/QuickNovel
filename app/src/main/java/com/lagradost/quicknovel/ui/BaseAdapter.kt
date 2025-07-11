@@ -6,13 +6,14 @@ import androidx.core.view.children
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.ViewModel
-import androidx.recyclerview.widget.AsyncDifferConfig
-import androidx.recyclerview.widget.AsyncListDiffer
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import androidx.viewbinding.ViewBinding
+import com.lagradost.quicknovel.util.Coroutines.runOnMainThread
+import java.util.Collections
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.Executors
 
 open class ViewHolderState<T>(val view: ViewBinding) : ViewHolder(view.root) {
     open fun save(): T? = null
@@ -22,13 +23,13 @@ open class ViewHolderState<T>(val view: ViewBinding) : ViewHolder(view.root) {
     open fun onViewRecycled() = Unit
 }
 
-
 // Based of the concept https://github.com/brahmkshatriya/echo/blob/main/app%2Fsrc%2Fmain%2Fjava%2Fdev%2Fbrahmkshatriya%2Fecho%2Fui%2Fadapters%2FMediaItemsContainerAdapter.kt#L108-L154
 class StateViewModel : ViewModel() {
     val layoutManagerStates = hashMapOf<Int, HashMap<Int, Any?>>()
 }
 
-abstract class NoStateAdapter<T : Any>(fragment: Fragment) : BaseAdapter<T, Any>(fragment, 0)
+abstract class NoStateAdapter<T : Any>(diffCallback: DiffUtil.ItemCallback<T> = BaseDiffCallback()) :
+    BaseAdapter<T, Nothing>(null, 0, diffCallback = diffCallback)
 
 /**
  * BaseAdapter is a persistent state stored adapter that supports headers and footers.
@@ -49,53 +50,130 @@ abstract class NoStateAdapter<T : Any>(fragment: Fragment) : BaseAdapter<T, Any>
 abstract class BaseAdapter<
         T : Any,
         S : Any>(
-    fragment: Fragment,
+    fragment: Fragment?,
     val id: Int = 0,
-    diffCallback: DiffUtil.ItemCallback<T> = BaseDiffCallback()
+    val diffCallback: DiffUtil.ItemCallback<T> = BaseDiffCallback()
 ) : RecyclerView.Adapter<ViewHolderState<S>>() {
     open val footers: Int = 0
     open val headers: Int = 0
+
+    /**
+     * True = makes the items detect moves, but this is very expensive with many items due to O(n^2)
+     * False = makes the items pop in and out, this is less expensive for a small amount of items
+     * null = True/False based on => item.size < detectMovesThreshold
+     */
+    open val detectMoves: Boolean? = false
+    open val detectMovesThreshold = 100
 
     protected open fun getItemViewTypeCustom(item: Any): Int {
         return CONTENT
     }
 
     fun getItem(position: Int): T {
-        return mDiffer.currentList[position]
+        return currentList[position]
     }
 
     fun getItemOrNull(position: Int): T? {
-        return mDiffer.currentList.getOrNull(position)
+        return currentList.getOrNull(position)
     }
 
-    private val mDiffer: AsyncListDiffer<T> = AsyncListDiffer(
-        object : NonFinalAdapterListUpdateCallback(this) {
-            override fun onMoved(fromPosition: Int, toPosition: Int) {
-                super.onMoved(fromPosition + headers, toPosition + headers)
-            }
+    private val mUpdateCallback = object : NonFinalAdapterListUpdateCallback(this) {
+        override fun onMoved(fromPosition: Int, toPosition: Int) {
+            super.onMoved(fromPosition + headers, toPosition + headers)
+        }
 
-            override fun onRemoved(position: Int, count: Int) {
-                super.onRemoved(position + headers, count)
-            }
+        override fun onRemoved(position: Int, count: Int) {
+            super.onRemoved(position + headers, count)
+        }
 
-            override fun onChanged(position: Int, count: Int, payload: Any?) {
-                super.onChanged(position + headers, count, payload)
-            }
+        override fun onChanged(position: Int, count: Int, payload: Any?) {
+            super.onChanged(position + headers, count, payload)
+        }
 
-            override fun onInserted(position: Int, count: Int) {
-                super.onInserted(position + headers, count)
-            }
-        },
+        override fun onInserted(position: Int, count: Int) {
+            super.onInserted(position + headers, count)
+        }
+    }
+
+    /*private val mDiffer: AsyncListDiffer<T> = AsyncListDiffer(
+        mUpdateCallback,
         AsyncDifferConfig.Builder(diffCallback).build()
-    )
+    )*/
 
     open fun submitList(list: List<T>?) {
-        // deep copy at least the top list, because otherwise adapter can go crazy
-        mDiffer.submitList(list?.let { CopyOnWriteArrayList(it) })
+        this.submitList(list, null)
+    }
+
+    private var currentList: List<T> = emptyList()
+    private var submitListCount = 0
+    private val executor = Executors.newFixedThreadPool(2)
+    open fun submitList(list: List<T>?, commitCallback: Runnable?) {
+        val oldList = currentList
+        if (list.isNullOrEmpty()) {
+            val remove = oldList.size
+            currentList = emptyList()
+            mUpdateCallback.onRemoved(0, remove)
+            commitCallback?.run()
+            return
+        }
+        val newList = Collections.unmodifiableList(CopyOnWriteArrayList(list))
+        if (oldList.isEmpty()) {
+            currentList = newList
+            mUpdateCallback.onInserted(0, newList.size)
+            commitCallback?.run()
+            return
+        }
+        if (newList == oldList) {
+            commitCallback?.run()
+            return
+        }
+
+        val id = ++submitListCount
+
+        executor.submit {
+            val result = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+                override fun getOldListSize(): Int {
+                    return oldList.size
+                }
+
+                override fun getNewListSize(): Int {
+                    return newList.size
+                }
+
+                override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+                    val oldItem = oldList[oldItemPosition]
+                    val newItem = newList[newItemPosition]
+                    return diffCallback.areItemsTheSame(oldItem, newItem)
+                }
+
+                override fun areContentsTheSame(
+                    oldItemPosition: Int,
+                    newItemPosition: Int
+                ): Boolean {
+                    val oldItem = oldList[oldItemPosition]
+                    val newItem = newList[newItemPosition]
+                    return diffCallback.areContentsTheSame(oldItem, newItem)
+                }
+
+                override fun getChangePayload(oldItemPosition: Int, newItemPosition: Int): Any? {
+                    val oldItem = oldList[oldItemPosition]
+                    val newItem = newList[newItemPosition]
+                    return diffCallback.getChangePayload(oldItem, newItem)
+                }
+            }, detectMoves ?: (newList.size < detectMovesThreshold))
+
+            if (id == submitListCount) {
+                runOnMainThread {
+                    currentList = newList
+                    result.dispatchUpdatesTo(mUpdateCallback)
+                    commitCallback?.run()
+                }
+            }
+        }
     }
 
     override fun getItemCount(): Int {
-        return mDiffer.currentList.size + footers + headers
+        return currentList.size + footers + headers
     }
 
     open fun onUpdateContent(holder: ViewHolderState<S>, item: T, position: Int) =
@@ -128,20 +206,21 @@ abstract class BaseAdapter<
     }
 
     fun clear() {
-        stateViewModel.layoutManagerStates[id]?.clear()
+        stateViewModel?.layoutManagerStates?.get(id)?.clear()
     }
 
     @Suppress("UNCHECKED_CAST")
     private fun getState(holder: ViewHolderState<S>): S? =
-        stateViewModel.layoutManagerStates[id]?.get(holder.absoluteAdapterPosition) as? S
+        stateViewModel?.layoutManagerStates?.get(id)?.get(holder.absoluteAdapterPosition) as? S
 
     private fun setState(holder: ViewHolderState<S>) {
         if (id == 0) return
+        val viewModel = stateViewModel ?: return
 
-        if (!stateViewModel.layoutManagerStates.contains(id)) {
-            stateViewModel.layoutManagerStates[id] = HashMap()
+        if (!viewModel.layoutManagerStates.contains(id)) {
+            viewModel.layoutManagerStates[id] = HashMap()
         }
-        stateViewModel.layoutManagerStates[id]?.let { map ->
+        viewModel.layoutManagerStates[id]?.let { map ->
             map[holder.absoluteAdapterPosition] = holder.save()
         }
     }
@@ -168,14 +247,15 @@ abstract class BaseAdapter<
         if (position < headers) {
             return HEADER
         }
-        if (position - headers >= mDiffer.currentList.size) {
+        if (position - headers >= currentList.size) {
             return FOOTER
         }
 
-        return getItemViewTypeCustom(mDiffer.currentList[position - headers])
+        return getItemViewTypeCustom(currentList[position - headers])
     }
 
-    private val stateViewModel: StateViewModel by fragment.viewModels()
+    private val stateViewModel: StateViewModel? by fragment?.viewModels<StateViewModel>()
+        ?: lazy { null }
 
     final override fun onViewRecycled(holder: ViewHolderState<S>) {
         setState(holder)

@@ -5,13 +5,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.core.view.isVisible
-import androidx.fragment.app.Fragment
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.databinding.LoadingBottomBinding
 import com.lagradost.quicknovel.databinding.SearchResultGridBinding
-import com.lagradost.quicknovel.ui.BaseAdapter
+import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.util.toPx
@@ -19,10 +18,9 @@ import com.lagradost.quicknovel.widget.AutofitRecyclerView
 import kotlin.math.roundToInt
 
 class MainAdapter2(
-    private val resView: AutofitRecyclerView, fragment: Fragment,
+    private val resView: AutofitRecyclerView,
     override val footers: Int
-) :
-    BaseAdapter<SearchResponse, Nothing>(fragment, 0) {
+) : NoStateAdapter<SearchResponse>() {
 
     override fun onBindFooter(holder: ViewHolderState<Nothing>) {
         (holder.view as LoadingBottomBinding).apply {

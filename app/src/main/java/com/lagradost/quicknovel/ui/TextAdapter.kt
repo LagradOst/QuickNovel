@@ -13,7 +13,6 @@ import android.widget.TextView
 import androidx.core.text.getSpans
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
 import com.lagradost.quicknovel.ChapterLoadSpanned
@@ -245,8 +244,11 @@ data class TextConfig(
     }
 }
 
-class TextAdapter(private val viewModel: ReadActivityViewModel, var config: TextConfig) :
-    ListAdapter<SpanDisplay, TextAdapter.TextAdapterHolder>(DiffCallback()) {
+class TextAdapter(
+    private val viewModel: ReadActivityViewModel,
+    var config: TextConfig
+) :
+    NoStateAdapter<SpanDisplay>(DiffCallback()) {
     private var currentTTSLine: TTSHelper.TTSLine? = null
 
     fun changeHeight(height: Int): Boolean {
@@ -291,7 +293,10 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
         return true
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TextAdapterHolder {
+    override fun onCreateCustom(
+        parent: ViewGroup,
+        viewType: Int
+    ): TextAdapterHolder {
         val inflater = LayoutInflater.from(parent.context)
         val binding: ViewBinding = when (viewType) {
             DRAW_TEXT -> SingleTextBinding.inflate(inflater, parent, false)
@@ -446,13 +451,15 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
         )
     }*/
 
-    override fun onBindViewHolder(holder: TextAdapterHolder, position: Int) {
+    override fun onBindContent(holder: ViewHolderState<Nothing>, item: SpanDisplay, position: Int) {
         val currentItem = getItem(position)
-        holder.bind(currentItem, currentTTSLine, config)
+        when (holder) {
+            is TextAdapterHolder -> holder.bind(currentItem, currentTTSLine, config)
+        }
     }
 
-    override fun getItemViewType(position: Int): Int {
-        return when (val item = getItem(position)) {
+    override fun getItemViewTypeCustom(item: Any): Int {
+        return when (item) {
             is TextSpan -> {
                 if (item.text.getSpans<AsyncDrawableSpan>(0, item.text.length).isNotEmpty()) {
                     DRAW_DRAWABLE
@@ -493,7 +500,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
         val binding: ViewBinding,
         private val viewModel: ReadActivityViewModel,
     ) :
-        RecyclerView.ViewHolder(binding.root) {
+        ViewHolderState<Nothing>(binding) {
 
         var span: SpanDisplay? = null
 
@@ -615,7 +622,7 @@ class TextAdapter(private val viewModel: ReadActivityViewModel, var config: Text
                         setTextIsSelectable(false) // this is so retarded
 
                         // https://stackoverflow.com/questions/36801486/androidtextisselectable-true-not-working-for-textview-in-recyclerview
-                        if(config.isTextSelectable) {
+                        if (config.isTextSelectable) {
                             post {
                                 setTextIsSelectable(true)
                                 movementMethod = LinkMovementMethod.getInstance()
