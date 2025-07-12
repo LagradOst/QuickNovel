@@ -86,6 +86,7 @@ class MainPageFragment : Fragment() {
         setupGridView()
     }
 
+    private var lastId : Int = -1 // dirty fix
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val apiName = requireArguments().getString("apiName")!!
 
@@ -198,7 +199,8 @@ class MainPageFragment : Fragment() {
                         mainPageAdapter.submitList(value.items)
 
                         // this is needed to fix the scroll issue when value.size % 3 == 0
-                        if (value.pages == 1) {
+                        if (value.pages == 1 && lastId != value.id) {
+                            lastId = value.id
                             binding.mainpageList.post {
                                 binding.mainpageList.scrollToPosition(0)
                             }

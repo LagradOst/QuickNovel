@@ -24,10 +24,12 @@ class MainPageViewModel : ViewModel() {
 
     private val infCards: ArrayList<SearchResponse> = arrayListOf()
     private var oldResponse: Resource<SearchResponseList>? = null
+    private var searchResponseListQueries : Int = 0
 
     data class SearchResponseList(
         val items: List<SearchResponse>,
         val pages: Int,
+        val id : Int,
     )
 
     val currentCards: MutableLiveData<Resource<SearchResponseList>> by lazy {
@@ -84,7 +86,7 @@ class MainPageViewModel : ViewModel() {
         isInSearch.postValue(true)
         viewModelScope.launch {
             val res = repo.search(query)
-            currentCards.postValue(res.map { x -> SearchResponseList(items = x, pages = 1) })
+            currentCards.postValue(res.map { x -> SearchResponseList(items = x, pages = 1, id = ++searchResponseListQueries) })
         }
     }
 
@@ -96,7 +98,8 @@ class MainPageViewModel : ViewModel() {
                 // this still gives a bug, works works 90% of the time so idc
                 SearchResponseList(
                     infCards,
-                    ((currentPage.value ?: 0) + 1) + 1
+                    ((currentPage.value ?: 0) + 1) + 1,
+                    ++searchResponseListQueries,
                 )
             )
         )
@@ -148,7 +151,8 @@ class MainPageViewModel : ViewModel() {
                         Resource.Success(
                             SearchResponseList(
                                 infCards,
-                                cPage + 1
+                                cPage + 1,
+                                ++searchResponseListQueries
                             )
                         )
                     )

@@ -21,6 +21,7 @@ class MainAdapter2(
     private val resView: AutofitRecyclerView,
     override val footers: Int
 ) : NoStateAdapter<SearchResponse>() {
+    override val detectMoves: Boolean = false
 
     override fun onBindFooter(holder: ViewHolderState<Nothing>) {
         (holder.view as LoadingBottomBinding).apply {
