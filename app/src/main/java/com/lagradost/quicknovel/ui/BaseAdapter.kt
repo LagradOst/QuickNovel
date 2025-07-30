@@ -128,6 +128,9 @@ abstract class BaseAdapter<
             return
         }
 
+        // Android in all their glory made calculateDiff crash the fucking app when detectMoves = false
+        val move = false;// detectMoves ?: (newList.size < detectMovesThreshold)
+
         val id = ++submitListCount
 
         executor.submit {
@@ -160,7 +163,7 @@ abstract class BaseAdapter<
                     val newItem = newList[newItemPosition]
                     return diffCallback.getChangePayload(oldItem, newItem)
                 }
-            }, detectMoves ?: (newList.size < detectMovesThreshold))
+            }, move) // detectmoves = false
 
             if (id == submitListCount) {
                 runOnMainThread {

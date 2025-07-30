@@ -637,7 +637,7 @@ object TTSHelper {
             try {
                 // THIS PART IF FOR THE SPEAK PART, REMOVING STUFF THAT IS WACK
                 val message = text.substring(index, endIndex)
-                var msg = message//Regex("\\p{L}").replace(message,"")
+                var msg = message
                 val invalidChars =
                     arrayOf(
                         "-",
@@ -653,15 +653,13 @@ object TTSHelper {
                         "–",
                         "¿",
                         "*",
-                        "~"
+                        "~",
+                        "\u200c" // Zero width joiner
                     ) // "\'", //Don't ect
                 for (c in invalidChars) {
                     msg = msg.replace(c, " ")
                 }
                 msg = msg.replace("...", " ")
-
-                /*.replace("…", ",")*/
-
                 if (msg
                         .replace("\n", "")
                         .replace("\t", "")
@@ -674,7 +672,10 @@ object TTSHelper {
             } catch (t: Throwable) {
                 break
             }
-            index = endIndex + 1
+            index = endIndex
+            if (text.getOrNull(index)?.isWhitespace() == true) {
+                index++
+            }
         }
 
         return ttsLines

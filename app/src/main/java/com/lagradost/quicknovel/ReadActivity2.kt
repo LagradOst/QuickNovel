@@ -439,6 +439,11 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
     private fun updateTTSLine(line: TTSHelper.TTSLine?, depth: Int = 0) {
         // update the visual component
+        /*println("LINE: ${line?.speakOutMsg} =>")
+        line?.speakOutMsg?.codePoints()?.forEachOrdered {
+            println(">>" + String(intArrayOf(it), 0, 1) + "|" + it.toString())
+        }*/
+
         textAdapter.updateTTSLine(line)
         for (position in textLayoutManager.findFirstVisibleItemPosition()..textLayoutManager.findLastVisibleItemPosition()) {
             val viewHolder = binding.realText.findViewHolderForAdapterPosition(position)
