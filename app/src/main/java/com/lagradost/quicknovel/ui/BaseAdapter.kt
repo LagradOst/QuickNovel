@@ -129,7 +129,7 @@ abstract class BaseAdapter<
         }
 
         // Android in all their glory made calculateDiff crash the fucking app when detectMoves = false
-        val move = false;// detectMoves ?: (newList.size < detectMovesThreshold)
+        val move = true;// detectMoves ?: (newList.size < detectMovesThreshold)
 
         val id = ++submitListCount
 
