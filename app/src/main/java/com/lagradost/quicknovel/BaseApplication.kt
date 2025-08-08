@@ -25,7 +25,7 @@ class BaseApplication : Application() {
         private var _context: WeakReference<Context>? = null
         var context
             get() = _context?.get()
-            private set(value) {
+            set(value) {
                 _context = WeakReference(value)
             }
 

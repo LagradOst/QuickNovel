@@ -95,6 +95,11 @@ object CommonActivity {
     }
     fun init(act: Activity) {
         this.activity = act
+
+        // Just in case????
+        if(BaseApplication.context == null)
+            BaseApplication.context = act
+
         act.updateLocale()
     }
 

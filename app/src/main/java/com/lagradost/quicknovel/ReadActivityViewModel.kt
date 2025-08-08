@@ -13,8 +13,8 @@ import android.text.Spanned
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.WorkerThread
-import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toDrawable
+import androidx.core.graphics.toColorInt
 import androidx.core.text.getSpans
 import androidx.core.text.toSpanned
 import androidx.lifecycle.LiveData
@@ -89,7 +89,6 @@ import me.ag2s.epublib.util.zip.AndroidZipFile
 import org.commonmark.node.Node
 import org.jsoup.Jsoup
 import java.io.File
-import java.lang.ref.WeakReference
 import java.net.URLDecoder
 import java.security.MessageDigest
 import java.util.Locale
@@ -1704,18 +1703,12 @@ class ReadActivityViewModel : ViewModel() {
 
     val textColorLive: MutableLiveData<Int> = MutableLiveData(null)
     var textColor by PreferenceDelegateLiveView(
-        EPUB_TEXT_COLOR, ContextCompat.getColor(
-            BaseApplication.context!!,
-            R.color.readerTextColor
-        ), Int::class, textColorLive
+        EPUB_TEXT_COLOR, "#cccccc".toColorInt(), Int::class, textColorLive
     )
 
     val backgroundColorLive: MutableLiveData<Int> = MutableLiveData(null)
     var backgroundColor by PreferenceDelegateLiveView(
-        EPUB_BG_COLOR, ContextCompat.getColor(
-            BaseApplication.context!!,
-            R.color.readerBackground
-        ), Int::class, backgroundColorLive
+        EPUB_BG_COLOR, "#292832".toColorInt(), Int::class, backgroundColorLive
     )
 
     val showBatteryLive: MutableLiveData<Boolean> = MutableLiveData(null)
