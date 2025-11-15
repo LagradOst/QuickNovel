@@ -293,10 +293,10 @@ class TextAdapter(
         return true
     }
 
-    override fun onCreateCustom(
+    override fun onCreateCustomContent(
         parent: ViewGroup,
         viewType: Int
-    ): TextAdapterHolder {
+    ): ViewHolderState<Any> {
         val inflater = LayoutInflater.from(parent.context)
         val binding: ViewBinding = when (viewType) {
             DRAW_TEXT -> SingleTextBinding.inflate(inflater, parent, false)
@@ -309,7 +309,7 @@ class TextAdapter(
             else -> throw NotImplementedError()
         }
 
-        return TextAdapterHolder(binding, viewModel)
+        return ViewHolderState(binding)
     }
 
     /** updates new onbind calls, but not current */
@@ -391,10 +391,10 @@ class TextAdapter(
         try {
             if (scrollVisibility.adapterPosition < 0 || scrollVisibility.adapterPosition >= itemCount) return emptyList()
             val viewHolder = scrollVisibility.viewHolder
-            if (viewHolder !is TextAdapterHolder) return emptyList()
-            val binding = viewHolder.binding
+            if (viewHolder !is ViewHolderState<*>) return emptyList()
+            val binding = viewHolder.view
             if (binding !is SingleTextBinding) return emptyList()
-            val span = viewHolder.span
+            val span = getItem(scrollVisibility.adapterPosition)
             if (span !is TextSpan) return emptyList()
 
             val outLocation = IntArray(2)
@@ -451,14 +451,44 @@ class TextAdapter(
         )
     }*/
 
-    override fun onBindContent(holder: ViewHolderState<Nothing>, item: SpanDisplay, position: Int) {
-        val currentItem = getItem(position)
-        when (holder) {
-            is TextAdapterHolder -> holder.bind(currentItem, currentTTSLine, config)
+    override fun onBindContent(holder: ViewHolderState<Any>, item: SpanDisplay, position: Int) {
+        val binding = holder.view
+
+        when (item) {
+            is TextSpan -> {
+                this.bindText(binding, item, config)
+                // because we bind text here we know that it will be cleared and thus
+                // we do not have to update it with null
+                if (currentTTSLine != null)
+                    this.updateTTSLine(binding as SingleTextBinding, item,currentTTSLine)
+            }
+
+            is LoadingSpanned -> {
+                this.bindLoading(binding as SingleLoadingBinding, item)
+            }
+
+            is FailedSpanned -> {
+                this.bindFailed(binding as SingleFailedBinding, item)
+            }
+
+            is ChapterStartSpanned -> {
+                this.bindChapter(binding as SingleFinishedChapterBinding, item)
+            }
+
+            is ChapterLoadSpanned -> {
+                this.bindLoadChapter(binding as SingleLoadBinding, item)
+            }
+
+            is ChapterOverscrollSpanned -> {
+                this.bindOverscrollChapter(binding as SingleOverscrollChapterBinding, item)
+            }
+
+            else -> throw NotImplementedError()
         }
+        setConfig(binding,config)
     }
 
-    override fun getItemViewTypeCustom(item: Any): Int {
+    override fun customContentViewType(item: SpanDisplay): Int {
         return when (item) {
             is TextSpan -> {
                 if (item.text.getSpans<AsyncDrawableSpan>(0, item.text.length).isNotEmpty()) {
@@ -496,255 +526,201 @@ class TextAdapter(
         return getItem(position).id
     }
 
-    class TextAdapterHolder(
-        val binding: ViewBinding,
-        private val viewModel: ReadActivityViewModel,
-    ) :
-        ViewHolderState<Nothing>(binding) {
+    private fun bindLoading(binding : SingleLoadingBinding,obj: LoadingSpanned) {
+        binding.text.setText(obj.text)
+        binding.root.setOnClickListener {
+            viewModel.switchVisibility()
+        }
+    }
 
-        var span: SpanDisplay? = null
+    private fun bindFailed(binding : SingleFailedBinding, obj: FailedSpanned) {
+        binding.root.setText(obj.reason)
 
-        private fun setConfig(config: TextConfig) {
-            when (binding) {
-                is SingleTextBinding -> {
-                    config.setArgs(
-                        binding.root,
-                        CONFIG_SIZE or CONFIG_COLOR or CONFIG_FONT
-                    )
-                }
-
-                is SingleLoadingBinding -> {
-                    config.setArgs(binding.text, CONFIG_COLOR or CONFIG_FONT or CONFIG_FONT_BOLD)
-                    config.setArgs(binding.loadingBar)
-                    binding.root.minimumHeight = config.toolbarHeight
-                }
-
-                is SingleFailedBinding -> {
-                    config.setArgs(binding.root, CONFIG_COLOR or CONFIG_FONT or CONFIG_FONT_BOLD)
-                    binding.root.minHeight = config.toolbarHeight
-                }
-
-                is SingleFinishedChapterBinding -> {
-                    config.setArgs(binding.root, CONFIG_COLOR or CONFIG_FONT or CONFIG_FONT_BOLD)
-                    binding.root.minHeight = config.toolbarHeight
-                }
-
-                is SingleLoadBinding -> {
-                    config.setArgs(binding.root, CONFIG_BG_COLOR or CONFIG_FONT or CONFIG_FONT_BOLD)
-                    binding.root.backgroundTintList = ColorStateList.valueOf(config.textColor)
-                }
-
-                is SingleOverscrollChapterBinding -> {
-                    config.setArgs(binding.text, CONFIG_COLOR or CONFIG_FONT or CONFIG_FONT_BOLD)
-                    binding.progress.progressTintList = ColorStateList.valueOf(config.textColor)
-                }
-
-                else -> {}
+        binding.root.setOnClickListener {
+            if (obj.canReload) {
+                showToast(
+                    txt(R.string.reload_chapter_format, (obj.index + 1).toString())
+                )
+                viewModel.reloadChapter(obj.index)
+            } else {
+                viewModel.switchVisibility()
             }
         }
+    }
 
-        fun updateTTSLine(line: TTSHelper.TTSLine?) {
-            if (binding !is SingleTextBinding) return
-            val span = span
-            if (span !is TextSpan) return
-            // if the line does not apply
-            if (line == null || line.index != span.index ||
-                (line.startChar < span.start && line.endChar < span.start)
-                || (line.startChar > span.end && line.endChar > span.end)
-            ) {
-                removeHighLightedText(binding.root)
-                return
-            }
+    private fun bindImage(binding: SingleImageBinding, img: AsyncDrawable) {
+        val url = img.destination
+        if (binding.root.url == url) return
+        binding.root.url = url // don't reload if already set
+        UIHelper.bindImage(binding.root, img)
+    }
 
-            val length = binding.root.length()
-            val start = minOf(maxOf(line.startChar - span.start, 0), length)
-            val end = minOf(maxOf(line.endChar - span.start, 0), length)
+    private fun bindText(binding : ViewBinding, obj: TextSpan, config: TextConfig) {
+        when (binding) {
+            is SingleImageBinding -> {
+                val img = obj.text.getSpans<AsyncDrawableSpan>(0, obj.text.length)[0]
+                bindImage(binding, img.drawable)
 
-            setHighLightedText(
-                binding.root,
-                start,
-                end
-            )
-        }
-
-
-        private fun bindImage(binding: SingleImageBinding, img: AsyncDrawable) {
-            val url = img.destination
-            if (binding.root.url == url) return
-            binding.root.url = url // don't reload if already set
-            UIHelper.bindImage(binding.root, img)
-        }
-
-        private fun bindText(obj: TextSpan, config: TextConfig) {
-            when (binding) {
-                is SingleImageBinding -> {
-                    val img = obj.text.getSpans<AsyncDrawableSpan>(0, obj.text.length)[0]
-                    bindImage(binding, img.drawable)
-
-                    binding.root.setOnClickListener { root ->
-                        if (root !is TextImageView) {
-                            return@setOnClickListener
-                        }
-                        showImage(root.context, img.drawable)
+                binding.root.setOnClickListener { root ->
+                    if (root !is TextImageView) {
+                        return@setOnClickListener
                     }
-
-                    /*val size = 300.toPx
-
-                    binding.root.layoutParams = binding.root.layoutParams.apply {
-                        height = size
-                    }
-
-                    binding.root.setOnClickListener { root ->
-                        if (root !is TextImageView) {
-                            return@setOnClickListener
-                        }
-                        root.layoutParams = root.layoutParams.apply {
-                            height = if (height == ViewGroup.LayoutParams.WRAP_CONTENT) {
-                                size
-                            } else {
-                                ViewGroup.LayoutParams.WRAP_CONTENT
-                            }
-                        }
-                        root.requestLayout()
-                    }
-                    bindImage(binding,img)*/
+                    showImage(root.context, img.drawable)
                 }
 
-                is SingleTextBinding -> {
-                    binding.root.apply {
-                        // this is set to fix the nonclick https://stackoverflow.com/questions/8641343/android-clickablespan-not-calling-onclick
-                        text = if (config.bionicReading) {
-                            obj.bionicText
+                /*val size = 300.toPx
+
+                binding.root.layoutParams = binding.root.layoutParams.apply {
+                    height = size
+                }
+
+                binding.root.setOnClickListener { root ->
+                    if (root !is TextImageView) {
+                        return@setOnClickListener
+                    }
+                    root.layoutParams = root.layoutParams.apply {
+                        height = if (height == ViewGroup.LayoutParams.WRAP_CONTENT) {
+                            size
                         } else {
-                            obj.text
+                            ViewGroup.LayoutParams.WRAP_CONTENT
                         }
+                    }
+                    root.requestLayout()
+                }
+                bindImage(binding,img)*/
+            }
 
-                        setTextIsSelectable(false) // this is so retarded
+            is SingleTextBinding -> {
+                binding.root.apply {
+                    // this is set to fix the nonclick https://stackoverflow.com/questions/8641343/android-clickablespan-not-calling-onclick
+                    text = if (config.bionicReading) {
+                        obj.bionicText
+                    } else {
+                        obj.text
+                    }
 
-                        // https://stackoverflow.com/questions/36801486/androidtextisselectable-true-not-working-for-textview-in-recyclerview
-                        if (config.isTextSelectable) {
-                            post {
-                                setTextIsSelectable(true)
-                                movementMethod = LinkMovementMethod.getInstance()
-                                setOnClickListener {
-                                    viewModel.switchVisibility()
-                                }
-                            }
-                        } else {
+                    setTextIsSelectable(false) // this is so retarded
+
+                    // https://stackoverflow.com/questions/36801486/androidtextisselectable-true-not-working-for-textview-in-recyclerview
+                    if (config.isTextSelectable) {
+                        post {
+                            setTextIsSelectable(true)
                             movementMethod = LinkMovementMethod.getInstance()
                             setOnClickListener {
                                 viewModel.switchVisibility()
                             }
                         }
-                        //val links = obj.text.getSpans<io.noties.markwon.core.spans.LinkSpan>()
-                        //if (links.isNotEmpty()) {
-                        //   println("URLS: ${links.size} : ${links.map { it.url }}")
-                        //}
+                    } else {
+                        movementMethod = LinkMovementMethod.getInstance()
+                        setOnClickListener {
+                            viewModel.switchVisibility()
+                        }
                     }
+                    //val links = obj.text.getSpans<io.noties.markwon.core.spans.LinkSpan>()
+                    //if (links.isNotEmpty()) {
+                    //   println("URLS: ${links.size} : ${links.map { it.url }}")
+                    //}
                 }
-
-                else -> throw NotImplementedError()
             }
+
+            else -> throw NotImplementedError()
+        }
+    }
+
+    fun updateTTSLine(binding : SingleTextBinding, span : TextSpan, line: TTSHelper.TTSLine?) {
+        // if the line does not apply
+        if (line == null || line.index != span.index ||
+            (line.startChar < span.start && line.endChar < span.start)
+            || (line.startChar > span.end && line.endChar > span.end)
+        ) {
+            removeHighLightedText(binding.root)
+            return
         }
 
-        private fun bindLoading(obj: LoadingSpanned) {
-            if (binding !is SingleLoadingBinding) throw NotImplementedError()
-            binding.text.setText(obj.text)
-            binding.root.setOnClickListener {
-                viewModel.switchVisibility()
+        val length = binding.root.length()
+        val start = minOf(maxOf(line.startChar - span.start, 0), length)
+        val end = minOf(maxOf(line.endChar - span.start, 0), length)
+
+        setHighLightedText(
+            binding.root,
+            start,
+            end
+        )
+    }
+
+    private fun setConfig(binding : ViewBinding, config: TextConfig) {
+        when (binding) {
+            is SingleTextBinding -> {
+                config.setArgs(
+                    binding.root,
+                    CONFIG_SIZE or CONFIG_COLOR or CONFIG_FONT
+                )
             }
+
+            is SingleLoadingBinding -> {
+                config.setArgs(binding.text, CONFIG_COLOR or CONFIG_FONT or CONFIG_FONT_BOLD)
+                config.setArgs(binding.loadingBar)
+                binding.root.minimumHeight = config.toolbarHeight
+            }
+
+            is SingleFailedBinding -> {
+                config.setArgs(binding.root, CONFIG_COLOR or CONFIG_FONT or CONFIG_FONT_BOLD)
+                binding.root.minHeight = config.toolbarHeight
+            }
+
+            is SingleFinishedChapterBinding -> {
+                config.setArgs(binding.root, CONFIG_COLOR or CONFIG_FONT or CONFIG_FONT_BOLD)
+                binding.root.minHeight = config.toolbarHeight
+            }
+
+            is SingleLoadBinding -> {
+                config.setArgs(binding.root, CONFIG_BG_COLOR or CONFIG_FONT or CONFIG_FONT_BOLD)
+                binding.root.backgroundTintList = ColorStateList.valueOf(config.textColor)
+            }
+
+            is SingleOverscrollChapterBinding -> {
+                config.setArgs(binding.text, CONFIG_COLOR or CONFIG_FONT or CONFIG_FONT_BOLD)
+                binding.progress.progressTintList = ColorStateList.valueOf(config.textColor)
+            }
+
+            else -> {}
         }
+    }
 
-        private fun bindFailed(obj: FailedSpanned) {
-            if (binding !is SingleFailedBinding) throw NotImplementedError()
-            binding.root.setText(obj.reason)
+    private fun bindLoadChapter(binding : SingleLoadBinding, obj: ChapterLoadSpanned) {
+        binding.root.setText(obj.name)
+        binding.root.setOnClickListener {
+            viewModel.seekToChapter(obj.loadIndex)
+        }
+    }
 
-            binding.root.setOnClickListener {
-                if (obj.canReload) {
+    private fun bindOverscrollChapter(binding : SingleOverscrollChapterBinding, obj: ChapterOverscrollSpanned) {
+        //binding.text.setText(obj.name)
+        binding.text.isVisible = false
+        binding.progress.progress = 0
+        //binding.root.setOnClickListener {
+        //    viewModel.seekToChapter(obj.loadIndex)
+        //}
+    }
+
+    private fun bindChapter(binding : SingleFinishedChapterBinding, obj: ChapterStartSpanned) {
+        binding.root.setText(obj.name)
+        binding.root.setOnClickListener {
+            viewModel.switchVisibility()
+        }
+        binding.root.setOnLongClickListener {
+            it?.popupMenu(
+                items = listOf(1 to R.string.reload_chapter),
+                selectedItemId = -1
+            ) {
+                if (itemId == 1) {
                     showToast(
                         txt(R.string.reload_chapter_format, (obj.index + 1).toString())
                     )
                     viewModel.reloadChapter(obj.index)
-                } else {
-                    viewModel.switchVisibility()
                 }
             }
-        }
-
-        private fun bindLoadChapter(obj: ChapterLoadSpanned) {
-            if (binding !is SingleLoadBinding) throw NotImplementedError()
-            binding.root.setText(obj.name)
-            binding.root.setOnClickListener {
-                viewModel.seekToChapter(obj.loadIndex)
-            }
-        }
-
-        private fun bindOverscrollChapter(obj: ChapterOverscrollSpanned) {
-            if (binding !is SingleOverscrollChapterBinding) throw NotImplementedError()
-            //binding.text.setText(obj.name)
-            binding.text.isVisible = false
-            binding.progress.progress = 0
-            //binding.root.setOnClickListener {
-            //    viewModel.seekToChapter(obj.loadIndex)
-            //}
-        }
-
-        private fun bindChapter(obj: ChapterStartSpanned) {
-            if (binding !is SingleFinishedChapterBinding) throw NotImplementedError()
-            binding.root.setText(obj.name)
-            binding.root.setOnClickListener {
-                viewModel.switchVisibility()
-            }
-            binding.root.setOnLongClickListener {
-                it?.popupMenu(
-                    items = listOf(1 to R.string.reload_chapter),
-                    selectedItemId = -1
-                ) {
-                    if (itemId == 1) {
-                        showToast(
-                            txt(R.string.reload_chapter_format, (obj.index + 1).toString())
-                        )
-                        viewModel.reloadChapter(obj.index)
-                    }
-                }
-                return@setOnLongClickListener true
-            }
-        }
-
-        fun bind(obj: SpanDisplay, ttsLine: TTSHelper.TTSLine?, config: TextConfig) {
-            span = obj
-            when (obj) {
-                is TextSpan -> {
-                    this.bindText(obj, config)
-                    // because we bind text here we know that it will be cleared and thus
-                    // we do not have to update it with null
-                    if (ttsLine != null)
-                        this.updateTTSLine(ttsLine)
-                }
-
-                is LoadingSpanned -> {
-                    this.bindLoading(obj)
-                }
-
-                is FailedSpanned -> {
-                    this.bindFailed(obj)
-                }
-
-                is ChapterStartSpanned -> {
-                    this.bindChapter(obj)
-                }
-
-                is ChapterLoadSpanned -> {
-                    this.bindLoadChapter(obj)
-                }
-
-                is ChapterOverscrollSpanned -> {
-                    this.bindOverscrollChapter(obj)
-                }
-
-                else -> throw NotImplementedError()
-            }
-            setConfig(config)
+            return@setOnLongClickListener true
         }
     }
 

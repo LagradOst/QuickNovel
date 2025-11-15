@@ -63,8 +63,8 @@ import com.lagradost.quicknovel.ui.ScrollVisibilityItem
 import com.lagradost.quicknovel.ui.TextAdapter
 import com.lagradost.quicknovel.ui.TextConfig
 import com.lagradost.quicknovel.ui.TextVisualLine
+import com.lagradost.quicknovel.ui.ViewHolderState
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
-import com.lagradost.quicknovel.util.SingleSelectionHelper.showBottomDialog
 import com.lagradost.quicknovel.util.SingleSelectionHelper.showDialog
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
@@ -445,11 +445,14 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
         }*/
 
         textAdapter.updateTTSLine(line)
-        for (position in textLayoutManager.findFirstVisibleItemPosition()..textLayoutManager.findLastVisibleItemPosition()) {
+        val first = textLayoutManager.findFirstVisibleItemPosition()
+        val last = textLayoutManager.findLastVisibleItemPosition()
+        textAdapter.notifyItemRangeChanged(first, last - first)
+        /*for (position in textLayoutManager.findFirstVisibleItemPosition()..textLayoutManager.findLastVisibleItemPosition()) {
             val viewHolder = binding.realText.findViewHolderForAdapterPosition(position)
             if (viewHolder !is TextAdapter.TextAdapterHolder) continue
             viewHolder.updateTTSLine(line)
-        }
+        }*/
 
         // update the lock area
         if (line == null || !viewModel.ttsLock) {
@@ -634,7 +637,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
     private fun setProgressOfOverscroll(index: Int, progress: Float) {
         val id = generateId(5, index, 0, 0)
-        ((binding.realText.findViewHolderForItemId(id) as? TextAdapter.TextAdapterHolder)?.binding as? SingleOverscrollChapterBinding)?.let {
+        ((binding.realText.findViewHolderForItemId(id) as? ViewHolderState<*>)?.view as? SingleOverscrollChapterBinding)?.let {
             it.progress.max = 10000
             it.progress.progress = (progress.absoluteValue * 10000.0f).toInt()
             it.progress.alpha = if (progress.absoluteValue > 0.05f) 1.0f else 0.0f
@@ -1080,12 +1083,18 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
         observe(viewModel.chapter) { chapter ->
             cachedChapter = chapter.data
-            textAdapter.submitList(chapter.data) {
-                viewModel._loadingStatus.postValue(Resource.Success(true)) // submitList can take 500ms, very dirty :(
-                if (chapter.seekToDesired) {
-                    scrollToDesired()
+
+            if (chapter.seekToDesired) {
+                textAdapter.submitIncomparableList(chapter.data)
+                binding.realText.post {
+                    viewModel._loadingStatus.postValue(Resource.Success(true)) // submitList can take 500ms, very dirty :(
+                    if (chapter.seekToDesired) {
+                        scrollToDesired()
+                    }
+                    onScroll()
                 }
-                onScroll()
+            } else {
+                textAdapter.submitList(chapter.data)
             }
         }
 
@@ -1324,7 +1333,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                                 addAll(tts.availableLanguages?.filterNotNull() ?: emptySet())
                             }
                             val ctx = binding.readLanguage.context ?: return@runOnUiThread
-                            ctx.showBottomDialog(
+                            ctx.showDialog(
                                 languages.map {
                                     it?.displayName ?: ctx.getString(R.string.default_text)
                                 },
@@ -1388,18 +1397,33 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 ioSafe {
                     viewModel.ttsSession.requireTTS({ tts ->
                         runOnUiThread {
-                            val matchAgainst = tts.voice.locale.language
-                            val voices = mutableListOf<Voice?>(null).apply {
-                                addAll(tts.voices.filter { it != null && it.locale.language == matchAgainst })
-                            }
+                            val matchAgainst = tts.voice.locale
                             val ctx = binding.readLanguage.context ?: return@runOnUiThread
+                            val voices =
+                                mutableListOf<Pair<String, Voice?>>(ctx.getString(R.string.default_text) to null).apply {
+                                    val voices =
+                                        tts.voices.filter { it != null && it.locale == matchAgainst }
+                                            .map {
+                                                // ${"★".repeat(it.quality / 100) }
+                                                ("${it.name} ${
+                                                    if (it.isNetworkConnectionRequired) {
+                                                        "(☁)"
+                                                    } else {
+                                                        ""
+                                                    }
+                                                }") to it
+                                            }
 
-                            ctx.showBottomDialog(
-                                voices.map { it?.name ?: ctx.getString(R.string.default_text) },
-                                voices.indexOf(tts.voice),
+                                    addAll(voices.sortedBy { (name, _) -> name })
+                                }
+
+                            ctx.showDialog(
+                                voices.map { it.first },
+                                voices.map { it.second }.indexOf(tts.voice),
                                 ctx.getString(R.string.tts_locale), false, {}
                             ) { index ->
-                                viewModel.setTTSVoice(voices.getOrNull(index))
+                                val voice = voices.getOrNull(index)?.second
+                                viewModel.setTTSVoice(voice)
                             }
                         }
                     }, action = { false })

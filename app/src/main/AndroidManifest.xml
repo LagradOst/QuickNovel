@@ -44,8 +44,7 @@
                 android:name=".DownloadNotificationService"
                 android:enabled="true"
                 android:foregroundServiceType="dataSync"
-                android:exported="false">
-        </service>
+                android:exported="false" />
 
         <receiver
                 android:name="androidx.media.session.MediaButtonReceiver"

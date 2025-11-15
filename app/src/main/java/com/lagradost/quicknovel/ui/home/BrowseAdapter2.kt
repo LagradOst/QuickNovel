@@ -14,37 +14,27 @@ import com.lagradost.quicknovel.ui.ViewHolderState
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 
 class BrowseAdapter2 : NoStateAdapter<MainAPI>(DiffCallback()) {
-    override fun onCreateContent(parent: ViewGroup): ViewHolderState<Nothing> {
-        val binding =
-            BrowseListCompactBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return BrowseAdapter2Holder(binding)
+    override fun onCreateContent(parent: ViewGroup): ViewHolderState<Any> {
+        return ViewHolderState(BrowseListCompactBinding.inflate(LayoutInflater.from(parent.context), parent, false))
     }
 
-    override fun onBindContent(holder: ViewHolderState<Nothing>, item: MainAPI, position: Int) {
-        val currentItem = getItem(position)
-        when (holder) {
-            is BrowseAdapter2Holder -> holder.bind(currentItem)
-        }
-    }
+    override fun onBindContent(holder: ViewHolderState<Any>, item: MainAPI, position: Int) {
+        val binding = holder.view as? BrowseListCompactBinding ?: return
 
-    class BrowseAdapter2Holder(private val binding: BrowseListCompactBinding) :
-        ViewHolderState<Nothing>(binding) {
-        fun bind(api: MainAPI) {
-            binding.apply {
-                browseText.text = api.name
-                api.iconId?.let { browseIcon.setImageResource(it) }
-                browseIconBackground.setCardBackgroundColor(
-                    ContextCompat.getColor(
-                        browseIconBackground.context,
-                        api.iconBackgroundId
-                    )
+        binding.apply {
+            browseText.text = item.name
+            item.iconId?.let { browseIcon.setImageResource(it) }
+            browseIconBackground.setCardBackgroundColor(
+                ContextCompat.getColor(
+                    browseIconBackground.context,
+                    item.iconBackgroundId
                 )
-                browseBackground.setOnClickListener {
-                    activity?.navigate(
-                        R.id.global_to_navigation_mainpage,
-                        MainPageFragment.newInstance(api.name)
-                    )
-                }
+            )
+            browseBackground.setOnClickListener {
+                activity?.navigate(
+                    R.id.global_to_navigation_mainpage,
+                    MainPageFragment.newInstance(item.name)
+                )
             }
         }
     }

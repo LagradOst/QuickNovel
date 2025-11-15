@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.ui.history
 
+import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
@@ -11,44 +12,35 @@ import com.lagradost.quicknovel.util.UIHelper.setImage
 
 class HistoryAdapter2(private val viewModel: HistoryViewModel) :
     NoStateAdapter<ResultCached>(DiffCallback()) {
-    override fun onCreateContent(parent: ViewGroup): ViewHolderState<Nothing> {
-        val binding =
-            HistoryResultCompactBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return HistoryAdapter2Holder(binding)
+    override fun onCreateContent(parent: ViewGroup): ViewHolderState<Any> {
+        return ViewHolderState(HistoryResultCompactBinding.inflate(LayoutInflater.from(parent.context), parent, false))
     }
 
+    @SuppressLint("SetTextI18n")
     override fun onBindContent(
-        holder: ViewHolderState<Nothing>,
+        holder: ViewHolderState<Any>,
         item: ResultCached,
         position: Int
     ) {
-        val currentItem = getItem(position)
-        when (holder) {
-            is HistoryAdapter2Holder -> holder.bind(currentItem, viewModel)
-        }
-    }
+        val binding = holder.view as? HistoryResultCompactBinding ?: return
 
-    class HistoryAdapter2Holder(private val binding: HistoryResultCompactBinding) :
-        ViewHolderState<Nothing>(binding) {
-        fun bind(card: ResultCached, viewModel: HistoryViewModel) {
-            binding.apply {
-                imageText.text = card.name
-                historyExtraText.text = "${card.totalChapters} Chapters"
-                imageView.setImage(card.poster)
+        binding.apply {
+            imageText.text = item.name
+            historyExtraText.text = "${item.totalChapters} Chapters"
+            imageView.setImage(item.poster)
 
-                historyPlay.setOnClickListener {
-                    viewModel.stream(card)
-                }
-                imageView.setOnClickListener {
-                    viewModel.open(card)
-                }
-                historyDelete.setOnClickListener {
-                    viewModel.deleteAlert(card)
-                }
-                imageView.setOnLongClickListener {
-                    viewModel.showMetadata(card)
-                    return@setOnLongClickListener true
-                }
+            historyPlay.setOnClickListener {
+                viewModel.stream(item)
+            }
+            imageView.setOnClickListener {
+                viewModel.open(item)
+            }
+            historyDelete.setOnClickListener {
+                viewModel.deleteAlert(item)
+            }
+            imageView.setOnLongClickListener {
+                viewModel.showMetadata(item)
+                return@setOnLongClickListener true
             }
         }
     }

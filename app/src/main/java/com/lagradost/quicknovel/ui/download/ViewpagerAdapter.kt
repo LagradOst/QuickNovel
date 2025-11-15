@@ -48,7 +48,6 @@ class ViewpagerAdapter(
     val fragment: Fragment,
     val scrollCallback: (isScrollingDown: Boolean) -> Unit,
 ) : BaseAdapter<Page, Bundle>(
-    fragment,
     id = "ViewpagerAdapter".hashCode(),
     diffCallback = BaseDiffCallback(
         itemSame = { a, b ->
@@ -116,7 +115,7 @@ class ViewpagerAdapter(
                 doOnAttach {
                     adapter = AnyAdapter(
                         this,
-                        downloadViewModel, fragment, 0
+                        downloadViewModel
                     ).apply {
                         submitList(item.items)
                     }

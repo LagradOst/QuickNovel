@@ -1323,8 +1323,12 @@ class ReadActivityViewModel : ViewModel() {
                     }
 
                     val idx = lines.indexOfFirst { it.startChar >= startChar }
-                    if (idx != -1)
+                    if (idx != -1) {
                         ttsInnerIndex = idx
+                    } else {
+                        // In case we are at the very last thing, then goto the next chapter
+                        index++
+                    }
                 }
                 while (isActive && currentTTSStatus != TTSHelper.TTSStatus.IsStopped) {
                     val lines =
@@ -1426,6 +1430,11 @@ class ReadActivityViewModel : ViewModel() {
                         ) {
                             currentTTSStatus != TTSHelper.TTSStatus.IsRunning || pendingTTSSkip != 0
                         }
+
+                        if(!ttsSession.isValidTTS()) {
+                            currentTTSStatus = TTSHelper.TTSStatus.IsStopped
+                        }
+
                         ttsSession.waitForOr(waitFor, {
                             currentTTSStatus != TTSHelper.TTSStatus.IsRunning || pendingTTSSkip != 0
                         }) {

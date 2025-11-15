@@ -10,8 +10,8 @@ import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
 
 class ChapterAdapter(val viewModel: ResultViewModel) : NoStateAdapter<ChapterData>(DiffCallback()) {
-    override fun onCreateContent(parent: ViewGroup): ViewHolderState<Nothing> {
-        return ChapterAdapterHolder(
+    override fun onCreateContent(parent: ViewGroup): ViewHolderState<Any> {
+        return ViewHolderState(
             SimpleChapterBinding.inflate(
                 LayoutInflater.from(parent.context),
                 parent,
@@ -20,39 +20,28 @@ class ChapterAdapter(val viewModel: ResultViewModel) : NoStateAdapter<ChapterDat
         )
     }
 
-    override fun onBindContent(holder: ViewHolderState<Nothing>, item: ChapterData, position: Int) {
-        when (holder) {
-            is ChapterAdapterHolder -> {
-                val currentItem = getItem(position)
-                holder.bind(currentItem, viewModel)
-            }
+    private fun refresh(binding : SimpleChapterBinding, card: ChapterData, viewModel: ResultViewModel) {
+        binding.apply {
+            root.alpha = if (viewModel.hasReadChapter(chapter = card)) 0.5F else 1.0F
         }
     }
 
-    class ChapterAdapterHolder(private val binding: SimpleChapterBinding) :
-        ViewHolderState<Nothing>(binding) {
-        private fun refresh(card: ChapterData, viewModel: ResultViewModel) {
-            binding.apply {
-                root.alpha = if (viewModel.hasReadChapter(chapter = card)) 0.5F else 1.0F
+    override fun onBindContent(holder: ViewHolderState<Any>, item: ChapterData, position: Int) {
+        val binding = holder.view as? SimpleChapterBinding ?: return
+        binding.apply {
+            name.text = item.name
+            releaseDate.text = item.dateOfRelease
+            releaseDate.isGone = item.dateOfRelease.isNullOrBlank()
+            root.setOnClickListener {
+                viewModel.streamRead(item)
+                refresh(binding, item, viewModel)
             }
-        }
-
-        fun bind(card: ChapterData, viewModel: ResultViewModel) {
-            binding.apply {
-                name.text = card.name
-                releaseDate.text = card.dateOfRelease
-                releaseDate.isGone = card.dateOfRelease.isNullOrBlank()
-                root.setOnClickListener {
-                    viewModel.streamRead(card)
-                    refresh(card, viewModel)
-                }
-                root.setOnLongClickListener {
-                    viewModel.setReadChapter(chapter = card, !viewModel.hasReadChapter(card))
-                    refresh(card, viewModel)
-                    return@setOnLongClickListener true
-                }
-                refresh(card, viewModel)
+            root.setOnLongClickListener {
+                viewModel.setReadChapter(chapter = item, !viewModel.hasReadChapter(item))
+                refresh(binding, item, viewModel)
+                return@setOnLongClickListener true
             }
+            refresh(binding, item, viewModel)
         }
     }
 

@@ -21,9 +21,7 @@ class MainAdapter2(
     private val resView: AutofitRecyclerView,
     override val footers: Int
 ) : NoStateAdapter<SearchResponse>() {
-    override val detectMoves: Boolean = false
-
-    override fun onBindFooter(holder: ViewHolderState<Nothing>) {
+    override fun onBindFooter(holder: ViewHolderState<Any>) {
         (holder.view as LoadingBottomBinding).apply {
             val coverHeight: Int =
                 (resView.itemWidth / 0.68).roundToInt()
@@ -43,7 +41,7 @@ class MainAdapter2(
         holder.view.root.isVisible = loadingItems
     }
 
-    override fun onCreateContent(parent: ViewGroup): ViewHolderState<Nothing> {
+    override fun onCreateContent(parent: ViewGroup): ViewHolderState<Any> {
         return ViewHolderState(
             SearchResultGridBinding.inflate(
                 LayoutInflater.from(
@@ -53,7 +51,7 @@ class MainAdapter2(
         )
     }
 
-    override fun onCreateFooter(parent: ViewGroup): ViewHolderState<Nothing> {
+    override fun onCreateFooter(parent: ViewGroup): ViewHolderState<Any> {
         return ViewHolderState(
             LoadingBottomBinding.inflate(
                 LayoutInflater.from(
@@ -64,7 +62,7 @@ class MainAdapter2(
     }
 
     override fun onBindContent(
-        holder: ViewHolderState<Nothing>,
+        holder: ViewHolderState<Any>,
         item: SearchResponse,
         position: Int
     ) {

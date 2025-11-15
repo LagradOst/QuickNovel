@@ -60,6 +60,10 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
     private var TTSStartSpeakId = 0
     private var TTSEndSpeakId = 0
 
+    fun isValidTTS() : Boolean {
+        return tts != null
+    }
+
     private fun clearTTS(tts: TextToSpeech) {
         tts.stop()
         TTSQueue = null

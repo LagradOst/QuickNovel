@@ -6,8 +6,6 @@ import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.widget.LinearLayout
 import androidx.core.view.isVisible
-import androidx.fragment.app.Fragment
-import androidx.viewbinding.ViewBinding
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
 import com.lagradost.quicknovel.DownloadState
@@ -15,8 +13,8 @@ import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.DownloadResultCompactBinding
 import com.lagradost.quicknovel.databinding.DownloadResultGridBinding
 import com.lagradost.quicknovel.databinding.HistoryResultCompactBinding
-import com.lagradost.quicknovel.ui.BaseAdapter
 import com.lagradost.quicknovel.ui.BaseDiffCallback
+import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
@@ -24,17 +22,10 @@ import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.widget.AutofitRecyclerView
 import kotlin.math.roundToInt
 
-class AnyState(
-    view: ViewBinding
-) : ViewHolderState<Nothing>(view)
-
 class AnyAdapter(
     private val resView: AutofitRecyclerView,
     private val downloadViewModel: DownloadViewModel,
-    fragment: Fragment,
-    id: Int
-) : BaseAdapter<Any, Nothing>(
-    fragment, id,
+) : NoStateAdapter<Any>(
     diffCallback = BaseDiffCallback(
         itemSame = { a, b ->
             a.hashCode() == b.hashCode()
@@ -44,14 +35,12 @@ class AnyAdapter(
         }
     )
 ) {
-    override val detectMoves: Boolean? = null
-
     companion object {
         const val RESULT_CACHED: Int = 1
         const val DOWNLOAD_DATA_LOADED: Int = 2
     }
 
-    override fun onCreateCustom(parent: ViewGroup, viewType: Int): ViewHolderState<Nothing> {
+    override fun onCreateCustomContent(parent: ViewGroup, viewType: Int): ViewHolderState<Any> {
         val compact = parent.context.getDownloadIsCompact()
         val binding = when (viewType) {
             RESULT_CACHED -> {
@@ -89,10 +78,10 @@ class AnyAdapter(
             else -> throw NotImplementedError()
         }
 
-        return AnyState(binding)
+        return ViewHolderState(binding)
     }
 
-    override fun onBindContent(holder: ViewHolderState<Nothing>, item: Any, position: Int) {
+    override fun onBindContent(holder: ViewHolderState<Any>, item: Any, position: Int) {
         when (val view = holder.view) {
             is HistoryResultCompactBinding -> {
                 val card = item as ResultCached
@@ -299,13 +288,12 @@ class AnyAdapter(
         }
     }
 
-    override fun getItemViewTypeCustom(item: Any): Int {
+    override fun customContentViewType(item: Any): Int {
         if (item is ResultCached) {
             return RESULT_CACHED
         } else if (item is DownloadFragment.DownloadDataLoaded) {
             return DOWNLOAD_DATA_LOADED
         }
-
         throw NotImplementedError()
     }
 }
