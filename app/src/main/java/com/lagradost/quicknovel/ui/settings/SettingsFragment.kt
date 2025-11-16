@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.core.net.toUri
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
@@ -32,6 +33,24 @@ import com.lagradost.quicknovel.util.SubtitleHelper
 import com.lagradost.safefile.MediaFileContentType
 import com.lagradost.safefile.SafeFile
 import java.io.File
+import androidx.core.content.edit
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.lagradost.quicknovel.DataStore.mapper
+import com.lagradost.quicknovel.ErrorLoadingException
+import com.lagradost.quicknovel.databinding.LogcatBinding
+import com.lagradost.quicknovel.ui.txt
+import com.lagradost.quicknovel.util.BackupUtils.setupStream
+import com.lagradost.quicknovel.util.UIHelper.clipboardHelper
+import com.lagradost.quicknovel.util.UIHelper.dismissSafe
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.OutputStream
+import java.io.PrintWriter
+import java.lang.System.currentTimeMillis
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.sequences.forEach
 
 class SettingsFragment : PreferenceFragmentCompat() {
     private fun PreferenceFragmentCompat?.getPref(id: Int): Preference? {
@@ -84,12 +103,12 @@ class SettingsFragment : PreferenceFragmentCompat() {
                     getString(R.string.search_providers),
                     {}) { list ->
                     val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
-                    val edit = settingsManager.edit()
-                    edit.putStringSet(
-                        getString(R.string.search_providers_list_key),
-                        list.map { apiNames[it] }.toSet()
-                    )
-                    edit.apply()
+                    settingsManager.edit {
+                        putStringSet(
+                            getString(R.string.search_providers_list_key),
+                            list.map { apiNames[it] }.toSet()
+                        )
+                    }
                     providersActive = getApiSettings()
                 }
             }
@@ -171,13 +190,13 @@ class SettingsFragment : PreferenceFragmentCompat() {
             // Stores the real URI using download_path_key
             // Important that the URI is stored instead of filepath due to permissions.
             PreferenceManager.getDefaultSharedPreferences(context)
-                .edit().putString(getString(R.string.download_path_key), uri.toString()).apply()
+                .edit { putString(getString(R.string.download_path_key), uri.toString()) }
 
             // From URI -> File path
             // File path here is purely for cosmetic purposes in settings
             (filePath ?: uri.toString()).let {
                 PreferenceManager.getDefaultSharedPreferences(context)
-                    .edit().putString(getString(R.string.download_path_pref), it).apply()
+                    .edit { putString(getString(R.string.download_path_pref), it) }
             }
         }
 
@@ -223,7 +242,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 try {
                     val code = languageCodes[languageIndex]
                     CommonActivity.setLocale(activity, code)
-                    settingsManager.edit().putString(getString(R.string.locale_key), code).apply()
+                    settingsManager.edit { putString(getString(R.string.locale_key), code) }
                     activity?.recreate()
                 } catch (e: Exception) {
                     logError(e)
@@ -266,10 +285,10 @@ class SettingsFragment : PreferenceFragmentCompat() {
                     // Sets both visual and actual paths.
                     // key = used path
                     // pref = visual path
-                    settingsManager.edit()
-                        .putString(getString(R.string.download_path_key), dirs[it]).apply()
-                    settingsManager.edit()
-                        .putString(getString(R.string.download_path_pref), dirs[it]).apply()
+                    settingsManager.edit {
+                        putString(getString(R.string.download_path_key), dirs[it])
+                        putString(getString(R.string.download_path_pref), dirs[it])
+                    }
                 }
             }
             return@setOnPreferenceClickListener true
@@ -312,13 +331,76 @@ class SettingsFragment : PreferenceFragmentCompat() {
                     currentList,
                     getString(R.string.provider_lang_settings),
                     {}) { selectedList ->
-                    settingsManager.edit().putStringSet(
-                        this.getString(R.string.provider_lang_key),
-                        selectedList.map { names[it].first }.toMutableSet()
-                    ).apply()
+                    settingsManager.edit {
+                        putStringSet(
+                            getString(R.string.provider_lang_key),
+                            selectedList.map { names[it].first }.toMutableSet()
+                        )
+                    }
 
                     providersActive = it.context.getApiSettings()
                 }
+            }
+
+            return@setOnPreferenceClickListener true
+        }
+
+        getPref(R.string.show_logcat_key)?.setOnPreferenceClickListener { pref ->
+            val builder = AlertDialog.Builder(pref.context, R.style.AlertDialogCustom)
+
+            val binding = LogcatBinding.inflate(layoutInflater, null, false)
+            builder.setView(binding.root)
+
+            val dialog = builder.create()
+            dialog.show()
+
+            val logList = mutableListOf<String>()
+            try {
+                // https://developer.android.com/studio/command-line/logcat
+                val process = Runtime.getRuntime().exec("logcat -d")
+                val bufferedReader = BufferedReader(InputStreamReader(process.inputStream))
+                bufferedReader.lineSequence().forEach { logList.add(it) }
+            } catch (e: Exception) {
+                logError(e) // kinda ironic
+            }
+
+            val adapter = LogcatAdapter().apply { submitList(logList) }
+            binding.logcatRecyclerView.layoutManager = LinearLayoutManager(pref.context)
+            binding.logcatRecyclerView.adapter = adapter
+
+            binding.copyBtt.setOnClickListener {
+                clipboardHelper(txt("Logcat"), logList.joinToString("\n"))
+                dialog.dismissSafe(activity)
+            }
+
+            binding.clearBtt.setOnClickListener {
+                Runtime.getRuntime().exec("logcat -c")
+                dialog.dismissSafe(activity)
+            }
+
+            binding.saveBtt.setOnClickListener {
+                val date = SimpleDateFormat("yyyy_MM_dd_HH_mm", Locale.getDefault()).format(
+                    Date(currentTimeMillis())
+                )
+                var fileStream: OutputStream?
+                try {
+                    fileStream = setupStream(
+                        it.context,
+                        "logcat_${date}",
+                        "txt",
+                        getDefaultDir(context = it.context)
+                    ) ?: throw ErrorLoadingException("No stream")
+
+                    fileStream.writer().use { writer -> writer.write(logList.joinToString("\n")) }
+                    dialog.dismissSafe(activity)
+                } catch (t: Throwable) {
+                    logError(t)
+                    showToast(t.message)
+                }
+            }
+
+            binding.closeBtt.setOnClickListener {
+                dialog.dismissSafe(activity)
             }
 
             return@setOnPreferenceClickListener true
@@ -350,9 +432,9 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 false,
                 {}) {
                 try {
-                    settingsManager.edit()
-                        .putString(getString(R.string.theme_key), prefValues[it])
-                        .apply()
+                    settingsManager.edit {
+                        putString(getString(R.string.theme_key), prefValues[it])
+                    }
                     activity?.recreate()
                 } catch (e: Exception) {
                     logError(e)
@@ -388,9 +470,9 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 true,
                 {}) {
                 try {
-                    settingsManager.edit()
-                        .putString(getString(R.string.primary_color_key), prefValues[it])
-                        .apply()
+                    settingsManager.edit {
+                        putString(getString(R.string.primary_color_key), prefValues[it])
+                    }
                     activity?.recreate()
                 } catch (e: Exception) {
                     logError(e)
@@ -413,9 +495,9 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 false,
                 {}) {
                 try {
-                    settingsManager.edit()
-                        .putString(getString(R.string.rating_format_key), prefValues[it])
-                        .apply()
+                    settingsManager.edit {
+                        putString(getString(R.string.rating_format_key), prefValues[it])
+                    }
                 } catch (e: Exception) {
                     logError(e)
                 }
@@ -440,9 +522,9 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 false,
                 {}) {
                 try {
-                    settingsManager.edit()
-                        .putString(getString(R.string.download_format_key), prefValues[it])
-                        .apply()
+                    settingsManager.edit {
+                        putString(getString(R.string.download_format_key), prefValues[it])
+                    }
                 } catch (e: Exception) {
                     logError(e)
                 }

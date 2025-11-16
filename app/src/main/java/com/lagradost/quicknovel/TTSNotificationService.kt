@@ -59,42 +59,54 @@ class TTSNotificationService : Service() {
         currentJob?.cancel()
         currentJob = null
 
-        viewModel?.let { viewModel ->
-            TTSNotifications.setMediaSession(viewModel, viewModel.book, this)
-
-            val notification = TTSNotifications.createNotification(
-                viewModel.book.title(),
-                txt(""),
-                viewModel.book.poster(),
-                TTSHelper.TTSStatus.IsRunning,
-                this
+        val viewModel : ReadActivityViewModel? = viewModel
+        if (viewModel == null) {
+            startForeground(
+                TTSNotifications.TTS_NOTIFICATION_ID, TTSNotifications.createNotification(
+                    "Unknown", txt(""), null,
+                    TTSHelper.TTSStatus.IsRunning, this
+                )
             )
+            stopSelf()
+            return
+        }
 
+        TTSNotifications.setMediaSession(viewModel, viewModel.book, this)
+
+        val notification = TTSNotifications.createNotification(
+            viewModel.book.title(),
+            txt(""),
+            viewModel.book.poster(),
+            TTSHelper.TTSStatus.IsRunning,
+            this
+        )
+
+        try {
+            startForeground(TTSNotifications.TTS_NOTIFICATION_ID, notification)
+        } catch (t: Throwable) {
+            logError(t)
+            showToast(t.toString())
+            stopSelf()
+            return
+        }
+
+        currentJob = ioSafe {
             try {
-                startForeground(TTSNotifications.TTS_NOTIFICATION_ID, notification)
-            } catch (t: Throwable) {
-                logError(t)
-                showToast(t.toString())
-                stopSelf()
-                return@let
-            }
-
-            currentJob = ioSafe {
-                try {
-                    viewModel.startTTSThread()
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                        stopForeground(STOP_FOREGROUND_REMOVE)
-                    } else {
-                        stopForeground(true)
-                    }
-                } catch (t: Throwable) {
-                    // just in case
-                    logError(t)
-                } finally {
-                    stopSelf()
+                viewModel.startTTSThread()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                } else {
+                    @Suppress("DEPRECATION")
+                    stopForeground(true)
                 }
+            } catch (t: Throwable) {
+                // just in case
+                logError(t)
+            } finally {
+                stopSelf()
             }
         }
+
 
         super.onCreate()
     }

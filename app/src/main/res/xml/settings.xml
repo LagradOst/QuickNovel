@@ -109,6 +109,10 @@
                 android:icon="@drawable/baseline_restore_page_24"
                 android:key="@string/restore_key"
                 android:title="@string/restore_settings" />
+        <Preference
+                android:icon="@drawable/baseline_description_24"
+                android:key="@string/show_logcat_key"
+                android:title="@string/show_log_cat" />
     </PreferenceCategory>
 
     <PreferenceCategory

@@ -22,7 +22,9 @@ import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.settings.SettingsFragment
+import com.lagradost.safefile.SafeFile
 import java.io.IOException
+import java.io.OutputStream
 import java.io.PrintWriter
 import java.lang.System.currentTimeMillis
 import java.text.SimpleDateFormat
@@ -47,12 +49,45 @@ object BackupUtils {
         @JsonProperty("settings") val settings: BackupVars
     )
 
+    fun setupStream(context: Context, displayName : String, ext : String, subDir : SafeFile?) : OutputStream? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { // && subDir?.isDownloadDir() == true
+            val cr = context.contentResolver
+            val contentUri =
+                MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY) // USE INSTEAD OF MediaStore.Downloads.EXTERNAL_CONTENT_URI
+            //val currentMimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
+
+            val newFile = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
+                put(MediaStore.MediaColumns.TITLE, displayName)
+                put(MediaStore.MediaColumns.MIME_TYPE, "application/json")
+                //put(MediaStore.MediaColumns.RELATIVE_PATH, folder)
+            }
+
+            val newFileUri = cr.insert(
+                contentUri,
+                newFile
+            ) ?: throw IOException("Error creating file uri")
+            cr.openOutputStream(newFileUri, "w")
+                ?: throw IOException("Error opening stream")
+        } else {
+            val fileName = "$displayName.$ext"
+            val rFile = subDir?.findFile(fileName)
+            if (rFile?.exists() == true) {
+                rFile.delete()
+            }
+            val file =
+                subDir?.createFile(fileName)
+                    ?: throw IOException("Error creating file")
+            if (file.exists() != true) throw IOException("File does not exist")
+            file.openOutputStream()
+        }
+    }
+
     fun FragmentActivity.backup() {
         try {
             if (checkWrite()) {
                 val subDir = SettingsFragment.getDefaultDir(context = this)//getBasePath().first
                 val date = SimpleDateFormat("yyyy_MM_dd_HH_mm").format(Date(currentTimeMillis()))
-                val ext = "json"
                 val displayName = "QN_Backup_${date}"
 
                 val allData = getSharedPrefs().all
@@ -80,38 +115,7 @@ object BackupUtils {
                     allDataSorted,
                     allSettingsSorted
                 )
-                val steam =
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { // && subDir?.isDownloadDir() == true
-                        val cr = this.contentResolver
-                        val contentUri =
-                            MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY) // USE INSTEAD OF MediaStore.Downloads.EXTERNAL_CONTENT_URI
-                        //val currentMimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
-
-                        val newFile = ContentValues().apply {
-                            put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
-                            put(MediaStore.MediaColumns.TITLE, displayName)
-                            put(MediaStore.MediaColumns.MIME_TYPE, "application/json")
-                            //put(MediaStore.MediaColumns.RELATIVE_PATH, folder)
-                        }
-
-                        val newFileUri = cr.insert(
-                            contentUri,
-                            newFile
-                        ) ?: throw IOException("Error creating file uri")
-                        cr.openOutputStream(newFileUri, "w")
-                            ?: throw IOException("Error opening stream")
-                    } else {
-                        val fileName = "$displayName.$ext"
-                        val rFile = subDir?.findFile(fileName)
-                        if (rFile?.exists() == true) {
-                            rFile.delete()
-                        }
-                        val file =
-                            subDir?.createFile(fileName)
-                                ?: throw IOException("Error creating file")
-                        if (file.exists() != true) throw IOException("File does not exist")
-                        file.openOutputStream()
-                    }
+                val steam = setupStream(this,displayName,"json", subDir)
 
                 val printStream = PrintWriter(steam)
                 printStream.print(mapper.writeValueAsString(backupFile))

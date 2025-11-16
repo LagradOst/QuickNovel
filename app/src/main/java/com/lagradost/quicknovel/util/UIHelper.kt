@@ -3,6 +3,8 @@ package com.lagradost.quicknovel.util
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Dialog
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.res.Resources
 import android.graphics.Color
@@ -10,7 +12,9 @@ import android.graphics.drawable.ColorDrawable
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Build
+import android.os.TransactionTooLargeException
 import android.text.Spanned
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.Menu
@@ -19,6 +23,7 @@ import android.view.View
 import android.view.Window
 import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
+import android.widget.Toast.LENGTH_LONG
 import androidx.annotation.AttrRes
 import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
@@ -27,6 +32,7 @@ import androidx.appcompat.view.ContextThemeWrapper
 import androidx.appcompat.view.menu.MenuBuilder
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
+import androidx.core.content.getSystemService
 import androidx.core.graphics.alpha
 import androidx.core.graphics.blue
 import androidx.core.graphics.green
@@ -41,11 +47,15 @@ import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.load.model.LazyHeaders
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.bumptech.glide.request.RequestOptions.bitmapTransform
+import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.CommonActivity
+import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.ui.UiImage
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.ImageLayoutBinding
 import com.lagradost.quicknovel.mvvm.logError
+import com.lagradost.quicknovel.ui.UiText
+import com.lagradost.quicknovel.ui.txt
 import io.noties.markwon.image.AsyncDrawable
 import jp.wasabeef.glide.transformations.BlurTransformation
 import java.io.File
@@ -84,6 +94,36 @@ object UIHelper {
         } catch (e: Exception) {
             logError(e)
             text.toSpanned()
+        }
+    }
+
+    fun clipboardHelper(label: UiText, text: CharSequence) {
+        val ctx = context ?: return
+        try {
+            ctx.let {
+                val clip = ClipData.newPlainText(label.asString(ctx), text)
+                val labelSuffix = txt(R.string.toast_copied).asString(ctx)
+                ctx.getSystemService<ClipboardManager>()?.setPrimaryClip(clip)
+
+                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
+                    showToast("${label.asString(ctx)} $labelSuffix")
+                }
+            }
+        } catch (t: Throwable) {
+            Log.e("ClipboardService", "$t")
+            when (t) {
+                is SecurityException -> {
+                    showToast(R.string.clipboard_permission_error)
+                }
+
+                is TransactionTooLargeException -> {
+                    showToast(R.string.clipboard_too_large)
+                }
+
+                else -> {
+                    showToast(R.string.clipboard_unknown_error, LENGTH_LONG)
+                }
+            }
         }
     }
 
