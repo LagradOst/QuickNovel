@@ -209,6 +209,7 @@
     <string name="download_sort">Download count</string>
     <string name="download_perc">Download percentage</string>
     <string name="recently_updated_sort">Recently updated</string>
+    <string name="chapter_sort">Chapter</string>
 
     <string name="alpha_sort_az">Alphabetical (A-Z)</string>
     <string name="alpha_sort_za">Alphabetical (Z-A)</string>
@@ -242,5 +243,8 @@
     <string name="clipboard_permission_error">Error accessing Clipboard, Please try again.</string>
     <string name="clipboard_unknown_error">Error copying, Please copy logcat and contact app support.</string>
     <string name="show_log_cat">Show Logcat 🐈</string>
+    <string name="unread">Unread</string>
+    <string name="bookmarks">Bookmarks</string>
+    <string name="read">Read</string>
 
 </resources>

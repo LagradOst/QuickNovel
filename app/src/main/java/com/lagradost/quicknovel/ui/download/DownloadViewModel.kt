@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.ui.download
 
 import android.content.DialogInterface
+import androidx.annotation.StringRes
 import androidx.annotation.WorkerThread
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.LiveData
@@ -30,9 +31,15 @@ import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
+import com.lagradost.quicknovel.PreferenceDelegate
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
+import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_BOOKMARKED
+import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_DOWNLOADED
+import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_READ
+import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_UNREAD
+import com.lagradost.quicknovel.RESULT_CHAPTER_SORT
 import com.lagradost.quicknovel.mvvm.launchSafe
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
@@ -57,7 +64,30 @@ const val REVERSE_LAST_ACCES_SORT = 8
 const val LAST_UPDATED_SORT = 9
 const val REVERSE_LAST_UPDATED_SORT = 10
 
+const val CHAPTER_SORT = 11
+const val REVERSE_CHAPTER_SORT = 12
+data class SortingMethod(@StringRes val name: Int, val id: Int, val inverse: Int = id)
 class DownloadViewModel : ViewModel() {
+
+    companion object {
+        val sortingMethods = arrayOf(
+            SortingMethod(R.string.default_sort, DEFAULT_SORT),
+            SortingMethod(R.string.recently_sort, LAST_ACCES_SORT, REVERSE_LAST_ACCES_SORT),
+            SortingMethod(R.string.recently_updated_sort, LAST_UPDATED_SORT, REVERSE_LAST_UPDATED_SORT),
+            SortingMethod(R.string.alpha_sort, ALPHA_SORT, REVERSE_ALPHA_SORT),
+            SortingMethod(R.string.download_sort, DOWNLOADSIZE_SORT, REVERSE_DOWNLOADSIZE_SORT),
+            SortingMethod(
+                R.string.download_perc, DOWNLOADPRECENTAGE_SORT,
+                REVERSE_DOWNLOADPRECENTAGE_SORT
+            ),
+        )
+
+        val normalSortingMethods = arrayOf(
+            SortingMethod(R.string.default_sort, DEFAULT_SORT),
+            SortingMethod(R.string.recently_sort, LAST_ACCES_SORT, REVERSE_LAST_ACCES_SORT),
+            SortingMethod(R.string.alpha_sort, ALPHA_SORT, REVERSE_ALPHA_SORT),
+        )
+    }
 
     val readList = arrayListOf(
         ReadType.READING,

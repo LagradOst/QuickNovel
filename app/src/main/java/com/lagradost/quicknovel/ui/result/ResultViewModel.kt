@@ -28,15 +28,28 @@ import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_READ_AT
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_SCROLL_CHAR
 import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.LoadResponse
+import com.lagradost.quicknovel.PreferenceDelegate
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
+import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_BOOKMARKED
+import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_DOWNLOADED
+import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_READ
+import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_UNREAD
+import com.lagradost.quicknovel.RESULT_CHAPTER_SORT
 import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.launchSafe
 import com.lagradost.quicknovel.ui.ReadType
+import com.lagradost.quicknovel.ui.download.CHAPTER_SORT
 import com.lagradost.quicknovel.ui.download.DownloadFragment
+import com.lagradost.quicknovel.ui.download.LAST_ACCES_SORT
+import com.lagradost.quicknovel.ui.download.LAST_UPDATED_SORT
+import com.lagradost.quicknovel.ui.download.REVERSE_CHAPTER_SORT
+import com.lagradost.quicknovel.ui.download.REVERSE_LAST_ACCES_SORT
+import com.lagradost.quicknovel.ui.download.REVERSE_LAST_UPDATED_SORT
+import com.lagradost.quicknovel.ui.download.SortingMethod
 import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.ResultCached
@@ -44,19 +57,113 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+
 class ResultViewModel : ViewModel() {
+    companion object {
+        val chapterSortingMethods = arrayOf(
+            SortingMethod(R.string.chapter_sort, CHAPTER_SORT, REVERSE_CHAPTER_SORT),
+            SortingMethod(R.string.recently_sort, LAST_ACCES_SORT, REVERSE_LAST_ACCES_SORT),
+        )
+        var sortChapterBy by PreferenceDelegate(RESULT_CHAPTER_SORT, CHAPTER_SORT, Int::class)
+
+        var filterChapterByDownloads by PreferenceDelegate(
+            RESULT_CHAPTER_FILTER_DOWNLOADED,
+            false,
+            Boolean::class
+        )
+        var filterChapterByBookmarked by PreferenceDelegate(
+            RESULT_CHAPTER_FILTER_BOOKMARKED,
+            false,
+            Boolean::class
+        )
+        var filterChapterByRead by PreferenceDelegate(
+            RESULT_CHAPTER_FILTER_READ,
+            true,
+            Boolean::class
+        )
+        var filterChapterByUnread by PreferenceDelegate(
+            RESULT_CHAPTER_FILTER_UNREAD,
+            true,
+            Boolean::class
+        )
+
+    }
+
+    fun reorderChapters() {
+        when (val response = this.loadResponse.value) {
+            is Resource.Success -> {
+                reorderChapters(response.value)
+            }
+
+            else -> {}
+        }
+    }
+
+    fun reorderChapters(response: LoadResponse) {
+        when (response) {
+            is StreamResponse -> {
+                chapters.postValue(orderChapters(response.data))
+            }
+
+            else -> chapters.postValue(null)
+        }
+    }
+
+
+    private fun orderChapters(list: List<ChapterData>): List<ChapterData> {
+        val filterRead = filterChapterByRead
+        val filterUnread = filterChapterByUnread
+        // val filterBookmarked = filterChapterByBookmarked
+        val filterDownloaded = filterChapterByDownloads
+        val sort = sortChapterBy
+        val state = downloadState.value
+
+        return list.filter { chapter ->
+            val read = hasReadChapter(chapter)
+
+            (filterUnread && !read) || (filterRead && read) ||
+                    (filterDownloaded && (state != null && state.progress > (chapterIndex(chapter)
+                        ?: Int.MAX_VALUE)))
+        }.sortedBy { chapter ->
+            return@sortedBy when (sort) {
+                CHAPTER_SORT -> {
+                    chapterIndex(chapter)?.toLong()
+                }
+
+                REVERSE_CHAPTER_SORT -> {
+                    chapterIndex(chapter)?.toLong()?.unaryMinus()
+                }
+
+                LAST_ACCES_SORT -> {
+                    getChapterReadTime(chapter) ?: Long.MAX_VALUE
+                }
+
+                REVERSE_LAST_ACCES_SORT -> {
+                    -(getChapterReadTime(chapter) ?: Long.MAX_VALUE)
+                }
+
+                else -> null
+            }
+        }
+    }
+
     fun clear() {
         loadResponse.postValue(null)
+        chapters.postValue(null)
     }
 
     fun hasReadChapter(chapter: ChapterData): Boolean {
+        return getChapterReadTime(chapter) != null
+    }
+
+    fun getChapterReadTime(chapter: ChapterData): Long? {
         val streamResponse =
-            (load as? StreamResponse) ?: return false
-        val index = chapterIndex(chapter) ?: return false
+            (load as? StreamResponse) ?: return null
+        val index = chapterIndex(chapter) ?: return null
         return getKey<Long>(
             EPUB_CURRENT_POSITION_READ_AT,
             "${streamResponse.name}/$index"
-        ) != null
+        )
     }
 
     fun setReadChapter(chapter: ChapterData, value: Boolean): Boolean {
@@ -107,6 +214,8 @@ class ResultViewModel : ViewModel() {
     val loadResponse: MutableLiveData<Resource<LoadResponse>?> =
         MutableLiveData<Resource<LoadResponse>?>()
 
+    val chapters: MutableLiveData<List<ChapterData>?> =
+        MutableLiveData<List<ChapterData>?>()
 
     val reviews: MutableLiveData<Resource<ArrayList<UserReview>>> by lazy {
         MutableLiveData<Resource<ArrayList<UserReview>>>()
@@ -156,6 +265,12 @@ class ResultViewModel : ViewModel() {
         currentTabIndex.postValue(newPos)
         if (newPos == 1 && currentReviews.isEmpty()) {
             loadMoreReviews(verify = false)
+        }
+        if (newPos == 3) {
+            reorderChapters()
+        } else {
+            // clears the chapters to avoid flicker
+            chapters.postValue(null)
         }
     }
 
@@ -483,13 +598,19 @@ class ResultViewModel : ViewModel() {
     val downloadState: MutableLiveData<DownloadProgressState> by lazy {
         MutableLiveData<DownloadProgressState>(null)
     }
+    private var downloadStateValue: DownloadProgressState? = null
+
+    fun setDownloadState(state: DownloadProgressState) {
+        downloadStateValue = state
+        downloadState.postValue(state)
+    }
 
     private fun progressChanged(data: Pair<Int, DownloadProgressState>) =
         viewModelScope.launch {
             val (id, state) = data
             loadMutex.withLock {
                 if (!hasLoaded || id != loadId) return@launch
-                downloadState.postValue(state)
+                setDownloadState(state)
             }
         }
 
@@ -516,7 +637,7 @@ class ResultViewModel : ViewModel() {
             BookDownloader2.downloadInfoMutex.withLock {
                 val current = downloadProgress[loadId]
                 if (current != null) {
-                    downloadState.postValue(current)
+                    setDownloadState(current)
                 } else {
                     BookDownloader2Helper.downloadInfo(
                         context,
@@ -533,7 +654,7 @@ class ResultViewModel : ViewModel() {
                             etaMs = null
                         )
                         downloadProgress[loadId] = new
-                        downloadState.postValue(new)
+                        setDownloadState(new)
                     } ?: run {
                         val new = DownloadProgressState(
                             state = DownloadState.Nothing,
@@ -543,7 +664,7 @@ class ResultViewModel : ViewModel() {
                             lastUpdatedMs = System.currentTimeMillis(),
                             etaMs = null
                         )
-                        downloadState.postValue(new)
+                        setDownloadState(new)
                     }
                 }
             }
@@ -570,7 +691,6 @@ class ResultViewModel : ViewModel() {
 
             load = data
             loadResponse.postValue(Resource.Success(data))
-
             setState(card.id)
         }
     }
@@ -619,7 +739,6 @@ class ResultViewModel : ViewModel() {
             )
             load = data
             loadResponse.postValue(Resource.Success(data))
-
             setState(card.id)
         }
     }

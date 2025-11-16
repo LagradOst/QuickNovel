@@ -18,6 +18,8 @@
             android:layout_height="match_parent">
 
         <TextView
+                android:ellipsize="marquee"
+                android:singleLine="true"
                 tools:textSize="16sp"
                 tools:textColor="?attr/textColor"
                 android:layout_gravity="center"

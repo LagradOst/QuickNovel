@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="?attr/primaryBlackBackground">
+
+    <TextView
+            android:text="@string/read_action_chapters"
+            android:paddingStart="?android:attr/listPreferredItemPaddingStart"
+            android:paddingEnd="?android:attr/listPreferredItemPaddingEnd"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="10dp"
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:textColor="?attr/textColor"
+            android:layout_width="match_parent"
+            android:layout_rowWeight="1"
+            android:paddingTop="10dp"
+            android:layout_height="wrap_content" />
+
+    <com.google.android.material.tabs.TabLayout
+            android:id="@+id/filter_tabs"
+            style="@style/Theme.Widget.Tabs"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_gravity="bottom"
+            android:background="?attr/primaryBlackBackground"
+            android:descendantFocusability="blocksDescendants"
+            android:focusable="false"
+            android:paddingHorizontal="5dp"
+            app:layout_scrollFlags="noScroll"
+            app:tabGravity="start"
+            app:tabIndicator="@drawable/indicator_background"
+            app:tabIndicatorColor="?attr/white"
+            app:tabIndicatorGravity="center"
+            app:tabIndicatorHeight="30dp"
+            app:tabMaxWidth="0dp"
+            app:tabMinWidth="120dp"
+            app:tabMode="scrollable"
+            app:tabSelectedTextColor="?attr/primaryBlackBackground"
+            app:tabTextAppearance="@style/TabNoCaps"
+            app:tabTextColor="?attr/textColor" />
+
+    <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp">
+
+        <LinearLayout
+                tools:visibility="gone"
+                android:id="@+id/filter_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="visible">
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                    style="@style/WhiteCheckmark"
+                    tools:checked="true"
+                    android:id="@+id/filter_downloaded"
+                    android:text="@string/downloaded" />
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                    style="@style/WhiteCheckmark"
+                    tools:checked="true"
+                    android:id="@+id/filter_read"
+                    android:text="@string/read" />
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                    style="@style/WhiteCheckmark"
+                    tools:checked="true"
+                    android:id="@+id/filter_unread"
+                    android:text="@string/unread" />
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                    android:visibility="gone"
+                    style="@style/WhiteCheckmark"
+                    tools:checked="true"
+                    android:id="@+id/filter_bookmarked"
+                    android:text="@string/bookmarks" />
+
+        </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                android:id="@+id/sort_content"
+                tools:visibility="visible"
+                android:visibility="gone"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+        </androidx.recyclerview.widget.RecyclerView>
+
+        <!--<LinearLayout
+                android:id="@+id/sort_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                tools:visibility="visible"
+                android:visibility="gone">
+
+            <TextView
+                    android:id="@+id/sort_by_source"
+                    style="@style/CheckLabel"
+                    android:text="@string/chapter_sort" />
+
+            <TextView
+                    android:id="@+id/sort_by_last_read"
+                    style="@style/CheckLabel"
+                    android:text="@string/recently_updated_sort" />
+        </LinearLayout>-->
+    </FrameLayout>
+</LinearLayout>

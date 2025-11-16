@@ -20,10 +20,15 @@ class ChapterAdapter(val viewModel: ResultViewModel) : NoStateAdapter<ChapterDat
         )
     }
 
-    private fun refresh(binding : SimpleChapterBinding, card: ChapterData, viewModel: ResultViewModel) {
-        binding.apply {
-            root.alpha = if (viewModel.hasReadChapter(chapter = card)) 0.5F else 1.0F
-        }
+    private fun refresh(
+        binding: SimpleChapterBinding,
+        card: ChapterData,
+        viewModel: ResultViewModel
+    ) {
+        val alpha = if (viewModel.hasReadChapter(chapter = card)) 0.5F else 1.0F
+
+        binding.name.alpha = alpha
+        binding.releaseDate.alpha = alpha
     }
 
     override fun onBindContent(holder: ViewHolderState<Any>, item: ChapterData, position: Int) {

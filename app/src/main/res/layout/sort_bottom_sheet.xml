@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:background="?attr/primaryBlackBackground"
@@ -20,10 +21,13 @@
             android:paddingTop="10dp"
             android:layout_height="wrap_content" />
 
-    <ListView
+    <androidx.recyclerview.widget.RecyclerView
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+
             android:layout_marginTop="-10dp"
             android:paddingTop="10dp"
             android:id="@+id/sort_click"
+            android:background="?attr/primaryBlackBackground"
             tools:listitem="@layout/sort_bottom_single_choice"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />

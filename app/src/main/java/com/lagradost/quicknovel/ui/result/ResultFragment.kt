@@ -19,6 +19,7 @@ import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.GridLayoutManager
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipDrawable
 import com.google.android.material.tabs.TabLayout
@@ -29,11 +30,14 @@ import com.lagradost.quicknovel.MainActivity.Companion.navigate
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.databinding.ChapterDialogBinding
+import com.lagradost.quicknovel.databinding.ChapterFilterPopupBinding
 import com.lagradost.quicknovel.databinding.FragmentResultBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.debugException
 import com.lagradost.quicknovel.mvvm.observe
+import com.lagradost.quicknovel.mvvm.observeNullable
 import com.lagradost.quicknovel.ui.ReadType
+import com.lagradost.quicknovel.ui.SortingMethodAdapter
 import com.lagradost.quicknovel.ui.mainpage.MainAdapter2
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.util.SettingsHelper.getRating
@@ -230,14 +234,6 @@ class ResultFragment : Fragment() {
                             resultTabs.addTab(
                                 resultTabs.newTab().setText(R.string.read_action_chapters).setId(3)
                             )
-                            chapterList.apply {
-                                val mainPageAdapter = ChapterAdapter(viewModel)
-                                adapter = mainPageAdapter
-                                setHasFixedSize(true)
-                                if (res is StreamResponse) {
-                                    mainPageAdapter.submitList(res.data)
-                                }
-                            }
                         }
                     }
                     val target = viewModel.currentTabIndex.value
@@ -618,6 +614,7 @@ class ResultFragment : Fragment() {
                 // hiddenView.isGone = 0 == pos
                 resultReviewsholder.isVisible = 1 == pos
                 reviewsFab.isVisible = 1 == pos
+                chaptersFab.isVisible = 3 == pos
                 resultRelatedholder.isVisible = 2 == pos
                 resultChapterholder.isVisible = 3 == pos
             }
@@ -633,6 +630,86 @@ class ResultFragment : Fragment() {
             binding.resultBookmark.setImageResource(if (it == ReadType.NONE) R.drawable.ic_baseline_bookmark_border_24 else R.drawable.ic_baseline_bookmark_24)
         }
         observe(viewModel.loadResponse, ::newState)
+
+
+        binding.chapterList.apply {
+            val mainPageAdapter = ChapterAdapter(viewModel)
+            adapter = mainPageAdapter
+            setHasFixedSize(true)
+        }
+
+        observeNullable(viewModel.chapters) { chapters ->
+            (binding.chapterList.adapter as? ChapterAdapter)?.let { adapter ->
+                if (chapters == null || chapters.size > 300) {
+                    // if we have too many it takes a long time to diff
+                    adapter.submitIncomparableList(chapters)
+                } else {
+                    adapter.submitList(chapters)
+                }
+            }
+        }
+
+        binding.chaptersFab.setOnClickListener { _ ->
+            val act = activity ?: return@setOnClickListener
+            val bottomSheetDialog = BottomSheetDialog(act)
+            val binding = ChapterFilterPopupBinding.inflate(act.layoutInflater, null, false)
+            bottomSheetDialog.setContentView(binding.root)
+
+            val filterTab = binding.filterTabs.newTab().setText(getString(R.string.mainpage_filter))
+            val sortTab = binding.filterTabs.newTab()
+                .setText(getString(R.string.mainpage_sort_by_button_text))
+            binding.filterTabs.addTab(filterTab)
+            binding.filterTabs.addTab(sortTab)
+            binding.filterTabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+                override fun onTabSelected(tab: TabLayout.Tab?) {
+                    val position = tab?.position
+                    binding.filterContent.isVisible = position == 0
+                    binding.sortContent.isVisible = position == 1
+                }
+
+                override fun onTabUnselected(tab: TabLayout.Tab?) = Unit
+                override fun onTabReselected(tab: TabLayout.Tab?) = Unit
+            })
+            binding.filterTabs.selectTab(filterTab)
+
+            binding.filterBookmarked.isChecked = ResultViewModel.filterChapterByBookmarked
+            binding.filterRead.isChecked = ResultViewModel.filterChapterByRead
+            binding.filterUnread.isChecked = ResultViewModel.filterChapterByUnread
+            binding.filterDownloaded.isChecked = ResultViewModel.filterChapterByDownloads
+
+            binding.filterBookmarked.setOnCheckedChangeListener { _, isChecked ->
+                ResultViewModel.filterChapterByBookmarked = isChecked
+                viewModel.reorderChapters()
+            }
+
+            binding.filterRead.setOnCheckedChangeListener { _, isChecked ->
+                ResultViewModel.filterChapterByRead = isChecked
+                viewModel.reorderChapters()
+            }
+
+            binding.filterUnread.setOnCheckedChangeListener { _, isChecked ->
+                ResultViewModel.filterChapterByUnread = isChecked
+                viewModel.reorderChapters()
+            }
+
+            binding.filterDownloaded.setOnCheckedChangeListener { _, isChecked ->
+                ResultViewModel.filterChapterByDownloads = isChecked
+                viewModel.reorderChapters()
+            }
+
+            val adapter =
+                SortingMethodAdapter(ResultViewModel.sortChapterBy) { item, position, newId ->
+                    binding.sortContent.adapter?.notifyItemRangeChanged(
+                        0,
+                        ResultViewModel.chapterSortingMethods.size
+                    )
+                    ResultViewModel.sortChapterBy = newId
+                    viewModel.reorderChapters()
+                }
+            adapter.submitList(ResultViewModel.chapterSortingMethods.toList())
+            binding.sortContent.adapter = adapter
+            bottomSheetDialog.show()
+        }
 
         observe(viewModel.downloadState) { progressState ->
             if (progressState == null) {

@@ -800,4 +800,23 @@ Translator: Rainbow Turtle"
 
             android:contentDescription="@string/reviews_to_top"
             android:layout_margin="16dp" />
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            android:id="@+id/chapters_fab"
+            android:visibility="gone"
+            tools:visibility="visible"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|bottom"
+            app:elevation="0dp"
+            android:textStyle="bold"
+
+            app:backgroundTint="?attr/primaryBlackBackground"
+            app:tint="?attr/textColor"
+            android:textColor="?attr/textColor"
+            app:iconTint="?attr/textColor"
+            app:icon="@drawable/ic_baseline_filter_list_24"
+
+            android:contentDescription="@string/mainpage_filter"
+            android:layout_margin="16dp" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
