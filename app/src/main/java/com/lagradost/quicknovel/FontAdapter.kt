@@ -3,37 +3,39 @@ package com.lagradost.quicknovel
 import android.content.Context
 import android.graphics.Typeface
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.BaseAdapter
-import android.widget.TextView
+import com.lagradost.quicknovel.databinding.SortBottomSingleChoiceBinding
+import com.lagradost.quicknovel.ui.NoStateAdapter
+import com.lagradost.quicknovel.ui.ViewHolderState
 import com.lagradost.quicknovel.util.UIHelper.parseFontFileName
 import java.io.File
 
-class FontAdapter(val context: Context, private val checked: Int?, private val fonts: ArrayList<File?>) : BaseAdapter() {
-    override fun getCount(): Int {
-        return fonts.size
+data class FontFile(
+    val file : File?
+)
+
+class FontAdapter(val context: Context, private val checked: Int?, val clickCallback : (FontFile) -> Unit) : NoStateAdapter<FontFile>() {
+    override fun onCreateContent(parent: ViewGroup): ViewHolderState<Any> {
+        return ViewHolderState(
+            SortBottomSingleChoiceBinding.inflate(
+                LayoutInflater.from(parent.context),
+                parent,
+                false
+            )
+        )
     }
 
-    override fun getItem(position: Int): Any {
-        return fonts[position] ?: 0
-    }
+    override fun onBindContent(holder: ViewHolderState<Any>, item: FontFile, position: Int) {
+        val binding = holder.view as? SortBottomSingleChoiceBinding ?: return
+        val font = item.file
 
-    override fun getItemId(position: Int): Long {
-        return fonts[position]?.name?.hashCode()?.toLong() ?: 0
-    }
-
-    override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
-        val view =
-            (convertView ?: LayoutInflater.from(context)
-                .inflate(R.layout.sort_bottom_single_choice, parent, false)) as TextView
-
-        val font = fonts[position]
-        view.text = parseFontFileName(font?.name)
-        view.isSelected = position == checked
+        binding.text1.text = parseFontFileName(font?.name)
+        binding.text1.isActivated = position == checked
         if (font != null) {
-            view.typeface = Typeface.createFromFile(font)
+            binding.text1.typeface = Typeface.createFromFile(font)
         }
-        return view
+        binding.text1.setOnClickListener {
+            this.clickCallback.invoke(item)
+        }
     }
 }

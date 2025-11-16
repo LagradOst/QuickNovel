@@ -229,4 +229,6 @@
     <string name="sleep_format_stop">TTS will stop in %d min</string>
     <string name="google_translate">Google translate</string>
     <string name="start_chapter">Skipped chapters</string>
+    <string name="tts_speed">TTS Speed</string>
+    <string name="tts_pitch">TTS Pitch</string>
 </resources>

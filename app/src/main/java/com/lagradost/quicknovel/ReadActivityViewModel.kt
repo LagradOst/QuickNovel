@@ -1305,6 +1305,8 @@ class ReadActivityViewModel : ViewModel() {
             if (ttsThreadMutex.isLocked) return@coroutineScope
             ttsThreadMutex.withLock {
                 ttsSession.register()
+                ttsSession.setSpeed(ttsSpeed)
+                ttsSession.setPitch(ttsPitch)
 
                 var ttsInnerIndex = 0 // this inner index is different from what is set
                 var index = dIndex.index
@@ -1677,6 +1679,26 @@ class ReadActivityViewModel : ViewModel() {
 
     var scrollWithVolume by PreferenceDelegate(EPUB_SCROLL_VOL, true, Boolean::class)
     var ttsLock by PreferenceDelegate(EPUB_TTS_LOCK, true, Boolean::class)
+    //var ttsOSSpeed by PreferenceDelegate(EPUB_TTS_OS_SPEED, true, Boolean::class)
+
+    private var ttsSpeedKey by PreferenceDelegate(EPUB_TTS_SET_SPEED, 1.0f, Float::class)
+    private var ttsPitchKey by PreferenceDelegate(EPUB_TTS_SET_PITCH, 1.0f, Float::class)
+
+    var ttsSpeed : Float
+        get() = ttsSpeedKey
+        set(value) {
+            ttsSession.setSpeed(value)
+            ttsSpeedKey = value
+        }
+
+    var ttsPitch : Float
+        get() = ttsPitchKey
+        set(value) {
+            ttsSession.setPitch(value)
+            ttsPitchKey = value
+        }
+
+
     val textFontLive: MutableLiveData<String> = MutableLiveData(null)
     var textFont by PreferenceDelegateLiveView(EPUB_FONT, "", String::class, textFontLive)
     val textSizeLive: MutableLiveData<Int> = MutableLiveData(null)

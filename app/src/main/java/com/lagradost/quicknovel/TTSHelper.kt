@@ -60,6 +60,9 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
     private var TTSStartSpeakId = 0
     private var TTSEndSpeakId = 0
 
+    private var speed : Float = 1.0f
+    private var pitch : Float = 1.0f
+
     fun isValidTTS() : Boolean {
         return tts != null
     }
@@ -67,6 +70,16 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
     private fun clearTTS(tts: TextToSpeech) {
         tts.stop()
         TTSQueue = null
+    }
+
+    fun setSpeed(speed : Float) {
+        this.speed = speed
+        tts?.setSpeechRate(speed)
+    }
+
+    fun setPitch(pitch : Float) {
+        this.pitch = pitch
+        tts?.setPitch(pitch)
     }
 
     fun setLanguage(locale: Locale?) {
@@ -219,6 +232,10 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
                             }
                         }
                     })
+
+                    pendingTTS.setPitch(pitch)
+                    pendingTTS.setSpeechRate(speed)
+
                     tts = pendingTTS
                     tts?.let(callback)
                 }

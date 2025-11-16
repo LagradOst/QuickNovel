@@ -163,6 +163,262 @@
                         android:layout_width="wrap_content" />
             </LinearLayout>
 
+            <TextView
+                    android:id="@+id/read_settings_tts_speed_text"
+                    android:layout_marginTop="15dp"
+                    android:text="@string/tts_speed"
+                    android:textSize="16sp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_marginTop="15dp"
+
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                <ImageView
+                        app:layout_constraintEnd_toStartOf="@id/read_settings_tts_speed"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:src="@drawable/pace_24px"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="center_vertical"
+                        android:layout_width="wrap_content"
+                        app:tint="?attr/white"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+
+                <com.google.android.material.slider.Slider
+                        android:id="@+id/read_settings_tts_speed"
+                        style="@style/SettingsSliderTheme"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+
+                        android:stepSize="0.1"
+                        android:value="1.0"
+                        android:valueFrom="0.1"
+                        android:valueTo="2" />
+
+                <ImageView
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/read_settings_tts_speed"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:src="@drawable/acute_24px"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="center_vertical"
+                        android:layout_width="wrap_content"
+                        app:tint="?attr/white"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <TextView
+                    android:id="@+id/read_settings_tts_pitch_text"
+                    android:layout_marginTop="15dp"
+                    android:text="@string/tts_pitch"
+                    android:textSize="16sp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_marginTop="15dp"
+
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                <ImageView
+                        app:layout_constraintEnd_toStartOf="@id/read_settings_tts_pitch"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:src="@drawable/hiking_24px"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="center_vertical"
+                        android:layout_width="wrap_content"
+                        android:contentDescription="@string/smaller_font"
+                        app:tint="?attr/white"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+
+                <com.google.android.material.slider.Slider
+                        android:id="@+id/read_settings_tts_pitch"
+                        style="@style/SettingsSliderTheme"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+
+                        android:stepSize="0.1"
+                        android:value="1.0"
+                        android:valueFrom="0.1"
+                        android:valueTo="2" />
+
+                <ImageView
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/read_settings_tts_pitch"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:src="@drawable/directions_run_24px"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="center_vertical"
+                        android:layout_width="wrap_content"
+                        android:contentDescription="@string/bigger_font"
+                        app:tint="?attr/white"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+            <TextView
+                    android:id="@+id/read_settings_text_size_text"
+                    android:layout_marginTop="15dp"
+                    android:text="@string/text_size"
+                    android:textSize="16sp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_marginTop="15dp"
+
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                <ImageView
+                        app:layout_constraintEnd_toStartOf="@id/read_settings_text_size"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:src="@drawable/smaller_font"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="center_vertical"
+                        android:layout_width="wrap_content"
+                        android:contentDescription="@string/smaller_font"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+
+
+                <com.google.android.material.slider.Slider
+                        android:id="@+id/read_settings_text_size"
+                        style="@style/SettingsSliderTheme"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+
+                        android:stepSize="1"
+                        android:value="4"
+                        android:valueFrom="0"
+                        android:valueTo="10" />
+
+                <ImageView
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/read_settings_text_size"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:src="@drawable/bigger_font"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="center_vertical"
+                        android:layout_width="wrap_content"
+                        android:contentDescription="@string/bigger_font"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <TextView
+                    android:id="@+id/read_settings_text_padding_text"
+                    android:layout_marginTop="15dp"
+                    android:text="@string/text_padding"
+                    android:textSize="16sp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_marginTop="15dp"
+
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                <ImageView
+                        app:layout_constraintEnd_toStartOf="@id/read_settings_text_padding"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:src="@drawable/format_padding_decrease_white_24dp"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="center_vertical"
+                        android:layout_width="wrap_content"
+                        android:contentDescription="@string/smaller_font"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+
+
+                <com.google.android.material.slider.Slider
+                        android:id="@+id/read_settings_text_padding"
+                        style="@style/SettingsSliderTheme"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+
+                        android:stepSize="1"
+                        android:value="4"
+                        android:valueFrom="0"
+                        android:valueTo="10" />
+
+                <ImageView
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/read_settings_text_padding"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:src="@drawable/format_padding_increase_white_24dp"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="center_vertical"
+                        android:layout_width="wrap_content"
+                        android:contentDescription="@string/bigger_font"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <TextView
+                    android:id="@+id/read_settings_text_padding_text_top"
+                    android:layout_marginTop="15dp"
+                    android:text="@string/text_padding_top"
+                    android:textSize="16sp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_marginTop="15dp"
+
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                <ImageView
+                        app:layout_constraintEnd_toStartOf="@id/read_settings_text_padding_top"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:src="@drawable/text_top_bottom_margin"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="center_vertical"
+                        android:layout_width="wrap_content"
+                        android:contentDescription="@string/smaller_font"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+
+
+                <com.google.android.material.slider.Slider
+                        android:id="@+id/read_settings_text_padding_top"
+                        style="@style/SettingsSliderTheme"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+
+                        android:stepSize="1"
+                        android:value="4"
+                        android:valueFrom="0"
+                        android:valueTo="10" />
+
+                <ImageView
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/read_settings_text_padding_top"
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:src="@drawable/text_top_bottom_margin_expand"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="center_vertical"
+                        android:layout_width="wrap_content"
+                        android:contentDescription="@string/bigger_font"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
 
             <TextView
                     android:layout_marginTop="15dp"
@@ -208,159 +464,6 @@
                         android:layout_width="wrap_content" />
             </LinearLayout>
 
-
-            <TextView
-                    android:id="@+id/read_settings_text_size_text"
-                    android:layout_marginTop="15dp"
-                    android:text="@string/text_size"
-                    android:textSize="16sp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
-
-            <androidx.constraintlayout.widget.ConstraintLayout
-                    android:layout_marginTop="15dp"
-
-                    android:orientation="horizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="20dp">
-
-                <ImageView
-                        app:layout_constraintEnd_toStartOf="@id/read_settings_text_size"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
-                        android:src="@drawable/smaller_font"
-                        android:layout_height="match_parent"
-                        android:layout_gravity="center_vertical"
-                        android:layout_width="wrap_content"
-                        android:contentDescription="@string/smaller_font" />
-
-                <SeekBar
-                        android:id="@+id/read_settings_text_size"
-                        app:layout_constraintTop_toTopOf="parent"
-                        android:thumbTint="?attr/colorOnPrimary"
-                        android:progressTint="?attr/colorOnPrimary"
-
-                        android:progress="4"
-                        android:max="10"
-                        android:layout_marginStart="30dp"
-                        android:layout_marginEnd="30dp"
-                        android:layout_gravity="center_vertical"
-                        app:thumbRadius="5dp"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content" />
-
-                <ImageView
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintStart_toEndOf="@id/read_settings_text_size"
-                        app:layout_constraintTop_toTopOf="parent"
-                        android:src="@drawable/bigger_font"
-                        android:layout_height="match_parent"
-                        android:layout_gravity="center_vertical"
-                        android:layout_width="wrap_content"
-                        android:contentDescription="@string/bigger_font" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-            <TextView
-                    android:id="@+id/read_settings_text_padding_text"
-                    android:layout_marginTop="15dp"
-                    android:text="@string/text_padding"
-                    android:textSize="16sp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
-
-            <androidx.constraintlayout.widget.ConstraintLayout
-                    android:layout_marginTop="15dp"
-
-                    android:orientation="horizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="20dp">
-
-                <ImageView
-                        app:layout_constraintEnd_toStartOf="@id/read_settings_text_padding"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
-                        android:src="@drawable/format_padding_decrease_white_24dp"
-                        android:layout_height="match_parent"
-                        android:layout_gravity="center_vertical"
-                        android:layout_width="wrap_content"
-                        android:contentDescription="@string/smaller_font" />
-
-                <SeekBar
-                        android:id="@+id/read_settings_text_padding"
-                        app:layout_constraintTop_toTopOf="parent"
-                        android:thumbTint="?attr/colorOnPrimary"
-                        android:progressTint="?attr/colorOnPrimary"
-
-                        android:progress="4"
-                        android:max="10"
-                        android:layout_marginStart="30dp"
-                        android:layout_marginEnd="30dp"
-                        android:layout_gravity="center_vertical"
-                        app:thumbRadius="5dp"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content" />
-
-                <ImageView
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintStart_toEndOf="@id/read_settings_text_padding"
-                        app:layout_constraintTop_toTopOf="parent"
-                        android:src="@drawable/format_padding_increase_white_24dp"
-                        android:layout_height="match_parent"
-                        android:layout_gravity="center_vertical"
-                        android:layout_width="wrap_content"
-                        android:contentDescription="@string/bigger_font" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-            <TextView
-                    android:id="@+id/read_settings_text_padding_text_top"
-                    android:layout_marginTop="15dp"
-                    android:text="@string/text_padding_top"
-                    android:textSize="16sp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
-
-            <androidx.constraintlayout.widget.ConstraintLayout
-                    android:layout_marginTop="15dp"
-
-                    android:orientation="horizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="20dp">
-
-                <ImageView
-                        app:layout_constraintEnd_toStartOf="@id/read_settings_text_padding_top"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
-                        android:src="@drawable/text_top_bottom_margin"
-                        android:layout_height="match_parent"
-                        android:layout_gravity="center_vertical"
-                        android:layout_width="wrap_content"
-                        android:contentDescription="@string/smaller_font" />
-
-                <SeekBar
-                        android:id="@+id/read_settings_text_padding_top"
-                        app:layout_constraintTop_toTopOf="parent"
-                        android:thumbTint="?attr/colorOnPrimary"
-                        android:progressTint="?attr/colorOnPrimary"
-
-                        android:progress="4"
-                        android:max="10"
-                        android:layout_marginStart="30dp"
-                        android:layout_marginEnd="30dp"
-                        android:layout_gravity="center_vertical"
-                        app:thumbRadius="5dp"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content" />
-
-                <ImageView
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintStart_toEndOf="@id/read_settings_text_padding_top"
-                        app:layout_constraintTop_toTopOf="parent"
-                        android:src="@drawable/text_top_bottom_margin_expand"
-                        android:layout_height="match_parent"
-                        android:layout_gravity="center_vertical"
-                        android:layout_width="wrap_content"
-                        android:contentDescription="@string/bigger_font" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
 
             <TextView
                     android:layout_marginTop="15dp"

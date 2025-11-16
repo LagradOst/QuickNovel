@@ -547,4 +547,21 @@
         <item name="colorOnPrimary">#C5A851</item>
         <item name="android:colorAccent">@color/colorPrimaryBanana</item>
     </style>
+
+    <style name="SettingsSliderTheme">
+        <item name="android:thumbTint">?attr/white</item>
+        <item name="android:progressTint">?attr/white</item>
+        <item name="trackColorActive">?attr/white</item>
+        <item name="thumbColor">?attr/white</item>
+        <item name="trackColorInactive">?attr/primaryGrayBackground</item>
+        <item name="trackHeight">10dp</item>
+        <item name="thumbHeight">20dp</item>
+        <item name="tickColorActive">?attr/primaryGrayBackground</item>
+        <item name="tickColorInactive">?attr/white</item>
+        <item name="thumbRadius">5dp</item>
+
+        <item name="android:layout_marginStart">30dp</item>
+        <item name="android:layout_marginEnd">30dp</item>
+        <item name="android:layout_gravity">center_vertical</item>
+    </style>
 </resources>
