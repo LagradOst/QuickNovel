@@ -56,6 +56,12 @@ open class LibReadProvider : MainAPI() {
         "Yaoi" to "Yaoi"
     )
 
+    override val orderBys = listOf(
+        "Latest Release" to "latest-release",
+        "Latest Novels" to "latest-novel",
+        "Completed Novels" to "completed-novel"
+    )
+
     override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
@@ -63,7 +69,7 @@ open class LibReadProvider : MainAPI() {
         tag: String?
     ): HeadMainPageResponse {
         val url =
-            if (tag.isNullOrBlank()) "$mainUrl/sort/latest-release/$page" else "$mainUrl/genre/$tag/$page"
+            if (tag.isNullOrBlank()) "$mainUrl/sort/${orderBy ?: "latest-release"}/$page" else "$mainUrl/genre/$tag/$page"
         val document = app.get(url).document
         val headers = document.select("div.ul-list1.ul-list1-2.ss-custom > div.li-row")
         val returnValue = headers.mapNotNull { h ->

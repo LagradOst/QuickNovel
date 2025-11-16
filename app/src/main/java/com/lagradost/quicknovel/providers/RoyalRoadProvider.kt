@@ -46,7 +46,7 @@ class RoyalRoadProvider : MainAPI() {
         "All" to ""
     ) + (listOf(
         "Wuxia" to "wuxia",
-        "Xianxia" to "xianxia",
+        //"Xianxia" to "xianxia",
         "War and Military" to "war_and_military",
         "Low Fantasy" to "low_fantasy",
         "High Fantasy" to "high_fantasy",
@@ -179,7 +179,7 @@ class RoyalRoadProvider : MainAPI() {
             val scoresData =
                 if ((scores?.size
                         ?: 0) <= 0
-                ) ArrayList<Pair<Int, String>>() else scores?.mapNotNull { s ->
+                ) ArrayList() else scores?.mapNotNull { s ->
                     val divs = s.select("> div")
                     Pair(
                         parseScore(divs[1].attr("aria-label")) ?: return@mapNotNull null,
@@ -261,7 +261,7 @@ class RoyalRoadProvider : MainAPI() {
     ): HeadMainPageResponse {
         val url =
             "$mainUrl/fictions/$orderBy?page=$page${if (tag == null || tag == "") "" else "&genre=$tag"}"
-        if (page > 1 && orderBy == "trending") return HeadMainPageResponse(
+        if (page > 1 && arrayOf("trending","rising-stars").contains(orderBy)) return HeadMainPageResponse(
             url,
             ArrayList()
         ) // TRENDING ONLY HAS 1 PAGE
@@ -356,7 +356,7 @@ class RoyalRoadProvider : MainAPI() {
 
             val synoDescript = document.select("div.description > div")
             val synoParts = synoDescript.select("> p")
-            synopsis = if (synoParts.size == 0 && synoDescript.hasText()) {
+            synopsis = if (synoParts.isEmpty() && synoDescript.hasText()) {
                 synoDescript.text().replace("\n", "\n\n") // JUST IN CASE
             } else {
                 synoParts.joinToString(separator = "\n\n") { it.text() }
