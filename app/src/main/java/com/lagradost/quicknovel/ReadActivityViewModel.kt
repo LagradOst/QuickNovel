@@ -1596,7 +1596,7 @@ class ReadActivityViewModel : ViewModel() {
         _loadingStatus.postValue(Resource.Loading())
 
         // load the chapters
-        updateIndexAsync(index, notify = false)
+        updateIndexAsync(index, notify = false, postLoading = true)
         // set the keys
         setKey(EPUB_CURRENT_POSITION, book.title(), index)
         setKey(EPUB_CURRENT_POSITION_SCROLL_CHAR, book.title(), 0)

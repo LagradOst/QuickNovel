@@ -1090,15 +1090,15 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
             if (chapter.seekToDesired) {
                 textAdapter.submitIncomparableList(chapter.data)
-                binding.realText.post {
-                    viewModel._loadingStatus.postValue(Resource.Success(true)) // submitList can take 500ms, very dirty :(
-                    if (chapter.seekToDesired) {
-                        scrollToDesired()
-                    }
-                    onScroll()
-                }
             } else {
                 textAdapter.submitList(chapter.data)
+            }
+            binding.realText.post {
+                viewModel._loadingStatus.postValue(Resource.Success(true))
+                if (chapter.seekToDesired) {
+                    scrollToDesired()
+                }
+                onScroll()
             }
         }
 
