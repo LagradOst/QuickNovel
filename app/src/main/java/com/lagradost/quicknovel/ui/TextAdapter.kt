@@ -709,6 +709,9 @@ class TextAdapter(
             viewModel.switchVisibility()
         }
         binding.root.setOnLongClickListener {
+            if(!obj.canReload) {
+                return@setOnLongClickListener true
+            }
             it?.popupMenu(
                 items = listOf(1 to R.string.reload_chapter),
                 selectedItemId = -1

@@ -40,6 +40,14 @@ class AnyAdapter(
         const val DOWNLOAD_DATA_LOADED: Int = 2
     }
 
+    override fun getItemId(position: Int): Long {
+        return when(val item = getItem(position)) {
+            is ResultCached -> item.id.toLong()
+            is DownloadFragment.DownloadDataLoaded -> item.id.toLong()
+            else -> throw NotImplementedError()
+        }
+    }
+
     override fun onCreateCustomContent(parent: ViewGroup, viewType: Int): ViewHolderState<Any> {
         val compact = parent.context.getDownloadIsCompact()
         val binding = when (viewType) {

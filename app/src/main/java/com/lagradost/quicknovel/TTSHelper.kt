@@ -348,7 +348,8 @@ abstract class SpanDisplay {
 data class ChapterStartSpanned(
     override val index: Int,
     override val innerIndex: Int,
-    val name: UiText
+    val name: UiText,
+    val canReload: Boolean,
 ) : SpanDisplay() {
     override fun id(): Long {
         return generateId(1, index, 0, 0)

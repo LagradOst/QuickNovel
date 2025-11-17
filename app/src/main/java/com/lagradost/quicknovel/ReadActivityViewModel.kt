@@ -614,11 +614,12 @@ class ReadActivityViewModel : ViewModel() {
     private fun updateReadArea(seekToDesired: Boolean = false) {
         val cIndex = currentIndex
         val chapters = ArrayList<SpanDisplay>()
+        val canReload = this.book.canReload
         when (readerType) {
             ReadingType.DEFAULT, ReadingType.INF_SCROLL -> {
                 for (idx in cIndex - chapterPaddingBottom..cIndex + chapterPaddingTop) {
                     if (idx < chaptersTitlesInternal.size && idx >= 0)
-                        chapters.add(ChapterStartSpanned(idx, 0, chaptersTitlesInternal[idx]))
+                        chapters.add(ChapterStartSpanned(idx, 0, chaptersTitlesInternal[idx], canReload))
                     chapters.addAll(chapterIdxToSpanDisplay(idx))
                 }
             }
@@ -629,7 +630,7 @@ class ReadActivityViewModel : ViewModel() {
                 }
 
                 chaptersTitlesInternal.getOrNull(cIndex)?.let { text ->
-                    chapters.add(ChapterStartSpanned(cIndex, 0, text))
+                    chapters.add(ChapterStartSpanned(cIndex, 0, text, canReload))
                 }
 
                 chapters.addAll(chapterIdxToSpanDisplay(cIndex))
@@ -645,7 +646,7 @@ class ReadActivityViewModel : ViewModel() {
                 }
 
                 chaptersTitlesInternal.getOrNull(cIndex)?.let { text ->
-                    chapters.add(ChapterStartSpanned(cIndex, 0, text))
+                    chapters.add(ChapterStartSpanned(cIndex, 0, text, canReload))
                 }
 
                 chapters.addAll(chapterIdxToSpanDisplay(cIndex))
@@ -1433,7 +1434,7 @@ class ReadActivityViewModel : ViewModel() {
                             currentTTSStatus != TTSHelper.TTSStatus.IsRunning || pendingTTSSkip != 0
                         }
 
-                        if(!ttsSession.isValidTTS()) {
+                        if (!ttsSession.isValidTTS()) {
                             currentTTSStatus = TTSHelper.TTSStatus.IsStopped
                         }
 
@@ -1684,14 +1685,14 @@ class ReadActivityViewModel : ViewModel() {
     private var ttsSpeedKey by PreferenceDelegate(EPUB_TTS_SET_SPEED, 1.0f, Float::class)
     private var ttsPitchKey by PreferenceDelegate(EPUB_TTS_SET_PITCH, 1.0f, Float::class)
 
-    var ttsSpeed : Float
+    var ttsSpeed: Float
         get() = ttsSpeedKey
         set(value) {
             ttsSession.setSpeed(value)
             ttsSpeedKey = value
         }
 
-    var ttsPitch : Float
+    var ttsPitch: Float
         get() = ttsPitchKey
         set(value) {
             ttsSession.setPitch(value)

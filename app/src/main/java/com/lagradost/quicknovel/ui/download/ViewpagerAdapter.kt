@@ -117,6 +117,7 @@ class ViewpagerAdapter(
                         this,
                         downloadViewModel
                     ).apply {
+                        setHasStableIds(true)
                         submitList(item.items)
                     }
                 }
