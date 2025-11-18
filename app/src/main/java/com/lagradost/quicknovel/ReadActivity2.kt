@@ -1089,16 +1089,16 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             cachedChapter = chapter.data
 
             if (chapter.seekToDesired) {
-                textAdapter.submitIncomparableList(chapter.data)
-            } else {
-                textAdapter.submitList(chapter.data)
-            }
-            binding.realText.post {
-                viewModel._loadingStatus.postValue(Resource.Success(true))
-                if (chapter.seekToDesired) {
+                textAdapter.submitIncomparableList(chapter.data) {
+                    viewModel._loadingStatus.postValue(Resource.Success(true))
                     scrollToDesired()
+                    onScroll()
                 }
-                onScroll()
+            } else {
+                textAdapter.submitList(chapter.data) {
+                    viewModel._loadingStatus.postValue(Resource.Success(true))
+                    onScroll()
+                }
             }
         }
 

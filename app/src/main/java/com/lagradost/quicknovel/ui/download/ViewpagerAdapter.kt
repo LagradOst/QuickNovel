@@ -117,12 +117,16 @@ class ViewpagerAdapter(
                         this,
                         downloadViewModel
                     ).apply {
+                        footers = if(position == 0) 1 else 0
                         setHasStableIds(true)
                         submitList(item.items)
                     }
                 }
             } else {
-                (adapter as? AnyAdapter)?.submitList(item.items)
+                (adapter as? AnyAdapter)?.apply {
+                    footers = if(position == 0) 1 else 0
+                    submitList(item.items)
+                }
                 // scrollToPosition(0)
             }
 

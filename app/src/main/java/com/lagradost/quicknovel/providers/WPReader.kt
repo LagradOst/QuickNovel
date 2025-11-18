@@ -106,7 +106,7 @@ abstract class WPReader : MainAPI() {
         val con = app.get(url).document
         val res =
             con.selectFirst("#content") ?: con.selectFirst(".mn-novel-chapter-content-body") ?: con.selectFirst(".reader-area")
-        return res.html()
+        return res?.html()
     }
 
     override suspend fun search(query: String): List<SearchResponse> {

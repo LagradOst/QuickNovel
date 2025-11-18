@@ -72,7 +72,7 @@ class ResultFragment : Fragment() {
 
     //private lateinit var viewModel: ResultViewModel
 
-    val api get() = viewModel.api
+    val repo get() = viewModel.repo
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -178,7 +178,7 @@ class ResultFragment : Fragment() {
                 val res = loadResponse.value
 
                 binding.apply {
-                    downloadWarning.isVisible = api.rateLimitTime > 2000
+                    downloadWarning.isVisible = (repo?.rateLimitTime ?: 0) > 2000
 
                     res.image?.let { img ->
                         resultEmptyView.setOnClickListener {
@@ -211,7 +211,9 @@ class ResultFragment : Fragment() {
                     val hasRelated = !res.related.isNullOrEmpty()
                     val hasChapters =
                         res is StreamResponse && res.data.isNotEmpty() // this was removed because of lag, because of shitty android
-                    if (api.hasReviews || hasRelated || hasChapters) {
+                    val api = repo
+
+                    if (api != null && (api.hasReviews || hasRelated || hasChapters)) {
                         resultTabs.isVisible = true
                         resultTabs.addTab(resultTabs.newTab().setText(R.string.novel).setId(0))
                         if (api.hasReviews) {
@@ -256,7 +258,8 @@ class ResultFragment : Fragment() {
                         resultTag.apply {
 
                             val map =
-                                api.tags.mapIndexed { i, (value, _) -> value to i }.associate { it }
+                                api?.tags?.mapIndexed { i, (value, _) -> value to i }
+                                    ?.associate { it } ?: emptyMap()
 
                             res.tags?.forEach { tag ->
                                 val chip = Chip(context)
@@ -276,13 +279,15 @@ class ResultFragment : Fragment() {
                                 map[tag]?.let { index ->
                                     chip.isClickable = true
                                     chip.setOnClickListener {
-                                        activity?.navigate(
-                                            R.id.global_to_navigation_mainpage,
-                                            MainPageFragment.newInstance(
-                                                api.name,
-                                                tag = index
+                                        val api = repo
+                                        if (api != null)
+                                            activity?.navigate(
+                                                R.id.global_to_navigation_mainpage,
+                                                MainPageFragment.newInstance(
+                                                    api.name,
+                                                    tag = index
+                                                )
                                             )
-                                        )
                                     }
                                 }
 

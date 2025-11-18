@@ -13,6 +13,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -26,9 +27,14 @@ import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
 import androidx.core.net.toUri
 import androidx.preference.PreferenceManager
-import com.bumptech.glide.Glide
+import coil3.Extras
+import coil3.SingletonImageLoader
+import coil3.asDrawable
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
@@ -36,6 +42,7 @@ import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2.LOCAL_EPUB
 import com.lagradost.quicknovel.BookDownloader2.LOCAL_EPUB_MIN_SIZE
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.createQuickStream
 import com.lagradost.quicknovel.BookDownloader2Helper.generateId
 import com.lagradost.quicknovel.BookDownloader2Helper.getDirectory
@@ -46,6 +53,7 @@ import com.lagradost.quicknovel.ImageDownloader.getImageBitmapFromUrl
 import com.lagradost.quicknovel.NotificationHelper.etaToString
 import com.lagradost.quicknovel.extractors.ExtractorApi
 import com.lagradost.quicknovel.mvvm.logError
+import com.lagradost.quicknovel.ui.UiImage
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getBasePath
 import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getDefaultDir
@@ -56,6 +64,7 @@ import com.lagradost.quicknovel.util.Event
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.pmap
+import com.lagradost.safefile.SafeFile
 import me.ag2s.epublib.domain.Author
 import me.ag2s.epublib.domain.EpubBook
 import me.ag2s.epublib.domain.MediaType
@@ -64,9 +73,12 @@ import me.ag2s.epublib.epub.EpubWriter
 import me.ag2s.epublib.domain.MediaTypes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import me.ag2s.epublib.epub.EpubReader
+import me.ag2s.epublib.util.zip.AndroidZipFile
 import java.io.File
 import java.io.IOException
 
@@ -131,6 +143,7 @@ data class QuickStreamData(
 )
 
 object BookDownloader2Helper {
+    const val IMPORT_SOURCE = "Download"
     private val fs = File.separatorChar
     private const val reservedChars = "|\\?*<\":>+[]/'"
     fun sanitizeFilename(name: String): String {
@@ -151,6 +164,36 @@ object BookDownloader2Helper {
 
     fun getFilenameIMG(apiName: String, author: String, name: String): String {
         return "$fs$apiName$fs$author$fs$name${fs}poster.jpg".replace("$fs$fs", "$fs")
+    }
+
+    private val cachedBitmaps = hashMapOf<String, Bitmap>()
+    fun getCachedBitmap(
+        activity: Activity?,
+        apiName: String,
+        author: String?,
+        name: String
+    ): Bitmap? {
+        try {
+            val filePath = getFilenameIMG(
+                sanitizeFilename(apiName),
+                sanitizeFilename(author ?: ""),
+                sanitizeFilename(name)
+            )
+
+            val existing = cachedBitmaps.get(filePath)
+            if (existing != null) return existing
+            if (activity == null) return null
+
+            val file = activity.filesDir.toString() + filePath
+            val data = File(file).readBytes()
+            val bitmap = BitmapFactory.decodeByteArray(data, 0, data.size)
+            cachedBitmaps[filePath] = bitmap
+
+            return bitmap
+        } catch (t: Throwable) {
+            logError(t)
+            return null
+        }
     }
 
     fun generateId(apiName: String, author: String?, name: String): Int {
@@ -261,7 +304,7 @@ object BookDownloader2Helper {
             val sApiName = sanitizeFilename(apiName)
             val sAuthor = if (author == null) "" else sanitizeFilename(author)
             val sName = sanitizeFilename(name)
-            val id = "$sApiName$sAuthor$sName".hashCode()
+            val id = generateId(apiName, author, name)
 
             val dir =
                 File(
@@ -901,7 +944,7 @@ object NotificationHelper {
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 load.posterUrl?.let { url ->
-                    val poster = getImageBitmapFromUrl(url)
+                    val poster = context.getImageBitmapFromUrl(url)
                     if (poster != null)
                         builder.setLargeIcon(poster)
                 }
@@ -980,30 +1023,42 @@ object ImageDownloader {
     private val cachedBitmapMutex = Mutex()
     private val cachedBitmaps = hashMapOf<String, Bitmap>()
 
-    suspend fun getImageBitmapFromUrl(url: String): Bitmap? {
+    suspend fun Context.getImageBitmapFromUrl(url: String, headers: Map<String, String>? = null): Bitmap? {
         try {
-            cachedBitmapMutex.withLock {
+            with(cachedBitmapMutex) {
                 if (cachedBitmaps.containsKey(url)) {
                     return cachedBitmaps[url]
                 }
             }
 
-            val bitmap =
-                withContext(Dispatchers.IO) {
-                    Glide.with(activity ?: return@withContext null)
-                        .asBitmap()
-                        .load(url).submit(720, 720).get()
-                } ?: return null
+            val imageLoader = SingletonImageLoader.get(this)
 
-            cachedBitmapMutex.withLock {
-                cachedBitmaps[url] = bitmap
+            val request = ImageRequest.Builder(this)
+                .data(url)
+                .apply {
+                    headers?.forEach { (key, value) ->
+                        extras[Extras.Key<String>(key)] = value
+                    }
+                }
+                .build()
+
+            val bitmap = runBlocking {
+                val result = imageLoader.execute(request)
+                (result as? SuccessResult)?.image?.asDrawable(applicationContext.resources)
+                    ?.toBitmap()
             }
+
+            bitmap?.let {
+                with(cachedBitmapMutex) {
+                    cachedBitmaps[url] = it
+                }
+            }
+
             return bitmap
-        } catch (t: Throwable) {
-            logError(t)
+        } catch (e: Exception) {
+            logError(e)
             return null
         }
-
     }
 }
 
@@ -1375,6 +1430,10 @@ object BookDownloader2 {
     suspend fun downloadWorkThread(
         card: DownloadFragment.DownloadDataLoaded,
     ) {
+        if(card.isImported) {
+            return
+        }
+
         currentDownloadsMutex.withLock {
             if (currentDownloads.contains(card.id)) {
                 return
@@ -1461,8 +1520,8 @@ object BookDownloader2 {
         DownloadFileWorkManager.download(load, context)
     }
 
-    private suspend fun setSuffixData(load: LoadResponse, api: APIRepository) {
-        val id = generateId(load, api.name)
+    private suspend fun setSuffixData(load: LoadResponse, apiName: String) {
+        val id = generateId(load, apiName)
 
         val newData = DownloadFragment.DownloadData(
             load.url,
@@ -1474,7 +1533,7 @@ object BookDownloader2 {
             load.views,
             load.synopsis,
             load.tags,
-            api.name,
+            apiName,
             System.currentTimeMillis(),
             System.currentTimeMillis()
         )
@@ -1491,11 +1550,11 @@ object BookDownloader2 {
 
     private suspend fun setPrefixData(
         load: LoadResponse,
-        api: APIRepository,
+        apiName: String,
         total: Long,
         downloaded: Long
     ) {
-        val id = generateId(load, api.name)
+        val id = generateId(load, apiName)
 
         // cant download the same thing twice at the same time
         currentDownloadsMutex.withLock {
@@ -1517,7 +1576,7 @@ object BookDownloader2 {
             load.views,
             load.synopsis,
             load.tags,
-            api.name,
+            apiName,
             System.currentTimeMillis(),
             prevDownloadData?.lastDownloaded
         )
@@ -1561,15 +1620,91 @@ object BookDownloader2 {
     const val LOCAL_EPUB_MIN_SIZE: Long = 1000
 
     @WorkerThread
+    @Throws
+    suspend fun downloadWorkThread(data: Uri, context: Context) {
+        val filesDir = activity?.filesDir ?: return
+        val fd = context.contentResolver.openFileDescriptor(data, "r")
+            ?: throw ErrorLoadingException("Unable to open file descriptor")
+        val zipFile = AndroidZipFile(fd, "")
+        val book = EpubReader().readEpubLazy(zipFile, "utf-8")
+            ?: throw ErrorLoadingException("No epub found")
+
+        val author = book.metadata.authors.firstOrNull()
+            ?.let { "${it.firstname ?: ""} ${it.lastname}".trim() }
+        val apiName = IMPORT_SOURCE
+        val name = book.metadata.firstTitle ?: ""
+        val sApiName = BookDownloader2Helper.sanitizeFilename(apiName)
+        val sAuthor = BookDownloader2Helper.sanitizeFilename(author ?: "")
+        val sName = BookDownloader2Helper.sanitizeFilename(name)
+
+        val id = generateId(apiName, author, name)
+
+        val load = EpubResponse(
+            url = "",
+            name = name,
+            apiName = apiName,
+            downloadLinks = emptyList(),
+            downloadExtractLinks = emptyList()
+        ).apply {
+            this.author = author
+        }
+
+        try {
+            setPrefixData(load, apiName, 1L, 0L)
+
+            try {
+                val coverBytes = book.coverImage?.data
+                if (coverBytes != null) {
+                    // Store the image and override it
+                    val filepath = BookDownloader2Helper.getFilenameIMG(sApiName, sAuthor, sName)
+                    val posterFilepath =
+                        filesDir.toString() + filepath
+                    val pFile = File(posterFilepath)
+                    pFile.parentFile?.mkdirs()
+                    pFile.writeBytes(coverBytes)
+                }
+            } catch (t: Throwable) {
+                logError(t)
+            }
+
+            val file =
+                File(filesDir.toString() + getDirectory(sApiName, sAuthor, sName), LOCAL_EPUB)
+
+            file.parentFile?.mkdirs()
+            file.createNewFile()
+            file.writeBytes(
+                context.contentResolver.openInputStream(data)?.readBytes()
+                    ?: throw IOException("No file found")
+            )
+
+            setSuffixData(load, apiName)
+            changeDownload(id) {
+                state = DownloadState.IsDone
+                this.progress = this.total
+                this.downloaded = this.total
+            }?.let { newProgressState ->
+                createNotification(
+                    id,
+                    load,
+                    newProgressState
+                )
+            }
+        } finally {
+            currentDownloadsMutex.withLock {
+                currentDownloads -= id
+            }
+        }
+    }
+
+    @WorkerThread
     suspend fun downloadWorkThread(load: EpubResponse, api: APIRepository) {
         val filesDir = activity?.filesDir ?: return
         val sApiName = BookDownloader2Helper.sanitizeFilename(api.name)
-        val author = load.author
         val sAuthor = BookDownloader2Helper.sanitizeFilename(load.author ?: "")
         val sName = BookDownloader2Helper.sanitizeFilename(load.name)
         val id = generateId(load, api.name)
 
-        setPrefixData(load, api, 1L, 0L)
+        setPrefixData(load, api.name, 1L, 0L)
 
         try {
             // 1. download the image
@@ -1717,7 +1852,7 @@ object BookDownloader2 {
 
                 file.writeBytes(totalBytes.toByteArray())
 
-                setSuffixData(load, api)
+                setSuffixData(load, api.name)
 
                 changeDownload(id) {
                     state = DownloadState.IsDone
@@ -1817,7 +1952,7 @@ object BookDownloader2 {
                 ?.count { it < range.start } ?: 0).toLong()
         //println("alreadyDownloaded:$alreadyDownloaded")
         //println("totalItems:$totalItems")
-        setPrefixData(load, api, totalItems.toLong(), alreadyDownloaded)
+        setPrefixData(load, api.name, totalItems.toLong(), alreadyDownloaded)
 
         var downloadedTotal = 0L // how many successful get requests
 
@@ -1925,7 +2060,7 @@ object BookDownloader2 {
 
             // finally call it before changeDownload
             if (downloadedTotal > 0) {
-                setSuffixData(load, api)
+                setSuffixData(load, api.name)
             }
 
             changeDownload(id) {
@@ -1944,7 +2079,7 @@ object BookDownloader2 {
         } catch (t: Throwable) {
             // also set it here in case of exception
             if (downloadedTotal > 0) {
-                setSuffixData(load, api)
+                setSuffixData(load, api.name)
             }
 
             logError(t)

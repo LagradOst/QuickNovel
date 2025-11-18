@@ -19,7 +19,7 @@ import kotlin.math.roundToInt
 
 class MainAdapter2(
     private val resView: AutofitRecyclerView,
-    override val footers: Int
+    override var footers: Int
 ) : NoStateAdapter<SearchResponse>() {
     override fun onBindFooter(holder: ViewHolderState<Any>) {
         (holder.view as LoadingBottomBinding).apply {

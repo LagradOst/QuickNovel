@@ -9,6 +9,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.WindowManager
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.IdRes
 import androidx.appcompat.app.AlertDialog
@@ -32,6 +33,7 @@ import com.lagradost.nicehttp.ResponseParser
 import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
 import com.lagradost.quicknovel.BookDownloader2.openQuickStream
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.checkWrite
 import com.lagradost.quicknovel.BookDownloader2Helper.createQuickStream
 import com.lagradost.quicknovel.BookDownloader2Helper.requestRW
@@ -47,6 +49,7 @@ import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.mvvm.observeNullable
+import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.download.DownloadFragment
@@ -69,6 +72,7 @@ import com.lagradost.quicknovel.util.UIHelper.getResourceColor
 import com.lagradost.quicknovel.util.UIHelper.html
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.setImage
+import com.lagradost.safefile.SafeFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -95,6 +99,10 @@ class MainActivity : AppCompatActivity() {
 
         fun loadPreviewPage(cached: ResultCached) {
             mainActivity?.loadPopup(cached)
+        }
+
+        fun importEpub() {
+            mainActivity?.openEpubPicker()
         }
 
         var app = Requests(
@@ -329,6 +337,51 @@ class MainActivity : AppCompatActivity() {
         apiName: String,
     ) {
         viewModel.initState(apiName, url)
+    }
+
+
+    private val epubPathPicker =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            safe {
+                // It lies, it can be null if file manager quits.
+                if (uri == null) return@safe
+                val ctx = this
+
+                // RW perms for the path
+                ctx.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+
+                val file = SafeFile.fromUri(ctx, uri)
+                val fileName = file?.name()
+                println("Loaded epub file. Selected URI path: $uri - Name: $fileName")
+
+                ioSafe {
+                    try {
+                        BookDownloader2.downloadWorkThread(uri, ctx)
+                    } catch (t : Throwable) {
+                        logError(t)
+                        showToast(t.message)
+                    }
+                }
+            }
+        }
+
+    private fun openEpubPicker() {
+        try {
+            epubPathPicker.launch(
+                arrayOf(
+                    "text/plain",
+                    "text/str",
+                    "application/octet-stream",
+                    "application/pdf",
+                    "application/epub+zip",
+                )
+            )
+        } catch (e: Exception) {
+            logError(e)
+        }
     }
 
     var bottomPreviewBinding: BottomPreviewBinding? = null
@@ -570,11 +623,14 @@ class MainActivity : AppCompatActivity() {
                             hidePreviewPopupDialog()
                         }
 
+                        readMore.isVisible = viewModel.apiName != IMPORT_SOURCE
+                        bookmark.isVisible = viewModel.apiName != IMPORT_SOURCE
+
                         resultviewPreviewLoading.isVisible = false
                         resultviewPreviewResult.isVisible = true
 
                         resultviewPreviewPoster.apply {
-                            setImage(d.posterUrl)
+                            setImage(d.downloadImage())
                             setOnClickListener {
                                 loadResult(d.url, viewModel.apiName)
                                 hidePreviewPopupDialog()

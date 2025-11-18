@@ -246,5 +246,6 @@
     <string name="unread">Unread</string>
     <string name="bookmarks">Bookmarks</string>
     <string name="read">Read</string>
+    <string name="import_epub">Import epub</string>
 
 </resources>

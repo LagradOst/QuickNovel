@@ -6,7 +6,6 @@ import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Rect
-import android.graphics.drawable.Drawable
 import android.media.MediaPlayer
 import android.speech.tts.Voice
 import android.text.Spanned
@@ -20,10 +19,6 @@ import androidx.core.text.toSpanned
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.bumptech.glide.Glide
-import com.bumptech.glide.RequestBuilder
-import com.bumptech.glide.load.model.GlideUrl
-import com.bumptech.glide.request.target.Target
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.google.android.gms.tasks.Tasks
@@ -73,7 +68,6 @@ import io.noties.markwon.html.HtmlPlugin
 import io.noties.markwon.image.AsyncDrawable
 import io.noties.markwon.image.AsyncDrawableSpan
 import io.noties.markwon.image.ImageSizeResolver
-import io.noties.markwon.image.glide.GlideImagesPlugin
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -89,7 +83,6 @@ import me.ag2s.epublib.util.zip.AndroidZipFile
 import org.commonmark.node.Node
 import org.jsoup.Jsoup
 import java.io.File
-import java.net.URLDecoder
 import java.security.MessageDigest
 import java.util.Locale
 import java.util.concurrent.ExecutionException
@@ -1163,12 +1156,22 @@ class ReadActivityViewModel : ViewModel() {
         _title.postValue(book.title())
 
         updateChapters()
+        /*val imageLoader : coil3.ImageLoader = SingletonImageLoader.get(context)
+        val coilStore : CoilImagesPlugin.CoilStore = object : CoilImagesPlugin.CoilStore {
+            override fun load(drawable: AsyncDrawable): ImageRequest {
+                TODO("Not yet implemented")
+            }
 
+            override fun cancel(disposable: Disposable) {
+                TODO("Not yet implemented")
+            }
+        }*/
         markwon = Markwon.builder(context) // automatically create Glide instance
             //.usePlugin(GlideImagesPlugin.create(context)) // use supplied Glide instance
             //.usePlugin(GlideImagesPlugin.create(Glide.with(context))) // if you need more control
             .usePlugin(HtmlPlugin.create { plugin -> plugin.excludeDefaults(false) })
-            .usePlugin(GlideImagesPlugin.create(object : GlideImagesPlugin.GlideStore {
+            //.usePlugin(CoilImagesPlugin.create(coilStore, imageLoader))
+            /*.usePlugin(CoilImagesPlugin.create(object : CoilImagesPlugin.GlideStore {
                 override fun load(drawable: AsyncDrawable): RequestBuilder<Drawable> {
                     return try {
 
@@ -1199,7 +1202,7 @@ class ReadActivityViewModel : ViewModel() {
                         logError(e)
                     }
                 }
-            }))
+            }))*/
             .usePlugin(object :
                 AbstractMarkwonPlugin() {
                 override fun configureConfiguration(builder: MarkwonConfiguration.Builder) {

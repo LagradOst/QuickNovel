@@ -4,6 +4,9 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.content.ContextWrapper
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import com.lagradost.cloudstream3.utils.ImageLoader
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
 import com.lagradost.quicknovel.DataStore.removeKey
@@ -11,11 +14,17 @@ import com.lagradost.quicknovel.DataStore.removeKeys
 import com.lagradost.quicknovel.DataStore.setKey
 import java.lang.ref.WeakReference
 
-class BaseApplication : Application() {
+class BaseApplication : Application(), SingletonImageLoader.Factory  {
     override fun attachBaseContext(base: Context?) {
         super.attachBaseContext(base)
         context = base
     }
+
+    override fun newImageLoader(context: PlatformContext): coil3.ImageLoader {
+        // Coil Module will be initialized & setSafe globally when first loadImage() is invoked
+        return ImageLoader.buildImageLoader(applicationContext)
+    }
+
 
     companion object {
         /** Use to get activity from Context */

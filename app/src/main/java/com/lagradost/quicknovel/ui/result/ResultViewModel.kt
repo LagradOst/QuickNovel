@@ -187,15 +187,14 @@ class ResultViewModel : ViewModel() {
         return true
     }
 
-    lateinit var repo: APIRepository
+    var repo: APIRepository? = null
 
     var isGetLoaded = false
 
     var id: MutableLiveData<Int> = MutableLiveData<Int>(-1)
     var readState: MutableLiveData<ReadType> = MutableLiveData<ReadType>(ReadType.NONE)
 
-    val api get() = repo
-    val apiName get() = api.name
+    var apiName : String = ""
 
     val currentTabIndex: MutableLiveData<Int> by lazy {
         MutableLiveData<Int>(0)
@@ -230,12 +229,13 @@ class ResultViewModel : ViewModel() {
     private fun loadMoreReviews(url: String) {
         viewModelScope.launch {
             if (loadMoreReviewsMutex.isLocked) return@launch
+            val api = repo ?: return@launch
             loadMoreReviewsMutex.withLock {
                 val loadPage = (reviewPage.value ?: 0) + 1
                 if (loadPage == 1) {
                     reviews.postValue(Resource.Loading())
                 }
-                when (val data = repo.loadReviews(url, loadPage, false)) {
+                when (val data = api.loadReviews(url, loadPage, false)) {
                     is Resource.Success -> {
                         val moreReviews = data.value
                         currentReviews.addAll(moreReviews)
@@ -419,6 +419,7 @@ class ResultViewModel : ViewModel() {
     fun downloadFrom(start: Int?) = viewModelScope.launchSafe {
         loadMutex.withLock {
             if (!hasLoaded) return@launchSafe
+            val api = repo ?: return@launchSafe
             BookDownloader2.downloadInfoMutex.withLock {
                 BookDownloader2.changeDownloadStart(load, api, start)
                 downloadProgress[loadId]?.let { downloadState ->
@@ -674,7 +675,8 @@ class ResultViewModel : ViewModel() {
     fun initState(card: ResultCached) = viewModelScope.launch {
         isGetLoaded = false
         loadMutex.withLock {
-            repo = Apis.getApiFromName(card.apiName)
+            this@ResultViewModel.apiName = card.apiName
+            repo = Apis.getApiFromNameOrNull(card.apiName)
             loadUrl = card.source
 
             val data = StreamResponse(
@@ -723,6 +725,7 @@ class ResultViewModel : ViewModel() {
         loadResponse.postValue(Resource.Loading(card.source))
 
         loadMutex.withLock {
+            this@ResultViewModel.apiName = card.apiName
             repo = Apis.getApiFromName(card.apiName)
             loadUrl = card.source
 
@@ -748,11 +751,12 @@ class ResultViewModel : ViewModel() {
         loadResponse.postValue(Resource.Loading(url))
 
         loadMutex.withLock {
-            repo = Apis.getApiFromName(apiName)
+            this@ResultViewModel.apiName = apiName
+            repo = Apis.getApiFromNameOrNull(apiName)
             loadUrl = url
         }
 
-        val data = repo.load(url)
+        val data = repo?.load(url)
         loadMutex.withLock {
             when (data) {
                 is Resource.Success -> {

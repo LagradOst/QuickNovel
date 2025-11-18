@@ -67,19 +67,16 @@ sealed class UiImage {
     ) : UiImage()
 
     data class Drawable(@DrawableRes val resId: Int) : UiImage()
+    data class Bitmap(val bitmap: android.graphics.Bitmap) : UiImage()
 }
 
 fun ImageView?.setImage(value: UiImage?, fadeIn: Boolean = true) {
-    when (value) {
-        is UiImage.Image -> setImageImage(value, fadeIn)
-        is UiImage.Drawable -> setImageDrawable(value)
-        null -> {
-            this?.isVisible = false
-        }
-    }
+    if (this == null) return
+
+    this.isVisible = setImage(uiImage = value, fadeIn = fadeIn)
 }
 
-fun String.toUiText() : UiText {
+fun String.toUiText(): UiText {
     return txt(this)
 }
 
@@ -91,7 +88,13 @@ fun ImageView?.setImageImage(value: UiImage.Image, fadeIn: Boolean = true) {
 fun ImageView?.setImageDrawable(value: UiImage.Drawable) {
     if (this == null) return
     this.isVisible = true
-    this.setImage(UiImage.Drawable(value.resId))
+    this.setImage(value)
+}
+
+fun ImageView?.setImageBitmap(value: UiImage.Bitmap) {
+    if (this == null) return
+    this.isVisible = true
+    this.setImage(value)
 }
 
 @JvmName("imgNull")

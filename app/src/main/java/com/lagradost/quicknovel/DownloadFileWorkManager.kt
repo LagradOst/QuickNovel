@@ -93,6 +93,9 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
             load: LoadResponse,
             context: Context
         ) {
+            if(load.apiName == BookDownloader2Helper.IMPORT_SOURCE) {
+                return
+            }
             startDownload(load, context)
         }
     }

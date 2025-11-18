@@ -42,11 +42,9 @@ import androidx.core.text.toSpanned
 import androidx.core.view.forEach
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.bumptech.glide.load.model.GlideUrl
-import com.bumptech.glide.load.model.LazyHeaders
-import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
-import com.bumptech.glide.request.RequestOptions.bitmapTransform
+import coil3.dispose
+import coil3.request.transformations
+import com.lagradost.cloudstream3.utils.ImageLoader.loadImage
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.CommonActivity.showToast
@@ -57,7 +55,6 @@ import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.UiText
 import com.lagradost.quicknovel.ui.txt
 import io.noties.markwon.image.AsyncDrawable
-import jp.wasabeef.glide.transformations.BlurTransformation
 import java.io.File
 import java.text.CharacterIterator
 import java.text.StringCharacterIterator
@@ -253,19 +250,45 @@ object UIHelper {
 
         //colorCallback: ((Palette) -> Unit)? = null,
     ): Boolean {
-        if (this == null || uiImage == null) return false
+        if (this == null || uiImage == null) {
+            this?.dispose()
+            return false
+        }
+        val transformations = if(radius > 0) listOf(
+            BlurTransformation(
+                scale = sample.toFloat(),
+                radius = radius
+            )
+        ) else emptyList()
 
-        val (glideImage, _) =
-            (uiImage as? UiImage.Drawable)?.resId?.let {
-                it to it.toString()
-            } ?: (uiImage as? UiImage.Image)?.let { image ->
+        when(uiImage) {
+            is UiImage.Image -> {
+                this.loadImage(uiImage.url,uiImage.headers) {
+                    transformations(transformations)
+                }
+            }
+            is UiImage.Bitmap -> {
+                this.loadImage(uiImage.bitmap) {
+                    transformations(transformations)
+                }
+            }
+            is UiImage.Drawable -> {
+                this.loadImage(uiImage.resId) {
+                    transformations(transformations)
+                }
+            }
+        }
+        return true
+        /*val glideImage=
+            (uiImage as? UiImage.Drawable)?.resId ?: (uiImage as? UiImage.Bitmap)?.bitmap
+            ?: (uiImage as? UiImage.Image)?.let { image ->
                 val glideHeaders = LazyHeaders.Builder().apply {
                     image.headers?.forEach {
                         addHeader(it.key, it.value)
                     }
                 }.build()
 
-                GlideUrl(image.url, glideHeaders) to image.url
+                GlideUrl(image.url, glideHeaders)
             } ?: return false
 
         return try {
@@ -325,7 +348,7 @@ object UIHelper {
         } catch (e: Exception) {
             logError(e)
             false
-        }
+        }*/
     }
 
     /*fun ImageView?.setImage(

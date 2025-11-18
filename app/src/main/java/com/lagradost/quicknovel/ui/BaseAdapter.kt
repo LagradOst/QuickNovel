@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import androidx.viewbinding.ViewBinding
+import coil3.dispose
 import java.util.concurrent.CopyOnWriteArrayList
 
 open class ViewHolderState<T>(val view: ViewBinding) : ViewHolder(view.root) {
@@ -43,8 +44,8 @@ abstract class BaseAdapter<
     val id: Int = 0,
     diffCallback: DiffUtil.ItemCallback<T> = BaseDiffCallback()
 ) : RecyclerView.Adapter<ViewHolderState<S>>() {
-    open val footers: Int = 0
-    open val headers: Int = 0
+    open var footers: Int = 0
+    open var headers: Int = 0
 
     val immutableCurrentList: List<T> get() = mDiffer.currentList
 
@@ -85,20 +86,24 @@ abstract class BaseAdapter<
      *
      * Use `submitList` for general use, as that can reuse old views.
      * */
-    open fun submitIncomparableList(list: List<T>?) {
+    open fun submitIncomparableList(list: List<T>?, commitCallback : Runnable? = null) {
         // This leverages a quirk in the submitList function that has a fast case for null arrays
         // What this implies is that as long as we do a double submit we can ensure no pop-ins,
         // as the changes are the entire list instead of calculating deltas
         submitList(null)
-        submitList(list)
+        submitList(list, commitCallback)
     }
 
-    open fun submitList(list: Collection<T>?) {
+    /**
+     * @param commitCallback Optional runnable that is executed when the List is committed, if it is committed.
+     * This is needed for some tasks as submitList will use a background thread for diff
+     * */
+    open fun submitList(list: Collection<T>?, commitCallback : Runnable? = null) {
         // deep copy at least the top list, because otherwise adapter can go crazy
         if (list.isNullOrEmpty()) {
-            mDiffer.submitList(null) // It is "faster" to submit null than emptyList()
+            mDiffer.submitList(null, commitCallback) // It is "faster" to submit null than emptyList()
         } else {
-            mDiffer.submitList(CopyOnWriteArrayList(list))
+            mDiffer.submitList(CopyOnWriteArrayList(list), commitCallback)
         }
     }
 
@@ -268,7 +273,7 @@ abstract class BaseAdapter<
     companion object {
         val layoutManagerStates = hashMapOf<Int, HashMap<Int, Any?>>()
         fun clearImage(image: ImageView?) {
-            //image?.dispose()
+            image?.dispose()
         }
 
         // Use the lowermost MASK_SIZE bits for the custom content,

@@ -196,6 +196,10 @@ class DownloadViewModel : ViewModel() {
         MainActivity.loadPreviewPage(card)
     }
 
+    fun importEpub() {
+        MainActivity.importEpub()
+    }
+
     fun showMetadata(card: ResultCached) {
         MainActivity.loadPreviewPage(card)
     }

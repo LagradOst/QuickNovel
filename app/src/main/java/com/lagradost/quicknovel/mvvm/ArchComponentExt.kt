@@ -3,7 +3,6 @@ package com.lagradost.quicknovel.mvvm
 import android.util.Log
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
-import com.bumptech.glide.load.HttpException
 import com.lagradost.quicknovel.BuildConfig
 import com.lagradost.quicknovel.ErrorLoadingException
 import kotlinx.coroutines.*
@@ -198,14 +197,6 @@ suspend fun <T> safeApiCall(
                         null,
                         null,
                         "Connection Timeout\nPlease try again later."
-                    )
-                }
-                is HttpException -> {
-                    Resource.Failure(
-                        false,
-                        throwable.statusCode,
-                        null,
-                        throwable.message ?: "HttpException"
                     )
                 }
                 is UnknownHostException -> {

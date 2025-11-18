@@ -55,6 +55,7 @@
 
         <androidx.core.widget.ContentLoadingProgressBar
                 android:visibility="gone"
+                tools:visibility="visible"
                 android:padding="3dp"
                 android:background="@drawable/download_add_bg"
                 android:id="@+id/download_update_loading"
