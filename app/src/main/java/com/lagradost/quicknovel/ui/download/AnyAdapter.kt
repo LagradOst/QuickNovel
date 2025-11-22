@@ -35,7 +35,7 @@ class AnyAdapter(
             a.hashCode() == b.hashCode()
         },
         contentSame = { a, b ->
-            a === b
+            a == b
         }
     )
 ) {
@@ -79,6 +79,9 @@ class AnyAdapter(
                 clearImage(binding.imageView)
             }
             is HistoryResultCompactBinding -> {
+                clearImage(binding.imageView)
+            }
+            is DownloadResultCompactBinding -> {
                 clearImage(binding.imageView)
             }
         }

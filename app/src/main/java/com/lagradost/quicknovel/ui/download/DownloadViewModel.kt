@@ -66,6 +66,7 @@ const val REVERSE_LAST_UPDATED_SORT = 10
 
 const val CHAPTER_SORT = 11
 const val REVERSE_CHAPTER_SORT = 12
+
 data class SortingMethod(@StringRes val name: Int, val id: Int, val inverse: Int = id)
 class DownloadViewModel : ViewModel() {
 
@@ -73,7 +74,11 @@ class DownloadViewModel : ViewModel() {
         val sortingMethods = arrayOf(
             SortingMethod(R.string.default_sort, DEFAULT_SORT),
             SortingMethod(R.string.recently_sort, LAST_ACCES_SORT, REVERSE_LAST_ACCES_SORT),
-            SortingMethod(R.string.recently_updated_sort, LAST_UPDATED_SORT, REVERSE_LAST_UPDATED_SORT),
+            SortingMethod(
+                R.string.recently_updated_sort,
+                LAST_UPDATED_SORT,
+                REVERSE_LAST_UPDATED_SORT
+            ),
             SortingMethod(R.string.alpha_sort, ALPHA_SORT, REVERSE_ALPHA_SORT),
             SortingMethod(R.string.download_sort, DOWNLOADSIZE_SORT, REVERSE_DOWNLOADSIZE_SORT),
             SortingMethod(
@@ -165,9 +170,13 @@ class DownloadViewModel : ViewModel() {
 
         val values = currentDownloadsMutex.withLock {
             allValues.filter { card ->
-                card.downloadedTotal <= 0 || (card.downloadedCount * 100 / card.downloadedTotal) > 90 && !currentDownloads.contains(
+                val notImported = !card.isImported
+                val canDownload =
+                    card.downloadedTotal <= 0 || (card.downloadedCount * 100 / card.downloadedTotal) > 90
+                val notDownloading = !currentDownloads.contains(
                     card.id
                 )
+                notImported && canDownload && notDownloading
             }
         }
 
