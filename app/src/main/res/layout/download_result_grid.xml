@@ -18,6 +18,7 @@
             app:cardElevation="0dp"
             app:cardCornerRadius="@dimen/roundedImageRadius"
             android:id="@+id/backgroundCard"
+            android:foreground="?android:attr/selectableItemBackgroundBorderless"
             app:cardBackgroundColor="?attr/primaryGrayBackground">
         <!-- USING CROP RATIO (182/268), centerCrop for fill -->
         <ImageView

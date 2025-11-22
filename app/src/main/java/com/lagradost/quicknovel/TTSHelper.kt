@@ -485,27 +485,31 @@ object TTSHelper {
         while (nextIndex != -1) {
             // don't include duplicate newlines
             if (currentOffset != nextIndex) {
-                spans.add(
-                    TextSpan(
-                        unsegmented.subSequence(currentOffset, nextIndex) as Spanned,
-                        currentOffset,
-                        nextIndex,
-                        index,
-                        innerIndex
+                // Do not include blank text
+                val text = unsegmented.subSequence(currentOffset, nextIndex) as Spanned
+                if (!text.isBlank()) {
+                    spans.add(
+                        TextSpan(
+                            text,
+                            currentOffset,
+                            nextIndex,
+                            index,
+                            innerIndex
+                        )
                     )
-                )
-                innerIndex++
+                    innerIndex++
+                }
             }
 
             currentOffset = nextIndex + 1
-
             nextIndex = unsegmented.indexOf('\n', currentOffset)
         }
 
-        if (currentOffset != unsegmented.length)
+        val text = unsegmented.subSequence(currentOffset, unsegmented.length) as Spanned
+        if (currentOffset != unsegmented.length && !text.isBlank())
             spans.add(
                 TextSpan(
-                    unsegmented.subSequence(currentOffset, unsegmented.length) as Spanned,
+                    text,
                     currentOffset,
                     unsegmented.length,
                     index,
