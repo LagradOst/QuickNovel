@@ -18,6 +18,7 @@ import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
 import java.util.Date
 
 class RoyalRoadProvider : MainAPI() {
@@ -376,16 +377,40 @@ class RoyalRoadProvider : MainAPI() {
         val document = Jsoup.parse(response.text)
         val styles = document.select("style")
         val hiddenRegex = Regex("^\\s*(\\..*)\\s*\\{", RegexOption.MULTILINE)
-        val chap = document.selectFirst("div.chapter-content")
+        val chap = document.selectFirst("div.chapter-content") ?: return null
+
+        val beforeNotes = mutableListOf<Element>()
+        val authorNotes = document.select("div.author-note")
+        authorNotes.forEach { authorNote ->
+            val noteContainer = authorNote.parent() ?: return@forEach
+            val noteParent = noteContainer.parent() ?: return@forEach
+            val chapParent = chap.parent() ?: return@forEach
+            if (noteParent == chapParent) {
+                val noteIndex = noteContainer.elementSiblingIndex()
+                val chapIndex = chap.elementSiblingIndex()
+                if (noteIndex < chapIndex) {
+                    beforeNotes.add(authorNote)
+                } else {
+                                                  
+                    authorNote.prepend("<p>&nbsp;</p><p>━━━━━━━━━━━━━━━━━━━━</p>")
+                    chap.appendChild(authorNote)
+                }
+            }
+        }
+        beforeNotes.asReversed().forEach { authorNote ->
+            authorNote.append("<p>━━━━━━━━━━━━━━━━━━━━</p><p>&nbsp;</p>")
+            chap.prependChild(authorNote)
+        }
+
         styles.forEach { style ->
             hiddenRegex.findAll(style.toString()).forEach {
                 val className = it.groupValues[1]
                 if (className.isNotEmpty()) {
-                    chap?.select(className)?.remove()
+                    chap.select(className).remove()
                 }
             }
         }
 
-        return chap?.html()
+        return chap.html()
     }
 }

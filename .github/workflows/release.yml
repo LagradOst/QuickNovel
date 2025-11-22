@@ -1,0 +1,137 @@
+name: Release Artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+      workflow_run_id:
+        description: 'Optional: Specific workflow run ID to release from (find in Actions tab)'
+        required: false
+        default: ''
+      draft:
+        description: 'Create as draft release'
+        required: true
+        default: 'false'
+        type: boolean
+      prerelease:
+        description: 'Mark as prerelease'
+        required: true
+        default: 'false'
+        type: boolean
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Download build artifact
+        uses: actions/github-script@v7
+        if: ${{ !github.event.inputs.workflow_run_id }}
+        with:
+          script: |
+            // Download from the latest successful workflow run
+            const { data: runs } = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'build.yml',
+              status: 'success',
+              per_page: 1
+            });
+            
+            if (!runs.workflow_runs.length) {
+              throw new Error('No successful build runs found');
+            }
+            
+            const runId = runs.workflow_runs[0].id;
+            console.log(`Using latest successful workflow run: ${runId}`);
+            
+            const { data: artifacts } = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: runId
+            });
+            
+            const artifact = artifacts.artifacts.find(a => a.name === 'QuickNovel');
+            if (!artifact) {
+              throw new Error('QuickNovel artifact not found in the workflow run');
+            }
+            
+            const download = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: artifact.id,
+              archive_format: 'zip',
+            });
+            
+            const fs = require('fs').promises;
+            await fs.mkdir('release', { recursive: true });
+            await fs.writeFile('release/artifact.zip', Buffer.from(download.data));
+            
+      - name: Download specific build artifact
+        uses: actions/github-script@v7
+        if: ${{ github.event.inputs.workflow_run_id }}
+        with:
+          script: |
+            const runId = ${{ github.event.inputs.workflow_run_id }};
+            console.log(`Using specified workflow run: ${runId}`);
+            
+            const { data: artifacts } = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: runId
+            });
+            
+            const artifact = artifacts.artifacts.find(a => a.name === 'QuickNovel');
+            if (!artifact) {
+              throw new Error('QuickNovel artifact not found in the specified workflow run');
+            }
+            
+            const download = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: artifact.id,
+              archive_format: 'zip',
+            });
+            
+            const fs = require('fs').promises;
+            await fs.mkdir('release', { recursive: true });
+            await fs.writeFile('release/artifact.zip', Buffer.from(download.data));
+            
+      - name: Extract artifact
+        run: |
+          unzip -q release/artifact.zip -d release/
+          rm release/artifact.zip
+          ls -la release/
+
+      - name: Verify artifact
+        run: |
+          if [ ! -f "release/QuickNovel.apk" ]; then
+            echo "Error: QuickNovel.apk not found in artifacts"
+            ls -la release/
+            exit 1
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: v${{ github.event.inputs.version || github.sha }}
+          tag_name: v${{ github.event.inputs.version || github.sha }}
+          body: |
+            ## What's New
+            - Release: v${{ github.event.inputs.version || github.sha }}
+            - Built from: ${{ github.sha }}
+            
+            ### Installation
+            1. Download the APK below
+            2. Allow installation from unknown sources
+            3. Install the APK
+          draft: ${{ github.event.inputs.draft == 'true' }}
+          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+          files: |
+            release/QuickNovel.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
