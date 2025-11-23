@@ -8,27 +8,27 @@
         android:layout_margin="2dp"
 
         android:focusable="true"
-        android:clickable="true"
-        android:id="@+id/search_result_root">
+        android:clickable="true">
 
     <androidx.cardview.widget.CardView
-            android:foreground="?android:attr/selectableItemBackgroundBorderless"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_marginBottom="2dp"
             app:cardElevation="0dp"
             app:cardCornerRadius="@dimen/roundedImageRadius"
             android:id="@+id/backgroundCard"
+            android:foreground="?android:attr/selectableItemBackgroundBorderless"
             app:cardBackgroundColor="?attr/primaryGrayBackground">
         <!-- USING CROP RATIO (182/268), centerCrop for fill -->
         <ImageView
+                android:src="@drawable/ic_baseline_add_24"
+                app:tint="?attr/textColor"
                 android:duplicateParentState="true"
                 android:id="@+id/imageView"
-                android:scaleType="centerCrop"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:contentDescription="@string/poster_descript" />
-
     </androidx.cardview.widget.CardView>
 
     <TextView
@@ -46,5 +46,7 @@
             android:paddingBottom="5dp"
             android:textColor="?attr/textColor"
             android:textSize="13sp"
-            tools:text="The Perfect Run\nThe Perfect Run" />
+            android:text="@string/import_epub" />
 </LinearLayout>
+
+

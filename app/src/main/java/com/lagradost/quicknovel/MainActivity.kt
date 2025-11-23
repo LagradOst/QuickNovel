@@ -372,10 +372,10 @@ class MainActivity : AppCompatActivity() {
         try {
             epubPathPicker.launch(
                 arrayOf(
-                    "text/plain",
-                    "text/str",
-                    "application/octet-stream",
-                    "application/pdf",
+                    //"text/plain",
+                    //"text/str",
+                    //"application/octet-stream",
+                    //"application/pdf",
                     "application/epub+zip",
                 )
             )

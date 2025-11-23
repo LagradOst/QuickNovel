@@ -19,6 +19,8 @@ import androidx.core.text.toSpanned
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import coil3.request.Disposable
+import coil3.request.ImageRequest
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.google.android.gms.tasks.Tasks
@@ -57,6 +59,8 @@ import com.lagradost.quicknovel.ui.toScroll
 import com.lagradost.quicknovel.ui.toUiText
 import com.lagradost.quicknovel.ui.txt
 import com.lagradost.quicknovel.util.Apis
+import com.lagradost.quicknovel.util.CoilImagesPlugin
+import com.lagradost.quicknovel.util.CoilImagesPlugin.CoilStore
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.runOnMainThread
 import com.lagradost.safefile.closeQuietly
@@ -83,6 +87,7 @@ import me.ag2s.epublib.util.zip.AndroidZipFile
 import org.commonmark.node.Node
 import org.jsoup.Jsoup
 import java.io.File
+import java.net.URLDecoder
 import java.security.MessageDigest
 import java.util.Locale
 import java.util.concurrent.ExecutionException
@@ -1156,53 +1161,33 @@ class ReadActivityViewModel : ViewModel() {
         _title.postValue(book.title())
 
         updateChapters()
-        /*val imageLoader : coil3.ImageLoader = SingletonImageLoader.get(context)
-        val coilStore : CoilImagesPlugin.CoilStore = object : CoilImagesPlugin.CoilStore {
+        val imageLoader : coil3.ImageLoader = coil3.SingletonImageLoader.get(context)
+
+        val coilStore = object : CoilStore {
             override fun load(drawable: AsyncDrawable): ImageRequest {
-                TODO("Not yet implemented")
+                val newUrl = drawable.destination.substringAfter("&url=")
+                val url =
+                    book.resolveUrl(
+                        if (newUrl.length > 8) { // we assume that it is not a stub url by length > 8
+                            URLDecoder.decode(newUrl)
+                        } else {
+                            drawable.destination
+                        }
+                    )
+
+                return ImageRequest.Builder(context)
+                    .data(url)
+                    .build()
             }
 
             override fun cancel(disposable: Disposable) {
-                TODO("Not yet implemented")
+                disposable.dispose()
             }
-        }*/
-        markwon = Markwon.builder(context) // automatically create Glide instance
-            //.usePlugin(GlideImagesPlugin.create(context)) // use supplied Glide instance
-            //.usePlugin(GlideImagesPlugin.create(Glide.with(context))) // if you need more control
+        }
+
+        markwon = Markwon.builder(context)
             .usePlugin(HtmlPlugin.create { plugin -> plugin.excludeDefaults(false) })
-            //.usePlugin(CoilImagesPlugin.create(coilStore, imageLoader))
-            /*.usePlugin(CoilImagesPlugin.create(object : CoilImagesPlugin.GlideStore {
-                override fun load(drawable: AsyncDrawable): RequestBuilder<Drawable> {
-                    return try {
-
-                        val newUrl = drawable.destination.substringAfter("&url=")
-                        val url =
-                            book.resolveUrl(
-                                if (newUrl.length > 8) { // we assume that it is not a stub url by length > 8
-                                    URLDecoder.decode(newUrl)
-                                } else {
-                                    drawable.destination
-                                }
-                            )
-
-                        Glide.with(context)
-                            .load(GlideUrl(url) { mapOf("user-agent" to USER_AGENT) })
-
-                    } catch (e: Exception) {
-                        logError(e)
-                        Glide.with(context)
-                            .load(R.drawable.books_emoji) // might crash :)
-                    }
-                }
-
-                override fun cancel(target: Target<*>) {
-                    try {
-                        Glide.with(context).clear(target)
-                    } catch (e: Exception) {
-                        logError(e)
-                    }
-                }
-            }))*/
+            .usePlugin(CoilImagesPlugin.create(context,coilStore,imageLoader))
             .usePlugin(object :
                 AbstractMarkwonPlugin() {
                 override fun configureConfiguration(builder: MarkwonConfiguration.Builder) {

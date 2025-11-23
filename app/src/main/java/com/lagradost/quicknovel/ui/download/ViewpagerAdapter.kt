@@ -54,7 +54,7 @@ class ViewpagerAdapter(
             a.title == b.title
         },
         contentSame = { a, b ->
-            a.items === b.items && a.title == b.title
+            a.items == b.items && a.title == b.title
         }
     )) {
 

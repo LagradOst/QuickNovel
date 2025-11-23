@@ -21,6 +21,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.Window
+import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
 import android.widget.Toast.LENGTH_LONG
@@ -61,6 +62,7 @@ import java.text.StringCharacterIterator
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import kotlin.math.sign
+import androidx.core.graphics.drawable.toDrawable
 
 //import androidx.palette.graphics.Palette
 
@@ -80,8 +82,9 @@ fun Long.divCeil(other: Long): Long {
 
 object UIHelper {
     fun String?.html(): Spanned {
-        return getHtmlText(this?.trim()?.replace("\n","<br>") ?: return "".toSpanned())
+        return getHtmlText(this?.trim()?.replace("\n", "<br>") ?: return "".toSpanned())
     }
+
     private fun getHtmlText(text: String): Spanned {
         return try {
             // I have no idea if this can throw any error, but I don't want to try
@@ -143,7 +146,7 @@ object UIHelper {
         }
     }
 
-    fun bindImage(imageView: ImageView, img : AsyncDrawable) {
+    fun bindImage(imageView: ImageView, img: AsyncDrawable) {
         val url = img.destination
         img.result?.let { drawable ->
             imageView.setImageDrawable(drawable)
@@ -152,13 +155,14 @@ object UIHelper {
         }
     }
 
-    fun showImage(context : Context?, image : UiImage) {
-        if (context == null) return
-        val settingsDialog = Dialog(context)
-        settingsDialog.window!!.requestFeature(Window.FEATURE_NO_TITLE)
-        settingsDialog.window!!.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+    fun showImageDialog(context: Context, apply: (ImageView) -> Unit) {
+        val settingsDialog = Dialog(context, R.style.AlertDialogCustomTransparentFullscreen)
+        //settingsDialog.window?.apply {
+        //    requestFeature(Window.FEATURE_NO_TITLE)
+        //}
         val binding = ImageLayoutBinding.inflate(LayoutInflater.from(context))
-        binding.image.setImage(image)
+        apply(binding.image)
 
         binding.image.setOnClickListener {
             settingsDialog.dismissSafe(CommonActivity.activity)
@@ -170,22 +174,18 @@ object UIHelper {
         settingsDialog.show()
     }
 
-    fun showImage(context : Context?, drawable : AsyncDrawable) {
+    fun showImage(context: Context?, image: UiImage) {
         if (context == null) return
-        val settingsDialog = Dialog(context)
-        settingsDialog.window!!.requestFeature(Window.FEATURE_NO_TITLE)
-        settingsDialog.window!!.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        val binding = ImageLayoutBinding.inflate(LayoutInflater.from(context))
-        bindImage(binding.image,drawable)
-
-        binding.image.setOnClickListener {
-            settingsDialog.dismissSafe(CommonActivity.activity)
+        showImageDialog(context) {
+            it.setImage(image)
         }
-        settingsDialog.setContentView(
-            binding.root
-        )
+    }
 
-        settingsDialog.show()
+    fun showImage(context: Context?, drawable: AsyncDrawable) {
+        if (context == null) return
+        showImageDialog(context) {
+            bindImage(it, drawable)
+        }
     }
 
     fun FragmentActivity.popCurrentPage() {
@@ -217,6 +217,7 @@ object UIHelper {
         attributes.recycle()
         return color
     }
+
     fun ImageView?.setImage(
         url: String?,
         headers: Map<String, String>? = null,
@@ -254,24 +255,26 @@ object UIHelper {
             this?.dispose()
             return false
         }
-        val transformations = if(radius > 0) listOf(
+        val transformations = if (radius > 0) listOf(
             BlurTransformation(
                 scale = sample.toFloat(),
                 radius = radius
             )
         ) else emptyList()
 
-        when(uiImage) {
+        when (uiImage) {
             is UiImage.Image -> {
-                this.loadImage(uiImage.url,uiImage.headers) {
+                this.loadImage(uiImage.url, uiImage.headers) {
                     transformations(transformations)
                 }
             }
+
             is UiImage.Bitmap -> {
                 this.loadImage(uiImage.bitmap) {
                     transformations(transformations)
                 }
             }
+
             is UiImage.Drawable -> {
                 this.loadImage(uiImage.resId) {
                     transformations(transformations)
@@ -404,7 +407,7 @@ object UIHelper {
         }
     }*/
 
-    val systemFonts : Array<File> by lazy {
+    val systemFonts: Array<File> by lazy {
         getAllFonts()
     }
 
@@ -487,7 +490,13 @@ object UIHelper {
         noinline initMenu: (Menu.() -> Unit)? = null,
         noinline onMenuItemClick: MenuItem.() -> Unit,
     ): PopupMenu {
-        val popup = PopupMenu(context, this, Gravity.NO_GRAVITY, androidx.appcompat.R.attr.actionOverflowMenuStyle, 0)
+        val popup = PopupMenu(
+            context,
+            this,
+            Gravity.NO_GRAVITY,
+            androidx.appcompat.R.attr.actionOverflowMenuStyle,
+            0
+        )
         popup.menuInflater.inflate(menuRes, popup.menu)
 
         if (initMenu != null) {
@@ -517,7 +526,13 @@ object UIHelper {
         noinline onMenuItemClick: MenuItem.() -> Unit,
     ): PopupMenu {
         val ctw = ContextThemeWrapper(context, R.style.PopupMenu)
-        val popup = PopupMenu(ctw, this, Gravity.NO_GRAVITY, androidx.appcompat.R.attr.actionOverflowMenuStyle, 0)
+        val popup = PopupMenu(
+            ctw,
+            this,
+            Gravity.NO_GRAVITY,
+            androidx.appcompat.R.attr.actionOverflowMenuStyle,
+            0
+        )
 
         items.forEach { (id, stringRes) ->
             popup.menu.add(0, id, 0, stringRes)
@@ -554,7 +569,13 @@ object UIHelper {
         noinline onMenuItemClick: MenuItem.() -> Unit,
     ): PopupMenu {
         val ctw = ContextThemeWrapper(context, R.style.PopupMenu)
-        val popup = PopupMenu(ctw, this, Gravity.NO_GRAVITY, androidx.appcompat.R.attr.actionOverflowMenuStyle, 0)
+        val popup = PopupMenu(
+            ctw,
+            this,
+            Gravity.NO_GRAVITY,
+            androidx.appcompat.R.attr.actionOverflowMenuStyle,
+            0
+        )
 
         items.forEach { (id, icon, stringRes) ->
             popup.menu.add(0, id, 0, stringRes).setIcon(icon)

@@ -13,6 +13,7 @@ import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.DownloadImportBinding
+import com.lagradost.quicknovel.databinding.DownloadImportCardBinding
 import com.lagradost.quicknovel.databinding.DownloadResultCompactBinding
 import com.lagradost.quicknovel.databinding.DownloadResultGridBinding
 import com.lagradost.quicknovel.databinding.HistoryResultCompactBinding
@@ -34,7 +35,7 @@ class AnyAdapter(
             a.hashCode() == b.hashCode()
         },
         contentSame = { a, b ->
-            a === b
+            a == b
         }
     )
 ) {
@@ -52,12 +53,23 @@ class AnyAdapter(
     }
 
     override fun onCreateFooter(parent: ViewGroup): ViewHolderState<Any> {
+        val compact = parent.context.getDownloadIsCompact()
+
         return ViewHolderState(
-            DownloadImportBinding.inflate(
-                LayoutInflater.from(parent.context),
-                parent,
-                false
-            )
+            if(compact) {
+                DownloadImportBinding.inflate(
+                    LayoutInflater.from(parent.context),
+                    parent,
+                    false
+                )
+            } else {
+                DownloadImportCardBinding.inflate(
+                    LayoutInflater.from(parent.context),
+                    parent,
+                    false
+                )
+            }
+
         )
     }
 
@@ -69,13 +81,31 @@ class AnyAdapter(
             is HistoryResultCompactBinding -> {
                 clearImage(binding.imageView)
             }
+            is DownloadResultCompactBinding -> {
+                clearImage(binding.imageView)
+            }
         }
     }
 
     override fun onBindFooter(holder: ViewHolderState<Any>) {
-        val binding = holder.view as? DownloadImportBinding ?: return
-        binding.backgroundCard.setOnClickListener {
-            downloadViewModel.importEpub()
+        when(val binding = holder.view) {
+            is DownloadImportBinding -> {
+                binding.backgroundCard.setOnClickListener {
+                    downloadViewModel.importEpub()
+                }
+            }
+            is DownloadImportCardBinding -> {
+                binding.backgroundCard.apply {
+                    setOnClickListener {
+                        downloadViewModel.importEpub()
+                    }
+                    val coverHeight: Int = (resView.itemWidth / 0.68).roundToInt()
+                    layoutParams = LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        coverHeight
+                    )
+                }
+            }
         }
     }
 
@@ -170,16 +200,6 @@ class AnyAdapter(
                             downloadUpdateLoading.isVisible =
                                 showDownloadLoading && !item.isImported
 
-                            imageView.apply {
-                                setOnClickListener {
-                                    downloadViewModel.readEpub(item)
-                                }
-                                setOnLongClickListener {
-                                    downloadViewModel.showMetadata(item)
-                                    return@setOnLongClickListener true
-                                }
-                            }
-
                             val epubSize = getKey(DOWNLOAD_EPUB_SIZE, item.id.toString()) ?: 0
                             val diff = item.downloadedCount - epubSize
                             imageTextMore.text = "+$diff "
@@ -220,7 +240,7 @@ class AnyAdapter(
             is DownloadResultCompactBinding -> {
                 val card = item as DownloadFragment.DownloadDataLoaded
                 view.apply {
-                    downloadUpdateHolder.isGone = card.isImported
+                    downloadHolder.isGone = card.isImported
                     val same = imageText.text == card.name
                     backgroundCard.apply {
                         setOnClickListener {
@@ -249,12 +269,8 @@ class AnyAdapter(
                     val epubSize = getKey(DOWNLOAD_EPUB_SIZE, card.id.toString()) ?: 0
                     val diff = card.downloadedCount - epubSize
                     imageTextMore.text = if (diff > 0) "+$diff " else ""
-                    imageTextMore.isGone = item.isImported
 
                     imageView.setImage(card.image)
-
-                    downloadProgressbar.isVisible = !card.generating
-                    downloadProgressbarIndeterment.isVisible = card.generating
 
                     downloadProgressText.text =
                         "${card.downloadedCount}/${card.downloadedTotal}" + if (card.ETA == "") "" else " - ${card.ETA}"
@@ -279,7 +295,8 @@ class AnyAdapter(
                             progress = card.downloadedCount.toInt() * 100
                         }
                         //download_progressbar.progress = card.downloadedCount
-                        alpha = if (card.downloadedCount >= card.downloadedTotal) 0f else 1f
+                        isIndeterminate = card.generating
+                        isVisible = card.generating || (card.downloadedCount < card.downloadedTotal)
                     }
 
                     imageText.text = card.name
