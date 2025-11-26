@@ -18,6 +18,8 @@ import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
 import java.util.Date
 
 class RoyalRoadProvider : MainAPI() {
@@ -371,21 +373,77 @@ class RoyalRoadProvider : MainAPI() {
         }
     }
 
+    private fun addAuthorNotes(chapter: Element, document: Document) {
+        val noteContainerClass = "qnauthornotecontainer"
+        val noteContentClass = "qnauthornote"
+        val noteSeparatorClass = "qnauthornoteseparator"
+        val separatorLine = "━━━━━━━━━━━━━━━━━━━━"
+        val spacer = "&nbsp;"
+
+        val noteBeforeChapter = StringBuilder()
+        val noteAfterChapter = StringBuilder()
+
+        document.select("div.author-note").forEach { authorNote ->
+            val noteContainer = authorNote.parent() ?: return@forEach
+            val noteParent = noteContainer.parent() ?: return@forEach
+            val chapterParent = chapter.parent() ?: return@forEach
+
+            if (noteParent == chapterParent) {
+                val isNoteBeforeChapter = noteContainer.elementSiblingIndex() < chapter.elementSiblingIndex()
+                val noteContent = authorNote.html().takeIf { it.isNotBlank() } ?: return@forEach
+
+                if (isNoteBeforeChapter) {
+                    noteBeforeChapter.append(noteContent)
+                } else {
+                    noteAfterChapter.append(noteContent)
+                }
+            }
+        }
+
+        if (noteBeforeChapter.isNotEmpty()) {
+            val content = """
+                <div class="$noteContainerClass">
+                    <div class="$noteContentClass">$noteBeforeChapter</div>
+                    <div class="$noteSeparatorClass"><p>$separatorLine</p><p>$spacer</p></div>
+                </div>
+                """.trimIndent()
+                
+            Jsoup.parse(content).selectFirst("div")?.let {
+                chapter.prependChild(it)
+            }
+        }
+        
+        if (noteAfterChapter.isNotEmpty()) {
+            val content = """
+                <div class="$noteContainerClass">
+                    <div class="$noteSeparatorClass"><p>$spacer</p><p>$separatorLine</p></div>
+                    <div class="$noteContentClass">$noteAfterChapter</div>
+                </div>
+                """.trimIndent()
+                
+            Jsoup.parse(content).selectFirst("div")?.let {
+                chapter.appendChild(it)
+            }
+        }
+    }
+
     override suspend fun loadHtml(url: String): String? {
         val response = app.get(url)
         val document = Jsoup.parse(response.text)
         val styles = document.select("style")
         val hiddenRegex = Regex("^\\s*(\\..*)\\s*\\{", RegexOption.MULTILINE)
-        val chap = document.selectFirst("div.chapter-content")
+        val chap = document.selectFirst("div.chapter-content") ?: return null
+        addAuthorNotes(chap, document)
+
         styles.forEach { style ->
             hiddenRegex.findAll(style.toString()).forEach {
                 val className = it.groupValues[1]
                 if (className.isNotEmpty()) {
-                    chap?.select(className)?.remove()
+                    chap.select(className).remove()
                 }
             }
         }
 
-        return chap?.html()
+        return chap.html()
     }
 }
