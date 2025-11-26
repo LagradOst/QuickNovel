@@ -1451,6 +1451,12 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                     viewModel.scrollWithVolume = isChecked
                 }
 
+                readSettingsAuthorNotes.isChecked = viewModel.authorNotes
+                readSettingsAuthorNotes.setOnCheckedChangeListener { _, isChecked ->
+                    viewModel.authorNotes = isChecked
+                    viewModel.refreshChapters()
+                }
+
                 readSettingsShowBionic.isChecked = viewModel.bionicReading
                 readSettingsShowBionic.setOnCheckedChangeListener { _, isChecked ->
                     viewModel.bionicReading = isChecked

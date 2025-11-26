@@ -32,6 +32,7 @@ import com.lagradost.quicknovel.databinding.SingleImageBinding
 import com.lagradost.quicknovel.databinding.SingleLoadBinding
 import com.lagradost.quicknovel.databinding.SingleLoadingBinding
 import com.lagradost.quicknovel.databinding.SingleOverscrollChapterBinding
+import com.lagradost.quicknovel.databinding.SingleSeparatorBinding
 import com.lagradost.quicknovel.databinding.SingleTextBinding
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.util.UIHelper
@@ -50,6 +51,7 @@ const val DRAW_FAILED = 3
 const val DRAW_CHAPTER = 4
 const val DRAW_LOAD = 5
 const val DRAW_OVERSCROLL = 6
+const val DRAW_SEPARATOR = 7
 
 
 data class ScrollVisibilityItem(
@@ -306,6 +308,7 @@ class TextAdapter(
             DRAW_CHAPTER -> SingleFinishedChapterBinding.inflate(inflater, parent, false)
             DRAW_LOAD -> SingleLoadBinding.inflate(inflater, parent, false)
             DRAW_OVERSCROLL -> SingleOverscrollChapterBinding.inflate(inflater, parent, false)
+            DRAW_SEPARATOR -> SingleSeparatorBinding.inflate(inflater, parent, false)
             else -> throw NotImplementedError()
         }
 
@@ -460,38 +463,45 @@ class TextAdapter(
                 // because we bind text here we know that it will be cleared and thus
                 // we do not have to update it with null
                 if (currentTTSLine != null)
-                    this.updateTTSLine(binding as SingleTextBinding, item,currentTTSLine)
+                    this.updateTTSLine(binding, item, currentTTSLine)
             }
 
             is LoadingSpanned -> {
-                this.bindLoading(binding as SingleLoadingBinding, item)
+                this.bindLoading(binding, item)
             }
 
             is FailedSpanned -> {
-                this.bindFailed(binding as SingleFailedBinding, item)
+                this.bindFailed(binding, item)
             }
 
             is ChapterStartSpanned -> {
-                this.bindChapter(binding as SingleFinishedChapterBinding, item)
+                this.bindChapter(binding, item)
             }
 
             is ChapterLoadSpanned -> {
-                this.bindLoadChapter(binding as SingleLoadBinding, item)
+                this.bindLoadChapter(binding, item)
             }
 
             is ChapterOverscrollSpanned -> {
-                this.bindOverscrollChapter(binding as SingleOverscrollChapterBinding, item)
+                this.bindOverscrollChapter(binding, item)
             }
 
             else -> throw NotImplementedError()
         }
-        setConfig(binding,config)
+        setConfig(binding, config)
     }
+
+    // a full line of these characters is often used as a SEPARATOR
+    val separatorRegex = Regex("[=\\-_\\s━*]*")
 
     override fun customContentViewType(item: SpanDisplay): Int {
         return when (item) {
             is TextSpan -> {
-                if (item.text.getSpans<AsyncDrawableSpan>(0, item.text.length).isNotEmpty()) {
+                if (item.text.matches(separatorRegex)) {
+                    DRAW_SEPARATOR
+                } else if (item.text.getSpans<AsyncDrawableSpan>(0, item.text.length)
+                        .isNotEmpty()
+                ) {
                     DRAW_DRAWABLE
                 } else {
                     DRAW_TEXT
@@ -526,14 +536,17 @@ class TextAdapter(
         return getItem(position).id
     }
 
-    private fun bindLoading(binding : SingleLoadingBinding,obj: LoadingSpanned) {
+    private fun bindLoading(binding: ViewBinding, obj: LoadingSpanned) {
+        if (binding !is SingleLoadingBinding) return
         binding.text.setText(obj.text)
         binding.root.setOnClickListener {
             viewModel.switchVisibility()
         }
     }
 
-    private fun bindFailed(binding : SingleFailedBinding, obj: FailedSpanned) {
+    private fun bindFailed(binding: ViewBinding, obj: FailedSpanned) {
+        if (binding !is SingleFailedBinding) return
+
         binding.root.setText(obj.reason)
 
         binding.root.setOnClickListener {
@@ -548,15 +561,20 @@ class TextAdapter(
         }
     }
 
-    private fun bindImage(binding: SingleImageBinding, img: AsyncDrawable) {
+    private fun bindImage(binding: ViewBinding, img: AsyncDrawable) {
+        if (binding !is SingleImageBinding) return
         val url = img.destination
         if (binding.root.url == url) return
         binding.root.url = url // don't reload if already set
         UIHelper.bindImage(binding.root, img)
     }
 
-    private fun bindText(binding : ViewBinding, obj: TextSpan, config: TextConfig) {
+    private fun bindText(binding: ViewBinding, obj: TextSpan, config: TextConfig) {
         when (binding) {
+            is SingleSeparatorBinding -> {
+
+            }
+
             is SingleImageBinding -> {
                 val img = obj.text.getSpans<AsyncDrawableSpan>(0, obj.text.length)[0]
                 bindImage(binding, img.drawable)
@@ -623,11 +641,12 @@ class TextAdapter(
                 }
             }
 
-            else -> throw NotImplementedError()
+            else -> {}
         }
     }
 
-    fun updateTTSLine(binding : SingleTextBinding, span : TextSpan, line: TTSHelper.TTSLine?) {
+    fun updateTTSLine(binding: ViewBinding, span: TextSpan, line: TTSHelper.TTSLine?) {
+        if (binding !is SingleTextBinding) return
         // if the line does not apply
         if (line == null || line.index != span.index ||
             (line.startChar < span.start && line.endChar < span.start)
@@ -648,13 +667,17 @@ class TextAdapter(
         )
     }
 
-    private fun setConfig(binding : ViewBinding, config: TextConfig) {
+    private fun setConfig(binding: ViewBinding, config: TextConfig) {
         when (binding) {
             is SingleTextBinding -> {
                 config.setArgs(
                     binding.root,
                     CONFIG_SIZE or CONFIG_COLOR or CONFIG_FONT
                 )
+            }
+
+            is SingleSeparatorBinding -> {
+                binding.root.setBackgroundColor(config.textColor)
             }
 
             is SingleLoadingBinding -> {
@@ -687,14 +710,20 @@ class TextAdapter(
         }
     }
 
-    private fun bindLoadChapter(binding : SingleLoadBinding, obj: ChapterLoadSpanned) {
+    private fun bindLoadChapter(binding: ViewBinding, obj: ChapterLoadSpanned) {
+        if (binding !is SingleLoadBinding) return
         binding.root.setText(obj.name)
         binding.root.setOnClickListener {
             viewModel.seekToChapter(obj.loadIndex)
         }
     }
 
-    private fun bindOverscrollChapter(binding : SingleOverscrollChapterBinding, obj: ChapterOverscrollSpanned) {
+    private fun bindOverscrollChapter(
+        binding: ViewBinding,
+        obj: ChapterOverscrollSpanned
+    ) {
+        if (binding !is SingleOverscrollChapterBinding) return
+
         //binding.text.setText(obj.name)
         binding.text.isVisible = false
         binding.progress.progress = 0
@@ -703,13 +732,15 @@ class TextAdapter(
         //}
     }
 
-    private fun bindChapter(binding : SingleFinishedChapterBinding, obj: ChapterStartSpanned) {
+    private fun bindChapter(binding: ViewBinding, obj: ChapterStartSpanned) {
+        if (binding !is SingleFinishedChapterBinding) return
+
         binding.root.setText(obj.name)
         binding.root.setOnClickListener {
             viewModel.switchVisibility()
         }
         binding.root.setOnLongClickListener {
-            if(!obj.canReload) {
+            if (!obj.canReload) {
                 return@setOnLongClickListener true
             }
             it?.popupMenu(

@@ -539,12 +539,16 @@ object TTSHelper {
         return loc
     }
 
-    fun preParseHtml(text: String): String {
+    fun preParseHtml(text: String, authorNotes : Boolean): String {
         val document = Jsoup.parse(text)
 
         // REMOVE USELESS STUFF THAT WONT BE USED IN A NORMAL TXT
         document.select("style").remove()
         document.select("script").remove()
+
+        if(!authorNotes) {
+            document.select("div.qnauthornotecontainer").remove()
+        }
 
         return document.html()
             // this makes tables readable, more or less places a newline between rows

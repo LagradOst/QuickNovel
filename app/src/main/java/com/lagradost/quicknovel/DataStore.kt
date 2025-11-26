@@ -25,6 +25,7 @@ const val EPUB_TEXT_SIZE: String = "reader_epub_text_size"
 const val EPUB_TEXT_BIONIC: String = "reader_epub_bionic_reading"
 const val EPUB_TEXT_SELECTABLE: String = "reader_epub_text_selectable"
 const val EPUB_SCROLL_VOL: String = "reader_epub_scroll_volume"
+const val EPUB_AUTHOR_NOTES: String = "reader_epub_author_notes"
 const val EPUB_TTS_LOCK: String = "reader_epub_scroll_lock"
 const val EPUB_TTS_SET_SPEED: String = "reader_epub_tts_speed"
 const val RESULT_CHAPTER_SORT: String = "result_chapter_sort"
@@ -149,9 +150,9 @@ object DataStore {
         try {
             val prefs = getSharedPrefs()
             if (prefs.contains(path)) {
-                val editor: SharedPreferences.Editor = prefs.edit()
-                editor.remove(path)
-                editor.apply()
+                prefs.edit {
+                    remove(path)
+                }
             }
         } catch (e: Exception) {
             logError(e)

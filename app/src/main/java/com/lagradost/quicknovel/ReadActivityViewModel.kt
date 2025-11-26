@@ -523,6 +523,16 @@ class ReadActivityViewModel : ViewModel() {
         reloadChapter(currentIndex)
     }
 
+    fun refreshChapters() = ioSafe {
+        hasExpanded.clear() // will unfuck the rest
+        chapterMutex.withLock {
+            chapterData.clear()
+        }
+        _loadingStatus.postValue(Resource.Loading())
+        loadIndividualChapter(currentIndex, reload = false, notify = true, postLoading = true)
+        updateReadArea(seekToDesired = true)
+    }
+
     private suspend fun updateIndexAsync(
         index: Int,
         notify: Boolean = true,
@@ -740,7 +750,7 @@ class ReadActivityViewModel : ViewModel() {
             val data = safeApiCall {
                 book.getChapterData(index, reload)
             }.map { text ->
-                val rawText = preParseHtml(text)
+                val rawText = preParseHtml(text, authorNotes)
                 // val renderedBuilder = SpannableStringBuilder()
                 // val lengths : IntArray
                 //val nodes : Array<Node>
@@ -1667,6 +1677,7 @@ class ReadActivityViewModel : ViewModel() {
 
 
     var scrollWithVolume by PreferenceDelegate(EPUB_SCROLL_VOL, true, Boolean::class)
+    var authorNotes by PreferenceDelegate(EPUB_AUTHOR_NOTES, true, Boolean::class)
     var ttsLock by PreferenceDelegate(EPUB_TTS_LOCK, true, Boolean::class)
     //var ttsOSSpeed by PreferenceDelegate(EPUB_TTS_OS_SPEED, true, Boolean::class)
 

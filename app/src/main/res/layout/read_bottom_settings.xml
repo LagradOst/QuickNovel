@@ -87,6 +87,11 @@
                     android:text="@string/keep_screen_active"
                     android:id="@+id/read_settings_keep_screen_active" />
 
+            <com.google.android.material.checkbox.MaterialCheckBox
+                    style="@style/WhiteCheckmark"
+                    android:text="@string/show_authors_notes"
+                    android:id="@+id/read_settings_author_notes" />
+
             <TextView
                     android:layout_marginTop="15dp"
                     android:text="@string/scroll_type"
