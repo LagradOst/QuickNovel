@@ -18,25 +18,43 @@ class AnnasArchive : MainAPI() {
     override val hasReviews = false
     override val lang = "en"
     override val name = "Annas Archive"
-    override val mainUrl = "https://annas-archive.org"
+    override val mainUrl = "https://annas-archive.li"
 
     //open val searchTags = "lang=en&content=book_fiction&ext=epub&sort=&"
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val url = "$mainUrl/search?lang=&content=&ext=epub&sort=&q=$query"
-        // they somehow comment out the shit????
-        val text = app.get(url).text.replace(Regex("<!--([\\W\\w]*?)-->")) {
-            it.groupValues[1]
-        }
+        val url = "$mainUrl/search?index=&page=1&sort=&ext=epub&display=&q=${query.replace(" ", "+")}"
+        val text = app.get(url).text.replace(
+            Regex("<!--([\\W\\w]*?)-->")
+        ) { it.groupValues[1] }
+
         val document = Jsoup.parse(text)
-        return document.select("#aarecord-list > div > div > div > a").mapNotNull { element ->
-            val href = fixUrlNull(element.attr("href")) ?: return@mapNotNull null
-            val name = element.selectFirst("div.relative > h3")?.text() ?: return@mapNotNull null
-            newSearchResponse(name = name, url = href) {
-                posterUrl = fixUrlNull(element.selectFirst("div.flex-none > div > img")?.attr("src"))
+
+        val results = document.select("div.js-aarecord-list-outer a.custom-a")
+
+        return results.mapNotNull { element ->
+            val link = element.attr("href")
+            if (!link.startsWith("/md5/")) {
+                println("Skipping non-md5 link: $link")
+                return@mapNotNull null
+            }
+            val title = element
+                .selectFirst("a.js-vim-focus")
+                ?.text()
+            if (title == null) {
+                return@mapNotNull null
+            }
+            newSearchResponse(
+                name = title,
+                url = fixUrlNull(link) ?: return@mapNotNull null
+            ) {
+                posterUrl = fixUrlNull(
+                    element.selectFirst("img")?.attr("src")
+                )
             }
         }
     }
+
 
     private fun extract(url: String, name: String): DownloadLinkType {
         return if (url.contains(".epub")) {
@@ -88,7 +106,7 @@ class AnnasArchive : MainAPI() {
         val document = app.get(url).document
 
         return newEpubResponse(
-            name = document.selectFirst("main > div > div.text-3xl")?.ownText()!!,
+            name = document.selectFirst("div.text-2xl")?.ownText()!!,
             url = url,
             links = document.select("ul.mb-4 > li > a.js-download-link").mapNotNull { element ->
                 val link = fixUrlNull(element.attr("href")) ?: return@mapNotNull null
@@ -106,9 +124,9 @@ class AnnasArchive : MainAPI() {
                 }
                 extract(link, element.text())
             }) {
-            posterUrl = document.selectFirst("main > div > div > img")?.attr("src")
-            author = document.selectFirst("main > div > div.italic")?.ownText()
-            synopsis = document.selectFirst("main > div > div.js-md5-top-box-description")?.text()
+            posterUrl = document.selectFirst("main > div > div > div > div > div > img")?.attr("src")
+            author = document.selectFirst("main > div > div > a")?.ownText()
+            synopsis = document.selectFirst("main > div > div > div > div.mb-1")?.text()
         }
     }
 
