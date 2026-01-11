@@ -49,6 +49,26 @@
     <string name="select_chapter">Select Chapter</string>
     <string name="poster_descript">Poster</string>
     <string name="sort_downloads_descript">Sort Downloads</string>
+    <string name="search_roviders">Search Providers</string>
+
+    <string name="search">Search</string>
+    <string name="general">General</string>
+    <string name="info">Info</string>
+
+    <string name="advanced_search">Advanced Search</string>
+    <string name="advanced_search_desc">Gives you the search results separated by provider</string>
+    <string name="show_app_updates">Show app updates</string>
+    <string name="show_app_updates_desc">Automatically search for new updates on start</string>
+    <string name="external_reader">External reader</string>
+    <string name="external_reader_desc">Use an external app to read</string>
+    <string name="remove_bloat">Remove Bloat</string>
+    <string name="remove_bloat_desc">Removes the title and translator from all pages, will cause longer generation time</string>
+    <string name="check_for_update">Check for Update</string>
+    <string name="translating">Translating chapter</string>
+
+
+
+
 
     <string name="filter_dialog_sort_by">Sort by</string>
     <string name="filter_dialog_filter">Apply</string>
@@ -229,6 +249,7 @@
     <string name="sleep_format">%d min</string>
     <string name="sleep_format_stop">TTS will stop in %d min</string>
     <string name="google_translate">Google translate</string>
+    <string name="online_translate">Online translation (beta)</string>
     <string name="start_chapter">Skipped chapters</string>
     <string name="tts_speed">TTS Speed</string>
     <string name="tts_pitch">TTS Pitch</string>
@@ -237,6 +258,9 @@
     <string name="clear">Clear</string>
     <string name="copylog">Copy</string>
     <string name="save">Save</string>
+    <string name="history">History</string>
+    <string name="explore">Explore</string>
+
 
     <string name="toast_copied">copied!</string>
     <string name="clipboard_too_large">Too much text. Unable to save to clipboard.</string>
@@ -248,5 +272,12 @@
     <string name="read">Read</string>
     <string name="import_epub">Import epub</string>
     <string name="show_authors_notes">Show authors notes</string>
+
+    <!-- Some errors -->
+    <string name="connection_timeout">"Tiempo de espera agotado\nPor favor, inténtalo de nuevo más tarde."</string>
+    <string name="cannot_conect">No se pudo conectar al servidor, inténtalo de nuevo más tarde.</string>
+    <string name="error_loading">Error al cargar, inténtalo de nuevo más tarde.</string>
+    <string name="operation_no_implemented">Esta operación no está implementada.</string>
+
 
 </resources>
