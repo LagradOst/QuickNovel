@@ -278,6 +278,7 @@
     <string name="cannot_conect">Could not connect to the server, please try again later.</string>
     <string name="error_loading">Error loading, please try again later.</string>
     <string name="operation_no_implemented">This operation is not implemented.</string>
+    <string name="conection_error">Connection error.</string>
 
 
 

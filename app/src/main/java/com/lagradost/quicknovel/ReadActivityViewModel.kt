@@ -872,6 +872,8 @@ class ReadActivityViewModel : ViewModel() {
     ): Pair<Spanned, ArrayList<TextSpan>> {
         val translator = mlTranslator
         val currentSettings = mlSettings
+        var errorOccurred = false
+        var existCache = false
         if (spans.isEmpty() || translator == null || currentSettings.isInvalid()) {
             return text to spans
         }
@@ -894,6 +896,7 @@ class ReadActivityViewModel : ViewModel() {
                 val cache = File(it, "$filePrefix.txt")
                 if (cache.exists()) {
                     Log.i(TAG, "Cache exists for $filePrefix")
+                    existCache = true
                     val mlText = cache.readText().toSpanned()
                     return@safe mlText to parseTextToSpans(mlText, spans[0].index)
                 }
@@ -901,10 +904,10 @@ class ReadActivityViewModel : ViewModel() {
             null
         }?.let { return it }
 
+        val builder = StringBuilder()
+        val out = ArrayList<TextSpan>()
+        val separator = "\n\n" // Use double line breaks to separate paragraphs within the batch
         try {
-            val builder = StringBuilder()
-            val out = ArrayList<TextSpan>()
-            val separator = "\n\n" // Use double line breaks to separate paragraphs within the batch
 
             if (currentSettings.useOnlineTranslation) {
                 // --- Online mode ---
@@ -914,9 +917,16 @@ class ReadActivityViewModel : ViewModel() {
                     val batch = spans.subList(i, minOf(i + batchSize, spans.size))
 
                     val combinedText = batch.joinToString(separator) { it.text.toString() }
-                    val translatedBatch = onlineTranslate(combinedText, currentSettings.to)
+
+                    //Let’s avoid calling it again to prevent half translations that won’t be used anyway since errorOccurred=true
+                    val translatedBatch = if(!errorOccurred) null else onlineTranslate(combinedText, currentSettings.to)
+                    if (translatedBatch == null) {
+                        errorOccurred = true
+                    }
+
                     val translatedParagraphs = translatedBatch?.split(separator) ?: emptyList()
 
+                    //This loop is necessary even if the translation fails
                     for (j in batch.indices) {
                         val finalText = translatedParagraphs.getOrNull(j) ?: batch[j].text.toString()
 
@@ -927,7 +937,6 @@ class ReadActivityViewModel : ViewModel() {
                         out.add(TextSpan(finalText.toSpanned(), start, end, batch[j].index, batch[j].innerIndex))
                     }
                 }
-
             } else {
                 // --- Offline mode ---
                 for (i in spans.indices) {
@@ -949,17 +958,36 @@ class ReadActivityViewModel : ViewModel() {
                     out.add(TextSpan(finalText.toSpanned(), start, end, spans[i].index, spans[i].innerIndex))
                 }
             }
-
             val mlRawText = builder.toString()
 
-            //save in caché automatically
-            safe {
-                context?.cacheDir?.let {
-                    val cache = File(it, "$filePrefix.tmp")
-                    cache.writeText(mlRawText)
-                    cache.renameTo(File(it, "$filePrefix.txt"))
+            if (errorOccurred)
+            {
+                //If the online translation fails, I clear the cache so the user can try translating the chapter again
+                if(existCache)
+                {
+                    safe {
+                        context?.cacheDir?.let {
+                            File(it, "$filePrefix.txt").delete()
+                            File(it, "$filePrefix.tmp").delete()
+                        }
+                    }
+                }
+                //conecction error
+                showToast(context?.getString(R.string.conection_error),1500)
+                return mlRawText.toSpanned() to out
+            }
+            else
+            {
+                //save in caché automatically
+                safe {
+                    context?.cacheDir?.let {
+                        val cache = File(it, "$filePrefix.tmp")
+                        cache.writeText(mlRawText)
+                        cache.renameTo(File(it, "$filePrefix.txt"))
+                    }
                 }
             }
+
 
             return mlRawText.toSpanned() to out
         } catch (t: ExecutionException) {
@@ -1992,8 +2020,8 @@ class ReadActivityViewModel : ViewModel() {
 
     suspend fun onlineTranslate(text: String, targetLang: String = "en"): String? {
         val baseUrl = "https://translate.googleapis.com/translate_a/single"
-
-        return try {
+        var translatedText:String? = null
+        try {
             if (text.trim().isBlank()) return null
 
             // Google returns: [ [[trans, orig, ...], [trans, orig, ...]], ... ]
@@ -2001,14 +2029,19 @@ class ReadActivityViewModel : ViewModel() {
                 "$baseUrl?client=gtx&sl=auto&tl=$targetLang&dt=t&q=${Uri.encode(text)}"
             ).parsed<GoogleTranslationResponse>()
 
-            val translatedText = response.sentences?.joinToString("") { (trans, _) ->
+            translatedText = response.sentences?.joinToString("") { (trans, _) ->
                 trans ?: ""
             }
-            return if (translatedText.isNullOrBlank()) null else translatedText
-
-        } catch (e: Exception) {
-            logError(e)
-            null
+        }  catch (t: Throwable) {
+            //"I don’t want to throw in this case, so that the user can choose the offline mode afterwards
+            Log.e("Translate", "Error en onlineTranslate: ${t.cause}")
+            Log.e("Translate", "Error en onlineTranslate: ${t.message}")
         }
+        /*
+        }  catch (t: ExecutionException) {
+            throw t.cause ?: t
+        }
+        */
+        return  if(translatedText.isNullOrBlank()) null else translatedText
     }
 }
