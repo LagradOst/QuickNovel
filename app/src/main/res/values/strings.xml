@@ -274,10 +274,12 @@
     <string name="show_authors_notes">Show authors notes</string>
 
     <!-- Some errors -->
-    <string name="connection_timeout">"Tiempo de espera agotado\nPor favor, inténtalo de nuevo más tarde."</string>
-    <string name="cannot_conect">No se pudo conectar al servidor, inténtalo de nuevo más tarde.</string>
-    <string name="error_loading">Error al cargar, inténtalo de nuevo más tarde.</string>
-    <string name="operation_no_implemented">Esta operación no está implementada.</string>
+    <string name="connection_timeout">"Connection timeout\nPlease try again later."</string>
+    <string name="cannot_conect">Could not connect to the server, please try again later.</string>
+    <string name="error_loading">Error loading, please try again later.</string>
+    <string name="operation_no_implemented">This operation is not implemented.</string>
+    <string name="conection_error">Connection error.</string>
+
 
 
 </resources>
