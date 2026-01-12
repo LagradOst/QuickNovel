@@ -919,7 +919,7 @@ class ReadActivityViewModel : ViewModel() {
                     val combinedText = batch.joinToString(separator) { it.text.toString() }
 
                     //Let’s avoid calling it again to prevent half translations that won’t be used anyway since errorOccurred=true
-                    val translatedBatch = if(!errorOccurred) null else onlineTranslate(combinedText, currentSettings.to)
+                    val translatedBatch = if(errorOccurred) null else onlineTranslate(combinedText, currentSettings.to)
                     if (translatedBatch == null) {
                         errorOccurred = true
                     }
@@ -2023,7 +2023,6 @@ class ReadActivityViewModel : ViewModel() {
         var translatedText:String? = null
         try {
             if (text.trim().isBlank()) return null
-
             // Google returns: [ [[trans, orig, ...], [trans, orig, ...]], ... ]
             val response = MainActivity.app.get(
                 "$baseUrl?client=gtx&sl=auto&tl=$targetLang&dt=t&q=${Uri.encode(text)}"
