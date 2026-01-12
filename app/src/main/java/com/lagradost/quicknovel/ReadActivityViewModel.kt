@@ -934,13 +934,14 @@ class ReadActivityViewModel : ViewModel() {
                     loading.invoke(Triple(spans[i].index, i, spans.size))
                     val originalText = spans[i].text.toString()
 
-                    // Si falla el modelo offline, usamos el original
+                    // if online mode fails, use te offline mode
                     val finalText = try {
                         Tasks.await(translator.translate(originalText))
-                    } catch (e: Exception) {
-                        originalText
                     }
-
+                    catch (t: ExecutionException)
+                    {
+                        throw t.cause ?: t
+                    }
                     val start = builder.length
                     builder.append(finalText)
                     val end = builder.length
@@ -951,7 +952,7 @@ class ReadActivityViewModel : ViewModel() {
 
             val mlRawText = builder.toString()
 
-            // Guardar en caché de forma atómica
+            //save in caché automatically
             safe {
                 context?.cacheDir?.let {
                     val cache = File(it, "$filePrefix.tmp")
@@ -961,9 +962,8 @@ class ReadActivityViewModel : ViewModel() {
             }
 
             return mlRawText.toSpanned() to out
-        } catch (t: Exception) {
-            logError(t)
-            throw t
+        } catch (t: ExecutionException) {
+            throw t.cause ?: t
         }
     }
 
