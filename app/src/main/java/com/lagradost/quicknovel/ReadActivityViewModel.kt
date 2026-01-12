@@ -520,10 +520,10 @@ class ReadActivityViewModel : ViewModel() {
         private set
 
     /** lower padding for preloading current-chapterPaddingBottom*/
-    private var chapterPaddingBottom: Int = 1
+    private var chapterPaddingBottom: Int = 0
 
     /** upper padding, for preloading current+chapterPaddingTop */
-    private var chapterPaddingTop: Int = 2
+    private var chapterPaddingTop: Int = 0
 
     fun reloadChapter(index: Int) = ioSafe {
         hasExpanded.clear() // will unfuck the rest
@@ -921,11 +921,13 @@ class ReadActivityViewModel : ViewModel() {
                         val finalText = translatedParagraphs.getOrNull(j) ?: batch[j].text.toString()
 
                         val start = builder.length
-                        builder.append(finalText).append('\n')
+                        builder.append(finalText)
                         val end = builder.length
+                        builder.append('\n')
                         out.add(TextSpan(finalText.toSpanned(), start, end, batch[j].index, batch[j].innerIndex))
                     }
                 }
+
             } else {
                 // --- Offline mode ---
                 for (i in spans.indices) {
@@ -940,8 +942,9 @@ class ReadActivityViewModel : ViewModel() {
                     }
 
                     val start = builder.length
-                    builder.append(finalText).append('\n')
+                    builder.append(finalText)
                     val end = builder.length
+                    builder.append('\n')
                     out.add(TextSpan(finalText.toSpanned(), start, end, spans[i].index, spans[i].innerIndex))
                 }
             }
