@@ -520,10 +520,10 @@ class ReadActivityViewModel : ViewModel() {
         private set
 
     /** lower padding for preloading current-chapterPaddingBottom*/
-    private var chapterPaddingBottom: Int = 0
+    private var chapterPaddingBottom: Int = 1
 
     /** upper padding, for preloading current+chapterPaddingTop */
-    private var chapterPaddingTop: Int = 0
+    private var chapterPaddingTop: Int = 2
 
     fun reloadChapter(index: Int) = ioSafe {
         hasExpanded.clear() // will unfuck the rest
