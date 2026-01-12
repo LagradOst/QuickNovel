@@ -300,7 +300,23 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
                 refs.addAll(ref.children)
             }
         }
+
+        if (refs.size <= 1) {
+            val newRefs = mutableListOf<TOCReference>()
+            data.spine.spineReferences.forEachIndexed { index, spineRef ->
+                if (spineRef.isLinear) {
+                    val res = spineRef.resource
+                    newRefs.add(TOCReference(res.title ?: "Chapter ${index + 1}", res))
+                }
+            }
+            if (newRefs.isNotEmpty()) {
+                refs = newRefs
+            }
+        }
         data.tableOfContents.tocReferences = refs
+
+
+
     }
 
     override val canReload = false
@@ -918,7 +934,7 @@ class ReadActivityViewModel : ViewModel() {
                     val translatedParagraphs = translatedBatch?.split(separator) ?: emptyList()
 
                     for (j in batch.indices) {
-                        val finalText = translatedParagraphs.getOrNull(j) ?: batch[j].text.toString()
+                        val finalText = translatedParagraphs.getOrNull(j)?: batch[j].text.toString()
 
                         val start = builder.length
                         builder.append(finalText).append('\n')
@@ -1117,6 +1133,7 @@ class ReadActivityViewModel : ViewModel() {
                     ?: throw ErrorLoadingException("Unable to open file descriptor")
                 val zipFile = AndroidZipFile(fd, "")
                 val book = EpubReader().readEpubLazy(zipFile, "utf-8")
+
                 RegularBook(book)
             } else {
                 val input = context.contentResolver.openInputStream(data)
@@ -1995,7 +2012,7 @@ class ReadActivityViewModel : ViewModel() {
 
             // Google returns: [ [[trans, orig, ...], [trans, orig, ...]], ... ]
             val response = MainActivity.app.get(
-                "$baseUrl?client=gtx&sl=auto&tl=$targetLang&dt=t&q=${Uri.encode(text)}"
+                "$baseUrl?client=gtx&sl=auto&tl=$targetLang&dt=t&q=${Uri.encode(text.trim())}"
             ).parsed<GoogleTranslationResponse>()
 
             val translatedText = response.sentences?.joinToString("") { (trans, _) ->

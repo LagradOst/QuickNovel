@@ -546,6 +546,16 @@ object TTSHelper {
         document.select("style").remove()
         document.select("script").remove()
 
+        //This is for poorly generated epubs
+        val titleElement = document.selectFirst("title")
+        if (titleElement != null) {
+            val titleText = titleElement.text().trim()
+            val pathRegex = Regex("^(/|[a-zA-Z]:[\\\\/]).*")
+            if (pathRegex.matches(titleText)) {
+                titleElement.remove()
+            }
+        }
+
         if(!authorNotes) {
             document.select("div.qnauthornotecontainer").remove()
         }
