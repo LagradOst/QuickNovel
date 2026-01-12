@@ -923,7 +923,6 @@ class ReadActivityViewModel : ViewModel() {
                     if (translatedBatch == null) {
                         errorOccurred = true
                     }
-
                     val translatedParagraphs = translatedBatch?.split(separator) ?: emptyList()
 
                     //This loop is necessary even if the translation fails
@@ -943,7 +942,6 @@ class ReadActivityViewModel : ViewModel() {
                     loading.invoke(Triple(spans[i].index, i, spans.size))
                     val originalText = spans[i].text.toString()
 
-                    // if online mode fails, use te offline mode
                     val finalText = try {
                         Tasks.await(translator.translate(originalText))
                     }
