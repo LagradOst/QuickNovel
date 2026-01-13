@@ -160,9 +160,7 @@ class MainPageViewModel : ViewModel() {
 
                 is Resource.Failure -> {
                     val result: Resource<SearchResponseList> = Resource.Failure(
-                        res.isNetworkError,
-                        res.errorCode,
-                        res.errorResponse,
+                        res.cause,
                         res.errorString
                     )
                     currentCards.postValue(result)
