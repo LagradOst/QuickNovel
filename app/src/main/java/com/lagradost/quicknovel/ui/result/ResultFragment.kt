@@ -5,6 +5,7 @@ import android.content.DialogInterface
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -721,30 +722,54 @@ class ResultFragment : Fragment() {
                 //binding.downloadDeleteTrashFromResult.isVisible = false
                 return@observe
             }
-            //val hasDownload = progressState.progress > 0
 
-            /*binding.downloadDeleteTrashFromResult.apply {
-                isVisible = hasDownload
-                isClickable = hasDownload
-            }*/
-            binding.resultDownloadProgressText.text =
-                "${progressState.progress}/${progressState.total}"
+            if(progressState.state == DownloadState.Nothing || progressState.state == DownloadState.IsStopped || progressState.state == DownloadState.IsFailed)
+            {
+                val lastRead = viewModel.getLastReadChapterNumber() ?: 0
+                val total = viewModel.getTotalChapters() ?:1
+                binding.resultDownloadProgressText.text = "${lastRead}/${total}"
 
-            binding.resultDownloadProgressBarNotDownloaded.apply {
-                println("progressState: ${progressState}")
-                max = progressState.total.toInt() * 100
-                val animation: ObjectAnimator = ObjectAnimator.ofInt(
-                    this,
-                    "progress",
-                    this.progress,
-                    (progressState.progress - progressState.downloaded).toInt() * 100
-                )
-                animation.duration = 500
-                animation.setAutoCancel(true)
-                animation.interpolator = DecelerateInterpolator()
-                animation.start()
+                binding.resultDownloadProgressBarNotDownloaded.apply{
+                    max = total
+                    val animation: ObjectAnimator = ObjectAnimator.ofInt(
+                        this,
+                        "progress",
+                        this.progress,
+                        lastRead
+                    )
+                    animation.duration = 500
+                    animation.setAutoCancel(true)
+                    animation.interpolator = DecelerateInterpolator()
+                    animation.start()
+                }
+
             }
+            else
+            {
+                //val hasDownload = progressState.progress > 0
 
+                /*binding.downloadDeleteTrashFromResult.apply {
+                    isVisible = hasDownload
+                    isClickable = hasDownload
+                }*/
+                binding.resultDownloadProgressText.text =
+                    "${progressState.progress}/${progressState.total}"
+
+                binding.resultDownloadProgressBarNotDownloaded.apply {
+                    println("progressState: ${progressState}")
+                    max = progressState.total.toInt() * 100
+                    val animation: ObjectAnimator = ObjectAnimator.ofInt(
+                        this,
+                        "progress",
+                        this.progress,
+                        (progressState.progress - progressState.downloaded).toInt() * 100
+                    )
+                    animation.duration = 500
+                    animation.setAutoCancel(true)
+                    animation.interpolator = DecelerateInterpolator()
+                    animation.start()
+                }
+            }
             binding.resultDownloadProgressBar.apply {
                 max = progressState.total.toInt() * 100
 
@@ -759,7 +784,6 @@ class ResultFragment : Fragment() {
                 animation.interpolator = DecelerateInterpolator()
                 animation.start()
             }
-
             val ePubGeneration = progressState.progress > 0
             binding.resultDownloadGenerateEpub.apply {
                 isClickable = ePubGeneration
