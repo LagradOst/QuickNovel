@@ -64,7 +64,7 @@
     <string name="remove_bloat">Remove Bloat</string>
     <string name="remove_bloat_desc">Removes the title and translator from all pages, will cause longer generation time</string>
     <string name="check_for_update">Check for Update</string>
-    <string name="translating">Translating chapter</string>
+    <string name="translating">Translating</string>
 
 
 
