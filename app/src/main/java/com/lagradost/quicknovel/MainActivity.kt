@@ -105,6 +105,11 @@ class MainActivity : AppCompatActivity() {
             mainActivity?.openEpubPicker()
         }
 
+        //+++++++++++++++++++++++++++++++++++++++++++++++++++++//
+        //TODO try to add a function to import PDFs
+        //+++++++++++++++++++++++++++++++++++++++++++++++++++++//
+
+
         var app = Requests(
             OkHttpClient()
                 .newBuilder()
@@ -135,6 +140,7 @@ class MainActivity : AppCompatActivity() {
         ).apply {
             defaultHeaders = mapOf("user-agent" to USER_AGENT)
         }
+
 
         // === API ===
         lateinit var navOptions: NavOptions

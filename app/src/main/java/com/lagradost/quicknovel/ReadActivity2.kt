@@ -23,8 +23,6 @@ import android.widget.ArrayAdapter
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.ListView
-import android.widget.SeekBar
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -74,7 +72,6 @@ import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.systemFonts
 import com.lagradost.quicknovel.util.divCeil
 import com.lagradost.quicknovel.util.toPx
-import java.io.File
 import java.lang.Integer.max
 import java.lang.ref.WeakReference
 import java.util.Locale
@@ -687,6 +684,9 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             .toFloat() * this.stepSize
     }
 
+
+
+
     @SuppressLint("ClickableViewAccessibility", "SetTextI18n")
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -1085,6 +1085,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             })
         }
 
+        //here inserted novel chapter text into recyclerview
         observe(viewModel.chapter) { chapter ->
             cachedChapter = chapter.data
 
@@ -1320,6 +1321,12 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 }
             }
 
+
+            binding.readOnlineTranslationSwitch.setOnCheckedChangeListener { _, isChecked ->
+                viewModel.mlUseOnlineTransaltion = isChecked
+            }
+
+            binding.readOnlineTranslationSwitch.isChecked = viewModel.mlUseOnlineTransaltion
             binding.readMlTo.text =
                 ReadActivityViewModel.MLSettings.fromShortToDisplay(viewModel.mlToLanguage)
             binding.readMlFrom.text =
@@ -1491,6 +1498,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 readSettingsKeepScreenActive.setOnCheckedChangeListener { _, isChecked ->
                     viewModel.screenAwake = isChecked
                 }
+
             }
 
             val bgColors = resources.getIntArray(R.array.readerBgColors)
