@@ -4,6 +4,6 @@
         android:id="@+id/image"
         android:foreground="?selectableItemBackground"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="300dp"
         android:adjustViewBounds="true"
         android:scaleType="fitCenter" />

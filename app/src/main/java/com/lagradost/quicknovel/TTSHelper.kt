@@ -550,6 +550,7 @@ object TTSHelper {
         val titleElement = document.selectFirst("title")
         if (titleElement != null) {
             val titleText = titleElement.text().trim()
+            //Poorly generated epubs often have the location of their HTML as the title. They look very ugly, so I remove them
             val pathRegex = Regex("^(/|[a-zA-Z]:[\\\\/]).*")
             if (pathRegex.matches(titleText)) {
                 titleElement.remove()

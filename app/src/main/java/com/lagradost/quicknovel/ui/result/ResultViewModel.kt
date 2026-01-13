@@ -166,14 +166,6 @@ class ResultViewModel : ViewModel() {
         )
     }
 
-    fun getLastReadChapterNumber(): Int? {
-        val streamResponse = (load as? StreamResponse) ?: return null
-        return getKey<Int>(EPUB_CURRENT_POSITION, streamResponse.name)
-    }
-    fun getTotalChapters(): Int? {
-        val streamResponse = (load as? StreamResponse) ?: return null
-        return streamResponse.data.size.minus(1)
-    }
     fun setReadChapter(chapter: ChapterData, value: Boolean): Boolean {
         val streamResponse =
             (load as? StreamResponse) ?: return false
