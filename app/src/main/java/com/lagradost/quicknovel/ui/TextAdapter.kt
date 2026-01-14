@@ -21,6 +21,7 @@ import com.lagradost.quicknovel.ChapterStartSpanned
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.FailedSpanned
 import com.lagradost.quicknovel.LoadingSpanned
+import com.lagradost.quicknovel.MLException
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.ReadActivityViewModel
 import com.lagradost.quicknovel.SpanDisplay
@@ -550,13 +551,16 @@ class TextAdapter(
         binding.root.setText(obj.reason)
 
         binding.root.setOnClickListener {
-            if (obj.canReload) {
-                showToast(
-                    txt(R.string.reload_chapter_format, (obj.index + 1).toString())
-                )
-                viewModel.reloadChapter(obj.index)
-            } else {
+            if (obj.cause == null) {
                 viewModel.switchVisibility()
+                return@setOnClickListener
+            }
+
+            showToast(txt(R.string.reload_chapter_format, (obj.index + 1).toString()))
+            if (obj.cause is MLException) {
+                viewModel.reTranslateChapter(obj.index)
+            } else {
+                viewModel.reloadChapter(obj.index)
             }
         }
     }
