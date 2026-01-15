@@ -90,6 +90,8 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import kotlin.text.endsWith
+import kotlin.text.lowercase
 
 enum class DownloadActionType {
     Pause,
@@ -1852,7 +1854,8 @@ object BookDownloader2 {
     @Throws
     suspend fun downloadWorkThread(data: Uri, context: Context) {
         val filesDir = activity?.filesDir ?: return
-        val fd = context.contentResolver.openFileDescriptor(data, "r")
+        val contentResolver = context.contentResolver
+        val fd = contentResolver.openFileDescriptor(data, "r")
             ?: throw ErrorLoadingException("Unable to open file descriptor")
         val zipFile = AndroidZipFile(fd, "")
         val book = EpubReader().readEpubLazy(zipFile, "utf-8")
@@ -1861,7 +1864,19 @@ object BookDownloader2 {
         val author = book.metadata.authors.firstOrNull()
             ?.let { "${it.firstname ?: ""} ${it.lastname}".trim() }
         val apiName = IMPORT_SOURCE
-        val name = book.metadata.firstTitle ?: ""
+
+        //If it doesn’t have a cover, it’s most likely another file that was converted into EPUB, so all the metadata will be wrong. That’s why I use the file name instead of the metadata.
+        val name = if(book.coverImage?.data == null)
+        {
+            contentResolver.query(data, null, null, null, null)?.use { cursor ->
+                val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (cursor.moveToFirst())
+                    cursor.getString(nameIndex).substringBeforeLast(".")
+                else null
+            } ?: book.metadata.firstTitle
+        }
+        else book.metadata.firstTitle
+
         val sApiName = BookDownloader2Helper.sanitizeFilename(apiName)
         val sAuthor = BookDownloader2Helper.sanitizeFilename(author ?: "")
         val sName = BookDownloader2Helper.sanitizeFilename(name)
@@ -1882,7 +1897,23 @@ object BookDownloader2 {
             setPrefixData(load, apiName, 1L, 0L)
 
             try {
-                val coverBytes = book.coverImage?.data
+                //to avoid img headers or icons
+                val MIN_IMAGE_SIZE = 90 * 1024
+                var coverBytes = book.coverImage?.data
+
+                //This is for epubs imported from PDFs that don’t have correct metadata.
+                if (coverBytes == null)
+                {
+                    val imageExtensions = listOf(".jpg", ".jpeg", ".png")
+                    val firstImageEntry = zipFile.entries().toList().find { entry ->
+                        val isImageCover = imageExtensions.any { ext -> entry.name.lowercase().endsWith(ext) }
+                        isImageCover && entry.size >= MIN_IMAGE_SIZE
+                    }
+                    if (firstImageEntry != null) {
+                        coverBytes = zipFile.getInputStream(firstImageEntry).use { it.readBytes() }
+                    }
+                }
+
                 if (coverBytes != null) {
                     // Store the image and override it
                     val filepath = BookDownloader2Helper.getFilenameIMG(sApiName, sAuthor, sName)
@@ -1892,6 +1923,7 @@ object BookDownloader2 {
                     pFile.parentFile?.mkdirs()
                     pFile.writeBytes(coverBytes)
                 }
+
             } catch (t: Throwable) {
                 logError(t)
             }

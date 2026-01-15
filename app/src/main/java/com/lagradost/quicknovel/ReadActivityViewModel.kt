@@ -299,6 +299,19 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
                 refs.addAll(ref.children)
             }
         }
+
+        if (refs.size <= 1) {
+            val newRefs = mutableListOf<TOCReference>()
+            data.spine.spineReferences.forEachIndexed { index, spineRef ->
+                if (spineRef.isLinear) {
+                    val res = spineRef.resource
+                    newRefs.add(TOCReference(res.title ?: "Chapter ${index + 1}", res))
+                }
+            }
+            if (newRefs.isNotEmpty()) {
+                refs = newRefs
+            }
+        }
         data.tableOfContents.tocReferences = refs
     }
 
@@ -988,7 +1001,6 @@ class ReadActivityViewModel : ViewModel() {
             throw MLException(t)
         }
     }
-
 
     @Throws
     suspend fun requireMLDownload(): Boolean {
