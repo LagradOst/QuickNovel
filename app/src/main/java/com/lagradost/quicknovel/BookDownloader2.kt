@@ -1753,7 +1753,7 @@ object BookDownloader2 {
                 changeDownload(id) {
                     state = DownloadState.IsDownloading
                     this.progress = 0L
-                    this.total = totalPages.toLong()
+                    this.total = this.total
                 }?.let { createNotification(id, load, it) }
 
                 //create sections of N pages
@@ -1784,14 +1784,14 @@ object BookDownloader2 {
                     val bodyText = stripper.getTextForRegion("body")
 
                     //if there's text, include
-                    if (bodyText.isNotBlank()) {
+                    if (bodyText.isNotBlank())
                         currentChapterText.append(bodyText.textToHtmlChapter())
-                    }
+
 
                     //get images from page
                     val resources = page.resources
                     for (objName in resources.xObjectNames) {
-                        if (resources.isImageXObject(objName)) {
+                        if (resources.isImageXObject(objName))
                             processImageObject(
                                 resources.getXObject(objName) as PDImageXObject,
                                 book,
@@ -1800,10 +1800,10 @@ object BookDownloader2 {
                                 filesDir,
                                 imageCount
                             )?.let { newResource ->
-                                if (book.coverImage == null) book.coverImage = newResource
+                                if (book.coverImage == null && imageCount == 1)
+                                    book.coverImage = newResource
                                 imageCount++
                             }
-                        }
                     }
 
 
@@ -1821,15 +1821,15 @@ object BookDownloader2 {
                             changeDownload(id) {
                                 state = DownloadState.IsDownloading
                                 this.progress = pageIdx.toLong()
-                                this.total = totalPages.toLong()
+                                this.total = this.total
                             }?.let { createNotification(id, load, it) }
                         }
                         else{
                             setPrefixData(load, apiName, totalPages.toLong(), pageIdx.toLong())
                             changeDownload(id) {
                                 state = DownloadState.IsDone
-                                this.progress = pageIdx.toLong()
-                                this.total = totalPages.toLong()
+                                this.progress = this.total
+                                this.total = this.total
                             }?.let { createNotification(id, load, it) }
                         }
                     }

@@ -47,7 +47,7 @@ object AppUtils {
         }
     fun String.textToHtmlChapter(): String {
         return this
-            .replace(Regex("([a-z](\\.{2,})?) \\n([a-z])"), "$1 $3")
+            .replace(Regex("([a-záéíóú](\\.{2,})?) \\n([a-z])"), "$1 $3")
             .split(Regex("\\n"))
             .joinToString("") { paragraph ->
             if (paragraph.trim().isNotBlank()) {

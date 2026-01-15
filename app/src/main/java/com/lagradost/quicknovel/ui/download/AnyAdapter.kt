@@ -197,14 +197,18 @@ class AnyAdapter(
 
                             downloadProgressbarIndeterment.isVisible = item.generating
                             val showDownloadLoading = item.state == DownloadState.IsPending
-                            downloadUpdateLoading.isVisible = (showDownloadLoading && !item.isImported)||(item.isImported && item.state == DownloadState.IsDownloading)
+                            val isAPdfDownloading = item.isImported && item.state == DownloadState.IsDownloading
+                            downloadUpdateLoading.isVisible = (showDownloadLoading && !item.isImported)||isAPdfDownloading
 
                             val epubSize = getKey(DOWNLOAD_EPUB_SIZE, item.id.toString()) ?: 0
                             val diff = item.downloadedCount - epubSize
                             imageTextMore.text = "+$diff "
                             imageTextMore.isVisible = diff > 0 && !showDownloadLoading && !item.isImported
                             imageText.text = item.name
-                            imageView.setImage(item.image)
+
+                            imageView.alpha = if (isAPdfDownloading) 0.6f else 1.0f
+                            //avoid flickering
+                            if(!isAPdfDownloading || imageView.drawable == null) imageView.setImage(item.image)
                         }
                     }
 
