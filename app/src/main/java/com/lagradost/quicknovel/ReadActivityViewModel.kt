@@ -798,10 +798,14 @@ class ReadActivityViewModel : ViewModel() {
 
                     val asyncDrawables = rendered.getSpans<AsyncDrawableSpan>()
                     for (async in asyncDrawables) {
+                        Log.i("image","before image")
                         async.drawable.result =
                             book.loadImageBitmap(async.drawable.destination)?.toDrawable(
                                 Resources.getSystem()
                             )
+                        Log.i("image","after image")
+                        //Log.i("image",async.drawable.result.toString())
+
                     }
 
                     // translation may strip stuff, idk how to solve that in a clean way atm

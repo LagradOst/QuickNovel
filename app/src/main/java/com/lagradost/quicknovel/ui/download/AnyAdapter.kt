@@ -197,8 +197,7 @@ class AnyAdapter(
 
                             downloadProgressbarIndeterment.isVisible = item.generating
                             val showDownloadLoading = item.state == DownloadState.IsPending
-                            downloadUpdateLoading.isVisible =
-                                showDownloadLoading && !item.isImported
+                            downloadUpdateLoading.isVisible = (showDownloadLoading && !item.isImported)||(item.isImported && item.state == DownloadState.IsDownloading)
 
                             val epubSize = getKey(DOWNLOAD_EPUB_SIZE, item.id.toString()) ?: 0
                             val diff = item.downloadedCount - epubSize

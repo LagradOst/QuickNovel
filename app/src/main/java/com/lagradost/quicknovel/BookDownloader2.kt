@@ -1,5 +1,4 @@
 package com.lagradost.quicknovel
-
 import android.Manifest.permission.POST_NOTIFICATIONS
 import android.Manifest.permission.READ_EXTERNAL_STORAGE
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
@@ -14,10 +13,12 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.RectF
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -58,6 +59,7 @@ import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getBasePath
 import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getDefaultDir
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
+import com.lagradost.quicknovel.util.AppUtils.textToHtmlChapter
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.Event
@@ -65,6 +67,11 @@ import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.pmap
 import com.lagradost.safefile.SafeFile
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
+import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject
+import com.tom_roush.pdfbox.text.PDFTextStripper
+import com.tom_roush.pdfbox.text.PDFTextStripperByArea
 import me.ag2s.epublib.domain.Author
 import me.ag2s.epublib.domain.EpubBook
 import me.ag2s.epublib.domain.MediaType
@@ -79,9 +86,10 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import me.ag2s.epublib.epub.EpubReader
 import me.ag2s.epublib.util.zip.AndroidZipFile
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
-
 
 enum class DownloadActionType {
     Pause,
@@ -1618,6 +1626,227 @@ object BookDownloader2 {
 
     const val LOCAL_EPUB: String = "local_epub.epub"
     const val LOCAL_EPUB_MIN_SIZE: Long = 1000
+
+
+
+    private fun saveEpubToFile(book: EpubBook, filesDir: File, api: String, author: String, name: String) {
+        val directory = getDirectory(api, author, name)
+        val epubFile = File(File(filesDir, directory), LOCAL_EPUB)
+        epubFile.parentFile?.mkdirs()
+        FileOutputStream(epubFile).use { fos ->
+            EpubWriter().write(book, fos)
+        }
+    }
+
+    private fun createHtmlWrapper(title: String, content: String): String {
+        return """
+        <html xmlns="http://www.w3.org/1999/xhtml">
+            <head><meta charset="utf-8"/><title>$title</title></head>
+            <body>
+                $content
+            </body>
+        </html>
+    """.trimIndent()
+    }
+
+    private fun processImageObject(
+        imageXObject: PDImageXObject,
+        book: EpubBook,
+        chapterBuilder: StringBuilder,
+        api: String, author: String, name: String,
+        filesDir: File,
+        count: Int
+    ): Resource? {
+        var resultResource: Resource? = null
+        val bitmap = imageXObject.image ?: return null
+        if (bitmap.isRecycled) return null
+
+        try {
+            val outStream = ByteArrayOutputStream()
+
+            //get image compressed as byteArray
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outStream)
+            val imgBytes = outStream.toByteArray()
+
+            // only over 90KB images
+            if (imgBytes.size >= 90 * 1024) {
+                //prepare img to xhtml
+                val imgHref = "Images/img_$count.jpeg"
+
+                //save as a file
+                val res = Resource(imgBytes, imgHref)
+                book.resources.add(res)
+
+                //I don’t know why it forces me to include the OEBPS folder.
+                chapterBuilder.append("<div style='text-align:center;'><img src='OEBPS/$imgHref' style='max-width:100%;'/></div>")
+
+                //if it’s the first image, save it as the cover
+                if (book.coverImage == null) {
+                    val filepath = BookDownloader2Helper.getFilenameIMG(api, author, name)
+                    File(filesDir, filepath).apply {
+                        parentFile?.mkdirs()
+                        writeBytes(imgBytes)
+                    }
+                }
+                resultResource = res
+            }
+        } catch (e: Exception) {
+            logError(e)
+        } finally {
+            if (!bitmap.isRecycled) bitmap.recycle() //delete from ram
+        }
+        return resultResource
+    }
+
+
+
+
+    @WorkerThread
+    @Throws
+    suspend fun downloadPDFWorkThread(data: Uri, context: Context) {
+        //init pdf reader
+        PDFBoxResourceLoader.init(context)
+        val filesDir = context.filesDir
+        val apiName = IMPORT_SOURCE
+
+        // open file
+        context.contentResolver.openInputStream(data).use { inputStream ->
+            var document: PDDocument? = null
+            var id = 0
+            try {
+                //load as pdf
+                document = PDDocument.load(inputStream)
+
+                //get info
+                val info = document.documentInformation
+                val author = info.author ?: context.getString(R.string.unknown)
+                val fileName = SafeFile.fromUri(context, data)?.name() ?: context.getString(R.string.unknown)
+                val name = fileName.removeSuffix(".pdf").removeSuffix(".PDF")
+
+                val sApiName = BookDownloader2Helper.sanitizeFilename(apiName)
+                val sAuthor = BookDownloader2Helper.sanitizeFilename(author)
+                val sName = BookDownloader2Helper.sanitizeFilename(name)
+
+                id = generateId(apiName, author, name)
+                val load = EpubResponse(
+                    url = "",
+                    name = name,
+                    apiName = apiName,
+                    author = author,
+                    downloadLinks = emptyList(),
+                    downloadExtractLinks = emptyList(),
+                )
+
+                //create an epub
+                val book = EpubBook()
+                book.metadata.addTitle(name)
+                book.metadata.addAuthor(Author(author))
+
+                //to get text from pdf pages
+                val stripper = PDFTextStripperByArea()
+
+                val totalPages = document.numberOfPages
+
+                setPrefixData(load, apiName, totalPages.toLong(), 0L)
+                changeDownload(id) {
+                    state = DownloadState.IsDownloading
+                    this.progress = 0L
+                    this.total = totalPages.toLong()
+                }?.let { createNotification(id, load, it) }
+
+                //create sections of N pages
+                val pagesPerChapter = 10
+
+                //to create content of the chapter
+                val currentChapterText = StringBuilder()
+
+                var chapterCount = 1
+                var imageCount = 1
+
+                //navigate all pdf pages
+                for (pageIdx in 1..totalPages) {
+                    val page = document.getPage(pageIdx - 1)
+
+                    //try to delete footer and header
+                    val mediaBox = page.mediaBox
+                    val fullHeight = mediaBox.height
+                    val marginHeight = fullHeight * 0.03f
+                    val bodyArea = RectF(
+                        mediaBox.lowerLeftX,
+                        marginHeight,
+                        mediaBox.upperRightX,
+                        fullHeight - (marginHeight * 2)
+                    )
+                    stripper.addRegion("body", bodyArea)
+                    stripper.extractRegions(page)
+                    val bodyText = stripper.getTextForRegion("body")
+
+                    //if there's text, include
+                    if (bodyText.isNotBlank()) {
+                        currentChapterText.append(bodyText.textToHtmlChapter())
+                    }
+
+                    //get images from page
+                    val resources = page.resources
+                    for (objName in resources.xObjectNames) {
+                        if (resources.isImageXObject(objName)) {
+                            processImageObject(
+                                resources.getXObject(objName) as PDImageXObject,
+                                book,
+                                currentChapterText,
+                                sApiName, sAuthor, sName,
+                                filesDir,
+                                imageCount
+                            )?.let { newResource ->
+                                if (book.coverImage == null) book.coverImage = newResource
+                                imageCount++
+                            }
+                        }
+                    }
+
+
+                    // collect N chapters as sections
+                    if (pageIdx % pagesPerChapter == 0 || pageIdx == totalPages) {
+                        val sectionTitle = "${context.getString(R.string.chapter)} $chapterCount"
+                        val htmlContent = createHtmlWrapper(sectionTitle, currentChapterText.toString())
+
+                        book.addSection(sectionTitle, Resource(htmlContent.toByteArray(), "chapter$chapterCount.xhtml"))
+                        currentChapterText.clear()
+                        chapterCount++
+
+                        if(pageIdx != totalPages)
+                        {
+                            changeDownload(id) {
+                                state = DownloadState.IsDownloading
+                                this.progress = pageIdx.toLong()
+                                this.total = totalPages.toLong()
+                            }?.let { createNotification(id, load, it) }
+                        }
+                        else{
+                            setPrefixData(load, apiName, totalPages.toLong(), pageIdx.toLong())
+                            changeDownload(id) {
+                                state = DownloadState.IsDone
+                                this.progress = pageIdx.toLong()
+                                this.total = totalPages.toLong()
+                            }?.let { createNotification(id, load, it) }
+
+                        }
+                    }
+                }
+
+                //save epub as a file
+                saveEpubToFile(book, filesDir, sApiName, sAuthor, sName)
+
+            } catch (t: Throwable) {
+                logError(t)
+                throw t
+            } finally {
+                document?.close()
+                currentDownloadsMutex.withLock { currentDownloads -= id }
+
+            }
+        }
+    }
 
     @WorkerThread
     @Throws

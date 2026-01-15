@@ -280,6 +280,10 @@
     <string name="operation_no_implemented">This operation is not implemented.</string>
     <string name="conection_error">Connection error.</string>
 
+    <!-- Some details -->
+    <string name="unknown">Unknown</string>
+    <string name="chapter">Chapter</string>
+
 
 
 </resources>

@@ -105,11 +105,6 @@ class MainActivity : AppCompatActivity() {
             mainActivity?.openEpubPicker()
         }
 
-        //+++++++++++++++++++++++++++++++++++++++++++++++++++++//
-        //TODO try to add a function to import PDFs
-        //+++++++++++++++++++++++++++++++++++++++++++++++++++++//
-
-
         var app = Requests(
             OkHttpClient()
                 .newBuilder()
@@ -361,11 +356,18 @@ class MainActivity : AppCompatActivity() {
 
                 val file = SafeFile.fromUri(ctx, uri)
                 val fileName = file?.name()
+
+                val mimeType = ctx.contentResolver.getType(uri)
                 println("Loaded epub file. Selected URI path: $uri - Name: $fileName")
 
                 ioSafe {
                     try {
-                        BookDownloader2.downloadWorkThread(uri, ctx)
+                        if (mimeType == "application/pdf" || fileName?.endsWith(".pdf") == true) {
+                            BookDownloader2.downloadPDFWorkThread(uri, ctx)
+                        }
+                        else{
+                            BookDownloader2.downloadWorkThread(uri, ctx)
+                        }
                     } catch (t : Throwable) {
                         logError(t)
                         showToast(t.message)
@@ -381,7 +383,7 @@ class MainActivity : AppCompatActivity() {
                     //"text/plain",
                     //"text/str",
                     //"application/octet-stream",
-                    //"application/pdf",
+                    "application/pdf",
                     "application/epub+zip",
                 )
             )
