@@ -1831,7 +1831,6 @@ object BookDownloader2 {
                                 this.progress = pageIdx.toLong()
                                 this.total = totalPages.toLong()
                             }?.let { createNotification(id, load, it) }
-
                         }
                     }
                 }
@@ -1866,8 +1865,8 @@ object BookDownloader2 {
         val apiName = IMPORT_SOURCE
 
         //If it doesn’t have a cover, it’s most likely another file that was converted into EPUB, so all the metadata will be wrong. That’s why I use the file name instead of the metadata.
-        val name = if(book.coverImage?.data == null)
-        {
+        val name = if(book.coverImage?.data != null) book.metadata.firstTitle
+        else {
             contentResolver.query(data, null, null, null, null)?.use { cursor ->
                 val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
                 if (cursor.moveToFirst())
@@ -1875,7 +1874,6 @@ object BookDownloader2 {
                 else null
             } ?: book.metadata.firstTitle
         }
-        else book.metadata.firstTitle
 
         val sApiName = BookDownloader2Helper.sanitizeFilename(apiName)
         val sAuthor = BookDownloader2Helper.sanitizeFilename(author ?: "")
@@ -1902,17 +1900,17 @@ object BookDownloader2 {
                 var coverBytes = book.coverImage?.data
 
                 //This is for epubs imported from PDFs that don’t have correct metadata.
-                if (coverBytes == null)
-                {
-                    val imageExtensions = listOf(".jpg", ".jpeg", ".png")
-                    val firstImageEntry = zipFile.entries().toList().find { entry ->
-                        val isImageCover = imageExtensions.any { ext -> entry.name.lowercase().endsWith(ext) }
-                        isImageCover && entry.size >= MIN_IMAGE_SIZE
-                    }
-                    if (firstImageEntry != null) {
-                        coverBytes = zipFile.getInputStream(firstImageEntry).use { it.readBytes() }
-                    }
+                if (coverBytes == null) {
+                    zipFile.entries().asSequence()
+                        .find { entry ->
+                            entry.size >= MIN_IMAGE_SIZE &&
+                                    listOf(".jpg", ".jpeg", ".png").any { entry.name.endsWith(it, ignoreCase = true) }
+                        }?.let { entry ->
+                            coverBytes = zipFile.getInputStream(entry).use { it.readBytes() }
+                        }
                 }
+
+
 
                 if (coverBytes != null) {
                     // Store the image and override it
