@@ -1674,7 +1674,7 @@ object BookDownloader2 {
             val imgBytes = outStream.toByteArray()
 
             // only over 90KB images
-            if (imgBytes.size >= 90 * 1024) {
+            if (imgBytes.size >= 30 * 1024) {
                 //prepare img to xhtml
                 val imgHref = "Images/img_$count.jpeg"
 
