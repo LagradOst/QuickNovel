@@ -270,7 +270,7 @@
     <string name="unread">Unread</string>
     <string name="bookmarks">Bookmarks</string>
     <string name="read">Read</string>
-    <string name="import_epub">Import epub</string>
+    <string name="import_epub">Import a book</string>
     <string name="show_authors_notes">Show authors notes</string>
 
     <!-- Some errors -->
@@ -279,6 +279,10 @@
     <string name="error_loading">Error loading, please try again later.</string>
     <string name="operation_no_implemented">This operation is not implemented.</string>
     <string name="conection_error">Connection error.</string>
+
+    <!-- Some details -->
+    <string name="unknown">Unknown</string>
+    <string name="chapter">Chapter</string>
 
 
 

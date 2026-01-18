@@ -543,12 +543,23 @@ object TTSHelper {
         return loc
     }
 
-    fun preParseHtml(text: String, authorNotes: Boolean): String {
+    fun preParseHtml(text: String, authorNotes : Boolean): String {
         val document = Jsoup.parse(text)
 
         // REMOVE USELESS STUFF THAT WONT BE USED IN A NORMAL TXT
         document.select("style").remove()
         document.select("script").remove()
+
+        //This is for poorly generated epubs
+        val titleElement = document.selectFirst("title")
+        if (titleElement != null) {
+            val titleText = titleElement.text().trim()
+            //Poorly generated epubs often have the location of their HTML as the title. They look very ugly, so I remove them
+            val pathRegex = Regex("^(/|[a-zA-Z]:[\\\\/]).*")
+            if (pathRegex.matches(titleText)) {
+                titleElement.remove()
+            }
+        }
 
         if (!authorNotes) {
             document.select("div.qnauthornotecontainer").remove()
