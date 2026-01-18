@@ -12,6 +12,7 @@ import android.speech.tts.Voice
 import android.text.Spanned
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.result.launch
 import androidx.annotation.WorkerThread
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.toColorInt
@@ -20,6 +21,7 @@ import androidx.core.text.toSpanned
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.request.Disposable
@@ -79,11 +81,13 @@ import io.noties.markwon.html.HtmlPlugin
 import io.noties.markwon.image.AsyncDrawable
 import io.noties.markwon.image.AsyncDrawableSpan
 import io.noties.markwon.image.ImageSizeResolver
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -1400,13 +1404,11 @@ class ReadActivityViewModel : ViewModel() {
                         index++
                     }
                 }
+
+                loadIndividualChapter(index)
                 while (isActive && currentTTSStatus != TTSHelper.TTSStatus.IsStopped) {
                     val lines =
-                        when (val currentData =
-                            chapterMutex.withLock { chapterData[index] } ?: run {
-                                loadIndividualChapter(index)
-                                chapterMutex.withLock { chapterData[index] }
-                            }) {
+                        when (val currentData = chapterMutex.withLock { chapterData[index]}) {
                             null -> {
                                 showToast("Got null data")
                                 break
@@ -1447,6 +1449,16 @@ class ReadActivityViewModel : ViewModel() {
 
                     updateIndex(index)
 
+                    //preload next chapter
+                    viewModelScope.launch(Dispatchers.IO) {
+                        try {
+                            val exists = chapterMutex.withLock { chapterData[index + 1] is Resource.Success }
+                            if (!exists)
+                                loadIndividualChapter(index + 1)
+                        } catch (e: Exception) {
+                            logError(e)
+                        }
+                    }
                     // speak all lines
                     while (ttsInnerIndex < lines.size && ttsInnerIndex >= 0) {
                         ensureActive()

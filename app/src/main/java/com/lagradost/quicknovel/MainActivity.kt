@@ -33,6 +33,7 @@ import com.lagradost.nicehttp.ResponseParser
 import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
 import com.lagradost.quicknovel.BookDownloader2.openQuickStream
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORTED_PDF
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.checkWrite
 import com.lagradost.quicknovel.BookDownloader2Helper.createQuickStream
@@ -77,6 +78,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.lang.ref.WeakReference
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.reflect.KClass
 
@@ -109,6 +111,7 @@ class MainActivity : AppCompatActivity() {
             OkHttpClient()
                 .newBuilder()
                 .ignoreAllSSLErrors()
+                .readTimeout(30, TimeUnit.SECONDS)//to online translations
                 .build(),
             responseParser = object : ResponseParser {
                 val mapper: ObjectMapper = jacksonObjectMapper().configure(
@@ -631,8 +634,8 @@ class MainActivity : AppCompatActivity() {
                             hidePreviewPopupDialog()
                         }
 
-                        readMore.isVisible = viewModel.apiName != IMPORT_SOURCE
-                        bookmark.isVisible = viewModel.apiName != IMPORT_SOURCE
+                        readMore.isVisible = viewModel.apiName != IMPORT_SOURCE && viewModel.apiName != IMPORTED_PDF
+                        bookmark.isVisible = viewModel.apiName != IMPORT_SOURCE && viewModel.apiName != IMPORTED_PDF
 
                         resultviewPreviewLoading.isVisible = false
                         resultviewPreviewResult.isVisible = true

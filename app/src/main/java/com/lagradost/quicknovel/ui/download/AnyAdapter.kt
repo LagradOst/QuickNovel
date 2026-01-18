@@ -9,6 +9,8 @@ import android.widget.LinearLayout
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORTED_PDF
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.R
@@ -197,13 +199,13 @@ class AnyAdapter(
 
                             downloadProgressbarIndeterment.isVisible = item.generating
                             val showDownloadLoading = item.state == DownloadState.IsPending
-                            val isAPdfDownloading = item.isImported && item.state == DownloadState.IsDownloading
-                            downloadUpdateLoading.isVisible = (showDownloadLoading && !item.isImported)||isAPdfDownloading
+                            val isAPdfDownloading = item.isImported == IMPORTED_PDF && item.state == DownloadState.IsDownloading
+                            downloadUpdateLoading.isVisible = showDownloadLoading || isAPdfDownloading
 
                             val epubSize = getKey(DOWNLOAD_EPUB_SIZE, item.id.toString()) ?: 0
                             val diff = item.downloadedCount - epubSize
                             imageTextMore.text = "+$diff "
-                            imageTextMore.isVisible = diff > 0 && !showDownloadLoading && !item.isImported
+                            imageTextMore.isVisible = diff > 0 && !showDownloadLoading && item.isImported != IMPORT_SOURCE
                             imageText.text = item.name
 
                             imageView.alpha = if (isAPdfDownloading) 0.6f else 1.0f
@@ -243,7 +245,7 @@ class AnyAdapter(
             is DownloadResultCompactBinding -> {
                 val card = item as DownloadFragment.DownloadDataLoaded
                 view.apply {
-                    downloadHolder.isGone = card.isImported
+                    downloadHolder.isGone = card.isImported == IMPORT_SOURCE
                     val same = imageText.text == card.name
                     backgroundCard.apply {
                         setOnClickListener {
@@ -256,7 +258,7 @@ class AnyAdapter(
                     }
                     imageView.apply {
                         setOnClickListener {
-                            if (!item.isImported)
+                            if (item.isImported != IMPORT_SOURCE && item.isImported != IMPORTED_PDF)
                                 downloadViewModel.load(card)
                         }
                         setOnLongClickListener {

@@ -19,6 +19,8 @@ import com.lagradost.quicknovel.BookDownloader2.currentDownloadsMutex
 import com.lagradost.quicknovel.BookDownloader2.downloadInfoMutex
 import com.lagradost.quicknovel.BookDownloader2.downloadProgress
 import com.lagradost.quicknovel.BookDownloader2.downloadProgressChanged
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORTED_PDF
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.CURRENT_TAB
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
@@ -170,9 +172,9 @@ class DownloadViewModel : ViewModel() {
 
         val values = currentDownloadsMutex.withLock {
             allValues.filter { card ->
-                val notImported = !card.isImported
+                val notImported = card.isImported != IMPORTED_PDF && card.isImported != IMPORT_SOURCE
                 val canDownload =
-                    card.downloadedTotal <= 0 || (card.downloadedCount * 100 / card.downloadedTotal) > 90
+                    card.downloadedTotal <= 0 || (card.downloadedCount * 100 / card.downloadedTotal) > 90// isn't better > 98? to be sure
                 val notDownloading = !currentDownloads.contains(
                     card.id
                 )

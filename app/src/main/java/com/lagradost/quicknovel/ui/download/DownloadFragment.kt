@@ -23,6 +23,7 @@ import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.BookDownloader2Helper
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORTED_PDF
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
@@ -101,7 +102,7 @@ class DownloadFragment : Fragment() {
         val lastDownloaded: Long?,
     ) {
         val image by lazy {
-            if(isImported) {
+            if(isImported == IMPORTED_PDF || isImported == IMPORT_SOURCE) {
                 val bitmap = BookDownloader2Helper.getCachedBitmap(activity, apiName, author, name)
                 if(bitmap != null) {
                     return@lazy UiImage.Bitmap(bitmap)
@@ -114,7 +115,7 @@ class DownloadFragment : Fragment() {
             return id
         }
 
-        val isImported: Boolean get() = apiName == IMPORT_SOURCE
+        val isImported: String get() = apiName
     }
 
     override fun onCreateView(

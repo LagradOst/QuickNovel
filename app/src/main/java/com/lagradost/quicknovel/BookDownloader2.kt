@@ -2,6 +2,7 @@ package com.lagradost.quicknovel
 import android.Manifest.permission.POST_NOTIFICATIONS
 import android.Manifest.permission.READ_EXTERNAL_STORAGE
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+import android.R.attr.author
 import android.app.Activity
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -43,6 +44,7 @@ import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2.LOCAL_EPUB
 import com.lagradost.quicknovel.BookDownloader2.LOCAL_EPUB_MIN_SIZE
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORTED_PDF
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.createQuickStream
 import com.lagradost.quicknovel.BookDownloader2Helper.generateId
@@ -154,6 +156,7 @@ data class QuickStreamData(
 
 object BookDownloader2Helper {
     const val IMPORT_SOURCE = "Download"
+    const val IMPORTED_PDF = "pdf"
     private val fs = File.separatorChar
     private const val reservedChars = "|\\?*<\":>+[]/'"
     fun sanitizeFilename(name: String): String {
@@ -1440,7 +1443,7 @@ object BookDownloader2 {
     suspend fun downloadWorkThread(
         card: DownloadFragment.DownloadDataLoaded,
     ) {
-        if(card.isImported) {
+        if(card.isImported == IMPORT_SOURCE || card.isImported == IMPORTED_PDF) {
             return
         }
 
@@ -1707,9 +1710,10 @@ object BookDownloader2 {
     @Throws
     suspend fun downloadPDFWorkThread(data: Uri, context: Context) {
         //init pdf reader
-        PDFBoxResourceLoader.init(context)
+        if (!PDFBoxResourceLoader.isReady())
+            PDFBoxResourceLoader.init(context)
         val filesDir = context.filesDir
-        val apiName = IMPORT_SOURCE
+        val apiName = IMPORTED_PDF
 
         // open file
         context.contentResolver.openInputStream(data).use { inputStream ->
@@ -1724,20 +1728,45 @@ object BookDownloader2 {
                 val author = info.author ?: context.getString(R.string.unknown)
                 val fileName = SafeFile.fromUri(context, data)?.name() ?: context.getString(R.string.unknown)
                 val name = fileName.removeSuffix(".pdf").removeSuffix(".PDF")
-
                 val sApiName = BookDownloader2Helper.sanitizeFilename(apiName)
                 val sAuthor = BookDownloader2Helper.sanitizeFilename(author)
                 val sName = BookDownloader2Helper.sanitizeFilename(name)
 
-                id = generateId(apiName, author, name)
                 val load = EpubResponse(
-                    url = "",
+                    url = data.toString(),
                     name = name,
                     apiName = apiName,
                     author = author,
                     downloadLinks = emptyList(),
                     downloadExtractLinks = emptyList(),
                 )
+                id = generateId(apiName, author, name)
+
+                val totalPages = document.numberOfPages
+
+                //notification
+                setPrefixData(load, apiName, totalPages.toLong(), 0L)
+
+                //delete existing
+                val file =
+                    File(filesDir.toString() + getDirectory(sApiName, sAuthor, sName), LOCAL_EPUB)
+                if (file.exists())
+                {
+                    if(file.length() > LOCAL_EPUB_MIN_SIZE)
+                    {
+                        changeDownload(id) {
+                            state = DownloadState.IsDone
+                        }
+                        return
+                    }
+                    else file.delete()
+                }
+
+                changeDownload(id) {
+                    state = DownloadState.IsDownloading
+                    this.progress = 0L
+                    this.total = this.total
+                }?.let { createNotification(id, load, it) }
 
                 //create an epub
                 val book = EpubBook()
@@ -1746,15 +1775,6 @@ object BookDownloader2 {
 
                 //to get text from pdf pages
                 val stripper = PDFTextStripperByArea()
-
-                val totalPages = document.numberOfPages
-
-                setPrefixData(load, apiName, totalPages.toLong(), 0L)
-                changeDownload(id) {
-                    state = DownloadState.IsDownloading
-                    this.progress = 0L
-                    this.total = this.total
-                }?.let { createNotification(id, load, it) }
 
                 //create sections of N pages
                 val pagesPerChapter = 10
@@ -1787,7 +1807,6 @@ object BookDownloader2 {
                     if (bodyText.isNotBlank())
                         currentChapterText.append(bodyText.textToHtmlChapter())
 
-
                     //get images from page
                     val resources = page.resources
                     for (objName in resources.xObjectNames) {
@@ -1805,7 +1824,6 @@ object BookDownloader2 {
                                 imageCount++
                             }
                     }
-
 
                     // collect N chapters as sections
                     if (pageIdx % pagesPerChapter == 0 || pageIdx == totalPages) {
@@ -1844,11 +1862,9 @@ object BookDownloader2 {
             } finally {
                 document?.close()
                 currentDownloadsMutex.withLock { currentDownloads -= id }
-
             }
         }
     }
-
     @WorkerThread
     @Throws
     suspend fun downloadWorkThread(data: Uri, context: Context) {
