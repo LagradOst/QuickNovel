@@ -378,7 +378,7 @@ object BookDownloader2Helper {
                         val book = FileInputStream(epub).use { fis ->
                             EpubReader().readEpub(fis, "utf-8")
                         }
-                        val page = book.spine.size() * pagesPerChapter
+                        val page = book.spine.size()
                         value = page to page
                     }
                    else
@@ -1771,7 +1771,7 @@ object BookDownloader2 {
                 val book = EpubBook().apply {
                         metadata.addTitle(sName)
                         metadata.addAuthor(Author(sAuthor))
-                    }
+                }
 
 
 
@@ -1792,11 +1792,11 @@ object BookDownloader2 {
 
                 //notification
                 var currentState = DownloadState.IsDownloading
-                setPrefixData(load, apiName, totalPages.toLong(), pageIdx.toLong() - 1)
+                setPrefixData(load, apiName, ((totalPages + pagesPerChapter - 1) / pagesPerChapter).toLong().coerceAtLeast(1L), 0L)
                 changeDownload(id) {
                     state = currentState
-                    this.progress = pageIdx.toLong() - 1
-                    this.downloaded = pageIdx.toLong() - 1
+                    this.progress = chapterCount.toLong() - 1
+                    this.downloaded = chapterCount.toLong() - 1
                 }?.let { createNotification(id, load, it) }
 
                 while (currentState != DownloadState.IsDone && currentState != DownloadState.IsStopped && pageIdx <= totalPages) {
@@ -1875,17 +1875,14 @@ object BookDownloader2 {
 
                             //add chapter to the book
                             book.addSection(sectionTitle, Resource(htmlContent.toByteArray(), "chapter$chapterCount.xhtml"))
-                            //next chapter
-                            currentChapterText.clear()
-                            chapterCount++
 
                             //change notifications
                             //import still in progress
                             if(pageIdx != totalPages)
                             {
                                 changeDownload(id) {
-                                    this.progress = pageIdx.toLong()
-                                    this.downloaded = pageIdx.toLong()
+                                    this.progress = chapterCount.toLong()
+                                    this.downloaded = chapterCount.toLong()
                                 }?.let {
                                     createNotification(id, load, it)
                                 }
@@ -1900,11 +1897,15 @@ object BookDownloader2 {
                                     setSuffixData(load, apiName)
                                     changeDownload(id) {
                                         state = currentState
-                                        this.progress = totalPages.toLong()
-                                        this.downloaded = totalPages.toLong()
+                                        this.progress =this.total
+                                        this.downloaded = this.total
                                     }?.let { createNotification(id, load, it) }
                                 }
                             }
+
+                            //next chapter
+                            currentChapterText.clear()
+                            chapterCount++
                         }
                         pageIdx++
                     }
