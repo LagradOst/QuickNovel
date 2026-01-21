@@ -1682,13 +1682,13 @@ object BookDownloader2 {
             val outStream = ByteArrayOutputStream()
 
             //get image compressed as byteArray
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outStream)
+            bitmap.compress(Bitmap.CompressFormat.PNG, 80, outStream)
             val imgBytes = outStream.toByteArray()
 
             // only over NKB images
             if (imgBytes.size >= MIN_IMAGE_SIZE) {
                 //prepare img to xhtml
-                val imgHref = "img_$count.jpeg"
+                val imgHref = "img_$count.png"
 
                 //save as a file
                 val res = Resource(imgBytes, imgHref)
@@ -1725,201 +1725,201 @@ object BookDownloader2 {
     suspend fun downloadPDFWorkThread(data: Uri, context: Context?) {
         if(context == null)
             return
-        try
-        {
+            //init pdf reader
+            if (!PDFBoxResourceLoader.isReady())
+                PDFBoxResourceLoader.init(context)
             // open file
-            context.contentResolver.openInputStream(data).use { inputStream ->
-                //init pdf reader
-                if (!PDFBoxResourceLoader.isReady())
-                    PDFBoxResourceLoader.init(context)
-                val document = PDDocument.load(inputStream)
-                var id = 0
+            val document:PDDocument? = context.contentResolver.openInputStream(data).use { inputStream ->
+                PDDocument.load(inputStream)
+            }
+            if(document == null)
+            {
+                showToast(context.getString(R.string.failed), 1000)
+                return
+            }
 
-                //get info
-                val info = document.documentInformation
-                val author = if(info.author.isNullOrBlank()) context.getString(R.string.unknown) else info.author
-                val fileName = SafeFile.fromUri(context, data)?.name() ?: context.getString(R.string.unknown)
-                val name = fileName.removeSuffix(".pdf").removeSuffix(".PDF")
-                val apiName = IMPORT_SOURCE_PDF
+            var id = 0
 
-                //sanitize info
-                val sAuthor = BookDownloader2Helper.sanitizeFilename(author)
-                val sName = BookDownloader2Helper.sanitizeFilename(name)
+            //get info
+            val info = document.documentInformation
+            val author = if(info.author.isNullOrBlank()) context.getString(R.string.unknown) else info.author
+            val fileName = SafeFile.fromUri(context, data)?.name() ?: context.getString(R.string.unknown)
+            val name = fileName.removeSuffix(".pdf").removeSuffix(".PDF")
+            val apiName = IMPORT_SOURCE_PDF
 
-                val load = EpubResponse(
-                    url = data.toString(),
-                    name = sName,
-                    apiName = apiName,
-                    author = sAuthor,
-                    downloadLinks = emptyList(),
-                    downloadExtractLinks = emptyList(),
-                )
-                id = generateId(apiName, sAuthor, sName)
+            //sanitize info
+            val sAuthor = BookDownloader2Helper.sanitizeFilename(author)
+            val sName = BookDownloader2Helper.sanitizeFilename(name)
 
-                try {
-                    //try to get existing
-                    val fileDir = context.filesDir
-                    val file = File(File(fileDir, getDirectory(apiName, sAuthor, sName)), LOCAL_EPUB)
-                    if(file.exists()) file.delete()
+            val load = EpubResponse(
+                url = data.toString(),
+                name = sName,
+                apiName = apiName,
+                author = sAuthor,
+                downloadLinks = emptyList(),
+                downloadExtractLinks = emptyList(),
+            )
+            id = generateId(apiName, sAuthor, sName)
 
-                    //create an epub or use existing
-                    val book = EpubBook().apply {
-                            metadata.addTitle(sName)
-                            metadata.addAuthor(Author(sAuthor))
+            try {
+                //try to get existing
+                val fileDir = context.filesDir
+                val file = File(File(fileDir, getDirectory(apiName, sAuthor, sName)), LOCAL_EPUB)
+                if(file.exists()) file.delete()
+
+                //create an epub or use existing
+                val book = EpubBook().apply {
+                        metadata.addTitle(sName)
+                        metadata.addAuthor(Author(sAuthor))
+                    }
+
+
+
+                //to get text from pdf pages
+                val stripper = PDFTextStripperByArea()
+                //to create content of the chapter
+                val currentChapterText = StringBuilder()
+
+                var imageCount = 1
+
+                //actual page
+                var pageIdx = 1
+
+                val totalPages = document.numberOfPages
+
+                //number of section
+                var chapterCount = 1
+
+                //notification
+                var currentState = DownloadState.IsDownloading
+                setPrefixData(load, apiName, totalPages.toLong(), pageIdx.toLong() - 1)
+                changeDownload(id) {
+                    state = currentState
+                    this.progress = pageIdx.toLong() - 1
+                    this.downloaded = pageIdx.toLong() - 1
+                }?.let { createNotification(id, load, it) }
+
+                while (currentState != DownloadState.IsDone && currentState != DownloadState.IsStopped && pageIdx <= totalPages) {
+
+                    //check notification options
+                    when (consumeAction(id)) {
+                        DownloadActionType.Pause -> DownloadState.IsPaused
+                        DownloadActionType.Resume -> DownloadState.IsDownloading
+                        DownloadActionType.Stop -> DownloadState.IsStopped
+                        else -> null
+                    }?.let { newState ->
+                        if(newState != currentState)
+                        {
+                            changeDownload(id) {
+                                state = newState
+                            }?.let { progressState ->
+                                createNotification(id, load, progressState)
+                            }
+                            currentState = newState
+                        }
+                    }
+                    if(currentState == DownloadState.IsPaused) delay(200)
+
+                    if (currentState == DownloadState.IsDownloading) {
+                        val page = document.getPage(pageIdx - 1)
+
+                        //try to delete footer and header
+                        val mediaBox = page.mediaBox
+                        val fullHeight = mediaBox.height
+                        val marginHeight = fullHeight * 0.03f
+                        val bodyArea = RectF(
+                            mediaBox.lowerLeftX,
+                            marginHeight,
+                            mediaBox.upperRightX,
+                            fullHeight - (marginHeight * 2)
+                        )
+                        stripper.addRegion("body", bodyArea)
+                        stripper.extractRegions(page)
+                        val bodyText = stripper.getTextForRegion("body")
+
+                        //if there's text, include
+                        if (bodyText.isNotBlank())
+                            currentChapterText.append(bodyText.textToHtmlChapter())
+
+                        //get images from page
+                        val resources = page.resources
+                        for (objName in resources.xObjectNames) {
+                            if (!resources.isImageXObject(objName)) continue
+                            processImageObject(
+                                resources.getXObject(objName) as PDImageXObject,
+                                book,
+                                currentChapterText,
+                                apiName, sAuthor, sName,
+                                fileDir,
+                                imageCount
+                            )?.let { newResource ->
+                                if (book.coverImage == null && imageCount == 1)
+                                    book.coverImage = newResource
+                                imageCount++
+                            }
                         }
 
+                        // collect N chapters as sections
+                        if (pageIdx % pagesPerChapter == 0 || pageIdx == totalPages) {
+                            val sectionTitle = "${context.getString(R.string.chapter)} $chapterCount"
+                            val htmlContent = createHtmlWrapper(sectionTitle, currentChapterText.toString())
 
+                            //add chapter to the book
+                            book.addSection(sectionTitle, Resource(htmlContent.toByteArray(), "chapter$chapterCount.xhtml"))
+                            //next chapter
+                            currentChapterText.clear()
+                            chapterCount++
 
-                    //to get text from pdf pages
-                    val stripper = PDFTextStripperByArea()
-                    //to create content of the chapter
-                    val currentChapterText = StringBuilder()
-
-                    var imageCount = 1
-
-                    //actual page
-                    var pageIdx = 1
-
-                    val totalPages = document.numberOfPages
-
-                    //number of section
-                    var chapterCount = 1
-
-                    //notification
-                    var currentState = DownloadState.IsDownloading
-                    setPrefixData(load, apiName, totalPages.toLong(), pageIdx.toLong() - 1)
-                    changeDownload(id) {
-                        state = currentState
-                        this.progress = pageIdx.toLong() - 1
-                        this.downloaded = pageIdx.toLong() - 1
-                    }?.let { createNotification(id, load, it) }
-
-                    while (currentState != DownloadState.IsDone && currentState != DownloadState.IsStopped && pageIdx <= totalPages) {
-                        if (currentState == DownloadState.IsDownloading) {
-                            val page = document.getPage(pageIdx - 1)
-
-                            //try to delete footer and header
-                            val mediaBox = page.mediaBox
-                            val fullHeight = mediaBox.height
-                            val marginHeight = fullHeight * 0.03f
-                            val bodyArea = RectF(
-                                mediaBox.lowerLeftX,
-                                marginHeight,
-                                mediaBox.upperRightX,
-                                fullHeight - (marginHeight * 2)
-                            )
-                            stripper.addRegion("body", bodyArea)
-                            stripper.extractRegions(page)
-                            val bodyText = stripper.getTextForRegion("body")
-
-                            //if there's text, include
-                            if (bodyText.isNotBlank())
-                                currentChapterText.append(bodyText.textToHtmlChapter())
-
-                            //get images from page
-                            val resources = page.resources
-                            for (objName in resources.xObjectNames) {
-                                if (resources.isImageXObject(objName))
-                                    processImageObject(
-                                        resources.getXObject(objName) as PDImageXObject,
-                                        book,
-                                        currentChapterText,
-                                        apiName, sAuthor, sName,
-                                        fileDir,
-                                        imageCount
-                                    )?.let { newResource ->
-                                        if (book.coverImage == null && imageCount == 1)
-                                            book.coverImage = newResource
-                                        imageCount++
-                                    }
-                            }
-
-                            // collect N chapters as sections
-                            if (pageIdx % pagesPerChapter == 0 || pageIdx == totalPages) {
-                                val sectionTitle = "${context.getString(R.string.chapter)} $chapterCount"
-                                val htmlContent = createHtmlWrapper(sectionTitle, currentChapterText.toString())
-
-                                //add chapter to the book
-                                book.addSection(sectionTitle, Resource(htmlContent.toByteArray(), "chapter$chapterCount.xhtml"))
-                                //next chapter
-                                currentChapterText.clear()
-                                chapterCount++
-
-                                //change notifications
-                                //import still in progress
-                                if(pageIdx != totalPages)
-                                {
-                                    changeDownload(id) {
-                                        this.progress = pageIdx.toLong()
-                                        this.downloaded = pageIdx.toLong()
-                                    }?.let {
-                                        createNotification(id, load, it)
-                                    }
-                                }
-                                //import finished
-                                else{
-                                    currentState = DownloadState.IsDone
-                                    setSuffixData(load, apiName)
-                                    changeDownload(id) {
-                                        state = currentState
-                                        this.progress = totalPages.toLong()
-                                        this.downloaded = totalPages.toLong()
-                                    }?.let { createNotification(id, load, it) }
-                                }
-
-                            }
-                            pageIdx++
-                        }
-
-                        //check notification options
-                        when (consumeAction(id)) {
-                            DownloadActionType.Pause -> DownloadState.IsPaused
-                            DownloadActionType.Resume -> DownloadState.IsDownloading
-                            DownloadActionType.Stop -> DownloadState.IsStopped
-                            else -> null
-                        }?.let { newState ->
-                            if(newState != currentState)
+                            //change notifications
+                            //import still in progress
+                            if(pageIdx != totalPages)
                             {
                                 changeDownload(id) {
-                                    state = newState
-                                }?.let { progressState ->
-                                    createNotification(id, load, progressState)
+                                    this.progress = pageIdx.toLong()
+                                    this.downloaded = pageIdx.toLong()
+                                }?.let {
+                                    createNotification(id, load, it)
                                 }
-                                currentState = newState
                             }
+                            //import finished
+                            else{
+                                currentState = DownloadState.IsDone
+                                setSuffixData(load, apiName)
+                                changeDownload(id) {
+                                    state = currentState
+                                    this.progress = totalPages.toLong()
+                                    this.downloaded = totalPages.toLong()
+                                }?.let { createNotification(id, load, it) }
+                            }
+
                         }
-                        if(currentState == DownloadState.IsPaused) delay(1000)
+                        pageIdx++
                     }
-                    if(currentState == DownloadState.IsDone)
-                    {
-                        //write book in disk
-                        FileOutputStream(file).use { fos ->
-                            EpubWriter().write(book, fos)
-                        }
-                    }
-                    else//is stopped
-                    {
-                        //delete file
-                        file.delete()
-                        changeDownload(id) {
-                            state = DownloadState.IsStopped
-                        }?.let { createNotification(id, load, it) }
-                    }
-                } catch (t: Throwable) {
-                    logError(t)
-                    changeDownload(id) {
-                        state = DownloadState.IsFailed
-                    }?.let { createNotification(id, load, it) }
-                } finally {
-                    document?.close()
-                    currentDownloadsMutex.withLock { currentDownloads -= id }
                 }
+                if(currentState == DownloadState.IsDone)
+                {
+                    //write book in disk
+                    FileOutputStream(file).use { fos ->
+                        EpubWriter().write(book, fos)
+                    }
+                }
+                else//is stopped
+                {
+                    //delete file
+                    file.delete()
+                    changeDownload(id) {
+                        state = DownloadState.IsStopped
+                    }?.let { createNotification(id, load, it) }
+                }
+            } catch (t: Throwable) {
+                logError(t)
+                changeDownload(id) {
+                    state = DownloadState.IsFailed
+                }?.let { createNotification(id, load, it) }
+            } finally {
+                document?.close()
+                currentDownloadsMutex.withLock { currentDownloads -= id }
             }
-        }
-        catch (t: Exception)
-        {
-            logError(t)
-        }
     }
     @WorkerThread
     @Throws
