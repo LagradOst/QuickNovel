@@ -1292,7 +1292,6 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 }
             }
 
-            //place it above binding.readApplyTranslation.setOnClickListener due to initialization reasons
             binding.readOnlineTranslationSwitch.isChecked = viewModel.mlUseOnlineTransaltion
             binding.readOnlineTranslationSwitch.setOnCheckedChangeListener { _, isChecked ->
                 viewModel.mlUseOnlineTransaltion = isChecked

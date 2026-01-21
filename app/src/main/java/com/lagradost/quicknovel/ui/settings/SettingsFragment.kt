@@ -512,7 +512,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
             val current =
                 settingsManager.getString(
                     getString(R.string.download_format_key),
-                    prefValues.first()
+                    prefValues[1]//As soon as you install the app, everything is displayed as a list even though it is set to grid. This is because it was previously set to .first()
                 )
 
             activity?.showBottomDialog(

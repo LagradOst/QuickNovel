@@ -32,9 +32,10 @@ import com.lagradost.nicehttp.Requests
 import com.lagradost.nicehttp.ResponseParser
 import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
+import com.lagradost.quicknovel.BookDownloader2.currentDownloads
 import com.lagradost.quicknovel.BookDownloader2.openQuickStream
-import com.lagradost.quicknovel.BookDownloader2Helper.IMPORTED_PDF
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.BookDownloader2Helper.checkWrite
 import com.lagradost.quicknovel.BookDownloader2Helper.createQuickStream
 import com.lagradost.quicknovel.BookDownloader2Helper.requestRW
@@ -634,8 +635,8 @@ class MainActivity : AppCompatActivity() {
                             hidePreviewPopupDialog()
                         }
 
-                        readMore.isVisible = viewModel.apiName != IMPORT_SOURCE && viewModel.apiName != IMPORTED_PDF
-                        bookmark.isVisible = viewModel.apiName != IMPORT_SOURCE && viewModel.apiName != IMPORTED_PDF
+                        readMore.isVisible = viewModel.apiName != IMPORT_SOURCE && viewModel.apiName != IMPORT_SOURCE_PDF
+                        bookmark.isVisible = viewModel.apiName != IMPORT_SOURCE && viewModel.apiName != IMPORT_SOURCE_PDF
 
                         resultviewPreviewLoading.isVisible = false
                         resultviewPreviewResult.isVisible = true
@@ -750,6 +751,8 @@ class MainActivity : AppCompatActivity() {
             }
         )
     }
+
+
 
     fun test() {
         // val response = app.get("https://ranobes.net/up/a-bored-lich/936969-1.html")

@@ -9,8 +9,8 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.lagradost.quicknovel.BookDownloader2Helper.IMPORTED_PDF
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.download.DownloadViewModel
 import com.lagradost.quicknovel.util.Apis
@@ -96,7 +96,7 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
             load: LoadResponse,
             context: Context
         ) {
-            if(load.apiName == IMPORT_SOURCE || load.apiName == IMPORTED_PDF) {
+            if(load.apiName == IMPORT_SOURCE || load.apiName == IMPORT_SOURCE_PDF) {
                 return
             }
             startDownload(load, context)

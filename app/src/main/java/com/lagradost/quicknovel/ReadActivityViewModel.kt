@@ -1451,13 +1451,9 @@ class ReadActivityViewModel : ViewModel() {
 
                     //preload next chapter
                     viewModelScope.launch(Dispatchers.IO) {
-                        try {
                             val exists = chapterMutex.withLock { chapterData[index + 1] is Resource.Success }
                             if (!exists)
                                 loadIndividualChapter(index + 1)
-                        } catch (e: Exception) {
-                            logError(e)
-                        }
                     }
                     // speak all lines
                     while (ttsInnerIndex < lines.size && ttsInnerIndex >= 0) {
