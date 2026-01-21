@@ -1723,7 +1723,8 @@ object BookDownloader2 {
     @WorkerThread
     @Throws
     suspend fun downloadPDFWorkThread(data: Uri, context: Context?) {
-    if(context == null) return
+        if(context == null)
+            return
         try
         {
             // open file
