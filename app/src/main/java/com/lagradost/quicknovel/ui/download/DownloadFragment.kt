@@ -327,7 +327,5 @@ class DownloadFragment : Fragment() {
             }
         }*/
 
-
-
     }
 }
