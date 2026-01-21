@@ -1818,7 +1818,16 @@ object BookDownloader2 {
                             currentState = newState
                         }
                     }
-                    if(currentState == DownloadState.IsPaused) delay(200)
+                    if(currentState == DownloadState.IsPaused)
+                    {
+                        //this because if you close the notification you´re done
+                        changeDownload(id) {
+                            state = currentState
+                        }?.let { progressState ->
+                            createNotification(id, load, progressState)
+                        }
+                        delay(200)
+                    }
 
                     if (currentState == DownloadState.IsDownloading) {
                         val page = document.getPage(pageIdx - 1)
@@ -1891,7 +1900,6 @@ object BookDownloader2 {
                                     this.downloaded = totalPages.toLong()
                                 }?.let { createNotification(id, load, it) }
                             }
-
                         }
                         pageIdx++
                     }
@@ -1917,7 +1925,7 @@ object BookDownloader2 {
                     state = DownloadState.IsFailed
                 }?.let { createNotification(id, load, it) }
             } finally {
-                document?.close()
+                document.close()
                 currentDownloadsMutex.withLock { currentDownloads -= id }
             }
     }
