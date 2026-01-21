@@ -49,7 +49,6 @@ import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.BookDownloader2Helper.createQuickStream
 import com.lagradost.quicknovel.BookDownloader2Helper.generateId
 import com.lagradost.quicknovel.BookDownloader2Helper.getDirectory
-import com.lagradost.quicknovel.BookDownloader2Helper.pagesPerChapter
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.mapper
@@ -162,11 +161,6 @@ object BookDownloader2Helper {
     const val IMPORT_SOURCE_PDF = "importsourcepdf"
     private val fs = File.separatorChar
     private const val reservedChars = "|\\?*<\":>+[]/'"
-
-    //this is for pdfImports
-    //here because i also use it in downloadInfo
-    //create sections of N pages
-    val pagesPerChapter = 10
 
     fun sanitizeFilename(name: String): String {
         var tempName = name
@@ -1786,6 +1780,9 @@ object BookDownloader2 {
                 var pageIdx = 1
 
                 val totalPages = document.numberOfPages
+
+                //create sections of N pages
+                val pagesPerChapter = 10
 
                 //number of section
                 var chapterCount = 1
