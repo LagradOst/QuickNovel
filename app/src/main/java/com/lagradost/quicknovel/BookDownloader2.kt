@@ -1682,13 +1682,13 @@ object BookDownloader2 {
             val outStream = ByteArrayOutputStream()
 
             //get image compressed as byteArray
-            bitmap.compress(Bitmap.CompressFormat.PNG, 80, outStream)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outStream)
             val imgBytes = outStream.toByteArray()
 
             // only over NKB images
             if (imgBytes.size >= MIN_IMAGE_SIZE) {
                 //prepare img to xhtml
-                val imgHref = "img_$count.png"
+                val imgHref = "img_$count.jpeg"
 
                 //save as a file
                 val res = Resource(imgBytes, imgHref)
@@ -1892,26 +1892,24 @@ object BookDownloader2 {
                             }
                             //import finished
                             else{
-                                currentState = DownloadState.IsDone
-                                setSuffixData(load, apiName)
-                                changeDownload(id) {
-                                    state = currentState
-                                    this.progress = totalPages.toLong()
-                                    this.downloaded = totalPages.toLong()
-                                }?.let { createNotification(id, load, it) }
+                                //write book in disk
+                                FileOutputStream(file).use { fos ->
+                                    EpubWriter().write(book, fos)
+                                }.also{
+                                    currentState = DownloadState.IsDone
+                                    setSuffixData(load, apiName)
+                                    changeDownload(id) {
+                                        state = currentState
+                                        this.progress = totalPages.toLong()
+                                        this.downloaded = totalPages.toLong()
+                                    }?.let { createNotification(id, load, it) }
+                                }
                             }
                         }
                         pageIdx++
                     }
                 }
-                if(currentState == DownloadState.IsDone)
-                {
-                    //write book in disk
-                    FileOutputStream(file).use { fos ->
-                        EpubWriter().write(book, fos)
-                    }
-                }
-                else//is stopped
+                if(currentState == DownloadState.IsStopped)
                 {
                     //delete file
                     file.delete()
