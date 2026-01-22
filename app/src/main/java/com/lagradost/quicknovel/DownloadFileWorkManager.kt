@@ -3,6 +3,7 @@ package com.lagradost.quicknovel
 import android.content.Context
 import android.util.Log
 import androidx.annotation.WorkerThread
+import androidx.core.net.toUri
 import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
@@ -118,7 +119,10 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
                     }
 
                     is DownloadFragment.DownloadDataLoaded -> {
-                        BookDownloader2.downloadWorkThread(data)
+                        if(data.apiName == IMPORT_SOURCE_PDF)
+                            BookDownloader2.downloadPDFWorkThread(data.source.toUri(), context)
+                        else
+                            BookDownloader2.downloadWorkThread(data)
                     }
 
                     else -> return Result.failure()

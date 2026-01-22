@@ -18,6 +18,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -1663,7 +1664,6 @@ object BookDownloader2 {
 
 
     //Import pdf area -----------------------------------------------
-
     private suspend fun handleDownloadActions(id: Int, load: EpubResponse, current: DownloadState): DownloadState {
         val action = consumeAction(id)
         val newState = when (action) {
@@ -1898,7 +1898,10 @@ object BookDownloader2 {
                             }
                         }
                         else //finally
+                        {
+                            currentState = DownloadState.IsDone
                             break
+                        }
 
                         //next chapter
                         currentChapterText.clear()
@@ -1908,8 +1911,7 @@ object BookDownloader2 {
                 }
             }
 
-            //if not was canceled
-            if(currentState != DownloadState.IsStopped)
+            if(currentState == DownloadState.IsDone)
             {
                 //add imgs to book
                 tempFolder.listFiles()?.let{

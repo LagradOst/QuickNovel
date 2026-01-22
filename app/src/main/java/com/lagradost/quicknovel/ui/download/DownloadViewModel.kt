@@ -181,7 +181,7 @@ class DownloadViewModel : ViewModel() {
 
         val values = currentDownloadsMutex.withLock {
             allValues.filter { card ->
-                val notImported = !card.isImported
+                val notImported = !card.isImported && card.apiName != IMPORT_SOURCE_PDF
                 val canDownload =
                     card.downloadedTotal <= 0 || (card.downloadedCount * 100 / card.downloadedTotal) > 90
                 val notDownloading = !currentDownloads.contains(
@@ -477,27 +477,6 @@ class DownloadViewModel : ViewModel() {
         _pages.postValue(pages)
 
 
-        resumeImports()
-    }
-
-    private suspend fun resumeImports()
-    {
-        val allValues = cardsDataMutex.withLock {
-            cardsData.values
-        }
-
-        val values = currentDownloadsMutex.withLock {
-            allValues.filter { card ->
-                val canDownload = card.downloadedTotal <= 0 || card.downloadedCount < card.downloadedTotal
-                card.isImported && canDownload && !currentDownloads.contains(card.id)
-            }
-        }
-
-        for (card in values) {
-            ioSafe {
-                BookDownloader2.downloadPDFWorkThread(card.source.toUri(), context)
-            }
-        }
     }
 
     private suspend fun getDownloadedCards(): Page = cardsDataMutex.withLock {

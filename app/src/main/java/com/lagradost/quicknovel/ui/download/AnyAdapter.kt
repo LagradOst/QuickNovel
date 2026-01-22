@@ -2,6 +2,7 @@ package com.lagradost.quicknovel.ui.download
 
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
@@ -201,7 +202,7 @@ class AnyAdapter(
                             val showDownloadLoading = item.state == DownloadState.IsPending
 
                             val isAPdfDownloading = item.apiName == IMPORT_SOURCE_PDF && item.state == DownloadState.IsDownloading
-                            downloadUpdateLoading.isVisible = showDownloadLoading || isAPdfDownloading
+                            downloadUpdateLoading.isVisible = showDownloadLoading
 
                             val epubSize = getKey(DOWNLOAD_EPUB_SIZE, item.id.toString()) ?: 0
                             val diff = item.downloadedCount - epubSize
@@ -245,7 +246,7 @@ class AnyAdapter(
             is DownloadResultCompactBinding -> {
                 val card = item as DownloadFragment.DownloadDataLoaded
                 view.apply {
-                    downloadHolder.isGone = card.isImported
+                    downloadHolder.isGone = card.isImported && (card.apiName != IMPORT_SOURCE_PDF || card.downloadedTotal == card.downloadedCount)
                     val same = imageText.text == card.name
                     backgroundCard.apply {
                         setOnClickListener {
@@ -284,7 +285,7 @@ class AnyAdapter(
                         max = card.downloadedTotal.toInt() * 100
 
                         // shitty check for non changed
-                        if (same) {
+                        if (same || imageText.text.isEmpty()) {//the first time, imageText.text is empty
                             val animation: ObjectAnimator = ObjectAnimator.ofInt(
                                 this,
                                 "progress",
@@ -339,7 +340,7 @@ class AnyAdapter(
                             DownloadState.IsDownloading -> downloadViewModel.pause(card)
                             DownloadState.IsPaused -> downloadViewModel.resume(card)
                             DownloadState.IsPending -> {}
-                            else -> downloadViewModel.refreshCard(card)
+                            else -> downloadViewModel.refreshCard(card)//this also resume download of imported pdfs
                         }
                     }
 
