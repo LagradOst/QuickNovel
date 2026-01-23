@@ -190,7 +190,10 @@ class AnyAdapter(
                                     coverHeight
                                 )
                                 setOnClickListener {
-                                    downloadViewModel.readEpub(item)
+                                    if(item.downloadedCount != item.downloadedTotal)
+                                        downloadViewModel.refreshCard(item)
+                                    else
+                                        downloadViewModel.readEpub(item)
                                 }
                                 setOnLongClickListener {
                                     downloadViewModel.showMetadata(item)
@@ -201,8 +204,8 @@ class AnyAdapter(
                             downloadProgressbarIndeterment.isVisible = item.generating
                             val showDownloadLoading = item.state == DownloadState.IsPending
 
-                            val isAPdfDownloading = item.apiName == IMPORT_SOURCE_PDF && item.state == DownloadState.IsDownloading
-                            downloadUpdateLoading.isVisible = showDownloadLoading
+                            val isAPdfDownloading = item.apiName == IMPORT_SOURCE_PDF && (item.downloadedTotal != item.downloadedCount)
+                            downloadUpdateLoading.isVisible = showDownloadLoading || isAPdfDownloading
 
                             val epubSize = getKey(DOWNLOAD_EPUB_SIZE, item.id.toString()) ?: 0
                             val diff = item.downloadedCount - epubSize

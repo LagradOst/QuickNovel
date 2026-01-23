@@ -377,11 +377,11 @@ object BookDownloader2Helper {
                             value = total to total
                         }
                     }
-                   else
-                       if (epub.length() > LOCAL_EPUB_MIN_SIZE)
-                           value = 1 to 1
-                       else
-                           value = 0 to 0
+                    else
+                        if (epub.length() > LOCAL_EPUB_MIN_SIZE)
+                            value = 1 to 1
+                        else
+                            value = 0 to 0
 
                     value
                 } else {
@@ -1765,7 +1765,7 @@ object BookDownloader2 {
         val document:PDDocument = context.contentResolver.openInputStream(data).use { inputStream ->
             PDDocument.load(inputStream)
         }?:run{
-            showToast(context.getString(R.string.failed), 1000)
+            showToast(R.string.failed, Toast.LENGTH_LONG)
             return
         }
 
@@ -1857,58 +1857,58 @@ object BookDownloader2 {
                 }
                 else if(currentState == DownloadState.IsStopped)
                     break
-                else {
-                    val page = document.getPage(pageIdx - 1)
-                    val bodyText = pdfPageWithoutHAndF(page,stripper)
 
-                    //if there's text, include
-                    if (bodyText.isNotBlank())
-                        currentChapterText.append(bodyText.textToHtmlChapter())
+                val page = document.getPage(pageIdx - 1)
+                val bodyText = pdfPageWithoutHAndF(page,stripper)
 
-                    //get and save images from page
-                    val resources = page.resources
-                    for (objName in resources.xObjectNames)
-                        if (resources.isImageXObject(objName))//is necessary for correct imageCount
-                            processImageObject(
-                                resources.getXObject(objName) as PDImageXObject,
-                                tempFolder,
-                                currentChapterText,
-                                apiName, sAuthor, sName,
-                                fileDir,
-                                imageCount
-                            )?.let { imageCount++ }
+                //if there's text, include
+                if (bodyText.isNotBlank())
+                    currentChapterText.append(bodyText.textToHtmlChapter())
 
-                    // collect N pages as sections to chapters
-                    if (pageIdx % pagesPerChapter == 0 || pageIdx == totalPages) {
-                        val sectionTitle = "${context.getString(R.string.chapter)} $chapterCount"
-                        val htmlContent = createHtmlWrapper(sectionTitle, currentChapterText.toString())
+                //get and save images from page
+                val resources = page.resources
+                for (objName in resources.xObjectNames)
+                    if (resources.isImageXObject(objName))//is necessary for correct imageCount
+                        processImageObject(
+                            resources.getXObject(objName) as PDImageXObject,
+                            tempFolder,
+                            currentChapterText,
+                            apiName, sAuthor, sName,
+                            fileDir,
+                            imageCount
+                        )?.let { imageCount++ }
 
-                        //add chapter to the book
-                        File(tempFolder, "chapter$chapterCount.xhtml").writeText(htmlContent)
+                // collect N pages as sections to chapters
+                if (pageIdx % pagesPerChapter == 0 || pageIdx == totalPages) {
+                    val sectionTitle = "${context.getString(R.string.chapter)} $chapterCount"
+                    val htmlContent = createHtmlWrapper(sectionTitle, currentChapterText.toString())
 
-                        //change notifications
-                        //import still in progress
-                        if(pageIdx < totalPages)
-                        {
-                            changeDownload(id) {
-                                this.progress = chapterCount.toLong()
-                                this.downloaded = chapterCount.toLong()
-                            }?.let {
-                                createNotification(id, load, it)
-                            }
+                    //add chapter to the book
+                    File(tempFolder, "chapter$chapterCount.xhtml").writeText(htmlContent)
+
+                    //change notifications
+                    //import still in progress
+                    if(pageIdx < totalPages)
+                    {
+                        changeDownload(id) {
+                            this.progress = chapterCount.toLong()
+                            this.downloaded = chapterCount.toLong()
+                        }?.let {
+                            createNotification(id, load, it)
                         }
-                        else //finally
-                        {
-                            currentState = DownloadState.IsDone
-                            break
-                        }
-
-                        //next chapter
-                        currentChapterText.clear()
-                        chapterCount++
                     }
-                    pageIdx++
+                    else //finally
+                    {
+                        currentState = DownloadState.IsDone
+                        break
+                    }
+
+                    //next chapter
+                    currentChapterText.clear()
+                    chapterCount++
                 }
+                pageIdx++
+
             }
 
             if(currentState == DownloadState.IsDone)
