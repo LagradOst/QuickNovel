@@ -190,7 +190,7 @@ class AnyAdapter(
                                     coverHeight
                                 )
                                 setOnClickListener {
-                                    if(item.downloadedCount != item.downloadedTotal)
+                                    if(item.downloadedCount != item.downloadedTotal && item.apiName == IMPORT_SOURCE_PDF)
                                         downloadViewModel.refreshCard(item)
                                     else
                                         downloadViewModel.readEpub(item)
