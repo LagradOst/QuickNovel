@@ -2,7 +2,6 @@ package com.lagradost.quicknovel.ui.download
 
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
@@ -10,7 +9,7 @@ import android.widget.LinearLayout
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
-import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
+import com.lagradost.quicknovel.BookDownloader2.preloadPartialImportedPdf
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
 import com.lagradost.quicknovel.DownloadState
@@ -190,10 +189,15 @@ class AnyAdapter(
                                     coverHeight
                                 )
                                 setOnClickListener {
-                                    if(item.downloadedCount != item.downloadedTotal && item.apiName == IMPORT_SOURCE_PDF)
-                                        downloadViewModel.refreshCard(item)
-                                    else
-                                        downloadViewModel.readEpub(item)
+                                    if(item.apiName == IMPORT_SOURCE_PDF && item.downloadedCount < item.downloadedTotal)
+                                    {
+                                        preloadPartialImportedPdf(item, context)
+                                        if(item.state != DownloadState.IsDownloading && item.state != DownloadState.IsPaused)
+                                        {
+                                            downloadViewModel.refreshCard(item)
+                                        }
+                                    }
+                                    downloadViewModel.readEpub(item)
                                 }
                                 setOnLongClickListener {
                                     downloadViewModel.showMetadata(item)
