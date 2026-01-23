@@ -257,6 +257,8 @@ class AnyAdapter(
                     val same = imageText.text == card.name
                     backgroundCard.apply {
                         setOnClickListener {
+                            if(card.apiName == IMPORT_SOURCE_PDF && card.downloadedCount < card.downloadedTotal)
+                                preloadPartialImportedPdf(card, context)
                             downloadViewModel.readEpub(card)
                         }
                         setOnLongClickListener {
