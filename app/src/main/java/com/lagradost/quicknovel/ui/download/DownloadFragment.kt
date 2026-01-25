@@ -13,6 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.fasterxml.jackson.annotation.JsonProperty
@@ -24,6 +25,7 @@ import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.BookDownloader2Helper
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
@@ -114,7 +116,7 @@ class DownloadFragment : Fragment() {
             return id
         }
 
-        val isImported: Boolean get() = apiName == IMPORT_SOURCE
+        val isImported: Boolean get() = (apiName == IMPORT_SOURCE || apiName ==IMPORT_SOURCE_PDF)
     }
 
     override fun onCreateView(
@@ -143,6 +145,10 @@ class DownloadFragment : Fragment() {
             binding.downloadCardSpace.spanCount = spanCountPortrait
             binding.bookmarkCardSpace.spanCount = spanCountPortrait
         }*/
+    }
+
+    override fun onResume() {
+        super.onResume()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -320,5 +326,6 @@ class DownloadFragment : Fragment() {
                 bookmarkAdapter.submitList(cards.map { it.copy() })
             }
         }*/
+
     }
 }

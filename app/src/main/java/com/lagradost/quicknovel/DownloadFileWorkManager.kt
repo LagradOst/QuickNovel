@@ -1,13 +1,17 @@
 package com.lagradost.quicknovel
 
 import android.content.Context
+import android.util.Log
 import androidx.annotation.WorkerThread
+import androidx.core.net.toUri
 import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.download.DownloadViewModel
 import com.lagradost.quicknovel.util.Apis
@@ -93,7 +97,7 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
             load: LoadResponse,
             context: Context
         ) {
-            if(load.apiName == BookDownloader2Helper.IMPORT_SOURCE) {
+            if(load.apiName == IMPORT_SOURCE || load.apiName == IMPORT_SOURCE_PDF) {
                 return
             }
             startDownload(load, context)
@@ -115,7 +119,10 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
                     }
 
                     is DownloadFragment.DownloadDataLoaded -> {
-                        BookDownloader2.downloadWorkThread(data)
+                        if(data.apiName == IMPORT_SOURCE_PDF)
+                            BookDownloader2.downloadPDFWorkThread(data.source.toUri(), context)
+                        else
+                            BookDownloader2.downloadWorkThread(data)
                     }
 
                     else -> return Result.failure()

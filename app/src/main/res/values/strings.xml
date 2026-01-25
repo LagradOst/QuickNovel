@@ -50,7 +50,6 @@
     <string name="poster_descript">Poster</string>
     <string name="sort_downloads_descript">Sort Downloads</string>
     <string name="search_roviders">Search Providers</string>
-
     <string name="search">Search</string>
     <string name="general">General</string>
     <string name="info">Info</string>
@@ -114,12 +113,14 @@
 
 
     <!-- read -->
+    <string name="read_epub">Read epub</string>
     <string name="type_reading">Reading</string>
     <string name="type_on_hold">On-Hold</string>
     <string name="type_completed">Completed</string>
     <string name="type_dropped">Dropped</string>
     <string name="type_plan_to_read">Plan to Read</string>
     <string name="type_none">None</string>
+    <string name="has_read">Has read</string>
 
     <string name="read_display_settings">Settings</string>
     <string name="read_text_size">Text</string>

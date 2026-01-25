@@ -1292,6 +1292,11 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 }
             }
 
+            binding.readOnlineTranslationSwitch.isChecked = viewModel.mlUseOnlineTransaltion
+            binding.readOnlineTranslationSwitch.setOnCheckedChangeListener { _, isChecked ->
+                viewModel.mlUseOnlineTransaltion = isChecked
+            }
+
             binding.readApplyTranslation.setOnClickListener { view ->
                 if (view == null) return@setOnClickListener
                 ioSafe {

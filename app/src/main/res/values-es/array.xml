@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="RatingFormat">
+        <item>5 Estrellas (4.43★)</item>
+        <item>10 Puntos (5/10)</item>
+        <item>10 Puntos decimales (5.5/10.0)</item>
+        <item>100 Puntos (55/100)</item>
+    </string-array>
+    <string-array name="RatingFormatData">
+        <item>star</item>
+        <item>point10</item>
+        <item>point10d</item>
+        <item>point100</item>
+    </string-array>
+
+    <string-array name="GridFormat">
+        <item>Malla</item>
+        <item>Lista</item>
+        <item>Lista compacta</item>
+    </string-array>
+    <string-array name="GridFormatData">
+        <item>grid</item>
+        <item>list</item>
+        <item>compact_list</item>
+    </string-array>
+
+    <string-array name="DownloadGridFormat">
+        <item>Malla</item>
+        <item>Lista</item>
+    </string-array>
+    <string-array name="DownloadGridFormatData">
+        <item>grid</item>
+        <item>list</item>
+    </string-array>
+
+    <string-array name="themes_names">
+        <item>Oscuro</item>
+        <item>Gris</item>
+        <item>Amoled</item>
+        <item>Flashbang</item>
+        <item>Material You</item>
+    </string-array>
+    <string-array name="themes_names_values">
+        <item>AmoledLight</item>
+        <item>Black</item>
+        <item>Amoled</item>
+        <item>Light</item>
+        <item>Monet</item>
+    </string-array>
+
+    <string-array name="themes_overlay_names">
+        <item>Normal</item>
+        <item>Carnation Pink</item>
+        <item>Verde oscuro</item>
+        <item>Maroon</item>
+        <item>Navy Blue</item>
+        <item>Gris</item>
+        <item>Blanco</item>
+        <item>Marrón</item>
+        <item>Cool</item>
+        <item>Fuego</item>
+        <item>Burple</item>
+        <item>Verde</item>
+        <item>Manzana</item>
+        <item>Banana</item>
+        <item>Fiesta</item>
+        <item>Pink Pain</item>
+        <item>Material You</item>
+        <item>Material You (Secondary)</item>
+    </string-array>
+    <string-array name="themes_overlay_names_values">
+        <item>Normal</item>
+        <item>CarnationPink</item>
+        <item>DarkGreen</item>
+        <item>Maroon</item>
+        <item>NavyBlue</item>
+        <item>Grey</item>
+        <item>White</item>
+        <item>Brown</item>
+        <item>Blue</item>
+        <item>Red</item>
+        <item>Purple</item>
+        <item>Green</item>
+        <item>GreenApple</item>
+        <item>Banana</item>
+        <item>Party</item>
+        <item>Pink</item>
+        <item>Monet</item>
+        <item>Monet2</item>
+    </string-array>
+
+    <array name="readerBgColors">
+        <item>@color/readerBackground</item>
+        <item>#2B2C30</item>
+        <item>#F7DFC6</item>
+        <item>#000</item>
+        <item>#FFF</item>
+    </array>
+    <array name="readerTextColors">
+        <item>@color/readerTextColor</item>
+        <item>@color/readerTextColor</item>
+        <item>#593100</item>
+        <item>@color/readerTextColor</item>
+        <item>#111</item>
+    </array>
+
+    <string-array name="ThemesOverlayNames">
+        <item>Normal</item>
+        <item>Carnation Pink</item>
+        <item>Orange</item>
+        <item>Dark Green</item>
+        <item>Maroon</item>
+        <item>Navy Blue</item>
+        <item>Grey</item>
+        <item>White</item>
+        <item>Brown</item>
+        <item>Banana</item>
+        <item>Cool</item>
+        <item>Fire</item>
+        <!-- <item>Burple</item>-->
+        <item>Green</item>
+        <item>Apple</item>
+    </string-array>
+    <string-array name="ThemesOverlayValues">
+        <item>Normal</item>
+        <item>CarnationPink</item>
+        <item>Orange</item>
+        <item>DarkGreen</item>
+        <item>Maroon</item>
+        <item>NavyBlue</item>
+        <item>Grey</item>
+        <item>White</item>
+        <item>Brown</item>
+        <item>Banana</item>
+        <item>Blue</item>
+        <item>Red</item>
+        <!--   <item>Purple</item> -->
+        <item>Green</item>
+        <item>GreenApple</item>
+    </string-array>
+</resources>

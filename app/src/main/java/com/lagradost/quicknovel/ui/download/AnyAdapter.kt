@@ -2,6 +2,7 @@ package com.lagradost.quicknovel.ui.download
 
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
@@ -9,8 +10,11 @@ import android.widget.LinearLayout
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
 import com.lagradost.quicknovel.DownloadState
+import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.DownloadImportBinding
 import com.lagradost.quicknovel.databinding.DownloadImportCardBinding
@@ -20,6 +24,8 @@ import com.lagradost.quicknovel.databinding.HistoryResultCompactBinding
 import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
+import com.lagradost.quicknovel.ui.download.AnyAdapter.Companion.DOWNLOAD_DATA_LOADED
+import com.lagradost.quicknovel.ui.download.AnyAdapter.Companion.RESULT_CACHED
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import com.lagradost.quicknovel.util.UIHelper.setImage
@@ -157,7 +163,7 @@ class AnyAdapter(
                 val card = item as ResultCached
                 view.apply {
                     imageText.text = card.name
-                    historyExtraText.text = "${card.totalChapters} Chapters"
+                    historyExtraText.text = "${card.totalChapters} ${root.context.getString(R.string.read_action_chapters)}"
                     imageView.setImage(card.poster)
 
                     historyPlay.setOnClickListener {
@@ -187,7 +193,10 @@ class AnyAdapter(
                                     coverHeight
                                 )
                                 setOnClickListener {
-                                    downloadViewModel.readEpub(item)
+                                    if(item.downloadedCount != item.downloadedTotal)
+                                        downloadViewModel.refreshCard(item)
+                                    else
+                                        downloadViewModel.readEpub(item)
                                 }
                                 setOnLongClickListener {
                                     downloadViewModel.showMetadata(item)
@@ -197,8 +206,9 @@ class AnyAdapter(
 
                             downloadProgressbarIndeterment.isVisible = item.generating
                             val showDownloadLoading = item.state == DownloadState.IsPending
-                            val isAPdfDownloading = item.isImported && item.state == DownloadState.IsDownloading
-                            downloadUpdateLoading.isVisible = (showDownloadLoading && !item.isImported)||isAPdfDownloading
+
+                            val isAPdfDownloading = item.apiName == IMPORT_SOURCE_PDF && (item.downloadedTotal != item.downloadedCount)
+                            downloadUpdateLoading.isVisible = showDownloadLoading || isAPdfDownloading
 
                             val epubSize = getKey(DOWNLOAD_EPUB_SIZE, item.id.toString()) ?: 0
                             val diff = item.downloadedCount - epubSize
@@ -207,8 +217,7 @@ class AnyAdapter(
                             imageText.text = item.name
 
                             imageView.alpha = if (isAPdfDownloading) 0.6f else 1.0f
-                            //avoid flickering
-                            if(!isAPdfDownloading || imageView.drawable == null) imageView.setImage(item.image)
+                            imageView.setImage(item.image)
                         }
                     }
 
@@ -243,7 +252,7 @@ class AnyAdapter(
             is DownloadResultCompactBinding -> {
                 val card = item as DownloadFragment.DownloadDataLoaded
                 view.apply {
-                    downloadHolder.isGone = card.isImported
+                    downloadHolder.isGone = card.isImported && (card.apiName != IMPORT_SOURCE_PDF || card.downloadedTotal == card.downloadedCount)
                     val same = imageText.text == card.name
                     backgroundCard.apply {
                         setOnClickListener {
@@ -282,7 +291,7 @@ class AnyAdapter(
                         max = card.downloadedTotal.toInt() * 100
 
                         // shitty check for non changed
-                        if (same) {
+                        if (same || imageText.text.isEmpty()) {//the first time, imageText.text is empty
                             val animation: ObjectAnimator = ObjectAnimator.ofInt(
                                 this,
                                 "progress",
@@ -337,7 +346,7 @@ class AnyAdapter(
                             DownloadState.IsDownloading -> downloadViewModel.pause(card)
                             DownloadState.IsPaused -> downloadViewModel.resume(card)
                             DownloadState.IsPending -> {}
-                            else -> downloadViewModel.refreshCard(card)
+                            else -> downloadViewModel.refreshCard(card)//this also resume download of imported pdfs
                         }
                     }
 

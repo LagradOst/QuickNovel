@@ -86,6 +86,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
             /* begin language list */
             Triple("", "English", "en"),
             Triple("", "Türkçe", "tr"),
+            Triple("", "Español", "es"),
             /* end language list */
         ).sortedBy { it.second.lowercase() } //ye, we go alphabetical, so ppl don't put their lang on top
 
@@ -512,7 +513,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
             val current =
                 settingsManager.getString(
                     getString(R.string.download_format_key),
-                    prefValues.first()
+                    prefValues[1]//As soon as you install the app, everything is displayed as a list even though it is set to grid. This is because it was previously set to .first()
                 )
 
             activity?.showBottomDialog(

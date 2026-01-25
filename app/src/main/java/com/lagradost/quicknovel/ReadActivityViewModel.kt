@@ -12,6 +12,7 @@ import android.speech.tts.Voice
 import android.text.Spanned
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.result.launch
 import androidx.annotation.WorkerThread
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.toColorInt
@@ -20,6 +21,7 @@ import androidx.core.text.toSpanned
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.request.Disposable
@@ -79,11 +81,13 @@ import io.noties.markwon.html.HtmlPlugin
 import io.noties.markwon.image.AsyncDrawable
 import io.noties.markwon.image.AsyncDrawableSpan
 import io.noties.markwon.image.ImageSizeResolver
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -811,12 +815,10 @@ class ReadActivityViewModel : ViewModel() {
 
                     val asyncDrawables = rendered.getSpans<AsyncDrawableSpan>()
                     for (async in asyncDrawables) {
-                        Log.i("image","before image")
                         async.drawable.result =
                             book.loadImageBitmap(async.drawable.destination)?.toDrawable(
                                 Resources.getSystem()
                             )
-                        Log.i("image","after image")
                         //Log.i("image",async.drawable.result.toString())
 
                     }
@@ -1042,8 +1044,7 @@ class ReadActivityViewModel : ViewModel() {
             val lower = cIndex - chapterPaddingBottom
             val upper = cIndex + chapterPaddingTop
 
-            val keys =
-                chapterData.keys.toTypedArray() // deep copy it to avoid ConcurrentModificationException
+            val keys = chapterData.keys.toTypedArray() // deep copy it to avoid ConcurrentModificationException
 
             // remove all irrelevant cache so we do not translate outdated shit
             for (key in keys) {
@@ -1053,7 +1054,8 @@ class ReadActivityViewModel : ViewModel() {
             }
 
             // update the rem cache
-            for (entry in chapterData.entries) {
+            for (entry in chapterData.entries)
+            {
                 val value = entry.value
                 if (value !is Resource.Success) continue
                 val success = value.value
@@ -1100,7 +1102,7 @@ class ReadActivityViewModel : ViewModel() {
             mlTranslator?.closeQuietly()
             mlTranslator = null
 
-            if (settings.isInvalid() || settings.useOnlineTranslation) {
+            if (settings.isInvalid()) {
                 mlSettings = settings
                 return
             }
@@ -1115,8 +1117,8 @@ class ReadActivityViewModel : ViewModel() {
 
             if (allowDownload) {
                 Tasks.await(
-                    translator.downloadModelIfNeeded(), 60L, TimeUnit.SECONDS
-                )
+                    translator.downloadModelIfNeeded(), 120L, TimeUnit.SECONDS
+                )//for bad wifi, like my 2mb/s one TT
             }
 
             mlSettings = settings
@@ -1240,7 +1242,7 @@ class ReadActivityViewModel : ViewModel() {
         _title.postValue(book.title())
 
         updateChapters()
-        val imageLoader: ImageLoader = SingletonImageLoader.get(context)
+        val imageLoader : coil3.ImageLoader = coil3.SingletonImageLoader.get(context)
 
         val coilStore = object : CoilStore {
             override fun load(drawable: AsyncDrawable): ImageRequest {
@@ -1400,13 +1402,11 @@ class ReadActivityViewModel : ViewModel() {
                         index++
                     }
                 }
+
+                loadIndividualChapter(index)
                 while (isActive && currentTTSStatus != TTSHelper.TTSStatus.IsStopped) {
                     val lines =
-                        when (val currentData =
-                            chapterMutex.withLock { chapterData[index] } ?: run {
-                                loadIndividualChapter(index)
-                                chapterMutex.withLock { chapterData[index] }
-                            }) {
+                        when (val currentData = chapterMutex.withLock { chapterData[index]}) {
                             null -> {
                                 showToast("Got null data")
                                 break
@@ -1447,6 +1447,12 @@ class ReadActivityViewModel : ViewModel() {
 
                     updateIndex(index)
 
+                    //preload next chapter
+                    viewModelScope.launch(Dispatchers.IO) {
+                        val exists = chapterMutex.withLock { chapterData[index + 1] is Resource.Success }
+                        if (!exists)
+                            loadIndividualChapter(index + 1)
+                    }
                     // speak all lines
                     while (ttsInnerIndex < lines.size && ttsInnerIndex >= 0) {
                         ensureActive()
@@ -1713,7 +1719,7 @@ class ReadActivityViewModel : ViewModel() {
         updateIndex(visibility.lastInMemory.index)
     }
 
-    // FUCK ANDROID WITH ALL MY HEART / i know TT
+    // FUCK ANDROID WITH ALL MY HEART
     // SEE https://stackoverflow.com/questions/45960265/android-o-oreo-8-and-higher-media-buttons-issue WHY
     private fun playDummySound() {
         val act = activity ?: return

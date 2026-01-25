@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
+import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.HistoryResultCompactBinding
 import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
@@ -26,7 +27,7 @@ class HistoryAdapter2(private val viewModel: HistoryViewModel) :
 
         binding.apply {
             imageText.text = item.name
-            historyExtraText.text = "${item.totalChapters} Chapters"
+            historyExtraText.text = "${item.totalChapters} " + root.context.getString(R.string.read_action_chapters)
             imageView.setImage(item.poster)
 
             historyPlay.setOnClickListener {
