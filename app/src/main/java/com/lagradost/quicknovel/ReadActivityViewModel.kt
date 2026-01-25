@@ -819,8 +819,6 @@ class ReadActivityViewModel : ViewModel() {
                             book.loadImageBitmap(async.drawable.destination)?.toDrawable(
                                 Resources.getSystem()
                             )
-                        //Log.i("image",async.drawable.result.toString())
-
                     }
 
                     // translation may strip stuff, idk how to solve that in a clean way atm
@@ -1054,8 +1052,7 @@ class ReadActivityViewModel : ViewModel() {
             }
 
             // update the rem cache
-            for (entry in chapterData.entries)
-            {
+            for (entry in chapterData.entries) {
                 val value = entry.value
                 if (value !is Resource.Success) continue
                 val success = value.value
@@ -1242,7 +1239,7 @@ class ReadActivityViewModel : ViewModel() {
         _title.postValue(book.title())
 
         updateChapters()
-        val imageLoader : coil3.ImageLoader = coil3.SingletonImageLoader.get(context)
+        val imageLoader: ImageLoader = SingletonImageLoader.get(context)
 
         val coilStore = object : CoilStore {
             override fun load(drawable: AsyncDrawable): ImageRequest {

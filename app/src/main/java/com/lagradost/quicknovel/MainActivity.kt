@@ -754,8 +754,6 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-
-
     fun test() {
         // val response = app.get("https://ranobes.net/up/a-bored-lich/936969-1.html")
         // println(response.text)

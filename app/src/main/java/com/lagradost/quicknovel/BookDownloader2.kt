@@ -377,11 +377,11 @@ object BookDownloader2Helper {
                             value = total to total
                         }
                     }
-                   else
-                       if (epub.length() > LOCAL_EPUB_MIN_SIZE)
-                           value = 1 to 1
-                       else
-                           value = 0 to 0
+                    else
+                        if (epub.length() > LOCAL_EPUB_MIN_SIZE)
+                            value = 1 to 1
+                        else
+                            value = 0 to 0
 
                     value
                 } else {
@@ -1937,6 +1937,8 @@ object BookDownloader2 {
                     EpubWriter().write(book, fos)
                 }
                 setSuffixData(load, apiName)
+
+
                 changeDownload(id) {
                     state = DownloadState.IsDone
                     this.progress =this.total
@@ -1958,6 +1960,47 @@ object BookDownloader2 {
             currentDownloadsMutex.withLock { currentDownloads -= id }
             //delete temp
             tempFolder.deleteRecursively()
+        }
+    }
+
+    fun preloadPartialImportedPdf(bk: DownloadFragment.DownloadDataLoaded, context:Context)
+    {
+        try
+        {
+            val finalBook = File(File(context.filesDir, getDirectory(bk.apiName, bk.author?:"", bk.name)), LOCAL_EPUB)
+            if(finalBook.exists()) finalBook.delete()
+            val tempFolder = File(context.cacheDir, "temp_${bk.id}")
+            val book = EpubBook().apply {
+                metadata.addTitle(bk.name)
+                metadata.addAuthor(Author(bk.author))
+            }
+            tempFolder.listFiles()?.let{
+                for((i,file) in it.withIndex())
+                    if(file.name.contains("img_"))
+                    {
+                        val res = Resource(file.readBytes(), file.name)
+                        book.addResource(res)
+                        if(i == 0) book.coverImage = res
+                    }
+            }
+
+            //use twice, to sort chapters
+            tempFolder.listFiles { _, name -> name.startsWith("chapter") }?.sortedBy {
+                it.name.filter{char -> char.isDigit()}.toInt()
+            }?.forEach { file->
+                val res = Resource(file.readBytes(), file.name)
+                book.addSection("Chapter ${file.name.replace("chapter", "").replace(".xhtml","")}", res)
+            }
+
+            finalBook.parentFile?.mkdirs()
+            //save all the book
+            FileOutputStream(finalBook).use{fos->
+                EpubWriter().write(book, fos)
+            }
+        }
+        catch (t: Throwable)
+        {
+            logError(t)
         }
     }
 
