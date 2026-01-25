@@ -12,6 +12,7 @@ import android.speech.tts.Voice
 import android.text.Spanned
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.result.launch
 import androidx.annotation.WorkerThread
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.toColorInt
@@ -20,6 +21,7 @@ import androidx.core.text.toSpanned
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.request.Disposable
@@ -79,11 +81,13 @@ import io.noties.markwon.html.HtmlPlugin
 import io.noties.markwon.image.AsyncDrawable
 import io.noties.markwon.image.AsyncDrawableSpan
 import io.noties.markwon.image.ImageSizeResolver
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -297,6 +301,19 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
             refs.add(ref)
             if (ref.children != null) {
                 refs.addAll(ref.children)
+            }
+        }
+
+        if (refs.size <= 1) {
+            val newRefs = mutableListOf<TOCReference>()
+            data.spine.spineReferences.forEachIndexed { index, spineRef ->
+                if (spineRef.isLinear) {
+                    val res = spineRef.resource
+                    newRefs.add(TOCReference(res.title ?: "Chapter ${index + 1}", res))
+                }
+            }
+            if (newRefs.isNotEmpty()) {
+                refs = newRefs
             }
         }
         data.tableOfContents.tocReferences = refs
@@ -798,10 +815,14 @@ class ReadActivityViewModel : ViewModel() {
 
                     val asyncDrawables = rendered.getSpans<AsyncDrawableSpan>()
                     for (async in asyncDrawables) {
+                        Log.i("image","before image")
                         async.drawable.result =
                             book.loadImageBitmap(async.drawable.destination)?.toDrawable(
                                 Resources.getSystem()
                             )
+                        Log.i("image","after image")
+                        //Log.i("image",async.drawable.result.toString())
+
                     }
 
                     // translation may strip stuff, idk how to solve that in a clean way atm
@@ -984,7 +1005,6 @@ class ReadActivityViewModel : ViewModel() {
             throw MLException(t)
         }
     }
-
 
     @Throws
     suspend fun requireMLDownload(): Boolean {
@@ -1384,13 +1404,11 @@ class ReadActivityViewModel : ViewModel() {
                         index++
                     }
                 }
+
+                loadIndividualChapter(index)
                 while (isActive && currentTTSStatus != TTSHelper.TTSStatus.IsStopped) {
                     val lines =
-                        when (val currentData =
-                            chapterMutex.withLock { chapterData[index] } ?: run {
-                                loadIndividualChapter(index)
-                                chapterMutex.withLock { chapterData[index] }
-                            }) {
+                        when (val currentData = chapterMutex.withLock { chapterData[index]}) {
                             null -> {
                                 showToast("Got null data")
                                 break
@@ -1431,6 +1449,12 @@ class ReadActivityViewModel : ViewModel() {
 
                     updateIndex(index)
 
+                    //preload next chapter
+                    viewModelScope.launch(Dispatchers.IO) {
+                        val exists = chapterMutex.withLock { chapterData[index + 1] is Resource.Success }
+                        if (!exists)
+                            loadIndividualChapter(index + 1)
+                    }
                     // speak all lines
                     while (ttsInnerIndex < lines.size && ttsInnerIndex >= 0) {
                         ensureActive()

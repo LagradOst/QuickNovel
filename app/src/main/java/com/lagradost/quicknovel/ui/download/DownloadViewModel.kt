@@ -1,9 +1,12 @@
 package com.lagradost.quicknovel.ui.download
 
 import android.content.DialogInterface
+import android.net.Uri
+import android.util.Log
 import androidx.annotation.StringRes
 import androidx.annotation.WorkerThread
 import androidx.appcompat.app.AlertDialog
+import androidx.core.net.toUri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -16,13 +19,20 @@ import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.BookDownloader2.currentDownloads
 import com.lagradost.quicknovel.BookDownloader2.currentDownloadsMutex
+import com.lagradost.quicknovel.BookDownloader2.downloadData
 import com.lagradost.quicknovel.BookDownloader2.downloadInfoMutex
 import com.lagradost.quicknovel.BookDownloader2.downloadProgress
 import com.lagradost.quicknovel.BookDownloader2.downloadProgressChanged
+import com.lagradost.quicknovel.BookDownloader2Helper
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
+import com.lagradost.quicknovel.BookDownloader2Helper.generateId
 import com.lagradost.quicknovel.CURRENT_TAB
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
+import com.lagradost.quicknovel.DOWNLOAD_FOLDER
 import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
+import com.lagradost.quicknovel.DOWNLOAD_OFFSET
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
 import com.lagradost.quicknovel.DownloadActionType
@@ -51,6 +61,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.collections.set
 
 const val DEFAULT_SORT = 0
 const val ALPHA_SORT = 1
@@ -170,7 +181,7 @@ class DownloadViewModel : ViewModel() {
 
         val values = currentDownloadsMutex.withLock {
             allValues.filter { card ->
-                val notImported = !card.isImported
+                val notImported = !card.isImported && card.apiName != IMPORT_SOURCE_PDF
                 val canDownload =
                     card.downloadedTotal <= 0 || (card.downloadedCount * 100 / card.downloadedTotal) > 90
                 val notDownloading = !currentDownloads.contains(
@@ -464,6 +475,8 @@ class DownloadViewModel : ViewModel() {
             )
         }
         _pages.postValue(pages)
+
+
     }
 
     private suspend fun getDownloadedCards(): Page = cardsDataMutex.withLock {

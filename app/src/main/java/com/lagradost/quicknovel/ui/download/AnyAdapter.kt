@@ -9,6 +9,8 @@ import android.widget.LinearLayout
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
+import com.lagradost.quicknovel.BookDownloader2.preloadPartialImportedPdf
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.R
@@ -187,6 +189,14 @@ class AnyAdapter(
                                     coverHeight
                                 )
                                 setOnClickListener {
+                                    if(item.apiName == IMPORT_SOURCE_PDF && item.downloadedCount < item.downloadedTotal)
+                                    {
+                                        preloadPartialImportedPdf(item, context)
+                                        if(item.state != DownloadState.IsDownloading && item.state != DownloadState.IsPaused)
+                                        {
+                                            downloadViewModel.refreshCard(item)
+                                        }
+                                    }
                                     downloadViewModel.readEpub(item)
                                 }
                                 setOnLongClickListener {
@@ -197,14 +207,17 @@ class AnyAdapter(
 
                             downloadProgressbarIndeterment.isVisible = item.generating
                             val showDownloadLoading = item.state == DownloadState.IsPending
-                            downloadUpdateLoading.isVisible =
-                                showDownloadLoading && !item.isImported
+
+                            val isAPdfDownloading = item.apiName == IMPORT_SOURCE_PDF && (item.downloadedTotal != item.downloadedCount)
+                            downloadUpdateLoading.isVisible = showDownloadLoading || isAPdfDownloading
 
                             val epubSize = getKey(DOWNLOAD_EPUB_SIZE, item.id.toString()) ?: 0
                             val diff = item.downloadedCount - epubSize
                             imageTextMore.text = "+$diff "
                             imageTextMore.isVisible = diff > 0 && !showDownloadLoading && !item.isImported
                             imageText.text = item.name
+
+                            imageView.alpha = if (isAPdfDownloading) 0.6f else 1.0f
                             imageView.setImage(item.image)
                         }
                     }
@@ -240,10 +253,12 @@ class AnyAdapter(
             is DownloadResultCompactBinding -> {
                 val card = item as DownloadFragment.DownloadDataLoaded
                 view.apply {
-                    downloadHolder.isGone = card.isImported
+                    downloadHolder.isGone = card.isImported && (card.apiName != IMPORT_SOURCE_PDF || card.downloadedTotal == card.downloadedCount)
                     val same = imageText.text == card.name
                     backgroundCard.apply {
                         setOnClickListener {
+                            if(card.apiName == IMPORT_SOURCE_PDF && card.downloadedCount < card.downloadedTotal)
+                                preloadPartialImportedPdf(card, context)
                             downloadViewModel.readEpub(card)
                         }
                         setOnLongClickListener {
@@ -279,7 +294,7 @@ class AnyAdapter(
                         max = card.downloadedTotal.toInt() * 100
 
                         // shitty check for non changed
-                        if (same) {
+                        if (same || imageText.text.isEmpty()) {//the first time, imageText.text is empty
                             val animation: ObjectAnimator = ObjectAnimator.ofInt(
                                 this,
                                 "progress",
@@ -334,7 +349,7 @@ class AnyAdapter(
                             DownloadState.IsDownloading -> downloadViewModel.pause(card)
                             DownloadState.IsPaused -> downloadViewModel.resume(card)
                             DownloadState.IsPending -> {}
-                            else -> downloadViewModel.refreshCard(card)
+                            else -> downloadViewModel.refreshCard(card)//this also resume download of imported pdfs
                         }
                     }
 
