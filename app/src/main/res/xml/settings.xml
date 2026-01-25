@@ -117,7 +117,7 @@
 
     <PreferenceCategory
             android:key="extra"
-            android:title=""
+            android:title="@string/info"
             app:isPreferenceVisible="true">
 
         <Preference
