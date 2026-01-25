@@ -47,15 +47,15 @@ object AppUtils {
         }
     fun String.textToHtmlChapter(): String {
         return this
-            .replace(Regex("([a-záéíóú](\\.{2,})?) \\n([a-z])"), "$1 $3")
+            .replace(Regex("((?<=\\p{Ll}(\\.{2,5})?),?) \\n(?=\\p{Ll})"), " ")
             .split(Regex("\\n"))
             .joinToString("") { paragraph ->
-            if (paragraph.trim().isNotBlank()) {
-                paragraph.split(Regex("(?<=(?<!\\.)\\.)(?=\\s+)"))
-                    .joinToString("") { "<p>${it}</p>" } + "</br>"
-            } else {
-                "</br>"
+                if (paragraph.trim().isNotBlank()) {
+                    paragraph.split(Regex("(?<=(?<!\\.)\\.)(?=\\s+)"))
+                        .joinToString("") { "<p>${it}</p>" } + "</br>"
+                } else {
+                    "</br>"
+                }
             }
-        }
     }
 }

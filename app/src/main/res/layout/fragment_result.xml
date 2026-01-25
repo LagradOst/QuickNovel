@@ -634,7 +634,7 @@ Translator: Rainbow Turtle"
                                             android:layout_marginStart="0dp"
                                             app:icon="@drawable/ic_baseline_menu_book_24"
                                             app:iconSize="20dp"
-                                            android:text="Read epub"
+                                            android:text="@string/read_epub"
                                             android:id="@+id/result_download_generate_epub"
                                             style="@style/WhiteButton"
                                             android:layout_width="50dp" />

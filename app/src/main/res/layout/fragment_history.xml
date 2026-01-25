@@ -15,7 +15,7 @@
                 android:id="@+id/history_toolbar"
                 app:menu="@menu/history_actionbar"
                 android:paddingTop="@dimen/navbarHeight"
-                app:title="History"
+                app:title="@string/history"
                 android:background="?attr/primaryGrayBackground"
                 app:navigationIconTint="?attr/iconColor"
                 app:titleTextColor="?attr/textColor"

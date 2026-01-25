@@ -112,7 +112,7 @@ class MainActivity : AppCompatActivity() {
             OkHttpClient()
                 .newBuilder()
                 .ignoreAllSSLErrors()
-                .readTimeout(30, TimeUnit.SECONDS)//to online translations
+                .readTimeout(50L, TimeUnit.SECONDS)//to online translations
                 .build(),
             responseParser = object : ResponseParser {
                 val mapper: ObjectMapper = jacksonObjectMapper().configure(
@@ -345,6 +345,7 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    //imports area -------------------------------
     private val epubPathPicker =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             safe {
@@ -656,7 +657,8 @@ class MainActivity : AppCompatActivity() {
                             hidePreviewPopupDialog()
                         }
 
-                        resultviewPreviewDescription.text = d.synopsis ?: "No data"
+                        resultviewPreviewDescription.text = d.synopsis ?: getString(R.string.no_data)
+
                         resultviewPreviewDescription.setOnClickListener { view ->
                             view.context?.let { ctx ->
                                 val builder: AlertDialog.Builder =
@@ -682,7 +684,7 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         if (d is StreamResponse) {
-                            resultviewPreviewMetaChapters.text = "${d.data.size} Chapters"
+                            resultviewPreviewMetaChapters.text = "${d.data.size} ${getString(R.string.chapter_sort)}"
                             resultviewPreviewMetaChapters.isVisible = d.data.isNotEmpty()
                         } else {
                             resultviewPreviewMetaChapters.isVisible = false
@@ -751,8 +753,6 @@ class MainActivity : AppCompatActivity() {
             }
         )
     }
-
-
 
     fun test() {
         // val response = app.get("https://ranobes.net/up/a-bored-lich/936969-1.html")
