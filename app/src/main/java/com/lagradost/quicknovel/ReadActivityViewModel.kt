@@ -1099,7 +1099,7 @@ class ReadActivityViewModel : ViewModel() {
             mlTranslator?.closeQuietly()
             mlTranslator = null
 
-            if (settings.isInvalid()) {
+            if (settings.isInvalid() || settings.useOnlineTranslation) {
                 mlSettings = settings
                 return
             }
