@@ -46,7 +46,6 @@ class FreewebnovelProvider : LibReadProvider() {
                     ""
                 )
         )
-        document.selectFirst("p")?.remove() // .m-read .txt sub, .m-read .txt p:nth-child(1)
         /*for (e in document.select("p")) {
             if (e.text().contains("The source of this ") || e.selectFirst("a")?.hasAttr("href") == true) {
                 e.remove()
