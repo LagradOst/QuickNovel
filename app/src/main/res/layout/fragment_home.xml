@@ -16,7 +16,7 @@
                 android:id="@+id/home_toolbar"
                 app:menu="@menu/home_actionbar"
                 android:paddingTop="@dimen/navbarHeight"
-                app:title="Explore"
+                app:title="@string/explore"
                 app:navigationIconTint="?attr/iconColor"
                 app:titleTextColor="?attr/textColor"
                 android:background="?attr/primaryGrayBackground"

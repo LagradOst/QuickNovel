@@ -9,10 +9,13 @@ import android.widget.LinearLayout
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.BookDownloader2.preloadPartialImportedPdf
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
 import com.lagradost.quicknovel.DownloadState
+import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.DownloadImportBinding
 import com.lagradost.quicknovel.databinding.DownloadImportCardBinding
@@ -22,6 +25,8 @@ import com.lagradost.quicknovel.databinding.HistoryResultCompactBinding
 import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
+import com.lagradost.quicknovel.ui.download.AnyAdapter.Companion.DOWNLOAD_DATA_LOADED
+import com.lagradost.quicknovel.ui.download.AnyAdapter.Companion.RESULT_CACHED
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import com.lagradost.quicknovel.util.UIHelper.setImage
@@ -159,7 +164,7 @@ class AnyAdapter(
                 val card = item as ResultCached
                 view.apply {
                     imageText.text = card.name
-                    historyExtraText.text = "${card.totalChapters} Chapters"
+                    historyExtraText.text = "${card.totalChapters} ${root.context.getString(R.string.read_action_chapters)}"
                     imageView.setImage(card.poster)
 
                     historyPlay.setOnClickListener {

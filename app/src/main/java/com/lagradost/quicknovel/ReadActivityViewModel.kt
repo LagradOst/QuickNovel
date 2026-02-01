@@ -815,14 +815,10 @@ class ReadActivityViewModel : ViewModel() {
 
                     val asyncDrawables = rendered.getSpans<AsyncDrawableSpan>()
                     for (async in asyncDrawables) {
-                        Log.i("image","before image")
                         async.drawable.result =
                             book.loadImageBitmap(async.drawable.destination)?.toDrawable(
                                 Resources.getSystem()
                             )
-                        Log.i("image","after image")
-                        //Log.i("image",async.drawable.result.toString())
-
                     }
 
                     // translation may strip stuff, idk how to solve that in a clean way atm
@@ -1046,8 +1042,7 @@ class ReadActivityViewModel : ViewModel() {
             val lower = cIndex - chapterPaddingBottom
             val upper = cIndex + chapterPaddingTop
 
-            val keys =
-                chapterData.keys.toTypedArray() // deep copy it to avoid ConcurrentModificationException
+            val keys = chapterData.keys.toTypedArray() // deep copy it to avoid ConcurrentModificationException
 
             // remove all irrelevant cache so we do not translate outdated shit
             for (key in keys) {
@@ -1119,8 +1114,8 @@ class ReadActivityViewModel : ViewModel() {
 
             if (allowDownload) {
                 Tasks.await(
-                    translator.downloadModelIfNeeded(), 60L, TimeUnit.SECONDS
-                )
+                    translator.downloadModelIfNeeded(), 120L, TimeUnit.SECONDS
+                )//for bad wifi, like my 2mb/s one TT
             }
 
             mlSettings = settings
@@ -1721,7 +1716,7 @@ class ReadActivityViewModel : ViewModel() {
         updateIndex(visibility.lastInMemory.index)
     }
 
-    // FUCK ANDROID WITH ALL MY HEART / i know TT
+    // FUCK ANDROID WITH ALL MY HEART
     // SEE https://stackoverflow.com/questions/45960265/android-o-oreo-8-and-higher-media-buttons-issue WHY
     private fun playDummySound() {
         val act = activity ?: return
