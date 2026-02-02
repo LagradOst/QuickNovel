@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import android.graphics.ColorSpace.match
+import android.util.Base64
 import android.util.Log
 import android.webkit.CookieManager
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
@@ -19,18 +20,14 @@ import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.SearchResponse
-import com.lagradost.quicknovel.USER_AGENT
-import com.lagradost.quicknovel.network.CloudflareKiller
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.toRate
 import com.lagradost.quicknovel.util.AppUtils.parseJson
-import okhttp3.OkHttpClient
-import org.json.JSONObject
-import java.util.concurrent.TimeUnit
-import kotlin.jvm.java
-import kotlin.reflect.KClass
+import javax.crypto.Cipher
+import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.SecretKeySpec
 
 
 class WtrLabProvider : MainAPI() {
@@ -90,7 +87,6 @@ class WtrLabProvider : MainAPI() {
                 ?: throw ErrorLoadingException("No title")
         val jsonNode = doc.selectFirst("#__NEXT_DATA__")
         val json = jsonNode?.data() ?: throw ErrorLoadingException("no chapters")
-
         val chaptersJson = parseJson<ResultJsonResponse.Root>(json)
 
 
@@ -153,26 +149,15 @@ class WtrLabProvider : MainAPI() {
                 "language" to "en",
                 "raw_id" to chapter.serieData.rawId.toString(),
                 "retry" to "false",
-                "translate" to "ai", // translate=ai just returns a job and I am too lazy to fix that
+                "translate" to "web", // translate=ai just returns a job and I am too lazy to fix that
                 )
         ).parsed<LoadJsonResponse2.Root>()
-        val getTerm = Regex("※(\\d+)⛬")
-        for (body in root.data.data.body) {
-            if (!body.contains("window._taboola")) {
-                val existTerm = getTerm.find(body)
-                val indexTerm = existTerm?.groupValues?.get(0)?.toInt()
-                println(existTerm)
-                println(indexTerm)
-                println(body)
-                text.append("<p>")
-                if (indexTerm != null) {
-                    val replacement = root.data.data.glosarryData.terms.getOrNull(indexTerm + 1) ?: ""
-                    text.append(body.replace(Regex("※\\d+⛬"), replacement.toString()))
-                } else {
-                    text.append(body)
-                }
-                text.append("</p>")
-            }
+        val paragraphs = decryptContent(root.data.data.body)
+
+        for (p in paragraphs) {
+            text.append("<p>")
+            text.append(p)
+            text.append("</p>")
         }
 
         /*for (select in doc.select(".chapter-body>p")) {
@@ -183,6 +168,50 @@ class WtrLabProvider : MainAPI() {
 
         return text.toString()//doc.selectFirst(".chapter-body")?.html()
     }
+
+    fun decryptContent(encryptedText: String): List<String> {
+        if (encryptedText.isEmpty()) return emptyList()
+
+        var isArray = false
+        var rawText = encryptedText
+
+        if (encryptedText.startsWith("arr:")) {
+            isArray = true
+            rawText = encryptedText.removePrefix("arr:")
+        } else if (encryptedText.startsWith("str:")) {
+            rawText = encryptedText.removePrefix("str:")
+        }
+
+        val parts = rawText.split(":")
+        if (parts.size != 3) throw IllegalArgumentException("Invalid format")
+
+        val ivBytes = Base64.decode(parts[0], Base64.DEFAULT)
+        val shortCipher = Base64.decode(parts[1], Base64.DEFAULT)
+        val longCipher = Base64.decode(parts[2], Base64.DEFAULT)
+
+        val cipherBytes = ByteArray(longCipher.size + shortCipher.size)
+        System.arraycopy(longCipher, 0, cipherBytes, 0, longCipher.size)
+        System.arraycopy(shortCipher, 0, cipherBytes, longCipher.size, shortCipher.size)
+
+        val keyString = "IJAFUUxjM25hyzL2AZrn0wl7cESED6Ru"
+        val keyBytes = keyString.substring(0, 32).toByteArray(Charsets.UTF_8)
+        val secretKey = SecretKeySpec(keyBytes, "AES")
+
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        val gcmSpec = GCMParameterSpec(128, ivBytes)
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, gcmSpec)
+
+        val decryptedBytes = cipher.doFinal(cipherBytes)
+        val decryptedText = decryptedBytes.toString(Charsets.UTF_8)
+
+        return if (isArray) {
+            parseJson<List<String>>(decryptedText)
+        } else {
+            listOf(decryptedText)
+        }
+    }
+
+
 }
 
 object ResultChaptersJsonResponse {
@@ -492,7 +521,7 @@ object LoadJsonResponse2 {
     )
 
     data class Data2(
-        val body: List<String> = emptyList(),
+        val body: String = "",
         /*val hans: String,
         val hash: String,
         val model: String,
@@ -503,8 +532,6 @@ object LoadJsonResponse2 {
         val glossoryHash: String,
         @JsonProperty("glossary_build")
         val glossaryBuild: Long,*/
-        @JsonProperty("glossary_data")
-        val glosarryData: Terms,
     )
     data class Terms(
         val terms: List<List<String>>,
