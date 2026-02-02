@@ -11,6 +11,7 @@ import coil3.EventListener
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
+import coil3.asImage
 import coil3.disk.DiskCache
 import coil3.dispose
 import coil3.load
@@ -23,14 +24,17 @@ import coil3.request.ErrorResult
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.request.crossfade
+import coil3.result
 import coil3.util.DebugLogger
 import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.BuildConfig
 import com.lagradost.quicknovel.USER_AGENT
 import com.lagradost.quicknovel.ui.UiImage
+import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okio.Path.Companion.toOkioPath
+import org.commonmark.internal.Bracket.image
 import java.io.File
 import java.nio.ByteBuffer
 
@@ -104,15 +108,59 @@ object ImageLoader {
 
         // Use Coil's built-in load method but with our custom module & a decent USER-AGENT always
         // which can be overridden by extensions.
-        this.load(imageData, SingletonImageLoader.get(context)) {
+        val imageLoader = SingletonImageLoader.get(context)
+        val cacheKey = imageData.toString()
+        this.load(imageData, imageLoader) {
             this.httpHeaders(NetworkHeaders.Builder().also { headerBuilder ->
                 headerBuilder["User-Agent"] = USER_AGENT
                 headers?.forEach { (key, value) ->
                     headerBuilder[key] = value
                 }
             }.build())
+            //for old providers as readfrom.net
+            listener(
+                onError = {_, _ ->
+                    if (imageData is String && imageData.startsWith("http")) {
+                        val view = this@loadImageInternal
+                        ioSafe {
+                            //read existing img from disk cache if exist
+                            val snapshot = imageLoader.diskCache?.openSnapshot(imageData)
+                            if(snapshot != null){
+                                view.post{
+                                    view.load(imageData, imageLoader){
+                                        builder()
+                                    }
+                                }
+                                snapshot.close()
+                                return@ioSafe
+                            }
+                            //readfrom.net is.... strange...
+                            val url = java.net.URL(imageData)
+                            val connection = url.openConnection() as java.net.HttpURLConnection
+                            connection.requestMethod = "GET"
 
-            builder() // if passed
+                            if (connection.responseCode == java.net.HttpURLConnection.HTTP_OK) {
+                                val bitmap = android.graphics.BitmapFactory.decodeStream(connection.inputStream)
+                                if(bitmap != null) {
+                                    //save key and img in cache
+                                    imageLoader.memoryCache?.set(MemoryCache.Key(cacheKey), MemoryCache.Value(bitmap.asImage()))
+                                    view.post {
+                                        view.load(bitmap, imageLoader) {
+                                            memoryCacheKey(cacheKey)
+                                            diskCacheKey(cacheKey)
+                                            builder()
+                                        }
+                                    }
+                                }
+                            }
+                            connection.disconnect()
+                        }
+                    }
+                },
+                onSuccess = { _, _ ->
+                    builder() // if passed
+                }
+            )
         }
     }
 

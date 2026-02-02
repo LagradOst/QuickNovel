@@ -4,7 +4,7 @@ import com.lagradost.quicknovel.R
 
 class NovelFullProvider : AllNovelProvider() {
     override val name = "NovelFull"
-    override val mainUrl = "https://novelfull.com"
+    override val mainUrl = "https://novelfull.net"
     override val hasMainPage = true
 
     override val iconId = R.drawable.icon_novelfull
