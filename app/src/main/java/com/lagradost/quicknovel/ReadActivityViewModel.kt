@@ -925,6 +925,34 @@ class ReadActivityViewModel : ViewModel() {
             val out = ArrayList<TextSpan>()
             val separator = "\n\n" // Use double line breaks to separate paragraphs within the batch
 
+            /*
+             if (currentSettings.useOnlineTranslation) {
+                // --- Online mode ---
+                val batchSize = 5//only to show loading steps
+                for (i in 0 until spans.size step batchSize) {
+                    loading.invoke(Triple(spans[i].index, i, spans.size))
+                    val batch = spans.subList(i, minOf(i + batchSize, spans.size))
+
+                    val translatedParagraphs = onlineTranslate(batch, currentSettings.to)
+
+                    for (j in batch.indices) {
+                        val finalText = translatedParagraphs[j]
+                        val start = builder.length
+                        builder.append(finalText)
+                        val end = builder.length
+                        builder.append('\n')
+                        out.add(
+                            TextSpan(
+                                finalText.toSpanned(),
+                                start,
+                                end,
+                                batch[j].index,
+                                batch[j].innerIndex
+                            )
+                        )
+                    }
+                }
+             */
             if (currentSettings.useOnlineTranslation) {
                 // --- Online mode ---
                 val batchSize = 5
@@ -2023,4 +2051,37 @@ class ReadActivityViewModel : ViewModel() {
 
         return response.sentences.joinToString("") { (trans, _) -> trans }
     }
+
+    /*
+        suspend fun onlineTranslate(spans: MutableList<TextSpan>, targetLang: String): List<String> {
+        val baseUrl = "https://translate.googleapis.com/translate_a/single"
+
+        val batches = mutableListOf<MutableList<String>>(mutableListOf())
+        var currentLen = 0
+        val maxCharLength = 2000
+
+        spans.forEach { span ->
+            val text = span.text.toString()
+            if (currentLen + text.length > maxCharLength && batches.last().isNotEmpty()) {
+                batches.add(mutableListOf())
+                currentLen = 0
+            }
+            batches.last().add(text)
+            currentLen += text.length + 1
+        }
+
+        return batches.flatMap { batch ->
+            if (batch.isEmpty()) return@flatMap emptyList()
+            val combined = batch.joinToString("\n")
+            val response = MainActivity.app.get(
+                "$baseUrl?client=gtx&sl=auto&tl=$targetLang&dt=t&q=${Uri.encode(combined)}"
+            ).parsed<GoogleTranslationResponse>()
+
+            val translatedFull = response.sentences.joinToString("") { it.trans }
+            val split = translatedFull.split("\n")
+
+            if (split.size == batch.size) split else batch
+        }
+    }
+     */
 }

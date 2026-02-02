@@ -1,17 +1,36 @@
 package com.lagradost.quicknovel.providers
 
+import android.graphics.ColorSpace.match
+import android.util.Log
+import android.webkit.CookieManager
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+import com.lagradost.nicehttp.NiceResponse
+import com.lagradost.nicehttp.Requests
+import com.lagradost.nicehttp.ResponseParser
+import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.USER_AGENT
+import com.lagradost.quicknovel.network.CloudflareKiller
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.toRate
 import com.lagradost.quicknovel.util.AppUtils.parseJson
+import okhttp3.OkHttpClient
+import org.json.JSONObject
+import java.util.concurrent.TimeUnit
+import kotlin.jvm.java
+import kotlin.reflect.KClass
 
 
 class WtrLabProvider : MainAPI() {
@@ -20,7 +39,7 @@ class WtrLabProvider : MainAPI() {
     override val hasReviews = false
     override val mainUrl = "https://wtr-lab.com"
     override val name = "WTR-LAB"
-    override val usesCloudFlareKiller = false
+    override val usesCloudFlareKiller = true
 
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/en/novel-finder?text=${query.replace(" ", "+")}"
@@ -33,7 +52,7 @@ class WtrLabProvider : MainAPI() {
 
             val name = titleHolder.text() ?: return@mapNotNull null
             newSearchResponse(name, href) {
-                posterUrl = select.selectFirst("a > img")?.attr("src")
+                posterUrl = mainUrl + select.selectFirst("a img")?.attr("src")
             }
         }
     }
@@ -109,7 +128,7 @@ class WtrLabProvider : MainAPI() {
         }*/
         return newStreamResponse(title, url, chapters) {
             synopsis = doc.selectFirst(".desc-wrap")?.text()
-            posterUrl = doc.selectFirst(".image-wrap > img")?.attr("src")
+            posterUrl = mainUrl + doc.selectFirst(".image-wrap > img")?.attr("src")
             views =
                 doc.select(".detail-line").find { it.text().contains("Views") }?.text()?.split(" ")
                     ?.getOrNull(0)?.toIntOrNull()
@@ -120,30 +139,42 @@ class WtrLabProvider : MainAPI() {
 
     override suspend fun loadHtml(url: String): String {
         val doc = app.get(url).document
-
         val jsonNode = doc.selectFirst("#__NEXT_DATA__")
         val json = jsonNode?.data() ?: throw ErrorLoadingException("no chapters")
         val chaptersJson = parseJson<LoadJsonResponse.Root>(json)
         val text = StringBuilder()
-        val chapter = chaptersJson.props.pageProps.serie.chapter
+        val chapter = chaptersJson.props.pageProps.serie
 
         val root = app.post(
             "$mainUrl/api/reader/get", data = mapOf(
-                "chapter_no" to chapter.slug,
+                "chapter_id" to chapter.chapter.id.toString(),
+                "chapter_no" to chapter.serieData.slug.toString(),
+                "force_retry" to "false",
                 "language" to "en",
-                "raw_id" to chapter.rawId.toString(),
+                "raw_id" to chapter.serieData.rawId.toString(),
                 "retry" to "false",
-                "translate" to "web", // translate=ai just returns a job and I am too lazy to fix that
-            )
+                "translate" to "ai", // translate=ai just returns a job and I am too lazy to fix that
+                )
         ).parsed<LoadJsonResponse2.Root>()
-
+        val getTerm = Regex("※(\\d+)⛬")
         for (body in root.data.data.body) {
             if (!body.contains("window._taboola")) {
+                val existTerm = getTerm.find(body)
+                val indexTerm = existTerm?.groupValues?.get(0)?.toInt()
+                println(existTerm)
+                println(indexTerm)
+                println(body)
                 text.append("<p>")
-                text.append(body)
+                if (indexTerm != null) {
+                    val replacement = root.data.data.glosarryData.terms.getOrNull(indexTerm + 1) ?: ""
+                    text.append(body.replace(Regex("※\\d+⛬"), replacement.toString()))
+                } else {
+                    text.append(body)
+                }
                 text.append("</p>")
             }
         }
+
         /*for (select in doc.select(".chapter-body>p")) {
             if (select.ownText().contains("window._taboola")) {
                 select.remove()
@@ -158,7 +189,6 @@ object ResultChaptersJsonResponse {
     data class Root(
         val chapters: List<Chapter>,
     )
-
     data class Chapter(
         @JsonProperty("serie_id")
         val serieId: Long,
@@ -473,19 +503,23 @@ object LoadJsonResponse2 {
         val glossoryHash: String,
         @JsonProperty("glossary_build")
         val glossaryBuild: Long,*/
+        @JsonProperty("glossary_data")
+        val glosarryData: Terms,
     )
-
+    data class Terms(
+        val terms: List<List<String>>,
+    )
 }
 
 object LoadJsonResponse {
     data class Root(
         val props: Props,
-        /*val page: String,
+        val page: String,
         val query: Query,
         val buildId: String,
         val isFallback: Boolean,
         val isExperimentalCompile: Boolean,
-        val gssp: Boolean,
+        val gssp: Boolean,/*
         val locale: String,
         val locales: List<String>,
         val defaultLocale: String,
@@ -513,9 +547,30 @@ object LoadJsonResponse {
         val sentryBaggage: String,*/
     )
 
+    data class Chapter(
+        val id: Long,
+        val slug: String?,
+        @JsonProperty("raw_id")
+        val rawId: Long,
+        /*@JsonProperty("serie_id")
+        val serieId: Long,
+        val status: Long,
+        val slug: String,
+        val name: String,
+        val order: Long,
+        @JsonProperty("is_update")
+        val isUpdate: Boolean,
+        @JsonProperty("created_at")
+        val createdAt: String,
+        @JsonProperty("updated_at")
+        val updatedAt: String,
+        val title: String,
+        val code: String,*/
+    )
     data class Serie(
-        /*@JsonProperty("serie_data")
+        @JsonProperty("serie_data")
         val serieData: SerieData,
+        /*
         @JsonProperty("default_service")
         val defaultService: String,*/
         val chapter: Chapter,
@@ -555,26 +610,7 @@ object LoadJsonResponse {
         val description: String,
     )
 
-    data class Chapter(
-        val id: Long,
-        val slug: String,
-        @JsonProperty("raw_id")
-        val rawId: Long,
-        /*@JsonProperty("serie_id")
-        val serieId: Long,
-        val status: Long,
-        val slug: String,
-        val name: String,
-        val order: Long,
-        @JsonProperty("is_update")
-        val isUpdate: Boolean,
-        @JsonProperty("created_at")
-        val createdAt: String,
-        @JsonProperty("updated_at")
-        val updatedAt: String,
-        val title: String,
-        val code: String,*/
-    )
+
 
     data class ActiveService(
         val id: String,
@@ -582,7 +618,7 @@ object LoadJsonResponse {
     )
 
     data class Query(
-        val sid: String,
+        val locale: String,
         @JsonProperty("serie_slug")
         val serieSlug: String,
         @JsonProperty("chapter_no")

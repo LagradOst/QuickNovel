@@ -3,10 +3,13 @@ package com.lagradost.quicknovel.providers
 import com.lagradost.quicknovel.*
 import org.jsoup.Jsoup
 import com.lagradost.quicknovel.MainActivity.Companion.app
+import okhttp3.OkHttpClient
+import okhttp3.Protocol
+import okhttp3.Request
 
 open class ReadfromnetProvider : MainAPI() {
     override val name = "ReadFrom.Net"
-    override val mainUrl = "https://readfrom.net"
+    override val mainUrl = "https://readfrom.net/"
     override val hasMainPage = true
 
     override val iconId = R.drawable.icon_readfromnet
