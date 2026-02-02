@@ -52,7 +52,6 @@ import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.mvvm.observeNullable
 import com.lagradost.quicknovel.mvvm.safe
-import com.lagradost.quicknovel.network.CloudflareKiller
 import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.download.DownloadFragment
@@ -79,7 +78,6 @@ import com.lagradost.safefile.SafeFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
-import okhttp3.Protocol
 import java.lang.ref.WeakReference
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
