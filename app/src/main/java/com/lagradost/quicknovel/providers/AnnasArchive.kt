@@ -30,17 +30,16 @@ class AnnasArchive : MainAPI() {
 
         val document = Jsoup.parse(text)
 
-        val results = document.select("div.js-aarecord-list-outer a.custom-a")
+        val results = document.select("div.js-aarecord-list-outer div.flex.pt-3.pb-3.border-b")
 
         return results.mapNotNull { element ->
-            val link = element.attr("href")
+            val link = element.selectFirst("a")?.attr("href")?:""
             if (!link.startsWith("/md5/")) {
                 println("Skipping non-md5 link: $link")
                 return@mapNotNull null
             }
             val title = element
-                .selectFirst("a.js-vim-focus")
-                ?.text()
+                .selectFirst("div.max-w-full.overflow-hidden.flex.flex-col.justify-around a")?.text()
             if (title == null) {
                 return@mapNotNull null
             }
@@ -48,9 +47,8 @@ class AnnasArchive : MainAPI() {
                 name = title,
                 url = fixUrlNull(link) ?: return@mapNotNull null
             ) {
-                posterUrl = fixUrlNull(
-                    element.selectFirst("img")?.attr("src")
-                )
+                posterUrl = element.selectFirst("div img")?.attr("src")
+                println(element)
             }
         }
     }

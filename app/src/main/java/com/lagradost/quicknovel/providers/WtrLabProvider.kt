@@ -63,7 +63,6 @@ class WtrLabProvider : MainAPI() {
     ): List<ChapterData> {
         val chapterDataUrl =
             "$mainUrl/api/chapters/${chaptersJson.props.pageProps.serie.serieData.rawId}?start=$start&end=$end"
-        println(chapterDataUrl)
         val chaptersDataJson =
             app.get(chapterDataUrl).text
         val chaptersData = parseJson<ResultChaptersJsonResponse.Root>(chaptersDataJson)

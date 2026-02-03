@@ -366,12 +366,23 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
         }
         val builder = StringBuilder()
         for (i in startIdx until endIdx) {
-            val ref = data.spine.spineReferences[i]
-            // I have no idea, but nonlinear = stop?
-            if (!ref.isLinear && i != startIdx) {
-                break
+            try//this is for corrupted epubs like from annasarchive
+            {
+                val ref = data.spine.spineReferences[i]
+                // I have no idea, but nonlinear = stop?
+                if (!ref.isLinear && i != startIdx) {
+                    break
+                }
+                /*
+                    Somewhere in the code, when generating the EPUB of whatever, it changes the root,
+                    so it can’t find other resources for some reason. Since the code is already huge,
+                    I have no idea where that happens, so I resort to a sketchy fix.
+                */
+                builder.append(ref.resource.reader.readText().replace(Regex("""src="(?!OEBPS/|http)"""), "src=\"OEBPS/"))
             }
-            builder.append(ref.resource.reader.readText())
+            catch (t: Throwable){
+                logError(t)
+            }
         }
 
         return builder.toString()

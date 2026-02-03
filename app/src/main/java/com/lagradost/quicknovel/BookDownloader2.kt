@@ -692,57 +692,6 @@ object BookDownloader2Helper {
             val fileStream =
                 file.openOutputStream(append = false) ?: throw IOException("No outputfile")
 
-            /*if (isScopedStorage()) {
-                val cr = activity.contentResolver ?: return false
-
-                val currentExistingFile =
-                    cr.getExistingDownloadUriOrNullQ(
-                        relativePath,
-                        displayName
-                    ) // CURRENT FILE WITH THE SAME PATH
-
-                if (currentExistingFile != null) { // DELETE FILE IF FILE EXITS AND NOT RESUME
-                    val rowsDeleted =
-                        activity.contentResolver.delete(currentExistingFile, null, null)
-                    if (rowsDeleted < 1) {
-                        println("ERROR DELETING FILE!!!")
-                    }
-                }
-
-                val contentUri =
-                    MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY) // USE INSTEAD OF MediaStore.Downloads.EXTERNAL_CONTENT_URI
-
-                val newFile = ContentValues().apply {
-                    put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
-                    put(MediaStore.MediaColumns.TITLE, name)
-                    put(MediaStore.MediaColumns.MIME_TYPE, "application/epub+zip")
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, relativePath)
-                }
-
-                val newFileUri = cr.insert(
-                    contentUri,
-                    newFile
-                ) ?: return false
-
-                fileStream = cr.openOutputStream(newFileUri, "w")
-                    ?: return false
-            } else {
-                val normalPath =
-                    "${Environment.getExternalStorageDirectory()}${fs}$relativePath$displayName"
-
-                // NORMAL NON SCOPED STORAGE FILE CREATION
-                val rFile = File(normalPath)
-                if (!rFile.exists()) {
-                    rFile.parentFile?.mkdirs()
-                    if (!rFile.createNewFile()) return false
-                } else {
-                    rFile.parentFile?.mkdirs()
-                    if (!rFile.delete()) return false
-                    if (!rFile.createNewFile()) return false
-                }
-                fileStream = FileOutputStream(rFile, false)
-            }*/
-
             val epubFile = File(
                 activity.filesDir.toString() + getDirectory(sApiName, sAuthor, sName),
                 LOCAL_EPUB
@@ -1726,8 +1675,7 @@ object BookDownloader2 {
 
                     val imgHref = "img_$count.jpeg"
                     File(tempFolder, imgHref).writeBytes(imgBytes).also {
-                        //I don’t know why it forces me to include the OEBPS folder.
-                        chapterBuilder.append("<div style='text-align:center;'><img src='OEBPS/$imgHref' style='max-width:100%;'/></div>")
+                        chapterBuilder.append("<div style='text-align:center;'><img src=\"$imgHref\" style='max-width:100%;'/></div>")
 
                         //if it’s the first image, save it as the cover
                         if (count == 1) {
