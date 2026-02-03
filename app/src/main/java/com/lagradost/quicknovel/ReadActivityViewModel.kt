@@ -37,6 +37,7 @@ import com.google.mlkit.nl.translate.TranslateRemoteModel
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
+import com.lagradost.nicehttp.NiceResponse
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeyClass
@@ -104,6 +105,7 @@ import java.util.Locale
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import kotlin.math.pow
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 
@@ -942,7 +944,7 @@ class ReadActivityViewModel : ViewModel() {
                     loading.invoke(Triple(spans[i].index, i, spans.size))
                     val batch = spans.subList(i, minOf(i + batchSize, spans.size))
                     val combinedText = batch.joinToString(separator) { it.text.toString() }
-                    val translatedBatch = onlineTranslate(combinedText, currentSettings.to)
+                    val translatedBatch = onlineTranslate(combinedText, currentSettings.from,currentSettings.to)
                     val translatedParagraphs = translatedBatch.split(separator)
 
                     for (j in batch.indices) {
@@ -2023,14 +2025,26 @@ class ReadActivityViewModel : ViewModel() {
         val srcTranslit: String? = null
     )
 
-    suspend fun onlineTranslate(text: String, targetLang: String): String {
+    suspend fun onlineTranslate(text: String,from:String, to: String): String {
         val baseUrl = "https://translate.googleapis.com/translate_a/single"
         if (text.trim().isBlank()) return ""
-        // Google returns: [ [[trans, orig, ...], [trans, orig, ...]], ... ]
-        val response = MainActivity.app.get(
-            "$baseUrl?client=gtx&sl=auto&tl=$targetLang&dt=t&q=${Uri.encode(text)}"
-        ).parsed<GoogleTranslationResponse>()
 
-        return response.sentences.joinToString("") { (trans, _) -> trans }
+        var retryNumber = 0
+        val maxRetry = 5
+        while (retryNumber < maxRetry){
+            try{
+                // Google returns: [ [[trans, orig, ...], [trans, orig, ...]], ... ]
+                return MainActivity.app.get(
+                    "$baseUrl?client=gtx&sl=$from&tl=$to&dt=t&q=${Uri.encode(text)}"
+                ).parsed<GoogleTranslationResponse>().sentences.joinToString("") { (trans, _) -> trans }
+            }
+            catch (t: Throwable){
+                retryNumber++
+                if(retryNumber >= maxRetry)
+                    throw t
+                delay( 500L * (2.0.pow(retryNumber).toLong()))
+            }
+        }
+        return ""
     }
 }

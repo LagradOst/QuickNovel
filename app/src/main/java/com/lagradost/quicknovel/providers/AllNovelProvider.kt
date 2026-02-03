@@ -112,7 +112,10 @@ open class AllNovelProvider : MainAPI() {
                 SearchResponse(
                     name = a.text(),
                     url = fixUrlNull(a.attr("href")) ?: return@mapNotNull null,
-                    fixUrlNull(element.selectFirst("div > div > img")?.attr("src")),
+                    fixUrlNull(element.selectFirst("div > div > img")?.attr("src")
+                        ?.replace("fc05345726d3e134d2f7187dc70f047b","4d27e0af8cf6e971f7ee3c995fc55190")
+                        ?.replace("9798407846f8032e6a88fa71b2c62ce9","9c3d392ccc7c95187a8c6e37c6bdac6f")
+                    ),
                     null,
                     null,
                     this.name
