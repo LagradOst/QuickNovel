@@ -1428,7 +1428,7 @@ open class ReadfromnetProvider : MainAPI() {
             val headers = it.select("div > article > div.box_in[id='search result']")
             headers.mapNotNull { h ->
                 val name = h?.selectFirst(" div > h2.title > a > b")?.text() ?: return@mapNotNull null
-                val cUrl = mainUrl + h.selectFirst(" div > h2.title > a ")?.attr("href")
+                val cUrl = fixUrlNull( h.selectFirst(" div > h2.title > a ")?.attr("href"))?:""
 
                 newSearchResponse(
                     name = name,

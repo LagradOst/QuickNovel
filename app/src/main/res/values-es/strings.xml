@@ -154,13 +154,18 @@
     <string name="sleep_timer">Temporizador</string>
     <string name="sleep_format">%d min</string>
     <string name="sleep_format_stop">La lectura parará en %d min</string>
+    <string name="got_null_data">No hay información</string>
+
+
 
     <!-- Traducción -->
     <string name="google_translate">Traductor de Google</string>
     <string name="online_translate">Traducción online</string>
     <string name="download_ml">Descargar modelo de traducción</string>
     <string name="download_ml_long">Para traducir localmente se necesita descargar el modelo (~30MB)</string>
-    <string name="translating">Traduciendo capítulo…</string>
+    <string name="translating">Traduciendo: </string>
+    <string name="unable_to_download_language">No se pudo descargar el lenguaje</string>
+
 
     <!-- Configuración y Sistema -->
     <string name="general">General</string>
@@ -182,6 +187,7 @@
     <string name="remove_bloat_desc">Elimina el título y traductor de las páginas (aumenta carga)</string>
     <string name="check_for_update">Buscar actualizaciones</string>
     <string name="new_update_found_format">¡Nueva actualización disponible!\n %s -> %s</string>
+    <string name="no_update_found">No hay actualización</string>
 
     <!-- Copias de Seguridad (Backup) -->
     <string name="backup_settings">Copia de seguridad</string>
@@ -237,6 +243,9 @@
     <string name="long_download_time">Cuidado, esta fuente es lenta. Se recomienda lectura en línea.</string>
     <string name="quickstream_novel_text">Leer en línea</string>
     <string name="stream_read">Leer en línea</string>
+    <string name="permission_error">Se nececitan permisos</string>
+    <string name="unable_init_tts">No se puede iniciar, descargar el lenguaje</string>
+
 
     <!-- Diálogos de Confirmación -->
     <string name="remove_from_history_format">¿Estás seguro de que quieres eliminar %s del historial?</string>

@@ -1132,7 +1132,7 @@ class ReadActivityViewModel : ViewModel() {
 
             mlSettings = settings
         } catch (_: TimeoutException) {
-            showToast("Unable to download language")
+            showToast(R.string.unable_to_download_language)
             mlTranslator?.closeQuietly()
             mlTranslator = null
         } catch (t: Throwable) {
@@ -1417,7 +1417,7 @@ class ReadActivityViewModel : ViewModel() {
                     val lines =
                         when (val currentData = chapterMutex.withLock { chapterData[index]}) {
                             null -> {
-                                showToast("Got null data")
+                                showToast(R.string.got_null_data)
                                 break
                             }
 

@@ -298,7 +298,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         updatePrefrence.setOnPreferenceClickListener {
             ioSafe {
                 if (true != activity?.runAutoUpdate(false)) {
-                    showToast("No Update Found", Toast.LENGTH_SHORT)
+                    showToast(R.string.no_update_found, Toast.LENGTH_SHORT)
                 }
             }
             return@setOnPreferenceClickListener true

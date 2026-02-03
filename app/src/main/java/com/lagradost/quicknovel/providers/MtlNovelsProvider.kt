@@ -93,12 +93,12 @@ class MtlNovelProvider : MainAPI() {
             val name =
                 h.selectFirst("h3")?.text()
                     ?: return@mapNotNull null
-            val cUrl = mainUrl + h.selectFirst("a")?.attr("href")
+            val cUrl = fixUrlNull(h.selectFirst("a")?.attr("href"))?:""
             newSearchResponse(
                 name = name,
                 url = cUrl,
             ) {
-                posterUrl = mainUrl + h.selectFirst("img")?.attr("src")
+                posterUrl = fixUrlNull(h.selectFirst("img")?.attr("src"))
             }
         }
 
@@ -116,12 +116,9 @@ class MtlNovelProvider : MainAPI() {
         return response.select("div.novel-box").mapNotNull { c->
             newSearchResponse(
                 name = c.selectFirst("h3")?.text() ?: return@mapNotNull null,
-                url = c.selectFirst("a")?.attr("href")
-                ?.let{
-                    mainUrl + it
-                } ?: return@mapNotNull null
+                url = fixUrlNull(c.selectFirst("a")?.attr("href"))?: return@mapNotNull null
             ) {
-                posterUrl = mainUrl + c.selectFirst("img")?.attr("src")
+                posterUrl = fixUrlNull(c.selectFirst("img")?.attr("src"))
             }
         }
     }
@@ -144,7 +141,7 @@ class MtlNovelProvider : MainAPI() {
 
             author = lis.getOrNull(2)?.selectFirst("pull-right")?.text()
 
-            posterUrl = mainUrl + document.selectFirst("div.content-main-image img")?.attr("src")
+            posterUrl = fixUrlNull(document.selectFirst("div.content-main-image img")?.attr("src"))
 
             tags = lis.getOrNull(5)?.select("a")?.map { it.text() }
 

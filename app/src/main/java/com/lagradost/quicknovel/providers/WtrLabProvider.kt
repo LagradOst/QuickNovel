@@ -20,6 +20,7 @@ import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
@@ -49,7 +50,7 @@ class WtrLabProvider : MainAPI() {
 
             val name = titleHolder.text() ?: return@mapNotNull null
             newSearchResponse(name, href) {
-                posterUrl = mainUrl + select.selectFirst("a img")?.attr("src")
+                posterUrl = fixUrlNull(select.selectFirst("a img")?.attr("src"))
             }
         }
     }
@@ -123,7 +124,7 @@ class WtrLabProvider : MainAPI() {
         }*/
         return newStreamResponse(title, url, chapters) {
             synopsis = doc.selectFirst(".desc-wrap")?.text()
-            posterUrl = mainUrl + doc.selectFirst(".image-wrap > img")?.attr("src")
+            posterUrl = fixUrlNull(doc.selectFirst(".image-wrap > img")?.attr("src"))
             views =
                 doc.select(".detail-line").find { it.text().contains("Views") }?.text()?.split(" ")
                     ?.getOrNull(0)?.toIntOrNull()
