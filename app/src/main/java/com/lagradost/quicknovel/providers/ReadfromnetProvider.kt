@@ -9,7 +9,7 @@ import java.net.URL
 
 open class ReadfromnetProvider : MainAPI() {
     override val name = "ReadFrom.Net"
-    override val mainUrl = "https://readfrom.net/"
+    override val mainUrl = "https://readfrom.net"
     override val hasMainPage = true
 
     override val iconId = R.drawable.icon_readfromnet
@@ -1368,28 +1368,9 @@ open class ReadfromnetProvider : MainAPI() {
     ).sortedBy { it.first }.let { listOf("All" to "allbooks") + it }
 
     private val baseHeaders = mapOf(
-        "User-Agent" to "Mozilla/5.0"
+        "user-agent" to "Mozilla/5.0"
     )
-    fun httpGet(urlString: String): Result<Document> {
-        return try {
-            val url = URL(urlString)
-            val connection = url.openConnection() as HttpURLConnection
-            connection.requestMethod = "GET"
 
-            val responseCode = connection.responseCode
-            if (responseCode != HttpURLConnection.HTTP_OK)
-            {
-                connection.disconnect()
-                return Result.failure(Exception("Response code: $responseCode"))
-            }
-            val response = connection.inputStream.bufferedReader().use { it.readText() }
-            connection.disconnect()
-            val doc = Jsoup.parse(response, urlString)
-            Result.success(doc)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
 
     override suspend fun loadMainPage(
         page: Int,
@@ -1398,24 +1379,23 @@ open class ReadfromnetProvider : MainAPI() {
         tag: String?
     ): HeadMainPageResponse {
         val url = "$mainUrl/$tag/page/$page/"
-        val response = httpGet(url)
-        val returnValue = response.getOrNull()?.let{
-            it.select("div.box_in").mapNotNull { h ->
-                val name = h.selectFirst("h2")?.text() ?: return@mapNotNull null
-                val cUrl = h.selectFirst(" div > h2.title > a ")?.attr("href") ?: return@mapNotNull null
+        val response = app.get(url, headers = baseHeaders).document
+        val returnValue = response.select("div.box_in").mapNotNull { h ->
+            val name = h.selectFirst("h2")?.text() ?: return@mapNotNull null
+            val cUrl = h.selectFirst(" div > h2.title > a ")?.attr("href") ?: return@mapNotNull null
 
-                newSearchResponse(name = name, url = cUrl) {
-                    posterUrl = fixUrlNull(h.selectFirst("div > a.highslide > img")?.attr("src"))
-                }
+            newSearchResponse(name = name, url = cUrl) {
+                posterUrl = fixUrlNull(h.selectFirst("div > a.highslide > img")?.attr("src"))
             }
-        }?:emptyList()
+        }
+
 
 
         return HeadMainPageResponse(url, returnValue)
     }
 
     override suspend fun loadHtml(url: String): String? {
-        val document = httpGet(url).getOrNull()?.let{
+        val document = app.get(url, headers = baseHeaders).document.let{
             it.select("div.splitnewsnavigation").remove()
             it.select("div.splitnewsnavigation2").remove()
             it.selectFirst("#textToRead")?.html()
@@ -1424,27 +1404,25 @@ open class ReadfromnetProvider : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val document = httpGet("$mainUrl/build_in_search/?q=$query").getOrNull()?.let {
-            val headers = it.select("div > article > div.box_in[id='search result']")
-            headers.mapNotNull { h ->
-                val name = h?.selectFirst(" div > h2.title > a > b")?.text() ?: return@mapNotNull null
-                val cUrl = fixUrlNull( h.selectFirst(" div > h2.title > a ")?.attr("href"))?:""
+        val document = app.get("$mainUrl/build_in_search/?q=$query", headers = baseHeaders).document
+        val headers = document.select("div > article > div.box_in[id='search result']")
+        return headers.mapNotNull { h ->
+            val name = h?.selectFirst(" div > h2.title > a > b")?.text() ?: return@mapNotNull null
+            val cUrl = fixUrlNull( h.selectFirst(" div > h2.title > a ")?.attr("href"))?:""
 
-                newSearchResponse(
-                    name = name,
-                    url = cUrl,
-                ) {
-                    posterUrl = fixUrlNull(h.selectFirst("div > a.highslide > img")?.attr("src"))
-                }
+            newSearchResponse(
+                name = name,
+                url = cUrl,
+            ) {
+                posterUrl = fixUrlNull(h.selectFirst("div > a.highslide > img")?.attr("src"))
             }
         }
-        return  document?:emptyList()
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        val document = httpGet(url).getOrNull()
+        val document =app.get(url, headers =baseHeaders).document
         val name =
-            document?.selectFirst(" h2 ")?.text()?.substringBefore(", page")?.substringBefore("#")
+            document.selectFirst(" h2 ")?.text()?.substringBefore(", page")?.substringBefore("#")
                 ?: return null
 
         val data: ArrayList<ChapterData> = ArrayList()

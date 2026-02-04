@@ -112,55 +112,12 @@ object ImageLoader {
         val cacheKey = imageData.toString()
         this.load(imageData, imageLoader) {
             this.httpHeaders(NetworkHeaders.Builder().also { headerBuilder ->
-                headerBuilder["User-Agent"] = USER_AGENT
+                headerBuilder["user-agent"] = "Mozilla/5.0"//I don't know, readfrom and graycity don't work if I use the USER_AGENT variable here
                 headers?.forEach { (key, value) ->
                     headerBuilder[key] = value
                 }
             }.build())
-            //for old providers as readfrom.net
-            listener(
-                onError = {_, _ ->
-                    if (imageData is String && imageData.startsWith("http")) {
-                        val view = this@loadImageInternal
-                        ioSafe {
-                            //read existing img from disk cache if exist
-                            val snapshot = imageLoader.diskCache?.openSnapshot(imageData)
-                            if(snapshot != null){
-                                view.post{
-                                    view.load(imageData, imageLoader){
-                                        builder()
-                                    }
-                                }
-                                snapshot.close()
-                                return@ioSafe
-                            }
-                            //readfrom.net is.... strange...
-                            val url = java.net.URL(imageData)
-                            val connection = url.openConnection() as java.net.HttpURLConnection
-                            connection.requestMethod = "GET"
-
-                            if (connection.responseCode == java.net.HttpURLConnection.HTTP_OK) {
-                                val bitmap = android.graphics.BitmapFactory.decodeStream(connection.inputStream)
-                                if(bitmap != null) {
-                                    //save key and img in cache
-                                    imageLoader.memoryCache?.set(MemoryCache.Key(cacheKey), MemoryCache.Value(bitmap.asImage()))
-                                    view.post {
-                                        view.load(bitmap, imageLoader) {
-                                            memoryCacheKey(cacheKey)
-                                            diskCacheKey(cacheKey)
-                                            builder()
-                                        }
-                                    }
-                                }
-                            }
-                            connection.disconnect()
-                        }
-                    }
-                },
-                onSuccess = { _, _ ->
-                    builder() // if passed
-                }
-            )
+            builder() // if passed
         }
     }
 

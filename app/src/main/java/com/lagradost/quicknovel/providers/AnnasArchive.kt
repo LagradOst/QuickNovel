@@ -48,7 +48,6 @@ class AnnasArchive : MainAPI() {
                 url = fixUrlNull(link) ?: return@mapNotNull null
             ) {
                 posterUrl = element.selectFirst("div img")?.attr("src")
-                println(element)
             }
         }
     }
