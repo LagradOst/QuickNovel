@@ -227,7 +227,7 @@
     <!-- Errores y Estados -->
     <string name="loading">Cargando…</string>
     <string name="loading_format" formatted="true">Cargando %s…</string>
-    <string name="reload_error">Error de conexión. Reintentar…</string>
+    <string name="reload_error">Error de conexión.</string>
     <string name="error_loading_novel">Error al cargar la novela</string>
     <string name="error_loading_chapter">Error al cargar el capítulo</string>
     <string name="no_chapters">Sin capítulos</string>
