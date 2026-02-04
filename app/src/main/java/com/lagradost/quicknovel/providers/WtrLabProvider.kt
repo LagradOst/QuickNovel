@@ -37,7 +37,7 @@ class WtrLabProvider : MainAPI() {
     override val hasReviews = false
     override val mainUrl = "https://wtr-lab.com"
     override val name = "WTR-LAB"
-    override val usesCloudFlareKiller = true
+    override val usesCloudFlareKiller = false
 
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/en/novel-finder?text=${query.replace(" ", "+")}"

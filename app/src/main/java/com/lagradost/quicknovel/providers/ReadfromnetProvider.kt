@@ -1385,6 +1385,7 @@ open class ReadfromnetProvider : MainAPI() {
             val cUrl = h.selectFirst(" div > h2.title > a ")?.attr("href") ?: return@mapNotNull null
 
             newSearchResponse(name = name, url = cUrl) {
+                posterHeaders = baseHeaders
                 posterUrl = fixUrlNull(h.selectFirst("div > a.highslide > img")?.attr("src"))
             }
         }
@@ -1395,12 +1396,10 @@ open class ReadfromnetProvider : MainAPI() {
     }
 
     override suspend fun loadHtml(url: String): String? {
-        val document = app.get(url, headers = baseHeaders).document.let{
-            it.select("div.splitnewsnavigation").remove()
-            it.select("div.splitnewsnavigation2").remove()
-            it.selectFirst("#textToRead")?.html()
-        }
-        return document
+        val document = app.get(url, headers = baseHeaders).document
+        document.select("div.splitnewsnavigation").remove()
+        document.select("div.splitnewsnavigation2").remove()
+        return  document.selectFirst("#textToRead")?.html()
     }
 
     override suspend fun search(query: String): List<SearchResponse> {

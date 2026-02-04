@@ -112,7 +112,6 @@ object ImageLoader {
         val cacheKey = imageData.toString()
         this.load(imageData, imageLoader) {
             this.httpHeaders(NetworkHeaders.Builder().also { headerBuilder ->
-                headerBuilder["user-agent"] = "Mozilla/5.0"//I don't know, readfrom and graycity don't work if I use the USER_AGENT variable here
                 headers?.forEach { (key, value) ->
                     headerBuilder[key] = value
                 }
