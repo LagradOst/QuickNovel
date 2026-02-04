@@ -40,7 +40,7 @@ class Apis {
         val apis: List<MainAPI> = arrayOf(
             //AllProvider(),
             //NovelPassionProvider(), // Site gone
-            BestLightNovelProvider(),
+            //BestLightNovelProvider(), //dont exist anymore
             //WuxiaWorldOnlineProvider(), // Site does not work
             RoyalRoadProvider(),
             HiraethTranslationProvider(),
