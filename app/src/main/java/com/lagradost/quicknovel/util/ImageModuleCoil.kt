@@ -108,9 +108,7 @@ object ImageLoader {
 
         // Use Coil's built-in load method but with our custom module & a decent USER-AGENT always
         // which can be overridden by extensions.
-        val imageLoader = SingletonImageLoader.get(context)
-        val cacheKey = imageData.toString()
-        this.load(imageData, imageLoader) {
+        this.load(imageData, SingletonImageLoader.get(context)) {
             this.httpHeaders(NetworkHeaders.Builder().also { headerBuilder ->
                 headers?.forEach { (key, value) ->
                     headerBuilder[key] = value
