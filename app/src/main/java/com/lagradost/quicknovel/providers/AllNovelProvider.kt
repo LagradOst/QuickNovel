@@ -188,22 +188,20 @@ open class AllNovelProvider : MainAPI() {
         }
 
         return newStreamResponse(name, url, data) {
-            tags = document.select("div.info > div:nth-child(3) a").map {
-                it.text()
-            }
-            author = document.selectFirst("div.info > div:nth-child(1) > a")?.text()
-            posterUrl = fixUrlNull(document.select("div.book > img").attr("src"))
+            val infoDivs = document.select("div.info > div")
+            author = infoDivs.find { it.text().contains("Author:") }?.selectFirst("a")?.text()
+            tags = infoDivs.find { it.text().contains("Genre") }?.select("a")?.map { it.text() }
+            posterUrl = fixUrlNull(document.selectFirst("div.book > img")?.attr("src"))
             synopsis = document.selectFirst("div.desc-text")?.text()
+
             peopleVoted =
                 document.selectFirst(" div.small > em > strong:nth-child(3) > span")?.text()
                     ?.toIntOrNull() ?: 0
             rating = document.selectFirst("div.small > em > strong:nth-child(1) > span")?.text()
                 ?.toFloatOrNull()?.times(100)?.roundToInt()
 
-            setStatus(
-                document.selectFirst("div.info > div:nth-child(5) > a")?.selectFirst("a")
-                    ?.text()
-            )
+            setStatus(infoDivs.find { it.text().contains("Status:") }?.selectFirst("a")?.text())
+
         }
     }
 }
