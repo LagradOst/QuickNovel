@@ -1413,6 +1413,7 @@ open class ReadfromnetProvider : MainAPI() {
                 name = name,
                 url = cUrl,
             ) {
+                posterHeaders = baseHeaders
                 posterUrl = fixUrlNull(h.selectFirst("div > a.highslide > img")?.attr("src"))
             }
         }
@@ -1454,7 +1455,7 @@ open class ReadfromnetProvider : MainAPI() {
             author =
                 document.selectFirst("#dle-speedbar > div > div > ul > li:nth-child(3) > a > span")
                     ?.text()
-
+            posterHeaders = baseHeaders
             posterUrl =
                 fixUrlNull(
                     document.selectFirst("div.box_in > center > div > a > img")

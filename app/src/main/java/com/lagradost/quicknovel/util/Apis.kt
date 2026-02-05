@@ -23,6 +23,7 @@ import com.lagradost.quicknovel.providers.MoreNovelProvider
 import com.lagradost.quicknovel.providers.MtlNovelProvider
 import com.lagradost.quicknovel.providers.NovLoveProvider
 import com.lagradost.quicknovel.providers.NovelBinProvider
+import com.lagradost.quicknovel.providers.NovelFullNETProvider
 import com.lagradost.quicknovel.providers.NovelFullProvider
 import com.lagradost.quicknovel.providers.NovelsOnlineProvider
 import com.lagradost.quicknovel.providers.PawReadProver
@@ -43,6 +44,7 @@ class Apis {
             //BestLightNovelProvider(), //dont exist anymore
             //WuxiaWorldOnlineProvider(), // Site does not work
             RoyalRoadProvider(),
+            NovelFullNETProvider(),
             HiraethTranslationProvider(),
             LibReadProvider(),
             FreewebnovelProvider(),
