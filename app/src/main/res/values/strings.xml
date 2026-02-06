@@ -261,6 +261,7 @@
     <string name="save">Save</string>
     <string name="history">History</string>
     <string name="explore">Explore</string>
+    <string name="unable_to_download_language">Unable to download language</string>
 
 
     <string name="toast_copied">copied!</string>
@@ -280,11 +281,14 @@
     <string name="error_loading">Error loading, please try again later.</string>
     <string name="operation_no_implemented">This operation is not implemented.</string>
     <string name="conection_error">Connection error.</string>
+    <string name="got_null_data">Got null data</string>
+    <string name="permission_error">Permission error</string>
+    <string name="tts_language_error">Unable to initialize TTS, download the language</string>
 
     <!-- Some details -->
     <string name="unknown">Unknown</string>
     <string name="chapter">Chapter</string>
-
+    <string name="no_update_found">No Update Found</string>
 
 
 </resources>

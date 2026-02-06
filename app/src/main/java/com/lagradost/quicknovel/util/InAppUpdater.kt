@@ -150,7 +150,7 @@ class InAppUpdater {
                 } catch (e: Exception) {
                     println(e)
 
-                    showToast("Permission error", Toast.LENGTH_SHORT)
+                    showToast(R.string.permission_error, Toast.LENGTH_SHORT)
                     return false
                 }
 

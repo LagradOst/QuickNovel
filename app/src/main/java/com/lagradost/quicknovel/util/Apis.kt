@@ -21,7 +21,9 @@ import com.lagradost.quicknovel.providers.LibReadProvider
 import com.lagradost.quicknovel.providers.MeioNovelProvider
 import com.lagradost.quicknovel.providers.MoreNovelProvider
 import com.lagradost.quicknovel.providers.MtlNovelProvider
+import com.lagradost.quicknovel.providers.NovLoveProvider
 import com.lagradost.quicknovel.providers.NovelBinProvider
+import com.lagradost.quicknovel.providers.NovelFullNETProvider
 import com.lagradost.quicknovel.providers.NovelFullProvider
 import com.lagradost.quicknovel.providers.NovelsOnlineProvider
 import com.lagradost.quicknovel.providers.PawReadProver
@@ -38,10 +40,11 @@ class Apis {
     companion object {
         val apis: List<MainAPI> = arrayOf(
             //AllProvider(),
-//            NovelPassionProvider(), // Site gone
-            BestLightNovelProvider(),
-//            WuxiaWorldOnlineProvider(), // Site does not work
+            //NovelPassionProvider(), // Site gone
+            //BestLightNovelProvider(), //dont exist anymore
+            //WuxiaWorldOnlineProvider(), // Site does not work
             RoyalRoadProvider(),
+            NovelFullNETProvider(),
             HiraethTranslationProvider(),
             LibReadProvider(),
             FreewebnovelProvider(),
@@ -57,20 +60,18 @@ class Apis {
             //EfremnetProvider(), // domain is expired
             GraycityProvider(),
             MtlNovelProvider(),
-
             AnnasArchive(),
-
             // chapter captcha
-//            WuxiaWorldSiteProvider(),
+            // WuxiaWorldSiteProvider(),
             //ReadLightNovelProvider(), // NOT WORKING?
-            //BoxNovelProvider(),
+            NovLoveProvider(),
             // ComrademaoProvider(), // domain sold/down?
-//            LightNovelPubProvider(), // Got cloudflare, but probably bypassable
+            // LightNovelPubProvider(), // Got cloudflare, but probably bypassable
             ReadNovelFullProvider(),
             ScribblehubProvider(),
             KolNovelProvider(),
             //RewayatArProvider(), // removed url
-//            ReadAnyBookProvider(), // Books locked behind login
+            //ReadAnyBookProvider(), // Books locked behind login
             MeioNovelProvider(),
             MoreNovelProvider(), // cloudflare?
             IndoWebNovelProvider(),

@@ -3,6 +3,9 @@ package com.lagradost.quicknovel.providers
 import com.lagradost.quicknovel.*
 import org.jsoup.Jsoup
 import com.lagradost.quicknovel.MainActivity.Companion.app
+import org.jsoup.nodes.Document
+import java.net.HttpURLConnection
+import java.net.URL
 
 open class ReadfromnetProvider : MainAPI() {
     override val name = "ReadFrom.Net"
@@ -1365,8 +1368,9 @@ open class ReadfromnetProvider : MainAPI() {
     ).sortedBy { it.first }.let { listOf("All" to "allbooks") + it }
 
     private val baseHeaders = mapOf(
-        "User-Agent" to "Mozilla/5.0"
+        "user-agent" to "Mozilla/5.0"
     )
+
 
     override suspend fun loadMainPage(
         page: Int,
@@ -1375,18 +1379,19 @@ open class ReadfromnetProvider : MainAPI() {
         tag: String?
     ): HeadMainPageResponse {
         val url = "$mainUrl/$tag/page/$page/"
-        val document = app.get(
-            url, headers = baseHeaders
-        ).document
-
-        val returnValue = document.select("div.box_in").mapNotNull { h ->
-            val name = h?.selectFirst("h2")?.text() ?: return@mapNotNull null
+        val response = app.get(url, headers = baseHeaders).document
+        val returnValue = response.select("div.box_in").mapNotNull { h ->
+            val name = h.selectFirst("h2")?.text() ?: return@mapNotNull null
             val cUrl = h.selectFirst(" div > h2.title > a ")?.attr("href") ?: return@mapNotNull null
 
             newSearchResponse(name = name, url = cUrl) {
+                posterHeaders = baseHeaders
                 posterUrl = fixUrlNull(h.selectFirst("div > a.highslide > img")?.attr("src"))
             }
         }
+
+
+
         return HeadMainPageResponse(url, returnValue)
     }
 
@@ -1394,37 +1399,28 @@ open class ReadfromnetProvider : MainAPI() {
         val document = app.get(url, headers = baseHeaders).document
         document.select("div.splitnewsnavigation").remove()
         document.select("div.splitnewsnavigation2").remove()
-        return document.selectFirst("#textToRead")?.html()
+        return  document.selectFirst("#textToRead")?.html()
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val response =
-            app.get(
-                "$mainUrl/build_in_search/?q=$query",
-                headers = baseHeaders
-            ) // AJAX, MIGHT ADD QUICK SEARCH
-
-        val document = Jsoup.parse(response.text)
-
+        val document = app.get("$mainUrl/build_in_search/?q=$query", headers = baseHeaders).document
         val headers = document.select("div > article > div.box_in[id='search result']")
-
         return headers.mapNotNull { h ->
             val name = h?.selectFirst(" div > h2.title > a > b")?.text() ?: return@mapNotNull null
-            val cUrl = mainUrl + h.selectFirst(" div > h2.title > a ")?.attr("href")
+            val cUrl = fixUrlNull( h.selectFirst(" div > h2.title > a ")?.attr("href"))?:""
 
             newSearchResponse(
                 name = name,
                 url = cUrl,
             ) {
+                posterHeaders = baseHeaders
                 posterUrl = fixUrlNull(h.selectFirst("div > a.highslide > img")?.attr("src"))
             }
         }
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        val response = app.get(url, headers = baseHeaders)
-
-        val document = Jsoup.parse(response.text)
+        val document =app.get(url, headers =baseHeaders).document
         val name =
             document.selectFirst(" h2 ")?.text()?.substringBefore(", page")?.substringBefore("#")
                 ?: return null
@@ -1459,12 +1455,13 @@ open class ReadfromnetProvider : MainAPI() {
             author =
                 document.selectFirst("#dle-speedbar > div > div > ul > li:nth-child(3) > a > span")
                     ?.text()
-
+            posterHeaders = baseHeaders
             posterUrl =
                 fixUrlNull(
                     document.selectFirst("div.box_in > center > div > a > img")
                         ?.attr("src")
                 )
         }
+
     }
 }

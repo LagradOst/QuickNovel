@@ -93,6 +93,10 @@ open class AllNovelProvider : MainAPI() {
         "Most Popular" to "most-popular",
     )
 
+    //this is to prevent zoom on images
+     open fun String.fixAllNovelProviderImgUrl(): String =
+        this.replace("fc05345726d3e134d2f7187dc70f047b","4d27e0af8cf6e971f7ee3c995fc55190")
+            .replace("9798407846f8032e6a88fa71b2c62ce9","9c3d392ccc7c95187a8c6e37c6bdac6f")
 
     override suspend fun loadMainPage(
         page: Int,
@@ -112,7 +116,8 @@ open class AllNovelProvider : MainAPI() {
                 SearchResponse(
                     name = a.text(),
                     url = fixUrlNull(a.attr("href")) ?: return@mapNotNull null,
-                    fixUrlNull(element.selectFirst("div > div > img")?.attr("src")),
+                    fixUrlNull(element.selectFirst("div > div > img")?.attr("src")?.fixAllNovelProviderImgUrl()
+                    ),
                     null,
                     null,
                     this.name
@@ -148,7 +153,8 @@ open class AllNovelProvider : MainAPI() {
             val title = h.selectFirst(">div>div>.truyen-title>a")
                 ?: h.selectFirst(">div>div>.novel-title>a") ?: return@mapNotNull null
             newSearchResponse(title.text(), title.attr("href") ?: return@mapNotNull null) {
-                posterUrl = fixUrlNull(h.selectFirst(">div>div>img")?.attr("src"))
+                posterUrl = fixUrlNull(h.selectFirst(">div>div>img")?.attr("src")?.fixAllNovelProviderImgUrl()
+                )
             }
         }
     }
@@ -182,22 +188,20 @@ open class AllNovelProvider : MainAPI() {
         }
 
         return newStreamResponse(name, url, data) {
-            tags = document.select("div.info > div:nth-child(3) a").map {
-                it.text()
-            }
-            author = document.selectFirst("div.info > div:nth-child(1) > a")?.text()
-            posterUrl = fixUrlNull(document.select("div.book > img").attr("src"))
+            val infoDivs = document.select("div.info > div")
+            author = infoDivs.find { it.text().contains("Author:") }?.selectFirst("a")?.text()
+            tags = infoDivs.find { it.text().contains("Genre") }?.select("a")?.map { it.text() }
+            posterUrl = fixUrlNull(document.selectFirst("div.book > img")?.attr("src"))
             synopsis = document.selectFirst("div.desc-text")?.text()
+
             peopleVoted =
                 document.selectFirst(" div.small > em > strong:nth-child(3) > span")?.text()
                     ?.toIntOrNull() ?: 0
             rating = document.selectFirst("div.small > em > strong:nth-child(1) > span")?.text()
                 ?.toFloatOrNull()?.times(100)?.roundToInt()
 
-            setStatus(
-                document.selectFirst("div.info > div:nth-child(5) > a")?.selectFirst("a")
-                    ?.text()
-            )
+            setStatus(infoDivs.find { it.text().contains("Status:") }?.selectFirst("a")?.text())
+
         }
     }
 }

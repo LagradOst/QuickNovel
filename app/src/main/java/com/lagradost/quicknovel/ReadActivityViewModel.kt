@@ -37,6 +37,7 @@ import com.google.mlkit.nl.translate.TranslateRemoteModel
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
+import com.lagradost.nicehttp.NiceResponse
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeyClass
@@ -104,6 +105,7 @@ import java.util.Locale
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import kotlin.math.pow
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 
@@ -366,12 +368,23 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
         }
         val builder = StringBuilder()
         for (i in startIdx until endIdx) {
-            val ref = data.spine.spineReferences[i]
-            // I have no idea, but nonlinear = stop?
-            if (!ref.isLinear && i != startIdx) {
-                break
+            try//this is for corrupted epubs like from annasarchive
+            {
+                val ref = data.spine.spineReferences[i]
+                // I have no idea, but nonlinear = stop?
+                if (!ref.isLinear && i != startIdx) {
+                    break
+                }
+                /*
+                    Somewhere in the code, when generating the EPUB of whatever, it changes the root,
+                    so it can’t find other resources for some reason. Since the code is already huge,
+                    I have no idea where that happens, so I resort to a sketchy fix.
+                */
+                builder.append(ref.resource.reader.readText().replace(Regex("""src="(?!OEBPS/|http)"""), "src=\"OEBPS/"))
             }
-            builder.append(ref.resource.reader.readText())
+            catch (t: Throwable){
+                logError(t)
+            }
         }
 
         return builder.toString()
@@ -924,7 +937,6 @@ class ReadActivityViewModel : ViewModel() {
             val builder = StringBuilder()
             val out = ArrayList<TextSpan>()
             val separator = "\n\n" // Use double line breaks to separate paragraphs within the batch
-
             if (currentSettings.useOnlineTranslation) {
                 // --- Online mode ---
                 val batchSize = 5
@@ -932,7 +944,7 @@ class ReadActivityViewModel : ViewModel() {
                     loading.invoke(Triple(spans[i].index, i, spans.size))
                     val batch = spans.subList(i, minOf(i + batchSize, spans.size))
                     val combinedText = batch.joinToString(separator) { it.text.toString() }
-                    val translatedBatch = onlineTranslate(combinedText, currentSettings.to)
+                    val translatedBatch = onlineTranslate(combinedText, currentSettings.from,currentSettings.to)
                     val translatedParagraphs = translatedBatch.split(separator)
 
                     for (j in batch.indices) {
@@ -1120,7 +1132,7 @@ class ReadActivityViewModel : ViewModel() {
 
             mlSettings = settings
         } catch (_: TimeoutException) {
-            showToast("Unable to download language")
+            showToast(R.string.unable_to_download_language)
             mlTranslator?.closeQuietly()
             mlTranslator = null
         } catch (t: Throwable) {
@@ -1405,7 +1417,7 @@ class ReadActivityViewModel : ViewModel() {
                     val lines =
                         when (val currentData = chapterMutex.withLock { chapterData[index]}) {
                             null -> {
-                                showToast("Got null data")
+                                showToast(R.string.got_null_data)
                                 break
                             }
 
@@ -2013,14 +2025,26 @@ class ReadActivityViewModel : ViewModel() {
         val srcTranslit: String? = null
     )
 
-    suspend fun onlineTranslate(text: String, targetLang: String): String {
+    suspend fun onlineTranslate(text: String,from:String, to: String): String {
         val baseUrl = "https://translate.googleapis.com/translate_a/single"
         if (text.trim().isBlank()) return ""
-        // Google returns: [ [[trans, orig, ...], [trans, orig, ...]], ... ]
-        val response = MainActivity.app.get(
-            "$baseUrl?client=gtx&sl=auto&tl=$targetLang&dt=t&q=${Uri.encode(text)}"
-        ).parsed<GoogleTranslationResponse>()
 
-        return response.sentences.joinToString("") { (trans, _) -> trans }
+        var retryNumber = 0
+        val maxRetry = 5
+        while (retryNumber < maxRetry){
+            try{
+                // Google returns: [ [[trans, orig, ...], [trans, orig, ...]], ... ]
+                return MainActivity.app.get(
+                    "$baseUrl?client=gtx&sl=$from&tl=$to&dt=t&q=${Uri.encode(text)}"
+                ).parsed<GoogleTranslationResponse>().sentences.joinToString("") { (trans, _) -> trans }
+            }
+            catch (t: Throwable){
+                retryNumber++
+                if(retryNumber >= maxRetry)
+                    throw t
+                delay( 500L * (2.0.pow(retryNumber).toLong()))
+            }
+        }
+        return ""
     }
 }

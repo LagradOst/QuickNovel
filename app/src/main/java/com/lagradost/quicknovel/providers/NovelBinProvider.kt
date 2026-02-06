@@ -15,7 +15,7 @@ import com.lagradost.quicknovel.setStatus
 import kotlin.math.roundToInt
 
 
-class NovelBinProvider : MainAPI() {
+open class NovelBinProvider : MainAPI() {
     override val name = "NovelBin"
     override val mainUrl = "https://novelbin.com"
     override val hasMainPage = true

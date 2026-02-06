@@ -11,6 +11,7 @@ import coil3.EventListener
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
+import coil3.asImage
 import coil3.disk.DiskCache
 import coil3.dispose
 import coil3.load
@@ -23,14 +24,17 @@ import coil3.request.ErrorResult
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.request.crossfade
+import coil3.result
 import coil3.util.DebugLogger
 import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.BuildConfig
 import com.lagradost.quicknovel.USER_AGENT
 import com.lagradost.quicknovel.ui.UiImage
+import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okio.Path.Companion.toOkioPath
+import org.commonmark.internal.Bracket.image
 import java.io.File
 import java.nio.ByteBuffer
 
@@ -106,12 +110,10 @@ object ImageLoader {
         // which can be overridden by extensions.
         this.load(imageData, SingletonImageLoader.get(context)) {
             this.httpHeaders(NetworkHeaders.Builder().also { headerBuilder ->
-                headerBuilder["User-Agent"] = USER_AGENT
                 headers?.forEach { (key, value) ->
                     headerBuilder[key] = value
                 }
             }.build())
-
             builder() // if passed
         }
     }

@@ -200,7 +200,7 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
                             ?: pendingTTS.defaultVoice
 
                     if (canSetLanguage == TextToSpeech.LANG_MISSING_DATA || canSetLanguage == TextToSpeech.LANG_NOT_SUPPORTED) {
-                        CommonActivity.showToast("Unable to initialize TTS, download the language")
+                        CommonActivity.showToast(R.string.tts_language_error)
                         return@coroutineScope null
                     }
 
