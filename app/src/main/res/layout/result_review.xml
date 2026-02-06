@@ -1,97 +1,98 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:tools="http://schemas.android.com/tools"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:layout_width="match_parent"
-        android:backgroundTint="?attr/boxItemBackground"
-        app:cardCornerRadius="5dp"
-        android:layout_marginTop="2.5dp"
-        android:layout_marginBottom="2.5dp"
-        android:layout_height="wrap_content">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="2.5dp"
+    android:layout_marginBottom="2.5dp"
+    android:backgroundTint="?attr/boxItemBackground"
+    app:cardCornerRadius="5dp">
 
     <LinearLayout
-            android:padding="5dp"
-            android:orientation="vertical"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="5dp">
 
         <LinearLayout
-                android:orientation="horizontal"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
             <androidx.cardview.widget.CardView
-                    android:layout_gravity="center_vertical|start"
-                    android:layout_width="50dp"
-                    app:cardCornerRadius="10000dp"
-                    android:layout_height="50dp">
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_gravity="center_vertical|start"
+                android:foreground="@drawable/outline_big_25_gray"
+                app:cardCornerRadius="25dp">
 
                 <ImageView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:scaleType="centerCrop"
-                        android:id="@+id/review_image"
-                        tools:src="@drawable/icon_boxnovel"
-                        android:contentDescription="@string/user_image_avatar" />
+                    android:id="@+id/review_image"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@string/user_image_avatar"
+                    android:scaleType="centerCrop"
+                    tools:src="@drawable/icon_boxnovel" />
             </androidx.cardview.widget.CardView>
 
             <LinearLayout
-                    android:layout_margin="5dp"
-                    android:orientation="vertical"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="5dp"
+                android:orientation="vertical">
 
                 <LinearLayout
-                        android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/review_author"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="start"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:textColor="?attr/textColor"
+                        tools:text="Marajuu" />
+
+                    <TextView
+                        android:id="@+id/review_time"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
-
-                    <TextView
-                            android:paddingStart="10dp"
-                            android:paddingEnd="10dp"
-                            android:id="@+id/review_author"
-                            android:textColor="?attr/textColor"
-                            android:layout_gravity="start"
-                            tools:text="Marajuu"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
-
-                    <TextView
-                            android:paddingEnd="10dp"
-                            android:paddingStart="10dp"
-                            android:textColor="?attr/grayTextColor"
-                            android:gravity="end"
-                            android:id="@+id/review_time"
-                            tools:text="2017-10-21 23:40:03"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content" />
+                        android:layout_height="wrap_content"
+                        android:gravity="end"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:textColor="?attr/grayTextColor"
+                        tools:text="2017-10-21 23:40:03" />
                 </LinearLayout>
 
                 <com.google.android.material.chip.ChipGroup
-                        android:id="@+id/review_tags"
-                        style="@style/ChipParent"
-                        app:chipSpacingVertical="-7dp"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content" />
+                    android:id="@+id/review_tags"
+                    style="@style/ChipParent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:chipSpacingVertical="-7dp" />
             </LinearLayout>
         </LinearLayout>
 
         <TextView
-                android:paddingTop="10dp"
-                android:paddingBottom="5dp"
-                tools:text="GOOD REVIEW"
-                android:textColor="?attr/textColor"
-                android:textStyle="bold"
-                android:id="@+id/review_title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+            android:id="@+id/review_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="10dp"
+            android:paddingBottom="5dp"
+            android:textColor="?attr/textColor"
+            android:textStyle="bold"
+            tools:text="GOOD REVIEW" />
 
         <TextView
-                android:paddingBottom="5dp"
-                android:textColor="?attr/textColor"
-                tools:text="From some of my brief discussions with the author, it seemed there were no plans at all to bring this story to the Royalroad platform. Many tried to persuade him with little success. But it seems that Royalroad is going to be graced with this story after all. I have followed this story since sometime back in 2013, and this might be my favourite high-fantasy fiction of all time. "
-                android:id="@+id/review_body"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+            android:id="@+id/review_body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="5dp"
+            android:textColor="?attr/textColor"
+            tools:text="From some of my brief discussions with the author, it seemed there were no plans at all to bring this story to the Royalroad platform. Many tried to persuade him with little success. But it seems that Royalroad is going to be graced with this story after all. I have followed this story since sometime back in 2013, and this might be my favourite high-fantasy fiction of all time. " />
     </LinearLayout>
 </androidx.cardview.widget.CardView>
