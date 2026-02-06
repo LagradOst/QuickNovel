@@ -196,6 +196,10 @@ class ResultViewModel : ViewModel() {
 
     var apiName : String = ""
 
+    /*This is to detect whether it actually returned to
+     the fragment after reading a chapter, and thus update the list of chapters.*/
+    var isResume = false
+
     val currentTabIndex: MutableLiveData<Int> by lazy {
         MutableLiveData<Int>(0)
     }

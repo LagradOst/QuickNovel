@@ -244,7 +244,6 @@
     <string name="quickstream_novel_text">Leer en línea</string>
     <string name="stream_read">Leer en línea</string>
     <string name="permission_error">Se nececitan permisos</string>
-    <!--<string name="unable_init_tts">No se puede iniciar, descargar el lenguaje</string>-->
 
 
     <!-- Diálogos de Confirmación -->
@@ -286,7 +285,7 @@
     <string name="more_info">Más información</string>
     <string name="connection_timeout">Tiempo de espera agotado Por favor, inténtalo de nuevo más tarde.</string>
     <string name="cannot_conect">No se pudo conectar al servidor, inténtalo de nuevo más tarde.</string>
-    <string name="error_loading">" Error al cargar, por favor inténtalo de nuevo más tarde."</string>
+    <string name="error_loading">"Error al cargar, por favor inténtalo de nuevo más tarde."</string>
     <string name="operation_no_implemented">" Esta operación no está implementada."</string>
     <string name="conection_error">Error de conección.</string>
     <string name="unknown">Desconocido</string>
