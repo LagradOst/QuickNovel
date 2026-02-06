@@ -22,7 +22,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 35
         versionCode 56
-        versionName "3.4.1"
+        versionName "3.4.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -55,12 +55,13 @@ android {
     namespace 'com.lagradost.quicknovel'
 }
 
+/*
 repositories {
     maven {
         url 'https://github.com/psiegman/mvn-repo/raw/master/releases'
     }
     maven { url 'https://jitpack.io' }
-}
+}*/
 
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
@@ -100,7 +101,7 @@ dependencies {
     implementation 'com.github.LagradOst:SafeFile:a926e7615a' // To Prevent the URI File Fu*kery
     implementation 'com.jaredrummler:colorpicker:1.1.0'
 
-    implementation 'com.github.Blatzar:NiceHttp:0.4.13'
+    implementation 'com.github.Blatzar:NiceHttp:0.4.16'
     implementation "io.coil-kt.coil3:coil:3.3.0"
     implementation "io.coil-kt.coil3:coil-network-okhttp:3.3.0"
 

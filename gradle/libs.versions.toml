@@ -1,0 +1,13 @@
+# https://docs.gradle.org/current/userguide/plugins.html#sec:version_catalog_plugin_application
+# https://docs.gradle.org/current/userguide/dependency_versions.html#sec:strict-version
+[versions]
+androidGradlePlugin = "8.13.2"
+kotlinGradlePlugin = "2.3.0"
+
+[libraries]
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinGradlePlugin" }
+
+[bundles]
