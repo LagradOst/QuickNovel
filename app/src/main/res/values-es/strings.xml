@@ -244,7 +244,7 @@
     <string name="quickstream_novel_text">Leer en línea</string>
     <string name="stream_read">Leer en línea</string>
     <string name="permission_error">Se nececitan permisos</string>
-    <string name="unable_init_tts">No se puede iniciar, descargar el lenguaje</string>
+    <!--<string name="unable_init_tts">No se puede iniciar, descargar el lenguaje</string>-->
 
 
     <!-- Diálogos de Confirmación -->
