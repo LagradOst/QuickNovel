@@ -14,6 +14,7 @@ import com.lagradost.quicknovel.BookDownloader2.preloadPartialImportedPdf
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
 import com.lagradost.quicknovel.DownloadState
+import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.DownloadImportBinding
 import com.lagradost.quicknovel.databinding.DownloadImportCardBinding
@@ -174,8 +175,15 @@ class AnyAdapter(
                 val card = item as ResultCached
                 view.apply {
                     imageText.text = card.name
+                   val lastRead = getKey<Int>(EPUB_CURRENT_POSITION, card.name)?.let{it+1}?:0
                     historyExtraText.text =
-                        "${card.totalChapters} ${root.context.getString(R.string.read_action_chapters)}"
+                        "${lastRead}/${card.totalChapters} ${root.context.getString(R.string.read_action_chapters)}"
+
+                   //look for update
+                   downloadViewModel.loadChaptersIfNeeded(card){
+                       notifyItemChanged(position)
+                   }
+
                     imageView.setImage(card.poster)
 
                     historyPlay.setOnClickListener {
@@ -258,8 +266,17 @@ class AnyAdapter(
                             imageView.setImage(
                                 item.image,
                             ) // skipCache = false
+
                             imageText.text = item.name
                             imageTextMore.isVisible = false
+                            val lastRead = getKey<Int>(EPUB_CURRENT_POSITION, item.name)?.let{it+1}?:0
+                            progressReading.text =
+                                "${lastRead}/${item.totalChapters}"
+
+                            //look for update
+                            downloadViewModel.loadChaptersIfNeeded(item){
+                                    notifyItemChanged(position)
+                            }
                         }
                     }
 

@@ -50,18 +50,24 @@ import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_DOWNLOADED
 import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_READ
 import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_UNREAD
 import com.lagradost.quicknovel.RESULT_CHAPTER_SORT
+import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.mvvm.launchSafe
+import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.ReadType
+import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import me.xdrop.fuzzywuzzy.FuzzySearch
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.collections.set
+import kotlin.coroutines.cancellation.CancellationException
 
 const val DEFAULT_SORT = 0
 const val ALPHA_SORT = 1
@@ -617,5 +623,71 @@ class DownloadViewModel : ViewModel() {
     @Suppress("UNUSED_PARAMETER")
     private fun downloadDataRefreshed(_id: Int) = viewModelScope.launchSafe {
         fetchAllData(true)
+    }
+
+
+
+
+    private val loadingJobs = ConcurrentHashMap<Int, Job>()
+    private val jobsMutex = Mutex()
+    val loadedChaptersCount = mutableMapOf<Int, Int>()
+
+    fun loadChaptersIfNeeded(item: ResultCached, reload: () -> Unit) {
+        if (loadedChaptersCount.containsKey(item.id) || loadingJobs.containsKey(item.id)) return
+
+        val minutesAgo = System.currentTimeMillis() - (10 * 60 * 1000)//look every 10 minutes
+        if (item.cachedTime > minutesAgo) return
+
+        ioSafe {
+            jobsMutex.withLock {
+                if (loadingJobs.containsKey(item.id)) return@withLock
+                //only N requests at the same time
+                if (loadingJobs.size >= 15) {
+                    //delete the oldest
+                    val oldestId = loadingJobs.keys.first()
+                    loadingJobs.remove(oldestId)?.cancel()
+                }
+
+                val job = launch {
+                    try {
+                        val api = Apis.apis.find { it.name == item.apiName }
+                        val response = api?.load(item.source) as? StreamResponse
+
+                        response?.let { loaded ->
+                            val chCount = loaded.data.size
+                            loadedChaptersCount[item.id] = chCount
+                            if(item.totalChapters == chCount) return@let
+                            item.totalChapters = chCount
+
+                            setKey(
+                                RESULT_BOOKMARK, item.id.toString(), ResultCached(
+                                    item.source,
+                                    item.name,
+                                    item.apiName,
+                                    item.id,
+                                    item.author,
+                                    item.poster,
+                                    item.tags,
+                                    item.rating,
+                                    chCount,
+                                    System.currentTimeMillis(),
+                                    synopsis = item.synopsis
+                                )
+                            )
+                            withContext(Dispatchers.Main) {
+                                reload()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        if (e !is CancellationException) logError(e)
+                    } finally {
+                        jobsMutex.withLock {
+                            loadingJobs.remove(item.id)
+                        }
+                    }
+                }
+                loadingJobs[item.id] = job
+            }
+        }
     }
 }

@@ -94,7 +94,7 @@ open class AllNovelProvider : MainAPI() {
     )
 
     //this is to prevent zoom on images
-     open fun String.fixAllNovelProviderImgUrl(): String =
+     open fun String.fullPosterFix(): String =
         this.replace("fc05345726d3e134d2f7187dc70f047b","4d27e0af8cf6e971f7ee3c995fc55190")
             .replace("9798407846f8032e6a88fa71b2c62ce9","9c3d392ccc7c95187a8c6e37c6bdac6f")
 
@@ -116,8 +116,7 @@ open class AllNovelProvider : MainAPI() {
                 SearchResponse(
                     name = a.text(),
                     url = fixUrlNull(a.attr("href")) ?: return@mapNotNull null,
-                    fixUrlNull(element.selectFirst("div > div > img")?.attr("src")?.fixAllNovelProviderImgUrl()
-                    ),
+                    fixUrlNull(element.selectFirst("div > div > img")?.attr("src")?.fullPosterFix()),
                     null,
                     null,
                     this.name
@@ -153,15 +152,13 @@ open class AllNovelProvider : MainAPI() {
             val title = h.selectFirst(">div>div>.truyen-title>a")
                 ?: h.selectFirst(">div>div>.novel-title>a") ?: return@mapNotNull null
             newSearchResponse(title.text(), title.attr("href") ?: return@mapNotNull null) {
-                posterUrl = fixUrlNull(h.selectFirst(">div>div>img")?.attr("src")?.fixAllNovelProviderImgUrl()
-                )
+                posterUrl = fixUrlNull(h.selectFirst(">div>div>img")?.attr("src")?.fullPosterFix())
             }
         }
     }
 
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
-
         val name =
             document.selectFirst("h3.title")?.text() ?: throw ErrorLoadingException("invalid name")
 
@@ -188,10 +185,15 @@ open class AllNovelProvider : MainAPI() {
         }
 
         return newStreamResponse(name, url, data) {
-            val infoDivs = document.select("div.info > div")
+            val infoDivs = document.select("div.info > div").takeIf{ !it.isEmpty() } ?: document.select("ul.info > li")
+
             author = infoDivs.find { it.text().contains("Author:") }?.selectFirst("a")?.text()
-            tags = infoDivs.find { it.text().contains("Genre") }?.select("a")?.map { it.text() }
-            posterUrl = fixUrlNull(document.selectFirst("div.book > img")?.attr("src"))
+            tags = infoDivs.find { it.text().contains("Genre") }?.select("a")?.mapNotNull { it.text().takeIf { t -> t.trim().isNotBlank() } }
+
+            val imgElement = document.selectFirst("div.book img")
+            posterUrl = fixUrlNull(
+                imgElement?.attr("src").takeIf { !it.isNullOrBlank() }  ?: imgElement?.attr("data-src")
+            )
             synopsis = document.selectFirst("div.desc-text")?.text()
 
             peopleVoted =

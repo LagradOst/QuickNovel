@@ -89,7 +89,6 @@ class ResultFragment : Fragment() {
 
         //return inflater.inflate(R.layout.fragment_result, container, false)
     }
-
     private fun setupGridView() {
         val compactView = false //activity?.getGridIsCompact() ?: return
         val spanCountLandscape = if (compactView) 2 else 6
@@ -112,6 +111,13 @@ class ResultFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        //only if really is onResume
+        if(viewModel.isResume){
+            (binding.chapterList.adapter as? ChapterAdapter)?.apply{
+                this.notifyDataSetChanged()
+            }
+            viewModel.isResume = false
+        }
 
         activity?.apply {
             window?.navigationBarColor =

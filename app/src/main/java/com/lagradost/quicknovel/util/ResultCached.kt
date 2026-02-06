@@ -12,7 +12,7 @@ data class ResultCached(
     val poster: String?,
     val tags : List<String>?,
     val rating : Int?,
-    val totalChapters : Int,
+    var totalChapters : Int,
     val cachedTime : Long, // milliseconds
     val synopsis : String? = null
 ) {
