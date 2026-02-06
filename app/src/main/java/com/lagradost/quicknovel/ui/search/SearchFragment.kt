@@ -54,7 +54,8 @@ class SearchFragment : Fragment() {
 
 
             binding.homeExpandedRecycler.apply {
-                val searchAdapter = SearchAdapter2(viewModel, binding.homeExpandedRecycler)
+                setRecycledViewPool(SearchAdapter.sharedPool)
+                val searchAdapter = SearchAdapter(viewModel, binding.homeExpandedRecycler)
                 searchAdapter.submitList(item.list)
                 adapter = searchAdapter
                 spanCount = currentSpan
@@ -114,10 +115,12 @@ class SearchFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val masterAdapter = ParentItemAdapter2(viewModel)
-        val allAdapter = SearchAdapter2(viewModel, binding.searchAllRecycler)
+        val masterAdapter = ParentItemAdapter(viewModel)
+        val allAdapter = SearchAdapter(viewModel, binding.searchAllRecycler)
         binding.searchAllRecycler.adapter = allAdapter
+        binding.searchAllRecycler.setRecycledViewPool(SearchAdapter.sharedPool)
         binding.searchMasterRecycler.apply {
+            setRecycledViewPool(ParentItemAdapter.sharedPool)
             adapter = masterAdapter
             layoutManager = GridLayoutManager(context, 1)
         }

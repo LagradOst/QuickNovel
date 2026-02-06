@@ -3,13 +3,27 @@ package com.lagradost.quicknovel.ui.result
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.view.isGone
-import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.databinding.SimpleChapterBinding
+import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
 
-class ChapterAdapter(val viewModel: ResultViewModel) : NoStateAdapter<ChapterData>(DiffCallback()) {
+class ChapterAdapter(val viewModel: ResultViewModel) :
+    NoStateAdapter<ChapterData>(
+        diffCallback = BaseDiffCallback(
+            itemSame = { a, b -> a.url == b.url },
+            contentSame = { a, b -> a == b }
+        )) {
+
+    companion object {
+        val sharedPool =
+            RecyclerView.RecycledViewPool().apply {
+                this.setMaxRecycledViews(CONTENT, 10)
+            }
+    }
+
     override fun onCreateContent(parent: ViewGroup): ViewHolderState<Any> {
         return ViewHolderState(
             SimpleChapterBinding.inflate(
@@ -48,13 +62,5 @@ class ChapterAdapter(val viewModel: ResultViewModel) : NoStateAdapter<ChapterDat
             }
             refresh(binding, item, viewModel)
         }
-    }
-
-    class DiffCallback : DiffUtil.ItemCallback<ChapterData>() {
-        override fun areItemsTheSame(oldItem: ChapterData, newItem: ChapterData): Boolean =
-            oldItem.url == newItem.url
-
-        override fun areContentsTheSame(oldItem: ChapterData, newItem: ChapterData): Boolean =
-            oldItem == newItem
     }
 }

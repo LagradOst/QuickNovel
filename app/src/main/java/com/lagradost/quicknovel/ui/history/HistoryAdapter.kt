@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.HistoryResultCompactBinding
 import com.lagradost.quicknovel.ui.NoStateAdapter
@@ -11,8 +12,16 @@ import com.lagradost.quicknovel.ui.ViewHolderState
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.UIHelper.setImage
 
-class HistoryAdapter2(private val viewModel: HistoryViewModel) :
+class HistoryAdapter(private val viewModel: HistoryViewModel) :
     NoStateAdapter<ResultCached>(DiffCallback()) {
+
+    companion object {
+        val sharedPool =
+            RecyclerView.RecycledViewPool().apply {
+                this.setMaxRecycledViews(CONTENT, 10)
+            }
+    }
+
     override fun onCreateContent(parent: ViewGroup): ViewHolderState<Any> {
         return ViewHolderState(HistoryResultCompactBinding.inflate(LayoutInflater.from(parent.context), parent, false))
     }

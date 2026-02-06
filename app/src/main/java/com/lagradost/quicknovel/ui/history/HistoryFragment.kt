@@ -53,12 +53,10 @@ class HistoryFragment : Fragment() {
 
         setupGridView()
 
-        val historyAdapter = HistoryAdapter2(viewModel).apply {
-
-        }
+        val historyAdapter = HistoryAdapter(viewModel)
 
         binding.historyCardSpace.apply {
-
+            setRecycledViewPool(HistoryAdapter.sharedPool)
             adapter = historyAdapter
         }
 

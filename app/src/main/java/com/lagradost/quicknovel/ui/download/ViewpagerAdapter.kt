@@ -113,6 +113,7 @@ class ViewpagerAdapter(
                 // Which is only determined after the recyclerview is attached.
                 // If this fails then item height becomes 0 when there is only one item
                 doOnAttach {
+                    setRecycledViewPool(AnyAdapter.sharedPool)
                     adapter = AnyAdapter(
                         this,
                         downloadViewModel

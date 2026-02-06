@@ -18,7 +18,6 @@ import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.ResultCached
 
 class HistoryViewModel : ViewModel() {
-
     private fun updateHistory() {
         ioSafe {
             val list = ArrayList<ResultCached>()

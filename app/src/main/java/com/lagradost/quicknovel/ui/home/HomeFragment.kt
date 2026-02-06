@@ -7,7 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.recyclerview.widget.GridLayoutManager
 import com.lagradost.quicknovel.databinding.FragmentHomeBinding
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
@@ -44,7 +43,7 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         setupGridView()
-        val browseAdapter = BrowseAdapter2()
+        val browseAdapter = BrowseAdapter()
         binding.homeBrowselist.apply {
             adapter = browseAdapter
             // layoutManager = GridLayoutManager(context, 1)

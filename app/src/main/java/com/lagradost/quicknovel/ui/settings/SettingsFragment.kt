@@ -9,48 +9,46 @@ import android.os.Environment
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
 import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.CommonActivity.showToast
+import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.databinding.LogcatBinding
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.safe
+import com.lagradost.quicknovel.ui.download.AnyAdapter
+import com.lagradost.quicknovel.ui.txt
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiProviderLangSettings
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.BackupUtils.backup
 import com.lagradost.quicknovel.util.BackupUtils.restorePrompt
+import com.lagradost.quicknovel.util.BackupUtils.setupStream
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.util.SingleSelectionHelper.showBottomDialog
 import com.lagradost.quicknovel.util.SingleSelectionHelper.showDialog
 import com.lagradost.quicknovel.util.SingleSelectionHelper.showMultiDialog
 import com.lagradost.quicknovel.util.SubtitleHelper
-import com.lagradost.safefile.MediaFileContentType
-import com.lagradost.safefile.SafeFile
-import java.io.File
-import androidx.core.content.edit
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.lagradost.quicknovel.DataStore.mapper
-import com.lagradost.quicknovel.ErrorLoadingException
-import com.lagradost.quicknovel.databinding.LogcatBinding
-import com.lagradost.quicknovel.ui.txt
-import com.lagradost.quicknovel.util.BackupUtils.setupStream
 import com.lagradost.quicknovel.util.UIHelper.clipboardHelper
 import com.lagradost.quicknovel.util.UIHelper.dismissSafe
+import com.lagradost.safefile.MediaFileContentType
+import com.lagradost.safefile.SafeFile
 import java.io.BufferedReader
+import java.io.File
 import java.io.InputStreamReader
 import java.io.OutputStream
-import java.io.PrintWriter
 import java.lang.System.currentTimeMillis
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.sequences.forEach
 
 class SettingsFragment : PreferenceFragmentCompat() {
     private fun PreferenceFragmentCompat?.getPref(id: Int): Preference? {
@@ -522,12 +520,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 getString(R.string.rating_format),
                 false,
                 {}) {
-                try {
+                safe {
                     settingsManager.edit {
+                        AnyAdapter.sharedPool.clear()
                         putString(getString(R.string.download_format_key), prefValues[it])
                     }
-                } catch (e: Exception) {
-                    logError(e)
                 }
             }
             return@setOnPreferenceClickListener true

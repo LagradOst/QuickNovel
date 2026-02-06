@@ -38,7 +38,7 @@ import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.mvvm.observeNullable
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.SortingMethodAdapter
-import com.lagradost.quicknovel.ui.mainpage.MainAdapter2
+import com.lagradost.quicknovel.ui.mainpage.MainAdapter
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.util.SettingsHelper.getRating
 import com.lagradost.quicknovel.util.UIHelper
@@ -226,7 +226,8 @@ class ResultFragment : Fragment() {
                                 resultTabs.newTab().setText(R.string.related).setId(2)
                             )
                             relatedList.apply {
-                                val mainPageAdapter = MainAdapter2(this, 0)
+                                setRecycledViewPool(MainAdapter.sharedPool)
+                                val mainPageAdapter = MainAdapter(this, 0)
                                 adapter = mainPageAdapter
                                 mainPageAdapter.submitList(res.related)
                             }
@@ -529,8 +530,8 @@ class ResultFragment : Fragment() {
                 viewModel.share()
             }
 
-            val reviewAdapter = ReviewAdapter2()
-
+            val reviewAdapter = ReviewAdapter()
+            resultReviews.setRecycledViewPool(ReviewAdapter.sharedPool)
             resultReviews.adapter = reviewAdapter
             resultReviews.layoutManager = GridLayoutManager(context, 1)
 
@@ -636,8 +637,8 @@ class ResultFragment : Fragment() {
         }
         observe(viewModel.loadResponse, ::newState)
 
-
         binding.chapterList.apply {
+            setRecycledViewPool(ChapterAdapter.sharedPool)
             val mainPageAdapter = ChapterAdapter(viewModel)
             adapter = mainPageAdapter
             setHasFixedSize(true)

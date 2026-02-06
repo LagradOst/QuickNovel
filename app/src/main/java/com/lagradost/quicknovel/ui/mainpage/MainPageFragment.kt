@@ -86,7 +86,7 @@ class MainPageFragment : Fragment() {
         setupGridView()
     }
 
-    private var lastId : Int = -1 // dirty fix
+    private var lastId: Int = -1 // dirty fix
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val apiName = requireArguments().getString("apiName")!!
 
@@ -158,7 +158,8 @@ class MainPageFragment : Fragment() {
         setupGridView()
 
         binding.mainpageList.apply {
-            val mainPageAdapter = MainAdapter2(this, 1)
+            setRecycledViewPool(MainAdapter.sharedPool)
+            val mainPageAdapter = MainAdapter(this, 1)
             adapter = mainPageAdapter
             addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
