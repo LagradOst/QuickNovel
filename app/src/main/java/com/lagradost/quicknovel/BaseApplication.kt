@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.content.ContextWrapper
+import androidx.work.Configuration
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import com.lagradost.cloudstream3.utils.ImageLoader
@@ -14,7 +15,7 @@ import com.lagradost.quicknovel.DataStore.removeKeys
 import com.lagradost.quicknovel.DataStore.setKey
 import java.lang.ref.WeakReference
 
-class BaseApplication : Application(), SingletonImageLoader.Factory  {
+class BaseApplication : Application(), SingletonImageLoader.Factory, Configuration.Provider  {
     override fun attachBaseContext(base: Context?) {
         super.attachBaseContext(base)
         context = base
@@ -24,6 +25,9 @@ class BaseApplication : Application(), SingletonImageLoader.Factory  {
         // Coil Module will be initialized & setSafe globally when first loadImage() is invoked
         return ImageLoader.buildImageLoader(applicationContext)
     }
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder().build()
 
 
     companion object {

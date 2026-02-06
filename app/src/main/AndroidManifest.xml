@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -17,47 +18,48 @@
         </intent>
     </queries>
 
-    <application
-            android:usesCleartextTraffic="true"
-            android:enableOnBackInvokedCallback="true"
-            android:name=".BaseApplication"
-            android:requestLegacyExternalStorage="true"
-            android:allowBackup="true"
-            android:icon="@mipmap/ic_launcher"
-            android:label="@string/app_name"
-            android:roundIcon="@mipmap/ic_launcher"
-            android:supportsRtl="true"
-            android:theme="@style/AppTheme">
 
+    <application
+        android:name=".BaseApplication"
+        android:allowBackup="true"
+        android:enableOnBackInvokedCallback="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:requestLegacyExternalStorage="true"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme"
+        android:usesCleartextTraffic="true"
+        tools:targetApi="33">
 
         <service
-                android:name=".TTSNotificationService"
-                android:enabled="true"
-                android:foregroundServiceType="mediaPlayback"
-                android:exported="false">
+            android:name=".TTSNotificationService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback">
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
         </service>
 
         <service
-                android:name=".DownloadNotificationService"
-                android:enabled="true"
-                android:foregroundServiceType="dataSync"
-                android:exported="false" />
+            android:name=".DownloadNotificationService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <receiver
-                android:name="androidx.media.session.MediaButtonReceiver"
-                android:exported="true">
+            android:name="androidx.media.session.MediaButtonReceiver"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
         </receiver>
 
         <activity
-                android:name=".MainActivity"
-                android:exported="true"
-                android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation">
+            android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
+            android:exported="true">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -77,105 +79,105 @@
                 <category android:name="android.intent.category.DEFAULT" />
 
                 <data
-                        android:scheme="https"
-                        android:host="www.reddit.com"
-                        android:pathPrefix="/r/" />
+                    android:host="www.reddit.com"
+                    android:pathPrefix="/r/"
+                    android:scheme="https" />
 
                 <data
-                        android:scheme="https"
-                        android:host="allnovel.org"
-                        android:pathPrefix="/" />
+                    android:host="allnovel.org"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="annas-archive.org"
-                        android:pathPrefix="/" />
+                    android:host="annas-archive.org"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="bestlightnovel.com"
-                        android:pathPrefix="/" />
+                    android:host="bestlightnovel.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="freewebnovel.com"
-                        android:pathPrefix="/" />
+                    android:host="freewebnovel.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="graycity.net"
-                        android:pathPrefix="/" />
+                    android:host="graycity.net"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="hiraethtranslation.com"
-                        android:pathPrefix="/" />
+                    android:host="hiraethtranslation.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="indowebnovel.id"
-                        android:pathPrefix="/" />
+                    android:host="indowebnovel.id"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="kolnovel.com"
-                        android:pathPrefix="/" />
+                    android:host="kolnovel.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="libread.com"
-                        android:pathPrefix="/" />
+                    android:host="libread.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="meionovels.com"
-                        android:pathPrefix="/" />
+                    android:host="meionovels.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="risenovel.com"
-                        android:pathPrefix="/" />
+                    android:host="risenovel.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="www.mtlnovels.com"
-                        android:pathPrefix="/" />
+                    android:host="www.mtlnovels.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="novelbin.com"
-                        android:pathPrefix="/" />
+                    android:host="novelbin.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="novelfull.com"
-                        android:pathPrefix="/" />
+                    android:host="novelfull.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="novelsonline.org"
-                        android:pathPrefix="/" />
+                    android:host="novelsonline.org"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="pawread.com"
-                        android:pathPrefix="/" />
+                    android:host="pawread.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="readfrom.net"
-                        android:pathPrefix="/" />
+                    android:host="readfrom.net"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="readnovelfull.com"
-                        android:pathPrefix="/" />
+                    android:host="readnovelfull.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="www.royalroad.com"
-                        android:pathPrefix="/fiction" />
+                    android:host="www.royalroad.com"
+                    android:pathPrefix="/fiction"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="sakuranovel.id"
-                        android:pathPrefix="/" />
+                    android:host="sakuranovel.id"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="www.scribblehub.com"
-                        android:pathPrefix="/" />
+                    android:host="www.scribblehub.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
-                        android:scheme="https"
-                        android:host="wtr-lab.com"
-                        android:pathPrefix="/" />
+                    android:host="wtr-lab.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
             </intent-filter>
         </activity>
 
         <activity
-                android:name=".ReadActivity2"
-                android:exported="true"
-                android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation">
+            android:name=".ReadActivity2"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -186,13 +188,25 @@
         </activity>
 
         <provider
-                android:name="androidx.core.content.FileProvider"
-                android:authorities="${applicationId}.provider"
-                android:exported="false"
-                android:grantUriPermissions="true">
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
             <meta-data
-                    android:name="android.support.FILE_PROVIDER_PATHS"
-                    android:resource="@xml/provider_paths" />
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths" />
+        </provider>
+
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <!-- If you are using androidx.startup to initialize other components -->
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
         </provider>
     </application>
 </manifest>

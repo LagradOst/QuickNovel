@@ -116,9 +116,17 @@ val String?.textClean: String?
         ?.replace("\\+([A-z])".toRegex(), "$1") //\+([^-\s])
             )
 
-fun stripHtml(txt: String, chapterName: String? = null, chapterIndex: Int? = null): String {
+fun stripHtml(
+    txt: String,
+    chapterName: String? = null,
+    chapterIndex: Int? = null,
+    stripAuthorNotes: Boolean
+): String {
     val document = Jsoup.parse(txt)
     try {
+        if(stripAuthorNotes) {
+            document.select("div.qnauthornotecontainer").remove()
+        }
         if (chapterName != null && chapterIndex != null) {
             for (a in document.allElements) {
                 if (a != null && a.hasText() &&
