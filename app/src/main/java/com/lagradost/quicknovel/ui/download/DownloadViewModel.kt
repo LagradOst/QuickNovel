@@ -74,6 +74,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import me.xdrop.fuzzywuzzy.FuzzySearch
+import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.collections.set
@@ -638,24 +639,22 @@ class DownloadViewModel : ViewModel() {
 
     private val loadingJobs = ConcurrentHashMap<Int, Job>()//15 jobs
     private val downloadSemaphore = Semaphore(5)//from 15 jobs, only 5 at the same time
-    val loadedChaptersCount =  ConcurrentHashMap.newKeySet<Int>()
     private val _chaptersUpdateSignal = MutableSharedFlow<Int>()
     val chaptersUpdateSignal = _chaptersUpdateSignal.asSharedFlow()
-    val loadingStatus = ConcurrentHashMap.newKeySet<Int>()//loading icon status visible or gone
-
-    fun getReadingProgress(cached: ResultCached?) {
-        if(cached == null) return
+    val loadingStatus: MutableSet<Int> = Collections.newSetFromMap(ConcurrentHashMap<Int, Boolean>())
+    fun getReadingProgress(cached: ResultCached) {
         val id = cached.id
-        if (loadedChaptersCount.contains(id)
-            || loadingJobs.containsKey(id)
-            || cached.cachedTime > (System.currentTimeMillis() - (15 * 60 * 1000))) {
+        if(cached.cachedTime > (System.currentTimeMillis() - (15 * 60 * 1000)))
             return
-        }
+        if (!loadingStatus.add(id))
+            return
 
-        loadingStatus.add(id)
         if (loadingJobs.size >= 15) {
             loadingJobs.keys.firstOrNull()?.let { oldestId ->
-                if(oldestId != id) loadingJobs.remove(oldestId)?.cancel()
+                if(oldestId != id) {
+                    loadingJobs.remove(oldestId)?.cancel()
+                    loadingStatus.remove(oldestId)
+                }
             }
         }
 
@@ -666,13 +665,15 @@ class DownloadViewModel : ViewModel() {
                     val response = api?.load(cached.source) as? StreamResponse
 
                     response?.let { loaded ->
-                        val chCount = loaded.data.size
-                        loadedChaptersCount.add(id)
+                        val updatedTime = System.currentTimeMillis()
+                        cached.cachedTime = updatedTime
                         setKey(
                             RESULT_BOOKMARK,
                             id.toString(),
-                            cached.copy(totalChapters = chCount,
-                                cachedTime = System.currentTimeMillis())
+                            cached.copy(
+                                totalChapters =  loaded.data.size,
+                                cachedTime = updatedTime
+                            )
                         )
                     }
                 }
@@ -686,7 +687,7 @@ class DownloadViewModel : ViewModel() {
         }
     }
 
-    fun senDataToReadingProgressCached(ad: AnyAdapter?, lm: LinearLayoutManager?){
+    fun senDataToReadingProgress(ad: AnyAdapter?, lm: LinearLayoutManager?){
         if(ad == null || lm == null) return
         val firstVisible = lm.findFirstVisibleItemPosition()
         val lastVisible = lm.findLastVisibleItemPosition()

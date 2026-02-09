@@ -153,7 +153,7 @@ class ViewpagerAdapter(
                     val isCurrentlyScrolling = newState != androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_IDLE
 
                     if (!isCurrentlyScrolling) {
-                        downloadViewModel.senDataToReadingProgressCached(adapter as? AnyAdapter, layoutManager as? LinearLayoutManager)
+                        downloadViewModel.senDataToReadingProgress(adapter as? AnyAdapter, layoutManager as? LinearLayoutManager)
                         adapter?.notifyDataSetChanged()
                     }
                 }
@@ -164,7 +164,7 @@ class ViewpagerAdapter(
                         scrollCallback.invoke(dy > 0)
                     }
                     else{
-                        downloadViewModel.senDataToReadingProgressCached(adapter as? AnyAdapter, layoutManager as? LinearLayoutManager)
+                        downloadViewModel.senDataToReadingProgress(adapter as? AnyAdapter, layoutManager as? LinearLayoutManager)
                     }
                 }
             })
