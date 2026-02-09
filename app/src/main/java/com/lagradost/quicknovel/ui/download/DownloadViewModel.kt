@@ -644,7 +644,7 @@ class DownloadViewModel : ViewModel() {
     val loadingStatus: MutableSet<Int> = Collections.newSetFromMap(ConcurrentHashMap<Int, Boolean>())
     fun getReadingProgress(cached: ResultCached) {
         val id = cached.id
-        if(cached.cachedTime > (System.currentTimeMillis() - (15 * 60 * 1000)))
+        if(cached.cachedTime >= (System.currentTimeMillis() - (15 * 60 * 1000)))
             return
         if (!loadingStatus.add(id))
             return
@@ -666,12 +666,14 @@ class DownloadViewModel : ViewModel() {
 
                     response?.let { loaded ->
                         val updatedTime = System.currentTimeMillis()
+                        val size = loaded.data.size
                         cached.cachedTime = updatedTime
+                        cached.totalChapters = size
                         setKey(
                             RESULT_BOOKMARK,
                             id.toString(),
                             cached.copy(
-                                totalChapters =  loaded.data.size,
+                                totalChapters = size,
                                 cachedTime = updatedTime
                             )
                         )
