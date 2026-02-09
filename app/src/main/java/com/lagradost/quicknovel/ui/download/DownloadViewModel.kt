@@ -12,6 +12,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
@@ -640,32 +641,27 @@ class DownloadViewModel : ViewModel() {
     private val loadingJobs = ConcurrentHashMap<Int, Job>()//15 jobs
     private val downloadSemaphore = Semaphore(5)//from 15 jobs, only 5 at the same time
     val loadedChaptersCount =  ConcurrentHashMap.newKeySet<Int>()
-    var isScrolling = false
     private val _chaptersUpdateSignal = MutableSharedFlow<Int>()
     val chaptersUpdateSignal = _chaptersUpdateSignal.asSharedFlow()
-    val loadingStatus = ConcurrentHashMap.newKeySet<Int>()
+    val loadingStatus = ConcurrentHashMap.newKeySet<Int>()//loading icon status visible or gone
 
-    fun loadChaptersIfNeeded(cached: ReadingProgressCached) {
+    fun getReadingProgress(cached: ReadingProgressCached?) {
+        if(cached == null) return
         val id = cached.novel.id
         if (loadedChaptersCount.contains(id)
             || loadingJobs.containsKey(id)
-            || !cached.isUpToDate()) {
+            || cached.isUpToDate()) {
             return
         }
 
         loadingStatus.add(id)
-        if (loadingJobs.size >= 9) {
+        if (loadingJobs.size >= 15) {
             loadingJobs.keys.firstOrNull()?.let { oldestId ->
                 if(oldestId != id) loadingJobs.remove(oldestId)?.cancel()
             }
         }
 
         loadingJobs[id] = viewModelScope.launch(Dispatchers.IO) {
-            delay(400)//wait scrolling
-            if (isScrolling){
-                loadingJobs.remove(id)
-                return@launch
-            }
             try {
                 downloadSemaphore.withPermit {
                     val api = Apis.apis.find { it.name == cached.novel.apiName }
@@ -691,4 +687,16 @@ class DownloadViewModel : ViewModel() {
         }
     }
 
+    fun senDataToReadingProgressCached(ad: AnyAdapter?, lm: LinearLayoutManager?){
+        if(ad == null || lm == null) return
+        val firstVisible = lm.findFirstVisibleItemPosition()
+        val lastVisible = lm.findLastVisibleItemPosition()
+        if(firstVisible != -1 && lastVisible != -1)
+            for(i in firstVisible..lastVisible)
+                ad.immutableCurrentList.getOrNull(i)?.let {
+                    if(it is ResultCached)
+                        getReadingProgress(ReadingProgressCached(it))
+                }
+
+    }
 }

@@ -63,8 +63,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:indeterminate="true"
-                android:indeterminateTint="@color/colorPrimary"
-                android:visibility="visible"/>
+                android:indeterminateTint="@color/colorPrimary"/>
         </FrameLayout>
 
         <androidx.core.widget.ContentLoadingProgressBar

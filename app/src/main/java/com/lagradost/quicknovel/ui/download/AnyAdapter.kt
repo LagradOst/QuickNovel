@@ -178,10 +178,9 @@ class AnyAdapter(
                 val card = item as ResultCached
                 view.apply {
                     val readProgressCached = ReadingProgressCached(item)
-                    downloadViewModel.loadChaptersIfNeeded(readProgressCached)
                     imageText.text = card.name
                     historyExtraText.text =
-                        "${readProgressCached.lastChapterRead}/${card.totalChapters} ${root.context.getString(R.string.read_action_chapters)}"
+                        "${readProgressCached.lastChapterRead}/${readProgressCached.totalChapters} ${root.context.getString(R.string.read_action_chapters)}"
 
                     imageView.setImage(card.poster)
 
@@ -248,8 +247,6 @@ class AnyAdapter(
 
                     is ResultCached -> {
                         view.apply {
-                            val readProgressCached = ReadingProgressCached(item)
-                            downloadViewModel.loadChaptersIfNeeded(readProgressCached)
                             backgroundCard.apply {
                                 val coverHeight: Int = (resView.itemWidth / 0.68).roundToInt()
                                 layoutParams = LinearLayout.LayoutParams(
@@ -271,11 +268,12 @@ class AnyAdapter(
                             imageText.text = item.name
                             imageTextMore.isVisible = false
 
-                            progressReading.text = "${readProgressCached.lastChapterRead}/${item.totalChapters}"
+                            val readProgressCached = ReadingProgressCached(item)
+                            progressReading.text = "${readProgressCached.lastChapterRead}/${readProgressCached.totalChapters}"
+
                             val isLoading = downloadViewModel.loadingStatus.contains(item.id)
                             loadingReadingProgress.isVisible = isLoading
                             progressReading.isVisible = !isLoading
-
                         }
                     }
 

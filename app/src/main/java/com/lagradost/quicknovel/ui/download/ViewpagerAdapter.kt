@@ -9,11 +9,14 @@ import android.view.ViewGroup
 import androidx.core.view.doOnAttach
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView.OnFlingListener
 import com.lagradost.quicknovel.databinding.ViewpagerPageBinding
 import com.lagradost.quicknovel.ui.BaseAdapter
 import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.ViewHolderState
+import com.lagradost.quicknovel.util.ReadingProgressCached
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import kotlinx.coroutines.flow.collectLatest
@@ -149,18 +152,20 @@ class ViewpagerAdapter(
                     super.onScrollStateChanged(recyclerView, newState)
 
                     val isCurrentlyScrolling = newState != androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_IDLE
-                    downloadViewModel.isScrolling = isCurrentlyScrolling
 
                     if (!isCurrentlyScrolling) {
+                        downloadViewModel.senDataToReadingProgressCached(adapter as? AnyAdapter, layoutManager as? LinearLayoutManager)
                         adapter?.notifyDataSetChanged()
                     }
                 }
 
                 override fun onScrolled(recyclerView: androidx.recyclerview.widget.RecyclerView, dx: Int, dy: Int) {
                     super.onScrolled(recyclerView, dx, dy)
-
                     if (dy != 0) {
                         scrollCallback.invoke(dy > 0)
+                    }
+                    else{
+                        downloadViewModel.senDataToReadingProgressCached(adapter as? AnyAdapter, layoutManager as? LinearLayoutManager)
                     }
                 }
             })
