@@ -10,6 +10,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
@@ -44,6 +45,7 @@ import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.PreferenceDelegate
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.RESULT_BOOKMARK
+import com.lagradost.quicknovel.RESULT_BOOKMARK_READINGPROGRESS
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
 import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_BOOKMARKED
 import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_DOWNLOADED
@@ -56,12 +58,21 @@ import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
+import com.lagradost.quicknovel.util.ReadingProgressCached
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import java.util.concurrent.ConcurrentHashMap
@@ -626,68 +637,58 @@ class DownloadViewModel : ViewModel() {
     }
 
 
+    private val loadingJobs = ConcurrentHashMap<Int, Job>()//15 jobs
+    private val downloadSemaphore = Semaphore(5)//from 15 jobs, only 5 at the same time
+    val loadedChaptersCount =  ConcurrentHashMap.newKeySet<Int>()
+    var isScrolling = false
+    private val _chaptersUpdateSignal = MutableSharedFlow<Int>()
+    val chaptersUpdateSignal = _chaptersUpdateSignal.asSharedFlow()
+    val loadingStatus = ConcurrentHashMap.newKeySet<Int>()
 
+    fun loadChaptersIfNeeded(cached: ReadingProgressCached) {
+        val id = cached.novel.id
+        if (loadedChaptersCount.contains(id)
+            || loadingJobs.containsKey(id)
+            || !cached.isUpToDate()) {
+            return
+        }
 
-    private val loadingJobs = ConcurrentHashMap<Int, Job>()
-    private val jobsMutex = Mutex()
-    val loadedChaptersCount = mutableMapOf<Int, Int>()
+        loadingStatus.add(id)
+        if (loadingJobs.size >= 9) {
+            loadingJobs.keys.firstOrNull()?.let { oldestId ->
+                if(oldestId != id) loadingJobs.remove(oldestId)?.cancel()
+            }
+        }
 
-    fun loadChaptersIfNeeded(item: ResultCached, reload: () -> Unit) {
-        if (loadedChaptersCount.containsKey(item.id) || loadingJobs.containsKey(item.id)) return
+        loadingJobs[id] = viewModelScope.launch(Dispatchers.IO) {
+            delay(400)//wait scrolling
+            if (isScrolling){
+                loadingJobs.remove(id)
+                return@launch
+            }
+            try {
+                downloadSemaphore.withPermit {
+                    val api = Apis.apis.find { it.name == cached.novel.apiName }
+                    val response = api?.load(cached.novel.source) as? StreamResponse
 
-        val minutesAgo = System.currentTimeMillis() - (10 * 60 * 1000)//look every 10 minutes
-        if (item.cachedTime > minutesAgo) return
-
-        ioSafe {
-            jobsMutex.withLock {
-                if (loadingJobs.containsKey(item.id)) return@withLock
-                //only N requests at the same time
-                if (loadingJobs.size >= 15) {
-                    //delete the oldest
-                    val oldestId = loadingJobs.keys.first()
-                    loadingJobs.remove(oldestId)?.cancel()
-                }
-
-                val job = launch {
-                    try {
-                        val api = Apis.apis.find { it.name == item.apiName }
-                        val response = api?.load(item.source) as? StreamResponse
-
-                        response?.let { loaded ->
-                            val chCount = loaded.data.size
-                            loadedChaptersCount[item.id] = chCount
-                            if(item.totalChapters == chCount) return@let
-                            item.totalChapters = chCount
-
-                            setKey(
-                                RESULT_BOOKMARK, item.id.toString(), ResultCached(
-                                    item.source,
-                                    item.name,
-                                    item.apiName,
-                                    item.id,
-                                    item.author,
-                                    item.poster,
-                                    item.tags,
-                                    item.rating,
-                                    chCount,
-                                    System.currentTimeMillis(),
-                                    synopsis = item.synopsis
-                                )
-                            )
-                            withContext(Dispatchers.Main) {
-                                reload()
-                            }
-                        }
-                    } catch (e: Exception) {
-                        if (e !is CancellationException) logError(e)
-                    } finally {
-                        jobsMutex.withLock {
-                            loadingJobs.remove(item.id)
+                    response?.let { loaded ->
+                        val chCount = loaded.data.size
+                        loadedChaptersCount.add(id)
+                        if (cached.totalChapters != chCount) {
+                            setKey(RESULT_BOOKMARK_READINGPROGRESS,
+                                id.toString(),
+                                System.currentTimeMillis())
                         }
                     }
                 }
-                loadingJobs[item.id] = job
+            } catch (e: Throwable) {
+                if (e !is CancellationException) logError(e)
+            } finally {
+                loadingJobs.remove(id)
+                loadingStatus.remove(id)
+                _chaptersUpdateSignal.emit(id)
             }
         }
     }
+
 }

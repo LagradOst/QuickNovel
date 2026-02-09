@@ -40,16 +40,32 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" />
 
-        <TextView
-            android:id="@+id/progressReading"
+        <FrameLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|start"
-            android:layout_margin="5dp"
-            android:padding="4dp"
-            android:background="@drawable/download_chapterprogress_bg"
-            android:textColor="#FFFFFF"
-            tools:text="10/100" />
+            android:layout_margin="5dp">
+
+            <TextView
+                android:id="@+id/progressReading"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="4dp"
+                android:background="@drawable/download_chapterprogress_bg"
+                android:textColor="#FFFFFF"
+                tools:text="10/100"
+                android:visibility="visible" />
+
+            <ProgressBar
+                android:id="@+id/loadingReadingProgress"
+                style="?android:attr/progressBarStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:indeterminate="true"
+                android:indeterminateTint="@color/colorPrimary"
+                android:visibility="visible"/>
+        </FrameLayout>
 
         <androidx.core.widget.ContentLoadingProgressBar
                 android:visibility="gone"

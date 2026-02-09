@@ -24,6 +24,7 @@ import com.lagradost.quicknovel.databinding.HistoryResultCompactBinding
 import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
+import com.lagradost.quicknovel.util.ReadingProgressCached
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import com.lagradost.quicknovel.util.UIHelper.setImage
@@ -59,6 +60,8 @@ class AnyAdapter(
         const val RESULT_CACHED: Int = 1
         const val DOWNLOAD_DATA_LOADED: Int = 2
     }
+
+
 
     override fun getItemId(position: Int): Long {
         return when (val item = getItemOrNull(position)) {
@@ -174,15 +177,11 @@ class AnyAdapter(
             is HistoryResultCompactBinding -> {
                 val card = item as ResultCached
                 view.apply {
+                    val readProgressCached = ReadingProgressCached(item)
+                    downloadViewModel.loadChaptersIfNeeded(readProgressCached)
                     imageText.text = card.name
-                   val lastRead = getKey<Int>(EPUB_CURRENT_POSITION, card.name)?.let{it+1}?:0
                     historyExtraText.text =
-                        "${lastRead}/${card.totalChapters} ${root.context.getString(R.string.read_action_chapters)}"
-
-                   //look for update
-                   downloadViewModel.loadChaptersIfNeeded(card){
-                       notifyItemChanged(position)
-                   }
+                        "${readProgressCached.lastChapterRead}/${card.totalChapters} ${root.context.getString(R.string.read_action_chapters)}"
 
                     imageView.setImage(card.poster)
 
@@ -249,6 +248,8 @@ class AnyAdapter(
 
                     is ResultCached -> {
                         view.apply {
+                            val readProgressCached = ReadingProgressCached(item)
+                            downloadViewModel.loadChaptersIfNeeded(readProgressCached)
                             backgroundCard.apply {
                                 val coverHeight: Int = (resView.itemWidth / 0.68).roundToInt()
                                 layoutParams = LinearLayout.LayoutParams(
@@ -269,14 +270,12 @@ class AnyAdapter(
 
                             imageText.text = item.name
                             imageTextMore.isVisible = false
-                            val lastRead = getKey<Int>(EPUB_CURRENT_POSITION, item.name)?.let{it+1}?:0
-                            progressReading.text =
-                                "${lastRead}/${item.totalChapters}"
 
-                            //look for update
-                            downloadViewModel.loadChaptersIfNeeded(item){
-                                    notifyItemChanged(position)
-                            }
+                            progressReading.text = "${readProgressCached.lastChapterRead}/${item.totalChapters}"
+                            val isLoading = downloadViewModel.loadingStatus.contains(item.id)
+                            loadingReadingProgress.isVisible = isLoading
+                            progressReading.isVisible = !isLoading
+
                         }
                     }
 

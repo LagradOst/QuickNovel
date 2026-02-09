@@ -8,12 +8,16 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.view.doOnAttach
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView.OnFlingListener
 import com.lagradost.quicknovel.databinding.ViewpagerPageBinding
 import com.lagradost.quicknovel.ui.BaseAdapter
 import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.ViewHolderState
+import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 data class Page(
     val title: String,
@@ -121,6 +125,15 @@ class ViewpagerAdapter(
                         footers = if(position == 0) 1 else 0
                         setHasStableIds(true)
                         submitList(item.items)
+                        fragment.viewLifecycleOwner.lifecycleScope.launch{
+                            downloadViewModel.chaptersUpdateSignal.collectLatest { updateId->
+                                val currentItems = immutableCurrentList
+                                val index = currentItems.indexOfFirst { (it as? ResultCached)?.id == updateId }
+                                if (index != -1) {
+                                    notifyItemChanged(index)
+                                }
+                            }
+                        }
                     }
                 }
             } else {
@@ -130,22 +143,27 @@ class ViewpagerAdapter(
                 }
                 // scrollToPosition(0)
             }
+            clearOnScrollListeners()
+            addOnScrollListener(object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+                override fun onScrollStateChanged(recyclerView: androidx.recyclerview.widget.RecyclerView, newState: Int) {
+                    super.onScrollStateChanged(recyclerView, newState)
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                setOnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
-                    val diff = scrollY - oldScrollY
-                    if (diff == 0) return@setOnScrollChangeListener
+                    val isCurrentlyScrolling = newState != androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_IDLE
+                    downloadViewModel.isScrolling = isCurrentlyScrolling
 
-                    scrollCallback.invoke(diff > 0)
-                }
-            } else {
-                onFlingListener = object : OnFlingListener() {
-                    override fun onFling(velocityX: Int, velocityY: Int): Boolean {
-                        scrollCallback.invoke(velocityY > 0)
-                        return false
+                    if (!isCurrentlyScrolling) {
+                        adapter?.notifyDataSetChanged()
                     }
                 }
-            }
+
+                override fun onScrolled(recyclerView: androidx.recyclerview.widget.RecyclerView, dx: Int, dy: Int) {
+                    super.onScrolled(recyclerView, dx, dy)
+
+                    if (dy != 0) {
+                        scrollCallback.invoke(dy > 0)
+                    }
+                }
+            })
         }
     }
 }
