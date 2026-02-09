@@ -16,7 +16,6 @@ import com.lagradost.quicknovel.databinding.ViewpagerPageBinding
 import com.lagradost.quicknovel.ui.BaseAdapter
 import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.ViewHolderState
-import com.lagradost.quicknovel.util.ReadingProgressCached
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import kotlinx.coroutines.flow.collectLatest

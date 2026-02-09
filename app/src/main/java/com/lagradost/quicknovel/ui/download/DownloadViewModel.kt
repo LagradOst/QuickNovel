@@ -46,7 +46,6 @@ import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.PreferenceDelegate
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.RESULT_BOOKMARK
-import com.lagradost.quicknovel.RESULT_BOOKMARK_READINGPROGRESS
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
 import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_BOOKMARKED
 import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_DOWNLOADED
@@ -59,7 +58,6 @@ import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
-import com.lagradost.quicknovel.util.ReadingProgressCached
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -645,12 +643,12 @@ class DownloadViewModel : ViewModel() {
     val chaptersUpdateSignal = _chaptersUpdateSignal.asSharedFlow()
     val loadingStatus = ConcurrentHashMap.newKeySet<Int>()//loading icon status visible or gone
 
-    fun getReadingProgress(cached: ReadingProgressCached?) {
+    fun getReadingProgress(cached: ResultCached?) {
         if(cached == null) return
-        val id = cached.novel.id
+        val id = cached.id
         if (loadedChaptersCount.contains(id)
             || loadingJobs.containsKey(id)
-            || cached.isUpToDate()) {
+            || cached.cachedTime > (System.currentTimeMillis() - (15 * 60 * 1000))) {
             return
         }
 
@@ -664,17 +662,18 @@ class DownloadViewModel : ViewModel() {
         loadingJobs[id] = viewModelScope.launch(Dispatchers.IO) {
             try {
                 downloadSemaphore.withPermit {
-                    val api = Apis.apis.find { it.name == cached.novel.apiName }
-                    val response = api?.load(cached.novel.source) as? StreamResponse
+                    val api = Apis.apis.find { it.name == cached.apiName }
+                    val response = api?.load(cached.source) as? StreamResponse
 
                     response?.let { loaded ->
                         val chCount = loaded.data.size
                         loadedChaptersCount.add(id)
-                        if (cached.totalChapters != chCount) {
-                            setKey(RESULT_BOOKMARK_READINGPROGRESS,
-                                id.toString(),
-                                System.currentTimeMillis())
-                        }
+                        setKey(
+                            RESULT_BOOKMARK,
+                            id.toString(),
+                            cached.copy(totalChapters = chCount,
+                                cachedTime = System.currentTimeMillis())
+                        )
                     }
                 }
             } catch (e: Throwable) {
@@ -695,8 +694,7 @@ class DownloadViewModel : ViewModel() {
             for(i in firstVisible..lastVisible)
                 ad.immutableCurrentList.getOrNull(i)?.let {
                     if(it is ResultCached)
-                        getReadingProgress(ReadingProgressCached(it))
+                        getReadingProgress(it)
                 }
-
     }
 }

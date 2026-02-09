@@ -24,7 +24,6 @@ import com.lagradost.quicknovel.databinding.HistoryResultCompactBinding
 import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
-import com.lagradost.quicknovel.util.ReadingProgressCached
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import com.lagradost.quicknovel.util.UIHelper.setImage
@@ -177,10 +176,9 @@ class AnyAdapter(
             is HistoryResultCompactBinding -> {
                 val card = item as ResultCached
                 view.apply {
-                    val readProgressCached = ReadingProgressCached(item)
                     imageText.text = card.name
                     historyExtraText.text =
-                        "${readProgressCached.lastChapterRead}/${readProgressCached.totalChapters} ${root.context.getString(R.string.read_action_chapters)}"
+                        "${card.lastChapterRead}/${card.totalChapters} ${root.context.getString(R.string.read_action_chapters)}"
 
                     imageView.setImage(card.poster)
 
@@ -268,8 +266,7 @@ class AnyAdapter(
                             imageText.text = item.name
                             imageTextMore.isVisible = false
 
-                            val readProgressCached = ReadingProgressCached(item)
-                            progressReading.text = "${readProgressCached.lastChapterRead}/${readProgressCached.totalChapters}"
+                            progressReading.text = "${item.lastChapterRead}/${item.totalChapters}"
 
                             val isLoading = downloadViewModel.loadingStatus.contains(item.id)
                             loadingReadingProgress.isVisible = isLoading
