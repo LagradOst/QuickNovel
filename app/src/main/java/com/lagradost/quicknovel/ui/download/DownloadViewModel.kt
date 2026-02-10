@@ -1,18 +1,15 @@
 package com.lagradost.quicknovel.ui.download
 
 import android.content.DialogInterface
-import android.net.Uri
-import android.util.Log
 import androidx.annotation.StringRes
 import androidx.annotation.WorkerThread
 import androidx.appcompat.app.AlertDialog
-import androidx.core.net.toUri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
@@ -21,20 +18,14 @@ import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.BookDownloader2.currentDownloads
 import com.lagradost.quicknovel.BookDownloader2.currentDownloadsMutex
-import com.lagradost.quicknovel.BookDownloader2.downloadData
 import com.lagradost.quicknovel.BookDownloader2.downloadInfoMutex
 import com.lagradost.quicknovel.BookDownloader2.downloadProgress
 import com.lagradost.quicknovel.BookDownloader2.downloadProgressChanged
-import com.lagradost.quicknovel.BookDownloader2Helper
-import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
-import com.lagradost.quicknovel.BookDownloader2Helper.generateId
 import com.lagradost.quicknovel.CURRENT_TAB
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
-import com.lagradost.quicknovel.DOWNLOAD_FOLDER
 import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
-import com.lagradost.quicknovel.DOWNLOAD_OFFSET
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
 import com.lagradost.quicknovel.DownloadActionType
@@ -43,30 +34,22 @@ import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
-import com.lagradost.quicknovel.PreferenceDelegate
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
-import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_BOOKMARKED
-import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_DOWNLOADED
-import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_READ
-import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_UNREAD
-import com.lagradost.quicknovel.RESULT_CHAPTER_SORT
 import com.lagradost.quicknovel.StreamResponse
+import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.launchSafe
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.ReadType
-import com.lagradost.quicknovel.util.Apis
+import com.lagradost.quicknovel.util.Apis.Companion.getApiFromNameOrNull
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
@@ -227,6 +210,10 @@ class DownloadViewModel : ViewModel() {
 
     fun refresh() {
         DownloadFileWorkManager.refreshAll(this@DownloadViewModel, context ?: return)
+    }
+
+    fun refreshReadingProgress(){
+        DownloadFileWorkManager.refreshAllReadingProgress(this@DownloadViewModel, context ?: return)
     }
 
     fun showMetadata(card: DownloadFragment.DownloadDataLoaded) {
@@ -637,67 +624,67 @@ class DownloadViewModel : ViewModel() {
     }
 
 
-    private val loadingJobs = ConcurrentHashMap<Int, Job>()//15 jobs
+
+
     private val downloadSemaphore = Semaphore(5)//from 15 jobs, only 5 at the same time
-    private val _chaptersUpdateSignal = MutableSharedFlow<Int>()
-    val chaptersUpdateSignal = _chaptersUpdateSignal.asSharedFlow()
     val loadingStatus: MutableSet<Int> = Collections.newSetFromMap(ConcurrentHashMap<Int, Boolean>())
-    fun getReadingProgress(cached: ResultCached) {
+    val isRefreshing = MutableLiveData(false)
+    @WorkerThread
+    suspend fun getReadingProgress(cached: ResultCached)
+    {
         val id = cached.id
-        if(cached.cachedTime >= (System.currentTimeMillis() - (15 * 60 * 1000)))
-            return
         if (!loadingStatus.add(id))
             return
 
-        if (loadingJobs.size >= 15) {
-            loadingJobs.keys.firstOrNull()?.let { oldestId ->
-                if(oldestId != id) {
-                    loadingJobs.remove(oldestId)?.cancel()
-                    loadingStatus.remove(oldestId)
-                }
-            }
-        }
-
-        loadingJobs[id] = viewModelScope.launch(Dispatchers.IO) {
-            try {
-                downloadSemaphore.withPermit {
-                    val api = Apis.apis.find { it.name == cached.apiName }
-                    val response = api?.load(cached.source) as? StreamResponse
-
-                    response?.let { loaded ->
-                        val updatedTime = System.currentTimeMillis()
-                        val size = loaded.data.size
-                        cached.cachedTime = updatedTime
-                        cached.totalChapters = size
-                        setKey(
-                            RESULT_BOOKMARK,
-                            id.toString(),
-                            cached.copy(
-                                totalChapters = size,
-                                cachedTime = updatedTime
-                            )
+        downloadSemaphore.withPermit {
+            try
+            {
+                val api = getApiFromNameOrNull(cached.apiName) ?: return@withPermit
+                val response = api.load(cached.source, true)
+                if (response is Resource.Success)
+                {
+                    val loaded = response.value as StreamResponse
+                    val totalChapters = loaded.data.size
+                    if(totalChapters == cached.totalChapters) return@withPermit
+                    setKey(
+                        RESULT_BOOKMARK,
+                        id.toString(),
+                        cached.copy(
+                            totalChapters = totalChapters,
                         )
-                    }
+                    )
                 }
             } catch (e: Throwable) {
                 if (e !is CancellationException) logError(e)
             } finally {
-                loadingJobs.remove(id)
+                debounceAction {
+                    isRefreshing.postValue(false)
+                    loadAllData(false)
+                }
                 loadingStatus.remove(id)
-                _chaptersUpdateSignal.emit(id)
             }
         }
     }
 
-    fun senDataToReadingProgress(ad: AnyAdapter?, lm: LinearLayoutManager?){
-        if(ad == null || lm == null) return
-        val firstVisible = lm.findFirstVisibleItemPosition()
-        val lastVisible = lm.findLastVisibleItemPosition()
-        if(firstVisible != -1 && lastVisible != -1)
-            for(i in firstVisible..lastVisible)
-                ad.immutableCurrentList.getOrNull(i)?.let {
-                    if(it is ResultCached)
-                        getReadingProgress(it)
-                }
+    @WorkerThread
+    fun senDataToReadingProgress(items: List<Any>?){
+        if(items == null) return
+        ioSafe{
+            for(i in items)
+                if(i is ResultCached)
+                    launch {
+                        getReadingProgress(i)
+                    }
+        }
+    }
+
+    var debounceJob: Job? = null
+    fun debounceAction(actions: suspend()-> Unit){
+        debounceJob?.cancel()
+
+        debounceJob = viewModelScope.launch(Dispatchers.IO) {
+            delay(3000)
+            actions()
+        }
     }
 }

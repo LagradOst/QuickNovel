@@ -15,6 +15,9 @@ import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.download.DownloadViewModel
 import com.lagradost.quicknovel.util.Apis
+import com.lagradost.quicknovel.util.ResultCached
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.lang.ref.WeakReference
 
 // This is needed to fix downloads, as newer android versions pause network connections in the background
@@ -26,6 +29,7 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
         const val ID = "id"
 
         const val ID_REFRESH_DOWNLOADS = "REFRESH_DOWNLOADS"
+        const val ID_REFRESH_READINGPROGRESS = "REFRESH_READINGPROGRESS"
         const val ID_DOWNLOAD = "ID_DOWNLOAD"
 
 
@@ -65,6 +69,22 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
                     .setInputData(
                         Data.Builder()
                             .putString(ID, ID_REFRESH_DOWNLOADS)
+                            .build()
+                    )
+                    .build()
+            )
+        }
+
+        fun refreshAllReadingProgress(from: DownloadViewModel, context: Context) {
+            viewModel = from
+
+            (WorkManager.getInstance(context)).enqueueUniqueWork(
+                ID_REFRESH_READINGPROGRESS,
+                ExistingWorkPolicy.REPLACE,
+                OneTimeWorkRequest.Builder(DownloadFileWorkManager::class.java)
+                    .setInputData(
+                        Data.Builder()
+                            .putString(ID, ID_REFRESH_READINGPROGRESS)
                             .build()
                     )
                     .build()
@@ -131,6 +151,21 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
 
             ID_REFRESH_DOWNLOADS -> {
                 viewModel?.refreshInternal()
+            }
+
+            ID_REFRESH_READINGPROGRESS ->{
+                if(viewModel != null){
+                    val pages = viewModel!!.pages.value
+                    if(pages != null){
+                        val page = pages.getOrNull(viewModel!!.currentTab.value?:0)
+                        val items = page?.items
+                        if(!items.isNullOrEmpty()){
+                            viewModel!!.senDataToReadingProgress(items)
+                        }
+                        else
+                            viewModel!!.isRefreshing.postValue(false)
+                    }
+                }
             }
 
             else -> return Result.failure()

@@ -267,10 +267,6 @@ class AnyAdapter(
                             imageTextMore.isVisible = false
 
                             progressReading.text = "${item.lastChapterRead}/${item.totalChapters}"
-
-                            val isLoading = downloadViewModel.loadingStatus.contains(item.id)
-                            loadingReadingProgress.isVisible = isLoading
-                            progressReading.isVisible = !isLoading
                         }
                     }
 

@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.ui.download
 
+import android.R.attr.fragment
 import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.os.Bundle
@@ -33,6 +34,7 @@ import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.SortingMethodAdapter
 import com.lagradost.quicknovel.ui.UiImage
 import com.lagradost.quicknovel.ui.img
+import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 
@@ -205,7 +207,7 @@ class DownloadFragment : Fragment() {
 
             addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
                 override fun onTabSelected(tab: TabLayout.Tab?) {
-                    binding.swipeContainer.isEnabled = binding.bookmarkTabs.selectedTabPosition == 0
+                    //binding.swipeContainer.isEnabled = binding.bookmarkTabs.selectedTabPosition == 0
                     viewModel.switchPage(binding.bookmarkTabs.selectedTabPosition)
                 }
 
@@ -262,20 +264,29 @@ class DownloadFragment : Fragment() {
 
         //swipe_container.setProgressBackgroundColorSchemeColor(requireContext().colorFromAttribute(R.attr.darkBackground))
 
+
         binding.swipeContainer.apply {
             setColorSchemeColors(context.colorFromAttribute(R.attr.colorPrimary))
             setProgressBackgroundColorSchemeColor(context.colorFromAttribute(R.attr.primaryGrayBackground))
             setOnRefreshListener {
-                viewModel.refresh()
-                isRefreshing = false
+                if(isOnDownloads){
+                    viewModel.refresh()
+                    isRefreshing = false
+
+                }
+                else{
+                    viewModel.refreshReadingProgress()
+                }
             }
         }
-
+        observe(viewModel.isRefreshing) { refreshing ->
+            binding.swipeContainer.isRefreshing = refreshing
+        }
         binding.viewpager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageScrollStateChanged(state: Int) {
                 super.onPageScrollStateChanged(state)
                 binding.swipeContainer.isEnabled =
-                    isOnDownloads && state == ViewPager2.SCROLL_STATE_IDLE
+                    /*isOnDownloads && */ state == ViewPager2.SCROLL_STATE_IDLE
             }
         })
 

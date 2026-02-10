@@ -1224,6 +1224,9 @@ object BookDownloader2 {
         deleteNovelAsync(author, name, apiName)
     }
 
+
+
+
     @WorkerThread
     @Throws
     private fun turnToEpub(
