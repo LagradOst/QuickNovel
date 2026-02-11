@@ -54,7 +54,6 @@ class ChapterAdapter(val viewModel: ResultViewModel) :
             root.setOnClickListener {
                 viewModel.streamRead(item)
                 viewModel.isResume = true//to update read status
-                refresh(binding, item, viewModel)
             }
             root.setOnLongClickListener {
                 viewModel.setReadChapter(chapter = item, !viewModel.hasReadChapter(item))

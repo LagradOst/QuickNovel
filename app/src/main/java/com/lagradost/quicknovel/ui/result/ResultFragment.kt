@@ -115,15 +115,15 @@ class ResultFragment : Fragment() {
         super.onResume()
         //only if really is onResume
         if(viewModel.isResume){
-            (binding.chapterList.adapter as? ChapterAdapter)?.apply{
-                val lastRead = viewModel.getLastRead()
-                if(lastRead != null)
-                {
-                    val count = 100
-                    val start = maxOf(0, lastRead - count)
-                    val totalItems = minOf(itemCount, count)
-                    //notifyItemRange instead of submitList because you technically didn't changed the list
-                    notifyItemRangeChanged(start, totalItems)
+            val lastReadUrl = viewModel.getLastRead()
+            val adapter = binding.chapterList.adapter as? ChapterAdapter
+            if(lastReadUrl != null && adapter != null){
+                val currentPos = adapter.immutableCurrentList.indexOfFirst { it.url == lastReadUrl }
+                if(currentPos != -1 ){
+                    val range = 50
+                    val start =  maxOf(0, currentPos - range)
+                    val end =  minOf(adapter.itemCount, currentPos + range)
+                    adapter.notifyItemRangeChanged(start,end)
                 }
             }
             viewModel.isResume = false

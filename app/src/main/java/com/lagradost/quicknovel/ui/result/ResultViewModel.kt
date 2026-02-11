@@ -376,7 +376,15 @@ class ResultViewModel : ViewModel() {
         }
     }
 
-    fun getLastRead() = getKey<Int>(EPUB_CURRENT_POSITION, (load as StreamResponse).name)
+    fun getLastRead():String?{
+        val load = load as StreamResponse
+        val lastRead = getKey<Int>(EPUB_CURRENT_POSITION, load.name)
+        if(lastRead != null){
+            val index = load.data.getOrNull(lastRead)
+            return index?.url
+        }
+        return null
+    }
 
     fun pause() = viewModelScope.launchSafe {
         loadMutex.withLock {
