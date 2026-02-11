@@ -30,6 +30,7 @@ import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
 import com.lagradost.quicknovel.DownloadActionType
 import com.lagradost.quicknovel.DownloadFileWorkManager
+import com.lagradost.quicknovel.DownloadFileWorkManager.Companion.viewModel
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.MainActivity
@@ -213,7 +214,7 @@ class DownloadViewModel : ViewModel() {
     }
 
     fun refreshReadingProgress(){
-        DownloadFileWorkManager.refreshAllReadingProgress(this@DownloadViewModel, context ?: return)
+        DownloadFileWorkManager.refreshAllReadingProgress(this@DownloadViewModel, context ?: return, currentTab.value ?: 1)
     }
 
     fun showMetadata(card: DownloadFragment.DownloadDataLoaded) {
@@ -509,6 +510,7 @@ class DownloadViewModel : ViewModel() {
         BookDownloader2.downloadProgressChanged += ::progressChanged
         BookDownloader2.downloadDataRefreshed += ::downloadDataRefreshed
         BookDownloader2.downloadRemoved += ::downloadRemoved
+        BookDownloader2.readingProgressChanged += :: readingProgressChanged
     }
 
     override fun onCleared() {
@@ -517,7 +519,30 @@ class DownloadViewModel : ViewModel() {
         BookDownloader2.downloadDataChanged -= ::progressDataChanged
         BookDownloader2.downloadDataRefreshed -= ::downloadDataRefreshed
         BookDownloader2.downloadRemoved -= ::downloadRemoved
+        BookDownloader2.readingProgressChanged -= :: readingProgressChanged
     }
+
+    val activeRefreshTabs = mutableSetOf<Int>()
+    val isRefreshing = MutableLiveData(false)
+    var debounceJob: Job? = null
+    fun debounceAction(tab:Int, actions: suspend()-> Unit){
+        debounceJob?.cancel()
+        debounceJob = viewModelScope.launch(Dispatchers.IO) {
+            delay(3000)
+            activeRefreshTabs.remove(tab)
+            isRefreshing.postValue(false)
+            actions()
+        }
+    }
+    fun readingProgressChanged(tab: Int){
+        activeRefreshTabs.add(tab)
+        isRefreshing.postValue(true)
+        debounceAction (tab){
+            loadAllData(false)
+        }
+    }
+
+
 
     private val cardsDataMutex = Mutex()
     private val cardsData: HashMap<Int, DownloadFragment.DownloadDataLoaded> = hashMapOf()
@@ -621,70 +646,5 @@ class DownloadViewModel : ViewModel() {
     @Suppress("UNUSED_PARAMETER")
     private fun downloadDataRefreshed(_id: Int) = viewModelScope.launchSafe {
         fetchAllData(true)
-    }
-
-
-
-
-    private val downloadSemaphore = Semaphore(5)//from 15 jobs, only 5 at the same time
-    val loadingStatus: MutableSet<Int> = Collections.newSetFromMap(ConcurrentHashMap<Int, Boolean>())
-    val isRefreshing = MutableLiveData(false)
-    @WorkerThread
-    suspend fun getReadingProgress(cached: ResultCached)
-    {
-        val id = cached.id
-        if (!loadingStatus.add(id))
-            return
-
-        downloadSemaphore.withPermit {
-            try
-            {
-                val api = getApiFromNameOrNull(cached.apiName) ?: return@withPermit
-                val response = api.load(cached.source, true)
-                if (response is Resource.Success)
-                {
-                    val loaded = response.value as StreamResponse
-                    val totalChapters = loaded.data.size
-                    if(totalChapters == cached.totalChapters) return@withPermit
-                    setKey(
-                        RESULT_BOOKMARK,
-                        id.toString(),
-                        cached.copy(
-                            totalChapters = totalChapters,
-                        )
-                    )
-                }
-            } catch (e: Throwable) {
-                if (e !is CancellationException) logError(e)
-            } finally {
-                debounceAction {
-                    isRefreshing.postValue(false)
-                    loadAllData(false)
-                }
-                loadingStatus.remove(id)
-            }
-        }
-    }
-
-    @WorkerThread
-    fun senDataToReadingProgress(items: List<Any>?){
-        if(items == null) return
-        ioSafe{
-            for(i in items)
-                if(i is ResultCached)
-                    launch {
-                        getReadingProgress(i)
-                    }
-        }
-    }
-
-    var debounceJob: Job? = null
-    fun debounceAction(actions: suspend()-> Unit){
-        debounceJob?.cancel()
-
-        debounceJob = viewModelScope.launch(Dispatchers.IO) {
-            delay(3000)
-            actions()
-        }
     }
 }

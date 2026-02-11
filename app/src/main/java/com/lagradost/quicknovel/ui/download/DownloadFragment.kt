@@ -9,6 +9,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.appcompat.widget.SearchView
+import androidx.core.view.isGone
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.RecyclerView
@@ -22,6 +24,7 @@ import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2Helper
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
+import com.lagradost.quicknovel.CURRENT_TAB
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
@@ -279,14 +282,25 @@ class DownloadFragment : Fragment() {
                 }
             }
         }
+
         observe(viewModel.isRefreshing) { refreshing ->
-            binding.swipeContainer.isRefreshing = refreshing
+            if(refreshing != binding.swipeContainer.isRefreshing){
+                val currentTab = getKey(DOWNLOAD_SETTINGS, CURRENT_TAB, 1)?:0
+                if(viewModel.activeRefreshTabs.contains(currentTab) || !refreshing){
+                    binding.swipeContainer.isRefreshing = refreshing
+                }
+            }
         }
+
         binding.viewpager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                binding.swipeContainer.isRefreshing = false
+            }
+
             override fun onPageScrollStateChanged(state: Int) {
                 super.onPageScrollStateChanged(state)
-                binding.swipeContainer.isEnabled =
-                    /*isOnDownloads && */ state == ViewPager2.SCROLL_STATE_IDLE
+                binding.swipeContainer.isEnabled = state == ViewPager2.SCROLL_STATE_IDLE
             }
         })
 

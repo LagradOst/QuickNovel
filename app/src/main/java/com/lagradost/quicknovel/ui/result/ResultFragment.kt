@@ -23,6 +23,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipDrawable
 import com.google.android.material.tabs.TabLayout
+import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.LoadResponse
@@ -51,6 +52,7 @@ import com.lagradost.quicknovel.util.UIHelper.humanReadableByteCountSI
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.util.toPx
+import kotlin.collections.toList
 
 const val MAX_SYNO_LENGH = 300
 
@@ -114,7 +116,15 @@ class ResultFragment : Fragment() {
         //only if really is onResume
         if(viewModel.isResume){
             (binding.chapterList.adapter as? ChapterAdapter)?.apply{
-                this.notifyDataSetChanged()
+                val lastRead = viewModel.getLastRead()
+                if(lastRead != null)
+                {
+                    val count = 100
+                    val start = maxOf(0, lastRead - count)
+                    val totalItems = minOf(itemCount, count)
+                    //notifyItemRange instead of submitList because you technically didn't changed the list
+                    notifyItemRangeChanged(start, totalItems)
+                }
             }
             viewModel.isResume = false
         }

@@ -376,6 +376,8 @@ class ResultViewModel : ViewModel() {
         }
     }
 
+    fun getLastRead() = getKey<Int>(EPUB_CURRENT_POSITION, (load as StreamResponse).name)
+
     fun pause() = viewModelScope.launchSafe {
         loadMutex.withLock {
             if (!hasLoaded) return@launchSafe

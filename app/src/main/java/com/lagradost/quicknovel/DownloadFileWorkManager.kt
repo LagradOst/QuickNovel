@@ -75,16 +75,17 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
             )
         }
 
-        fun refreshAllReadingProgress(from: DownloadViewModel, context: Context) {
+        fun refreshAllReadingProgress(from: DownloadViewModel, context: Context, currentTab: Int) {
             viewModel = from
-
+            val uniqueWorkName = "${ID_REFRESH_READINGPROGRESS}_$currentTab"
             (WorkManager.getInstance(context)).enqueueUniqueWork(
-                ID_REFRESH_READINGPROGRESS,
+                uniqueWorkName,
                 ExistingWorkPolicy.REPLACE,
                 OneTimeWorkRequest.Builder(DownloadFileWorkManager::class.java)
                     .setInputData(
                         Data.Builder()
                             .putString(ID, ID_REFRESH_READINGPROGRESS)
+                            .putInt(CURRENT_TAB, currentTab)
                             .build()
                     )
                     .build()
@@ -154,18 +155,7 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
             }
 
             ID_REFRESH_READINGPROGRESS ->{
-                if(viewModel != null){
-                    val pages = viewModel!!.pages.value
-                    if(pages != null){
-                        val page = pages.getOrNull(viewModel!!.currentTab.value?:0)
-                        val items = page?.items
-                        if(!items.isNullOrEmpty()){
-                            viewModel!!.senDataToReadingProgress(items)
-                        }
-                        else
-                            viewModel!!.isRefreshing.postValue(false)
-                    }
-                }
+                BookDownloader2.getOldDataReadingProgress(this.workerParams.inputData.getInt(CURRENT_TAB, 1))
             }
 
             else -> return Result.failure()
