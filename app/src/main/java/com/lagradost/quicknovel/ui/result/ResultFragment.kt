@@ -120,10 +120,10 @@ class ResultFragment : Fragment() {
             if(lastReadUrl != null && adapter != null){
                 val currentPos = adapter.immutableCurrentList.indexOfFirst { it.url == lastReadUrl }
                 if(currentPos != -1 ){
-                    val range = 50
-                    val start =  maxOf(0, currentPos - range)
-                    val end =  minOf(adapter.itemCount, currentPos + range)
-                    adapter.notifyItemRangeChanged(start,end)
+                    val range = 25
+                    val start = maxOf(0, currentPos - range)
+                    val count = minOf(adapter.itemCount - start, range * 2 + 1)
+                    adapter.notifyItemRangeChanged(start, count)
                 }
             }
             viewModel.isResume = false
