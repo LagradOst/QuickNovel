@@ -1251,7 +1251,7 @@ object BookDownloader2 {
                     val id = key.replaceFirst(RESULT_BOOKMARK_STATE, RESULT_BOOKMARK)
                     val cached = getKey<ResultCached>(id) ?: continue
                     launch {
-                        getReadingProgress(cached, currentTabIndex)
+                        getReadingProgress(cached)
                     }
                 }
             }
@@ -1260,12 +1260,11 @@ object BookDownloader2 {
 
 
     private val downloadSemaphore = Semaphore(5)
-    suspend fun getReadingProgress(cached: ResultCached, currentTab:Int)
+    suspend fun getReadingProgress(cached: ResultCached)
     {
         downloadSemaphore.withPermit {
             try
             {
-                readingProgressChanged.invoke(currentTab)
                 val api = getApiFromNameOrNull(cached.apiName) ?: return@withPermit
                 val response = api.load(cached.source, true)
                 if (response is com.lagradost.quicknovel.mvvm.Resource.Success)
@@ -1273,27 +1272,30 @@ object BookDownloader2 {
                     val loaded = response.value as StreamResponse
                     val totalChapters = loaded.data.size
                     if(totalChapters != cached.totalChapters){
-                        val newId = generateId(loaded, cached.apiName)
                         val oldId = cached.id
-                        if(oldId != newId){
-                            migrationNovelMutex.withLock {
-                                migrateKeys(oldId, newId, cached.name, loaded.name)
-                            }
-                        }
                         setKey(
                             RESULT_BOOKMARK,
-                            newId.toString(),
+                            oldId.toString(),
                             cached.copy(
-                                id = newId,
+                                id = oldId,
                                 name = loaded.name,
                                 author = loaded.author,
                                 totalChapters = totalChapters,
                             )
                         )
+                        val newId = generateId(loaded, cached.apiName)
+                        if(oldId != newId){
+                            migrationNovelMutex.withLock {
+                                migrateKeys(oldId, newId, cached.name, loaded.name)
+                            }
+                        }
                     }
                 }
             } catch (e: Throwable) {
                 if (e !is CancellationException) logError(e)
+            }
+            finally {
+                readingProgressChanged.invoke(cached.id)
             }
         }
     }

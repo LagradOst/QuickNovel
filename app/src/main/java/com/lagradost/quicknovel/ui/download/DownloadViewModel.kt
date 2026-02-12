@@ -525,19 +525,25 @@ class DownloadViewModel : ViewModel() {
     val activeRefreshTabs = mutableSetOf<Int>()
     val isRefreshing = MutableLiveData(false)
     var debounceJob: Job? = null
-    fun debounceAction(tab:Int, actions: suspend()-> Unit){
+
+    fun setIsLoading(isActive: Boolean, currentTab: Int){
+        isRefreshing.postValue(isActive)
+        synchronized(activeRefreshTabs){
+            if(isActive && !activeRefreshTabs.contains(currentTab))
+                activeRefreshTabs.add(currentTab)
+            else
+                activeRefreshTabs.remove(currentTab)
+        }
+    }
+    fun debounceAction(actions: suspend()-> Unit){
         debounceJob?.cancel()
         debounceJob = viewModelScope.launch(Dispatchers.IO) {
             delay(3000)
-            activeRefreshTabs.remove(tab)
-            isRefreshing.postValue(false)
             actions()
         }
     }
     fun readingProgressChanged(tab: Int){
-        activeRefreshTabs.add(tab)
-        isRefreshing.postValue(true)
-        debounceAction (tab){
+        debounceAction {
             loadAllData(false)
         }
     }

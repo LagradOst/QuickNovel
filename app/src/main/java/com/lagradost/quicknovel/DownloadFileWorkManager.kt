@@ -80,7 +80,7 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
             val uniqueWorkName = "${ID_REFRESH_READINGPROGRESS}_$currentTab"
             (WorkManager.getInstance(context)).enqueueUniqueWork(
                 uniqueWorkName,
-                ExistingWorkPolicy.REPLACE,
+                ExistingWorkPolicy.KEEP,
                 OneTimeWorkRequest.Builder(DownloadFileWorkManager::class.java)
                     .setInputData(
                         Data.Builder()
@@ -155,7 +155,11 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
             }
 
             ID_REFRESH_READINGPROGRESS ->{
-                BookDownloader2.getOldDataReadingProgress(this.workerParams.inputData.getInt(CURRENT_TAB, 1))
+                val currentTab = this.workerParams.inputData.getInt(CURRENT_TAB, 1)
+                viewModel?.setIsLoading(true, currentTab)
+                BookDownloader2.getOldDataReadingProgress(currentTab)
+                viewModel?.setIsLoading(false, currentTab)
+
             }
 
             else -> return Result.failure()

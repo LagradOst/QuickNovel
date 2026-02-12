@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.appcompat.widget.SearchView
+import androidx.core.view.doOnAttach
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -285,24 +286,26 @@ class DownloadFragment : Fragment() {
 
         observe(viewModel.isRefreshing) { refreshing ->
             if(refreshing != binding.swipeContainer.isRefreshing){
-                val currentTab = getKey(DOWNLOAD_SETTINGS, CURRENT_TAB, 1)?:0
-                if(viewModel.activeRefreshTabs.contains(currentTab) || !refreshing){
-                    binding.swipeContainer.isRefreshing = refreshing
-                }
+                binding.swipeContainer.isRefreshing = refreshing
             }
         }
 
+        var canSwip = true
         binding.viewpager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
-                binding.swipeContainer.isRefreshing = false
+                val currentTab = getKey(DOWNLOAD_SETTINGS, CURRENT_TAB, 1)?:1
+                binding.swipeContainer.isRefreshing =  viewModel.activeRefreshTabs.contains(currentTab)
             }
 
             override fun onPageScrollStateChanged(state: Int) {
                 super.onPageScrollStateChanged(state)
-                binding.swipeContainer.isEnabled = state == ViewPager2.SCROLL_STATE_IDLE
+                canSwip = state == ViewPager2.SCROLL_STATE_IDLE
             }
         })
+        binding.swipeContainer.setOnChildScrollUpCallback { parent, child ->
+            return@setOnChildScrollUpCallback  !canSwip// true = can't Swip, false = can swip
+        }
 
         setupGridView()
 
