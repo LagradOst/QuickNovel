@@ -7,6 +7,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.lagradost.quicknovel.APIRepository
@@ -18,9 +19,12 @@ import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.BookDownloader2.currentDownloads
 import com.lagradost.quicknovel.BookDownloader2.currentDownloadsMutex
+import com.lagradost.quicknovel.BookDownloader2.downloadDataRefreshed
 import com.lagradost.quicknovel.BookDownloader2.downloadInfoMutex
 import com.lagradost.quicknovel.BookDownloader2.downloadProgress
 import com.lagradost.quicknovel.BookDownloader2.downloadProgressChanged
+import com.lagradost.quicknovel.BookDownloader2.downloadRemoved
+import com.lagradost.quicknovel.BookDownloader2.readingProgressChanged
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.CURRENT_TAB
 import com.lagradost.quicknovel.CommonActivity.activity
@@ -33,6 +37,7 @@ import com.lagradost.quicknovel.DownloadFileWorkManager
 import com.lagradost.quicknovel.DownloadFileWorkManager.Companion.viewModel
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
+import com.lagradost.quicknovel.EPUB_CURRENT_TOTAL_CHAPTERS
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.R
@@ -50,7 +55,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.sample
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
@@ -524,7 +534,6 @@ class DownloadViewModel : ViewModel() {
 
     val activeRefreshTabs = mutableSetOf<Int>()
     val isRefreshing = MutableLiveData(false)
-    var debounceJob: Job? = null
 
     fun setIsLoading(isActive: Boolean, currentTab: Int){
         isRefreshing.postValue(isActive)
@@ -535,20 +544,13 @@ class DownloadViewModel : ViewModel() {
                 activeRefreshTabs.remove(currentTab)
         }
     }
-    fun debounceAction(actions: suspend()-> Unit){
-        debounceJob?.cancel()
-        debounceJob = viewModelScope.launch(Dispatchers.IO) {
-            delay(3000)
-            actions()
-        }
+    private val _refresh = MutableSharedFlow<Pair<Int, Int>>(
+        extraBufferCapacity = 500
+    )
+    val refresh = _refresh.asSharedFlow()
+    fun readingProgressChanged(info: Pair<Int, Int>) {
+        _refresh.tryEmit(info)
     }
-    fun readingProgressChanged(tab: Int){
-        debounceAction {
-            loadAllData(false)
-        }
-    }
-
-
 
     private val cardsDataMutex = Mutex()
     private val cardsData: HashMap<Int, DownloadFragment.DownloadDataLoaded> = hashMapOf()

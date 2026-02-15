@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import androidx.viewbinding.ViewBinding
 import coil3.dispose
+import com.lagradost.quicknovel.ONLY_PROGRESS_READING_TEXT
 import java.util.concurrent.CopyOnWriteArrayList
 
 open class ViewHolderState<T>(val view: ViewBinding) : ViewHolder(view.root) {
@@ -113,8 +114,10 @@ abstract class BaseAdapter<
 
     open fun onUpdateContent(holder: ViewHolderState<S>, item: T, position: Int) =
         onBindContent(holder, item, position)
-
+    open fun onUpdateContent(holder: ViewHolderState<S>, item: T, position: Int, payloads: MutableList<Any>) =
+        onBindContent(holder, item, position, payloads)
     open fun onBindContent(holder: ViewHolderState<S>, item: T, position: Int) = Unit
+    open fun onBindContent(holder: ViewHolderState<S>, item: T, position: Int, payloads: MutableList<Any>) = Unit
     open fun onBindFooter(holder: ViewHolderState<S>) = Unit
     open fun onBindHeader(holder: ViewHolderState<S>) = Unit
     open fun onCreateContent(parent: ViewGroup): ViewHolderState<S> = throw NotImplementedError()
@@ -235,7 +238,12 @@ abstract class BaseAdapter<
             CONTENT -> {
                 val realPosition = position - headers
                 val item = getItem(realPosition)
-                onUpdateContent(holder, item, realPosition)
+                if(payloads.contains(ONLY_PROGRESS_READING_TEXT)){
+                    onUpdateContent(holder, item, realPosition, payloads)
+                }
+                else{
+                    onUpdateContent(holder, item, realPosition)
+                }
             }
 
             FOOTER -> {

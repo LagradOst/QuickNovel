@@ -1251,7 +1251,7 @@ object BookDownloader2 {
                     val id = key.replaceFirst(RESULT_BOOKMARK_STATE, RESULT_BOOKMARK)
                     val cached = getKey<ResultCached>(id) ?: continue
                     launch {
-                        getReadingProgress(cached)
+                        getReadingProgress(cached, currentTabIndex)
                     }
                 }
             }
@@ -1259,43 +1259,46 @@ object BookDownloader2 {
     }
 
 
+    val readingProgressChanged = Event<Pair<Int, Int>>()
     private val downloadSemaphore = Semaphore(5)
-    suspend fun getReadingProgress(cached: ResultCached)
+    suspend fun getReadingProgress(cached: ResultCached, currentTab: Int)
     {
         downloadSemaphore.withPermit {
             try
             {
                 val api = getApiFromNameOrNull(cached.apiName) ?: return@withPermit
                 val response = api.load(cached.source, true)
-                if (response is com.lagradost.quicknovel.mvvm.Resource.Success)
-                {
-                    val loaded = response.value as StreamResponse
-                    val totalChapters = loaded.data.size
-                    if(totalChapters != cached.totalChapters){
-                        val oldId = cached.id
-                        setKey(
-                            RESULT_BOOKMARK,
-                            oldId.toString(),
-                            cached.copy(
-                                id = oldId,
-                                name = loaded.name,
-                                author = loaded.author,
-                                totalChapters = totalChapters,
-                            )
+
+                if (response !is com.lagradost.quicknovel.mvvm.Resource.Success) return@withPermit
+                val loaded = response.value as? StreamResponse ?: return@withPermit
+
+                val totalChapters = loaded.data.size
+                //if(totalChapters == cached.totalChapters) return@withPermit
+
+                setKey(
+                    EPUB_CURRENT_TOTAL_CHAPTERS,
+                    loaded.name,
+                    totalChapters
+                )
+                val newId = generateId(loaded, cached.apiName)
+                if(cached.id != newId){
+                    setKey(
+                        RESULT_BOOKMARK,
+                        cached.id.toString(),
+                        cached.copy(
+                            totalChapters = totalChapters,
                         )
-                        val newId = generateId(loaded, cached.apiName)
-                        if(oldId != newId){
-                            migrationNovelMutex.withLock {
-                                migrateKeys(oldId, newId, cached.name, loaded.name)
-                            }
-                        }
+                    )
+                    migrationNovelMutex.withLock {
+                        migrateKeys(cached.id,
+                            newId,
+                            cached.name,
+                            loaded.name)
                     }
                 }
+                readingProgressChanged.invoke(currentTab to newId)
             } catch (e: Throwable) {
                 if (e !is CancellationException) logError(e)
-            }
-            finally {
-                readingProgressChanged.invoke(cached.id)
             }
         }
     }
@@ -1346,7 +1349,6 @@ object BookDownloader2 {
     val downloadDataChanged = Event<Pair<Int, DownloadFragment.DownloadData>>()
     val downloadRemoved = Event<Int>()
     val downloadDataRefreshed = Event<Int>()
-    val readingProgressChanged = Event<Int>()
 
     private fun initDownloadProgress() = ioSafe {
         downloadInfoMutex.withLock {
@@ -1484,6 +1486,10 @@ object BookDownloader2 {
         setKey(
             EPUB_CURRENT_POSITION, newName,
             getKey<Int>(EPUB_CURRENT_POSITION, oldName)
+        )
+        setKey(
+            EPUB_CURRENT_TOTAL_CHAPTERS, newName,
+            getKey<Int>(EPUB_CURRENT_TOTAL_CHAPTERS, oldName)
         )
 
         setKey(

@@ -70,6 +70,7 @@ class AnyAdapter(
         }
     }
 
+
     override fun onCreateFooter(parent: ViewGroup): ViewHolderState<Any> {
         val compact = parent.context.getDownloadIsCompact()
 
@@ -178,7 +179,7 @@ class AnyAdapter(
                 view.apply {
                     imageText.text = card.name
                     historyExtraText.text =
-                        "${card.lastChapterRead}/${card.totalChapters} ${root.context.getString(R.string.read_action_chapters)}"
+                        "${card.lastChapterRead}/${card.currentTotalChapters} ${root.context.getString(R.string.read_action_chapters)}"
 
                     imageView.setImage(card.poster)
 
@@ -266,7 +267,7 @@ class AnyAdapter(
                             imageText.text = item.name
                             imageTextMore.isVisible = false
 
-                            progressReading.text = "${item.lastChapterRead}/${item.totalChapters}"
+                            progressReading.text = "${item.lastChapterRead}/${item.currentTotalChapters}"
                         }
                     }
 
@@ -380,6 +381,33 @@ class AnyAdapter(
 
                     downloadUpdateLoading.isVisible = realState == DownloadState.IsPending
                 }
+            }
+
+            else -> throw NotImplementedError()
+        }
+    }
+
+    @SuppressLint("SetTextI18n")
+    override fun onBindContent(holder: ViewHolderState<Any>, item: Any, position: Int, payloads: MutableList<Any>) {
+        when (val view = holder.view) {
+            is HistoryResultCompactBinding -> {
+                val card = item as ResultCached
+                view.apply {
+                    historyExtraText.text = "${card.lastChapterRead}/${card.currentTotalChapters} ${root.context.getString(R.string.read_action_chapters)}"
+                }
+            }
+            is DownloadResultGridBinding -> {
+                when (item) {
+                    is DownloadFragment.DownloadDataLoaded -> {
+                    }
+                    is ResultCached -> {
+                        view.progressReading.text = "${item.lastChapterRead}/${item.currentTotalChapters}"
+                    }
+                    else -> throw NotImplementedError()
+                }
+            }
+
+            is DownloadResultCompactBinding -> {
             }
 
             else -> throw NotImplementedError()

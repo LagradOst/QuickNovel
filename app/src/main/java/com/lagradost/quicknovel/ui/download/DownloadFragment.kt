@@ -8,12 +8,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import androidx.activity.result.launch
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.doOnAttach
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.fasterxml.jackson.annotation.JsonProperty
@@ -41,6 +45,10 @@ import com.lagradost.quicknovel.ui.img
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class DownloadFragment : Fragment() {
     private lateinit var viewModel: DownloadViewModel
@@ -151,7 +159,6 @@ class DownloadFragment : Fragment() {
 
     lateinit var searchExitIcon: ImageView
     lateinit var searchMagIcon: ImageView
-
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -290,11 +297,18 @@ class DownloadFragment : Fragment() {
             }
         }
 
+
+        lifecycleScope.launch /*(Dispatchers.IO)*/{
+            viewModel.refresh.collect { (tab, id) ->
+                (binding.viewpager.adapter as? ViewpagerAdapter)?.updateProgressOfPage(tab, id)
+            }
+        }
+
         var canSwip = true
         binding.viewpager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
-                val currentTab = getKey(DOWNLOAD_SETTINGS, CURRENT_TAB, 1)?:1
+                val currentTab = getKey(DOWNLOAD_SETTINGS, CURRENT_TAB, null)?:1
                 binding.swipeContainer.isRefreshing =  viewModel.activeRefreshTabs.contains(currentTab)
             }
 

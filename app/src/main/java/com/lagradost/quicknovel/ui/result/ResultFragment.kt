@@ -19,6 +19,7 @@ import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipDrawable
@@ -115,17 +116,7 @@ class ResultFragment : Fragment() {
         super.onResume()
         //only if really is onResume
         if(viewModel.isResume){
-            val lastReadUrl = viewModel.getLastRead()
-            val adapter = binding.chapterList.adapter as? ChapterAdapter
-            if(lastReadUrl != null && adapter != null){
-                val currentPos = adapter.immutableCurrentList.indexOfFirst { it.url == lastReadUrl }
-                if(currentPos != -1 ){
-                    val range = 25
-                    val start = maxOf(0, currentPos - range)
-                    val count = minOf(adapter.itemCount - start, range * 2 + 1)
-                    adapter.notifyItemRangeChanged(start, count)
-                }
-            }
+            (binding.chapterList.adapter as? ChapterAdapter)?.notifyDataSetChanged()
             viewModel.isResume = false
         }
 

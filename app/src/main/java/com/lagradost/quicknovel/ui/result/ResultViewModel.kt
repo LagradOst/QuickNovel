@@ -26,6 +26,7 @@ import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_CHAPTER
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_READ_AT
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_SCROLL_CHAR
+import com.lagradost.quicknovel.EPUB_CURRENT_TOTAL_CHAPTERS
 import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.PreferenceDelegate
@@ -376,16 +377,6 @@ class ResultViewModel : ViewModel() {
         }
     }
 
-    fun getLastRead():String?{
-        val load = load as StreamResponse
-        val lastRead = getKey<Int>(EPUB_CURRENT_POSITION, load.name)
-        if(lastRead != null){
-            val index = load.data.getOrNull(lastRead)
-            return index?.url
-        }
-        return null
-    }
-
     fun pause() = viewModelScope.launchSafe {
         loadMutex.withLock {
             if (!hasLoaded) return@launchSafe
@@ -547,7 +538,7 @@ class ResultViewModel : ViewModel() {
         if (!isGetLoaded && getKey<ResultCached>(RESULT_BOOKMARK, loadId.toString()) != null) {
             return
         }
-
+        val totalChapters = (load as? StreamResponse)?.data?.size ?: 1
         setKey(
             RESULT_BOOKMARK, loadId.toString(), ResultCached(
                 loadUrl,
@@ -558,11 +549,12 @@ class ResultViewModel : ViewModel() {
                 load.posterUrl,
                 load.tags,
                 load.rating,
-                (load as? StreamResponse)?.data?.size ?: 1,
+                totalChapters,
                 System.currentTimeMillis(),
                 synopsis = load.synopsis
             )
         )
+        setKey(EPUB_CURRENT_TOTAL_CHAPTERS, load.name, totalChapters)
     }
 
     fun bookmark(state: Int) = viewModelScope.launch {
