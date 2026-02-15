@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel
 
 import android.content.Context
+import android.service.notification.Condition.newId
 import android.util.Log
 import androidx.annotation.WorkerThread
 import androidx.core.net.toUri
@@ -15,9 +16,6 @@ import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.download.DownloadViewModel
 import com.lagradost.quicknovel.util.Apis
-import com.lagradost.quicknovel.util.ResultCached
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.lang.ref.WeakReference
 
 // This is needed to fix downloads, as newer android versions pause network connections in the background
@@ -159,7 +157,7 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
                 viewModel?.setIsLoading(true, currentTab)
                 BookDownloader2.getOldDataReadingProgress(currentTab)
                 viewModel?.setIsLoading(false, currentTab)
-
+                viewModel?.readingProgressChanged(currentTab)
             }
 
             else -> return Result.failure()

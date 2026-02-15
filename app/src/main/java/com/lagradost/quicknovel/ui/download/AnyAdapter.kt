@@ -21,9 +21,12 @@ import com.lagradost.quicknovel.databinding.DownloadImportCardBinding
 import com.lagradost.quicknovel.databinding.DownloadResultCompactBinding
 import com.lagradost.quicknovel.databinding.DownloadResultGridBinding
 import com.lagradost.quicknovel.databinding.HistoryResultCompactBinding
+import com.lagradost.quicknovel.ui.BaseAdapter.Companion.clearImage
 import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
+import com.lagradost.quicknovel.ui.download.AnyAdapter.Companion.DOWNLOAD_DATA_LOADED
+import com.lagradost.quicknovel.ui.download.AnyAdapter.Companion.RESULT_CACHED
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import com.lagradost.quicknovel.util.UIHelper.setImage
@@ -60,8 +63,6 @@ class AnyAdapter(
         const val DOWNLOAD_DATA_LOADED: Int = 2
     }
 
-
-
     override fun getItemId(position: Int): Long {
         return when (val item = getItemOrNull(position)) {
             is ResultCached -> item.id.toLong()
@@ -69,6 +70,8 @@ class AnyAdapter(
             else -> 0L
         }
     }
+
+
 
 
     override fun onCreateFooter(parent: ViewGroup): ViewHolderState<Any> {
@@ -169,6 +172,166 @@ class AnyAdapter(
         }
 
         return ViewHolderState(binding)
+    }
+
+    override fun onUpdateContent(holder: ViewHolderState<Any>, item: Any, position: Int)//a little bit more efficient
+    {
+        when (val view = holder.view) {
+            is HistoryResultCompactBinding -> {
+                val card = item as ResultCached
+                view.apply {
+                    imageText.text = card.name
+                    historyExtraText.text =
+                        "${card.lastChapterRead}/${card.currentTotalChapters} ${root.context.getString(R.string.read_action_chapters)}"
+                    imageView.setImage(card.poster)
+                }
+            }
+
+            is DownloadResultGridBinding -> {
+                when (item) {
+                    is DownloadFragment.DownloadDataLoaded -> {
+                        view.apply {
+                            downloadProgressbarIndeterment.isVisible = item.generating
+                            val showDownloadLoading = item.state == DownloadState.IsPending
+                            val isAPdfDownloading =
+                                item.apiName == IMPORT_SOURCE_PDF && (item.downloadedTotal != item.downloadedCount)
+                            downloadUpdateLoading.isVisible =
+                                showDownloadLoading || isAPdfDownloading
+
+                            val epubSize = getKey(DOWNLOAD_EPUB_SIZE, item.id.toString()) ?: 0
+                            val diff = item.downloadedCount - epubSize
+                            imageTextMore.text = "+$diff "
+                            imageTextMore.isVisible =
+                                diff > 0 && !showDownloadLoading && !item.isImported
+                            imageText.text = item.name
+                            imageView.alpha = if (isAPdfDownloading) 0.6f else 1.0f
+                            imageView.setImage(item.image)
+                        }
+                    }
+
+                    is ResultCached -> {
+                        view.apply {
+                            imageView.setImage(item.image)
+                            imageText.text = item.name
+                            progressReading.text = "${item.lastChapterRead}/${item.currentTotalChapters}"
+                        }
+                    }
+
+                    else -> throw NotImplementedError()
+                }
+            }
+
+            is DownloadResultCompactBinding -> {
+                val card = item as DownloadFragment.DownloadDataLoaded
+                view.apply {
+                    downloadHolder.isGone =
+                        card.isImported && (card.apiName != IMPORT_SOURCE_PDF || card.downloadedTotal == card.downloadedCount)
+                    val same = imageText.text == card.name
+                    backgroundCard.apply {
+                        setOnClickListener {
+                            if (card.apiName == IMPORT_SOURCE_PDF && card.downloadedCount < card.downloadedTotal)
+                                preloadPartialImportedPdf(card, context)
+                            downloadViewModel.readEpub(card)
+                        }
+                        setOnLongClickListener {
+                            downloadViewModel.showMetadata(card)
+                            return@setOnLongClickListener true
+                        }
+                    }
+                    imageView.apply {
+                        setOnClickListener {
+                            if (!item.isImported)
+                                downloadViewModel.load(card)
+                        }
+                        setOnLongClickListener {
+                            downloadViewModel.showMetadata(card)
+                            return@setOnLongClickListener true
+                        }
+                    }
+
+                    downloadDeleteTrash.setOnClickListener {
+                        downloadViewModel.deleteAlert(card)
+                    }
+
+                    val epubSize = getKey(DOWNLOAD_EPUB_SIZE, card.id.toString()) ?: 0
+                    val diff = card.downloadedCount - epubSize
+                    imageTextMore.text = if (diff > 0) "+$diff " else ""
+
+                    imageView.setImage(card.image)
+
+                    downloadProgressText.text =
+                        "${card.downloadedCount}/${card.downloadedTotal}" + if (card.ETA == "") "" else " - ${card.ETA}"
+
+                    downloadProgressbar.apply {
+                        max = card.downloadedTotal.toInt() * 100
+
+                        // shitty check for non changed
+                        if (same || imageText.text.isEmpty()) {//the first time, imageText.text is empty
+                            val animation: ObjectAnimator = ObjectAnimator.ofInt(
+                                this,
+                                "progress",
+                                progress,
+                                card.downloadedCount.toInt() * 100
+                            )
+
+                            animation.duration = 500
+                            animation.setAutoCancel(true)
+                            animation.interpolator = DecelerateInterpolator()
+                            animation.start()
+                        } else {
+                            progress = card.downloadedCount.toInt() * 100
+                        }
+                        //download_progressbar.progress = card.downloadedCount
+                        isIndeterminate = card.generating
+                        isVisible = card.generating || (card.downloadedCount < card.downloadedTotal)
+                    }
+
+                    imageText.text = card.name
+                    val realState = card.state
+                    /*if (card.downloadedCount >= card.downloadedTotal) {
+                        downloadUpdate.alpha = 0.5f
+                        downloadUpdate.isEnabled = false
+                    } else {*/
+                    downloadUpdate.alpha = 1f
+                    downloadUpdate.isEnabled = true
+                    //}
+                    downloadUpdate.contentDescription = when (realState) {
+                        DownloadState.IsDone -> "Done"
+                        DownloadState.IsDownloading -> "Pause"
+                        DownloadState.IsPaused -> "Resume"
+                        DownloadState.IsFailed -> "Re-Download"
+                        DownloadState.IsStopped -> "Update"
+                        DownloadState.IsPending -> "Pending"
+                        DownloadState.Nothing -> "Update"
+                    }
+
+                    downloadUpdate.setImageResource(
+                        when (realState) {
+                            DownloadState.IsDownloading -> R.drawable.ic_baseline_pause_24
+                            DownloadState.IsPaused -> R.drawable.netflix_play
+                            DownloadState.IsStopped -> R.drawable.ic_baseline_autorenew_24
+                            DownloadState.IsFailed -> R.drawable.ic_baseline_autorenew_24
+                            DownloadState.IsDone -> R.drawable.ic_baseline_check_24
+                            DownloadState.IsPending -> R.drawable.nothing
+                            DownloadState.Nothing -> R.drawable.ic_baseline_autorenew_24
+                        }
+                    )
+                    downloadUpdate.setOnClickListener {
+                        when (realState) {
+                            DownloadState.IsDownloading -> downloadViewModel.pause(card)
+                            DownloadState.IsPaused -> downloadViewModel.resume(card)
+                            DownloadState.IsPending -> {}
+                            else -> downloadViewModel.refreshCard(card)//this also resume download of imported pdfs
+                        }
+                    }
+
+                    downloadUpdateLoading.isVisible = realState == DownloadState.IsPending
+                }
+            }
+
+            else -> throw NotImplementedError()
+        }
+        super.onUpdateContent(holder, item, position)
     }
 
     @SuppressLint("SetTextI18n")
@@ -381,33 +544,6 @@ class AnyAdapter(
 
                     downloadUpdateLoading.isVisible = realState == DownloadState.IsPending
                 }
-            }
-
-            else -> throw NotImplementedError()
-        }
-    }
-
-    @SuppressLint("SetTextI18n")
-    override fun onBindContent(holder: ViewHolderState<Any>, item: Any, position: Int, payloads: MutableList<Any>) {
-        when (val view = holder.view) {
-            is HistoryResultCompactBinding -> {
-                val card = item as ResultCached
-                view.apply {
-                    historyExtraText.text = "${card.lastChapterRead}/${card.currentTotalChapters} ${root.context.getString(R.string.read_action_chapters)}"
-                }
-            }
-            is DownloadResultGridBinding -> {
-                when (item) {
-                    is DownloadFragment.DownloadDataLoaded -> {
-                    }
-                    is ResultCached -> {
-                        view.progressReading.text = "${item.lastChapterRead}/${item.currentTotalChapters}"
-                    }
-                    else -> throw NotImplementedError()
-                }
-            }
-
-            is DownloadResultCompactBinding -> {
             }
 
             else -> throw NotImplementedError()

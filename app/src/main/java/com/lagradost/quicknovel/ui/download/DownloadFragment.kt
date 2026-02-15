@@ -298,9 +298,9 @@ class DownloadFragment : Fragment() {
         }
 
 
-        lifecycleScope.launch /*(Dispatchers.IO)*/{
-            viewModel.refresh.collect { (tab, id) ->
-                (binding.viewpager.adapter as? ViewpagerAdapter)?.updateProgressOfPage(tab, id)
+        lifecycleScope.launch{
+            viewModel.refresh.collect { tab ->
+                (binding.viewpager.adapter as? ViewpagerAdapter)?.updateProgressOfPage(tab)
             }
         }
 

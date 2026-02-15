@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.ui.download
 
+import android.R.attr.end
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
@@ -10,7 +11,6 @@ import androidx.core.view.doOnAttach
 import androidx.core.view.get
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.lagradost.quicknovel.ONLY_PROGRESS_READING_TEXT
 import com.lagradost.quicknovel.databinding.ViewpagerPageBinding
 import com.lagradost.quicknovel.ui.BaseAdapter
 import com.lagradost.quicknovel.ui.BaseDiffCallback
@@ -99,25 +99,28 @@ class ViewpagerAdapter(
 
 
     val collectionsOfRecyclerView = mutableMapOf<Int, WeakReference<AutofitRecyclerView>>()
-    fun updateProgressOfPage(tab: Int, id:Int){
+    fun updateProgressOfPage(tab: Int) {
         val rv = collectionsOfRecyclerView[tab]?.get() ?: return
         val ad = rv.adapter as? AnyAdapter ?: return
-        val index = ad.immutableCurrentList.indexOfFirst { (it as? ResultCached)?.id == id }
-        if(index == -1) return
-        /*
-        val isVisible = rv.findViewHolderForAdapterPosition(index) != null ||  index in 9..11
-        if(isVisible)
-            ad.notifyItemChanged(index, ONLY_PROGRESS_READING_TEXT)
-        */
         val layoutManager = rv.layoutManager as? LinearLayoutManager ?: return
+
         val firstVisible = layoutManager.findFirstVisibleItemPosition()
         val lastVisible = layoutManager.findLastVisibleItemPosition()
-        val start = maxOf(firstVisible - 3, 0)
-        val end = minOf(lastVisible + 3, ad.itemCount - 1)
-        if(index in start..end)
-            ad.notifyItemChanged(index, ONLY_PROGRESS_READING_TEXT)
-    }
 
+        if (firstVisible == -1 || lastVisible == -1) return
+
+        val start = maxOf(firstVisible - 3, 0)
+
+        val end = minOf(lastVisible + 3, ad.itemCount - 1)
+
+        val count = (end - start) + 1
+
+        if (count > 0) {
+            rv.post {
+                ad.notifyItemRangeChanged(start, count, "newText")
+            }
+        }
+    }
     override fun onBindContent(holder: ViewHolderState<Bundle>, item: Page, position: Int) {
         val binding = holder.view
         if (binding !is ViewpagerPageBinding) return

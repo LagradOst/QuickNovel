@@ -24,7 +24,6 @@ import com.lagradost.quicknovel.BookDownloader2.downloadInfoMutex
 import com.lagradost.quicknovel.BookDownloader2.downloadProgress
 import com.lagradost.quicknovel.BookDownloader2.downloadProgressChanged
 import com.lagradost.quicknovel.BookDownloader2.downloadRemoved
-import com.lagradost.quicknovel.BookDownloader2.readingProgressChanged
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.CURRENT_TAB
 import com.lagradost.quicknovel.CommonActivity.activity
@@ -520,7 +519,7 @@ class DownloadViewModel : ViewModel() {
         BookDownloader2.downloadProgressChanged += ::progressChanged
         BookDownloader2.downloadDataRefreshed += ::downloadDataRefreshed
         BookDownloader2.downloadRemoved += ::downloadRemoved
-        BookDownloader2.readingProgressChanged += :: readingProgressChanged
+        //BookDownloader2.readingProgressChanged += :: readingProgressChanged
     }
 
     override fun onCleared() {
@@ -529,7 +528,7 @@ class DownloadViewModel : ViewModel() {
         BookDownloader2.downloadDataChanged -= ::progressDataChanged
         BookDownloader2.downloadDataRefreshed -= ::downloadDataRefreshed
         BookDownloader2.downloadRemoved -= ::downloadRemoved
-        BookDownloader2.readingProgressChanged -= :: readingProgressChanged
+        //BookDownloader2.readingProgressChanged -= :: readingProgressChanged
     }
 
     val activeRefreshTabs = mutableSetOf<Int>()
@@ -544,12 +543,12 @@ class DownloadViewModel : ViewModel() {
                 activeRefreshTabs.remove(currentTab)
         }
     }
-    private val _refresh = MutableSharedFlow<Pair<Int, Int>>(
+    private val _refresh = MutableSharedFlow<Int>(
         extraBufferCapacity = 500
     )
     val refresh = _refresh.asSharedFlow()
-    fun readingProgressChanged(info: Pair<Int, Int>) {
-        _refresh.tryEmit(info)
+    fun readingProgressChanged(tab:Int) {
+        _refresh.tryEmit(tab)
     }
 
     private val cardsDataMutex = Mutex()

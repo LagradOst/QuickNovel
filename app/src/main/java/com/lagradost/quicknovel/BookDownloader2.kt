@@ -1251,7 +1251,7 @@ object BookDownloader2 {
                     val id = key.replaceFirst(RESULT_BOOKMARK_STATE, RESULT_BOOKMARK)
                     val cached = getKey<ResultCached>(id) ?: continue
                     launch {
-                        getReadingProgress(cached, currentTabIndex)
+                        getReadingProgress(cached)
                     }
                 }
             }
@@ -1259,9 +1259,8 @@ object BookDownloader2 {
     }
 
 
-    val readingProgressChanged = Event<Pair<Int, Int>>()
     private val downloadSemaphore = Semaphore(5)
-    suspend fun getReadingProgress(cached: ResultCached, currentTab: Int)
+    suspend fun getReadingProgress(cached: ResultCached)
     {
         downloadSemaphore.withPermit {
             try
@@ -1273,13 +1272,14 @@ object BookDownloader2 {
                 val loaded = response.value as? StreamResponse ?: return@withPermit
 
                 val totalChapters = loaded.data.size
-                //if(totalChapters == cached.totalChapters) return@withPermit
+                if(totalChapters == cached.totalChapters) return@withPermit
 
                 setKey(
                     EPUB_CURRENT_TOTAL_CHAPTERS,
                     loaded.name,
                     totalChapters
                 )
+
                 val newId = generateId(loaded, cached.apiName)
                 if(cached.id != newId){
                     setKey(
@@ -1296,7 +1296,6 @@ object BookDownloader2 {
                             loaded.name)
                     }
                 }
-                readingProgressChanged.invoke(currentTab to newId)
             } catch (e: Throwable) {
                 if (e !is CancellationException) logError(e)
             }
