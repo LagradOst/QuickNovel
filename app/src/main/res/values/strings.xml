@@ -11,7 +11,7 @@
     <string name="restore_key" translatable="false">restore_key</string>
     <string name="restore_settings">Restore data from backup</string>
 
-    <string name="search_hint">Search Novels</string>
+    <string name="search_hint">Search Novels…</string>
     <string name="synopsis">Synopsis</string>
     <string name="no_data">No Data</string>
     <string name="no_author">Author not found</string>
@@ -71,9 +71,9 @@
 
     <string name="filter_dialog_sort_by">Sort by</string>
     <string name="filter_dialog_filter">Apply</string>
-    <string name="filter_dialog_general">General:</string>
-    <string name="filter_dialog_order_by">Order by:</string>
-    <string name="filter_dialog_genre">Genre:</string>
+    <string name="filter_dialog_general">General</string>
+    <string name="filter_dialog_order_by">Order by</string>
+    <string name="filter_dialog_genre">Genre</string>
     <string name="browse_list_icon">Icon</string>
     <string name="home_title_text">Explore</string>
     <string name="mainpage_filter">Filter</string>
@@ -290,5 +290,6 @@
     <string name="chapter">Chapter</string>
     <string name="no_update_found">No Update Found</string>
 
+    <string name="search_downloads">Search Downloads…</string>
 
 </resources>

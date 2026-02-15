@@ -9,6 +9,7 @@ import com.lagradost.quicknovel.databinding.HomeResultGridBinding
 import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
+import com.lagradost.quicknovel.util.UIHelper.hideKeyboard
 import com.lagradost.quicknovel.util.UIHelper.setImage
 
 class HomeChildItemAdapter(
@@ -48,7 +49,8 @@ class HomeChildItemAdapter(
                     viewModel.load(item)
                 }
 
-                setOnLongClickListener {
+                setOnLongClickListener { view ->
+                    hideKeyboard(view)
                     viewModel.showMetadata(item)
                     return@setOnLongClickListener true
                 }

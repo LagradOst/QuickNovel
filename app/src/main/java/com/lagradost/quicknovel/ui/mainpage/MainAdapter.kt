@@ -13,6 +13,7 @@ import com.lagradost.quicknovel.databinding.SearchResultGridBinding
 import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
+import com.lagradost.quicknovel.util.UIHelper.hideKeyboard
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.util.toPx
 import com.lagradost.quicknovel.widget.AutofitRecyclerView
@@ -95,7 +96,8 @@ class MainAdapter(
                     loadResult(item.url, item.apiName)
                 }
 
-                setOnLongClickListener {
+                setOnLongClickListener { view ->
+                    hideKeyboard(view)
                     MainActivity.loadPreviewPage(item)
                     return@setOnLongClickListener true
                 }

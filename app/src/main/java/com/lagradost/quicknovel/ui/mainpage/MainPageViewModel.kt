@@ -24,12 +24,12 @@ class MainPageViewModel : ViewModel() {
 
     private val infCards: ArrayList<SearchResponse> = arrayListOf()
     private var oldResponse: Resource<SearchResponseList>? = null
-    private var searchResponseListQueries : Int = 0
+    private var searchResponseListQueries: Int = 0
 
     data class SearchResponseList(
         val items: List<SearchResponse>,
         val pages: Int,
-        val id : Int,
+        val id: Int,
     )
 
     val currentCards: MutableLiveData<Resource<SearchResponseList>> by lazy {
@@ -86,7 +86,13 @@ class MainPageViewModel : ViewModel() {
         isInSearch.postValue(true)
         viewModelScope.launch {
             val res = repo.search(query)
-            currentCards.postValue(res.map { x -> SearchResponseList(items = x, pages = 1, id = ++searchResponseListQueries) })
+            currentCards.postValue(res.map { x ->
+                SearchResponseList(
+                    items = x,
+                    pages = 1,
+                    id = ++searchResponseListQueries
+                )
+            })
         }
     }
 
@@ -123,12 +129,31 @@ class MainPageViewModel : ViewModel() {
         )
     }
 
+    fun setMainCategory(to: Int) {
+        currentMainCategory.postValue(to)
+        load(0, mainCategory = to, orderBy = currentOrderBy.value, tag = currentOrderBy.value)
+    }
+
+    fun setTag(to: Int) {
+        currentTag.postValue(to)
+        load(0, mainCategory = currentMainCategory.value, orderBy = currentOrderBy.value, tag = to)
+    }
+
+    fun setOrderBy(to: Int) {
+        currentOrderBy.postValue(to)
+        load(0, mainCategory = currentMainCategory.value, orderBy = to, tag = currentTag.value)
+    }
+
     fun load(
         page: Int?,
         mainCategory: Int?,
         orderBy: Int?,
         tag: Int?,
     ) {
+        currentTag.postValue(tag)
+        currentOrderBy.postValue(orderBy)
+        currentMainCategory.postValue(mainCategory)
+
         val cPage = page ?: ((currentPage.value ?: 0) + 1)
         if (cPage == 0) {
             infCards.clear()
@@ -174,9 +199,6 @@ class MainPageViewModel : ViewModel() {
             loadingMoreItems.postValue(false)
 
             currentPage.postValue(cPage)
-            currentTag.postValue(tag)
-            currentOrderBy.postValue(orderBy)
-            currentMainCategory.postValue(mainCategory)
         }
     }
 }

@@ -14,10 +14,6 @@
             android:icon="@drawable/ic_baseline_history_24"
             android:title="@string/title_history"/>
     <item
-            android:id="@+id/navigation_homepage"
-            android:icon="@drawable/ic_outline_explore_24"
-            android:title="@string/title_home"/>
-    <item
             android:id="@+id/navigation_settings"
             android:icon="@drawable/ic_outline_settings_24"
             android:title="@string/title_settings"/>

@@ -25,6 +25,7 @@ import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
+import com.lagradost.quicknovel.util.UIHelper.hideKeyboard
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.widget.AutofitRecyclerView
 import kotlin.math.roundToInt
@@ -187,7 +188,8 @@ class AnyAdapter(
                     historyDelete.setOnClickListener {
                         downloadViewModel.deleteAlert(card)
                     }
-                    imageView.setOnLongClickListener {
+                    imageView.setOnLongClickListener { view ->
+                        hideKeyboard(view)
                         downloadViewModel.showMetadata(card)
                         return@setOnLongClickListener true
                     }
@@ -213,7 +215,8 @@ class AnyAdapter(
                                     }
                                     downloadViewModel.readEpub(item)
                                 }
-                                setOnLongClickListener {
+                                setOnLongClickListener { view ->
+                                    hideKeyboard(view)
                                     downloadViewModel.showMetadata(item)
                                     return@setOnLongClickListener true
                                 }
@@ -250,7 +253,8 @@ class AnyAdapter(
                                 setOnClickListener {
                                     downloadViewModel.load(item)
                                 }
-                                setOnLongClickListener {
+                                setOnLongClickListener { view ->
+                                    hideKeyboard(view)
                                     downloadViewModel.showMetadata(item)
                                     return@setOnLongClickListener true
                                 }
@@ -279,7 +283,8 @@ class AnyAdapter(
                                 preloadPartialImportedPdf(card, context)
                             downloadViewModel.readEpub(card)
                         }
-                        setOnLongClickListener {
+                        setOnLongClickListener { view ->
+                            hideKeyboard(view)
                             downloadViewModel.showMetadata(card)
                             return@setOnLongClickListener true
                         }
@@ -289,7 +294,8 @@ class AnyAdapter(
                             if (!item.isImported)
                                 downloadViewModel.load(card)
                         }
-                        setOnLongClickListener {
+                        setOnLongClickListener { view ->
+                            hideKeyboard(view)
                             downloadViewModel.showMetadata(card)
                             return@setOnLongClickListener true
                         }

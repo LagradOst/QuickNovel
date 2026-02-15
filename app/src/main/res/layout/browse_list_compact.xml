@@ -12,7 +12,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             app:cardElevation="0dp"
-            app:cardBackgroundColor="?attr/boxItemBackground"
+            app:cardBackgroundColor="?attr/iconGrayBackground"
             app:cardCornerRadius="5dp"
             android:clickable="true"
             android:focusable="true">

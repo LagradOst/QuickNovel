@@ -48,9 +48,9 @@
 
     <string name="filter_dialog_sort_by">Sırala</string>
     <string name="filter_dialog_filter">Uygula</string>
-    <string name="filter_dialog_general">Genel:</string>
-    <string name="filter_dialog_order_by">Sıralama ölçütü:</string>
-    <string name="filter_dialog_genre">Tür:</string>
+    <string name="filter_dialog_general">Genel</string>
+    <string name="filter_dialog_order_by">Sıralama ölçütü</string>
+    <string name="filter_dialog_genre">Tür</string>
     <string name="browse_list_icon">Simge</string>
     <string name="home_title_text">Keşfet</string>
     <string name="mainpage_filter">Filtre</string>

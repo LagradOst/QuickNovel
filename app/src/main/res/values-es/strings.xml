@@ -204,8 +204,8 @@
     <string name="filter_dialog_filter">Aplicar</string>
     <string name="filter_dialog_sort_by">Ordenar por</string>
     <string name="filter_dialog_order_by">Ordenar por:</string>
-    <string name="filter_dialog_general">General:</string>
-    <string name="filter_dialog_genre">Género:</string>
+    <string name="filter_dialog_general">General</string>
+    <string name="filter_dialog_genre">Género</string>
     <string name="mainpage_sort_by_button_text">Ordenar</string>
     <string name="sort_apply">Aplicar</string>
     <string name="sort_cancel">Cancelar</string>
