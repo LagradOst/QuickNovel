@@ -1,82 +1,81 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
-        android:layout_width="match_parent"
-        android:id="@+id/result_container"
-        android:layout_height="match_parent"
-        android:background="?attr/primaryBlackBackground"
-        android:clickable="true"
-        android:focusable="true">
-
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/result_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/primaryBlackBackground"
+    android:clickable="true"
+    android:focusable="true">
 
     <com.facebook.shimmer.ShimmerFrameLayout
-            android:visibility="visible"
-            android:id="@+id/result_loading"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
-            android:orientation="vertical"
-            android:paddingTop="40dp"
-            app:shimmer_auto_start="true"
-            app:shimmer_base_alpha="0.2"
-            app:shimmer_duration="@integer/loading_time"
-            app:shimmer_highlight_alpha="0.3"
-            tools:visibility="gone">
+        android:id="@+id/result_loading"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:paddingTop="40dp"
+        android:visibility="visible"
+        app:shimmer_auto_start="true"
+        app:shimmer_base_alpha="0.2"
+        app:shimmer_duration="@integer/loading_time"
+        app:shimmer_highlight_alpha="0.3"
+        tools:visibility="gone">
 
         <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/loading_margin"
-                android:layout_marginEnd="@dimen/loading_margin"
-                android:orientation="vertical">
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/loading_margin"
+            android:layout_marginEnd="@dimen/loading_margin"
+            android:orientation="vertical">
 
             <include layout="@layout/loading_downloads" />
 
             <include layout="@layout/loading_line" />
 
             <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="horizontal">
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal">
 
                 <LinearLayout
-                        android:gravity="center"
-                        android:layout_weight="1"
-                        android:layout_height="match_parent"
-                        android:layout_width="0dp"
-                        android:orientation="vertical">
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
                     <include layout="@layout/loading_line_short" />
                 </LinearLayout>
 
                 <LinearLayout
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:layout_height="match_parent"
-                        android:layout_width="0dp"
-                        android:orientation="vertical">
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
                     <include layout="@layout/loading_line_short" />
                 </LinearLayout>
             </LinearLayout>
 
             <View
-                    android:layout_width="0dp"
-                    android:layout_height="20dp">
+                android:layout_width="0dp"
+                android:layout_height="20dp">
 
             </View>
 
             <LinearLayout
-                    android:orientation="horizontal"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content">
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
 
                 <include layout="@layout/loading_line_short2" />
 
                 <View
-                        android:layout_width="20dp"
-                        android:layout_height="0dp">
+                    android:layout_width="20dp"
+                    android:layout_height="0dp">
 
                 </View>
 
@@ -85,8 +84,8 @@
             </LinearLayout>
 
             <View
-                    android:layout_width="0dp"
-                    android:layout_height="20dp">
+                android:layout_width="0dp"
+                android:layout_height="20dp">
 
             </View>
 
@@ -97,8 +96,8 @@
             <include layout="@layout/loading_line_short" />
 
             <View
-                    android:layout_width="0dp"
-                    android:layout_height="20dp">
+                android:layout_width="0dp"
+                android:layout_height="20dp">
 
             </View>
 
@@ -111,49 +110,49 @@
             <include layout="@layout/loading_line_short" />
 
             <View
-                    android:layout_width="0dp"
-                    android:layout_height="20dp">
+                android:layout_width="0dp"
+                android:layout_height="20dp">
 
             </View>
 
             <include layout="@layout/loading_line" />
 
             <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="horizontal">
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal">
 
 
                 <androidx.cardview.widget.CardView
-                        app:cardCornerRadius="@dimen/loading_radius"
-                        android:layout_weight="1"
-                        android:layout_marginStart="0dp"
-                        android:layout_width="0dp"
-                        android:layout_height="40dp"
-                        android:layout_marginEnd="5dp"
-                        android:layout_marginBottom="@dimen/loading_margin"
-                        android:background="@color/grayShimmer"
-                        tools:ignore="ContentDescription" />
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="0dp"
+                    android:layout_marginEnd="5dp"
+                    android:layout_marginBottom="@dimen/loading_margin"
+                    android:layout_weight="1"
+                    android:background="@color/grayShimmer"
+                    app:cardCornerRadius="@dimen/loading_radius"
+                    tools:ignore="ContentDescription" />
 
                 <androidx.cardview.widget.CardView
 
-                        app:cardCornerRadius="@dimen/loading_radius"
-                        android:layout_weight="1"
-                        android:layout_marginStart="5dp"
-                        android:layout_width="0dp"
-                        android:layout_height="40dp"
-                        android:layout_marginBottom="@dimen/loading_margin"
-                        android:background="@color/grayShimmer"
-                        tools:ignore="ContentDescription" />
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="5dp"
+                    android:layout_marginBottom="@dimen/loading_margin"
+                    android:layout_weight="1"
+                    android:background="@color/grayShimmer"
+                    app:cardCornerRadius="@dimen/loading_radius"
+                    tools:ignore="ContentDescription" />
             </LinearLayout>
 
             <androidx.cardview.widget.CardView
-                    app:cardCornerRadius="@dimen/loading_radius"
-                    android:layout_width="match_parent"
-                    android:layout_height="40dp"
-                    android:layout_marginBottom="@dimen/loading_margin"
-                    android:background="@color/grayShimmer"
-                    tools:ignore="ContentDescription" />
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_marginBottom="@dimen/loading_margin"
+                android:background="@color/grayShimmer"
+                app:cardCornerRadius="@dimen/loading_radius"
+                tools:ignore="ContentDescription" />
         </LinearLayout>
 
 
@@ -168,328 +167,244 @@
             android:visibility="gone" />-->
 
     <LinearLayout
-            android:visibility="gone"
-            tools:visibility="gone"
-            android:id="@+id/result_loading_error"
-            android:orientation="vertical"
+        android:id="@+id/result_loading_error"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone"
+        tools:visibility="gone">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/result_reload_connectionerror"
+            style="@style/WhiteButton"
+            android:layout_width="wrap_content"
             android:layout_gravity="center"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_margin="5dp"
+            android:minWidth="200dp"
+            android:text="@string/reload_error"
+            app:icon="@drawable/ic_baseline_autorenew_24"
+            app:iconSize="20dp" />
 
         <com.google.android.material.button.MaterialButton
-                android:id="@+id/result_reload_connectionerror"
-                android:layout_gravity="center"
-                app:icon="@drawable/ic_baseline_autorenew_24"
-                app:iconSize="20dp"
-                android:layout_margin="5dp"
-                android:text="@string/reload_error"
-                style="@style/WhiteButton"
-                android:layout_width="wrap_content"
-                android:minWidth="200dp" />
+            android:id="@+id/result_reload_connection_open_in_browser"
 
-        <com.google.android.material.button.MaterialButton
-                android:id="@+id/result_reload_connection_open_in_browser"
+            style="@style/BlackButton"
+            android:layout_width="wrap_content"
 
-                android:layout_gravity="center"
-                android:layout_margin="5dp"
-
-                app:icon="@drawable/ic_baseline_public_24"
-                app:iconSize="20dp"
-                android:text="@string/open_in_browser"
-                style="@style/BlackButton"
-                android:layout_width="wrap_content"
-                android:minWidth="200dp" />
+            android:layout_gravity="center"
+            android:layout_margin="5dp"
+            android:minWidth="200dp"
+            android:text="@string/open_in_browser"
+            app:icon="@drawable/ic_baseline_public_24"
+            app:iconSize="20dp" />
 
         <TextView
-                tools:text="hello world"
-                android:id="@+id/result_error_text"
-                android:layout_margin="5dp"
-                android:gravity="center"
-                android:layout_gravity="center"
-                android:textColor="?attr/textColor"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+            android:id="@+id/result_error_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="5dp"
+            android:gravity="center"
+            android:textColor="?attr/textColor"
+            tools:text="hello world" />
     </LinearLayout>
 
     <ImageView
-            android:visibility="gone"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:scaleType="centerCrop"
-            android:alpha="0.3"
-            android:background="?attr/primaryBlackBackground"
-            android:id="@+id/result_poster_blur"
-            android:contentDescription="@string/background_image_descript" />
+        android:id="@+id/result_poster_blur"
+        android:layout_width="match_parent"
+        android:layout_height="250dp"
+        android:alpha="0.3"
+        android:background="?attr/primaryBlackBackground"
+        android:contentDescription="@string/background_image_descript"
+        android:scaleType="centerCrop"
+        tools:visibility="visible"
+        android:visibility="gone" />
 
     <FrameLayout
-            android:visibility="gone"
-            tools:visibility="visible"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:id="@+id/result_holder">
+        android:id="@+id/result_holder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        tools:visibility="visible">
 
         <LinearLayout
-                android:id="@+id/result_info_header"
-                android:orientation="horizontal"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_margin="10dp">
+            android:id="@+id/result_info_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:orientation="horizontal">
 
             <androidx.cardview.widget.CardView
-                    android:layout_width="100dp"
-                    android:layout_height="150dp"
-                    app:cardCornerRadius="@dimen/roundedImageRadius"
-                    android:elevation="10dp">
+                android:layout_width="100dp"
+                android:layout_height="150dp"
+                android:elevation="10dp"
+                app:cardCornerRadius="@dimen/roundedImageRadius">
 
                 <ImageView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:scaleType="centerCrop"
-                        android:id="@+id/result_poster"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?android:attr/selectableItemBackgroundBorderless"
-                        android:contentDescription="@string/novel_imagecover_descript" />
+                    android:id="@+id/result_poster"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:clickable="true"
+                    android:contentDescription="@string/novel_imagecover_descript"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackgroundBorderless"
+                    android:scaleType="centerCrop" />
             </androidx.cardview.widget.CardView>
 
             <LinearLayout
-                    android:orientation="vertical"
-                    android:layout_marginLeft="10dp"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_marginLeft="10dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/result_title"
                     android:layout_width="wrap_content"
-                    android:layout_height="match_parent">
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="40dp"
+                    android:ellipsize="end"
+                    android:maxLines="2"
+                    android:text="@string/no_data"
+                    android:textColor="?attr/textColor"
+                    android:textSize="20sp"
+                    tools:text="The Beginning After The End The Beginning After The End" />
 
                 <TextView
-                        android:id="@+id/result_title"
-                        tools:text="The Beginning After The End The Beginning After The End"
-                        android:layout_marginEnd="40dp"
-                        android:maxLines="2"
-                        android:ellipsize="end"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="?attr/textColor"
-                        android:textSize="20sp"
-                        android:text="@string/no_data" />
+                    android:id="@+id/result_author"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/no_data"
+                    android:textColor="?attr/colorAccent"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
                 <TextView
-                        android:layout_marginTop="10dp"
-                        android:id="@+id/result_author"
-                        android:textStyle="bold"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="?attr/colorAccent"
-                        android:textSize="14sp"
-                        android:text="@string/no_data" />
+                    android:id="@+id/result_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/no_data"
+                    android:textColor="?attr/textColor"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
                 <TextView
-                        android:layout_marginTop="10dp"
-                        android:id="@+id/result_status"
-                        android:textStyle="bold"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="?attr/textColor"
-                        android:textSize="14sp"
-                        android:text="@string/no_data" />
-
-                <TextView
-                        android:visibility="visible"
-                        android:layout_marginTop="10dp"
-                        android:id="@+id/result_total_chapters"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="?attr/textColor"
-                        android:textSize="14sp"
-                        android:text="@string/no_data" />
+                    android:id="@+id/result_total_chapters"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/no_data"
+                    android:textColor="?attr/textColor"
+                    android:textSize="14sp"
+                    android:visibility="visible" />
             </LinearLayout>
         </LinearLayout>
 
         <androidx.core.widget.NestedScrollView
-                android:id="@+id/result_mainscroll"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
+            android:id="@+id/result_mainscroll"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
             <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
                 <View
-                        android:focusable="false"
-                        android:clickable="false"
-                        android:layout_width="match_parent"
-                        android:layout_height="170dp"
-                        android:id="@+id/result_empty_view" />
+                    android:id="@+id/result_empty_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="170dp"
+                    android:clickable="false"
+                    android:focusable="false" />
 
                 <FrameLayout
-                        android:id="@+id/result_download_card"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/white_card">
+                    android:id="@+id/result_download_card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/white_card">
 
                     <LinearLayout
-                            android:orientation="vertical"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:paddingTop="10dp"
-                            android:paddingLeft="10dp"
-                            android:paddingRight="10dp"
-                            android:id="@+id/result_scroll_padding"
-                            android:paddingBottom="0dp">
+                        android:id="@+id/result_scroll_padding"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingLeft="10dp"
+                        android:paddingTop="10dp"
+                        android:paddingRight="10dp"
+                        android:paddingBottom="0dp">
 
                         <androidx.cardview.widget.CardView
-                                android:id="@+id/views_and_rating"
-                                app:cardCornerRadius="15dp"
-                                android:layout_width="match_parent"
-                                android:layout_height="60dp"
-                                android:elevation="0dp"
-                                android:backgroundTint="?attr/boxItemBackground">
+                            android:id="@+id/views_and_rating"
+                            android:layout_marginTop="10dp"
+                            android:layout_width="match_parent"
+                            android:layout_height="75dp"
+                            android:backgroundTint="?attr/iconGrayBackground"
+                            android:elevation="0dp"
+                            app:cardCornerRadius="15dp">
 
                             <LinearLayout
-                                    android:layout_width="match_parent"
-                                    android:layout_height="match_parent"
-                                    android:baselineAligned="false"
-                                    android:orientation="horizontal">
-
-                                <LinearLayout
-                                        android:gravity="center"
-                                        android:layout_weight="1"
-                                        android:layout_height="match_parent"
-                                        android:layout_width="0dp"
-                                        android:orientation="vertical">
-
-                                    <TextView
-                                            android:text="@string/no_data"
-                                            android:id="@+id/result_views"
-                                            android:textSize="23sp"
-                                            android:gravity="center"
-                                            android:textColor="?attr/textColor"
-                                            android:layout_width="match_parent"
-                                            android:layout_height="wrap_content" />
-
-                                    <TextView
-                                            android:text="@string/views"
-                                            android:textSize="12sp"
-                                            android:gravity="center"
-                                            android:textColor="?attr/grayTextColor"
-                                            android:layout_width="match_parent"
-                                            android:layout_height="wrap_content" />
-                                </LinearLayout>
-
-                                <LinearLayout
-                                        android:layout_weight="1"
-                                        android:gravity="center"
-                                        android:layout_height="match_parent"
-                                        android:layout_width="0dp"
-                                        android:orientation="vertical">
-
-                                    <TextView
-                                            tools:text="4.4★"
-                                            android:text="@string/no_data"
-                                            android:id="@+id/result_rating"
-                                            android:textSize="23sp"
-                                            android:gravity="center"
-                                            android:textColor="?attr/textColor"
-                                            android:layout_width="match_parent"
-                                            android:layout_height="wrap_content" />
-
-                                    <TextView
-                                            android:text="@string/no_data"
-                                            android:id="@+id/result_rating_voted_count"
-                                            android:textSize="12sp"
-                                            android:gravity="center"
-                                            android:textColor="?attr/grayTextColor"
-                                            android:layout_width="match_parent"
-                                            android:layout_height="wrap_content" />
-                                </LinearLayout>
-                            </LinearLayout>
-                        </androidx.cardview.widget.CardView>
-
-                        <com.google.android.material.tabs.TabLayout
-                                android:id="@+id/result_tabs"
-                                style="@style/Theme.Widget.Tabs"
-                                android:layout_marginTop="10dp"
                                 android:layout_width="match_parent"
-                                android:layout_height="40dp"
-                                android:layout_gravity="bottom"
-                                android:background="@color/transparent"
-                                android:descendantFocusability="blocksDescendants"
-                                android:focusable="false"
-                                android:paddingHorizontal="5dp"
-                                app:layout_scrollFlags="noScroll"
-                                app:tabGravity="start"
-                                app:tabIndicator="@drawable/indicator_background"
-                                app:tabIndicatorColor="?attr/white"
-                                app:tabIndicatorGravity="center"
-                                app:tabIndicatorHeight="30dp"
-                                app:tabMode="scrollable"
-                                app:tabSelectedTextColor="?attr/primaryBlackBackground"
-                                app:tabTextAppearance="@style/TabNoCaps"
-                                app:tabTextColor="?attr/textColor" />
+                                android:layout_height="match_parent"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:id="@+id/result_bookmark"
+                                    style="@style/TextButton"
+                                    android:contentDescription="@string/bookmark"
+                                    android:text="@string/bookmark"
+                                    app:drawableBottomCompat="@drawable/ic_baseline_add_24" />
 
 
-                        <LinearLayout
-                                tools:visibility="visible"
-                                android:id="@+id/result_novel_holder"
-                                android:orientation="vertical"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content">
+                                <TextView
+                                    android:id="@+id/result_openinbrower"
+                                    style="@style/TextButton"
+                                    android:contentDescription="@string/result_share"
+                                    android:text="@string/open_in_browser"
+                                    app:drawableBottomCompat="@drawable/ic_baseline_public_24" />
 
-                            <FrameLayout
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content">
 
-                                <LinearLayout
-                                        android:layout_gravity="end|center_vertical"
-                                        android:orientation="horizontal"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content">
+                                <TextView
+                                    android:id="@+id/result_share"
+                                    style="@style/TextButton"
+                                    android:contentDescription="@string/result_share"
+                                    android:text="@string/result_share"
+                                    app:drawableBottomCompat="@drawable/ic_outline_share_24" />
 
-                                    <TextView
-                                            android:textColor="?attr/grayTextColor"
-                                            android:id="@+id/result_openinbrower_text"
-                                            android:gravity="center"
-                                            android:layout_marginRight="5dp"
-                                            android:layout_marginLeft="5dp"
-                                            android:text="@string/open_in_browser"
-                                            android:layout_width="wrap_content"
-                                            android:layout_height="match_parent" />
+                                <!--
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/result_bookmark"
+                                    style="@style/BlackButton"
+                                    android:layout_width="0dp"
+                                    android:layout_marginStart="0dp"
+                                    android:layout_weight="1"
+                                    android:contentDescription="@string/result_share"
+                                    android:text="@string/bookmarks"
+                                    app:icon="@drawable/ic_baseline_bookmark_24" />
 
-                                    <ImageView
-                                            android:id="@+id/result_openinbrower"
-                                            android:background="?selectableItemBackgroundBorderless"
-                                            android:src="@drawable/ic_baseline_public_24"
-                                            android:layout_width="25dp"
-                                            android:layout_gravity="center_vertical"
-                                            android:layout_height="25dp"
-                                            android:layout_margin="5dp"
-                                            app:tint="?attr/iconColor"
-                                            android:contentDescription="@string/open_in_browser" />
 
-                                    <ImageView
-                                            android:id="@+id/result_share"
-                                            android:layout_width="25dp"
-                                            android:layout_height="25dp"
-                                            android:layout_marginRight="5dp"
-                                            android:layout_marginLeft="5dp"
-                                            android:elevation="10dp"
-                                            app:tint="?attr/iconColor"
-                                            android:background="?android:attr/selectableItemBackgroundBorderless"
-                                            android:src="@drawable/ic_outline_share_24"
-                                            android:layout_gravity="center"
-                                            android:contentDescription="@string/result_share" />
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/result_openinbrower"
+                                    style="@style/BlackButton"
+                                    android:layout_width="0dp"
+                                    android:layout_weight="1"
+                                    android:contentDescription="@string/open_in_browser"
+                                    android:text="Open"
+                                    app:icon="@drawable/ic_baseline_public_24" />
 
-                                    <ImageView
-                                            android:id="@+id/result_bookmark"
-                                            android:layout_width="25dp"
-                                            android:layout_height="25dp"
-                                            android:layout_marginRight="5dp"
-                                            android:layout_marginLeft="5dp"
-                                            android:elevation="10dp"
-                                            app:tint="?attr/iconColor"
-                                            android:background="?android:attr/selectableItemBackgroundBorderless"
-                                            android:src="@drawable/ic_baseline_bookmark_24"
-                                            android:layout_gravity="center"
-                                            android:contentDescription="@string/result_share" />
-                                </LinearLayout>
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/result_share"
+                                    style="@style/BlackButton"
+                                    android:layout_width="0dp"
+                                    android:layout_marginEnd="0dp"
+                                    android:layout_weight="1"
+                                    android:contentDescription="@string/result_share"
+                                    android:text="@string/result_share"
+                                    app:icon="@drawable/ic_outline_share_24" />
+    -->
+
                                 <!--<ImageView
                                         android:id="@+id/result_openinbrower"
                                         android:background="?selectableItemBackgroundBorderless"
@@ -501,46 +416,159 @@
                                         app:tint="?attr/textColor"
                                         android:contentDescription="@string/open_in_browser">
                                 </ImageView>-->
-                                <TextView
-                                        android:layout_width="wrap_content"
+
+                            </LinearLayout>
+
+                        </androidx.cardview.widget.CardView>
+                        <com.google.android.material.tabs.TabLayout
+                            android:id="@+id/result_tabs"
+                            style="@style/Theme.Widget.Tabs"
+                            android:layout_width="match_parent"
+                            android:layout_height="40dp"
+                            android:layout_gravity="bottom"
+                            android:layout_marginTop="10dp"
+                            android:background="@color/transparent"
+                            android:descendantFocusability="blocksDescendants"
+                            android:focusable="false"
+                            android:paddingHorizontal="5dp"
+                            app:layout_scrollFlags="noScroll"
+                            app:tabGravity="start"
+                            app:tabIndicator="@drawable/indicator_background"
+                            app:tabIndicatorColor="?attr/white"
+                            app:tabIndicatorGravity="center"
+                            app:tabIndicatorHeight="30dp"
+                            app:tabMode="scrollable"
+                            app:tabSelectedTextColor="?attr/primaryBlackBackground"
+                            app:tabTextAppearance="@style/TabNoCaps"
+                            app:tabTextColor="?attr/textColor" />
+
+
+
+                        <LinearLayout
+                            android:id="@+id/result_novel_holder"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            tools:visibility="visible">
+
+                            <LinearLayout
+                                android:layout_margin="10dp"
+                                android:orientation="horizontal"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content">
+
+                                <LinearLayout
+                                    android:layout_weight="1"
+                                    android:orientation="vertical"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content">
+
+                                    <TextView
+                                        android:id="@+id/result_views"
+                                        android:layout_width="match_parent"
                                         android:layout_height="wrap_content"
-                                        android:text="@string/synopsis"
-                                        android:layout_gravity="center_vertical"
+                                        android:gravity="center"
+                                        android:text="@string/no_data"
+                                        android:textColor="?attr/textColor"
+                                        android:textSize="17sp" />
+                                    <TextView
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:gravity="center"
+                                        android:text="@string/views"
+                                        android:textColor="?attr/grayTextColor"
+                                        android:textSize="12sp" />
+                                </LinearLayout>
+
+
+                                <LinearLayout
+                                    android:layout_weight="1"
+                                    android:orientation="vertical"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content">
+
+                                    <TextView
+                                        android:id="@+id/result_rating"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:gravity="center"
+                                        android:text="@string/no_data"
+                                        android:textColor="?attr/textColor"
                                         android:textSize="17sp"
-                                        android:layout_marginTop="10dp"
-                                        android:layout_marginBottom="10dp"
-                                        android:textStyle="normal"
-                                        android:textColor="?attr/textColor" />
-                            </FrameLayout>
+                                        tools:text="4.4★" />
 
+                                    <TextView
+                                        android:id="@+id/result_rating_voted_count"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:gravity="center"
+                                        android:text="@string/no_data"
+                                        android:textColor="?attr/grayTextColor"
+                                        android:textSize="12sp" />
+                                </LinearLayout>
+
+                                <LinearLayout
+                                    android:id="@+id/result_chapters_info_holder"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content">
+
+                                    <TextView
+                                        android:id="@+id/result_chapters"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:gravity="center"
+                                        android:text="@string/no_data"
+                                        android:textColor="?attr/textColor"
+                                        android:textSize="17sp"
+                                        tools:text="1230" />
+
+                                    <TextView
+                                        android:id="@+id/result_chapters_info"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:gravity="center"
+                                        android:text="@string/chapters"
+                                        android:textColor="?attr/grayTextColor"
+                                        android:textSize="12sp" />
+                                </LinearLayout>
+                            </LinearLayout>
+
+
+                            <View
+                                android:alpha="0.5"
+                                android:layout_margin="5dp"
+                                android:layout_width="match_parent"
+                                android:layout_height="1dp"
+                                android:background="?attr/textColor"/>
 
                             <TextView
-                                    tools:text="As Shin Youngwoo has had an unfortunate life and is now stuck carrying bricks on construction sites. He even had to do labor in the VR game, Satisfy!
+                                android:visibility="gone"
+                                android:textSize="17sp"
+                                android:gravity="center_vertical"
+                                android:text="@string/synopsis"
+                                android:layout_width="wrap_content"
+                                android:layout_height="match_parent">
+
+                            </TextView>
+                            <TextView
+                                android:id="@+id/result_synopsis_text"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textColor="?attr/textColor"
+                                android:textSize="14sp"
+                                tools:text="As Shin Youngwoo has had an unfortunate life and is now stuck carrying bricks on construction sites. He even had to do labor in the VR game, Satisfy!
 However, luck would soon enter his hopeless life. His character, ‘Grid’, would discover the Northern End Cave for a quest, and in that place, he would find ‘Pagma’s Rare Book’ and become a legendary class player…
-Translator: Rainbow Turtle"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:id="@+id/result_synopsis_text"
-                                    android:textSize="14sp"
-                                    android:textColor="?attr/grayTextColor" />
+Translator: Rainbow Turtle" />
 
-                            <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:id="@+id/result_tag_holder"
-                                    android:text="@string/tags"
-                                    android:textSize="17sp"
-                                    android:layout_marginTop="10dp"
-                                    android:layout_marginBottom="10dp"
-                                    android:textStyle="normal"
-                                    android:textColor="?attr/textColor" />
 
                             <com.google.android.material.chip.ChipGroup
-                                    android:id="@+id/result_tag"
-                                    style="@style/ChipParent"
-                                    app:chipSpacingVertical="-7dp"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content" />
+                                android:id="@+id/result_tag"
+                                style="@style/ChipParent"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                app:chipSpacingVertical="-7dp" />
 
                             <!--
                             <HorizontalScrollView android:id="@+id/result_tag_holder" android:layout_width="wrap_content" android:layout_height="wrap_content">
@@ -551,157 +579,157 @@ Translator: Rainbow Turtle"
                                 />
                             </HorizontalScrollView>-->
                             <LinearLayout
-                                    android:layout_margin="0dp"
-                                    android:layout_gravity="bottom"
-                                    android:orientation="vertical"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content">
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="bottom"
+                                android:layout_margin="0dp"
+                                android:orientation="vertical">
 
 
                                 <TextView
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="@string/long_download_time"
-                                        android:textSize="17sp"
-                                        android:id="@+id/download_warning"
-                                        android:layout_marginTop="10dp"
-                                        android:layout_marginBottom="10dp"
-                                        android:textStyle="normal"
-                                        android:textColor="@color/colorPrimaryRed" />
+                                    android:id="@+id/download_warning"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="10dp"
+                                    android:layout_marginBottom="10dp"
+                                    android:text="@string/long_download_time"
+                                    android:textColor="@color/colorPrimaryRed"
+                                    android:textSize="17sp"
+                                    android:textStyle="normal" />
 
                                 <LinearLayout
-                                        android:orientation="horizontal"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal">
+
+                                    <TextView
+                                        android:id="@+id/result_download_progress_text"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:textColor="?attr/textColor"
+                                        android:textSize="14sp"
+                                        tools:text="@string/no_data" />
+
+                                    <TextView
+                                        android:id="@+id/result_download_progress_text_eta"
                                         android:layout_width="match_parent"
-                                        android:layout_height="wrap_content">
-
-                                    <TextView
-                                            android:layout_width="wrap_content"
-                                            android:layout_height="wrap_content"
-                                            tools:text="@string/no_data"
-                                            android:id="@+id/result_download_progress_text"
-                                            android:textSize="14sp"
-                                            android:textColor="?attr/textColor" />
-
-                                    <TextView
-                                            android:layout_width="match_parent"
-                                            android:layout_height="wrap_content"
-                                            android:layout_gravity="end"
-                                            android:gravity="end"
-                                            tools:text="@string/no_data"
-                                            android:id="@+id/result_download_progress_text_eta"
-                                            android:textSize="14sp"
-                                            android:textColor="?attr/textColor" />
+                                        android:layout_height="wrap_content"
+                                        android:layout_gravity="end"
+                                        android:gravity="end"
+                                        android:textColor="?attr/textColor"
+                                        android:textSize="14sp"
+                                        tools:text="@string/no_data" />
                                 </LinearLayout>
 
                                 <FrameLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content">
+
+                                    <androidx.core.widget.ContentLoadingProgressBar
+                                        android:id="@+id/result_download_progress_bar"
+                                        style="@android:style/Widget.Material.ProgressBar.Horizontal"
                                         android:layout_width="match_parent"
-                                        android:layout_height="wrap_content">
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="10dp"
+                                        android:layout_marginBottom="10dp"
+                                        android:indeterminate="false"
+                                        android:progressBackgroundTint="?attr/textColor"
+                                        android:progressTint="?attr/textColor"
+                                        tools:progress="50" />
 
                                     <androidx.core.widget.ContentLoadingProgressBar
-                                            android:progressTint="?attr/textColor"
-                                            android:id="@+id/result_download_progress_bar"
-                                            android:layout_width="match_parent"
-                                            android:indeterminate="false"
-                                            tools:progress="50"
-                                            android:layout_marginTop="10dp"
-                                            android:layout_marginBottom="10dp"
-                                            android:progressBackgroundTint="?attr/textColor"
-                                            style="@android:style/Widget.Material.ProgressBar.Horizontal"
-                                            android:layout_height="wrap_content" />
-
-                                    <androidx.core.widget.ContentLoadingProgressBar
-                                            android:progressTint="?attr/colorPrimary"
-                                            android:id="@+id/result_download_progress_bar_not_downloaded"
-                                            android:layout_width="match_parent"
-                                            android:indeterminate="false"
-                                            tools:progress="20"
-                                            android:layout_marginTop="10dp"
-                                            android:layout_marginBottom="10dp"
-                                            android:progressBackgroundTint="@color/transparent"
-                                            style="@android:style/Widget.Material.ProgressBar.Horizontal"
-                                            android:layout_height="wrap_content" />
+                                        android:id="@+id/result_download_progress_bar_not_downloaded"
+                                        style="@android:style/Widget.Material.ProgressBar.Horizontal"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="10dp"
+                                        android:layout_marginBottom="10dp"
+                                        android:indeterminate="false"
+                                        android:progressBackgroundTint="@color/transparent"
+                                        android:progressTint="?attr/colorPrimary"
+                                        tools:progress="20" />
                                 </FrameLayout>
 
                                 <LinearLayout
-                                        android:layout_width="match_parent"
-                                        android:layout_height="match_parent"
-                                        android:orientation="horizontal">
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:orientation="horizontal">
 
                                     <com.google.android.material.button.MaterialButton
-                                            android:gravity="center"
-                                            android:layout_weight="1"
-                                            android:layout_marginEnd="5dp"
-                                            android:layout_marginStart="0dp"
-                                            app:icon="@drawable/ic_baseline_menu_book_24"
-                                            app:iconSize="20dp"
-                                            android:text="@string/read_epub"
-                                            android:id="@+id/result_download_generate_epub"
-                                            style="@style/WhiteButton"
-                                            android:layout_width="50dp" />
+                                        android:id="@+id/result_download_generate_epub"
+                                        style="@style/WhiteButton"
+                                        android:layout_width="50dp"
+                                        android:layout_marginStart="0dp"
+                                        android:layout_marginEnd="5dp"
+                                        android:layout_weight="1"
+                                        android:gravity="center"
+                                        android:text="@string/read_epub"
+                                        app:icon="@drawable/ic_baseline_menu_book_24"
+                                        app:iconSize="20dp" />
                                     <!--
                                           app:iconTint="@color/white"
                                           android:textColor="?attr/textColor"-->
                                     <com.google.android.material.button.MaterialButton
-                                            android:layout_columnWeight="1"
-                                            android:layout_marginStart="5dp"
-                                            android:layout_marginEnd="0dp"
+                                        android:id="@+id/result_download_btt"
+                                        style="@style/BlackButton"
+                                        android:layout_width="50dp"
 
-                                            android:layout_weight="1"
-                                            android:gravity="center"
-                                            android:id="@+id/result_download_btt"
-                                            android:text="@string/download_text"
-                                            style="@style/BlackButton"
-                                            app:iconSize="30dp"
-                                            android:layout_width="50dp" />
+                                        android:layout_columnWeight="1"
+                                        android:layout_marginStart="5dp"
+                                        android:layout_marginEnd="0dp"
+                                        android:layout_weight="1"
+                                        android:gravity="center"
+                                        android:text="@string/download_text"
+                                        app:iconSize="30dp" />
                                 </LinearLayout>
 
                                 <com.google.android.material.button.MaterialButton
-                                        android:layout_marginTop="10dp"
-                                        android:layout_marginEnd="0dp"
-                                        android:layout_marginStart="0dp"
-                                        android:gravity="center"
+                                    android:id="@+id/result_quickstream"
+                                    style="@style/WhiteButton"
+                                    android:layout_width="match_parent"
+                                    android:layout_marginStart="0dp"
 
-                                        app:iconSize="20dp"
-                                        android:text="@string/quickstream_novel_text"
-                                        android:id="@+id/result_quickstream"
-                                        style="@style/WhiteButton"
-                                        android:layout_width="match_parent" />
+                                    android:layout_marginTop="10dp"
+                                    android:layout_marginEnd="0dp"
+                                    android:gravity="center"
+                                    android:text="@string/quickstream_novel_text"
+                                    app:iconSize="20dp" />
                             </LinearLayout>
                         </LinearLayout>
 
                         <FrameLayout
-                                android:background="@drawable/white_card"
-                                android:visibility="gone"
-                                tools:visibility="gone"
-                                android:id="@+id/result_reviewsholder"
-                                android:orientation="vertical"
-                                android:minHeight="500dp"
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent">
+                            android:id="@+id/result_reviewsholder"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/white_card"
+                            android:minHeight="500dp"
+                            android:orientation="vertical"
+                            android:visibility="gone"
+                            tools:visibility="gone">
 
                             <FrameLayout
-                                    android:id="@+id/resultview_reviews_loading"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="match_parent"
-                                    android:layout_marginTop="10dp"
-                                    android:visibility="gone"
-                                    tools:visibility="visible">
+                                android:id="@+id/resultview_reviews_loading"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:layout_marginTop="10dp"
+                                android:visibility="gone"
+                                tools:visibility="visible">
 
                                 <com.facebook.shimmer.ShimmerFrameLayout
-                                        android:id="@+id/resultview_reviews_loading_shimmer"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="match_parent"
-                                        android:layout_gravity="center"
-                                        android:orientation="vertical"
-                                        app:shimmer_auto_start="true"
-                                        app:shimmer_base_alpha="0.2"
-                                        app:shimmer_duration="@integer/loading_time"
-                                        app:shimmer_highlight_alpha="0.3">
+                                    android:id="@+id/resultview_reviews_loading_shimmer"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:layout_gravity="center"
+                                    android:orientation="vertical"
+                                    app:shimmer_auto_start="true"
+                                    app:shimmer_base_alpha="0.2"
+                                    app:shimmer_duration="@integer/loading_time"
+                                    app:shimmer_highlight_alpha="0.3">
 
                                     <LinearLayout
-                                            android:layout_width="match_parent"
-                                            android:layout_height="wrap_content"
-                                            android:orientation="vertical">
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:orientation="vertical">
 
                                         <include layout="@layout/loading_review" />
 
@@ -714,54 +742,54 @@ Translator: Rainbow Turtle"
                             </FrameLayout>
 
                             <androidx.recyclerview.widget.RecyclerView
-                                    android:id="@+id/result_reviews"
-                                    tools:listitem="@layout/result_review"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="match_parent">
+                                android:id="@+id/result_reviews"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                tools:listitem="@layout/result_review">
 
                             </androidx.recyclerview.widget.RecyclerView>
                         </FrameLayout>
 
                         <FrameLayout
-                                android:background="@drawable/white_card"
-                                android:visibility="gone"
-                                tools:visibility="gone"
-                                android:id="@+id/result_relatedholder"
-                                android:orientation="vertical"
-                                android:minHeight="500dp"
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent">
+                            android:id="@+id/result_relatedholder"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/white_card"
+                            android:minHeight="500dp"
+                            android:orientation="vertical"
+                            android:visibility="gone"
+                            tools:visibility="gone">
 
                             <com.lagradost.quicknovel.widget.AutofitRecyclerView
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:clipToPadding="false"
-                                    android:paddingTop="5dp"
-                                    app:spanCount="3"
-                                    android:id="@+id/related_list"
-                                    android:orientation="vertical" />
+                                android:id="@+id/related_list"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:clipToPadding="false"
+                                android:orientation="vertical"
+                                android:paddingTop="5dp"
+                                app:spanCount="3" />
                         </FrameLayout>
 
                         <FrameLayout
-                                android:background="@drawable/white_card"
-                                android:visibility="gone"
-                                tools:visibility="gone"
-                                android:id="@+id/result_chapterholder"
-                                android:orientation="vertical"
-                                android:minHeight="500dp"
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent">
+                            android:id="@+id/result_chapterholder"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/white_card"
+                            android:minHeight="500dp"
+                            android:orientation="vertical"
+                            android:visibility="gone"
+                            tools:visibility="gone">
 
                             <androidx.recyclerview.widget.RecyclerView
-                                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                                android:id="@+id/chapter_list"
 
-                                    android:layout_width="match_parent"
-                                    android:layout_height="500dp"
-                                    android:clipToPadding="false"
-                                    android:paddingTop="5dp"
-                                    app:spanCount="1"
-                                    android:id="@+id/chapter_list"
-                                    android:orientation="vertical" />
+                                android:layout_width="match_parent"
+                                android:layout_height="500dp"
+                                android:clipToPadding="false"
+                                android:orientation="vertical"
+                                android:paddingTop="5dp"
+                                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                                app:spanCount="1" />
                         </FrameLayout>
 
                     </LinearLayout>
@@ -771,52 +799,52 @@ Translator: Rainbow Turtle"
     </FrameLayout>
 
     <ImageView
-            android:id="@+id/result_back"
-            android:clickable="true"
-            android:focusable="true"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:layout_margin="10dp"
-            android:layout_gravity="end"
-            android:src="@drawable/ic_sharp_clear_24"
-            android:contentDescription="@string/back_to_search"
-            app:tint="?attr/white" />
+        android:id="@+id/result_back"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_gravity="end"
+        android:layout_margin="10dp"
+        android:clickable="true"
+        android:contentDescription="@string/back_to_search"
+        android:focusable="true"
+        android:src="@drawable/ic_sharp_clear_24"
+        app:tint="?attr/white" />
 
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-            android:id="@+id/reviews_fab"
-            android:visibility="gone"
-            android:alpha="0"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end|bottom"
-            app:elevation="0dp"
-            android:textStyle="bold"
+        android:id="@+id/reviews_fab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|bottom"
+        android:layout_margin="16dp"
+        android:alpha="0"
+        android:contentDescription="@string/reviews_to_top"
+        android:textColor="?attr/textColor"
 
-            app:backgroundTint="?attr/primaryBlackBackground"
-            app:tint="?attr/textColor"
-            android:textColor="?attr/textColor"
-            app:iconTint="?attr/textColor"
-            app:icon="@drawable/ic_baseline_arrow_upward_24"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:backgroundTint="?attr/primaryBlackBackground"
+        app:elevation="0dp"
+        app:icon="@drawable/ic_baseline_arrow_upward_24"
 
-            android:contentDescription="@string/reviews_to_top"
-            android:layout_margin="16dp" />
+        app:iconTint="?attr/textColor"
+        app:tint="?attr/textColor" />
 
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-            android:id="@+id/chapters_fab"
-            android:visibility="gone"
-            tools:visibility="visible"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end|bottom"
-            app:elevation="0dp"
-            android:textStyle="bold"
+        android:id="@+id/chapters_fab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|bottom"
+        android:layout_margin="16dp"
+        android:contentDescription="@string/mainpage_filter"
+        android:textColor="?attr/textColor"
+        android:textStyle="bold"
 
-            app:backgroundTint="?attr/primaryBlackBackground"
-            app:tint="?attr/textColor"
-            android:textColor="?attr/textColor"
-            app:iconTint="?attr/textColor"
-            app:icon="@drawable/ic_baseline_filter_list_24"
+        android:visibility="gone"
+        app:backgroundTint="?attr/primaryBlackBackground"
+        app:elevation="0dp"
+        app:icon="@drawable/ic_baseline_filter_list_24"
+        app:iconTint="?attr/textColor"
 
-            android:contentDescription="@string/mainpage_filter"
-            android:layout_margin="16dp" />
+        app:tint="?attr/textColor"
+        tools:visibility="visible" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

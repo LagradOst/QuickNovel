@@ -271,6 +271,7 @@
     <string name="show_log_cat">Show Logcat 🐈</string>
     <string name="unread">Unread</string>
     <string name="bookmarks">Bookmarks</string>
+    <string name="bookmark">Bookmark</string>
     <string name="read">Read</string>
     <string name="import_epub">Import a book</string>
     <string name="show_authors_notes">Show authors notes</string>
@@ -291,5 +292,5 @@
     <string name="no_update_found">No Update Found</string>
 
     <string name="search_downloads">Search Downloads…</string>
-
+    <string name="chapters">Chapters</string>
 </resources>
