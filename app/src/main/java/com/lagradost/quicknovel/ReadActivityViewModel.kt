@@ -1821,6 +1821,11 @@ class ReadActivityViewModel : ViewModel() {
         EPUB_TEXT_COLOR, "#cccccc".toColorInt(), Int::class, textColorLive
     )
 
+    val textVerticalPaddingLive: MutableLiveData<Float> = MutableLiveData(null)
+    var textVerticalPadding by PreferenceDelegateLiveView(
+        EPUB_TEXT_VERTICAL_PADDING, 7.5f, Float::class, textVerticalPaddingLive
+    )
+
     val backgroundColorLive: MutableLiveData<Int> = MutableLiveData(null)
     var backgroundColor by PreferenceDelegateLiveView(
         EPUB_BG_COLOR, "#292832".toColorInt(), Int::class, backgroundColorLive

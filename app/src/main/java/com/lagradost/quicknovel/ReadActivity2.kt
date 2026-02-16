@@ -711,7 +711,8 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 textFont = viewModel.textFont,
                 backgroundColor = viewModel.backgroundColor,
                 bionicReading = viewModel.bionicReading,
-                isTextSelectable = viewModel.isTextSelectable
+                isTextSelectable = viewModel.isTextSelectable,
+                verticalPadding = viewModel.textVerticalPadding,
             ).also { config ->
                 updateOtherTextConfig(config)
             }
@@ -749,6 +750,13 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 updateTextAdapterConfig()
             }
         }
+
+        observe(viewModel.textVerticalPaddingLive) { padding ->
+            if (textAdapter.changeTextVerticalPadding(padding)) {
+                updateTextAdapterConfig()
+            }
+        }
+
 
         observe(viewModel.bionicReadingLive) { color ->
             if (textAdapter.changeBionicReading(color)) {
@@ -858,7 +866,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 // cant be too safe here
                 val validChapter =
                     currentChapter != null && currentChapter >= 0 && currentChapter < titles.size
-                if (validChapter && currentChapter != null) {
+                if (validChapter) {
                     builderSingle.setTitle(titles[currentChapter].asString(this)) //  "Select Chapter"
                 } else {
                     builderSingle.setTitle(R.string.select_chapter)
@@ -878,7 +886,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 dialog.show()
 
                 dialog.listView.choiceMode = AbsListView.CHOICE_MODE_SINGLE
-                if (validChapter && currentChapter != null) {
+                if (validChapter) {
                     dialog.listView.setSelection(currentChapter)
                     dialog.listView.setItemChecked(currentChapter, true)
                 }
@@ -1185,6 +1193,18 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 }
             }
 
+            binding.readSettingsTextVerticalPaddingText.setOnClickListener {
+                it.popupMenu(
+                    items = listOf(1 to R.string.reset_value),
+                    selectedItemId = null
+                ) {
+                    if (itemId == 1) {
+                        viewModel.textVerticalPadding = 7.5f
+                        binding.readSettingsTextVerticalPadding.setValueRounded(viewModel.textVerticalPadding)
+                    }
+                }
+            }
+
             binding.readSettingsTtsPitch.apply {
                 setValueRounded(viewModel.ttsPitch)
                 addOnChangeListener { slider, value, fromUser ->
@@ -1238,6 +1258,14 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                     viewModel.paddingVertical = value.roundToInt()
                 }
             }
+
+            binding.readSettingsTextVerticalPadding.apply {
+                setValueRounded(viewModel.textVerticalPadding)
+                addOnChangeListener { slider, value, fromUser ->
+                    viewModel.textVerticalPadding = value
+                }
+            }
+
 
             binding.readShowFonts.apply {
                 //text = UIHelper.parseFontFileName(getKey(EPUB_FONT))

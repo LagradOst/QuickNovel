@@ -293,4 +293,7 @@
 
     <string name="search_downloads">Search Downloads…</string>
     <string name="chapters">Chapters</string>
+    <string name="paragraph_spacing">Paragraph spacing</string>
+    <string name="more_spacing">More Spacing</string>
+    <string name="less_spacing">Less Spacing</string>
 </resources>
