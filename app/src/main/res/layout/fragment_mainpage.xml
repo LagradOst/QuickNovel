@@ -1,113 +1,195 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
-        android:layout_width="match_parent"
-        android:id="@+id/mainpageRoot"
-        android:layout_height="match_parent"
-        android:background="?attr/primaryBlackBackground">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mainpageRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/primaryBlackBackground">
 
-    <ProgressBar
-            android:id="@+id/mainpage_loading"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_gravity="center"
-            android:indeterminate="true"
-            android:visibility="visible" />
 
     <LinearLayout
-            android:id="@+id/mainpage_loading_error"
-            android:orientation="vertical"
+        android:id="@+id/mainpage_loading_error"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/mainpage_reload_connectionerror"
+            style="@style/WhiteButton"
+
+            android:layout_width="wrap_content"
             android:layout_gravity="center"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_margin="5dp"
+
+            android:minWidth="200dp"
+            android:text="@string/reload_error"
+            android:visibility="gone"
+
+            app:icon="@drawable/ic_baseline_autorenew_24"
+            tools:visibility="visible" />
 
         <com.google.android.material.button.MaterialButton
-                android:visibility="gone"
-                android:id="@+id/mainpage_reload_connectionerror"
+            android:id="@+id/mainpage_reload_connection_open_in_browser"
+            style="@style/BlackButton"
+            android:layout_width="wrap_content"
+            android:layout_gravity="center"
 
-                android:layout_gravity="center"
-                tools:visibility="visible"
-                android:layout_margin="5dp"
+            android:layout_margin="5dp"
 
-                app:icon="@drawable/ic_baseline_autorenew_24"
-                android:text="@string/reload_error"
-                style="@style/WhiteButton"
-
-                android:layout_width="wrap_content"
-                android:minWidth="200dp" />
-
-        <com.google.android.material.button.MaterialButton
-                android:visibility="gone"
-                tools:visibility="visible"
-                android:id="@+id/mainpage_reload_connection_open_in_browser"
-                android:layout_margin="5dp"
-
-                android:layout_gravity="center"
-
-                app:icon="@drawable/ic_baseline_public_24"
-                android:text="@string/open_in_browser"
-                style="@style/BlackButton"
-                android:layout_width="wrap_content"
-                android:minWidth="200dp" />
+            android:minWidth="200dp"
+            android:text="@string/open_in_browser"
+            android:visibility="gone"
+            app:icon="@drawable/ic_baseline_public_24"
+            tools:visibility="visible" />
 
         <TextView
-                android:id="@+id/mainpage_error_text"
-                tools:visibility="visible"
-                tools:text="hello world"
-                android:layout_margin="5dp"
-                android:gravity="center"
-                android:layout_gravity="center"
-                android:textColor="?attr/textColor"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+            android:id="@+id/mainpage_error_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="5dp"
+            android:gravity="center"
+            android:textColor="?attr/textColor"
+            tools:text="hello world"
+            tools:visibility="visible" />
     </LinearLayout>
 
     <com.google.android.material.appbar.AppBarLayout
-            android:background="@android:color/transparent"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/transparent">
 
-        <com.google.android.material.appbar.MaterialToolbar
-                android:id="@+id/mainpage_toolbar"
-                app:menu="@menu/mainpage_actionbar"
-                android:paddingTop="@dimen/navbarHeight"
-                app:navigationIconTint="?attr/iconColor"
-                app:titleTextColor="?attr/textColor"
-                android:background="?attr/primaryGrayBackground"
-                app:layout_scrollFlags="scroll|enterAlways"
+        <!--<com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/mainpage_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/primaryGrayBackground"
+            android:paddingTop="@dimen/navbarHeight"
+            app:layout_scrollFlags="scroll|enterAlways"
+            app:menu="@menu/mainpage_actionbar"
+            app:navigationIconTint="?attr/iconColor"
+            app:titleTextColor="?attr/textColor">
+        </com.google.android.material.appbar.MaterialToolbar>-->
+
+        <LinearLayout
+            android:id="@+id/mainpage_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="?attr/primaryGrayBackground"
+            android:gravity="center"
+            android:padding="10dp"
+            app:layout_scrollFlags="scroll|enterAlways">
+
+            <ImageView
+                android:id="@+id/search_back"
+                android:layout_width="35dp"
+                android:layout_height="35dp"
+                android:layout_gravity="end|center_vertical"
+                android:background="?selectableItemBackgroundBorderless"
+                android:contentDescription="@string/change_providers_descript"
+                android:padding="5dp"
+                android:src="@drawable/ic_baseline_arrow_back_24"
+                app:tint="?attr/iconColor" />
+
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+                android:layout_height="40dp"
+                android:layout_marginStart="5dp"
+                android:background="@drawable/search_background"
+                android:visibility="visible">
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="30dp"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginEnd="30dp">
+
+                    <androidx.appcompat.widget.SearchView
+                        android:id="@+id/main_search"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="center_vertical"
+                        android:animateLayoutChanges="true"
+                        android:iconifiedByDefault="false"
+                        android:paddingStart="-10dp"
+                        app:iconifiedByDefault="false"
+                        app:queryBackground="@color/transparent"
+                        app:queryHint="@string/search_hint"
+                        app:searchIcon="@drawable/search_icon"
+                        tools:ignore="RtlSymmetry">
+
+                        <androidx.core.widget.ContentLoadingProgressBar
+                            android:id="@+id/search_loading_bar"
+                            style="@style/Widget.AppCompat.ProgressBar"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_gravity="center"
+                            android:layout_marginStart="-35dp"
+                            android:foregroundTint="@color/white"
+                            android:progressTint="@color/white">
+
+                        </androidx.core.widget.ContentLoadingProgressBar>
+                        <!--app:queryHint="@string/search_hint"
+                         android:background="?attr/primaryGrayBackground" ?attr/itemBackground
+                                    app:searchHintIcon="@drawable/search_white"
+                                    -->
+                    </androidx.appcompat.widget.SearchView>
+                </FrameLayout>
+
+                <ImageView
+                    android:id="@+id/search_browse"
+                    android:layout_width="35dp"
+                    android:layout_height="35dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:background="?selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/open_in_browser"
+                    android:padding="5dp"
+                    android:layout_marginEnd="5dp"
+                    android:src="@drawable/ic_baseline_public_24"
+                    app:tint="?attr/iconColor" />
+            </FrameLayout>
+        </LinearLayout>
+
+
+        <LinearLayout
+            android:id="@+id/mainpage_sortby_holder"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="?attr/primaryGrayBackground"
+            android:gravity="center"
+            android:orientation="horizontal"
+            app:layout_scrollFlags="scroll|enterAlways">
+
+            <TextView
+                android:id="@+id/filter_general_spinner"
+                style="@style/DropdownButton"
+                tools:text="General" />
+
+            <TextView
+                android:id="@+id/filter_order_spinner"
+                style="@style/DropdownButton"
+                tools:text="Order" />
+
+            <TextView
+                android:id="@+id/filter_tag_spinner"
+                style="@style/DropdownButton"
+                tools:text="Tag" />
+        </LinearLayout>
+
     </com.google.android.material.appbar.AppBarLayout>
 
     <com.lagradost.quicknovel.widget.AutofitRecyclerView
-            app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:id="@+id/mainpage_list"
 
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:clipToPadding="false"
-            android:paddingStart="8dp"
-            android:paddingTop="5dp"
-            android:paddingEnd="8dp"
-            app:spanCount="3"
-            android:id="@+id/mainpage_list"
-            android:orientation="vertical" />
-
-    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-            android:id="@+id/mainpage_fab"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end|bottom"
-            app:elevation="0dp"
-            android:textStyle="bold"
-
-            app:backgroundTint="?attr/primaryGrayBackground"
-            app:tint="?attr/textColor"
-            android:textColor="?attr/textColor"
-            app:iconTint="?attr/textColor"
-            app:icon="@drawable/ic_sort_24dp"
-            android:text="@string/mainpage_sort_by_button_text"
-
-            android:contentDescription="@string/mainpage_sort_by_button_text"
-            android:layout_margin="16dp" />
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:clipToPadding="false"
+        android:orientation="vertical"
+        android:paddingStart="8dp"
+        android:paddingTop="5dp"
+        android:paddingEnd="8dp"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        app:spanCount="3" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -11,7 +11,7 @@
     <string name="restore_key" translatable="false">restore_key</string>
     <string name="restore_settings">Restore data from backup</string>
 
-    <string name="search_hint">Search Novels</string>
+    <string name="search_hint">Search Novels…</string>
     <string name="synopsis">Synopsis</string>
     <string name="no_data">No Data</string>
     <string name="no_author">Author not found</string>
@@ -71,9 +71,9 @@
 
     <string name="filter_dialog_sort_by">Sort by</string>
     <string name="filter_dialog_filter">Apply</string>
-    <string name="filter_dialog_general">General:</string>
-    <string name="filter_dialog_order_by">Order by:</string>
-    <string name="filter_dialog_genre">Genre:</string>
+    <string name="filter_dialog_general">General</string>
+    <string name="filter_dialog_order_by">Order by</string>
+    <string name="filter_dialog_genre">Genre</string>
     <string name="browse_list_icon">Icon</string>
     <string name="home_title_text">Explore</string>
     <string name="mainpage_filter">Filter</string>
@@ -271,6 +271,7 @@
     <string name="show_log_cat">Show Logcat 🐈</string>
     <string name="unread">Unread</string>
     <string name="bookmarks">Bookmarks</string>
+    <string name="bookmark">Bookmark</string>
     <string name="read">Read</string>
     <string name="import_epub">Import a book</string>
     <string name="show_authors_notes">Show authors notes</string>
@@ -290,5 +291,9 @@
     <string name="chapter">Chapter</string>
     <string name="no_update_found">No Update Found</string>
 
-
+    <string name="search_downloads">Search Downloads…</string>
+    <string name="chapters">Chapters</string>
+    <string name="paragraph_spacing">Paragraph spacing</string>
+    <string name="more_spacing">More Spacing</string>
+    <string name="less_spacing">Less Spacing</string>
 </resources>

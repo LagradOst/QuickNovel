@@ -1,39 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
-        android:orientation="vertical"
-        android:layout_width="match_parent"
-        android:id="@+id/homeRoot"
-        android:layout_height="match_parent">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/homeRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
     <com.google.android.material.appbar.AppBarLayout
-            android:background="@android:color/transparent"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent">
 
         <com.google.android.material.appbar.MaterialToolbar
-                android:id="@+id/home_toolbar"
-                app:menu="@menu/home_actionbar"
-                android:paddingTop="@dimen/navbarHeight"
-                app:title="@string/explore"
-                app:navigationIconTint="?attr/iconColor"
-                app:titleTextColor="?attr/textColor"
-                android:background="?attr/primaryGrayBackground"
-                app:layout_scrollFlags="scroll|enterAlways"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+            android:id="@+id/home_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/primaryGrayBackground"
+            android:paddingTop="@dimen/navbarHeight"
+            app:layout_scrollFlags="scroll|enterAlways"
+            app:menu="@menu/home_actionbar"
+            app:navigationIconTint="?attr/iconColor"
+            app:title="@string/explore"
+            app:titleTextColor="?attr/textColor" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <com.lagradost.quicknovel.widget.AutofitRecyclerView
-            app:layout_behavior="@string/appbar_scrolling_view_behavior"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:paddingLeft="5dp"
-            android:paddingRight="5dp"
-            android:id="@+id/home_browselist"
-            android:orientation="vertical"
-            tools:listitem="@layout/browse_list_compact" />
+        android:id="@+id/home_browselist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:clipToPadding="false"
+        android:orientation="vertical"
+        android:paddingLeft="5dp"
+        android:paddingRight="5dp"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        tools:listitem="@layout/browse_list_compact" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -595,14 +595,15 @@ object UIHelper {
     fun Fragment.hideKeyboard() {
         view.let {
             if (it != null) {
-                activity?.hideKeyboard(it)
+                hideKeyboard(it)
             }
         }
     }
 
-    fun Context.hideKeyboard(view: View) {
+    fun hideKeyboard(view: View) {
+        val context = view.context ?: return
         val inputMethodManager =
-            getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
+            context.getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
         inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
     }
 }
