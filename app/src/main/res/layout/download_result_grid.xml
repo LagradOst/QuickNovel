@@ -40,6 +40,18 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" />
 
+        <TextView
+            android:id="@+id/progressReading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|start"
+            android:layout_margin="5dp"
+            android:padding="4dp"
+            android:background="@drawable/download_chapterprogress_bg"
+            android:textColor="#FFFFFF"
+            tools:text="10/100" />
+
+
         <androidx.core.widget.ContentLoadingProgressBar
                 android:visibility="gone"
 

@@ -14,15 +14,19 @@ import com.lagradost.quicknovel.BookDownloader2.preloadPartialImportedPdf
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
 import com.lagradost.quicknovel.DownloadState
+import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.DownloadImportBinding
 import com.lagradost.quicknovel.databinding.DownloadImportCardBinding
 import com.lagradost.quicknovel.databinding.DownloadResultCompactBinding
 import com.lagradost.quicknovel.databinding.DownloadResultGridBinding
 import com.lagradost.quicknovel.databinding.HistoryResultCompactBinding
+import com.lagradost.quicknovel.ui.BaseAdapter.Companion.clearImage
 import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
+import com.lagradost.quicknovel.ui.download.AnyAdapter.Companion.DOWNLOAD_DATA_LOADED
+import com.lagradost.quicknovel.ui.download.AnyAdapter.Companion.RESULT_CACHED
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import com.lagradost.quicknovel.util.UIHelper.hideKeyboard
@@ -67,6 +71,9 @@ class AnyAdapter(
             else -> 0L
         }
     }
+
+
+
 
     override fun onCreateFooter(parent: ViewGroup): ViewHolderState<Any> {
         val compact = parent.context.getDownloadIsCompact()
@@ -176,7 +183,8 @@ class AnyAdapter(
                 view.apply {
                     imageText.text = card.name
                     historyExtraText.text =
-                        "${card.totalChapters} ${root.context.getString(R.string.read_action_chapters)}"
+                        "${card.lastChapterRead}/${card.currentTotalChapters} ${root.context.getString(R.string.read_action_chapters)}"
+
                     imageView.setImage(card.poster)
 
                     historyPlay.setOnClickListener {
@@ -262,8 +270,11 @@ class AnyAdapter(
                             imageView.setImage(
                                 item.image,
                             ) // skipCache = false
+
                             imageText.text = item.name
                             imageTextMore.isVisible = false
+
+                            progressReading.text = "${item.lastChapterRead}/${item.currentTotalChapters}"
                         }
                     }
 

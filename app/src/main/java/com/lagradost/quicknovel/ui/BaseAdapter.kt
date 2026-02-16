@@ -113,7 +113,6 @@ abstract class BaseAdapter<
 
     open fun onUpdateContent(holder: ViewHolderState<S>, item: T, position: Int) =
         onBindContent(holder, item, position)
-
     open fun onBindContent(holder: ViewHolderState<S>, item: T, position: Int) = Unit
     open fun onBindFooter(holder: ViewHolderState<S>) = Unit
     open fun onBindHeader(holder: ViewHolderState<S>) = Unit
