@@ -1,6 +1,5 @@
 package com.lagradost.quicknovel.ui.download
 
-import android.R.attr.end
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
@@ -8,19 +7,14 @@ import android.os.Parcelable
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.view.doOnAttach
-import androidx.core.view.get
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.lagradost.quicknovel.databinding.ViewpagerPageBinding
 import com.lagradost.quicknovel.ui.BaseAdapter
 import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.ViewHolderState
-import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import com.lagradost.quicknovel.widget.AutofitRecyclerView
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import me.ag2s.epublib.util.CollectionUtil.first
 import java.lang.ref.WeakReference
 
 data class Page(
