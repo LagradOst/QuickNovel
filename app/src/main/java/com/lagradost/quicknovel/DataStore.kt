@@ -60,7 +60,6 @@ const val RESULT_BOOKMARK: String = "result_bookmarked"
 const val RESULT_BOOKMARK_STATE: String = "result_bookmarked_state"
 const val HISTORY_FOLDER: String = "result_history"
 const val CURRENT_TAB : String = "current_tab"
-const val EPUB_CURRENT_TOTAL_CHAPTERS = "epub_current_total_chapters"
 /** When inserting many keys use this function, this is because apply for every key is very expensive on memory */
 data class Editor(
     val editor : SharedPreferences.Editor

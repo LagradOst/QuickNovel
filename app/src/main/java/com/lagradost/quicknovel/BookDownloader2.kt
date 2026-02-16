@@ -1251,7 +1251,7 @@ object BookDownloader2 {
                     val id = key.replaceFirst(RESULT_BOOKMARK_STATE, RESULT_BOOKMARK)
                     val cached = getKey<ResultCached>(id) ?: continue
                     launch {
-                        getReadingProgress(cached)
+                        getNewTotalChapters(cached)
                     }
                 }
             }
@@ -1259,10 +1259,10 @@ object BookDownloader2 {
     }
 
 
-    private val downloadSemaphore = Semaphore(5)
-    suspend fun getReadingProgress(cached: ResultCached)
+    private val getNewTotalChaptersSemaphore = Semaphore(5)
+    suspend fun getNewTotalChapters(cached: ResultCached)
     {
-        downloadSemaphore.withPermit {
+        getNewTotalChaptersSemaphore.withPermit {
             try
             {
                 val api = getApiFromNameOrNull(cached.apiName) ?: return@withPermit
@@ -1275,20 +1275,15 @@ object BookDownloader2 {
                 if(totalChapters == cached.totalChapters) return@withPermit
 
                 setKey(
-                    EPUB_CURRENT_TOTAL_CHAPTERS,
-                    loaded.name,
-                    totalChapters
+                    RESULT_BOOKMARK,
+                    cached.id.toString(),
+                    cached.copy(
+                        totalChapters = totalChapters,
+                    )
                 )
 
                 val newId = generateId(loaded, cached.apiName)
                 if(cached.id != newId){
-                    setKey(
-                        RESULT_BOOKMARK,
-                        cached.id.toString(),
-                        cached.copy(
-                            totalChapters = totalChapters,
-                        )
-                    )
                     migrationNovelMutex.withLock {
                         migrateKeys(cached.id,
                             newId,
@@ -1301,8 +1296,6 @@ object BookDownloader2 {
             }
         }
     }
-
-
 
     @WorkerThread
     @Throws
@@ -1485,10 +1478,6 @@ object BookDownloader2 {
         setKey(
             EPUB_CURRENT_POSITION, newName,
             getKey<Int>(EPUB_CURRENT_POSITION, oldName)
-        )
-        setKey(
-            EPUB_CURRENT_TOTAL_CHAPTERS, newName,
-            getKey<Int>(EPUB_CURRENT_TOTAL_CHAPTERS, oldName)
         )
 
         setKey(

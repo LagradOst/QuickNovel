@@ -36,7 +36,6 @@ import com.lagradost.quicknovel.DownloadFileWorkManager
 import com.lagradost.quicknovel.DownloadFileWorkManager.Companion.viewModel
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
-import com.lagradost.quicknovel.EPUB_CURRENT_TOTAL_CHAPTERS
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.R
@@ -533,22 +532,20 @@ class DownloadViewModel : ViewModel() {
 
     val activeRefreshTabs = mutableSetOf<Int>()
     val isRefreshing = MutableLiveData(false)
-
+    private val _refresh = MutableSharedFlow<Int>(
+        extraBufferCapacity = 32
+    )
+    val refresh = _refresh.asSharedFlow()
     fun setIsLoading(isActive: Boolean, currentTab: Int){
         isRefreshing.postValue(isActive)
         synchronized(activeRefreshTabs){
             if(isActive && !activeRefreshTabs.contains(currentTab))
                 activeRefreshTabs.add(currentTab)
-            else
+            else{
+                _refresh.tryEmit(currentTab)
                 activeRefreshTabs.remove(currentTab)
+            }
         }
-    }
-    private val _refresh = MutableSharedFlow<Int>(
-        extraBufferCapacity = 500
-    )
-    val refresh = _refresh.asSharedFlow()
-    fun readingProgressChanged(tab:Int) {
-        _refresh.tryEmit(tab)
     }
 
     private val cardsDataMutex = Mutex()

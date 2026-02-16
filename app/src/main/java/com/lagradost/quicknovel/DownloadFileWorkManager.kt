@@ -157,7 +157,6 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
                 viewModel?.setIsLoading(true, currentTab)
                 BookDownloader2.getOldDataReadingProgress(currentTab)
                 viewModel?.setIsLoading(false, currentTab)
-                viewModel?.readingProgressChanged(currentTab)
             }
 
             else -> return Result.failure()

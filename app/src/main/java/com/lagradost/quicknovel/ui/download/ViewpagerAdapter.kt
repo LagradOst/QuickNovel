@@ -20,6 +20,7 @@ import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import com.lagradost.quicknovel.widget.AutofitRecyclerView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import me.ag2s.epublib.util.CollectionUtil.first
 import java.lang.ref.WeakReference
 
 data class Page(
@@ -109,15 +110,15 @@ class ViewpagerAdapter(
 
         if (firstVisible == -1 || lastVisible == -1) return
 
-        val start = maxOf(firstVisible - 3, 0)
+        val start =  (firstVisible - 3).coerceAtLeast(0)
 
-        val end = minOf(lastVisible + 3, ad.itemCount - 1)
+        val end =  (lastVisible + 3).coerceAtMost(ad.itemCount - 1)
 
         val count = (end - start) + 1
 
         if (count > 0) {
             rv.post {
-                ad.notifyItemRangeChanged(start, count, "newText")
+                ad.notifyItemRangeChanged(start, count, "new")
             }
         }
     }

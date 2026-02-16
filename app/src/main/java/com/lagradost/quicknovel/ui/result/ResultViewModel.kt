@@ -26,7 +26,6 @@ import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_CHAPTER
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_READ_AT
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_SCROLL_CHAR
-import com.lagradost.quicknovel.EPUB_CURRENT_TOTAL_CHAPTERS
 import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.PreferenceDelegate
@@ -554,7 +553,6 @@ class ResultViewModel : ViewModel() {
                 synopsis = load.synopsis
             )
         )
-        setKey(EPUB_CURRENT_TOTAL_CHAPTERS, load.name, totalChapters)
     }
 
     fun bookmark(state: Int) = viewModelScope.launch {
