@@ -104,11 +104,12 @@ open class NovelBinProvider : AllNovelProvider() {
                 SearchResponse(
                     name = a.text(),
                     url = fixUrlNull(a.attr("href")) ?: return@mapNotNull null,
-                    fixUrlNull(element.selectFirst("div > div > img")?.attr("src")?.fullPosterFix()),
+                    fixUrlNull(element.selectFirst("div > div > img")?.attr("data-src")?.fullPosterFix()),
                     null,
                     null,
                     this.name
                 )
             })
     }
+
 }
