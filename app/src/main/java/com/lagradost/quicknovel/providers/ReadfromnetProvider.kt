@@ -1368,7 +1368,8 @@ open class ReadfromnetProvider : MainAPI() {
     ).sortedBy { it.first }.let { listOf("All" to "allbooks") + it }
 
     private val baseHeaders = mapOf(
-        "user-agent" to "Mozilla/5.0"
+        "user-agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
     )
 
 

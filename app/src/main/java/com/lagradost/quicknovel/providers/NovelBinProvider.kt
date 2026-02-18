@@ -22,7 +22,6 @@ open class NovelBinProvider : AllNovelProvider() {
 
     override val iconId = R.drawable.icon_novelbin
     override val ajaxUrl = "ajax/chapter-archive"
-
     override val tags = listOf(
         "All" to "All",
         "Action" to "action",
@@ -111,5 +110,4 @@ open class NovelBinProvider : AllNovelProvider() {
                 )
             })
     }
-
 }

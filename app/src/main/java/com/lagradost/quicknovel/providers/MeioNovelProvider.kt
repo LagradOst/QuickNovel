@@ -28,8 +28,7 @@ class MeioNovelProvider : MoreNovelProvider() {
                 ?.replace("\n", "")
                 ?.replace("\t", "") ?: return null
 
-        val data = getChapters(
-            app.post("${url}ajax/chapters/", headers = mapOf("user-agent" to USER_AGENT)).text)
+        val data = getChapters(url)
         return newStreamResponse(url = url, name = name, data = data) {
             tags = document.select("div.genres-content > a").map { it.text() }
             val authors = document.selectFirst("div.author-content > a")
