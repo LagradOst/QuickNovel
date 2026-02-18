@@ -28,10 +28,13 @@
     <string name="poster_descript">Póster</string>
     <string name="shadow_descript">Sombra</string>
     <string name="has_read">Has leído</string>
+    <string name="chapter">Capítulo</string>
+    <string name="chapters">Capítulos</string>
 
     <!-- Búsqueda y Proveedores -->
     <string name="search">Búsqueda</string>
-    <string name="search_hint">Buscar novelas</string>
+    <string name="search_hint">Buscar novelas…</string>
+    <string name="search_downloads">Buscar mis novelas…</string>
     <string name="advanced_search">Búsqueda avanzada</string>
     <string name="advanced_search_desc">Muestra los resultados de búsqueda separados por proveedor</string>
     <string name="search_providers">Proveedores</string>
@@ -75,7 +78,7 @@
     <string name="resume">Reanudar</string>
     <string name="stop">Detener</string>
     <string name="result_share">Compartir</string>
-    <string name="open_in_browser">Abrir en el navegador</string>
+    <string name="open_in_browser">Navegar</string>
     <string name="history_more_options">Más opciones</string>
     <string name="clear_history">Borrar historial</string>
     <string name="remove_history">Eliminar historial</string>
@@ -118,6 +121,9 @@
     <string name="home_expanded_hide">Ocultar</string>
     <string name="download_format_key">download_format</string>
     <string name="exampleTXT">this is <annotation key="rounded">a regular</annotation> paragraph.</string>
+    <string name="paragraph_spacing">Espacio entre parrafos</string>
+    <string name="more_spacing">Más espacio</string>
+    <string name="less_spacing">Menos espacio</string>
 
     <!-- Comportamiento del Lector -->
     <string name="scroll_type">Tipo de desplazamiento</string>
@@ -244,7 +250,6 @@
     <string name="quickstream_novel_text">Leer en línea</string>
     <string name="stream_read">Leer en línea</string>
     <string name="permission_error">Se nececitan permisos</string>
-    <!--<string name="unable_init_tts">No se puede iniciar, descargar el lenguaje</string>-->
 
 
     <!-- Diálogos de Confirmación -->
@@ -259,6 +264,7 @@
     <string name="clipboard_unknown_error">Error desconocido al copiar datos.</string>
     <string name="show_log_cat">Ver registros (Logcat) 🐈</string>
     <string name="unread">Sin leer</string>
+    <string name="bookmark">Marcador</string>
     <string name="read">Leído</string>
     <string name="bookmarks">Marcadores</string>
     <string name="monke_eating">Mono comiendo</string>
@@ -286,11 +292,8 @@
     <string name="more_info">Más información</string>
     <string name="connection_timeout">Tiempo de espera agotado Por favor, inténtalo de nuevo más tarde.</string>
     <string name="cannot_conect">No se pudo conectar al servidor, inténtalo de nuevo más tarde.</string>
-    <string name="error_loading">" Error al cargar, por favor inténtalo de nuevo más tarde."</string>
+    <string name="error_loading">"Error al cargar, por favor inténtalo de nuevo más tarde."</string>
     <string name="operation_no_implemented">" Esta operación no está implementada."</string>
     <string name="conection_error">Error de conección.</string>
     <string name="unknown">Desconocido</string>
-    <string name="chapter">Capítulo</string>
-
-
 </resources>

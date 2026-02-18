@@ -196,6 +196,10 @@ class ResultViewModel : ViewModel() {
 
     var apiName : String = ""
 
+    /*This is to detect whether it actually returned to
+     the fragment after reading a chapter, and thus update the list of chapters.*/
+    var isResume = false
+
     val currentTabIndex: MutableLiveData<Int> by lazy {
         MutableLiveData<Int>(0)
     }
@@ -533,7 +537,7 @@ class ResultViewModel : ViewModel() {
         if (!isGetLoaded && getKey<ResultCached>(RESULT_BOOKMARK, loadId.toString()) != null) {
             return
         }
-
+        val totalChapters = (load as? StreamResponse)?.data?.size ?: 1
         setKey(
             RESULT_BOOKMARK, loadId.toString(), ResultCached(
                 loadUrl,
@@ -544,7 +548,7 @@ class ResultViewModel : ViewModel() {
                 load.posterUrl,
                 load.tags,
                 load.rating,
-                (load as? StreamResponse)?.data?.size ?: 1,
+                totalChapters,
                 System.currentTimeMillis(),
                 synopsis = load.synopsis
             )

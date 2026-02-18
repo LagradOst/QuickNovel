@@ -19,10 +19,12 @@ import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipDrawable
 import com.google.android.material.tabs.TabLayout
+import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.LoadResponse
@@ -52,6 +54,7 @@ import com.lagradost.quicknovel.util.UIHelper.humanReadableByteCountSI
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.util.toPx
+import kotlin.collections.toList
 
 const val MAX_SYNO_LENGH = 300
 
@@ -90,7 +93,6 @@ class ResultFragment : Fragment() {
 
         //return inflater.inflate(R.layout.fragment_result, container, false)
     }
-
     private fun setupGridView() {
         val compactView = false //activity?.getGridIsCompact() ?: return
         val spanCountLandscape = if (compactView) 2 else 6
@@ -113,6 +115,11 @@ class ResultFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        //only if really is onResume
+        if(viewModel.isResume){
+            (binding.chapterList.adapter as? ChapterAdapter)?.notifyDataSetChanged()
+            viewModel.isResume = false
+        }
 
         activity?.apply {
             window?.navigationBarColor =

@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.ui.download
 
+import android.R.attr.fragment
 import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.os.Bundle
@@ -7,9 +8,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import androidx.activity.result.launch
 import androidx.appcompat.widget.SearchView
+import androidx.core.view.doOnAttach
+import androidx.core.view.isGone
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.fasterxml.jackson.annotation.JsonProperty
@@ -21,6 +29,7 @@ import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2Helper
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
+import com.lagradost.quicknovel.CURRENT_TAB
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
@@ -33,8 +42,13 @@ import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.ui.SortingMethodAdapter
 import com.lagradost.quicknovel.ui.UiImage
 import com.lagradost.quicknovel.ui.img
+import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class DownloadFragment : Fragment() {
     private lateinit var viewModel: DownloadViewModel
@@ -146,7 +160,6 @@ class DownloadFragment : Fragment() {
     lateinit var searchExitIcon: ImageView
     lateinit var searchMagIcon: ImageView
 
-
     @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -205,7 +218,7 @@ class DownloadFragment : Fragment() {
 
             addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
                 override fun onTabSelected(tab: TabLayout.Tab?) {
-                    binding.swipeContainer.isEnabled = binding.bookmarkTabs.selectedTabPosition == 0
+                    //binding.swipeContainer.isEnabled = binding.bookmarkTabs.selectedTabPosition == 0
                     viewModel.switchPage(binding.bookmarkTabs.selectedTabPosition)
                 }
 
@@ -262,22 +275,51 @@ class DownloadFragment : Fragment() {
 
         //swipe_container.setProgressBackgroundColorSchemeColor(requireContext().colorFromAttribute(R.attr.darkBackground))
 
+
         binding.swipeContainer.apply {
             setColorSchemeColors(context.colorFromAttribute(R.attr.colorPrimary))
             setProgressBackgroundColorSchemeColor(context.colorFromAttribute(R.attr.primaryGrayBackground))
             setOnRefreshListener {
-                viewModel.refresh()
-                isRefreshing = false
+                if(isOnDownloads){
+                    viewModel.refresh()
+                    isRefreshing = false
+
+                }
+                else{
+                    viewModel.refreshReadingProgress()
+                }
             }
         }
 
+        observe(viewModel.isRefreshing) { refreshing ->
+            if(refreshing != binding.swipeContainer.isRefreshing){
+                binding.swipeContainer.isRefreshing = refreshing
+            }
+        }
+
+
+        lifecycleScope.launch{
+            viewModel.refresh.collect { tab ->
+                (binding.viewpager.adapter as? ViewpagerAdapter)?.updateProgressOfPage(tab)
+            }
+        }
+
+        var canSwip = true
         binding.viewpager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                val currentTab = getKey(DOWNLOAD_SETTINGS, CURRENT_TAB, null)?:1
+                binding.swipeContainer.isRefreshing =  viewModel.activeRefreshTabs.contains(currentTab)
+            }
+
             override fun onPageScrollStateChanged(state: Int) {
                 super.onPageScrollStateChanged(state)
-                binding.swipeContainer.isEnabled =
-                    isOnDownloads && state == ViewPager2.SCROLL_STATE_IDLE
+                canSwip = state == ViewPager2.SCROLL_STATE_IDLE
             }
         })
+        binding.swipeContainer.setOnChildScrollUpCallback { parent, child ->
+            return@setOnChildScrollUpCallback  !canSwip// true = can't Swip, false = can swip
+        }
 
         setupGridView()
 

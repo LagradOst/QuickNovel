@@ -15,12 +15,13 @@ import com.lagradost.quicknovel.setStatus
 import kotlin.math.roundToInt
 
 
-open class NovelBinProvider : MainAPI() {
+open class NovelBinProvider : AllNovelProvider() {
     override val name = "NovelBin"
     override val mainUrl = "https://novelbin.com"
     override val hasMainPage = true
 
     override val iconId = R.drawable.icon_novelbin
+    override val ajaxUrl = "ajax/chapter-archive"
 
     override val tags = listOf(
         "All" to "All",
@@ -82,7 +83,8 @@ open class NovelBinProvider : MainAPI() {
         "Store" to "store",
     )
 
-    private val fullPosterRegex = Regex("/novel_[0-9]*_[0-9]*/")
+    override fun String.fullPosterFix(): String =
+        this.replace(Regex("/novel_[0-9]*_[0-9]*/"), "/novel/")
 
     override suspend fun loadMainPage(
         page: Int,
@@ -102,7 +104,7 @@ open class NovelBinProvider : MainAPI() {
                 SearchResponse(
                     name = a.text(),
                     url = fixUrlNull(a.attr("href")) ?: return@mapNotNull null,
-                    fixUrlNull(element.selectFirst("div > div > img")?.attr("data-src")?.replace( fullPosterRegex, "/novel/")),
+                    fixUrlNull(element.selectFirst("div > div > img")?.attr("data-src")?.fullPosterFix()),
                     null,
                     null,
                     this.name
@@ -110,84 +112,4 @@ open class NovelBinProvider : MainAPI() {
             })
     }
 
-    override suspend fun loadHtml(url: String): String? {
-        val document = app.get(url).document
-        val content = (document.selectFirst("#chapter-content")
-            ?: document.selectFirst("#chr-content"))
-        if (content == null) return null
-
-        return content.html()
-            .replace(
-                "<iframe .* src=\"//ad.{0,2}-ads.com/.*\" style=\".*\"></iframe>".toRegex(),
-                " "
-            ).replace(
-                " If you find any errors ( broken links, non-standard content, etc.. ), Please let us know &lt; report chapter &gt; so we can fix it as soon as possible.",
-                " "
-            ).replace(
-                "If you find any errors ( Ads popup, ads redirect, broken links, non-standard content, etc.. ), Please let us know &lt; report chapter &gt; so we can fix it as soon as possible.",
-                " "
-            ).replace("[Updated from F r e e w e b n o v e l. c o m]", "")
-
-    }
-
-    override suspend fun search(query: String): List<SearchResponse> {
-        val document =
-            app.get("$mainUrl/search?keyword=$query").document // AJAX, MIGHT ADD QUICK SEARCH
-
-        return document.select("#list-page>.archive>.list>.row").mapNotNull { h ->
-            val title = h.selectFirst(">div>div>.truyen-title>a")
-                ?: h.selectFirst(">div>div>.novel-title>a") ?: return@mapNotNull null
-            newSearchResponse(title.text(), title.attr("href") ?: return@mapNotNull null) {
-                posterUrl = fixUrlNull(h.selectFirst(">div>div>img")?.attr("src")?.replace( fullPosterRegex, "/novel/"))
-            }
-        }
-    }
-
-    override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document
-
-        val name =
-            document.selectFirst("h3.title")?.text() ?: throw ErrorLoadingException("invalid name")
-
-        val dataNovelId = document.select("#rating").attr("data-novel-id")
-        val ajaxUrl = "$mainUrl/ajax/chapter-archive?novelId=$dataNovelId"
-        val chapterData = app.get(ajaxUrl).document
-        var parsed = chapterData.select("select > option")
-        if (parsed.isEmpty()) {
-            parsed = chapterData.select(".list-chapter>li>a")
-        }
-
-        val data = parsed.mapNotNull { c ->
-            var cUrl = c.attr("value")
-            if (cUrl.isNullOrBlank()) {
-                cUrl = c.attr("href")
-            }
-            if (cUrl.isNullOrBlank()) {
-                return@mapNotNull null
-            }
-            val cName = c.text().ifEmpty {
-                "chapter $c"
-            }
-            newChapterData(cName, cUrl)
-        }
-
-        return newStreamResponse(name, url, data) {
-            tags = document.select("ul.info > li:nth-child(5) a").map {
-                it.text()
-            }
-            author = document.selectFirst("ul.info > li:nth-child(1) > a")?.text()
-            posterUrl = fixUrlNull(document.select("div.book > img").attr("data-src"))
-            synopsis = document.selectFirst("div.desc-text")?.text()
-            peopleVoted =
-                document.selectFirst(" div.small > em > strong:nth-child(3) > span")?.text()
-                    ?.toIntOrNull() ?: 0
-            rating = document.selectFirst("div.small > em > strong:nth-child(1) > span")?.text()
-                ?.toFloatOrNull()?.times(100)?.roundToInt()
-
-            setStatus(
-                document.selectFirst("ul.info > li:nth-child(3) > a")?.selectFirst("a")
-                    ?.text()
-            )
-        }
-    }
 }

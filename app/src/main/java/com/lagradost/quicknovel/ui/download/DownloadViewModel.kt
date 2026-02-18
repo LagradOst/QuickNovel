@@ -1,16 +1,16 @@
 package com.lagradost.quicknovel.ui.download
 
 import android.content.DialogInterface
-import android.net.Uri
-import android.util.Log
 import androidx.annotation.StringRes
 import androidx.annotation.WorkerThread
 import androidx.appcompat.app.AlertDialog
-import androidx.core.net.toUri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
@@ -19,49 +19,58 @@ import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.BookDownloader2.currentDownloads
 import com.lagradost.quicknovel.BookDownloader2.currentDownloadsMutex
-import com.lagradost.quicknovel.BookDownloader2.downloadData
+import com.lagradost.quicknovel.BookDownloader2.downloadDataRefreshed
 import com.lagradost.quicknovel.BookDownloader2.downloadInfoMutex
 import com.lagradost.quicknovel.BookDownloader2.downloadProgress
 import com.lagradost.quicknovel.BookDownloader2.downloadProgressChanged
-import com.lagradost.quicknovel.BookDownloader2Helper
-import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
+import com.lagradost.quicknovel.BookDownloader2.downloadRemoved
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
-import com.lagradost.quicknovel.BookDownloader2Helper.generateId
 import com.lagradost.quicknovel.CURRENT_TAB
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
-import com.lagradost.quicknovel.DOWNLOAD_FOLDER
 import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
-import com.lagradost.quicknovel.DOWNLOAD_OFFSET
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
 import com.lagradost.quicknovel.DownloadActionType
 import com.lagradost.quicknovel.DownloadFileWorkManager
+import com.lagradost.quicknovel.DownloadFileWorkManager.Companion.viewModel
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
-import com.lagradost.quicknovel.PreferenceDelegate
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
-import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_BOOKMARKED
-import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_DOWNLOADED
-import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_READ
-import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_UNREAD
-import com.lagradost.quicknovel.RESULT_CHAPTER_SORT
+import com.lagradost.quicknovel.StreamResponse
+import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.launchSafe
+import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.ReadType
+import com.lagradost.quicknovel.util.Apis.Companion.getApiFromNameOrNull
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.sample
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import me.xdrop.fuzzywuzzy.FuzzySearch
+import java.util.Collections
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.collections.set
+import kotlin.coroutines.cancellation.CancellationException
 
 const val DEFAULT_SORT = 0
 const val ALPHA_SORT = 1
@@ -210,6 +219,10 @@ class DownloadViewModel : ViewModel() {
 
     fun refresh() {
         DownloadFileWorkManager.refreshAll(this@DownloadViewModel, context ?: return)
+    }
+
+    fun refreshReadingProgress(){
+        DownloadFileWorkManager.refreshAllReadingProgress(this@DownloadViewModel, context ?: return, currentTab.value ?: 1)
     }
 
     fun showMetadata(card: DownloadFragment.DownloadDataLoaded) {
@@ -505,6 +518,7 @@ class DownloadViewModel : ViewModel() {
         BookDownloader2.downloadProgressChanged += ::progressChanged
         BookDownloader2.downloadDataRefreshed += ::downloadDataRefreshed
         BookDownloader2.downloadRemoved += ::downloadRemoved
+        //BookDownloader2.readingProgressChanged += :: readingProgressChanged
     }
 
     override fun onCleared() {
@@ -513,6 +527,25 @@ class DownloadViewModel : ViewModel() {
         BookDownloader2.downloadDataChanged -= ::progressDataChanged
         BookDownloader2.downloadDataRefreshed -= ::downloadDataRefreshed
         BookDownloader2.downloadRemoved -= ::downloadRemoved
+        //BookDownloader2.readingProgressChanged -= :: readingProgressChanged
+    }
+
+    val activeRefreshTabs = mutableSetOf<Int>()
+    val isRefreshing = MutableLiveData(false)
+    private val _refresh = MutableSharedFlow<Int>(
+        extraBufferCapacity = 32
+    )
+    val refresh = _refresh.asSharedFlow()
+    fun setIsLoading(isActive: Boolean, currentTab: Int){
+        isRefreshing.postValue(isActive)
+        synchronized(activeRefreshTabs){
+            if(isActive && !activeRefreshTabs.contains(currentTab))
+                activeRefreshTabs.add(currentTab)
+            else{
+                _refresh.tryEmit(currentTab)
+                activeRefreshTabs.remove(currentTab)
+            }
+        }
     }
 
     private val cardsDataMutex = Mutex()

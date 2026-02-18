@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel
 
 import android.content.Context
+import android.service.notification.Condition.newId
 import android.util.Log
 import androidx.annotation.WorkerThread
 import androidx.core.net.toUri
@@ -26,6 +27,7 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
         const val ID = "id"
 
         const val ID_REFRESH_DOWNLOADS = "REFRESH_DOWNLOADS"
+        const val ID_REFRESH_READINGPROGRESS = "REFRESH_READINGPROGRESS"
         const val ID_DOWNLOAD = "ID_DOWNLOAD"
 
 
@@ -65,6 +67,23 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
                     .setInputData(
                         Data.Builder()
                             .putString(ID, ID_REFRESH_DOWNLOADS)
+                            .build()
+                    )
+                    .build()
+            )
+        }
+
+        fun refreshAllReadingProgress(from: DownloadViewModel, context: Context, currentTab: Int) {
+            viewModel = from
+            val uniqueWorkName = "${ID_REFRESH_READINGPROGRESS}_$currentTab"
+            (WorkManager.getInstance(context)).enqueueUniqueWork(
+                uniqueWorkName,
+                ExistingWorkPolicy.KEEP,
+                OneTimeWorkRequest.Builder(DownloadFileWorkManager::class.java)
+                    .setInputData(
+                        Data.Builder()
+                            .putString(ID, ID_REFRESH_READINGPROGRESS)
+                            .putInt(CURRENT_TAB, currentTab)
                             .build()
                     )
                     .build()
@@ -131,6 +150,13 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
 
             ID_REFRESH_DOWNLOADS -> {
                 viewModel?.refreshInternal()
+            }
+
+            ID_REFRESH_READINGPROGRESS ->{
+                val currentTab = this.workerParams.inputData.getInt(CURRENT_TAB, 1)
+                viewModel?.setIsLoading(true, currentTab)
+                BookDownloader2.getOldDataReadingProgress(currentTab)
+                viewModel?.setIsLoading(false, currentTab)
             }
 
             else -> return Result.failure()

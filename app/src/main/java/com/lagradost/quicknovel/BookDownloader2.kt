@@ -31,6 +31,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.net.toUri
 import androidx.preference.PreferenceManager
+import androidx.work.ListenableWorker
 import coil3.Extras
 import coil3.SingletonImageLoader
 import coil3.asDrawable
@@ -51,14 +52,17 @@ import com.lagradost.quicknovel.BookDownloader2Helper.getDirectory
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.mapper
+import com.lagradost.quicknovel.DownloadFileWorkManager.Companion.viewModel
 import com.lagradost.quicknovel.ImageDownloader.getImageBitmapFromUrl
 import com.lagradost.quicknovel.NotificationHelper.etaToString
 import com.lagradost.quicknovel.extractors.ExtractorApi
 import com.lagradost.quicknovel.mvvm.logError
+import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getBasePath
 import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getDefaultDir
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
+import com.lagradost.quicknovel.util.Apis.Companion.getApiFromNameOrNull
 import com.lagradost.quicknovel.util.AppUtils.textToHtmlChapter
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.main
@@ -73,10 +77,14 @@ import com.tom_roush.pdfbox.pdmodel.PDPage
 import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject
 import com.tom_roush.pdfbox.text.PDFTextStripperByArea
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import me.ag2s.epublib.domain.Author
 import me.ag2s.epublib.domain.EpubBook
@@ -90,6 +98,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import kotlin.coroutines.cancellation.CancellationException
 
 enum class DownloadActionType {
     Pause,
@@ -1222,6 +1231,70 @@ object BookDownloader2 {
 
     fun deleteNovel(author: String?, name: String, apiName: String) = ioSafe {
         deleteNovelAsync(author, name, apiName)
+    }
+
+
+    suspend fun getOldDataReadingProgress(currentTabIndex: Int){
+        val keys = getKeys(RESULT_BOOKMARK_STATE) ?: return
+        val readList = arrayListOf(
+            ReadType.READING,
+            ReadType.READING,
+            ReadType.ON_HOLD,
+            ReadType.PLAN_TO_READ,
+            ReadType.COMPLETED,
+            ReadType.DROPPED,
+        )
+        coroutineScope {
+            for (key in keys) {
+                val state = getKey<Int>(key)
+                if (state == readList[currentTabIndex].prefValue) {
+                    val id = key.replaceFirst(RESULT_BOOKMARK_STATE, RESULT_BOOKMARK)
+                    val cached = getKey<ResultCached>(id) ?: continue
+                    launch {
+                        getNewTotalChapters(cached)
+                    }
+                }
+            }
+        }
+    }
+
+
+    private val getNewTotalChaptersSemaphore = Semaphore(5)
+    suspend fun getNewTotalChapters(cached: ResultCached)
+    {
+        getNewTotalChaptersSemaphore.withPermit {
+            try
+            {
+                val api = getApiFromNameOrNull(cached.apiName) ?: return@withPermit
+                val response = api.load(cached.source, true)
+
+                if (response !is com.lagradost.quicknovel.mvvm.Resource.Success) return@withPermit
+                val loaded = response.value as? StreamResponse ?: return@withPermit
+
+                val totalChapters = loaded.data.size
+                if(totalChapters == cached.totalChapters) return@withPermit
+
+                setKey(
+                    RESULT_BOOKMARK,
+                    cached.id.toString(),
+                    cached.copy(
+                        totalChapters = totalChapters,
+                    )
+                )
+
+                val newId = generateId(loaded, cached.apiName)
+                if(cached.id != newId){
+                    migrationNovelMutex.withLock {
+                        migrateKeys(cached.id,
+                            newId,
+                            cached.name,
+                            loaded.name)
+                    }
+                }
+            } catch (e: Throwable) {
+                if (e !is CancellationException) logError(e)
+            }
+        }
     }
 
     @WorkerThread
