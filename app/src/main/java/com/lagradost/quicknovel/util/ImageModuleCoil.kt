@@ -64,6 +64,15 @@ object ImageLoader {
             .components { add(OkHttpNetworkFetcherFactory(callFactory = { OkHttpClient()
                 .newBuilder()
                 .ignoreAllSSLErrors()
+                //correction coil 403 (coil3.network.HttpException: HTTP 403)
+                 .addInterceptor { chain ->
+        val originalRequest = chain.request()
+        val requestWithHeaders = originalRequest.newBuilder()
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            .build()
+        chain.proceed(requestWithHeaders)
+                 }
+                 //end
                 .build() })) }
             .also {
                 it.setupCoilLogger()
