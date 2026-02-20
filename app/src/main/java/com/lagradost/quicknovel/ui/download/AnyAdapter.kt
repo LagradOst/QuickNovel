@@ -240,7 +240,9 @@ class AnyAdapter(
                             imageTextMore.isVisible =
                                 diff > 0 && !showDownloadLoading && !item.isImported
                             imageText.text = item.name
-
+                            //visible off
+                            progressReading.isVisible = false
+                            //end
                             imageView.alpha = if (isAPdfDownloading) 0.6f else 1.0f
                             imageView.setImage(item.image)
                         }
