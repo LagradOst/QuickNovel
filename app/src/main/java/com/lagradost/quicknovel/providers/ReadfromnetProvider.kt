@@ -1369,7 +1369,6 @@ open class ReadfromnetProvider : MainAPI() {
 
     private val baseHeaders = mapOf(
         "user-agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-        "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
     )
 
 

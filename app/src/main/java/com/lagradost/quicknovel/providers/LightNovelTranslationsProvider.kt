@@ -18,7 +18,7 @@ import com.lagradost.quicknovel.setStatus
 
 class LightNovelTranslationsProvider: MainAPI() {
     override val name = "Light Novel Translations"
-    override val mainUrl = "https://lightnovelstranslations.com/"
+    override val mainUrl = "https://lightnovelstranslations.com"
     override val iconId = R.drawable.icon_lightnoveltranslations
 
     override val hasMainPage = true
@@ -44,18 +44,16 @@ class LightNovelTranslationsProvider: MainAPI() {
         tag: String?
     ): HeadMainPageResponse
     {
-        val category = mainCategory ?: "most-liked"
-        val statusFilter = when (tag) {
-            "ongoing" -> "&status=Ongoing"
-            "completed" -> "&status=Completed"
-            else -> ""
+        val range = if (page == 1) {
+            1..3
+        } else {
+            val actualPage = page + 2
+            actualPage..actualPage
         }
-
-        val canPages = if(page == 0) 3 else page
         val novels = mutableListOf<SearchResponse>()
         var url = ""
-        for(i in 0..canPages){
-            url = "$mainUrl/read/page/$i?sortby=$category$statusFilter"
+        for(i in range){
+            url = "$mainUrl/read/page/$i?sortby=$mainCategory&status=$tag"
             val document = app.get(url).document
              novels.addAll( document.select("div.read_list-story-item").mapNotNull { el ->
                 val link = el.selectFirst(".item_thumb a") ?: return@mapNotNull null

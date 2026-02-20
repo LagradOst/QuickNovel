@@ -1,7 +1,5 @@
 package com.lagradost.quicknovel.providers
 
-import android.util.Log
-import com.google.android.gms.tasks.Tasks.await
 import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
@@ -11,24 +9,11 @@ import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrl
 import com.lagradost.quicknovel.fixUrlNull
-import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
-import com.lagradost.quicknovel.util.Coroutines.ioSafe
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
-import org.jsoup.Jsoup
-import java.util.concurrent.ConcurrentHashMap
-import kotlin.collections.isNotEmpty
-import kotlin.math.pow
 import kotlin.math.roundToInt
-import kotlin.text.get
 
 class NovelFireProvider:  MainAPI() {
     override val name = "NovelFire"
@@ -43,7 +28,7 @@ class NovelFireProvider:  MainAPI() {
         "Ongoing" to "status-ongoing"
     )
     override val orderBys =
-        listOf("New" to "sort-new", "Popular" to "sort-popular", "Updates" to "sort-latest-release")
+        listOf("Popular" to "sort-popular", "New" to "sort-new", "Updates" to "sort-latest-release")
 
     override val tags = listOf(
         "All" to "all",
@@ -188,55 +173,38 @@ class NovelFireProvider:  MainAPI() {
         }
     }
 
-     suspend fun getChapters(url: String): List<ChapterData> {
+    suspend fun getChapters(url: String): List<ChapterData> {
         val bookId = url.substringAfterLast("/book/").substringBefore("?").substringBefore("/")
-        val allChaptersMap = ConcurrentHashMap<Int, List<ChapterData>>()
-        val semaphore = Semaphore(5)
-        var lastPageReached = false
-        coroutineScope {
-            suspend fun getChapterPage(page: Int) {
-                if (lastPageReached) return
-                try {
-                    val chaptersPageUrl = "$mainUrl/book/$bookId/chapters?page=$page"
-                    val document = app.get(chaptersPageUrl).document
+        val firstPageUrl = "$mainUrl/book/$bookId/chapters?page=1"
+        val document = app.get(firstPageUrl).document
 
-                    val chapterElements = document.select("ul.chapter-list > li")
-                    val hasNext = document.selectFirst("li.page-item > a[rel=next]") != null
+        val pagination = document.selectFirst("div.pagenav div.pagination-container nav ul.pagination")
+        if (pagination != null) {
+            val lastPageElement = pagination.select("li").let { it.getOrNull(it.size - 2) }
+            val lastPageNumber = lastPageElement?.text()?.toIntOrNull() ?: 1
 
-                    if (chapterElements.isEmpty()) {
-                        delay( 5000L)
-                        getChapterPage(page)
-                    } else {
-                        val pageChapters = chapterElements.mapNotNull { li ->
-                            val aTag = li.selectFirst("a") ?: return@mapNotNull null
-                            newChapterData(aTag.attr("title").trim(), fixUrl(aTag.attr("href")))
-                        }
-                        allChaptersMap[page] = pageChapters
+            val lastPageUrl = "$mainUrl/book/$bookId/chapters?page=$lastPageNumber"
+            val lastPageDoc = app.get(lastPageUrl).document
+            val lastChapterLink = lastPageDoc.select("ul.chapter-list li a").last()?.attr("href") ?: ""
+            val totalChapters = lastChapterLink.substringAfterLast("/chapter-").toIntOrNull()
 
-                        if (!hasNext) {
-                            lastPageReached = true
-                        }
-                    }
-                } catch (t: Throwable) {
-                    logError(t)
+            if (totalChapters != null) {
+                return (1..totalChapters).map { chapterNumber ->
+                    val chapterUrl = "$mainUrl/book/$bookId/chapter-$chapterNumber"
+                    newChapterData("Chapter $chapterNumber", chapterUrl)
                 }
             }
-
-            //dont´t worry, is safe. This try to get page chapters
-            (1..500).map { page ->
-                async {
-                    if (lastPageReached) return@async
-
-                    semaphore.withPermit {
-                        if (lastPageReached) return@withPermit
-                        getChapterPage(page)
-                    }
-                }
-            }.awaitAll()
-
         }
-        return allChaptersMap.keys.sorted().flatMap {
-            allChaptersMap[it] ?: emptyList()
+
+        return document.select("ul.chapter-list li").mapNotNull { li ->
+            val a = li.selectFirst("a") ?: return@mapNotNull null
+            val name = a.selectFirst("span.chapter-title")?.text() ?: a.text()
+            val url = a.attr("href")
+            val date = li.selectFirst("span.chapter-update")?.text()
+
+            newChapterData(name, url) {
+                this.dateOfRelease = date
+            }
         }
     }
 
