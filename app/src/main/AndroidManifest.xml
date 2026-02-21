@@ -100,6 +100,10 @@
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
+                    android:host="www.fanmtl.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
                     android:host="graycity.net"
                     android:pathPrefix="/"
                     android:scheme="https" />
@@ -120,6 +124,10 @@
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
+                    android:host="lightnovelstranslations.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
                     android:host="meionovels.com"
                     android:pathPrefix="/"
                     android:scheme="https" />
@@ -128,7 +136,7 @@
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
-                    android:host="www.mtlnovels.com"
+                    android:host="mtlnovel.me"
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
@@ -137,6 +145,14 @@
                     android:scheme="https" />
                 <data
                     android:host="novelfull.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
+                    android:host="novlove.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
+                    android:host="novelfire.net"
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
@@ -169,6 +185,10 @@
                     android:scheme="https" />
                 <data
                     android:host="wtr-lab.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
+                    android:host="www.wuxiabox.com"
                     android:pathPrefix="/"
                     android:scheme="https" />
             </intent-filter>

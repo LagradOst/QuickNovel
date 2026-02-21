@@ -243,6 +243,8 @@ class AnyAdapter(
 
                             imageView.alpha = if (isAPdfDownloading) 0.6f else 1.0f
                             imageView.setImage(item.image)
+
+                            progressReading.isVisible = false
                         }
                     }
 

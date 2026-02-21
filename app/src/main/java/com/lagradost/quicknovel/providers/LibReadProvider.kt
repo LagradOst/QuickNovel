@@ -127,19 +127,28 @@ open class LibReadProvider : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        val trimmed = url.trim().removeSuffix("/")
+        //val trimmed = url.trim().removeSuffix("/")
         val response = app.get(url)
         val document = response.document
         val name = document.selectFirst("h1.tit")?.text() ?: return null
 
-        val aid = "[0-9]+s.jpg".toRegex().find(response.text)?.value?.substringBefore("s")
+        //val aid = "[0-9]+s.jpg".toRegex().find(response.text)?.value?.substringBefore("s")
+        val chaptersDataphp = document.select("div.m-newest2 ul.ul-list5 li").mapNotNull { c ->
+            val a =  c.selectFirst("a") ?: return@mapNotNull null
+            val cName = a.text()
+            val cUrl = a.attr("href")
+            newChapterData(url = cUrl, name = cName)
+        }
+        /*
         val chaptersDataphp = app.post(
             "$mainUrl/api/chapterlist.php",
             data = mapOf(
                 "aid" to aid!!
             )
-        )
+        )*/
 
+
+        /*
         val prefix = if (removeHtml) {
             trimmed.removeSuffix(".html")
         } else {
@@ -154,8 +163,9 @@ open class LibReadProvider : MainAPI() {
                 }
                 newChapterData(url = cUrl, name = cName)
             }
+         */
 
-        return newStreamResponse(url = url, name = name, data = data) {
+        return newStreamResponse(url = url, name = name, data = chaptersDataphp) {
             author =
                 document.selectFirst("span.glyphicon.glyphicon-user")?.nextElementSibling()?.text()
             tags =

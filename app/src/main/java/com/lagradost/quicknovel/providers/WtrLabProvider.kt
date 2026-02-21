@@ -24,11 +24,13 @@ import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
+import com.lagradost.quicknovel.setStatus
 import com.lagradost.quicknovel.toRate
 import com.lagradost.quicknovel.util.AppUtils.parseJson
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import kotlin.math.roundToInt
 
 
 class WtrLabProvider : MainAPI() {
@@ -125,11 +127,25 @@ class WtrLabProvider : MainAPI() {
         return newStreamResponse(title, url, chapters) {
             synopsis = doc.selectFirst(".desc-wrap")?.text()
             posterUrl = fixUrlNull(doc.selectFirst(".image-wrap > img")?.attr("src"))
-            views =
-                doc.select(".detail-line").find { it.text().contains("Views") }?.text()?.split(" ")
-                    ?.getOrNull(0)?.toIntOrNull()
-            // author = doc.select(".author-wrap>a").text()
-            rating = doc.selectFirst(".rating-text")?.text()?.toRate(5)
+            val details = doc.select("div.detail-buttons div")
+            details.map{div ->
+                if(div.text().contains("Views")){
+                    val text = div.ownText().split(" ")
+                    this.views = text.getOrNull(2)?.trim()?.toIntOrNull()
+                    setStatus(text.getOrNull(0)?.trim())
+                }
+            }
+            val ratingElement = details.selectFirst("div.rating")
+            val ratingText = ratingElement?.text()
+
+            peopleVoted = ratingText?.let { text ->
+                Regex("""\((\d+)""").find(text)?.groupValues?.get(1)?.toIntOrNull()
+            }
+            rating = ratingText?.let { text ->
+                Regex("""([\d.]+)""").find(text)?.groupValues?.get(1)?.toFloatOrNull()?.let {
+                    it.times(20).times(10).roundToInt()
+                }
+            }
         }
     }
 
