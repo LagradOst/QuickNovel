@@ -17,7 +17,7 @@ import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import kotlin.collections.isNotEmpty
 
-class WuxiaBoxProvider : MainAPI() {
+open class WuxiaBoxProvider : MainAPI() {
     override val name = "WuxiaBox"
     override val mainUrl = "https://www.wuxiabox.com"
     override val iconId = R.drawable.icon_wuxiabox

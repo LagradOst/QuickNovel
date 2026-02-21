@@ -100,6 +100,10 @@
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
+                    android:host="www.fanmtl.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
                     android:host="graycity.net"
                     android:pathPrefix="/"
                     android:scheme="https" />
