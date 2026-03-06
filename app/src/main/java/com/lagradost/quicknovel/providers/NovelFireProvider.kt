@@ -154,10 +154,10 @@ class NovelFireProvider:  MainAPI() {
                 }
                 else if(span.text().contains("Views")){
                     this.views = span.selectFirst("strong")?.ownText()?.trim()?.let {
-                                if(it.contains("k",true)) it.replace("k","", true).toFloatOrNull()?.times(1000)?.roundToInt()
-                                else if(it.contains("m",true)) it.replace("m","", true).toFloatOrNull()?.times(1000000)?.roundToInt()
-                                else it.toIntOrNull()
-                            }
+                        if(it.contains("k",true)) it.replace("k","", true).toFloatOrNull()?.times(1000)?.roundToInt()
+                        else if(it.contains("m",true)) it.replace("m","", true).toFloatOrNull()?.times(1000000)?.roundToInt()
+                        else it.toIntOrNull()
+                    }
                 }
             }
 
@@ -209,11 +209,15 @@ class NovelFireProvider:  MainAPI() {
     }
 
     override suspend fun loadHtml(url: String): String? {
-        val fullUrl = fixUrl(url)
-        val document = app.get(fullUrl).document
-        val contentElement = document.selectFirst("div#content")
-        contentElement?.select("img[src*=disable-blocker.jpg]")?.forEach { it.remove() }
-        return contentElement?.html()
+        val document = app.get(url).document
+        val title = document.selectFirst("span.chapter-title") ?: return null
+        val contentElement = document.selectFirst("div#content")?.apply {
+            selectFirst("p")?.let {
+                if(it.text().trim() == title.text().trim()) it.remove()
+            }
+            select("img[src*=disable-blocker.jpg]").forEach { it.remove() }
+        } ?: return null
+        return title.outerHtml() + contentElement.html()
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
