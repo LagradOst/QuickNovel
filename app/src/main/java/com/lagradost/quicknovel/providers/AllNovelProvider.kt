@@ -25,6 +25,15 @@ open class AllNovelProvider : MainAPI() {
 
     open val ajaxUrl = "ajax-chapter-option"
 
+    private val movilUserAgent = mapOf(
+        "user-agent" to "Mozilla/5.0 (Linux; Android 13; SM-A205U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Mobile Safari/537.36"
+    )
+    private val pcUserAgent = mapOf(
+        "user-agent" to "Mozilla/5.0"
+    )
+
+    open val requireMobilUserAgent = false
+
     override val tags = listOf(
         "All" to "All",
         "Shounen" to "Shounen",
@@ -106,7 +115,7 @@ open class AllNovelProvider : MainAPI() {
     ): HeadMainPageResponse {
         val url =
             if (orderBy == "" && tag != "All") "$mainUrl/genre/$tag?page=$page" else "$mainUrl/${if (orderBy.isNullOrBlank()) "hot-novel" else orderBy}?page=$page"
-        val document = app.get(url).document
+        val document = app.get(url, headers = if(requireMobilUserAgent) movilUserAgent else pcUserAgent).document
 
         return HeadMainPageResponse(
             url,
@@ -146,8 +155,10 @@ open class AllNovelProvider : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val document =
-            app.get("$mainUrl/search?keyword=$query").document // AJAX, MIGHT ADD QUICK SEARCH
-
+            if(requireMobilUserAgent)
+                 app.get("$mainUrl/search?keyword=$query", headers =  movilUserAgent).document
+             else
+                app.get("$mainUrl/search?keyword=$query").document// AJAX, MIGHT ADD QUICK SEARCH
         return document.select("#list-page>.archive>.list>.row").mapNotNull { h ->
             val title = h.selectFirst(">div>div>.truyen-title>a")
                 ?: h.selectFirst(">div>div>.novel-title>a") ?: return@mapNotNull null
