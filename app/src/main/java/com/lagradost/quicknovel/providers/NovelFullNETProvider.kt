@@ -8,6 +8,6 @@ class NovelFullNETProvider: AllNovelProvider() {
     override val mainUrl = "https://novelfull.net"
     override val hasMainPage = false
     override val iconId = R.drawable.icon_novelfull
-
     override val iconBackgroundId = R.color.white
+    override val requireMobilUserAgent = true
 }

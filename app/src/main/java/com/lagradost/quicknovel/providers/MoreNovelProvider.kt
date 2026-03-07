@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.providers
 
+import android.R.attr.text
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
@@ -10,7 +11,7 @@ import kotlin.text.toFloat
 
 open class MoreNovelProvider : MainAPI() {
     override val name = "MoreNovel"
-    override val mainUrl = "https://risenovel.com" // domain change
+    override val mainUrl = "https://vanovel.com" // domain change
     override val iconId = R.drawable.ic_morenovel
     override val lang = "id"//indonesian
     override val mainCategories = listOf(
@@ -156,9 +157,12 @@ open class MoreNovelProvider : MainAPI() {
         }
     }
 
-    fun getChapters(text: String): List<ChapterData> {
-        val document = Jsoup.parse(text)
-        val data: java.util.ArrayList<ChapterData> = ArrayList()
+    suspend fun getChapters(url: String): List<ChapterData> {
+
+        val document = app.post(
+            "${url}ajax/chapters/",
+        ).document
+        val data: ArrayList<ChapterData> = ArrayList()
         val chapterHeaders = document.select("ul.version-chap li.wp-manga-chapter")
         for (c in chapterHeaders) {
             val header = c.selectFirst("> a")
@@ -179,11 +183,7 @@ open class MoreNovelProvider : MainAPI() {
                 ?.replace("\n", "")
                 ?.replace("\t", "") ?: return null
 
-        val data = getChapters(
-            app.post(
-                "${url}ajax/chapters/",
-            ).text
-        )
+        val data = getChapters(url)
 
         return newStreamResponse(url = url, name = name, data = data) {
             tags = document.select("div.genres-content a").map { it.text() }

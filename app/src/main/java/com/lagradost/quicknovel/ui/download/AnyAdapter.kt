@@ -8,7 +8,6 @@ import android.view.animation.DecelerateInterpolator
 import android.widget.LinearLayout
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
-import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BookDownloader2.preloadPartialImportedPdf
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
@@ -23,6 +22,7 @@ import com.lagradost.quicknovel.databinding.HistoryResultCompactBinding
 import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
+import com.lagradost.quicknovel.ui.newSharedPool
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import com.lagradost.quicknovel.util.UIHelper.hideKeyboard
@@ -51,9 +51,9 @@ class AnyAdapter(
 ) {
     companion object {
         val sharedPool =
-            RecyclerView.RecycledViewPool().apply {
-                this.setMaxRecycledViews(RESULT_CACHED, 20)
-                this.setMaxRecycledViews(DOWNLOAD_DATA_LOADED, 20)
+            newSharedPool {
+                setMaxRecycledViews(RESULT_CACHED, 20)
+                setMaxRecycledViews(DOWNLOAD_DATA_LOADED, 20)
             }
 
         const val RESULT_CACHED: Int = 1
@@ -67,8 +67,6 @@ class AnyAdapter(
             else -> 0L
         }
     }
-
-
 
 
     override fun onCreateFooter(parent: ViewGroup): ViewHolderState<Any> {
@@ -179,7 +177,11 @@ class AnyAdapter(
                 view.apply {
                     imageText.text = card.name
                     historyExtraText.text =
-                        "${card.lastChapterRead}/${card.currentTotalChapters} ${root.context.getString(R.string.read_action_chapters)}"
+                        "${card.lastChapterRead}/${card.currentTotalChapters} ${
+                            root.context.getString(
+                                R.string.read_action_chapters
+                            )
+                        }"
 
                     imageView.setImage(card.poster)
 
@@ -245,6 +247,8 @@ class AnyAdapter(
                             //end
                             imageView.alpha = if (isAPdfDownloading) 0.6f else 1.0f
                             imageView.setImage(item.image)
+
+                            progressReading.isVisible = false
                         }
                     }
 
@@ -272,7 +276,8 @@ class AnyAdapter(
                             imageText.text = item.name
                             imageTextMore.isVisible = false
 
-                            progressReading.text = "${item.lastChapterRead}/${item.currentTotalChapters}"
+                            progressReading.text =
+                                "${item.lastChapterRead}/${item.currentTotalChapters}"
                         }
                     }
 
