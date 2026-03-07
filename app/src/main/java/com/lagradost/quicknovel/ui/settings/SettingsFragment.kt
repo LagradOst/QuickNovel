@@ -433,8 +433,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 false,
                 {}) {
                 try {
-                    AnyAdapter.sharedPool.clear()
-                    HistoryAdapter.sharedPool.clear()
+                    //AnyAdapter.sharedPool.clear()
+                    //HistoryAdapter.sharedPool.clear()
 
                     settingsManager.edit {
                         putString(getString(R.string.theme_key), prefValues[it])

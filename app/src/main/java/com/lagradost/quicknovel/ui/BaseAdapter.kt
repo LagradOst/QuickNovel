@@ -24,9 +24,15 @@ abstract class NoStateAdapter<T : Any>(
     diffCallback: DiffUtil.ItemCallback<T> = BaseDiffCallback()
 ) : BaseAdapter<T, Any>(0, diffCallback)
 
+/** Creates a new shared pool, using the supplied lambda as a constructor.
+ *
+ * The reason for this complicated structure is that a pool should not be shared between contexts
+ * as it makes coil fuck up, and theming wrong.
+ * */
 fun newSharedPool(lambda: RecyclerView.RecycledViewPool.() -> Unit = { }): Pair<WeakHashMap<Context, RecyclerView.RecycledViewPool>, RecyclerView.RecycledViewPool.() -> Unit> =
     WeakHashMap<Context, RecyclerView.RecycledViewPool>() to lambda
 
+/** Sets the shared pool of the recyclerview */
 fun RecyclerView.setRecycledViewPool(pool: Pair<WeakHashMap<Context, RecyclerView.RecycledViewPool>, RecyclerView.RecycledViewPool.() -> Unit>) {
     val ctx = context ?: return
     synchronized(pool.first) {
@@ -36,6 +42,7 @@ fun RecyclerView.setRecycledViewPool(pool: Pair<WeakHashMap<Context, RecyclerVie
     }
 }
 
+/** Clears the shared pool of views */
 fun Pair<WeakHashMap<Context, RecyclerView.RecycledViewPool>, RecyclerView.RecycledViewPool.() -> Unit>.clear() {
     synchronized(this.first) {
         for (pool in this.first.values) {

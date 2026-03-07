@@ -4,12 +4,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.databinding.SearchResultGridBinding
 import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
+import com.lagradost.quicknovel.ui.newSharedPool
 import com.lagradost.quicknovel.util.UIHelper.hideKeyboard
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.widget.AutofitRecyclerView
@@ -27,8 +27,8 @@ class SearchAdapter(
 
     companion object {
         val sharedPool =
-            RecyclerView.RecycledViewPool().apply {
-                this.setMaxRecycledViews(CONTENT, 10)
+            newSharedPool {
+                setMaxRecycledViews(CONTENT, 10)
             }
     }
 

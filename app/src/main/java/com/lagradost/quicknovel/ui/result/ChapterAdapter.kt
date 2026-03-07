@@ -3,12 +3,12 @@ package com.lagradost.quicknovel.ui.result
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.view.isGone
-import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.databinding.SimpleChapterBinding
 import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
+import com.lagradost.quicknovel.ui.newSharedPool
 
 class ChapterAdapter(val viewModel: ResultViewModel) :
     NoStateAdapter<ChapterData>(
@@ -19,8 +19,8 @@ class ChapterAdapter(val viewModel: ResultViewModel) :
 
     companion object {
         val sharedPool =
-            RecyclerView.RecycledViewPool().apply {
-                this.setMaxRecycledViews(CONTENT, 10)
+            newSharedPool {
+                setMaxRecycledViews(CONTENT, 10)
             }
     }
 

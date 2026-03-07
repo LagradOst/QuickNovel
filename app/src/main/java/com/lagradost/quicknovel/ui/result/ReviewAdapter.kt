@@ -3,7 +3,6 @@ package com.lagradost.quicknovel.ui.result
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.view.isGone
-import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipDrawable
 import com.lagradost.quicknovel.R
@@ -12,6 +11,7 @@ import com.lagradost.quicknovel.databinding.ResultReviewBinding
 import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
+import com.lagradost.quicknovel.ui.newSharedPool
 import com.lagradost.quicknovel.util.SettingsHelper.getRatingReview
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.html
@@ -26,8 +26,8 @@ class ReviewAdapter :
 
     companion object {
         val sharedPool =
-            RecyclerView.RecycledViewPool().apply {
-                this.setMaxRecycledViews(CONTENT, 10)
+            newSharedPool {
+                setMaxRecycledViews(CONTENT, 10)
             }
     }
 
