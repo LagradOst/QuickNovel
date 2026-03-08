@@ -4,7 +4,6 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.core.view.isVisible
-import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.SearchResponse
@@ -13,6 +12,7 @@ import com.lagradost.quicknovel.databinding.SearchResultGridBinding
 import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
+import com.lagradost.quicknovel.ui.newSharedPool
 import com.lagradost.quicknovel.util.UIHelper.hideKeyboard
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.util.toPx
@@ -29,8 +29,8 @@ class MainAdapter(
 })) {
     companion object {
         val sharedPool =
-            RecyclerView.RecycledViewPool().apply {
-                this.setMaxRecycledViews(CONTENT, 10)
+            newSharedPool {
+                setMaxRecycledViews(CONTENT, 10)
             }
     }
 
