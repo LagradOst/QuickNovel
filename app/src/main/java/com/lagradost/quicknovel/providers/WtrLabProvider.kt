@@ -1,29 +1,19 @@
 package com.lagradost.quicknovel.providers
 
-import android.graphics.ColorSpace.match
 import android.util.Base64
-import android.util.Log
-import android.webkit.CookieManager
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
-import com.lagradost.nicehttp.NiceResponse
-import com.lagradost.nicehttp.Requests
-import com.lagradost.nicehttp.ResponseParser
-import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
+import com.lagradost.quicknovel.MainActivity.Companion.appWithInterceptor
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
+import com.lagradost.quicknovel.setStatus
 import com.lagradost.quicknovel.setStatus
 import com.lagradost.quicknovel.toRate
 import com.lagradost.quicknovel.util.AppUtils.parseJson
@@ -39,7 +29,8 @@ class WtrLabProvider : MainAPI() {
     override val hasReviews = false
     override val mainUrl = "https://wtr-lab.com"
     override val name = "WTR-LAB"
-    override val usesCloudFlareKiller = false
+    override val usesCloudFlareKiller = true
+
 
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/en/novel-finder?text=${query.replace(" ", "+")}"
@@ -101,29 +92,6 @@ class WtrLabProvider : MainAPI() {
                 chaptersJson.props.pageProps.serie.serieData.rawChapterCount
             )
         )
-
-        /*
-        val chunks = chaptersJson.props.pageProps.serie.serieData.rawChapterCount / 250
-        val tail = chaptersJson.props.pageProps.serie.serieData.rawChapterCount % 250
-        for (chunk in 0 until chunks) {
-            chapters.addAll(getChapterRange(url, chaptersJson, chunk * 250 + 1, chunk * 250 + 250))
-        }
-        if (tail > 0) {
-            chapters.addAll(
-                getChapterRange(
-                    url,
-                    chaptersJson,
-                    chunks * 250 + 1,
-                    chunks * 250 + tail
-                )
-            )
-        }*/
-
-        /*doc.select(".toc-list > .chapter-item").map { select ->
-            val href = select.attr("href") ?: throw ErrorLoadingException("No href on $select")
-            val chapterTitle = select.selectFirst("span")?.text() ?: select.text()
-            newChapterData(chapterTitle, href)
-        }*/
         return newStreamResponse(title, url, chapters) {
             synopsis = doc.selectFirst(".desc-wrap")?.text()
             posterUrl = fixUrlNull(doc.selectFirst(".image-wrap > img")?.attr("src"))
@@ -149,25 +117,27 @@ class WtrLabProvider : MainAPI() {
         }
     }
 
+
     override suspend fun loadHtml(url: String): String {
-        val doc = app.get(url).document
+        val doc = appWithInterceptor.get(url).document
         val jsonNode = doc.selectFirst("#__NEXT_DATA__")
         val json = jsonNode?.data() ?: throw ErrorLoadingException("no chapters")
         val chaptersJson = parseJson<LoadJsonResponse.Root>(json)
         val text = StringBuilder()
         val chapter = chaptersJson.props.pageProps.serie
 
-        val root = app.post(
-            "$mainUrl/api/reader/get", data = mapOf(
-                "chapter_id" to chapter.chapter.id.toString(),
-                "chapter_no" to chapter.serieData.slug.toString(),
-                "force_retry" to "false",
-                "language" to "en",
-                "raw_id" to chapter.serieData.rawId.toString(),
-                "retry" to "false",
-                "translate" to "web", // translate=ai just returns a job and I am too lazy to fix that
+        val root = appWithInterceptor.post(
+                "$mainUrl/api/reader/get", data = mapOf(
+                    "chapter_id" to chapter.chapter.id.toString(),
+                    "chapter_no" to chapter.serieData.slug.toString(),
+                    "force_retry" to "false",
+                    "language" to "en",
+                    "raw_id" to chapter.serieData.rawId.toString(),
+                    "retry" to "false",
+                    "translate" to "web",
                 )
-        ).parsed<LoadJsonResponse2.Root>()
+            ).parsed<LoadJsonResponse2.Root>()
+
         val paragraphs = decryptContent(root.data.data.body)
 
         for (p in paragraphs) {
@@ -176,13 +146,7 @@ class WtrLabProvider : MainAPI() {
             text.append("</p>")
         }
 
-        /*for (select in doc.select(".chapter-body>p")) {
-            if (select.ownText().contains("window._taboola")) {
-                select.remove()
-            }
-        }*/
-
-        return text.toString()//doc.selectFirst(".chapter-body")?.html()
+        return text.toString()
     }
 
     fun decryptContent(encryptedText: String): List<String> {
@@ -226,8 +190,6 @@ class WtrLabProvider : MainAPI() {
             listOf(decryptedText)
         }
     }
-
-
 }
 
 object ResultChaptersJsonResponse {

@@ -15,6 +15,7 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Request
 import okhttp3.Response
+import java.io.ByteArrayInputStream
 import java.net.URI
 
 /**
@@ -31,6 +32,23 @@ class WebViewResolver(
     val useOkhttp: Boolean = true
 ) :
     Interceptor {
+    private val blockedTrackerHosts = listOf(
+        "google-analytics.com",
+        "googletagmanager.com",
+        "googlesyndication.com",
+        "doubleclick.net",
+        "adtrafficquality.google",
+        "sharethis.com",
+        "count-server.sharethis.com",
+        "fundingchoicesmessages.google.com"
+    )
+
+    private fun isBlockedTrackerUrl(url: String): Boolean {
+        val host = runCatching { URI(url).host?.lowercase() }.getOrNull() ?: return false
+        return blockedTrackerHosts.any { blocked ->
+            host == blocked || host.endsWith(".$blocked")
+        }
+    }
 
     companion object {
         var webViewUserAgent: String? = null
@@ -124,6 +142,14 @@ class WebViewResolver(
                         request: WebResourceRequest
                     ): WebResourceResponse? = runBlocking {
                         val webViewUrl = request.url.toString()
+                        if (isBlockedTrackerUrl(webViewUrl)) {
+                            return@runBlocking WebResourceResponse(
+                                "text/plain",
+                                "utf-8",
+                                ByteArrayInputStream(ByteArray(0))
+                            )
+                        }
+
                         println("Loading WebView URL: $webViewUrl")
 
                         if (interceptUrl.containsMatchIn(webViewUrl)) {

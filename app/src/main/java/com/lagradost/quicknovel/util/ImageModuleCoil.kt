@@ -3,7 +3,6 @@ package com.lagradost.cloudstream3.utils
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import android.net.Uri
-import android.os.Build.VERSION.SDK_INT
 import android.util.Log
 import android.widget.ImageView
 import androidx.annotation.DrawableRes
@@ -11,7 +10,6 @@ import coil3.EventListener
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
-import coil3.asImage
 import coil3.disk.DiskCache
 import coil3.dispose
 import coil3.load
@@ -24,21 +22,36 @@ import coil3.request.ErrorResult
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.request.crossfade
-import coil3.result
 import coil3.util.DebugLogger
 import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.BuildConfig
-import com.lagradost.quicknovel.USER_AGENT
 import com.lagradost.quicknovel.ui.UiImage
-import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import okhttp3.HttpUrl
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
+import okhttp3.Response
 import okio.Path.Companion.toOkioPath
-import org.commonmark.internal.Bracket.image
 import java.io.File
 import java.nio.ByteBuffer
 
 // Taken from cs3
+
+
+//this is for ReadOnlineFreeBookProvider
+class Ignore500Interceptor : Interceptor
+{
+    override fun intercept(chain: Interceptor.Chain): Response
+    {
+        val response = chain.proceed(chain.request())
+        if (response.code == 500) {
+            return response.newBuilder()
+                .code(200)
+                .message("Forced OK from 500")
+                .build()
+        }
+        return response
+    }
+}
 object ImageLoader {
 
     private const val TAG = "CoilImgLoader"
@@ -64,6 +77,7 @@ object ImageLoader {
             .components { add(OkHttpNetworkFetcherFactory(callFactory = { OkHttpClient()
                 .newBuilder()
                 .ignoreAllSSLErrors()
+                .addInterceptor(Ignore500Interceptor())
                 .build() })) }
             .also {
                 it.setupCoilLogger()
