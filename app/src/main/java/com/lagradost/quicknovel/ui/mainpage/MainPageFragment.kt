@@ -19,6 +19,7 @@ import com.lagradost.quicknovel.databinding.FragmentMainpageBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.mvvm.observeNullable
+import com.lagradost.quicknovel.ui.setRecycledViewPool
 import com.lagradost.quicknovel.util.SingleSelectionHelper.showDialog
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 

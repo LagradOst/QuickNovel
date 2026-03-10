@@ -11,6 +11,7 @@ import androidx.fragment.app.viewModels
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.FragmentHistoryBinding
 import com.lagradost.quicknovel.mvvm.observe
+import com.lagradost.quicknovel.ui.setRecycledViewPool
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 

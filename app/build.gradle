@@ -40,6 +40,10 @@ android {
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+        Release2 {
+        applicationIdSuffix 'com.lagradost.quicknovel2'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
     }
 
     buildFeatures.buildConfig true
@@ -103,6 +107,7 @@ dependencies {
 
     implementation 'com.github.Blatzar:NiceHttp:0.4.16'
     implementation "io.coil-kt.coil3:coil:3.3.0"
+    implementation("io.coil-kt.coil3:coil-network-ktor3:3.3.0")
     implementation "io.coil-kt.coil3:coil-network-okhttp:3.3.0"
 
     //implementation "io.noties.markwon:image-coil:4.6.2" we need to fork this
@@ -115,7 +120,7 @@ dependencies {
 
     //to read PDFs
     implementation 'com.tom-roush:pdfbox-android:2.0.27.0'
-
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 
 
 

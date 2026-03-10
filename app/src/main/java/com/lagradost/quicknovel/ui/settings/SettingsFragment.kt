@@ -23,6 +23,7 @@ import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.LogcatBinding
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.safe
+import com.lagradost.quicknovel.ui.clear
 import com.lagradost.quicknovel.ui.download.AnyAdapter
 import com.lagradost.quicknovel.ui.history.HistoryAdapter
 import com.lagradost.quicknovel.ui.txt
@@ -432,8 +433,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 false,
                 {}) {
                 try {
-                    AnyAdapter.sharedPool.clear()
-                    HistoryAdapter.sharedPool.clear()
+                    //AnyAdapter.sharedPool.clear()
+                    //HistoryAdapter.sharedPool.clear()
 
                     settingsManager.edit {
                         putString(getString(R.string.theme_key), prefValues[it])

@@ -13,6 +13,7 @@ import com.lagradost.quicknovel.databinding.ViewpagerPageBinding
 import com.lagradost.quicknovel.ui.BaseAdapter
 import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.ViewHolderState
+import com.lagradost.quicknovel.ui.setRecycledViewPool
 import com.lagradost.quicknovel.util.SettingsHelper.getDownloadIsCompact
 import com.lagradost.quicknovel.widget.AutofitRecyclerView
 import java.lang.ref.WeakReference

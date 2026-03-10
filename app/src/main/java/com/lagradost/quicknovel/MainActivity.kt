@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.content.res.Configuration
@@ -77,6 +78,7 @@ import com.lagradost.safefile.SafeFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
+import java.io.File
 import java.lang.ref.WeakReference
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
@@ -90,7 +92,11 @@ class MainActivity : AppCompatActivity() {
             private set(value) {
                 _mainActivity = WeakReference(value)
             }
-
+//new
+        val filesDirSafe: File
+            get() = _mainActivity?.get()?.filesDir
+                ?: throw IllegalStateException("MainActivity not initialized yet")
+//end
         fun loadPreviewPage(searchResponse: SearchResponse) {
             mainActivity?.loadPopup(searchResponse.url, searchResponse.apiName)
         }
@@ -138,7 +144,9 @@ class MainActivity : AppCompatActivity() {
         ).apply {
             defaultHeaders = mapOf("user-agent" to USER_AGENT)
         }
-
+//NEW
+        lateinit var context: Context
+//END
 
         // === API ===
         lateinit var navOptions: NavOptions
@@ -501,6 +509,9 @@ class MainActivity : AppCompatActivity() {
         CommonActivity.init(this)
 
         super.onCreate(savedInstanceState)
+//NEW
+        context = applicationContext // Safe!
+//END
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding!!.root)
 

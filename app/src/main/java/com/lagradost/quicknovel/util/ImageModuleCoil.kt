@@ -32,7 +32,9 @@ import com.lagradost.quicknovel.USER_AGENT
 import com.lagradost.quicknovel.ui.UiImage
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import okhttp3.HttpUrl
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
+import okhttp3.Response
 import okio.Path.Companion.toOkioPath
 import org.commonmark.internal.Bracket.image
 import java.io.File
@@ -42,6 +44,36 @@ import java.nio.ByteBuffer
 object ImageLoader {
 
     private const val TAG = "CoilImgLoader"
+
+//new 
+//coil 400
+class UserAgentInterceptor(
+    private val userAgent: String = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+) : Interceptor {
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val originalRequest = chain.request()
+        val requestWithHeaders = originalRequest.newBuilder()
+            .header("User-Agent", userAgent)
+            .build()
+        return chain.proceed(requestWithHeaders)
+    }
+}
+//coil 500
+class Ignore500Interceptor : Interceptor
+{
+    override fun intercept(chain: Interceptor.Chain): Response
+    {
+        val response = chain.proceed(chain.request())
+        if (response.code == 500) {
+            return response.newBuilder()
+                .code(200)
+                .message("Forced OK from 500")
+                .build()
+        }
+        return response
+    }
+}
+//end
 
     internal fun buildImageLoader(context: PlatformContext): ImageLoader = ImageLoader.Builder(context)
             .crossfade(200)
@@ -64,6 +96,18 @@ object ImageLoader {
             .components { add(OkHttpNetworkFetcherFactory(callFactory = { OkHttpClient()
                 .newBuilder()
                 .ignoreAllSSLErrors()
+//new
+            .addInterceptor(UserAgentInterceptor())
+            .addInterceptor(Ignore500Interceptor())        
+/* .addInterceptor { chain ->
+                    val originalRequest = chain.request()
+                    val requestWithHeaders = originalRequest.newBuilder()
+                        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                        .build()
+                    chain.proceed(requestWithHeaders)
+                }*/
+       
+//end
                 .build() })) }
             .also {
                 it.setupCoilLogger()

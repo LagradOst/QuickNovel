@@ -2,12 +2,12 @@ package com.lagradost.quicknovel.ui.search
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.recyclerview.widget.RecyclerView
 import com.lagradost.quicknovel.HomePageList
 import com.lagradost.quicknovel.databinding.HomepageParentBinding
 import com.lagradost.quicknovel.ui.BaseDiffCallback
 import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
+import com.lagradost.quicknovel.ui.newSharedPool
 
 class ParentItemAdapter(
     private val viewModel: SearchViewModel
@@ -20,8 +20,8 @@ class ParentItemAdapter(
 
     companion object {
         val sharedPool =
-            RecyclerView.RecycledViewPool().apply {
-                this.setMaxRecycledViews(CONTENT, 10)
+            newSharedPool {
+                setMaxRecycledViews(CONTENT, 10)
             }
     }
 

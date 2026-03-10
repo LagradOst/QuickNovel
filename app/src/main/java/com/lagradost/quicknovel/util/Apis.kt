@@ -10,75 +10,85 @@ import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.providers.AllNovelProvider
-import com.lagradost.quicknovel.providers.AnnasArchive
-import com.lagradost.quicknovel.providers.BestLightNovelProvider
+//import com.lagradost.quicknovel.providers.AnnasArchive
+//import com.lagradost.quicknovel.providers.BestLightNovelProvider
+import com.lagradost.quicknovel.providers.FanmtlProvider
 import com.lagradost.quicknovel.providers.FreewebnovelProvider
-import com.lagradost.quicknovel.providers.GraycityProvider
-import com.lagradost.quicknovel.providers.HiraethTranslationProvider
+//import com.lagradost.quicknovel.providers.GraycityProvider
+//import com.lagradost.quicknovel.providers.HiraethTranslationProvider
 import com.lagradost.quicknovel.providers.IndoWebNovelProvider
 import com.lagradost.quicknovel.providers.KolNovelProvider
+import com.lagradost.quicknovel.providers.LightNovelTranslationsProvider
 import com.lagradost.quicknovel.providers.LibReadProvider
+//import com.lagradost.quicknovel.providers.LnMtlProvider
 import com.lagradost.quicknovel.providers.MeioNovelProvider
 import com.lagradost.quicknovel.providers.MoreNovelProvider
 import com.lagradost.quicknovel.providers.MtlNovelProvider
+import com.lagradost.quicknovel.providers.MtlbooksProvider
+import com.lagradost.quicknovel.providers.MVLEmpyrProvider
 import com.lagradost.quicknovel.providers.NovLoveProvider
 import com.lagradost.quicknovel.providers.NovelBinProvider
+import com.lagradost.quicknovel.providers.NovelFireProvider
 import com.lagradost.quicknovel.providers.NovelFullNETProvider
 import com.lagradost.quicknovel.providers.NovelFullProvider
+import com.lagradost.quicknovel.providers.NovelHallProvider
 import com.lagradost.quicknovel.providers.NovelsOnlineProvider
-import com.lagradost.quicknovel.providers.PawReadProver
+//import com.lagradost.quicknovel.providers.PawReadProver
 import com.lagradost.quicknovel.providers.ReadNovelFullProvider
-import com.lagradost.quicknovel.providers.ReadfromnetProvider
+import com.lagradost.quicknovel.providers.ReadOnlineFreeBookProvider
+//import com.lagradost.quicknovel.providers.ReadfromnetProvider
 import com.lagradost.quicknovel.providers.RedditProvider
-import com.lagradost.quicknovel.providers.RoyalRoadProvider
+//import com.lagradost.quicknovel.providers.RoyalRoadProvider
 import com.lagradost.quicknovel.providers.SakuraNovelProvider
 import com.lagradost.quicknovel.providers.ScribblehubProvider
+import com.lagradost.quicknovel.providers.SonicMTLProvider
+import com.lagradost.quicknovel.providers.WebNovelProvider
+import com.lagradost.quicknovel.providers.WebnovelFanficProvider
+import com.lagradost.quicknovel.providers.WuxiaBoxProvider
+//import com.lagradost.quicknovel.providers.WuxiaWorldProvider
 import com.lagradost.quicknovel.providers.WtrLabProvider
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 
 class Apis {
     companion object {
         val apis: List<MainAPI> = arrayOf(
-            //AllProvider(),
-            //NovelPassionProvider(), // Site gone
-            //BestLightNovelProvider(), //dont exist anymore
-            //WuxiaWorldOnlineProvider(), // Site does not work
-            RoyalRoadProvider(),
+           // RoyalRoadProvider(),
             NovelFullNETProvider(),
-            HiraethTranslationProvider(),
+            //HiraethTranslationProvider(),
             LibReadProvider(),
             FreewebnovelProvider(),
-            //AzynovelProvider(), // dont exist anymore
-            ReadfromnetProvider(),
+            //ReadfromnetProvider(),
             AllNovelProvider(),
-            //RanobesProvider(), // custom capcha
             NovelFullProvider(),
             NovelBinProvider(),
-            //MNovelFreeProvider(), // same as NovelFullVipProvider
-            //EngNovelProvider(),
             NovelsOnlineProvider(),
-            //EfremnetProvider(), // domain is expired
-            GraycityProvider(),
+            //GraycityProvider(),
             MtlNovelProvider(),
-            AnnasArchive(),
-            // chapter captcha
-            // WuxiaWorldSiteProvider(),
-            //ReadLightNovelProvider(), // NOT WORKING?
+            //AnnasArchive(),
             NovLoveProvider(),
-            // ComrademaoProvider(), // domain sold/down?
-            // LightNovelPubProvider(), // Got cloudflare, but probably bypassable
             ReadNovelFullProvider(),
+            ReadOnlineFreeBookProvider(),
             ScribblehubProvider(),
             KolNovelProvider(),
-            //RewayatArProvider(), // removed url
-            //ReadAnyBookProvider(), // Books locked behind login
             MeioNovelProvider(),
             MoreNovelProvider(), // cloudflare?
             IndoWebNovelProvider(),
             SakuraNovelProvider(), // cloudflare?
-            // WattpadProvider(), // they have randomized the css classes
             WtrLabProvider(),
-            PawReadProver()
+            //PawReadProver(),
+//new
+            FanmtlProvider(),            
+            LightNovelTranslationsProvider(),
+            MtlbooksProvider(),
+            MVLEmpyrProvider(),
+            NovelFireProvider(),
+            NovelHallProvider(),
+           // WuxiaWorldProvider(),
+            SonicMTLProvider(),
+            WuxiaBoxProvider(),
+            WebnovelFanficProvider(),
+            WebNovelProvider()
+//end
         ).sortedBy { it.name }
 
         fun getApiFromName(name: String): APIRepository {
