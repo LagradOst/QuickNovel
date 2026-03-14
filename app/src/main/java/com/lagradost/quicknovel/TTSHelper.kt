@@ -549,7 +549,7 @@ object TTSHelper {
         // REMOVE USELESS STUFF THAT WONT BE USED IN A NORMAL TXT
         document.select("style").remove()
         document.select("script").remove()
-
+        document.select("img").removeAttr("alt")
         //This is for poorly generated epubs
         val titleElement = document.selectFirst("title")
         if (titleElement != null) {

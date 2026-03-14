@@ -1082,15 +1082,25 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                         }
                     } else {
                         updateFromCode = false
+                        onScroll()
                     }
 
-                    onScroll()
                     super.onScrolled(recyclerView, dx, dy)
 
                     // binding.tmpTtsEnd.fixLine((getBottomY()- remainingBottom) + 7.toPx)
                     // binding.tmpTtsStart.fixLine(remainingTop + 7.toPx)
+
+                }
+
+                //this is to reduce onScroll calls
+                override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                    super.onScrollStateChanged(recyclerView, newState)
+                    if(newState == RecyclerView.SCROLL_STATE_SETTLING || newState == RecyclerView.SCROLL_STATE_IDLE){
+                        onScroll()
+                    }
                 }
             })
+
         }
 
         //here inserted novel chapter text into recyclerview
