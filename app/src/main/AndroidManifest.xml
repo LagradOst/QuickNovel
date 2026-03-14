@@ -173,6 +173,11 @@
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
+                    android:host="readonlinefreebook.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+
+                <data
                     android:host="www.royalroad.com"
                     android:pathPrefix="/fiction"
                     android:scheme="https" />
