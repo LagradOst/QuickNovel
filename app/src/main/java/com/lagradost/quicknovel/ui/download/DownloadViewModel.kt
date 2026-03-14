@@ -518,7 +518,6 @@ class DownloadViewModel : ViewModel() {
         BookDownloader2.downloadProgressChanged += ::progressChanged
         BookDownloader2.downloadDataRefreshed += ::downloadDataRefreshed
         BookDownloader2.downloadRemoved += ::downloadRemoved
-        //BookDownloader2.readingProgressChanged += :: readingProgressChanged
     }
 
     override fun onCleared() {
@@ -527,7 +526,6 @@ class DownloadViewModel : ViewModel() {
         BookDownloader2.downloadDataChanged -= ::progressDataChanged
         BookDownloader2.downloadDataRefreshed -= ::downloadDataRefreshed
         BookDownloader2.downloadRemoved -= ::downloadRemoved
-        //BookDownloader2.readingProgressChanged -= :: readingProgressChanged
     }
 
     val activeRefreshTabs = mutableSetOf<Int>()
