@@ -51,6 +51,7 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_1_9.toString()
+        freeCompilerArgs = ['-XXLanguage:+PropertyParamAnnotationDefaultTargetMode']
     }
     namespace 'com.lagradost.quicknovel'
 }

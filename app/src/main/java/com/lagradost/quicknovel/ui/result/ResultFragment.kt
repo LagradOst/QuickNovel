@@ -1,13 +1,12 @@
 package com.lagradost.quicknovel.ui.result
 
 import android.animation.ObjectAnimator
+import android.annotation.SuppressLint
 import android.content.DialogInterface
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.widget.LinearLayout
 import androidx.appcompat.app.AlertDialog
@@ -16,15 +15,12 @@ import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
 import androidx.core.widget.NestedScrollView
 import androidx.core.widget.doOnTextChanged
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipDrawable
 import com.google.android.material.tabs.TabLayout
-import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.LoadResponse
@@ -38,6 +34,7 @@ import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.debugException
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.mvvm.observeNullable
+import com.lagradost.quicknovel.ui.BaseFragment
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.SortingMethodAdapter
 import com.lagradost.quicknovel.ui.mainpage.MainAdapter
@@ -55,12 +52,12 @@ import com.lagradost.quicknovel.util.UIHelper.humanReadableByteCountSI
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.util.toPx
-import kotlin.collections.toList
 
 const val MAX_SYNO_LENGH = 300
 
-class ResultFragment : Fragment() {
-    lateinit var binding: FragmentResultBinding
+class ResultFragment : BaseFragment<FragmentResultBinding>(
+    BindingCreator.Inflate(FragmentResultBinding::inflate)
+) {
     private val viewModel: ResultViewModel by viewModels()
 
     companion object {
@@ -74,51 +71,32 @@ class ResultFragment : Fragment() {
 
     }
 
-
-    //private lateinit var viewModel: ResultViewModel
-
-    val repo get() = viewModel.repo
-
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
-        binding = FragmentResultBinding.inflate(inflater)
-        return binding.root
-        //viewModel =
-        //    ViewModelProvider(this).get(ResultViewModel::class.java)
-        /*activity?.window?.setSoftInputMode(
-            WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
-        )*/
-
-        //return inflater.inflate(R.layout.fragment_result, container, false)
-    }
-    private fun setupGridView() {
+    override fun fixLayout(view: View) {
         val compactView = false //activity?.getGridIsCompact() ?: return
         val spanCountLandscape = if (compactView) 2 else 6
         val spanCountPortrait = if (compactView) 1 else 3
         val orientation = resources.configuration.orientation
         if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            binding.relatedList.spanCount = spanCountLandscape
+            binding?.relatedList?.spanCount = spanCountLandscape
         } else {
-            binding.relatedList.spanCount = spanCountPortrait
+            binding?.relatedList?.spanCount = spanCountPortrait
         }
-    }
-
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        super.onConfigurationChanged(newConfig)
-        setupGridView()
-        binding.resultHolder.post { // BUG FIX
+        binding?.resultHolder?.post { // BUG FIX
             updateScrollHeight()
         }
     }
 
+    //private lateinit var viewModel: ResultViewModel
+
+    val repo get() = viewModel.repo
+
+
+    @SuppressLint("NotifyDataSetChanged")
     override fun onResume() {
         super.onResume()
         //only if really is onResume
-        if(viewModel.isResume){
-            (binding.chapterList.adapter as? ChapterAdapter)?.notifyDataSetChanged()
+        if (viewModel.isResume) {
+            (binding?.chapterList?.adapter as? ChapterAdapter)?.notifyDataSetChanged()
             viewModel.isResume = false
         }
 
@@ -129,6 +107,7 @@ class ResultFragment : Fragment() {
     }
 
     private fun updateScrollHeight() {
+        val binding = binding ?: return
         val displayMetrics = context?.resources?.displayMetrics ?: return
         val total = displayMetrics.heightPixels - binding.resultDownloadCard.height
 
@@ -159,6 +138,7 @@ class ResultFragment : Fragment() {
 
     private fun newState(loadResponse: Resource<LoadResponse>?) {
         if (loadResponse == null) return
+        val binding = binding ?: return
         //activity?.window?.navigationBarColor =
         //    requireContext().colorFromAttribute(R.attr.bitDarkerGrayBackground)
 
@@ -239,7 +219,7 @@ class ResultFragment : Fragment() {
                                 adapter = mainPageAdapter
                                 mainPageAdapter.submitList(res.related)
                             }
-                            setupGridView()
+                            fixLayout(binding.root)
                         }
                         if (hasChapters) {
                             resultTabs.addTab(
@@ -487,9 +467,7 @@ class ResultFragment : Fragment() {
         return items
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
+    override fun onBindingCreated(binding: FragmentResultBinding, savedInstanceState: Bundle?) {
         val url = savedInstanceState?.getString("url") ?: arguments?.getString("url")
         ?: throw NotImplementedError()
         val apiName = savedInstanceState?.getString("apiName") ?: arguments?.getString("apiName")

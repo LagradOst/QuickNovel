@@ -2,15 +2,12 @@ package com.lagradost.quicknovel.ui.mainpage
 
 import android.content.res.Configuration
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.isGone
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -19,23 +16,16 @@ import com.lagradost.quicknovel.databinding.FragmentMainpageBinding
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.mvvm.observeNullable
+import com.lagradost.quicknovel.ui.BaseFragment
 import com.lagradost.quicknovel.ui.setRecycledViewPool
 import com.lagradost.quicknovel.util.SingleSelectionHelper.showDialog
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 
 
-class MainPageFragment : Fragment() {
-    lateinit var binding: FragmentMainpageBinding
+class MainPageFragment : BaseFragment<FragmentMainpageBinding>(
+    BindingCreator.Inflate(FragmentMainpageBinding::inflate)
+) {
     private val viewModel: MainPageViewModel by viewModels()
-
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
-        binding = FragmentMainpageBinding.inflate(inflater)
-        return binding.root
-    }
 
     companion object {
         fun newInstance(
@@ -67,27 +57,23 @@ class MainPageFragment : Fragment() {
 
     var isInSearch = false
 
-    private fun setupGridView() {
+    override fun fixLayout(view: View) {
         val compactView = false //activity?.getGridIsCompact() ?: return
         val spanCountLandscape = if (compactView) 2 else 6
         val spanCountPortrait = if (compactView) 1 else 3
         val orientation = resources.configuration.orientation
         if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            binding.mainpageList.spanCount = spanCountLandscape
+            binding?.mainpageList?.spanCount = spanCountLandscape
         } else {
-            binding.mainpageList.spanCount = spanCountPortrait
+            binding?.mainpageList?.spanCount = spanCountPortrait
         }
-    }
-
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        super.onConfigurationChanged(newConfig)
-        setupGridView()
     }
 
     lateinit var searchExitIcon: ImageView
     lateinit var searchMagIcon: ImageView
     private var lastId: Int = -1 // dirty fix
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    override fun onBindingCreated(binding: FragmentMainpageBinding, savedInstanceState: Bundle?) {
+
         val apiName = requireArguments().getString("apiName")!!
 
         defMainCategory = arguments?.getInt("mainCategory", 0)
@@ -183,7 +169,6 @@ class MainPageFragment : Fragment() {
             })
         }*/
 
-        setupGridView()
 
         binding.mainpageList.apply {
             setRecycledViewPool(MainAdapter.sharedPool)

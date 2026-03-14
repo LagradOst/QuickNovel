@@ -198,7 +198,7 @@ class MainActivity : AppCompatActivity() {
             for (api in apis) {
                 if (url.contains(api.mainUrl)) {
                     loadResult(url, api.name)
-                    return false
+                    return true
                 }
             }
 
