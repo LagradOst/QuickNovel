@@ -51,6 +51,7 @@ import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.mvvm.observeNullable
 import com.lagradost.quicknovel.mvvm.safe
+import com.lagradost.quicknovel.network.CloudflareKiller
 import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.download.DownloadFragment
@@ -111,7 +112,7 @@ class MainActivity : AppCompatActivity() {
             OkHttpClient()
                 .newBuilder()
                 .ignoreAllSSLErrors()
-                .readTimeout(50L, TimeUnit.SECONDS)//to online translations
+                .readTimeout(30L, TimeUnit.SECONDS)
                 .build(),
             responseParser = object : ResponseParser {
                 val mapper: ObjectMapper = jacksonObjectMapper().configure(
@@ -139,6 +140,16 @@ class MainActivity : AppCompatActivity() {
             defaultHeaders = mapOf("user-agent" to USER_AGENT)
         }
 
+        val appWithInterceptor by lazy {
+            Requests(
+                baseClient = app.baseClient.newBuilder()
+                    .addInterceptor(CloudflareKiller())
+                    .build(),
+                responseParser = app.responseParser
+            ).apply {
+                defaultHeaders = app.defaultHeaders
+            }
+        }
 
         // === API ===
         lateinit var navOptions: NavOptions
