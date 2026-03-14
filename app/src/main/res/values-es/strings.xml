@@ -86,7 +86,7 @@
 
     <!-- Estados de Lectura (Bookmark) -->
     <string name="type_reading">Leyendo</string>
-    <string name="type_on_hold">En espera</string>
+    <string name="type_on_hold">Postergado</string>
     <string name="type_completed">Completado</string>
     <string name="type_dropped">Abandonado</string>
     <string name="type_plan_to_read">Planeo leer</string>
