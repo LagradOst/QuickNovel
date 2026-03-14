@@ -20,6 +20,7 @@ Adfree FOSS Android app for downloading novels. It also functions as an Epub rea
 - https://lightnovelstranslations.com/Li
 - https://meionovels.com
 - https://risenovel.com
+- https://readonlinefreebook.com
 - https://www.mtlnovels.com
 - https://novelbin.com
 - https://novelfull.com
