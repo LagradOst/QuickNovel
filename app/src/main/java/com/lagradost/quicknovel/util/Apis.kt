@@ -86,6 +86,7 @@ class Apis {
             //WattpadProvider(), // they have randomized the css classes
             WtrLabProvider(),
             WuxiaBoxProvider(),
+            ReadOnlineFreeBookProvider()
         ).sortedBy { it.name }
 
         fun getApiFromName(name: String): APIRepository {
