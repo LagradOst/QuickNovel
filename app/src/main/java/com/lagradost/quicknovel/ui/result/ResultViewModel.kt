@@ -492,8 +492,8 @@ class ResultViewModel : ViewModel() {
                     load.rating,
                     (load as? StreamResponse)?.data?.size ?: 1,
                     System.currentTimeMillis(),
-                    synopsis = load.synopsis,
-                    userNote = userNote
+                    synopsis = load.synopsis
+
                 )
             )
         }
@@ -553,8 +553,8 @@ class ResultViewModel : ViewModel() {
                 load.rating,
                 totalChapters,
                 System.currentTimeMillis(),
-                synopsis = load.synopsis,
-                userNote = userNote
+                synopsis = load.synopsis
+
             )
         )
     }
@@ -569,9 +569,11 @@ class ResultViewModel : ViewModel() {
             delay(500) // Debounce 500ms
             loadMutex.withLock {
                 if (!hasLoaded) return@launch
+                setKey("RESULT_USER_NOTE", loadId.toString(), note)
                 updateBookmarkData(force = true)
                 addToHistory()
             }
+
         }
     }
 
@@ -739,8 +741,8 @@ class ResultViewModel : ViewModel() {
         updateBookmarkData()
 
         hasLoaded = true
-        userNote = getKey<ResultCached>(RESULT_BOOKMARK, tid.toString())?.userNote 
-            ?: getKey<ResultCached>(HISTORY_FOLDER, tid.toString())?.userNote
+        userNote = getKey<String>("RESULT_USER_NOTE", tid.toString())
+
 
         // insert a download progress if not found
         insertZeroData()
