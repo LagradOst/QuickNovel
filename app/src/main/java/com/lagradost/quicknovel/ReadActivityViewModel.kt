@@ -293,8 +293,8 @@ class QuickBook(val data: QuickStreamData) : AbstractBook() {
     }
 }
 
-class RegularBook(val data: EpubBook) : AbstractBook() {private val allTocReferences: List<TOCReference>
-
+class RegularBook(val data: EpubBook) : AbstractBook() {
+    private val allTocReferences: List<TOCReference>
     init {
         val flatTOC = mutableListOf<TOCReference>()
         fun flatten(refs: List<TOCReference>) {
@@ -609,24 +609,22 @@ class ReadActivityViewModel : ViewModel() {
         val range =
             if(!notify) (index - initPaddingBottom..index + initPaddingTop)
             else (index - chapterPaddingBottom..index + chapterPaddingTop)
+
         for (idx in range) {
-            requested += index
+            if(requested.contains(idx)) continue
+            requested += idx
             loadIndividualChapter(idx, notify = notify, postLoading = postLoading)
         }
 
     }
 
     private fun updateIndex(index: Int) {
-        var alreadyRequested = false
-        if (!requested.contains(index)) {
-            alreadyRequested = true
-        }
-        requested += index
-        if (alreadyRequested) return
-
-        ioSafe {
-            updateIndexAsync(index)
-        }
+        val range = (index - chapterPaddingBottom .. index + chapterPaddingTop)
+        val needToLoad = range.any { !requested.contains(it) }
+        if (needToLoad)
+            ioSafe {
+                updateIndexAsync(index)
+            }
     }
 
     fun onScroll(visibility: ScrollVisibilityIndex?) {
@@ -935,6 +933,26 @@ class ReadActivityViewModel : ViewModel() {
         return sb.toString()
     }
 
+    private fun getFinalTranslatedText(spans: ArrayList<TextSpan>, translatedLines: List<String>):Pair<SpannableStringBuilder, ArrayList<TextSpan>>{
+        val builder = SpannableStringBuilder()
+        val out = ArrayList<TextSpan>()
+        spans.forEachIndexed { i, originalSpan ->
+            val hasImage = originalSpan.text.getSpans<AsyncDrawableSpan>().isNotEmpty()
+            val finalText =
+                if (hasImage)
+                    originalSpan.text
+                else
+                    (translatedLines.getOrNull(i)?: return@forEachIndexed).toSpanned()
+            val start = builder.length
+            builder.append(finalText)
+            val end = builder.length
+            builder.append('\n')
+            out.add(TextSpan(finalText, start, end, originalSpan.index, originalSpan.innerIndex))
+        }
+        return builder to out
+    }
+
+
     @Throws(MLException::class)
     private suspend fun translate(
         text: Spanned,
@@ -944,8 +962,6 @@ class ReadActivityViewModel : ViewModel() {
         try {
             val currentSettings = mlSettings
             if (spans.isEmpty() || currentSettings.isInvalid()) return text to spans
-            val builder = SpannableStringBuilder()
-            val out = ArrayList<TextSpan>()
             val textHash = hashString(
                 text.trim().toString().toByteArray()
             )
@@ -961,19 +977,7 @@ class ReadActivityViewModel : ViewModel() {
                     if (cache.exists()) {
                         Log.i(TAG, "Cache exists for $filePrefix")
                         val lines = cache.readLines()
-                        spans.forEachIndexed { i, originalSpan ->
-                            val hasImage = originalSpan.text.getSpans<AsyncDrawableSpan>().isNotEmpty()
-                            val finalText =
-                                if (hasImage)
-                                    originalSpan.text
-                                else
-                                    lines[i].toSpanned()
-                            val start = builder.length
-                            builder.append(finalText)
-                            val end = builder.length
-                            builder.append('\n')
-                            out.add(TextSpan(finalText, start, end, originalSpan.index, originalSpan.innerIndex))
-                        }
+                        val (builder, out) = getFinalTranslatedText(spans, lines)
                         return@safe builder to out
                     }
                 }
@@ -981,64 +985,45 @@ class ReadActivityViewModel : ViewModel() {
             }
             if(cachedData != null) return cachedData
 
+
+            var translatedList: List<String>
+
             // --- Online mode ---
             if (currentSettings.useOnlineTranslation) {
                 val translator = GoogleTranslateOnline { progress, total ->
                     loading.invoke(Triple(spans[0].index, progress, total))
                 }
-                val translatedTexts =
+                translatedList =
                     translator.onlineTranslate(
                         spans.map { it.text.toString() },
                         currentSettings.from,
                         currentSettings.to
                     )
 
-                spans.forEachIndexed { idx, span ->
-                    val hasImage = span.text.getSpans<AsyncDrawableSpan>().isNotEmpty()
-                    val finalText =
-                        if (hasImage) span.text
-                        else (translatedTexts.getOrNull(idx)?: return@forEachIndexed).toSpanned()
-
-                    val start = builder.length
-                    builder.append(finalText)
-                    val end = builder.length
-                    builder.append('\n')
-                    out.add(TextSpan(finalText, start, end, span.index, span.innerIndex))
-                }
             }
 
             // --- Offline mode ---
             else {
                 val translator = mlTranslator ?: return text to spans
-                spans.forEachIndexed { i,  span ->
+                translatedList = spans.mapIndexed { i,  span ->
                     loading.invoke(Triple(span.index, i, spans.size))
-                    val hasImage = span.text.getSpans<AsyncDrawableSpan>().isNotEmpty()
-                    val finalText =
-                        if(hasImage)
-                            span.text
-                        else
-                            try {
-                                Tasks.await(translator.translate(span.text.toString())).toSpanned()
-                            } catch (t: ExecutionException) {
-                                throw t.cause ?: t
-                            }
-
-                    val start = builder.length
-                    builder.append(finalText)
-                    val end = builder.length
-                    builder.append('\n')
-                    out.add(TextSpan(finalText, start, end, span.index, span.innerIndex))
+                    try {
+                        Tasks.await(translator.translate(span.text.toString()))
+                    } catch (t: ExecutionException) {
+                        throw t.cause ?: t
+                    }
                 }
             }
 
-            //Save in cache
+            val (builder, out) = getFinalTranslatedText(spans, translatedList)
+
+            // atomically write the file by rename
             safe {
-                context?.cacheDir?.let { dir ->
-                    val cache = File(dir, "$filePrefix.tmp")
+                context?.cacheDir?.let {
+                    val cache = File(it, "$filePrefix.tmp")
                     cache.writeText(builder.toString())
-                    val finalFile = File(dir, "$filePrefix.txt")
-                    finalFile.delete()
-                    cache.renameTo(finalFile)
+                    safe { File(it, "$filePrefix.txt").delete() } // just in case
+                    cache.renameTo(File(it, "$filePrefix.txt"))
                 }
             }
 

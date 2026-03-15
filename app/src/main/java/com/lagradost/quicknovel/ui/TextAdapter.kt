@@ -461,7 +461,7 @@ class TextAdapter(
                 return list
             }
 
-            // Otros casos (Loading, Separadores, etc.)
+            /* Other cases (Loading, Separators, etc.) */
             return emptyList()
         } catch (t: Throwable) {
             return emptyList()
