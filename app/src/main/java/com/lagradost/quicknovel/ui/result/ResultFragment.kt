@@ -13,6 +13,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
+import androidx.core.view.postDelayed
 import androidx.core.widget.NestedScrollView
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.viewModels
@@ -333,8 +334,11 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
                     }
                     resultHolder.post {
                         updateScrollHeight()
-                        resultHolder.doOnNextLayout {
+                        resultHolder.post {
                             updateScrollHeight()
+                            resultHolder.post {
+                                updateScrollHeight()
+                            }
                         }
                     }
                 }
