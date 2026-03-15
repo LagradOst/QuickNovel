@@ -132,7 +132,6 @@ class DownloadFragment : BaseFragment<FragmentDownloadsBinding>(
     lateinit var searchMagIcon: ImageView
 
     override fun onBindingCreated(binding: FragmentDownloadsBinding) {
-        println("viewModel binding=$viewModel")
         viewModel.loadAllData(true)
         // activity?.fixPaddingStatusbar(binding.downloadToolbar)
         activity?.fixPaddingStatusbar(binding.downloadRoot)

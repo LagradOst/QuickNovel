@@ -250,6 +250,7 @@
     <string name="quickstream_novel_text">Leer en línea</string>
     <string name="stream_read">Leer en línea</string>
     <string name="permission_error">Se nececitan permisos</string>
+    <string name="unable_to_inflate">ERROR: la ui no se creó correctamente, por favor REPORTAR INMEDIATAMENTE %s</string>
 
 
     <!-- Diálogos de Confirmación -->

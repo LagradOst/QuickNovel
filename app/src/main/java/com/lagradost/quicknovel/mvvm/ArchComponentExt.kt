@@ -53,10 +53,12 @@ inline fun debugWarning(assert: () -> Boolean, message: () -> String) {
 }
 
 fun <T> ComponentActivity.observe(liveData: LiveData<T>, action: (t: T) -> Unit) {
+    liveData.removeObservers(this)
     liveData.observe(this) { it?.let { t -> action(t) } }
 }
 
 fun <T> ComponentActivity.observeNullable(liveData: LiveData<T>, action: (t: T) -> Unit) {
+    liveData.removeObservers(this)
     liveData.observe(this, action)
 }
 
@@ -69,16 +71,17 @@ fun <T, V : ViewBinding> BaseFragment<V>.observe(liveData: LiveData<T>, action: 
  * it will not call observe if the view is in the background.
  * */
 fun <T, V : ViewBinding> BaseFragment<V>.observeNullable(
-    liveData: LiveData<T>,
-    action: (t: T) -> Unit
+    liveData: LiveData<T>, action: (t: T) -> Unit
 ) {
     val root = this.binding?.root
     if (root == null) {
+        liveData.removeObservers(this)
         liveData.observe(this, action)
     } else {
         root.doOnAttach { view ->
             // On attach should make findViewTreeLifecycleOwner non null, but use "this" just in case
             val owner: LifecycleOwner = view.findViewTreeLifecycleOwner() ?: this@observeNullable
+            liveData.removeObservers(owner)
             liveData.observe(owner, action)
         }
     }
@@ -98,8 +101,7 @@ fun logError(throwable: Throwable) {
     Log.d("ApiError", "-------------------------------------------------------------------")
     Log.d("ApiError", "safeApiCall: " + throwable.localizedMessage)
     Log.d("ApiError", "safeApiCall: " + throwable.message)
-    throwable.printStackTrace()
-    /*try {
+    throwable.printStackTrace()/*try {
         showToast(throwable.stackTraceToString(), Toast.LENGTH_LONG)
     } catch (_ : Throwable) {
 

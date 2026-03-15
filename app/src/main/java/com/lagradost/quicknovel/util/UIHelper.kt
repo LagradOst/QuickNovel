@@ -455,6 +455,13 @@ object UIHelper {
         }
     }
 
+    fun Context.unRequestAudioFocus(focusRequest: AudioFocusRequest?) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && focusRequest != null) {
+            val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            audioManager.abandonAudioFocusRequest(focusRequest)
+        }
+    }
+
     @ColorInt
     fun Context.getResourceColor(@AttrRes resource: Int, alphaFactor: Float = 1f): Int {
         val typedArray = obtainStyledAttributes(intArrayOf(resource))

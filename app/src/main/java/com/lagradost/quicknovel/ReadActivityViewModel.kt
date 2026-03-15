@@ -1088,7 +1088,8 @@ class ReadActivityViewModel : ViewModel() {
             val lower = cIndex - chapterPaddingBottom
             val upper = cIndex + chapterPaddingTop
 
-            val keys = chapterData.keys.toTypedArray() // deep copy it to avoid ConcurrentModificationException
+            val keys =
+                chapterData.keys.toTypedArray() // deep copy it to avoid ConcurrentModificationException
 
             // remove all irrelevant cache so we do not translate outdated shit
             for (key in keys) {
@@ -1329,7 +1330,7 @@ class ReadActivityViewModel : ViewModel() {
 
     // ========================================  TTS STUFF ========================================
 
-    lateinit var ttsSession: TTSSession
+    var ttsSession: TTSSession? = null
 
     private fun initTTSSession(context: Context) {
         runOnMainThread {
@@ -1356,14 +1357,15 @@ class ReadActivityViewModel : ViewModel() {
     }
 
     fun setTTSLanguage(locale: Locale?) {
-        ttsSession.setLanguage(locale)
+        ttsSession?.setLanguage(locale)
     }
 
     fun setTTSVoice(voice: Voice?) {
-        ttsSession.setVoice(voice)
+        ttsSession?.setVoice(voice)
     }
 
     fun pauseTTS() {
+        val ttsSession = ttsSession ?: return
         if (!ttsSession.ttsInitialized()) return
         if (currentTTSStatus == TTSHelper.TTSStatus.IsRunning) {
             currentTTSStatus = TTSHelper.TTSStatus.IsPaused
@@ -1375,11 +1377,13 @@ class ReadActivityViewModel : ViewModel() {
     }
 
     fun forwardsTTS() {
+        val ttsSession = ttsSession ?: return
         if (!ttsSession.ttsInitialized()) return
         pendingTTSSkip += 1
     }
 
     fun backwardsTTS() {
+        val ttsSession = ttsSession ?: return
         if (!ttsSession.ttsInitialized()) return
         pendingTTSSkip -= 1
     }
@@ -1408,6 +1412,7 @@ class ReadActivityViewModel : ViewModel() {
     }
 
     suspend fun startTTSThread() = coroutineScope {
+        val ttsSession = ttsSession ?: return@coroutineScope
         try {
             val ttsStartTime = System.currentTimeMillis()
             var ttsEndTime = ttsStartTime + ttsTimer
@@ -1449,7 +1454,7 @@ class ReadActivityViewModel : ViewModel() {
                 loadIndividualChapter(index)
                 while (isActive && currentTTSStatus != TTSHelper.TTSStatus.IsStopped) {
                     val lines =
-                        when (val currentData = chapterMutex.withLock { chapterData[index]}) {
+                        when (val currentData = chapterMutex.withLock { chapterData[index] }) {
                             null -> {
                                 showToast(R.string.got_null_data)
                                 break
@@ -1492,7 +1497,8 @@ class ReadActivityViewModel : ViewModel() {
 
                     //preload next chapter
                     viewModelScope.launch(Dispatchers.IO) {
-                        val exists = chapterMutex.withLock { chapterData[index + 1] is Resource.Success }
+                        val exists =
+                            chapterMutex.withLock { chapterData[index + 1] is Resource.Success }
                         if (!exists)
                             loadIndividualChapter(index + 1)
                     }
@@ -1620,6 +1626,7 @@ class ReadActivityViewModel : ViewModel() {
     }
 
     fun parseAction(input: TTSHelper.TTSActionType): Boolean {
+        val ttsSession = ttsSession ?: return false
 
         // validate that the action makes sense
         if (
@@ -1751,8 +1758,10 @@ class ReadActivityViewModel : ViewModel() {
     }
 
     override fun onCleared() {
+        println("onCleared===${System.currentTimeMillis()}")
         lastChangeIndex?.let { setScrollKeys(it) }
-        ttsSession.release()
+        ttsSession?.release()
+        ttsSession = null
         mlTranslator?.close()
         mlTranslator = null
         super.onCleared()
@@ -1784,14 +1793,14 @@ class ReadActivityViewModel : ViewModel() {
     var ttsSpeed: Float
         get() = ttsSpeedKey
         set(value) {
-            ttsSession.setSpeed(value)
+            ttsSession?.setSpeed(value)
             ttsSpeedKey = value
         }
 
     var ttsPitch: Float
         get() = ttsPitchKey
         set(value) {
-            ttsSession.setPitch(value)
+            ttsSession?.setPitch(value)
             ttsPitchKey = value
         }
 
