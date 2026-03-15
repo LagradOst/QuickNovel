@@ -552,17 +552,6 @@
                                 android:layout_height="match_parent">
 
                             </TextView>
-                            <TextView
-                                android:id="@+id/result_synopsis_text"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:textColor="?attr/textColor"
-                                android:textSize="14sp"
-                                tools:text="As Shin Youngwoo has had an unfortunate life and is now stuck carrying bricks on construction sites. He even had to do labor in the VR game, Satisfy!
-However, luck would soon enter his hopeless life. His character, ‘Grid’, would discover the Northern End Cave for a quest, and in that place, he would find ‘Pagma’s Rare Book’ and become a legendary class player…
-Translator: Rainbow Turtle" />
-
-
                             <com.google.android.material.chip.ChipGroup
                                 android:id="@+id/result_tag"
                                 style="@style/ChipParent"
@@ -570,28 +559,56 @@ Translator: Rainbow Turtle" />
                                 android:layout_height="wrap_content"
                                 app:chipSpacingVertical="-7dp" />
 
-                            <com.google.android.material.textfield.TextInputLayout
-                                android:id="@+id/result_notes_layout"
-                                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginHorizontal="10dp"
+                                android:orientation="vertical"
                                 android:layout_marginTop="10dp"
-                                android:hint="@string/notes"
-                                app:boxStrokeColor="?attr/colorPrimary"
-                                app:hintTextColor="?attr/colorPrimary">
+                                android:layout_marginBottom="10dp"
+                                android:layout_marginHorizontal="10dp">
 
-                                <com.google.android.material.textfield.TextInputEditText
+                                <TextView
+                                    android:id="@+id/result_notes_header"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/notes"
+                                    android:textColor="?attr/colorAccent"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold" />
+
+
+                                <EditText
                                     android:id="@+id/result_notes_edittext"
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
+                                    android:hint="@string/notes"
+                                    android:background="@null"
+                                    android:paddingStart="0dp"
+                                    android:paddingEnd="0dp"
                                     android:gravity="top|start"
                                     android:inputType="textMultiLine"
-                                    android:minLines="3"
+                                    android:minLines="1"
                                     android:maxLines="6"
                                     android:scrollbars="vertical"
                                     android:textColor="?attr/textColor" />
-                            </com.google.android.material.textfield.TextInputLayout>
+
+                                <View
+                                    android:id="@+id/result_notes_underline"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="1dp"
+                                    android:alpha="0.2"
+                                    android:background="?attr/textColor"/>
+
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/result_synopsis_text"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textColor="?attr/textColor"
+                                android:textSize="14sp"
+                                tools:text="As Shin Youngwoo has had an unfortunate life and is now stuck carrying bricks on construction sites. He even had to do labor in the VR game, Satisfy!\nHowever, luck would soon enter his hopeless life. His character, ‘Grid’, would discover the Northern End Cave for a quest, and in that place, he would find ‘Pagma’s Rare Book’ and become a legendary class player…\nTranslator: Rainbow Turtle" />
+
 
                             <!--
                             <HorizontalScrollView android:id="@+id/result_tag_holder" android:layout_width="wrap_content" android:layout_height="wrap_content">
