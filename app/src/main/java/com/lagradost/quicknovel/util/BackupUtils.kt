@@ -21,7 +21,7 @@ import com.lagradost.quicknovel.DataStore.getSharedPrefs
 import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.mvvm.logError
-import com.lagradost.quicknovel.ui.settings.SettingsFragment
+import com.lagradost.quicknovel.ui.settings.PreferencesFragment
 import com.lagradost.safefile.SafeFile
 import java.io.IOException
 import java.io.OutputStream
@@ -86,7 +86,7 @@ object BackupUtils {
     fun FragmentActivity.backup() {
         try {
             if (checkWrite()) {
-                val subDir = SettingsFragment.getDefaultDir(context = this)//getBasePath().first
+                val subDir = PreferencesFragment.getDefaultDir(context = this)//getBasePath().first
                 val date = SimpleDateFormat("yyyy_MM_dd_HH_mm").format(Date(currentTimeMillis()))
                 val displayName = "QN_Backup_${date}"
 

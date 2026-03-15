@@ -43,6 +43,7 @@ import com.jaredrummler.android.colorpicker.ColorPickerDialog
 import com.jaredrummler.android.colorpicker.ColorPickerDialogListener
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.getKey
+import com.lagradost.quicknovel.DataStore.setKey
 import com.lagradost.quicknovel.TTSNotifications.TTS_NOTIFICATION_ID
 import com.lagradost.quicknovel.databinding.ColorRoundCheckmarkBinding
 import com.lagradost.quicknovel.databinding.ReadBottomSettingsBinding
@@ -725,6 +726,14 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
             setNavigationOnClickListener {
                 this@ReadActivity2.onBackPressed()
             }
+            // History icon for AI explain history
+            inflateMenu(R.menu.read_explain_history_menu)
+            setOnMenuItemClickListener { item ->
+                if (item.itemId == R.id.action_explain_history) {
+                    showExplainHistory()
+                    true
+                } else false
+            }
         }
 
         //updateTimeText()
@@ -947,6 +956,41 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                     updateTTSLine(viewModel.ttsLine.value)
                 }
             }
+        }
+
+        // AI explain panel: show when text is selected
+        observeNullable(viewModel.textSelection) { selection ->
+            if (selection == null) {
+                binding.translatePanel.isVisible = false
+            } else {
+                binding.translatePanel.isVisible = true
+                binding.translateSelectedText.text = "\"${selection.selected}\""
+            }
+        }
+
+        binding.translateBtnClose.setOnClickListener {
+            viewModel.clearTextSelection()
+            val focused = currentFocus
+            if (focused is android.widget.TextView) {
+                val t = focused.text
+                if (t is android.text.Spannable) {
+                    android.text.Selection.removeSelection(t)
+                }
+            }
+            focused?.clearFocus()
+        }
+
+        binding.translateBtnExplain.setOnClickListener {
+            val selection = viewModel.textSelection.value ?: return@setOnClickListener
+            val apiKey = getKey<String>(OPENROUTER_API_KEY)
+            if (apiKey.isNullOrBlank()) {
+                showToast("Set OpenRouter API key in Settings → AI")
+                return@setOnClickListener
+            }
+            val model = getKey<String>(OPENROUTER_MODEL) ?: OPENROUTER_DEFAULT_MODEL
+            val prompt = getKey<String>(OPENROUTER_PROMPT) ?: OPENROUTER_DEFAULT_PROMPT
+            val reasoning = getKey<Boolean>(OPENROUTER_REASONING) ?: false
+            callExplainApi(selection, apiKey, model, prompt, reasoning)
         }
 
         var last: Resource<Boolean> = Resource.Loading() // very dirty
@@ -1595,5 +1639,87 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
             bottomSheetDialog.show()
         }
+    }
+
+    private fun callExplainApi(
+        selection: ReadActivityViewModel.TextSelection,
+        apiKey: String,
+        model: String,
+        prompt: String,
+        reasoning: Boolean = false
+    ) {
+        val loadingDialog = AlertDialog.Builder(this)
+            .setMessage("Explaining \"${selection.selected}\"…")
+            .setCancelable(false)
+            .show()
+
+        ioSafe {
+            val result = runCatching {
+                com.lagradost.quicknovel.util.OpenRouterHelper.explain(
+                    selected = selection.selected,
+                    paragraph = selection.paragraph,
+                    apiKey = apiKey,
+                    model = model,
+                    promptTemplate = prompt,
+                    reasoning = reasoning
+                )
+            }
+            runOnUiThread {
+                loadingDialog.dismiss()
+                result.onSuccess { explanation ->
+                    com.lagradost.quicknovel.util.ExplainHistory.save(
+                        this@ReadActivity2,
+                        com.lagradost.quicknovel.util.ExplainEntry(
+                            selected = selection.selected,
+                            paragraph = selection.paragraph,
+                            result = explanation,
+                            model = model,
+                            timestamp = System.currentTimeMillis()
+                        )
+                    )
+                    val scrollView = android.widget.ScrollView(this@ReadActivity2).apply {
+                        val padding = (16 * resources.displayMetrics.density).toInt()
+                        setPadding(padding, padding / 2, padding, padding / 2)
+                    }
+                    val contentView = android.widget.TextView(this@ReadActivity2).apply {
+                        setTextColor(this@ReadActivity2.colorFromAttribute(R.attr.textColor))
+                        textSize = 15f
+                        setTextIsSelectable(true)
+                    }
+                    io.noties.markwon.Markwon.builder(this@ReadActivity2)
+                        .usePlugin(io.noties.markwon.ext.tables.TablePlugin.create(this@ReadActivity2))
+                        .build()
+                        .setMarkdown(contentView, explanation)
+                    scrollView.addView(contentView)
+                    AlertDialog.Builder(this@ReadActivity2)
+                        .setTitle(selection.selected)
+                        .setView(scrollView)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
+                }
+                result.onFailure { e ->
+                    AlertDialog.Builder(this@ReadActivity2)
+                        .setTitle("Request Failed")
+                        .setMessage(e.message ?: "Unknown error")
+                        .setPositiveButton("Try Again") { _, _ ->
+                            callExplainApi(selection, apiKey, model, prompt, reasoning)
+                        }
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show()
+                }
+            }
+        }
+    }
+
+    private fun showExplainHistory() {
+        val entries = com.lagradost.quicknovel.util.ExplainHistory.getAll(this)
+        val dialog = BottomSheetDialog(this)
+        val recycler = androidx.recyclerview.widget.RecyclerView(this).apply {
+            layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this@ReadActivity2)
+            adapter = com.lagradost.quicknovel.util.ExplainHistoryAdapter(entries)
+            setPadding(0, 16, 0, 16)
+        }
+        dialog.setContentView(recycler)
+        dialog.show()
     }
 }

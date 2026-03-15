@@ -50,6 +50,14 @@ class RoundedBgTextView// PREVENT OVERLAP, SUE ME
         )
     }
 
+    /** Called whenever the text selection changes. Provides (selectionStart, selectionEnd). */
+    var onSelectionChangedListener: ((start: Int, end: Int) -> Unit)? = null
+
+    override fun onSelectionChanged(selStart: Int, selEnd: Int) {
+        super.onSelectionChanged(selStart, selEnd)
+        onSelectionChangedListener?.invoke(selStart, selEnd)
+    }
+
     override fun onDraw(canvas: Canvas) {
         // need to draw bg first so that text can be on top during super.onDraw()
         if (text is Spanned && layout != null) {

@@ -36,6 +36,10 @@ import com.lagradost.quicknovel.databinding.SingleOverscrollChapterBinding
 import com.lagradost.quicknovel.databinding.SingleSeparatorBinding
 import com.lagradost.quicknovel.databinding.SingleTextBinding
 import com.lagradost.quicknovel.mvvm.logError
+import android.view.ActionMode
+import android.view.Menu
+import android.view.MenuItem
+import com.lagradost.quicknovel.ui.roundedbg.RoundedBgTextView
 import com.lagradost.quicknovel.util.UIHelper
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.showImage
@@ -639,21 +643,48 @@ class TextAdapter(
                         obj.text
                     }
 
-                    setTextIsSelectable(false) // this is so retarded
+                    setTextIsSelectable(false) // reset first to avoid RecyclerView recycling issues
 
                     // https://stackoverflow.com/questions/36801486/androidtextisselectable-true-not-working-for-textview-in-recyclerview
-                    if (config.isTextSelectable) {
-                        post {
-                            setTextIsSelectable(true)
-                            movementMethod = LinkMovementMethod.getInstance()
-                            setOnClickListener {
-                                viewModel.switchVisibility()
-                            }
-                        }
-                    } else {
+                    post {
+                        setTextIsSelectable(true)
                         movementMethod = LinkMovementMethod.getInstance()
                         setOnClickListener {
                             viewModel.switchVisibility()
+                        }
+
+                        // Suppress the default system selection action bar (Copy/Share/etc.)
+                        // and instead use our bottom panel for text interactions.
+                        customSelectionActionModeCallback = object : ActionMode.Callback {
+                            override fun onCreateActionMode(mode: ActionMode, menu: Menu) = false
+                            override fun onPrepareActionMode(mode: ActionMode, menu: Menu) = false
+                            override fun onActionItemClicked(mode: ActionMode, item: MenuItem) = false
+                            override fun onDestroyActionMode(mode: ActionMode) { }
+                        }
+
+                        // Wire selection changes to the ViewModel
+                        if (this is RoundedBgTextView) {
+                            onSelectionChangedListener = { start, end ->
+                                if (end > start) {
+                                    val raw = obj.text.toString()
+                                    val safeStart = minOf(start, raw.length)
+                                    val safeEnd = minOf(end, raw.length)
+                                    val selected = raw.substring(safeStart, safeEnd)
+                                    if (selected.length > 200) {
+                                        showToast("Selection too long — please select fewer than 200 characters")
+                                        viewModel.clearTextSelection()
+                                    } else {
+                                        viewModel.setTextSelection(
+                                            selected = selected,
+                                            selStart = safeStart,
+                                            selEnd = safeEnd,
+                                            innerIndex = obj.innerIndex,
+                                            chapterIndex = obj.index
+                                        )
+                                    }
+                                }
+                                // Don't clear on empty selection — let the close button handle dismissal
+                            }
                         }
                     }
                     //val links = obj.text.getSpans<io.noties.markwon.core.spans.LinkSpan>()

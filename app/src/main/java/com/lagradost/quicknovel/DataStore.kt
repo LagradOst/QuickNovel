@@ -61,6 +61,17 @@ const val RESULT_BOOKMARK: String = "result_bookmarked"
 const val RESULT_BOOKMARK_STATE: String = "result_bookmarked_state"
 const val HISTORY_FOLDER: String = "result_history"
 const val CURRENT_TAB : String = "current_tab"
+
+// AI / OpenRouter settings
+const val OPENROUTER_ENDPOINT: String = "https://openrouter.ai/api/v1/chat/completions"
+const val OPENROUTER_API_KEY: String = "openrouter_api_key"
+const val OPENROUTER_MODEL: String = "openrouter_model"
+const val OPENROUTER_DEFAULT_MODEL: String = "moonshotai/kimi-k2.5"
+const val OPENROUTER_PROMPT: String = "openrouter_prompt"
+const val OPENROUTER_DEFAULT_PROMPT: String =
+    "If the provided text is in English, explain the meaning of the selected text, focusing on the definition of the words in the context.\n\nIf the selected text is Japanese, explain the grammar and meaning of the words in the text assuming the reader is at an JLPT N5 beginner level."
+const val OPENROUTER_REASONING: String = "openrouter_reasoning"
+const val EXPLAIN_HISTORY_KEY: String = "explain_history"
 /** When inserting many keys use this function, this is because apply for every key is very expensive on memory */
 data class Editor(
     val editor : SharedPreferences.Editor

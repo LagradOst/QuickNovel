@@ -7,3 +7,17 @@
 /captures
 .externalNativeBuild
 .cxx
+
+# Claude
+.claude/
+
+# Python / testing
+*.py
+*.pyc
+__pycache__/
+.venv/
+.uv/
+uv.lock
+pyproject.toml
+requirements*.txt
+.python-version

@@ -525,6 +525,75 @@ class ReadActivityViewModel : ViewModel() {
         _bottomVisibility.postValue(!(_bottomVisibility.value ?: false))
     }
 
+    // --- Text selection for AI explain feature ---
+    data class TextSelection(val selected: String, val paragraph: String)
+
+    private val _textSelection = MutableLiveData<TextSelection?>(null)
+    val textSelection: LiveData<TextSelection?> = _textSelection
+
+    /**
+     * Called from TextAdapter when the user selects text.
+     * Resolves paragraph context from the current chapter's spans, including adjacent
+     * paragraphs when the selection touches the boundary of the span.
+     *
+     * @param selected  The selected text (already validated ≤200 chars).
+     * @param selStart  Selection start within the span's text.
+     * @param selEnd    Selection end within the span's text.
+     * @param innerIndex  The innerIndex of the TextSpan within the chapter.
+     * @param chapterIndex  The chapter index (TextSpan.index).
+     */
+    fun setTextSelection(
+        selected: String,
+        selStart: Int,
+        selEnd: Int,
+        innerIndex: Int,
+        chapterIndex: Int
+    ) {
+        val spans = (chapterData[chapterIndex] as? Resource.Success)?.value?.spans
+        val paragraph = buildParagraphContext(spans, innerIndex, selStart, selEnd)
+        _textSelection.postValue(TextSelection(selected, paragraph))
+    }
+
+    fun clearTextSelection() {
+        _textSelection.postValue(null)
+    }
+
+    private fun buildParagraphContext(
+        spans: List<TextSpan>?,
+        innerIndex: Int,
+        selStart: Int,
+        selEnd: Int
+    ): String {
+        if (spans == null) return ""
+
+        val currentSpan = spans.getOrNull(innerIndex) ?: return ""
+        val currentText = currentSpan.text.toString()
+
+        // Find where the selection sits within the span relative to paragraph breaks
+        val paragraphStart = currentText.lastIndexOf('\n', selStart - 1).let { if (it < 0) 0 else it + 1 }
+        val paragraphEnd = currentText.indexOf('\n', selEnd).let { if (it < 0) currentText.length else it }
+
+        val parts = mutableListOf<String>()
+
+        // Include previous span if selection touches the very start of this span's paragraph
+        if (paragraphStart == 0 && innerIndex > 0) {
+            spans.getOrNull(innerIndex - 1)?.text?.toString()?.trim()?.let {
+                if (it.isNotEmpty()) parts.add(it)
+            }
+        }
+
+        parts.add(currentText.substring(paragraphStart, paragraphEnd).trim())
+
+        // Include next span if selection touches the very end of this span's paragraph
+        if (paragraphEnd == currentText.length && innerIndex < spans.size - 1) {
+            spans.getOrNull(innerIndex + 1)?.text?.toString()?.trim()?.let {
+                if (it.isNotEmpty()) parts.add(it)
+            }
+        }
+
+        return parts.joinToString("\n\n")
+    }
+
 
     private var chaptersTitlesInternal: ArrayList<UiText> = arrayListOf()
 

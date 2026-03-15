@@ -480,6 +480,55 @@
         </LinearLayout>
 
 
+        <!-- AI Explain bottom panel: shown when text is selected -->
+        <LinearLayout
+                android:id="@+id/translate_panel"
+                android:visibility="gone"
+                android:layout_gravity="bottom"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:background="?attr/primaryGrayBackground"
+                android:elevation="8dp"
+                android:clickable="true"
+                android:focusable="true">
+
+            <TextView
+                    android:id="@+id/translate_selected_text"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="?attr/textColor"
+                    android:textSize="14sp" />
+
+            <com.google.android.material.button.MaterialButton
+                    android:id="@+id/translate_btn_explain"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Explain"
+                    android:textColor="?attr/textColor"
+                    app:strokeColor="?attr/textColor"
+                    android:layout_marginStart="8dp" />
+
+            <ImageButton
+                    android:id="@+id/translate_btn_close"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/ic_sharp_clear_24"
+                    android:background="?selectableItemBackgroundBorderless"
+                    android:contentDescription="Close"
+                    android:layout_marginStart="4dp"
+                    android:tint="?attr/iconColor" />
+        </LinearLayout>
+
         <com.google.android.material.appbar.AppBarLayout
                 tools:visibility="visible"
                 android:minHeight="?attr/actionBarSize"
