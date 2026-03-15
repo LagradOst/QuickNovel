@@ -95,6 +95,13 @@
             android:paddingEnd="5dp"
             android:paddingBottom="5dp"
             android:textColor="?attr/textColor"
+            android:shadowColor="#CC000000"
+            android:shadowDx="2"
+            android:shadowDy="2"
+            android:shadowRadius="6"
+
             android:textSize="13sp"
+
+
             tools:text="The Perfect Run\nThe Perfect Run" />
 </LinearLayout>

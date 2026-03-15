@@ -87,6 +87,14 @@ class MainPageFragment : BaseFragment<FragmentMainpageBinding>(
 
         activity?.fixPaddingStatusbar(binding.mainpageToolbar)
 
+        val settingsManager = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
+        val hasBackground = !settingsManager.getString(getString(R.string.background_image_key), null).isNullOrBlank()
+        if (hasBackground) {
+            binding.mainpageRoot.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            binding.mainpageToolbar.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            binding.mainpageSortbyHolder.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        }
+
         viewModel.init(
             apiName, defMainCategory,
             defOrderBy,

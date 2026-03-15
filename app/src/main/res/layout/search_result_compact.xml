@@ -52,17 +52,31 @@
                     android:layout_height="wrap_content"
                     android:textSize="17sp"
                     android:textColor="?attr/textColor"
+                    android:shadowColor="#CC000000"
+                    android:shadowDx="2"
+                    android:shadowDy="2"
+                    android:shadowRadius="6"
+
                     android:id="@+id/imageText"
+
                     android:maxLines="3" />
+
 
             <TextView
                     tools:text="@string/no_data"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="?attr/textColor"
+                    android:shadowColor="#CC000000"
+                    android:shadowDx="2"
+                    android:shadowDy="2"
+                    android:shadowRadius="6"
+
                     android:id="@+id/imageTextExtra"
+
                     android:textSize="13sp"
                     android:maxLines="3" />
+
 
             <TextView
                     tools:text="Rated 4.13"

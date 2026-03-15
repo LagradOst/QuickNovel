@@ -201,6 +201,18 @@ class SettingsFragment : PreferenceFragmentCompat() {
             }
         }
 
+    private val imagePicker =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri == null) return@registerForActivityResult
+            val context = context ?: return@registerForActivityResult
+            val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+
+            context.contentResolver.takePersistableUriPermission(uri, flags)
+
+            PreferenceManager.getDefaultSharedPreferences(context)
+                .edit { putString(getString(R.string.background_image_key), uri.toString()) }
+        }
+
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.settings, rootKey)
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(requireContext())
@@ -534,6 +546,23 @@ class SettingsFragment : PreferenceFragmentCompat() {
             }
             return@setOnPreferenceClickListener true
         }
+
+        getPref(R.string.background_image_key)?.setOnPreferenceClickListener {
+            try {
+                imagePicker.launch(arrayOf("image/*"))
+            } catch (e: Exception) {
+                logError(e)
+            }
+            return@setOnPreferenceClickListener true
+        }
+
+        getPref(R.string.reset_background_key)?.setOnPreferenceClickListener {
+            val settingsManager = PreferenceManager.getDefaultSharedPreferences(it.context)
+            settingsManager.edit().remove(getString(R.string.background_image_key)).apply()
+            showToast(R.string.background_reset_confirmed)
+            return@setOnPreferenceClickListener true
+        }
+
 
         /*getPref(R.string.theme_key)?.setOnPreferenceClickListener {
             val prefNames = resources.getStringArray(R.array.themes_names)

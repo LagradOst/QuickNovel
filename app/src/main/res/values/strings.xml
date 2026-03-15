@@ -298,6 +298,8 @@
     <string name="less_spacing">Less Spacing</string>
     <string name="unable_to_inflate">UI was unable to be created correctly, this is a MAJOR BUG and should be reported immediately %s</string>
     <string name="appearance_background">Appearance &amp; Background</string>
+    <string name="appearance_background_by_shady_title">Appearance &amp; Background - By Shady</string>
+
     <string name="background_image">Custom Background Image</string>
     <string name="background_image_summary">Pick a custom image for the app background</string>
     <string name="background_blur">Background Blur</string>

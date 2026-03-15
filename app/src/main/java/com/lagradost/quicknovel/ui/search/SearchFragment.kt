@@ -13,6 +13,7 @@ import androidx.fragment.app.viewModels
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.GridLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.HomePageList
 import com.lagradost.quicknovel.databinding.FragmentSearchBinding
@@ -163,6 +164,15 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
         }
 
         activity?.fixPaddingStatusbar(binding.searchToolbar)
+
+        val hasBackground = settingsManager?.getString(getString(R.string.background_image_key), null).isNullOrBlank() == false
+        if (hasBackground) {
+            binding.searchRoot.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            binding.searchAllRecycler.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            binding.homeBrowselist.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            binding.searchMasterRecycler.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            binding.searchToolbar.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        }
 
         binding.searchLoadingBar.alpha = 0f
         searchExitIcon = binding.mainSearch.findViewById(androidx.appcompat.R.id.search_close_btn)
