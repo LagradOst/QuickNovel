@@ -105,7 +105,16 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
             window?.navigationBarColor =
                 colorFromAttribute(R.attr.primaryBlackBackground)
         }
+
+        binding?.apply {
+            val currentNote = resultNotesEdittext.text?.toString()
+            val savedNote = viewModel.getNote() ?: ""
+            if (currentNote != savedNote) {
+                resultNotesEdittext.setText(savedNote)
+            }
+        }
     }
+
 
     private fun updateScrollHeight() {
         val binding = binding ?: return
@@ -325,28 +334,14 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
                         resultTotalChapters.isVisible = false
                         resultQuickstream.isVisible = false
                     }
-
-                    // Restore Notes and Add Listeners
-                    val currentNote = resultNotesEdittext.text.toString()
+                    val currentNote = resultNotesEdittext.text?.toString()
                     val savedNote = viewModel.getNote() ?: ""
                     if (currentNote != savedNote) {
                         resultNotesEdittext.setText(savedNote)
                     }
-                    
-                    val isDropped = viewModel.readState.value == ReadType.DROPPED
-                    resultNotesLayout.hint = if (isDropped) getString(R.string.dropped_reason) else getString(R.string.notes)
-                    resultNotesLayout.boxStrokeColor = if (isDropped) Color.RED else requireContext().colorFromAttribute(R.attr.colorPrimary)
-                    resultNotesLayout.setHintTextColor(android.content.res.ColorStateList.valueOf(if (isDropped) Color.RED else requireContext().colorFromAttribute(R.attr.colorPrimary)))
-
-                    // Use a tag to avoid adding multiple listeners to the same view
-                    if (resultNotesEdittext.tag == null) {
-                        resultNotesEdittext.tag = true
-                        resultNotesEdittext.doOnTextChanged { text: CharSequence?, _, _, _ ->
-                            viewModel.updateNote(text?.toString())
-                        }
-                    }
 
                     resultLoading.isVisible = false
+
                     resultLoadingError.isVisible = false
                     resultHolder.isVisible = true
                     resultPosterBlur.isVisible = true
@@ -506,6 +501,11 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
 
         binding.apply {
             activity?.fixPaddingStatusbar(resultInfoHeader)
+
+            resultNotesEdittext.doOnTextChanged { text: CharSequence?, _, _, _ ->
+                viewModel.updateNote(text?.toString())
+            }
+
 
             //resultOpeninbrowerText.text = apiName //""// resultUrl
 
@@ -672,10 +672,11 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
             // Update notes UI when read status changes
             binding.apply {
                 val isDropped = state == ReadType.DROPPED
-                resultNotesLayout.hint = if (isDropped) getString(R.string.dropped_reason) else getString(R.string.notes)
-                val primaryColor = requireContext().colorFromAttribute(R.attr.colorPrimary)
-                resultNotesLayout.boxStrokeColor = if (isDropped) Color.RED else primaryColor
-                resultNotesLayout.setHintTextColor(android.content.res.ColorStateList.valueOf(if (isDropped) Color.RED else primaryColor))
+                resultNotesHeader.text = if (isDropped) getString(R.string.dropped_reason) else getString(R.string.notes)
+                val primaryColor = context?.colorFromAttribute(R.attr.colorPrimary) ?: Color.TRANSPARENT
+
+                resultNotesUnderline.setBackgroundColor(if (isDropped) Color.RED else primaryColor)
+
             }
         }
         observe(viewModel.loadResponse, ::newState)
