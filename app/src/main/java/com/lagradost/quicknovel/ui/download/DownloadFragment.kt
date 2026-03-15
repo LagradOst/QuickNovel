@@ -135,6 +135,14 @@ class DownloadFragment : BaseFragment<FragmentDownloadsBinding>(
         viewModel.loadAllData(true)
         // activity?.fixPaddingStatusbar(binding.downloadToolbar)
         activity?.fixPaddingStatusbar(binding.downloadRoot)
+
+        val settingsManager = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
+        val hasBackground = !settingsManager.getString(getString(com.lagradost.quicknovel.R.string.background_image_key), null).isNullOrBlank()
+        if (hasBackground) {
+            binding.downloadRoot.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            binding.swipeContainer.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            binding.bookmarkTabs.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        }
         //viewModel = ViewModelProviders.of(activity!!).get(DownloadViewModel::class.java)
 
 

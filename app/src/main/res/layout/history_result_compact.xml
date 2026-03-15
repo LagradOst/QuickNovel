@@ -91,9 +91,16 @@
                         android:layout_height="wrap_content"
                         android:gravity="start|center_vertical"
                         android:textColor="?attr/textColor"
+                        android:shadowColor="#CC000000"
+                        android:shadowDx="2"
+                        android:shadowDy="2"
+                        android:shadowRadius="6"
+
                         android:id="@+id/imageText"
+
                         android:ellipsize="end"
                         android:maxLines="2" />
+
 
                 <TextView
                         android:id="@+id/history_extra_text"
@@ -105,7 +112,14 @@
                         android:layout_height="wrap_content"
 
                         android:textColor="?attr/grayTextColor"
+                        android:shadowColor="#CC000000"
+                        android:shadowDx="2"
+                        android:shadowDy="2"
+                        android:shadowRadius="6"
+
                         android:maxLines="3" />
+
+
             </LinearLayout>
         </FrameLayout>
         <!--<ImageView

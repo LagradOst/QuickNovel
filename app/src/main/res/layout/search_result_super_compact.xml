@@ -50,9 +50,16 @@
                     android:layout_height="wrap_content"
                     android:textSize="17sp"
                     android:textColor="@color/textColor"
+                    android:shadowColor="#CC000000"
+                    android:shadowDx="2"
+                    android:shadowDy="2"
+                    android:shadowRadius="6"
+
                     android:id="@+id/imageText"
+
                     android:textStyle="normal"
                     android:maxLines="3" />
+
 
             <TextView
                     tools:text="@string/no_data"

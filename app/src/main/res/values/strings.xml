@@ -297,4 +297,21 @@
     <string name="more_spacing">More Spacing</string>
     <string name="less_spacing">Less Spacing</string>
     <string name="unable_to_inflate">UI was unable to be created correctly, this is a MAJOR BUG and should be reported immediately %s</string>
+    <string name="appearance_background">Appearance &amp; Background</string>
+    <string name="appearance_background_by_shady_title">Appearance &amp; Background - By Shady</string>
+
+    <string name="background_image">Custom Background Image</string>
+    <string name="background_image_summary">Pick a custom image for the app background</string>
+    <string name="background_blur">Background Blur</string>
+    <string name="background_dim">Background Dim</string>
+    <string name="background_image_key" translatable="false">background_image</string>
+    <string name="background_blur_key" translatable="false">background_blur</string>
+    <string name="background_dim_key" translatable="false">background_dim</string>
+    <string name="reset_background">Reset Background</string>
+    <string name="reset_background_summary">Remove custom background and return to default</string>
+    <string name="reset_background_key" translatable="false">reset_background</string>
+    <string name="background_reset_confirmed">Background has been reset to default</string>
+    <string name="by_shady">By Shady</string>
+    <string name="notes">Notes</string>
+    <string name="dropped_reason">Why did you drop this novel?</string>
 </resources>

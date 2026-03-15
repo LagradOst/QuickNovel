@@ -34,6 +34,12 @@ class HistoryFragment : BaseFragment<FragmentHistoryBinding>(
     override fun onBindingCreated(binding: FragmentHistoryBinding) {
         activity?.fixPaddingStatusbar(binding.historyToolbar)
 
+        val settingsManager = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
+        val hasBackground = !settingsManager.getString(getString(R.string.background_image_key), null).isNullOrBlank()
+        if (hasBackground) {
+            binding.historyToolbar.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        }
+
         val historyAdapter = HistoryAdapter(viewModel)
 
         binding.historyCardSpace.apply {

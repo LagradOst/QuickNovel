@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -75,6 +76,11 @@ import com.lagradost.quicknovel.util.UIHelper.html
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.safefile.SafeFile
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.content.SharedPreferences
+import android.net.Uri
+import coil3.load
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -332,6 +338,53 @@ class MainActivity : AppCompatActivity() {
 
     private val viewModel: ResultViewModel by viewModels()
 
+    private val backgroundListener = SharedPreferences.OnSharedPreferenceChangeListener { _: SharedPreferences, key: String? ->
+        if (key == getString(R.string.background_image_key) ||
+            key == getString(R.string.background_blur_key) ||
+            key == getString(R.string.background_dim_key)
+        ) {
+            updateGlobalBackground()
+        }
+    }
+
+    fun updateGlobalBackground() {
+        val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
+        val imageUri = settingsManager.getString(getString(R.string.background_image_key), null)
+        val blur = settingsManager.getInt(getString(R.string.background_blur_key), 0)
+        val dim = settingsManager.getInt(getString(R.string.background_dim_key), 0)
+
+        binding?.apply {
+            if (imageUri.isNullOrBlank()) {
+                appBackgroundImage.isVisible = false
+                appBackgroundDim.isVisible = false
+                appBackgroundLightScrim.isVisible = false
+                return
+            }
+
+            appBackgroundImage.isVisible = true
+            appBackgroundDim.isVisible = true
+            appBackgroundLightScrim.isVisible = true
+
+            appBackgroundImage.load(Uri.parse(imageUri))
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (blur > 0) {
+                    appBackgroundImage.setRenderEffect(
+                        RenderEffect.createBlurEffect(
+                            blur.toFloat(), blur.toFloat(), Shader.TileMode.CLAMP
+                        )
+                    )
+                } else {
+                    appBackgroundImage.setRenderEffect(null)
+                }
+            }
+            appBackgroundDim.alpha = dim / 100f
+            val isLightTheme = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_NO
+            appBackgroundLightScrim.alpha = if (isLightTheme) 0.30f else 0f
+
+        }
+    }
+
     private fun hidePreviewPopupDialog() {
         viewModel.clear()
         bottomPreviewPopup.dismissSafe(this)
@@ -515,6 +568,9 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding!!.root)
 
+        updateGlobalBackground()
+        settingsManager.registerOnSharedPreferenceChangeListener(backgroundListener)
+
         setUpBackup()
 
         val navHostFragment =
@@ -524,17 +580,17 @@ class MainActivity : AppCompatActivity() {
         navController.addOnDestinationChangedListener { _: NavController, navDestination: NavDestination, bundle: Bundle? ->
             // Intercept search and add a query
             updateNavBar(navDestination)
-            /*if (navDestination.matchDestination(R.id.navigation_search) && !nextSearchQuery.isNullOrBlank()) {
-                bundle?.apply {
-                    this.putString(SearchFragment.SEARCH_QUERY, nextSearchQuery)
-                }
+            
+            binding?.apply {
+                val settingsManager = PreferenceManager.getDefaultSharedPreferences(this@MainActivity)
+                val imageUri = settingsManager.getString(getString(R.string.background_image_key), null)
+                val hasBackground = !imageUri.isNullOrBlank()
+                val shouldHide = false
+                
+                appBackgroundImage.isVisible = hasBackground && !shouldHide
+                appBackgroundDim.isVisible = hasBackground && !shouldHide
+                appBackgroundLightScrim.isVisible = hasBackground && !shouldHide
             }
-
-            if (isTvSettings()) {
-                if (navDestination.matchDestination(R.id.navigation_home)) {
-                    attachBackPressedCallback()
-                } else detachBackPressedCallback()
-            }*/
         }
 
         val navView: BottomNavigationView = findViewById(R.id.nav_view)

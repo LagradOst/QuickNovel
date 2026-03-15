@@ -2,7 +2,43 @@
 
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto">
-    <PreferenceCategory />
+    <PreferenceCategory
+        android:key="appearance"
+        android:title="@string/appearance_background_by_shady_title"
+        app:isPreferenceVisible="true">
+
+
+        <Preference
+            android:key="@string/background_image_key"
+            android:title="@string/background_image"
+            android:summary="@string/background_image_summary"
+            android:icon="@drawable/ic_baseline_color_lens_24" />
+
+        <Preference
+            android:key="@string/reset_background_key"
+            android:title="@string/reset_background"
+            android:summary="@string/reset_background_summary"
+            android:icon="@drawable/baseline_restore_page_24" />
+
+        <SeekBarPreference
+            android:key="@string/background_blur_key"
+            android:title="@string/background_blur"
+            android:max="100"
+            app:defaultValue="0"
+            app:showSeekBarValue="true"
+            app:iconSpaceReserved="false" />
+
+
+        <SeekBarPreference
+            android:key="@string/background_dim_key"
+            android:title="@string/background_dim"
+            android:max="100"
+            app:defaultValue="0"
+            app:showSeekBarValue="true"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
     <PreferenceCategory
             android:key="search"
             android:title="@string/search"

@@ -137,6 +137,7 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
     }
 
 
+
     private fun newState(loadResponse: Resource<LoadResponse>?) {
         if (loadResponse == null) return
         val binding = binding ?: return
@@ -323,6 +324,26 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
                         resultChaptersInfoHolder.isVisible = false
                         resultTotalChapters.isVisible = false
                         resultQuickstream.isVisible = false
+                    }
+
+                    // Restore Notes and Add Listeners
+                    val currentNote = resultNotesEdittext.text.toString()
+                    val savedNote = viewModel.getNote() ?: ""
+                    if (currentNote != savedNote) {
+                        resultNotesEdittext.setText(savedNote)
+                    }
+                    
+                    val isDropped = viewModel.readState.value == ReadType.DROPPED
+                    resultNotesLayout.hint = if (isDropped) getString(R.string.dropped_reason) else getString(R.string.notes)
+                    resultNotesLayout.boxStrokeColor = if (isDropped) Color.RED else requireContext().colorFromAttribute(R.attr.colorPrimary)
+                    resultNotesLayout.setHintTextColor(android.content.res.ColorStateList.valueOf(if (isDropped) Color.RED else requireContext().colorFromAttribute(R.attr.colorPrimary)))
+
+                    // Use a tag to avoid adding multiple listeners to the same view
+                    if (resultNotesEdittext.tag == null) {
+                        resultNotesEdittext.tag = true
+                        resultNotesEdittext.doOnTextChanged { text: CharSequence?, _, _, _ ->
+                            viewModel.updateNote(text?.toString())
+                        }
                     }
 
                     resultLoading.isVisible = false
@@ -544,7 +565,7 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
                         resultviewReviewsLoading.isVisible = false
                         resultviewReviewsLoadingShimmer.startShimmer()
                         resultReviews.isVisible = true
-                        // fuck jvm, we have to do a copy because otherwise it wont fucking register
+                        // fuck jvm, we have to do a copy because otherwise it won't fucking register
                         reviewAdapter.submitList(reviews.value.map { it.copy() })
                     }
 
@@ -647,6 +668,15 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
                 if (state == ReadType.NONE) R.drawable.ic_baseline_bookmark_border_24 else R.drawable.ic_baseline_bookmark_24
                 //if (it == ReadType.NONE) R.drawable.ic_baseline_bookmark_border_24 else R.drawable.ic_baseline_bookmark_24
             )
+
+            // Update notes UI when read status changes
+            binding.apply {
+                val isDropped = state == ReadType.DROPPED
+                resultNotesLayout.hint = if (isDropped) getString(R.string.dropped_reason) else getString(R.string.notes)
+                val primaryColor = requireContext().colorFromAttribute(R.attr.colorPrimary)
+                resultNotesLayout.boxStrokeColor = if (isDropped) Color.RED else primaryColor
+                resultNotesLayout.setHintTextColor(android.content.res.ColorStateList.valueOf(if (isDropped) Color.RED else primaryColor))
+            }
         }
         observe(viewModel.loadResponse, ::newState)
 

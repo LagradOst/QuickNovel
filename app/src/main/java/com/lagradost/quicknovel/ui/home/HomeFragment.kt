@@ -37,6 +37,13 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>(
             browseAdapter.submitList(list)
         }
 
+        val settingsManager = androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
+        val hasBackground = !settingsManager.getString(getString(com.lagradost.quicknovel.R.string.background_image_key), null).isNullOrBlank()
+        if (hasBackground) {
+            binding.homeRoot.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            binding.homeToolbar.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        }
+
         activity?.fixPaddingStatusbar(binding.homeToolbar)
     }
 }
