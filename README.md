@@ -1,4 +1,18 @@
-# QuickNovel
+# Cassie
+A fork of [QuickNovel](https://github.com/LagradOst/QuickNovel) with an integrated AI reading assistant.
+
+**Added in this fork:**
+- Long-press any text in the reader to get an AI-powered explanation via [OpenRouter](https://openrouter.ai)
+- Context-aware: sends the selected text plus the surrounding paragraph to the model
+- Supports any OpenRouter-compatible model (configurable in Settings → Assistant)
+- Explanation history viewable from the reader toolbar
+- Markdown rendering in responses (including tables)
+
+**Download:** https://github.com/Kvyii/Cassie/releases
+
+---
+
+# QuickNovel (upstream)
 Adfree FOSS Android app for downloading novels. It also functions as an Epub reader.
 
 **Discord:** https://discord.gg/5Hus6fM

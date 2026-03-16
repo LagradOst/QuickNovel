@@ -18,11 +18,11 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.lagradost.quicknovel"
+        applicationId "com.kvyii.cassie"
         minSdkVersion 21
         targetSdkVersion 35
-        versionCode 56
-        versionName "3.4.3"
+        versionCode 1
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
