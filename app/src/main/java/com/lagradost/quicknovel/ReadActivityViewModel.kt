@@ -364,7 +364,7 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
             try {
                 val ref = spine.spineReferences[i]
 
-                // Si el recurso no es lineal y no es el inicio explícito de este capítulo, saltar
+                // I have no idea, but nonlinear = stop?
                 if (!ref.isLinear && i != startIdx) continue
 
                 val html = ref.resource.reader.readText()
@@ -965,12 +965,17 @@ class ReadActivityViewModel : ViewModel() {
             val textHash = hashString(
                 text.trim().toString().toByteArray()
             )
-            val filePrefix = "ml_${textHash}.${currentSettings.from}_to_${currentSettings.to}.${
+
+            //the file
+            val filePrefix =
+                "ml_${textHash}.${currentSettings.from}_to_${currentSettings.to}.${
                 if (currentSettings.useOnlineTranslation) "online" 
                 else "offline"
             }"
 
-            //Try to use cache
+            // read from cache if it exists
+            // we assume that parseTextToSpans is equivalent from restoring from the builder
+            // aka out == parseTextToSpans(builder)
             val cachedData = safe {
                 context?.cacheDir?.let { dir ->
                     val cache = File(dir, "$filePrefix.txt")
