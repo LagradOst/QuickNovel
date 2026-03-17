@@ -67,7 +67,7 @@ class GoogleTranslateOnline(val loading: suspend (Int, Int) -> Unit = {_,_->})
             }
             return translatedSentences.joinToString("")
         } catch (t: Throwable) {
-            if (t is java.net.UnknownHostException || t is java.net.ConnectException) throw t
+            if (t is java.net.UnknownHostException) throw t
             return retrySpecificSentence(text, from, to)
         }
     }
@@ -82,7 +82,7 @@ class GoogleTranslateOnline(val loading: suspend (Int, Int) -> Unit = {_,_->})
                 return response.sentences.joinToString("") { it.trans }
             } catch (t: Throwable) {
                 logError(t)
-                if (t is java.net.ConnectException)
+                if (t is java.net.UnknownHostException)
                     throw t
 
                 retryNumber++

@@ -295,6 +295,6 @@
     <string name="cannot_conect">No se pudo conectar al servidor, inténtalo de nuevo más tarde.</string>
     <string name="error_loading">"Error al cargar, por favor inténtalo de nuevo más tarde."</string>
     <string name="operation_no_implemented">" Esta operación no está implementada."</string>
-    <string name="conection_error">Error de conección.</string>
+    <string name="conection_error">Error de conexión.</string>
     <string name="unknown">Desconocido</string>
 </resources>
