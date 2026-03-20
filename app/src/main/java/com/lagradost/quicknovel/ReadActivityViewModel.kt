@@ -609,7 +609,6 @@ class ReadActivityViewModel : ViewModel() {
             else (index - chapterPaddingBottom..index + chapterPaddingTop)
 
         for (idx in range) {
-            if(requested.contains(idx)) continue
             requested += idx
             loadIndividualChapter(idx, notify = notify, postLoading = postLoading)
         }
