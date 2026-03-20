@@ -995,15 +995,13 @@ class ReadActivityViewModel : ViewModel() {
 
             // --- Online mode ---
             if (currentSettings.useOnlineTranslation) {
-                val translator = GoogleTranslateOnline { progress, total ->
-                    loading.invoke(Triple(spans[0].index, progress, total))
-                }
-                translatedList =
-                    translator.onlineTranslate(
+                translatedList = GoogleTranslateOnline.onlineTranslate(
                         spans.map { it.text.toString() },
                         currentSettings.from,
                         currentSettings.to
-                    )
+                    ){ progress, total ->
+                        loading.invoke(Triple(spans[0].index, progress, total))
+                    }
 
             }
 
