@@ -356,11 +356,9 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
         val builder = StringBuilder()
 
         val endIdx = if (nextChapterStartIdx < startIdx) startIdx + 1 else nextChapterStartIdx
-        val actualEndIdx = maxOf(startIdx + 1, endIdx)
+        val actualEndIdx = minOf(endIdx, spine.spineReferences.size)
 
         for (i in startIdx until actualEndIdx) {
-            if (i >= spine.spineReferences.size) break
-
             try {
                 val ref = spine.spineReferences[i]
 
@@ -392,13 +390,13 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
         val fullPath = if (basePath.isEmpty()) cleanRelative else "$basePath/$cleanRelative"
 
         val parts = fullPath.split("/")
-        val resolvedParts = mutableListOf<String>()
+        val resolvedParts = ArrayDeque<String>()
 
         for (part in parts) {
             when (part) {
                 "", "." -> continue
-                ".." -> if (resolvedParts.isNotEmpty()) resolvedParts.removeAt(resolvedParts.size - 1)
-                else -> resolvedParts.add(part)
+                ".." -> resolvedParts.removeLastOrNull()
+                else -> resolvedParts.addLast(part)
             }
         }
         return resolvedParts.joinToString("/")
