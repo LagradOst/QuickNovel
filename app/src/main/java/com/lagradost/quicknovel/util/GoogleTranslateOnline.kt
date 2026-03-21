@@ -70,7 +70,6 @@ object GoogleTranslateOnline {
         while (retryNumber < maxRetry) {
             try {
                 val response = callGoogleTranslateApi(text, from, to)
-
                 val translatedSentences = response.sentences.map { sentence ->
 
                     val trans = sentence.trans
@@ -96,13 +95,13 @@ object GoogleTranslateOnline {
 
                 retryNumber++
 
-                if (retryNumber >= maxRetry) return text
+                if (retryNumber >= maxRetry) throw t
 
                 delay(500L * (2.0.pow(retryNumber).toLong()))
             }
         }
 
-        return text
+        return "" //this never happens
     }
 
     private fun List<String>.chunkByLimit(): List<String> {
@@ -111,7 +110,7 @@ object GoogleTranslateOnline {
         var currentChunk = StringBuilder()
 
         for (t in this) {
-            var text = t.trim().ifBlank { " " }.let {
+            val text = t.trim().ifBlank { " " }.let {
                 it + paragraphsSeparator
             }
 
