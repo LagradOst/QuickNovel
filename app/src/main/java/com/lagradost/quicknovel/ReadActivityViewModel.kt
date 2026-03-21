@@ -298,15 +298,20 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
     init {
         val flatTOC = mutableListOf<TOCReference>()
         fun flatten(refs: List<TOCReference>) {
-            for (ref in refs) {
-                flatTOC.add(ref)
-                if (ref.children != null && ref.children.isNotEmpty()) {
-                    flatten(ref.children)
+            refs.forEach { ref ->
+                //this variable is to corrupted epubs
+                val isValid = data.spine.getResourceIndex(ref.resource) != -1
+                if(isValid){
+                    flatTOC.add(ref)
+                    if (ref.children != null && ref.children.isNotEmpty()) {
+                        flatten(ref.children)
+                    }
                 }
             }
         }
         flatten(data.tableOfContents.tocReferences)
 
+        //this is to corrupted epubs
         allTocReferences = if (flatTOC.size <= 1) {
             data.spine.spineReferences
                 .filter { it.isLinear }
@@ -344,23 +349,19 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
     override fun getLoadingStatus(index: Int): String? = null
 
     override suspend fun getChapterData(index: Int, reload: Boolean): String {
-        val currentRef = allTocReferences.getOrNull(index) ?: return ""
-        val spine = data.spine
+        val start = allTocReferences[index].resource
+        val startIdx = data.spine.getResourceIndex(start)
 
-        val startIdx = spine.getResourceIndex(currentRef.resource)
-
-        val nextRef = allTocReferences.getOrNull(index + 1)
-        val nextChapterStartIdx = nextRef?.let { spine.getResourceIndex(it.resource) }
-            ?: spine.spineReferences.size
-
+        val end = allTocReferences.getOrNull(index + 1)?.resource
+        var endIdx = data.spine.getResourceIndex(end)
+        if (endIdx == -1) {
+            endIdx = data.spine.spineReferences.size
+        }
         val builder = StringBuilder()
 
-        val endIdx = if (nextChapterStartIdx < startIdx) startIdx + 1 else nextChapterStartIdx
-        val actualEndIdx = minOf(endIdx, spine.spineReferences.size)
-
-        for (i in startIdx until actualEndIdx) {
+        for (i in startIdx until endIdx) {
             try {
-                val ref = spine.spineReferences[i]
+                val ref = data.spine.spineReferences[i]
 
                 // I have no idea, but nonlinear = stop?
                 if (!ref.isLinear && i != startIdx) continue
