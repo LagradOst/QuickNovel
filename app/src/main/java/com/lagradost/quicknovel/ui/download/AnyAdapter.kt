@@ -39,7 +39,7 @@ class AnyAdapter(
             if (a is ResultCached && b is ResultCached) {
                 a.source == b.source
             } else if (a is DownloadFragment.DownloadDataLoaded && b is DownloadFragment.DownloadDataLoaded) {
-                a.source == b.source
+                a.id == b.id//if you use .source, when you delete a novel, this crashes
             } else {
                 false
             }

@@ -28,7 +28,7 @@ class ReadOnlineFreeBookProvider : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val document =
                 app.get("$mainUrl/index/search/q/${
-                    query.replace(" ", "%20")
+                    query.lowercase().replace(" ", "%20")
                 }").document
 
         return document.select("div.section-left div.capnhat div.section-bottom div div.item").mapNotNull { parent ->

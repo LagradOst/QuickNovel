@@ -213,7 +213,13 @@ class NovelFireProvider:  MainAPI() {
         val title = document.selectFirst("span.chapter-title") ?: return null
         val contentElement = document.selectFirst("div#content")?.apply {
             selectFirst("p")?.let {
-                if(it.text().trim() == title.text().trim()) it.remove()
+                if(it.text()
+                    .replace(" ", "")
+                    .equals(
+                        title.text()
+                            .replace(" ", ""), ignoreCase = true
+                    )
+                ) it.remove()
             }
             select("img[src*=disable-blocker.jpg]").forEach { it.remove() }
         } ?: return null

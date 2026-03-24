@@ -1983,7 +1983,7 @@ object BookDownloader2 {
                 }?.forEach { file ->
                     val res = Resource(file.readBytes(), file.name)
                     book.addSection(
-                        "Chapter ${
+                        "Section ${
                             file.name.replace("chapter", "").replace(".xhtml", "")
                         }", res
                     )

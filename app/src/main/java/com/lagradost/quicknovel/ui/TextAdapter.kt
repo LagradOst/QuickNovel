@@ -414,35 +414,55 @@ class TextAdapter(
             if (scrollVisibility.adapterPosition < 0 || scrollVisibility.adapterPosition >= itemCount) return emptyList()
             val viewHolder = scrollVisibility.viewHolder
             if (viewHolder !is ViewHolderState<*>) return emptyList()
+
             val binding = viewHolder.view
-            if (binding !is SingleTextBinding) return emptyList()
-            val span = getItem(scrollVisibility.adapterPosition)
-            if (span !is TextSpan) return emptyList()
+            val item = getItem(scrollVisibility.adapterPosition)
 
-            val outLocation = IntArray(2)
-            binding.root.getLocationInWindow(outLocation)
-            val y = outLocation[1] + binding.root.paddingTop
+            // Case 1: Image
+            if (binding is SingleImageBinding && item is TextSpan) {
+                val outLocation = IntArray(2)
+                binding.root.getLocationInWindow(outLocation)
+                val y = outLocation[1]
 
-            //val paddingTop =
-            //val paddingBottom = binding.root.paddingBottom
-
-
-            val list = arrayListOf<TextVisualLine>()
-            binding.root.layout.apply {
-                for (i in 0 until lineCount) {
-                    list.add(
-                        TextVisualLine(
-                            startChar = span.start + getLineStart(i),
-                            endChar = span.start + getLineEnd(i),
-                            innerIndex = span.innerIndex,
-                            index = span.index,
-                            top = getLineTop(i) + y,//+paddingTop,
-                            bottom = getLineBottom(i) + y//+paddingBottom
-                        )
+                return listOf(
+                    TextVisualLine(
+                        startChar = item.start,
+                        endChar = item.start + 1,
+                        innerIndex = item.innerIndex,
+                        index = item.index,
+                        top = y,
+                        bottom = y + binding.root.height
                     )
-                }
+                )
             }
-            return list
+
+            // Case 2: Text
+            if (binding is SingleTextBinding && item is TextSpan) {
+                val outLocation = IntArray(2)
+                binding.root.getLocationInWindow(outLocation)
+                val y = outLocation[1] + binding.root.paddingTop
+
+                val list = arrayListOf<TextVisualLine>()
+                // Importante: verificar que el layout no sea nulo
+                binding.root.layout?.apply {
+                    for (i in 0 until lineCount) {
+                        list.add(
+                            TextVisualLine(
+                                startChar = item.start + getLineStart(i),
+                                endChar = item.start + getLineEnd(i),
+                                innerIndex = item.innerIndex,
+                                index = item.index,
+                                top = getLineTop(i) + y,
+                                bottom = getLineBottom(i) + y
+                            )
+                        )
+                    }
+                }
+                return list
+            }
+
+            /* Other cases (Loading, Separators, etc.) */
+            return emptyList()
         } catch (t: Throwable) {
             return emptyList()
         }

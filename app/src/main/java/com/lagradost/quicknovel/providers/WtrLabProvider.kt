@@ -14,8 +14,6 @@ import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
-import com.lagradost.quicknovel.setStatus
-import com.lagradost.quicknovel.toRate
 import com.lagradost.quicknovel.util.AppUtils.parseJson
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
