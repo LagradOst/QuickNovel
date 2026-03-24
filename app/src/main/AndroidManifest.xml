@@ -105,6 +105,10 @@
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
+                    android:host="fenrirealm.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
                     android:host="fucknovelpia.com"
                     android:pathPrefix="/"
                     android:scheme="https" />

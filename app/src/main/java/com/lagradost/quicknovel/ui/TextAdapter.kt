@@ -443,7 +443,6 @@ class TextAdapter(
                 val y = outLocation[1] + binding.root.paddingTop
 
                 val list = arrayListOf<TextVisualLine>()
-                // Importante: verificar que el layout no sea nulo
                 binding.root.layout?.apply {
                     for (i in 0 until lineCount) {
                         list.add(

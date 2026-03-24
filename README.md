@@ -12,6 +12,7 @@ Adfree FOSS Android app for downloading novels. It also functions as an Epub rea
 - https://bestlightnovel.com
 - https://freewebnovel.com
 - https://fucknovelpia.com
+- https://fenrirealm.com
 - https://www.fanmtl.com
 - https://graycity.net
 - https://hiraethtranslation.com
