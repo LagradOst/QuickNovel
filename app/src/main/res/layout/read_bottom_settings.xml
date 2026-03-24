@@ -203,7 +203,7 @@
 
                     android:value="1.0"
                     android:valueFrom="0.1"
-                    android:valueTo="5"
+                    android:valueTo="7"
                     app:layout_constraintTop_toTopOf="parent" />
 
                 <ImageView
