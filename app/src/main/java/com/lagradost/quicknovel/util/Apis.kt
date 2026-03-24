@@ -11,6 +11,7 @@ import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.providers.AllNovelProvider
 import com.lagradost.quicknovel.providers.AnnasArchive
+import com.lagradost.quicknovel.providers.DevilNovelsProvider
 import com.lagradost.quicknovel.providers.FanMtlnProvider
 import com.lagradost.quicknovel.providers.FenrirRealProvider
 import com.lagradost.quicknovel.providers.FreewebnovelProvider
@@ -57,6 +58,7 @@ class Apis {
             //ComrademaoProvider(), // domain sold/down?
             //EfremnetProvider(), // domain is expired
             //EngNovelProvider(),
+            DevilNovelsProvider(),
             FreewebnovelProvider(),
             FenrirRealProvider(),
             FanMtlnProvider(),
