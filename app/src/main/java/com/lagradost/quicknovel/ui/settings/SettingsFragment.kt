@@ -93,11 +93,14 @@ class SettingsFragment : PreferenceFragmentCompat() {
         fun showSearchProviders(context: Context?) {
             if (context == null) return
             val apiNames = apis.map { it.name }
-
+            val displayNames = apis.map {
+                val flag = SubtitleHelper.getFlagFromIso(it.lang) ?: "🌐"
+                "$flag ${it.name}"
+            }
             context.apply {
                 val active = getApiSettings()
                 showMultiDialog(
-                    apiNames,
+                    displayNames,
                     apiNames.mapIndexed { index, s -> index to active.contains(s) }
                         .filter { it.second }
                         .map { it.first }.toList(),
@@ -323,8 +326,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
                     if (fullName.isNullOrEmpty()) {
                         return@mapNotNull null
                     }
-
-                    it to fullName
+                    val flag = SubtitleHelper.getFlagFromIso(it) ?: "🌐"
+                    it to "$flag $fullName"
                 }
 
                 context?.showMultiDialog(
