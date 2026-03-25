@@ -101,33 +101,15 @@ class KolNovelProvider : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val document = app.get("$mainUrl/?s=$query").document
+        return document.select("div.listupd > article.maindet > div.inmain").mapNotNull { h ->
+            val imageHeader = h.selectFirst("a.tip")
 
-        val headers = document.select("div.bsx")
-
-        val returnValue: ArrayList<SearchResponse> = ArrayList()
-        for (h in headers) {
-            val head = h.selectFirst("a.tip")
-
-            val url = head?.attr("abs:href") ?: continue
-
-            val posterUrl = h.select("div.limit img").attr("src")
-
-            val meta = h.selectFirst("a.tip")
-
-            val name = meta?.select("div.tt span.ntitle")?.text() ?: continue
-
-            val ratingTxt = meta.selectFirst("div.tt div.rt div.rating div.numscore")?.text()
-
-            val rating = if (ratingTxt != null) {
-                (ratingTxt.toFloat() * 100).toInt()
-            } else {
-                null
+            val cUrl = imageHeader?.attr("href") ?: return@mapNotNull null
+            val name = imageHeader.attr("title") ?: return@mapNotNull null
+            newSearchResponse(name = name, url = cUrl) {
+                posterUrl = imageHeader.selectFirst("img")?.attr("src")
             }
-
-            val latestChapter = meta.selectFirst("div.tt span.nchapter")?.text()
-            returnValue.add(SearchResponse(name, url, posterUrl, rating, latestChapter, this.name))
         }
-        return returnValue
     }
 
     override suspend fun load(url: String): LoadResponse? {
