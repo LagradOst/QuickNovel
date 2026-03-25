@@ -45,6 +45,7 @@ import com.lagradost.quicknovel.providers.ScribblehubProvider
 import com.lagradost.quicknovel.providers.VynovelProvider
 import com.lagradost.quicknovel.providers.WtrLabProvider
 import com.lagradost.quicknovel.providers.WuxiaBoxProvider
+import com.lagradost.quicknovel.providers.WuxiaClickProvider
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 
 class Apis {
@@ -100,6 +101,7 @@ class Apis {
             //WattpadProvider(), // they have randomized the css classes
             WtrLabProvider(),
             WuxiaBoxProvider(),
+            WuxiaClickProvider(),
         ).sortedBy { it.name }
 
         fun getApiFromName(name: String): APIRepository {
