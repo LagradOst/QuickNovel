@@ -17,13 +17,9 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.quicknovel.BuildConfig
 import com.lagradost.quicknovel.CommonActivity.showToast
-import com.lagradost.quicknovel.DownloadProgressState
-import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.MainActivity.Companion.app
-import com.lagradost.quicknovel.NotificationHelper
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.mvvm.logError
-import kotlinx.coroutines.runBlocking
 import java.io.*
 import java.net.URL
 import java.net.URLConnection
@@ -34,10 +30,6 @@ const val UPDATE_TIME = 1000
 class InAppUpdater {
     companion object {
         // === IN APP UPDATER ===
-        @Volatile
-        private var isDownloadingUpdate: Boolean = false
-
-        private const val UPDATE_NOTIFICATION_ID = -1
         data class GithubAsset(
             @JsonProperty("name") val name: String,
             @JsonProperty("size") val size: Int, // Size bytes
@@ -127,8 +119,6 @@ class InAppUpdater {
         }
 
         private fun Activity.downloadUpdate(url: String): Boolean {
-            if(isDownloadingUpdate) return false
-            isDownloadingUpdate = true
             var fullResume = false // IF FULL RESUME
             try {
                 // =================== DOWNLOAD POSTERS AND SETUP PATH ===================
@@ -139,7 +129,7 @@ class InAppUpdater {
                 val rFile = File(path)
                 try {
                     rFile.parentFile?.mkdirs()
-                } catch (t: Throwable){
+                } catch (t: Throwable) {
                     logError(t)
                 }
 
@@ -181,7 +171,6 @@ class InAppUpdater {
                 }
                 if (clen <= 0) { // TO SMALL OR INVALID
                     //showNot(0, 0, 0, DownloadType.IsFailed, info)
-                    isDownloadingUpdate = false
                     return false
                 }
 
@@ -193,7 +182,6 @@ class InAppUpdater {
                 val buffer = ByteArray(1024)
                 var count: Int
                 //var lastUpdate = System.currentTimeMillis()
-                var lastUpdateTime = System.currentTimeMillis()
 
                 while (true) {
                     try {
@@ -203,41 +191,6 @@ class InAppUpdater {
                         bytesRead += count
                         bytesPerSec += count
                         output.write(buffer, 0, count)
-
-                        val currentTime = System.currentTimeMillis()
-                        val timeElapsed = currentTime - lastUpdateTime
-                        if (timeElapsed > 1000) {
-                            val progress = bytesRead
-                            val total = clen.toLong()
-
-                            val bps = (bytesPerSec * 1000) / timeElapsed.coerceAtLeast(1)
-                            val eta = if(bps > 0) (total - progress) / bps * 1000 else 0L
-                            bytesPerSec = 0
-                            lastUpdateTime = currentTime
-                            println("bps: $bps | eta: ${eta/1000}s | progress: $progress/$total")
-
-                            runBlocking {
-                                NotificationHelper.createNotification(
-                                    context = this@downloadUpdate,
-                                    source = url,
-                                    id = UPDATE_NOTIFICATION_ID,
-                                    name = "QuickNovel Update",
-                                    stateProgressState = DownloadProgressState(
-                                        state = DownloadState.IsDownloading,
-                                        downloaded = progress,
-                                        progress = progress,
-                                        total = total,
-                                        lastUpdatedMs = lastUpdateTime,
-                                        etaMs = eta
-                                    ),
-                                    progressInBytes = true,
-                                    isActionable = false
-
-                                )
-                            }
-                            lastUpdateTime = currentTime
-                        }
-
                     } catch (t: Throwable) {
                         logError(t)
                         fullResume = true
@@ -254,25 +207,6 @@ class InAppUpdater {
                 output.flush()
                 output.close()
                 input.close()
-                runBlocking {
-                    NotificationHelper.createNotification(
-                        context = this@downloadUpdate,
-                        source = url,
-                        id = UPDATE_NOTIFICATION_ID,
-                        name = "QuickNovel Update",
-                        posterUrl = null,
-                        stateProgressState = DownloadProgressState(
-                            DownloadState.IsDone,
-                            clen.toLong(),
-                            clen.toLong(),
-                            clen.toLong(),
-                            lastUpdateTime,
-                            null),
-                        showNotification = false
-                    )
-                }
-
-                isDownloadingUpdate = false
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     val contentUri = FileProvider.getUriForFile(
@@ -301,7 +235,6 @@ class InAppUpdater {
 
             } catch (t: Throwable) {
                 logError(t)
-                isDownloadingUpdate = false
                 return false
             }
         }
