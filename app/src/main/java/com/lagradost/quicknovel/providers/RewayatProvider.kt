@@ -105,7 +105,7 @@ class RewayatProviderMainAPI():  MainAPI() {
 
 
     private suspend fun getChapters(document: Document, url: String):List<ChapterData>{
-        val newUrl = "https://api.rewayat.club/api/chapters/${url.substringAfterLast("/")}/?ordering=number&page="
+        val newUrl = "$secondUrl/api/chapters/${url.substringAfterLast("/")}/?ordering=number&page="
         val chapter = app.get(newUrl + 1).parsed<RewayatMainResponse>()
         val totalChapters = chapter.count
             if (totalChapters > 1) {
