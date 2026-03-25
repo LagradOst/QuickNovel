@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import android.net.Uri
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.HeadMainPageResponse
@@ -102,23 +103,15 @@ class RewayatProviderMainAPI():  MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
-    private fun getTotalChapters(document: Document):Int?{
-        val script = document.select("script")
-            .firstOrNull { it.data().contains("window.__NUXT__") }
-            ?.data()
-        return Regex("""pagination:\{[^}]*count:(\d+)""")
-            .find(script ?: "")
-            ?.groupValues
-            ?.get(1)
-            ?.toInt()
-    }
 
-    private fun getChapters(document: Document, url:String):List<ChapterData>{
-           val totalChapters = getTotalChapters(document)
-            if (totalChapters != null) {
-                    return (1.. totalChapters).map { chapterNumber ->
-                        val chapterUrl = "$url-------$chapterNumber-------$totalChapters"
-                        newChapterData("Chapter $chapterNumber", chapterUrl)
+    private suspend fun getChapters(document: Document, url: String):List<ChapterData>{
+        val newUrl = "https://api.rewayat.club/api/chapters/${url.substringAfterLast("/")}/?ordering=number&page="
+        val chapter = app.get(newUrl + 1).parsed<RewayatMainResponse>()
+        val totalChapters = chapter.count
+            if (totalChapters > 1) {
+                    return (0..< totalChapters).map { chapterNumber ->
+                        val chapterUrl = "$newUrl-------$chapterNumber-------$totalChapters"
+                        newChapterData("Chapter ${chapterNumber + 1}", chapterUrl)
                     }
 
             }
@@ -174,15 +167,8 @@ class RewayatProviderMainAPI():  MainAPI() {
         return soup
     }
 
-    private fun getChapter(doc: Document, number: Int): String? {
-        doc.select("div.v-window-item.v-window-item--active > div[role=list] > div > a").reversed().forEachIndexed { index, li ->
-            if(index  == number - 1) return fixUrl(li.attr("href"))
-        }
-        return null
-    }
-
     override suspend fun loadHtml(url: String): String? {
-        //[url],[chapter number, totalchapters]
+        //[url, chapter number]
         val chapterData = url.split("-------")
         if(chapterData.size == 1){
             val dc = app.get(url).document
@@ -190,20 +176,23 @@ class RewayatProviderMainAPI():  MainAPI() {
             val contentElement = getChapterParagraphs(dc)?:return null
             return title + contentElement.joinToString("</br>")
         }
+
+        val baseUrl = chapterData[0]
         val chapterBigIndex = chapterData[1].toInt()
+        val totalChapters = chapterData[2].toInt()
         val itemsPerPage = 24
 
-        val totalChapters = chapterData[2].toInt()
-        val totalPages = (totalChapters + itemsPerPage - 1) / itemsPerPage
-        val normalPage = (chapterBigIndex / itemsPerPage) + 1
-        val invertedPage = (totalPages - normalPage) + 1
+        val remainder = totalChapters % itemsPerPage
+        val offset = if(remainder == 0) 0 else itemsPerPage - remainder
+        val adjustedIndex = chapterBigIndex + offset
 
+        val normalPage = if(remainder > chapterBigIndex) (adjustedIndex / itemsPerPage) + 1 else (chapterBigIndex / itemsPerPage) + 1
         val chapterIndex = chapterBigIndex % itemsPerPage
 
-        val document = app.get("${chapterData[0]}?page=$invertedPage").document
+        val document = app.get("$baseUrl$normalPage").parsed<RewayatMainResponse>()
 
-        val chapter = getChapter(document, chapterIndex) ?: return null
-        val dc = app.get(chapter).document
+        val chapter = document.results.getOrNull(chapterIndex) ?: return null
+        val dc = app.get("$mainUrl/novel/${url.substringAfterLast("chapters/").substringBefore("/?ordering")}/${chapter.number}").document
         val title =  dc.selectFirst("h1 a")?.outerHtml()?:""
         val contentElement = getChapterParagraphs(dc)?:return null
         return title +"</br>"+ contentElement.joinToString("</br>")
@@ -241,4 +230,15 @@ class RewayatProviderMainAPI():  MainAPI() {
         val id: Long,
     )
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    data class RewayatMainResponse(
+        val count: Long,
+        val results: List<Result2>,
+    )
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    data class Result2(
+        val number: Long,
+        val title: String,
+    )
 }
