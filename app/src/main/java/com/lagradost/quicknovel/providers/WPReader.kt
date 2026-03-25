@@ -5,6 +5,7 @@ import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
+import com.lagradost.quicknovel.MainActivity.Companion.appWithInterceptor
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.addPath
@@ -84,7 +85,7 @@ abstract class WPReader : MainAPI() {
             .ifCase(page > 1) { addPath("page", page.toString()) }
             .toString()
 
-        val res = app.get(url).document
+        val res = appWithInterceptor.get(url).document
             .select(if (tag == "") ".flexbox3-content > a" else ".flexbox2-content > a")
             .mapNotNull { element ->
                 newSearchResponse(
@@ -103,10 +104,10 @@ abstract class WPReader : MainAPI() {
     }
 
     override suspend fun loadHtml(url: String): String? {
-        val con = app.get(url).document
+        val con = appWithInterceptor.get(url).document
         val res =
-            con.selectFirst("#content") ?: con.selectFirst(".mn-novel-chapter-content-body") ?: con.selectFirst(".reader-area")
-        return res?.html()
+            con.select("div.content > div.container > div > p").joinToString("</br>")
+        return res
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
@@ -127,7 +128,7 @@ abstract class WPReader : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val doc = app.get(url).document
+        val doc = appWithInterceptor.get(url).document
         val data = doc.select("div.flexch-infoz > a")
             .mapNotNull { dat ->
                 newChapterData(name = dat.attr("title").clean(), url = dat.attr("href").clean()) {
