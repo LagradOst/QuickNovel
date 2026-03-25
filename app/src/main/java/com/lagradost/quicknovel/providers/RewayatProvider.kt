@@ -108,19 +108,19 @@ class RewayatProviderMainAPI():  MainAPI() {
         val newUrl = "$secondUrl/api/chapters/${url.substringAfterLast("/")}/?ordering=number&page="
         val chapter = app.get(newUrl + 1).parsed<RewayatMainResponse>()
         val totalChapters = chapter.count
-            if (totalChapters > 1) {
-                    return (0..< totalChapters).map { chapterNumber ->
-                        val chapterUrl = "$newUrl-------$chapterNumber-------$totalChapters"
-                        newChapterData("Chapter ${chapterNumber + 1}", chapterUrl)
-                    }
+        if (totalChapters > 1) {
+                return (0..< totalChapters).map { chapterNumber ->
+                    val chapterUrl = "$newUrl-------$chapterNumber-------$totalChapters"
+                    newChapterData("Chapter ${chapterNumber + 1}", chapterUrl)
+                }
 
-            }
+        }
 
-            return document.select("div.v-window-item.v-window-item--active > div[role=list] > div > a").mapIndexedNotNull { index, li ->
-                val name = li.selectFirst("div.v-list-item__content")?.text() ?: "Chapter $index"
-                val url = fixUrl(li.attr("href"))
-                newChapterData(name, url)
-            }
+        return document.select("div.v-window-item.v-window-item--active > div[role=list] > div > a").mapIndexedNotNull { index, li ->
+            val name = li.selectFirst("div.v-list-item__content")?.text() ?: "Chapter $index"
+            val url = fixUrl(li.attr("href"))
+            newChapterData(name, url)
+        }
     }
 
 

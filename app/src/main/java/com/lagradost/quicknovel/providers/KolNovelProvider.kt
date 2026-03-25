@@ -6,7 +6,7 @@ import java.util.*
 
 class KolNovelProvider : MainAPI() {
     override val name = "KolNovel"
-    override val mainUrl = "https://kolnovel.com"
+    override val mainUrl = "https://free.kolnovel.com"
     override val iconId = R.drawable.icon_kolnovel
 
     override val hasMainPage = true
@@ -80,23 +80,17 @@ class KolNovelProvider : MainAPI() {
         orderBy: String?,
         tag: String?,
     ): HeadMainPageResponse {
-        val url = "$mainUrl/series/?page=$page&genre[]=$tag&status=$mainCategory&order=$orderBy"
+        val url = "$mainUrl/series/?page=$page${if(tag.isNullOrBlank()) "" else "&genre%5B%5D=$tag"}${if(mainCategory.isNullOrBlank()) "" else "&status=$mainCategory"}${if(orderBy.isNullOrBlank()) "" else "&order=$orderBy"}"
         val document = app.get(url).document
-        val headers = document.select("div.bsx")
-        val returnValue = headers.mapNotNull { h ->
+        val returnValue = document.select("div.listupd > article.maindet > div.inmain").mapNotNull { h ->
             val imageHeader = h.selectFirst("a.tip")
 
-            val cUrl = imageHeader?.attr("abs:href") ?: return@mapNotNull null
-            val name = imageHeader.select("div.tt span.ntitle").text() ?: return@mapNotNull null
+            val cUrl = imageHeader?.attr("href") ?: return@mapNotNull null
+            val name = imageHeader.attr("title") ?: return@mapNotNull null
             newSearchResponse(name = name, url = cUrl) {
-                posterUrl = fixUrlNull(imageHeader.selectFirst("div.limit img")?.attr("src"))
-                rating =
-                    (imageHeader.selectFirst("> div.tt > div > div > div.numscore")?.text()
-                        ?.toFloat()?.times(100))?.toInt()
-                latestChapter = h.selectFirst("a.tip div.tt span.nchapter")?.text()
+                posterUrl = imageHeader.selectFirst("img")?.attr("src")
             }
         }
-
         return HeadMainPageResponse(url, returnValue)
     }
 
@@ -138,9 +132,9 @@ class KolNovelProvider : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse? {
         val document = app.get(url).document
-        val name = document.select("div.thumb > img").attr("title")
+        val name = document.select("h1.entry-title")?.text()
             ?: return null//select("h1.entry-title")?.text()
-        val authors = document.select("div.spe span:contains(المؤلف) > a")
+        val authors = document.select("div.serl:contains(الكاتب)")?.text()?.replace("الكاتب","")
 
         val data: ArrayList<ChapterData> = ArrayList()
         val chapterHeaders = document.select("li[data-id] > a")//.eplister ul
@@ -153,21 +147,12 @@ class KolNovelProvider : MainAPI() {
         }
         data.reverse()
 
-        val aHeaders = document.select("span:contains(الحالة)")
-
         return newStreamResponse(url = url, name = name, data = data) {
-            for (a in authors) {
-                val atter = a.attr("href")
-                if (atter.length > "$mainUrl/writer/".length && atter.startsWith("$mainUrl/writer/")
-                ) {
-                    author = a.text()
-                    break
-                }
-            }
+            author = authors
             tags = document.select("div.genxed a").map { it.text() }
-            posterUrl = document.select("div.thumb > img").attr("data-lazy-src")
+            posterUrl = document.select("div.sertothumb > img").attr("src")
             synopsis = document.select("div.entry-content p:first-of-type").text()
-            setStatus(aHeaders.text().replace("الحالة: ", "").lowercase(Locale.getDefault()))
+            setStatus(document.selectFirst("div.sertoinfo > div.sertostat > span")?.text()?.lowercase(Locale.getDefault()))
             rating =
                 ((document.selectFirst("div.rating > strong")?.text()?.replace("درجة", "")
                     ?.toFloat()
