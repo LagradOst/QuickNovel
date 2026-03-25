@@ -28,8 +28,8 @@ Adfree FOSS Android app for downloading novels. It also functions as an Epub rea
 - https://novelbin.com
 - https://novelfull.com
 - https://novelsonline.org
-- https://novlove.com/
-- https://novelfire.net/
+- https://novlove.com
+- https://novelfire.net
 - https://pawread.com
 - https://readfrom.net
 - https://readnovelfull.com
@@ -38,7 +38,8 @@ Adfree FOSS Android app for downloading novels. It also functions as an Epub rea
 - https://www.scribblehub.com
 - https://vynovel.com
 - https://wtr-lab.com
-- https://www.wuxiabox.com/
+- https://www.wuxiabox.com
+- https://wuxia.click
 
 **Screenshoots:**
 

@@ -213,6 +213,10 @@
                     android:host="www.wuxiabox.com"
                     android:pathPrefix="/"
                     android:scheme="https" />
+                <data
+                    android:host="wuxia.click"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
             </intent-filter>
         </activity>
 
