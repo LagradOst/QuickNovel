@@ -22,9 +22,9 @@ class LnoriProvider :  MainAPI() {
 
     override val orderBys = listOf(
         "Relevance" to "",
-        "Title" to "title",
-        "Year Released" to "year-released",
-        "Volumes" to "volumes"
+        "Title" to "data-t",
+        "Year Released" to "data-d",
+        "Volumes" to "data-v"
     )
 
     override val tags = listOf(
@@ -184,23 +184,33 @@ class LnoriProvider :  MainAPI() {
         val url = "$mainUrl/library"
         val document = app.get(url).document
 
-        val returnValue = document.select("section article.card").mapNotNull { card ->
-            if(!tag.isNullOrBlank()){
-                val tags = card.attr("data-tags")
-                if(!tags.contains(tag)) return@mapNotNull null
-            }
-            val href = card.selectFirst("a")?.attr("href") ?: return@mapNotNull null
-            val title = card.selectFirst("h2")?.text() ?: return@mapNotNull null
 
+        val selector = if (!tag.isNullOrBlank()) {
+            "article.card[data-tags*=$tag]"
+        } else {
+            "article.card"
+        }
+
+        val cards = document.select(selector)
+
+        val returnValue = cards.asSequence()
+        .let{ seq ->
+            if(!orderBy.isNullOrBlank())
+                seq.sortedBy { it.attr(orderBy) }
+            else seq
+        }.mapNotNull { card ->
+            val a = card.selectFirst("a") ?: return@mapNotNull null
+            val title = card.selectFirst("h2")?.text() ?: return@mapNotNull null
 
             newSearchResponse(
                 name = title,
-                url = href
+                url = a.attr("href")
             ) {
                 posterUrl = card.selectFirst("img")?.attr("src")
             }
-
         }
+        .toList()
+
         return HeadMainPageResponse(url, returnValue)
     }
 
