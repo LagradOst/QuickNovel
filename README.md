@@ -17,7 +17,7 @@ Adfree FOSS Android app for downloading novels. It also functions as an Epub rea
 - https://graycity.net
 - https://hiraethtranslation.com
 - https://indowebnovel.id
-- https://kolnovel.com
+  https://free.kolnovel.com
 - https://libread.com
 - https://lightnovelstranslations.com/Li
 - https://meionovels.com

@@ -125,7 +125,7 @@
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
-                    android:host="kolnovel.com"
+                    android:host="free.kolnovel.com"
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
