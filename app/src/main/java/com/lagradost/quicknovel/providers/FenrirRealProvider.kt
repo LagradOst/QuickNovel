@@ -109,7 +109,7 @@ class FenrirRealProvider:  MainAPI() {
             .parsed<Array<ChapterInf>>()
             .mapNotNull { ch ->
                 if(ch.locked.price > 0) null
-                else newChapterData("${ch.name} - ${ch.title}", "$url/${ch.slug}"){
+                else newChapterData("${ch.name} ${if(ch.title.isNullOrEmpty()) "" else "- ${ch.title}"}", "$url/${ch.slug}"){
                     dateOfRelease = ch.updatedAt.split("T")[0]
                 }
             }
