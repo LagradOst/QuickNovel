@@ -38,7 +38,7 @@ import com.lagradost.quicknovel.providers.ReadNovelFullProvider
 import com.lagradost.quicknovel.providers.ReadOnlineFreeBookProvider
 import com.lagradost.quicknovel.providers.ReadfromnetProvider
 import com.lagradost.quicknovel.providers.RedditProvider
-import com.lagradost.quicknovel.providers.RewayatProviderMainAPI
+import com.lagradost.quicknovel.providers.RewayatProvider
 import com.lagradost.quicknovel.providers.RoyalRoadProvider
 import com.lagradost.quicknovel.providers.SakuraNovelProvider
 import com.lagradost.quicknovel.providers.ScribblehubProvider
@@ -91,7 +91,7 @@ class Apis {
             ReadNovelFullProvider(),
             RoyalRoadProvider(),
             ReadOnlineFreeBookProvider(),
-            RewayatProviderMainAPI(),
+            RewayatProvider(),
             SakuraNovelProvider(), // cloudflare?
             ScribblehubProvider(),
             VynovelProvider(),

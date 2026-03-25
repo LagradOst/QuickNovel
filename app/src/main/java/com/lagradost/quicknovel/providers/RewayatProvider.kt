@@ -20,7 +20,7 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import kotlin.math.roundToInt
 
-class RewayatProviderMainAPI():  MainAPI() {
+class RewayatProvider():  MainAPI() {
     override val name = "Rewayat"
     override val mainUrl = "https://rewayat.club"
     private val secondUrl = "https://api.rewayat.club"
