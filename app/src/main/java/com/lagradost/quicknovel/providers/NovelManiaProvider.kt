@@ -69,7 +69,7 @@ class NovelManiaProvider : MainAPI() {
         val tags = document.select("#info .tags a[href^=\"/genero/\"]")
             .mapNotNull { it.attr("title") }
 
-        // CHAPTERS (con volúmenes)
+        // CHAPTERS
         val chapters = mutableListOf<ChapterData>()
 
         val volumes = document.select("#accordion .card-header button")
@@ -85,7 +85,7 @@ class NovelManiaProvider : MainAPI() {
 
                 val link = a.attr("href")
 
-                chapters.add(newChapterData(name, link))
+                chapters.add(newChapterData("${volTag.text()} $name", link))
             }
         }
 
