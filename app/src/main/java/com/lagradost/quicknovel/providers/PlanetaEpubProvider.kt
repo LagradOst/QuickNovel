@@ -26,10 +26,69 @@ class PlanetaEpubProvider :  MainAPI() {
 
     override val mainCategories = listOf(
         "All" to "",
-        "Completed" to "completed",
-        "Ongoing" to "ongoing",
-        "Hiatus" to "hiatus",
-        "Dropped" to "dropped"
+        "Arte" to "arte",
+        "Autoayuda" to "autoayuda",
+        "Aventuras" to "aventuras",
+        "Bélico" to "belico",
+        "Biografía" to "biografia",
+        "Ciencia ficción" to "ciencia-ficcion",
+        "Ciencias exactas" to "ciencias-exactas",
+        "Ciencias naturales" to "ciencias-naturales",
+        "Ciencias Sociales" to "ciencias-sociales",
+        "Clásico" to "clasico",
+        "Cocina" to "cocina",
+        "Cocina y Arte" to "cocina-y-arte",
+        "Comunicación" to "comunicacion",
+        "Crítica y teoría literaria" to "cretica-y-teorea-literaria",
+        "Crónica" to "cronica",
+        "Cuentos" to "cuentos",
+        "Deportes y juegos" to "deportes-y-juegos",
+        "Diccionarios y enciclopedias" to "diccionarios-y-enciclopedias",
+        "Didáctico" to "didactico",
+        "Divulgación" to "divulgacion",
+        "Drama" to "drama",
+        "Ensayo" to "ensayo",
+        "Erótico" to "erotico",
+        "Espiritualidad" to "espiritualidad",
+        "Fantástico" to "fantastico",
+        "Filosofía" to "filosofia",
+        "Filosófico" to "filosofico",
+        "Guion" to "guion",
+        "Historia" to "historia",
+        "Histórico" to "historico",
+        "Hogar" to "hogar",
+        "Humanidades" to "humanidades",
+        "Humor" to "humor",
+        "Idiomas" to "idiomas",
+        "Infantil" to "infantil",
+        "Interactivo" to "interactivo",
+        "Intriga" to "intriga",
+        "Juvenil" to "juvenil",
+        "Manuales y cursos" to "manuales-y-cursos",
+        "Memorias" to "memorias",
+        "Novela" to "novela",
+        "Otros" to "otros",
+        "Padres e hijos" to "padres-e-hijos",
+        "Poesía" to "poesia",
+        "Policial" to "policial",
+        "Psicología" to "psicologia",
+        "Psicológico" to "psicologico",
+        "Publicaciones periódicas" to "publicaciones-periodicas",
+        "Realista" to "realista",
+        "Reealista" to "reealista",
+        "Referencia" to "referencia",
+        "Relato" to "relato",
+        "Religión" to "religion",
+        "Romántico" to "romantico",
+        "Salud y bienestar" to "salud-y-bienestar",
+        "Sátira" to "satira",
+        "Sexualidad" to "sexualidad",
+        "Sociología" to "sociología",
+        "Teatro" to "teatro",
+        "Tecnología" to "tecnologia",
+        "Terror" to "terror",
+        "Variada" to "variada",
+        "Viajes" to "viajes"
     )
 
 
@@ -41,6 +100,7 @@ class PlanetaEpubProvider :  MainAPI() {
     ): HeadMainPageResponse
     {
         val url = "$mainUrl${if(mainCategory.isNullOrEmpty()) "" else "/categoria/$mainCategory"}/page/$page/"
+        println(url)
         val document = app.get(url).document
 
         val returnValue = document.select("main.content > div > div.post-list > div > article").mapNotNull { card ->
