@@ -208,22 +208,27 @@ class NovelFireProvider:  MainAPI() {
         }
     }
 
+    fun normalize(text: String): String {
+        return text
+            .lowercase()
+            .replace(Regex("\\p{InCombiningDiacriticalMarks}+"), "")
+            .replace(Regex("[^a-z0-9]"), "")
+    }
+
     override suspend fun loadHtml(url: String): String? {
         val document = app.get(url).document
-        val title = document.selectFirst("span.chapter-title") ?: return null
+        var title = document.selectFirst("span.chapter-title")?.text() ?: ""
         val contentElement = document.selectFirst("div#content")?.apply {
-            selectFirst("p")?.let {
-                if(it.text()
-                    .replace(" ", "")
-                    .equals(
-                        title.text()
-                            .replace(" ", ""), ignoreCase = true
-                    )
-                ) it.remove()
+            selectFirst("p")?.let { p ->
+                if(normalize(p.text()) == normalize(title)) title = ""
             }
             select("img[src*=disable-blocker.jpg]").forEach { it.remove() }
         } ?: return null
-        return title.outerHtml() + contentElement.html()
+
+        return if(title.isEmpty())
+            contentElement.html()
+        else
+            "<p>$title</p><br>${contentElement.html()}"
     }
 
     override suspend fun search(query: String): List<SearchResponse> {

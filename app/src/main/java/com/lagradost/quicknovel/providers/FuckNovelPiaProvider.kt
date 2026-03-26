@@ -123,11 +123,27 @@ class FuckNovelPiaProvider :  MainAPI() {
         }
     }
 
+    fun normalize(text: String): String {
+        return text
+            .lowercase()
+            .replace(Regex("\\p{InCombiningDiacriticalMarks}+"), "")
+            .replace(Regex("[^a-z0-9]"), "")
+    }
 
     override suspend fun loadHtml(url: String): String? {
         val document = app.get(url).document
-        val contentElement = document.select("div.reader > *").joinToString("</br>")
-        return contentElement
+        val reader = document.selectFirst("div.reader") ?: return null
+        val titleEl = reader.selectFirst("h1")
+        var title = titleEl?.text() ?: ""
+        titleEl?.remove()
+        reader.selectFirst("p")?.let { p ->
+            if (normalize(p.text()).contains(normalize(title))) title = ""
+        }
+        val contentHtml = reader.html()
+        return if (title.isNotBlank())
+            "<p>$title</p><br>$contentHtml"
+        else
+            contentHtml
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
