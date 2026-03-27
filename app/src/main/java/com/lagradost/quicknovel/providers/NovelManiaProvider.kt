@@ -108,10 +108,10 @@ class NovelManiaProvider : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val url = "$mainUrl/?s=${Uri.encode(query)}"
+        val url = "$mainUrl/novels?titulo=${Uri.encode(query)}"
         val document = app.get(url).document
 
-        return document.select("div.novel-item").mapNotNull { card ->
+        return document.select("div.row div.top-novels").mapNotNull { card ->
             val href = card.selectFirst("a")?.attr("href") ?: return@mapNotNull null
             val title = card.selectFirst(".novel-title")?.text() ?: return@mapNotNull null
 

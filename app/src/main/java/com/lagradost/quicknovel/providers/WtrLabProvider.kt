@@ -4,10 +4,12 @@ import android.util.Base64
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.ErrorLoadingException
+import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.MainActivity.Companion.appWithInterceptor
+import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
@@ -22,17 +24,114 @@ import kotlin.math.roundToInt
 
 
 class WtrLabProvider : MainAPI() {
-    override val hasMainPage = false
-    override val lang = "en"
-    override val hasReviews = false
     override val mainUrl = "https://wtr-lab.com"
     override val name = "WTR-LAB"
+    override val lang = "en"
+    override val iconId = R.drawable.icon_wtrlab
+    override val hasMainPage = true
+    override val hasReviews = false
     override val usesCloudFlareKiller = true
 
+    //&status=
+    override val mainCategories = listOf(
+        "All" to "all",
+        "Ongoing" to "ongoing",
+        "Completed" to "completed"
+    )
+    //&orderBy=
+    override val orderBys =listOf(
+        "Date" to "date",
+        "Name" to "name",
+        "View" to "view",
+        "Reader" to "reader",
+        "Chapter" to "chapter"
+    )
+    override val tags = listOf(
+        "All" to "",
+        "Action" to "1",
+        "Adult" to "2",
+        "Adventure" to "3",
+        "Anime" to "4",
+        "Arts" to "5",
+        "Comedy" to "6",
+        "Drama" to "7",
+        "Eastern" to "8",
+        "Ecchi" to "ecchi",
+        "Fan-fiction" to "9",
+        "Fantasy" to "10",
+        "Game" to "11",
+        "Gender-bender" to "12",
+        "Harem" to "13",
+        "Historical" to "14",
+        "Horror" to "15",
+        "Isekai" to "16",
+        "Josei" to "17",
+        "Lgbt" to "18",
+        "Magic" to "19",
+        "Magical-realism" to "20",
+        "Manhua" to "21",
+        "Martial-arts" to "22",
+        "Mature" to "23",
+        "Mecha" to "24",
+        "Military" to "25",
+        "Modern-life" to "26",
+        "Movies" to "27",
+        "Mystery" to "28",
+        "Other" to "29",
+        "Psychological" to "30",
+        "Realistic-fiction" to "31",
+        "Reincarnation" to "32",
+        "Romance" to "33",
+        "School-life" to "34",
+        "Sci-fi" to "35",
+        "Seinen" to "36",
+        "Shoujo" to "37",
+        "Shoujo-ai" to "38",
+        "Shounen" to "39",
+        "Shounen-ai" to "40",
+        "Slice-of-life" to "41",
+        "Smut" to "42",
+        "Sports" to "43",
+        "Supernatural" to "44",
+        "System" to "45",
+        "Tragedy" to "46",
+        "Urban" to "47",
+        "Urban-life" to "48",
+        "Video-games" to "49",
+        "War" to "50",
+        "Wuxia" to "51",
+        "Xianxia" to "52",
+        "Xuanhuan" to "53",
+        "Yaoi" to "54",
+        "Yuri" to "55"
+    )
+
+
+    override suspend fun loadMainPage(
+        page: Int,
+        mainCategory: String?,
+        orderBy: String?,
+        tag: String?
+    ): HeadMainPageResponse {
+        val url = "$mainUrl/en/novel-list?page=$page&status=$mainCategory&orderBy=$orderBy&genre=$tag"
+        val doc = appWithInterceptor.get(url).document
+        val returnValue =  doc.select(".series-list>div>div>.serie-item").mapNotNull { select ->
+            val titleWrap = select.selectFirst(".title-wrap") ?: return@mapNotNull null
+            val titleHolder = titleWrap.selectFirst("a.title") ?: return@mapNotNull null
+            val href = titleHolder.attr("href") ?: return@mapNotNull null
+            titleHolder.selectFirst(".rawtitle")?.remove()
+
+            val name = titleHolder.text() ?: return@mapNotNull null
+            newSearchResponse(name, href) {
+                posterUrl = fixUrlNull(select.selectFirst("a img")?.attr("src"))
+            }
+        }
+        return HeadMainPageResponse(url, returnValue)
+    }
 
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/en/novel-finder?text=${query.replace(" ", "+")}"
-        val doc = app.get(url).document
+        val doc = appWithInterceptor.get(url).document
         return doc.select(".series-list>div>div>.serie-item").mapNotNull { select ->
             val titleWrap = select.selectFirst(".title-wrap") ?: return@mapNotNull null
             val titleHolder = titleWrap.selectFirst("a.title") ?: return@mapNotNull null
@@ -56,7 +155,7 @@ class WtrLabProvider : MainAPI() {
         val chapterDataUrl =
             "$mainUrl/api/chapters/${chaptersJson.props.pageProps.serie.serieData.rawId}?start=$start&end=$end"
         val chaptersDataJson =
-            app.get(chapterDataUrl).text
+            appWithInterceptor.get(chapterDataUrl).text
         val chaptersData = parseJson<ResultChaptersJsonResponse.Root>(chaptersDataJson)
 
         return chaptersData.chapters.map { chapter ->
@@ -70,7 +169,7 @@ class WtrLabProvider : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val doc = app.get(url).document
+        val doc = appWithInterceptor.get(url).document
         val titleWrap =
             doc.selectFirst(".title-wrap") ?: throw ErrorLoadingException("No title wrapping")
         val title =
@@ -602,7 +701,7 @@ object LoadJsonResponse {
         val author: String,
         val description: String,
         @JsonProperty("from_user")
-        val fromUser: String,
+        val fromUser: String?,
         val raw: Raw,
         val image: String,
     )
