@@ -1214,7 +1214,7 @@ object BookDownloader2 {
     }
 
 
-    suspend fun getOldDataReadingProgress(currentTabIndex: Int){
+    suspend fun getOldDataReadingProgress(currentTabIndex: Int) {
         val keys = getKeys(RESULT_BOOKMARK_STATE) ?: return
         val readList = arrayListOf(
             ReadType.READING,
@@ -1225,15 +1225,20 @@ object BookDownloader2 {
             ReadType.DROPPED,
         )
         coroutineScope {
-            for (key in keys) {
-                val state = getKey<Int>(key)
-                if (state == readList[currentTabIndex].prefValue) {
-                    val id = key.replaceFirst(RESULT_BOOKMARK_STATE, RESULT_BOOKMARK)
-                    val cached = getKey<ResultCached>(id) ?: continue
-                    launch {
-                        getNewTotalChapters(cached)
+            try {
+                for (key in keys) {
+                    val state = getKey<Int>(key)
+                    if (state == readList[currentTabIndex].prefValue) {
+                        val id = key.replaceFirst(RESULT_BOOKMARK_STATE, RESULT_BOOKMARK)
+                        val cached = getKey<ResultCached>(id) ?: continue
+                        launch {
+                            getNewTotalChapters(cached)
+                        }
                     }
                 }
+
+            } catch(t: Throwable){
+                logError(t)
             }
         }
     }
