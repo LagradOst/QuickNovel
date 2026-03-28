@@ -7,8 +7,6 @@ import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity.Companion.app
-import com.lagradost.quicknovel.MainActivity.Companion.appWithInterceptor
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
@@ -114,7 +112,7 @@ class WtrLabProvider : MainAPI() {
         tag: String?
     ): HeadMainPageResponse {
         val url = "$mainUrl/en/novel-list?page=$page&status=$mainCategory&orderBy=$orderBy&genre=$tag"
-        val doc = appWithInterceptor.get(url).document
+        val doc = app.get(url).document
         val returnValue =  doc.select(".series-list>div>div>.serie-item").mapNotNull { select ->
             val titleWrap = select.selectFirst(".title-wrap") ?: return@mapNotNull null
             val titleHolder = titleWrap.selectFirst("a.title") ?: return@mapNotNull null
@@ -131,7 +129,7 @@ class WtrLabProvider : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/en/novel-finder?text=${query.replace(" ", "+")}"
-        val doc = appWithInterceptor.get(url).document
+        val doc = app.get(url).document
         return doc.select(".series-list>div>div>.serie-item").mapNotNull { select ->
             val titleWrap = select.selectFirst(".title-wrap") ?: return@mapNotNull null
             val titleHolder = titleWrap.selectFirst("a.title") ?: return@mapNotNull null
@@ -155,7 +153,7 @@ class WtrLabProvider : MainAPI() {
         val chapterDataUrl =
             "$mainUrl/api/chapters/${chaptersJson.props.pageProps.serie.serieData.rawId}?start=$start&end=$end"
         val chaptersDataJson =
-            appWithInterceptor.get(chapterDataUrl).text
+            app.get(chapterDataUrl).text
         val chaptersData = parseJson<ResultChaptersJsonResponse.Root>(chaptersDataJson)
 
         return chaptersData.chapters.map { chapter ->
@@ -169,7 +167,7 @@ class WtrLabProvider : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val doc = appWithInterceptor.get(url).document
+        val doc = app.get(url).document
         val titleWrap =
             doc.selectFirst(".title-wrap") ?: throw ErrorLoadingException("No title wrapping")
         val title =
@@ -216,17 +214,17 @@ class WtrLabProvider : MainAPI() {
 
 
     override suspend fun loadHtml(url: String): String {
-        val doc = appWithInterceptor.get(url).document
+        val doc = app.get(url).document
         val jsonNode = doc.selectFirst("#__NEXT_DATA__")
         val json = jsonNode?.data() ?: throw ErrorLoadingException("no chapters")
         val chaptersJson = parseJson<LoadJsonResponse.Root>(json)
         val text = StringBuilder()
         val chapter = chaptersJson.props.pageProps.serie
 
-        val root = appWithInterceptor.post(
+        val root = app.post(
                 "$mainUrl/api/reader/get", data = mapOf(
                     "chapter_id" to chapter.chapter.id.toString(),
-                    "chapter_no" to chapter.serieData.slug.toString(),
+                    "chapter_no" to chapter.serieData.slug,
                     "force_retry" to "false",
                     "language" to "en",
                     "raw_id" to chapter.serieData.rawId.toString(),

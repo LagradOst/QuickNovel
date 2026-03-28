@@ -1,11 +1,11 @@
 package com.lagradost.quicknovel.providers
 
+import android.net.Uri
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
-import com.lagradost.quicknovel.MainActivity.Companion.appWithInterceptor
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.addPath
@@ -17,7 +17,6 @@ import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import com.lagradost.quicknovel.synopsis
-import com.lagradost.quicknovel.toChapters
 import com.lagradost.quicknovel.toRate
 import com.lagradost.quicknovel.toUrlBuilderSafe
 
@@ -28,6 +27,7 @@ abstract class WPReader : MainAPI() {
     override val iconId = R.drawable.ic_meionovel
     override val hasMainPage = true
     override val iconBackgroundId = R.color.lightItemBackground
+    override val usesCloudFlareKiller = true
     override val tags = listOf(
         "All" to "",
         "Action" to "action",
@@ -85,7 +85,7 @@ abstract class WPReader : MainAPI() {
             .ifCase(page > 1) { addPath("page", page.toString()) }
             .toString()
 
-        val res = appWithInterceptor.get(url).document
+        val res = app.get(url).document
             .select(if (tag == "") ".flexbox3-content > a" else ".flexbox2-content > a")
             .mapNotNull { element ->
                 newSearchResponse(
@@ -93,10 +93,6 @@ abstract class WPReader : MainAPI() {
                     url = element.attr("href")
                 ) {
                     posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
-                    rating = if (tag == "") element.selectFirst(".score")?.text()
-                        ?.toRate() else null
-                    latestChapter = if (tag == "") element.selectFirst("div.season")?.text()
-                        ?.toChapters() else null
                 }
             }
 
@@ -104,31 +100,31 @@ abstract class WPReader : MainAPI() {
     }
 
     override suspend fun loadHtml(url: String): String? {
-        val con = appWithInterceptor.get(url).document
-        val res =
-            con.select("div.content > div.container > div > p").joinToString("</br>")
-        return res
+        val con = app.get(url).document
+
+        con.select("input, div.reader-settings, label.showsetting, div.entry-pagination, div.ads, div.comment").remove()
+
+        val res = con.select("div.content > div.container > div > *")
+            .joinToString("<br>")
+
+        return res.ifBlank { null }
     }
-
     override suspend fun search(query: String): List<SearchResponse> {
-        val url = "$mainUrl/?s=$query"
-
+        val url = "$mainUrl/?s=${Uri.encode(query)}"
         return app.get(url).document
-            .select("div.flexbox2-content > a")
+            .select("div.flexbox2 > div.flexbox2-item > div.flexbox2-content > a")
             .mapNotNull { element ->
                 newSearchResponse(
                     name = element.attr("title") ?: return@mapNotNull null,
-                    url = element.attr("href") ?: return@mapNotNull null
+                    url = element.attr("href")
                 ) {
                     posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
-                    rating = element.selectFirst(".score")?.text()?.toRate()
-                    latestChapter = element.selectFirst("div.season")?.text()?.toChapters()
                 }
             }
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val doc = appWithInterceptor.get(url).document
+        val doc = app.get(url).document
         val data = doc.select("div.flexch-infoz > a")
             .mapNotNull { dat ->
                 newChapterData(name = dat.attr("title").clean(), url = dat.attr("href").clean()) {

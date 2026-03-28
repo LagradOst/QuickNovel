@@ -8,6 +8,7 @@ import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.UiImage
 import com.lagradost.quicknovel.ui.img
+import com.lagradost.quicknovel.util.DefaultImagesHeaders
 import kotlinx.coroutines.sync.Mutex
 import org.jsoup.Jsoup
 
@@ -20,11 +21,12 @@ abstract class MainAPI {
 
     open val lang = "en" // ISO_639_1 check SubtitleHelper
 
+    open val usesCloudFlareKiller = false
+    val app get() = if(!usesCloudFlareKiller) MainActivity.app else MainActivity.appWithInterceptor
+
     open val rateLimitTime: Long = 0
     val hasRateLimit: Boolean get() = rateLimitTime > 0L
     val rateLimitMutex: Mutex = Mutex()
-
-    open val usesCloudFlareKiller = false
 
     // DECLARE HAS ACCESS TO MAIN PAGE INFORMATION
     open val hasMainPage = false
@@ -199,8 +201,14 @@ fun MainAPI.newSearchResponse(
     fix: Boolean = true,
     initializer: SearchResponse.() -> Unit = { },
 ): SearchResponse {
+
+    val posterHeader =
+        if(this.usesCloudFlareKiller)
+            mapOf(DefaultImagesHeaders.useCloudflareKillerHeader)
+        else null
+
     val builder =
-        SearchResponse(name = name, url = if (fix) fixUrl(url) else url, apiName = this.name)
+        SearchResponse(name = name, url = if (fix) fixUrl(url) else url, apiName = this.name, posterHeaders = posterHeader)
     builder.initializer()
 
     return builder
@@ -285,11 +293,16 @@ suspend fun MainAPI.newStreamResponse(
     fix: Boolean = true,
     initializer: suspend StreamResponse.() -> Unit = { },
 ): StreamResponse {
+    val posterHeader =
+        if(this.usesCloudFlareKiller)
+            mapOf(DefaultImagesHeaders.useCloudflareKillerHeader)
+        else null
     val builder = StreamResponse(
         name = name,
         url = if (fix) fixUrl(url) else url,
         apiName = this.name,
-        data = data
+        data = data,
+        posterHeaders = posterHeader
     )
     builder.initializer()
 
