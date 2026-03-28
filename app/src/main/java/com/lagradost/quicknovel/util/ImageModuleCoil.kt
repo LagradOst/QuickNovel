@@ -25,7 +25,9 @@ import coil3.request.crossfade
 import coil3.util.DebugLogger
 import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.BuildConfig
+import com.lagradost.quicknovel.network.CloudflareKiller
 import com.lagradost.quicknovel.ui.UiImage
+import com.lagradost.quicknovel.util.DefaultImagesHeaders
 import okhttp3.HttpUrl
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -36,54 +38,77 @@ import java.nio.ByteBuffer
 
 // Taken from cs3
 
+/**
+ * Options for dynamic interceptor behavior per-request
+ */
 
-//this is for ReadOnlineFreeBookProvider
-class Ignore500Interceptor : Interceptor
-{
-    override fun intercept(chain: Interceptor.Chain): Response
-    {
-        val response = chain.proceed(chain.request())
-        if (response.code == 500) {
-            return response.newBuilder()
+class DynamicInterceptor : Interceptor {
+    //if you use lazy, dont work TT
+    private val cloudflareKiller = CloudflareKiller()
+
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val request = chain.request()
+
+        val useCloudflare = request.header(DefaultImagesHeaders.useCloudflareKillerHeader.first) == "true"
+        val useIgnore500 = request.header(DefaultImagesHeaders.useIgnore500Header.first) == "true"
+
+        val cleanRequest = request.newBuilder()
+            .removeHeader(DefaultImagesHeaders.useCloudflareKillerHeader.first)
+            .removeHeader(DefaultImagesHeaders.useIgnore500Header.first)
+            .build()
+
+        val response = if (useCloudflare) {
+            cloudflareKiller.intercept(chain)
+        } else {
+            chain.proceed(cleanRequest)
+        }
+        return if (useIgnore500 && response.code == 500) {
+            response.newBuilder()
                 .code(200)
                 .message("Forced OK from 500")
                 .build()
+        } else {
+            response
         }
-        return response
     }
 }
-object ImageLoader {
 
+
+object ImageLoader {
     private const val TAG = "CoilImgLoader"
 
     internal fun buildImageLoader(context: PlatformContext): ImageLoader = ImageLoader.Builder(context)
-            .crossfade(200)
-            .allowHardware(false) // SDK_INT >= 28, cant use hardware bitmaps for Palette Builder
-            .diskCachePolicy(CachePolicy.ENABLED)
-            .networkCachePolicy(CachePolicy.ENABLED)
-            .memoryCache {
-                MemoryCache.Builder().maxSizePercent(context, 0.1) // Use 10 % of the app's available memory for caching
+        .crossfade(200)
+        .allowHardware(false) // SDK_INT >= 28, cant use hardware bitmaps for Palette Builder
+        .diskCachePolicy(CachePolicy.ENABLED)
+        .networkCachePolicy(CachePolicy.ENABLED)
+        .memoryCache {
+            MemoryCache.Builder().maxSizePercent(context, 0.1) // Use 10 % of the app's available memory for caching
+                .build()
+        }
+        .diskCache {
+            DiskCache.Builder()
+                .directory(context.cacheDir.resolve("qn_image_cache").toOkioPath())
+                .maxSizeBytes(512L * 1024 * 1024) // 512 MB
+                .maxSizePercent(0.04) // Use 4 % of the device's storage space for disk caching
+                .build()
+        }
+        /** Pass interceptors with care, unnecessary passing tokens to servers
+        or image hosting services causes unauthorized exceptions **/
+        .components {
+            add(OkHttpNetworkFetcherFactory(callFactory = {
+                OkHttpClient()
+                    .newBuilder()
+                    .ignoreAllSSLErrors()
+                    .addInterceptor(DynamicInterceptor())
                     .build()
-            }
-            .diskCache {
-                DiskCache.Builder()
-                    .directory(context.cacheDir.resolve("qn_image_cache").toOkioPath())
-                    .maxSizeBytes(512L * 1024 * 1024) // 512 MB
-                    .maxSizePercent(0.04) // Use 4 % of the device's storage space for disk caching
-                    .build()
-            }
-            /** Pass interceptors with care, unnecessary passing tokens to servers
-            or image hosting services causes unauthorized exceptions **/
-            .components { add(OkHttpNetworkFetcherFactory(callFactory = { OkHttpClient()
-                .newBuilder()
-                .ignoreAllSSLErrors()
-                .addInterceptor(Ignore500Interceptor())
-                .build() })) }
-            .also {
-                it.setupCoilLogger()
-                Log.d(TAG, "buildImageLoader: Setting COIL Image Loader.")
-            }
-            .build()
+            }))
+        }
+        .also {
+            it.setupCoilLogger()
+            Log.d(TAG, "buildImageLoader: Setting COIL Image Loader.")
+        }
+        .build()
 
     /** Use DebugLogger on debug builds which won't slow down release builds & use EventListener for
     Errors on release builds. **/
@@ -152,19 +177,23 @@ object ImageLoader {
         imageData: String?,
         headers: Map<String, String>? = null,
         builder: ImageRequest.Builder.() -> Unit = {}
-    ) = loadImageInternal(imageData = imageData, headers = headers, builder = builder)
+    ) = loadImageInternal(
+        imageData = imageData,
+        headers = headers,
+        builder = builder
+    )
 
     fun ImageView.loadImage(
         imageData: Uri?,
         headers: Map<String, String>? = null,
         builder: ImageRequest.Builder.() -> Unit = {}
-    ) = loadImageInternal(imageData = imageData, headers = headers, builder = builder)
+    ) = loadImageInternal(imageData, headers, builder)
 
     fun ImageView.loadImage(
         imageData: HttpUrl?,
         headers: Map<String, String>? = null,
         builder: ImageRequest.Builder.() -> Unit = {}
-    ) = loadImageInternal(imageData = imageData, headers = headers, builder = builder)
+    ) = loadImageInternal(imageData, headers, builder)
 
     fun ImageView.loadImage(
         imageData: File?,
