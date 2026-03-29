@@ -66,24 +66,25 @@ class NovelasLigerasProvider : MainAPI() {
         val synopsis = infoDiv.select("div.woocommerce-product-details__short-description > p")
             .joinToString("\n\n") { it.text() }
 
-        val chapters =
-            document.select("div.wpb_tour.wpb_content_element.tab-style-one .wpb_tabs_nav > li")
-                .flatMapIndexed { volIndex, tabLi ->
+        val chapters = document.select("div.wpb_tour.wpb_content_element.tab-style-one .wpb_tabs_nav")
+            .flatMapIndexed { volIndex, volNav ->
+                volNav.select("li").flatMap { tabLi ->
                     val tabId = tabLi.selectFirst("a")?.attr("href")?.removePrefix("#") ?: ""
                     val selector = "div#$tabId"
                     val chapterDiv = document.selectFirst(selector)
-
+                    val chapterTitle = tabLi.text()
                     chapterDiv?.select("div.wf-cell")?.mapNotNull { page ->
                         val link = page.selectFirst("a") ?: return@mapNotNull null
-                        val chapterTitle = link.text()
+                        val chapterPart = link.text()
                         val chapterUrl = link.attr("href")
 
                         newChapterData(
-                            name = "Vol. ${volIndex + 1} - $chapterTitle",
+                            name = "Vol. ${volIndex + 1} - $chapterTitle - $chapterPart",
                             url = chapterUrl
                         )
                     } ?: emptyList()
                 }
+            }
 
         return newStreamResponse(title, fixUrl(url), chapters) {
             this.posterUrl =
