@@ -23,6 +23,7 @@ class FenrirRealProvider:  MainAPI() {
     override val mainUrl = "https://fenrirealm.com"
     override val iconId = R.drawable.icon_fenrirealm
     override val hasMainPage = true
+    override val rateLimitTime = 500L
 
     override val mainCategories = listOf(
         "All" to "any",
@@ -140,7 +141,9 @@ class FenrirRealProvider:  MainAPI() {
 
     override suspend fun loadHtml(url: String): String? {
         val document = app.get(url).document
-        val contentElement = document.selectFirst("div.main-area div.chapter-view div.content-area") ?: return null
+        val contentElement = document.selectFirst("div.reader-area[role=region]")
+            ?: document.selectFirst("div.main-area div.chapter-view div.content-area")
+            ?: return null
         return contentElement.html()
     }
 
