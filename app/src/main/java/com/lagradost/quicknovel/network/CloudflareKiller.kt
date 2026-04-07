@@ -25,11 +25,6 @@ class CloudflareKiller : Interceptor {
         }
     }
 
-    init {
-        // Needs to clear cookies between sessions to generate new cookies.
-        CookieManager.getInstance().removeAllCookies(null)
-    }
-
     val savedCookies: MutableMap<String, Map<String, String>> = mutableMapOf()
 
     /**
@@ -45,54 +40,62 @@ class CloudflareKiller : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response = runBlocking {
         val request = chain.request()
-        val cookies = savedCookies[request.url.host]
+        val host = request.url.host
+        val cookies = savedCookies[host]
 
         if (cookies != null) {
-            return@runBlocking proceed(request, cookies)
+            val response = proceed(request, cookies)
+            if (!looksLikeCloudflareChallenge(response)) {
+                return@runBlocking response
+            }
+            response.close()
+            savedCookies.remove(host)
         }
 
         // First try the request normally. Only invoke WebView bypass when
         // the response actually looks like a Cloudflare challenge.
         val initialResponse = chain.proceed(request)
         if (!looksLikeCloudflareChallenge(initialResponse)) {
-                return@runBlocking initialResponse
+            return@runBlocking initialResponse
         }
         initialResponse.close()
 
+        CookieManager.getInstance().removeAllCookies(null)
+
         bypassCloudflare(request)?.let {
-                Log.d(TAG, "Succeeded bypassing cloudflare: ${request.url}")
-               return@runBlocking it
-         }
+            Log.d(TAG, "Succeeded bypassing cloudflare: ${request.url}")
+            return@runBlocking it
+        }
 
         debugWarning({ true }) { "Failed cloudflare at: ${request.url}" }
         return@runBlocking chain.proceed(request)
     }
 
-        private fun looksLikeCloudflareChallenge(response: Response): Boolean {
-                val code = response.code
-                val hasCloudflareHeaders =
-                        response.header("cf-ray") != null ||
-                                        response.header("server")?.contains("cloudflare", ignoreCase = true) == true
+    private fun looksLikeCloudflareChallenge(response: Response): Boolean {
+        val code = response.code
+        val hasCloudflareHeaders =
+            response.header("cf-ray") != null ||
+                    response.header("server")?.contains("cloudflare", ignoreCase = true) == true
 
-                val location = response.header("location").orEmpty().lowercase()
-                if (location.contains("/cdn-cgi/")) return true
+        val location = response.header("location").orEmpty().lowercase()
+        if (location.contains("/cdn-cgi/")) return true
 
-                val bodySample = runCatching {
-                        response.peekBody(64 * 1024).string().lowercase()
-                    }.getOrDefault("")
+        val bodySample = runCatching {
+            response.peekBody(64 * 1024).string().lowercase()
+        }.getOrDefault("")
 
-                val bodyLooksLikeChallenge =
-                        bodySample.contains("cf-browser-verification") ||
-                        bodySample.contains("checking your browser") ||
-                        bodySample.contains("just a moment") ||
-                        bodySample.contains("attention required") ||
-                        bodySample.contains("/cdn-cgi/")
+        val bodyLooksLikeChallenge =
+            bodySample.contains("cf-browser-verification") ||
+                    bodySample.contains("checking your browser") ||
+                    bodySample.contains("just a moment") ||
+                    bodySample.contains("attention required") ||
+                    bodySample.contains("/cdn-cgi/")
 
-                if (bodyLooksLikeChallenge) return true
+        if (bodyLooksLikeChallenge) return true
 
-                val challengeLikeStatus = code == 403 || code == 429 || code == 503
-                return hasCloudflareHeaders && challengeLikeStatus
-            }
+        val challengeLikeStatus = code == 403 || code == 429 || code == 503
+        return hasCloudflareHeaders && challengeLikeStatus
+    }
 
     private fun getWebViewCookie(url: String): String? {
         return CookieManager.getInstance()?.getCookie(url)

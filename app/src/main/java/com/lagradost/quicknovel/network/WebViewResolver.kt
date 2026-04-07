@@ -248,6 +248,47 @@ class WebViewResolver(
                     ) {
                         handler?.proceed() // Ignore ssl issues
                     }
+                    override fun onPageFinished(view: WebView?, url: String?) {
+                        super.onPageFinished(view, url)
+
+                        if (url == null || url.contains("cdn-cgi") || url.contains("recaptcha")) return
+
+                        val script = """
+                            (function() {
+                                if (window.wasClicked) return;
+                    
+                                function tryClick() {
+                                    var isCloudflarePage = document.querySelector('#challenge-form') || 
+                                                           document.querySelector('#challenge-running') ||
+                                                           document.querySelector('#cf-challenge-running');
+                    
+                                    if (!isCloudflarePage) {
+                                        return; 
+                                    }
+                    
+                                    var cfToken = document.querySelector('[name="cf-turnstile-response"]')?.value 
+                                                  || document.querySelector('#cf-chl-widget-multi-token')?.value;
+                    
+                                    var submitButton = document.querySelector('#challenge-form button[type="submit"]') 
+                                                       || document.querySelector('#challenge-form input[type="submit"]');
+                    
+                                    if (cfToken && submitButton) {
+                                        window.wasClicked = true;
+                                        submitButton.click();
+                                    } else {
+                                        if (!window.retryCount) window.retryCount = 0;
+                                        if (window.retryCount < 15) { 
+                                            window.retryCount++;
+                                            setTimeout(tryClick, 1000);
+                                        }
+                                    }
+                                }
+                                tryClick();
+                            })();
+                        """.trimIndent()
+                        view?.evaluateJavascript(script, null)
+                    }
+
                 }
                 webView?.loadUrl(url, headers.toMap())
             } catch (e: Exception) {
