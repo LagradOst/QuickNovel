@@ -1,66 +1,18 @@
 package com.lagradost.quicknovel.providers
 
-import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.databind.PropertyNamingStrategy
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.quicknovel.*
-import com.lagradost.quicknovel.MainActivity.Companion.app
-import com.lagradost.quicknovel.network.CloudflareKiller
-import kotlinx.coroutines.delay
-import org.jsoup.Jsoup
-import kotlin.random.Random
-
-
-val mapper = jacksonObjectMapper().apply {
-    propertyNamingStrategy = PropertyNamingStrategy.LOWER_CAMEL_CASE
-    setSerializationInclusion(JsonInclude.Include.NON_NULL)
-}
-
-data class Chapterdatajson(
-    @get:JsonProperty("book_title") val bookTitle: String? = null,
-
-    @get:JsonProperty("book_link") val bookLink: String? = null,
-
-    @get:JsonProperty("book_id") val bookID: Long? = null,
-
-    val chapters: List<Chapter>? = null,
-
-    @get:JsonProperty("pages_count") val pagesCount: Long? = null,
-
-    @get:JsonProperty("count_all") val countAll: Long? = null,
-    val cstart: Long? = null,
-    val limit: Long? = null,
-    val search: String? = null,
-    val default: List<Any?>? = null,
-    val searchTimeout: Any? = null
-) {
-    fun toJson() = mapper.writeValueAsString(this)
-
-    companion object {
-        fun fromJson(json: String) = mapper.readValue<Chapterdatajson>(json)
-    }
-}
-
-data class Chapter(
-    val id: String? = null,
-    val title: String? = null,
-    val date: String? = null,
-    val showDate: String? = null,
-    val link: String? = null
-)
+import org.json.JSONObject
+import org.jsoup.nodes.Document
 
 
 class RanobesProvider : MainAPI() {
     override val name = "Ranobes"
-    override val mainUrl = "https://ranobes.top"
+    override val mainUrl = "https://ranobes.net"
     override val hasMainPage = true
-
     override val iconId = R.drawable.icon_ranobes
-
     override val iconBackgroundId = R.color.white
-
+    override val usesCloudFlareKiller = true
+    override val rateLimitTime = 500L
     override val tags = listOf(
         "Action" to "Action",
         "Adult" to "Adult",
@@ -102,7 +54,6 @@ class RanobesProvider : MainAPI() {
         "User-Agent" to "Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0",
     )
 
-    val interceptor = CloudflareKiller()
 
     override suspend fun loadMainPage(
         page: Int, mainCategory: String?, orderBy: String?, tag: String?
@@ -110,9 +61,7 @@ class RanobesProvider : MainAPI() {
         val url = if (page <= 1) "$mainUrl/tags/genre/$tag/"
         else "$mainUrl/tags/genre/$tag/page/$page/"
 
-        val response = app.get(url, headers = baseHeaders)
-
-        val document = Jsoup.parse(response.text)
+        val document = app.get(url, headers = baseHeaders).document
 
         val returnValue = document.select("div.short-cont").mapNotNull { h ->
             val h2 = h.selectFirst("h2.title > a") ?: return@mapNotNull null
@@ -128,15 +77,23 @@ class RanobesProvider : MainAPI() {
         }
         return HeadMainPageResponse(url, returnValue)
     }
+    private fun getChapters(document: Document):List<ChapterData>{
+        val chapterListUrl = fixUrlNull(document.selectFirst("a.read-continue")?.attr("href"))
+        val totalChapters = document.selectFirst("li[title=\"Glossary + illustrations + division of chapters, etc.\"] span")?.text()?.replace(Regex("[^0-9]"), "")?.toIntOrNull() ?: 0
+        if (totalChapters > 25) {
+            return (0..< totalChapters).map { chapterNumber ->
+                val chapterUrl = "$chapterListUrl-------$chapterNumber-------$totalChapters"
+                newChapterData("Chapter ${chapterNumber + 1}", chapterUrl)
+            }
 
-    override suspend fun loadHtml(url: String): String? {
-        val response = app.get(url, headers = baseHeaders)
-        val document = Jsoup.parse(response.text)
-        delay(Random.nextLong(250, 350))
-        return (document.selectFirst("#dle-content > article > div.block.story.shortstory > h1")
-            ?.html() ?: return null) + document.selectFirst("#arrticle")?.html()
+        }
+
+        return document.select("ul.chapters-scroll-list li").reversed().mapIndexedNotNull { index, li ->
+            val name = li.selectFirst("span.title")?.text() ?: "Chapter $index"
+            val url = li.selectFirst("a")?.attr("href") ?: ""
+            newChapterData(name, url)
+        }
     }
-
 
     override suspend fun search(query: String): List<SearchResponse> {
         val document = app.post(
@@ -171,53 +128,10 @@ class RanobesProvider : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        val document = app.post(url, interceptor = interceptor).document
-        val name = document.selectFirst("h1.title > span")?.text() ?: return null
-
-        val listdata = mutableListOf<Chapterdatajson>()
-        val data: ArrayList<ChapterData> = ArrayList()
-        val chapretspageresponse = app.get(
-            "$mainUrl/chapters/${url.substringAfterLast("/").substringBefore("-")}",
-            headers = interceptor.getCookieHeaders(mainUrl).toMap()
-        )
-        val chapretspage = Jsoup.parse(chapretspageresponse.text)
-        val cha1 = Chapterdatajson.fromJson(
-            chapretspage.select("script")
-                .filter { it -> it.data().contains("window.__DATA") }[0].data().substringAfter("=")
-        )
-
-        val numberofchpages =
-            document.select("span.grey").filter { it -> it.text().contains("chapters") }[0].text()
-                .filter { it.isDigit() }.toInt().div(25).plus(1)
-        listdata.add(cha1)
-        for (i in 2..numberofchpages) {
-            val chapretspageresponsei = app.get(
-                "$mainUrl/chapters/${
-                    url.substringAfterLast("/").substringBefore("-")
-                }/page/$i/", headers = baseHeaders
-            )
-            val chapretspagei = Jsoup.parse(chapretspageresponsei.text)
-            listdata.add(
-                Chapterdatajson.fromJson(
-                    chapretspagei.select("script")
-                        .filter { it -> it.data().contains("window.__DATA") }[0].data()
-                        .substringAfter("=")
-                )
-            )
-            if (i.rem(2) == 0) {
-                delay(Random.nextInt(50, 100).toLong())
-            } else {
-                delay(Random.nextInt(0, 45).toLong())
-            }
-        }
-
-        for (chapslist in listdata.reversed()) {
-            chapslist.chapters?.reversed()?.map { it ->
-                data.add(ChapterData(it.title!!, it.link!!, it.date!!, null))
-            }
-        }
-
-        return newStreamResponse(url = url, name = name, data = data) {
+        val document = app.get(url).document
+        val name = document.selectFirst("h1.title")?.ownText() ?: return null
+        val chapters = getChapters(document)
+        return newStreamResponse(url = url, name = name, data = chapters) {
             author = document.select("h1.title > span").last()?.text()
             tags = document.select("#mc-fs-genre > div > a").map {
                 it.text()
@@ -237,9 +151,81 @@ class RanobesProvider : MainAPI() {
             posterUrl =
                 fixUrl(document.select("div.poster > a > img").attr("src").substringAfter("/"))
             val statusHeader =
-                // Copy pasted from browser, hopefully does not break 💀
-                document.selectFirst(".r-fullstory-spec > ul:nth-child(1) > li:nth-child(7) > span:nth-child(1) > a:nth-child(1)")
+                document.selectFirst("li[title=Original status in: Chinese, Japanese, English, etc.] > span")
             setStatus(statusHeader?.text())
         }
+    }
+
+
+    private fun getChapter(document: Document): List< String> {
+        val script = document.selectFirst("script:containsData(window.__DATA__)")
+            ?.data() ?: return emptyList()
+
+        val jsonString = script
+            .substringAfter("window.__DATA__ =")
+            .substringBeforeLast("}")
+            .trim() + "}"
+
+        val json = JSONObject(jsonString)
+
+        val chaptersArray = json.getJSONArray("chapters")
+
+        val chapters = mutableListOf<String>()
+
+        for (i in 0 until chaptersArray.length()) {
+            val chap = chaptersArray.getJSONObject(i)
+
+            val link = chap.getString("link")
+
+            chapters.add(link)
+        }
+
+        return chapters.reversed()
+    }
+
+    override suspend fun loadHtml(url: String): String? {
+        val chapterData = url.split("-------")
+        if (chapterData.size < 3) {
+            val dc = app.get(url, headers = baseHeaders).document
+            return (dc.selectFirst("#dle-content > article > div.block.story.shortstory > h1")
+                ?.html() ?: "") + (dc.selectFirst("#arrticle")?.html() ?: return null)
+        }
+
+        val baseUrl = chapterData[0].removeSuffix("/")
+        val chapterBigIndex = chapterData[1].toInt()
+        val totalChapters = chapterData[2].toInt()
+        val itemsPerPage = 25
+
+        val totalPages = (totalChapters + itemsPerPage - 1) / itemsPerPage
+
+        val page = (totalChapters - 1 - chapterBigIndex) / itemsPerPage + 1
+
+        val chaptersInLastPage = totalChapters % itemsPerPage.let { if (it == 0) itemsPerPage else it }
+
+        val index = if (page == totalPages) {
+            chapterBigIndex % itemsPerPage
+        } else {
+            (chapterBigIndex - chaptersInLastPage) % itemsPerPage
+        }
+
+        val pageUrl = if (page <= 1) "$baseUrl/" else "$baseUrl/page/$page/"
+        val document = app.get(pageUrl, headers = baseHeaders).document
+        val chaptersInPage = getChapter(document)
+
+        val chapterUrl = chaptersInPage.getOrNull(index) ?: return null
+
+        val dc = app.get(chapterUrl, headers = baseHeaders).document
+        val title = dc.selectFirst("#dle-content > article > div.block.story.shortstory > h1")?.html() ?: ""
+        val content = dc.selectFirst("#arrticle") ?: return null
+        content.select("img").forEach { img ->
+            val src = img.attr("src")
+            if(src.isNotBlank()){
+                val fixedSrc = fixUrlNull(src)
+                if(fixedSrc != null){
+                    img.attr("src", fixedSrc)
+                }
+            }
+        }
+        return title + content.html()
     }
 }

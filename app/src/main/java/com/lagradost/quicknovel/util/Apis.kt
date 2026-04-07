@@ -36,6 +36,7 @@ import com.lagradost.quicknovel.providers.NovelasLigerasProvider
 import com.lagradost.quicknovel.providers.NovelsOnlineProvider
 import com.lagradost.quicknovel.providers.PawReadProver
 import com.lagradost.quicknovel.providers.PlanetaEpubProvider
+import com.lagradost.quicknovel.providers.RanobesProvider
 import com.lagradost.quicknovel.providers.ReadNovelFullProvider
 import com.lagradost.quicknovel.providers.ReadOnlineFreeBookProvider
 import com.lagradost.quicknovel.providers.ReadfromnetProvider
@@ -89,7 +90,7 @@ class Apis {
             NovLoveProvider(),
             PawReadProver(),
             PlanetaEpubProvider(),
-            //RanobesProvider(), // custom capcha
+            RanobesProvider(), // custom capcha
             //ReadAnyBookProvider(), // Books locked behind login
             ReadfromnetProvider(),
             //ReadLightNovelProvider(), // NOT WORKING?
