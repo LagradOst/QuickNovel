@@ -90,7 +90,7 @@ class Apis {
             NovLoveProvider(),
             PawReadProver(),
             PlanetaEpubProvider(),
-            RanobesProvider(), // custom capcha
+            RanobesProvider(),
             //ReadAnyBookProvider(), // Books locked behind login
             ReadfromnetProvider(),
             //ReadLightNovelProvider(), // NOT WORKING?
