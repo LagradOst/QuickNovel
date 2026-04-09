@@ -41,7 +41,7 @@ class NovelasLigerasProvider : MainAPI() {
     ): HeadMainPageResponse {
         val url = "$mainUrl/index.php/lista-de-novela-ligera-novela-web/page/$page/?orderby=$orderBy${if(mainCategory.isNullOrEmpty())"" else "&ixwpst[pa_estado][]=$mainCategory"}&wps-title=1&wps-excerpt=1&wps-content=1&wps-categories=1&wps-attributes=1&wps-tags=1&wps-sku=1&ixwpsf[taxonomy][product_cat][show]=set&ixwpsf[taxonomy][product_cat][multiple]=0&ixwpsf[taxonomy][product_cat][filter]=1&ixwpsf[taxonomy][pa_estado][show]=set&ixwpsf[taxonomy][pa_estado][multiple]=0&ixwpsf[taxonomy][pa_estado][filter]=1&ixwpsf[taxonomy][pa_estado][op]=or&ixwpsf[taxonomy][pa_tipo][show]=set&ixwpsf[taxonomy][pa_tipo][multiple]=0&ixwpsf[taxonomy][pa_tipo][filter]=1&ixwpsf[taxonomy][pa_tipo][op]=or&ixwpsf[taxonomy][pa_pais][show]=set&ixwpsf[taxonomy][pa_pais][multiple]=0&ixwpsf[taxonomy][pa_pais][filter]=1&ixwpsf[taxonomy][pa_pais][op]=or"
         val document = app.get(url).document
-
+        println(document)
         val returnValue =
             document.select("div#content > div.products > div > div > article").mapNotNull { card ->
                 val href = card.selectFirst("a")?.attr("href") ?: return@mapNotNull null

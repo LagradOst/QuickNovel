@@ -30,6 +30,11 @@ class CloudflareKiller : Interceptor {
 
     val savedCookies: MutableMap<String, Map<String, String>> = mutableMapOf()
 
+    init {
+        CookieManager.getInstance().removeAllCookies(null)
+        savedCookies.clear()
+    }
+
     /**
      * Gets the headers with cookies, webview user agent included!
      * */

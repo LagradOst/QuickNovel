@@ -673,7 +673,11 @@ object BookDownloader2Helper {
                         delay(api.rateLimitTime)
                     }
                 }
-            } finally {
+            }
+            catch(t: Throwable){
+                logError(t)
+            }
+            finally {
                 if (rateLimit) {
                     api.api.rateLimitMutex.unlock()
                 }
@@ -2400,7 +2404,8 @@ object BookDownloader2 {
         api: APIRepository,
         range: ClosedRange<Int>
     ) {
-        val filesDir = activity?.filesDir ?: return
+        val context = activity ?: return
+        val filesDir = context.filesDir
         val sApiName = BookDownloader2Helper.sanitizeFilename(api.name)
         val sAuthor =
             BookDownloader2Helper.sanitizeFilename(load.author ?: "")
@@ -2461,10 +2466,9 @@ object BookDownloader2 {
                         index
                     )
                 val rFile = File(filepath)
-                if (rFile.exists()) {
-                    if (rFile.length() > 10) { // TO PREVENT INVALID FILE FROM HAVING TO REMOVE EVERYTHING
-                        continue
-                    }
+                // TO PREVENT INVALID FILE FROM HAVING TO REMOVE EVERYTHING
+                if (rFile.exists() && rFile.length() > 10) {
+                    continue
                 }
 
                 val beforeDownloadTime = System.currentTimeMillis()
@@ -2539,11 +2543,11 @@ object BookDownloader2 {
             }
         } catch (t: Throwable) {
             // also set it here in case of exception
+            logError(t)
             if (downloadedTotal > 0) {
                 setSuffixData(load, api.name)
             }
-
-            logError(t)
+            changeDownload(id) { state = DownloadState.IsFailed }
         } finally {
             currentDownloadsMutex.withLock {
                 currentDownloads -= id
