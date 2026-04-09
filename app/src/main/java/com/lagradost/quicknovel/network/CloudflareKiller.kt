@@ -31,7 +31,7 @@ class CloudflareKiller : Interceptor {
     val savedCookies: MutableMap<String, Map<String, String>> = mutableMapOf()
 
     init {
-        CookieManager.getInstance().removeAllCookies(null)
+        //CookieManager.getInstance().removeAllCookies(null)
         savedCookies.clear()
     }
 
