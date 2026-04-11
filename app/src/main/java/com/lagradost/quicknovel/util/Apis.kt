@@ -40,6 +40,7 @@ import com.lagradost.quicknovel.providers.RanobesProvider
 import com.lagradost.quicknovel.providers.ReadNovelFullProvider
 import com.lagradost.quicknovel.providers.ReadOnlineFreeBookProvider
 import com.lagradost.quicknovel.providers.ReadfromnetProvider
+import com.lagradost.quicknovel.providers.ReadhiveProvider
 import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.providers.RewayatProvider
 import com.lagradost.quicknovel.providers.RoyalRoadProvider
@@ -98,6 +99,7 @@ class Apis {
             RoyalRoadProvider(),
             ReadOnlineFreeBookProvider(),
             RewayatProvider(),
+            ReadhiveProvider(),
             SakuraNovelProvider(), // cloudflare?
             ScribblehubProvider(),
             VynovelProvider(),

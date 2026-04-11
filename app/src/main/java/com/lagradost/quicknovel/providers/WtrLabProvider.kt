@@ -285,444 +285,445 @@ class WtrLabProvider : MainAPI() {
             listOf(decryptedText)
         }
     }
-}
 
-object ResultChaptersJsonResponse {
-    data class Root(
-        val chapters: List<Chapter>,
-    )
-    data class Chapter(
-        @JsonProperty("serie_id")
-        val serieId: Long,
-        val id: Long,
-        val order: Long,
-        val title: String,
-        val name: String,
-        @JsonProperty("updated_at")
-        val updatedAt: String,
-    )
-}
 
-object ResultJsonResponse {
-    data class Root(
-        val props: Props,
-        /*val page: String,
-        val query: Query,
-        val buildId: String,
-        val isFallback: Boolean,
-        val isExperimentalCompile: Boolean,
-        val gssp: Boolean,
+    object ResultChaptersJsonResponse {
+        data class Root(
+            val chapters: List<Chapter>,
+        )
+        data class Chapter(
+            @JsonProperty("serie_id")
+            val serieId: Long,
+            val id: Long,
+            val order: Long,
+            val title: String,
+            val name: String,
+            @JsonProperty("updated_at")
+            val updatedAt: String,
+        )
+    }
+
+    object ResultJsonResponse {
+        data class Root(
+            val props: Props,
+            /*val page: String,
+            val query: Query,
+            val buildId: String,
+            val isFallback: Boolean,
+            val isExperimentalCompile: Boolean,
+            val gssp: Boolean,
+            val locale: String,
+            val locales: List<String>,
+            val defaultLocale: String,
+            val scriptLoader: List<Any?>,*/
+        )
+
+        data class Props(
+            val pageProps: PageProps,
+            // @JsonProperty("__N_SSP")
+            /// val nSsp: Boolean,
+        )
+
+        data class PageProps(
+            val serie: Serie,
+            /*val tags: List<Tag>,
+            @JsonProperty("server_time")
+            val serverTime: String,
+            @JsonProperty("disabe_ads")
+            val disabeAds: Boolean,
+            @JsonProperty("_sentryTraceData")
+            val sentryTraceData: String,
+            @JsonProperty("_sentryBaggage")
+            val sentryBaggage: String,*/
+        )
+
+        data class Serie(
+            @JsonProperty("serie_data")
+            val serieData: SerieData,
+            /*val ranks: Ranks,
+            val recommendation: List<Recommendation>,
+            val raws: List<Raw3>,
+            val names: List<Name>,
+            @JsonProperty("other_series")
+            val otherSeries: List<Series>,
+            @JsonProperty("last_chapters")
+            val lastChapters: List<LastChapter>,*/
+            /*@JsonProperty("raw_rank")
+            val rawRank: Any?,
+            @JsonProperty("released_user")
+            val releasedUser: Any?,*/
+        )
+
+        data class SerieData(
+            @JsonProperty("raw_id")
+            val rawId: Long,
+            /*
+            val id: Long,val slug: String,
+            @JsonProperty("search_text")
+            val searchText: String,
+            val status: Long,
+            val data: Data,
+            @JsonProperty("created_at")
+            val createdAt: String,
+            @JsonProperty("updated_at")
+            val updatedAt: String,
+            val view: Long,
+            @JsonProperty("in_library")
+            val inLibrary: Long,
+            val rating: Any?,
+            @JsonProperty("chapter_count")
+            val chapterCount: Long,
+            val power: Long,
+            @JsonProperty("total_rate")
+            val totalRate: Long,
+            @JsonProperty("user_status")
+            val userStatus: Long,
+            val verified: Boolean,
+            val from: String,
+            val author: String,
+            @JsonProperty("ai_enabled")
+            val aiEnabled: Boolean,
+            @JsonProperty("released_by")
+            val releasedBy: Any?,
+            @JsonProperty("raw_status")
+            val rawStatus: Long,*/
+            @JsonProperty("raw_chapter_count")
+            val rawChapterCount: Long,
+            /*
+            val genres: List<Long>,
+            @JsonProperty("raw_verified")
+            val rawVerified: Boolean,
+            @JsonProperty("requested_by")
+            val requestedBy: String,
+            @JsonProperty("requested_by_name")
+            val requestedByName: String,
+            @JsonProperty("requested_member")
+            val requestedMember: String,
+            @JsonProperty("requested_role")
+            val requestedRole: Long,*/
+        )
+
+        data class Data(
+            val title: String,
+            val author: String,
+            val description: String,
+            @JsonProperty("from_user")
+            val fromUser: String?,
+            val raw: Raw,
+            val image: String,
+        )
+
+        data class Raw(
+            val title: String,
+            val author: String,
+            val description: String,
+        )
+
+        /*data class Ranks(
+            val week: Any?,
+            val month: Any?,
+            val all: String,
+        )
+
+        data class Recommendation(
+            @JsonProperty("serie_id")
+            val serieId: Long,
+            @JsonProperty("recommendation_id")
+            val recommendationId: Long,
+            val score: Long,
+            val id: Long,
+            val slug: String,
+            @JsonProperty("search_text")
+            val searchText: String,
+            val status: Long,
+            val data: Data2,
+            @JsonProperty("created_at")
+            val createdAt: String,
+            @JsonProperty("updated_at")
+            val updatedAt: String,
+            val view: Long,
+            @JsonProperty("in_library")
+            val inLibrary: Long,
+            val rating: Double?,
+            @JsonProperty("chapter_count")
+            val chapterCount: Long,
+            val power: Long,
+            @JsonProperty("total_rate")
+            val totalRate: Long,
+            @JsonProperty("user_status")
+            val userStatus: Long,
+            val verified: Boolean,
+            val from: String?,
+            val author: String,
+            @JsonProperty("raw_id")
+            val rawId: Long,
+            @JsonProperty("ai_enabled")
+            val aiEnabled: Boolean,
+        )
+
+        data class Data2(
+            val title: String,
+            val author: String,
+            val description: String,
+            @JsonProperty("from_user")
+            val fromUser: String?,
+            val raw: Raw2,
+            val image: String,
+        )
+
+        data class Raw2(
+            val title: String,
+            val author: String,
+            val description: String,
+        )
+
+        data class Raw3(
+            val id: Long,
+            @JsonProperty("chapter_count")
+            val chapterCount: Long,
+            val view: Long,
+            val slug: String,
+            @JsonProperty("created_at")
+            val createdAt: String,
+            val default: Boolean,
+            val verified: Boolean,
+        )
+
+        data class Name(
+            val title: String,
+            @JsonProperty("raw_title")
+            val rawTitle: String,
+        )
+
+        data class Series(
+            val id: Long,
+            val slug: String,
+            @JsonProperty("search_text")
+            val searchText: String,
+            val status: Long,
+            val data: Data3,
+            @JsonProperty("created_at")
+            val createdAt: String,
+            @JsonProperty("updated_at")
+            val updatedAt: String,
+            val view: Long,
+            @JsonProperty("in_library")
+            val inLibrary: Long,
+            val rating: Double,
+            @JsonProperty("chapter_count")
+            val chapterCount: Long,
+            val power: Long,
+            @JsonProperty("total_rate")
+            val totalRate: Long,
+            @JsonProperty("user_status")
+            val userStatus: Long,
+            val verified: Boolean,
+            val from: String,
+            val author: String,
+            @JsonProperty("raw_id")
+            val rawId: Long,
+        )
+
+        data class Data3(
+            val title: String,
+            val author: String,
+            val description: String,
+            @JsonProperty("from_user")
+            val fromUser: String,
+            val raw: Raw4,
+            val image: String,
+        )
+
+        data class Raw4(
+            val title: String,
+            val author: String,
+            val description: String,
+        )
+
+        data class LastChapter(
+            //@JsonProperty("serie_id")
+            //val serieId: Long,
+            //val id: Long,
+            val order: Long,
+            val title: String,
+            //val name: String,
+            @JsonProperty("updated_at")
+            val updatedAt: String?,
+        )
+
+        data class Tag(
+            val id: Long,
+            val title: String,
+            val slug: String,
+        )
+
+        data class Query(
+            val sid: String,
+            @JsonProperty("serie_slug")
+            val serieSlug: String,
+        )*/
+    }
+
+    object LoadJsonResponse2 {
+
+        data class Root(
+            // val success: Boolean,
+            // val chapter: Chapter,
+            val data: Data,
+        )
+
+        data class Chapter(
+            val id: Long,
+            @JsonProperty("raw_id")
+            val rawId: Long,
+            val order: Long,
+            val title: String,
+        )
+
+        data class Data(
+            /*@JsonProperty("raw_id")
+            val rawId: Long,
+            @JsonProperty("chapter_id")
+            val chapterId: Long,
+            val status: Long,
+            */
+            val data: Data2,
+            /*@JsonProperty("created_at")
+            val createdAt: String,
+            val language: String,*/
+        )
+
+        data class Data2(
+            val body: String = "",
+            /*val hans: String,
+            val hash: String,
+            val model: String,
+            val patch: Any?,
+            val title: String,
+            val prompt: String,
+            @JsonProperty("glossory_hash")
+            val glossoryHash: String,
+            @JsonProperty("glossary_build")
+            val glossaryBuild: Long,*/
+        )
+        data class Terms(
+            val terms: List<List<String>>,
+        )
+    }
+
+    object LoadJsonResponse {
+        data class Root(
+            val props: Props,
+            val page: String,
+            val query: Query,
+            val buildId: String,
+            val isFallback: Boolean,
+            val isExperimentalCompile: Boolean,
+            val gssp: Boolean,/*
         val locale: String,
         val locales: List<String>,
         val defaultLocale: String,
         val scriptLoader: List<Any?>,*/
-    )
+        )
 
-    data class Props(
-        val pageProps: PageProps,
-        // @JsonProperty("__N_SSP")
-        /// val nSsp: Boolean,
-    )
+        data class Props(
+            val pageProps: PageProps,
+            /*@JsonProperty("__N_SSP")
+            val nSsp: Boolean,
+            */
+        )
 
-    data class PageProps(
-        val serie: Serie,
-        /*val tags: List<Tag>,
-        @JsonProperty("server_time")
-        val serverTime: String,
-        @JsonProperty("disabe_ads")
-        val disabeAds: Boolean,
-        @JsonProperty("_sentryTraceData")
-        val sentryTraceData: String,
-        @JsonProperty("_sentryBaggage")
-        val sentryBaggage: String,*/
-    )
+        data class PageProps(
+            val serie: Serie,
+            /*@JsonProperty("disabe_ads")
+            val disabeAds: Boolean,
+            @JsonProperty("server_time")
+            val serverTime: String,
+            @JsonProperty("active_service")
+            val activeService: ActiveService,
+            @JsonProperty("_sentryTraceData")
+            val sentryTraceData: String,
+            @JsonProperty("_sentryBaggage")
+            val sentryBaggage: String,*/
+        )
 
-    data class Serie(
-        @JsonProperty("serie_data")
-        val serieData: SerieData,
-        /*val ranks: Ranks,
-        val recommendation: List<Recommendation>,
-        val raws: List<Raw3>,
-        val names: List<Name>,
-        @JsonProperty("other_series")
-        val otherSeries: List<Series>,
-        @JsonProperty("last_chapters")
-        val lastChapters: List<LastChapter>,*/
-        /*@JsonProperty("raw_rank")
-        val rawRank: Any?,
-        @JsonProperty("released_user")
-        val releasedUser: Any?,*/
-    )
+        data class Chapter(
+            val id: Long,
+            val slug: String?,
+            @JsonProperty("raw_id")
+            val rawId: Long,
+            /*@JsonProperty("serie_id")
+            val serieId: Long,
+            val status: Long,
+            val slug: String,
+            val name: String,
+            val order: Long,
+            @JsonProperty("is_update")
+            val isUpdate: Boolean,
+            @JsonProperty("created_at")
+            val createdAt: String,
+            @JsonProperty("updated_at")
+            val updatedAt: String,
+            val title: String,
+            val code: String,*/
+        )
+        data class Serie(
+            @JsonProperty("serie_data")
+            val serieData: SerieData,
+            /*
+            @JsonProperty("default_service")
+            val defaultService: String,*/
+            val chapter: Chapter,
+        )
 
-    data class SerieData(
-        @JsonProperty("raw_id")
-        val rawId: Long,
-        /*
-        val id: Long,val slug: String,
-        @JsonProperty("search_text")
-        val searchText: String,
-        val status: Long,
-        val data: Data,
-        @JsonProperty("created_at")
-        val createdAt: String,
-        @JsonProperty("updated_at")
-        val updatedAt: String,
-        val view: Long,
-        @JsonProperty("in_library")
-        val inLibrary: Long,
-        val rating: Any?,
-        @JsonProperty("chapter_count")
-        val chapterCount: Long,
-        val power: Long,
-        @JsonProperty("total_rate")
-        val totalRate: Long,
-        @JsonProperty("user_status")
-        val userStatus: Long,
-        val verified: Boolean,
-        val from: String,
-        val author: String,
-        @JsonProperty("ai_enabled")
-        val aiEnabled: Boolean,
-        @JsonProperty("released_by")
-        val releasedBy: Any?,
-        @JsonProperty("raw_status")
-        val rawStatus: Long,*/
-        @JsonProperty("raw_chapter_count")
-        val rawChapterCount: Long,
-        /*
-        val genres: List<Long>,
-        @JsonProperty("raw_verified")
-        val rawVerified: Boolean,
-        @JsonProperty("requested_by")
-        val requestedBy: String,
-        @JsonProperty("requested_by_name")
-        val requestedByName: String,
-        @JsonProperty("requested_member")
-        val requestedMember: String,
-        @JsonProperty("requested_role")
-        val requestedRole: Long,*/
-    )
+        data class SerieData(
+            val id: Long,
+            val slug: String,
+            val data: Data,
+            @JsonProperty("raw_id")
+            val rawId: Long,
+            @JsonProperty("user_status")
+            val userStatus: Long,
+            @JsonProperty("is_default")
+            val isDefault: Boolean,
+            @JsonProperty("chapter_count")
+            val chapterCount: Long,
+            @JsonProperty("ai_enabled")
+            val aiEnabled: Boolean,
+            @JsonProperty("raw_status")
+            val rawStatus: Long,
+        )
 
-    data class Data(
-        val title: String,
-        val author: String,
-        val description: String,
-        @JsonProperty("from_user")
-        val fromUser: String?,
-        val raw: Raw,
-        val image: String,
-    )
+        data class Data(
+            val title: String,
+            val author: String,
+            val description: String,
+            @JsonProperty("from_user")
+            val fromUser: String?,
+            val raw: Raw,
+            val image: String,
+        )
 
-    data class Raw(
-        val title: String,
-        val author: String,
-        val description: String,
-    )
-
-    /*data class Ranks(
-        val week: Any?,
-        val month: Any?,
-        val all: String,
-    )
-
-    data class Recommendation(
-        @JsonProperty("serie_id")
-        val serieId: Long,
-        @JsonProperty("recommendation_id")
-        val recommendationId: Long,
-        val score: Long,
-        val id: Long,
-        val slug: String,
-        @JsonProperty("search_text")
-        val searchText: String,
-        val status: Long,
-        val data: Data2,
-        @JsonProperty("created_at")
-        val createdAt: String,
-        @JsonProperty("updated_at")
-        val updatedAt: String,
-        val view: Long,
-        @JsonProperty("in_library")
-        val inLibrary: Long,
-        val rating: Double?,
-        @JsonProperty("chapter_count")
-        val chapterCount: Long,
-        val power: Long,
-        @JsonProperty("total_rate")
-        val totalRate: Long,
-        @JsonProperty("user_status")
-        val userStatus: Long,
-        val verified: Boolean,
-        val from: String?,
-        val author: String,
-        @JsonProperty("raw_id")
-        val rawId: Long,
-        @JsonProperty("ai_enabled")
-        val aiEnabled: Boolean,
-    )
-
-    data class Data2(
-        val title: String,
-        val author: String,
-        val description: String,
-        @JsonProperty("from_user")
-        val fromUser: String?,
-        val raw: Raw2,
-        val image: String,
-    )
-
-    data class Raw2(
-        val title: String,
-        val author: String,
-        val description: String,
-    )
-
-    data class Raw3(
-        val id: Long,
-        @JsonProperty("chapter_count")
-        val chapterCount: Long,
-        val view: Long,
-        val slug: String,
-        @JsonProperty("created_at")
-        val createdAt: String,
-        val default: Boolean,
-        val verified: Boolean,
-    )
-
-    data class Name(
-        val title: String,
-        @JsonProperty("raw_title")
-        val rawTitle: String,
-    )
-
-    data class Series(
-        val id: Long,
-        val slug: String,
-        @JsonProperty("search_text")
-        val searchText: String,
-        val status: Long,
-        val data: Data3,
-        @JsonProperty("created_at")
-        val createdAt: String,
-        @JsonProperty("updated_at")
-        val updatedAt: String,
-        val view: Long,
-        @JsonProperty("in_library")
-        val inLibrary: Long,
-        val rating: Double,
-        @JsonProperty("chapter_count")
-        val chapterCount: Long,
-        val power: Long,
-        @JsonProperty("total_rate")
-        val totalRate: Long,
-        @JsonProperty("user_status")
-        val userStatus: Long,
-        val verified: Boolean,
-        val from: String,
-        val author: String,
-        @JsonProperty("raw_id")
-        val rawId: Long,
-    )
-
-    data class Data3(
-        val title: String,
-        val author: String,
-        val description: String,
-        @JsonProperty("from_user")
-        val fromUser: String,
-        val raw: Raw4,
-        val image: String,
-    )
-
-    data class Raw4(
-        val title: String,
-        val author: String,
-        val description: String,
-    )
-
-    data class LastChapter(
-        //@JsonProperty("serie_id")
-        //val serieId: Long,
-        //val id: Long,
-        val order: Long,
-        val title: String,
-        //val name: String,
-        @JsonProperty("updated_at")
-        val updatedAt: String?,
-    )
-
-    data class Tag(
-        val id: Long,
-        val title: String,
-        val slug: String,
-    )
-
-    data class Query(
-        val sid: String,
-        @JsonProperty("serie_slug")
-        val serieSlug: String,
-    )*/
-}
-
-object LoadJsonResponse2 {
-
-    data class Root(
-        // val success: Boolean,
-        // val chapter: Chapter,
-        val data: Data,
-    )
-
-    data class Chapter(
-        val id: Long,
-        @JsonProperty("raw_id")
-        val rawId: Long,
-        val order: Long,
-        val title: String,
-    )
-
-    data class Data(
-        /*@JsonProperty("raw_id")
-        val rawId: Long,
-        @JsonProperty("chapter_id")
-        val chapterId: Long,
-        val status: Long,
-        */
-        val data: Data2,
-        /*@JsonProperty("created_at")
-        val createdAt: String,
-        val language: String,*/
-    )
-
-    data class Data2(
-        val body: String = "",
-        /*val hans: String,
-        val hash: String,
-        val model: String,
-        val patch: Any?,
-        val title: String,
-        val prompt: String,
-        @JsonProperty("glossory_hash")
-        val glossoryHash: String,
-        @JsonProperty("glossary_build")
-        val glossaryBuild: Long,*/
-    )
-    data class Terms(
-        val terms: List<List<String>>,
-    )
-}
-
-object LoadJsonResponse {
-    data class Root(
-        val props: Props,
-        val page: String,
-        val query: Query,
-        val buildId: String,
-        val isFallback: Boolean,
-        val isExperimentalCompile: Boolean,
-        val gssp: Boolean,/*
-        val locale: String,
-        val locales: List<String>,
-        val defaultLocale: String,
-        val scriptLoader: List<Any?>,*/
-    )
-
-    data class Props(
-        val pageProps: PageProps,
-        /*@JsonProperty("__N_SSP")
-        val nSsp: Boolean,
-        */
-    )
-
-    data class PageProps(
-        val serie: Serie,
-        /*@JsonProperty("disabe_ads")
-        val disabeAds: Boolean,
-        @JsonProperty("server_time")
-        val serverTime: String,
-        @JsonProperty("active_service")
-        val activeService: ActiveService,
-        @JsonProperty("_sentryTraceData")
-        val sentryTraceData: String,
-        @JsonProperty("_sentryBaggage")
-        val sentryBaggage: String,*/
-    )
-
-    data class Chapter(
-        val id: Long,
-        val slug: String?,
-        @JsonProperty("raw_id")
-        val rawId: Long,
-        /*@JsonProperty("serie_id")
-        val serieId: Long,
-        val status: Long,
-        val slug: String,
-        val name: String,
-        val order: Long,
-        @JsonProperty("is_update")
-        val isUpdate: Boolean,
-        @JsonProperty("created_at")
-        val createdAt: String,
-        @JsonProperty("updated_at")
-        val updatedAt: String,
-        val title: String,
-        val code: String,*/
-    )
-    data class Serie(
-        @JsonProperty("serie_data")
-        val serieData: SerieData,
-        /*
-        @JsonProperty("default_service")
-        val defaultService: String,*/
-        val chapter: Chapter,
-    )
-
-    data class SerieData(
-        val id: Long,
-        val slug: String,
-        val data: Data,
-        @JsonProperty("raw_id")
-        val rawId: Long,
-        @JsonProperty("user_status")
-        val userStatus: Long,
-        @JsonProperty("is_default")
-        val isDefault: Boolean,
-        @JsonProperty("chapter_count")
-        val chapterCount: Long,
-        @JsonProperty("ai_enabled")
-        val aiEnabled: Boolean,
-        @JsonProperty("raw_status")
-        val rawStatus: Long,
-    )
-
-    data class Data(
-        val title: String,
-        val author: String,
-        val description: String,
-        @JsonProperty("from_user")
-        val fromUser: String?,
-        val raw: Raw,
-        val image: String,
-    )
-
-    data class Raw(
-        val title: String,
-        val author: String,
-        val description: String,
-    )
+        data class Raw(
+            val title: String,
+            val author: String,
+            val description: String,
+        )
 
 
 
-    data class ActiveService(
-        val id: String,
-        val label: String,
-    )
+        data class ActiveService(
+            val id: String,
+            val label: String,
+        )
 
-    data class Query(
-        val locale: String,
-        @JsonProperty("serie_slug")
-        val serieSlug: String,
-        @JsonProperty("chapter_no")
-        val chapterNo: String,
-    )
+        data class Query(
+            val locale: String,
+            @JsonProperty("serie_slug")
+            val serieSlug: String,
+            @JsonProperty("chapter_no")
+            val chapterNo: String,
+        )
 
+    }
 }
