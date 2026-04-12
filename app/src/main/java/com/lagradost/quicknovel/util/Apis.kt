@@ -32,7 +32,6 @@ import com.lagradost.quicknovel.providers.NovelFireProvider
 import com.lagradost.quicknovel.providers.NovelFullNETProvider
 import com.lagradost.quicknovel.providers.NovelFullProvider
 import com.lagradost.quicknovel.providers.NovelManiaProvider
-import com.lagradost.quicknovel.providers.NovelasLigerasProvider
 import com.lagradost.quicknovel.providers.NovelsOnlineProvider
 import com.lagradost.quicknovel.providers.PawReadProver
 import com.lagradost.quicknovel.providers.PlanetaEpubProvider
@@ -42,7 +41,6 @@ import com.lagradost.quicknovel.providers.ReadOnlineFreeBookProvider
 import com.lagradost.quicknovel.providers.ReadfromnetProvider
 import com.lagradost.quicknovel.providers.ReadhiveProvider
 import com.lagradost.quicknovel.providers.RedditProvider
-import com.lagradost.quicknovel.providers.RewayatProvider
 import com.lagradost.quicknovel.providers.RoyalRoadProvider
 import com.lagradost.quicknovel.providers.SakuraNovelProvider
 import com.lagradost.quicknovel.providers.ScribblehubProvider
@@ -85,7 +83,6 @@ class Apis {
             NovelFullProvider(),
             NovelManiaProvider(),
             NovelFireProvider(),
-            NovelasLigerasProvider(),
             //NovelPassionProvider(), // Site gone
             NovelsOnlineProvider(),
             NovLoveProvider(),
@@ -98,7 +95,6 @@ class Apis {
             ReadNovelFullProvider(),
             RoyalRoadProvider(),
             ReadOnlineFreeBookProvider(),
-            RewayatProvider(),
             ReadhiveProvider(),
             SakuraNovelProvider(), // cloudflare?
             ScribblehubProvider(),

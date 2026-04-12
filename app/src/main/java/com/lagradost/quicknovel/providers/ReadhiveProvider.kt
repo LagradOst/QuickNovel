@@ -11,6 +11,7 @@ import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
+import com.lagradost.quicknovel.MainActivity.Companion.app
 
 class ReadhiveProvider  :  MainAPI() {
     override val name = "ReadHive"
