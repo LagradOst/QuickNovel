@@ -263,7 +263,6 @@ class WuxiaClickProvider :  MainAPI() {
             else if(!mainCategory.isNullOrEmpty() && tag.isNullOrEmpty()) "category/$mainCategory"
             else "search"
         }?page=$page&order_by=$orderBy"
-        println(url)
         val document = app.get(url).document
 
         val returnValue = document.select("div.mantine-Grid-root > div.mantine-Grid-col > div > a").mapNotNull { card ->

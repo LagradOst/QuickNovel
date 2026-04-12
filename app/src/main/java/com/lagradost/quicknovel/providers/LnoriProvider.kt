@@ -191,14 +191,15 @@ class LnoriProvider :  MainAPI() {
             "article.card"
         }
 
-        val cards = document.select(selector)
 
-        val returnValue = cards.asSequence()
-        .let{ seq ->
-            if(!orderBy.isNullOrBlank())
-                seq.sortedBy { it.attr(orderBy) }
-            else seq
-        }.mapNotNull { card ->
+        val card =
+            if(orderBy.isNullOrBlank())
+                document.select(selector)
+            else
+                document.select(selector)
+                    .sortedBy { it.attr(orderBy) }
+
+        val returnValue = card.mapNotNull { card ->
             val a = card.selectFirst("a") ?: return@mapNotNull null
             val title = card.selectFirst("h2")?.text() ?: return@mapNotNull null
 
@@ -209,7 +210,6 @@ class LnoriProvider :  MainAPI() {
                 posterUrl = card.selectFirst("img")?.attr("src")
             }
         }
-        .toList()
 
         return HeadMainPageResponse(url, returnValue)
     }

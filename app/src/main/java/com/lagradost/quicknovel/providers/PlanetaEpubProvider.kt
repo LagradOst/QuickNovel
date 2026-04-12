@@ -100,7 +100,6 @@ class PlanetaEpubProvider :  MainAPI() {
     ): HeadMainPageResponse
     {
         val url = "$mainUrl${if(mainCategory.isNullOrEmpty()) "" else "/categoria/$mainCategory"}/page/$page/"
-        println(url)
         val document = app.get(url).document
 
         val returnValue = document.select("main.content > div > div.post-list > div > article").mapNotNull { card ->
