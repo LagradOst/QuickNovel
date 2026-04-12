@@ -102,7 +102,6 @@ import java.util.Locale
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
-import kotlin.math.pow
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 
@@ -372,9 +371,16 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
 
                 doc.select("img, image").forEach { img ->
                     val attrName = if (img.tagName() == "image") "xlink:href" else "src"
-                    val src = img.attr(attrName)
+                    var src = img.attr(attrName)
                     if (src.isNotEmpty() && !src.startsWith("http") && !src.startsWith("data:")) {
-                        img.attr(attrName, resolveRelativePath(basePath, src))
+                        src = resolveRelativePath(basePath, src)
+                    }
+                    if (img.tagName() == "image") {
+                        val newImg = doc.createElement("img")
+                        newImg.attr("src", src)
+                        img.replaceWith(newImg)
+                    } else {
+                        img.attr("src", src)
                     }
                 }
 

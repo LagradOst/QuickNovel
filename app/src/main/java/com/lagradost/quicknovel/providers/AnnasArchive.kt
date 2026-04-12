@@ -18,7 +18,7 @@ class AnnasArchive : MainAPI() {
     override val hasReviews = false
     override val lang = "en"
     override val name = "Annas Archive"
-    override val mainUrl = "https://annas-archive.li"
+    override val mainUrl = "https://annas-archive.pk"
 
     //open val searchTags = "lang=en&content=book_fiction&ext=epub&sort=&"
 
