@@ -146,13 +146,13 @@ class PlanetaEpubProvider :  MainAPI() {
     {
         val document = app.get(url).document
         val titleContent = document.selectFirst("h1")?.text()
-        val title = titleContent?.substringBeforeLast("–") ?: ""
+        val title = titleContent?.substringBeforeLast("–") ?: throw Exception("Title not found")
         val chapters = extract(getDownloadLink(document) ?: "", title)
 
         return newEpubResponse(title,fixUrl(url), listOf(chapters)) {
             this.posterUrl = document.selectFirst("div.image-container > img")?.attr("src")
             this.synopsis =  document.selectFirst("#content > div:nth-child(2) > article > div > div.entry.themeform > div.entry-inner > div.descripcion-libro-premium > div:nth-child(2) > p")?.text() ?: ""
-            this.author = titleContent?.substringAfterLast("–")
+            this.author = titleContent.substringAfterLast("–")
         }
     }
 

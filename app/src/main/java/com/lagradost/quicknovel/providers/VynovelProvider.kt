@@ -8,7 +8,6 @@ import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrl
-import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
@@ -139,15 +138,10 @@ class VynovelProvider :  MainAPI() {
 
     override suspend fun load(url: String): LoadResponse
     {
-        val document = app.get(url).document//body > div.body > div > div > div.col-lg-8
+        val document = app.get(url).document
         val infoDiv = document.select("div.container div.row div.div-manga")
 
-        // Extract title
-        val title = infoDiv.selectFirst("h1")?.text() ?: ""
-
-        // Extract description/synopsis
-        val synopsis = document.selectFirst("p.content")?.text() ?: ""
-
+        val title = infoDiv.selectFirst("h1")?.text() ?: throw Exception("Title not found")
         val chapters = document.select("div.list div.list-group a").reversed().mapNotNull { li ->
             val name = li.selectFirst("span")?.text()?:return@mapNotNull null
             val url = li.attr("href")?:return@mapNotNull null
@@ -158,9 +152,9 @@ class VynovelProvider :  MainAPI() {
 
         return newStreamResponse(title,fixUrl(url), chapters) {
             this.posterUrl = infoDiv.selectFirst("div.img-manga img")?.attr("src")
-            this.synopsis = synopsis
+            this.synopsis = document.selectFirst("p.content")?.text()
 
-            infoDiv.select("div.div-manga > div.row > div.col-md-7 > p").forEachIndexed { index, span ->
+            infoDiv.select("div.div-manga > div.row > div.col-md-7 > p").forEach { span ->
                 if(span.text().contains("Authors")){
                     this.author = infoDiv.selectFirst("a")?.text() ?: ""
                 }
@@ -182,13 +176,13 @@ class VynovelProvider :  MainAPI() {
             }
 
             this.tags = infoDiv.select("a.badge").mapNotNull {
-                it.text().trim().takeIf { text ->  !text.isEmpty() }
+                it.text().trim().takeIf { text -> text.isNotEmpty() }
             }
         }
     }
 
 
-    override suspend fun loadHtml(url: String): String? {
+    override suspend fun loadHtml(url: String): String {
         val document = app.get(url).document
         val contentElement = document.select("div.body div.content > p").joinToString("</br>")
         return contentElement

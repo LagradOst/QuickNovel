@@ -46,14 +46,8 @@ class NovelManiaProvider : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
 
-        // TITLE
-        val title = document.selectFirst(".novel-info h1")?.text() ?: ""
+        val title = document.selectFirst(".novel-info h1")?.text()  ?: throw Exception("Title not found")
 
-        // COVER
-        val poster = document.selectFirst(".novel-img img")?.attr("src")
-
-        // SUMMARY
-        val synopsis = document.selectFirst("#info .text")?.text() ?: ""
 
         // AUTHOR
         var author: String? = null
@@ -65,11 +59,6 @@ class NovelManiaProvider : MainAPI() {
             }
         }
 
-        // TAGS (genres)
-        val tags = document.select("#info .tags a[href^=\"/genero/\"]")
-            .mapNotNull { it.attr("title") }
-
-        // CHAPTERS
         val chapters = mutableListOf<ChapterData>()
 
         val volumes = document.select("#accordion .card-header button")
@@ -90,10 +79,11 @@ class NovelManiaProvider : MainAPI() {
         }
 
         return newStreamResponse(title, url, chapters) {
-            this.posterUrl = poster
-            this.synopsis = synopsis
+            this.posterUrl = document.selectFirst(".novel-img img")?.attr("src")
+            this.synopsis =  document.selectFirst("#info .text")?.text()
             this.author = author
-            this.tags = tags
+            this.tags =  document.select("#info .tags a[href^=\"/genero/\"]")
+                .mapNotNull { it.attr("title") }
         }
     }
 

@@ -69,22 +69,11 @@ class DevilNovelsProvider  : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
-
-        // TITLE
-        val title = document.selectFirst("div.elementor-widget-container p")?.text() ?: ""
-
-        // COVER
-        val poster = document.selectFirst("div.elementor-widget-container > p > img")?.attr("src")
-
-        // SUMMARY
-        val synopsis = document.select("div.elementor-widget-container > p")?.drop(1)?.joinToString("\n"){it.text()}
-
-        // CHAPTERS (con volúmenes)
         val chapters = getChapters(document, url)
 
-        return newStreamResponse(title, url, chapters) {
-            this.posterUrl = poster
-            this.synopsis = synopsis
+        return newStreamResponse(document.selectFirst("div.elementor-widget-container p")?.text() ?: "", url, chapters) {
+            this.posterUrl = document.selectFirst("div.elementor-widget-container > p > img")?.attr("src")
+            this.synopsis =  document.select("div.elementor-widget-container > p")?.drop(1)?.joinToString("\n"){it.text()}
             this.author = author
             this.tags = tags
         }

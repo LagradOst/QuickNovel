@@ -296,30 +296,25 @@ class WuxiaClickProvider :  MainAPI() {
     {
         val document = app.get(url).document//body > div.body > div > div > div.col-lg-8
         val infoDiv = document.selectFirst("div.mantine-Container-root > div.mantine-Paper-root.mantine-Card-root > div")
-
-        // Extract title
-        val title = infoDiv?.selectFirst("h5")?.text() ?: ""
-
-        // Extract description/synopsis
-        val synopsis = infoDiv?.selectFirst("div.mantine-Spoiler-root > div.mantine-Spoiler-content > div > div.mantine-Text-root")?.text() ?: ""
-
+        val title = infoDiv?.selectFirst("h5")?.text() ?: throw Exception("Title not found")
         val chapters = getChapters(infoDiv, url)
 
         return newStreamResponse(title,fixUrl(url), chapters) {
-            this.posterUrl = infoDiv?.selectFirst("img")?.attr("src")
-            this.synopsis = synopsis
-            this.author = infoDiv?.selectFirst("div.mantine-lqk3v2 > div")?.text()?.substringAfterLast("By ") ?: ""
+            this.posterUrl = infoDiv.selectFirst("img")?.attr("src")
+            this.synopsis = infoDiv.selectFirst("div.mantine-Spoiler-root > div.mantine-Spoiler-content > div > div.mantine-Text-root")?.text() ?: ""
 
-            setStatus(infoDiv?.selectFirst("div.mantine-Group-root.mantine-1uxmzbt > div.mantine-1huvzos")?.text())
+            this.author = infoDiv.selectFirst("div.mantine-lqk3v2 > div")?.text()?.substringAfterLast("By ") ?: ""
 
-            this.tags = infoDiv?.select("div.mantine-Spoiler-root > div.mantine-Spoiler-content > div > div.mantine-Group-root > div")?.mapNotNull {
+            setStatus(infoDiv.selectFirst("div.mantine-Group-root.mantine-1uxmzbt > div.mantine-1huvzos")?.text())
+
+            this.tags = infoDiv.select("div.mantine-Spoiler-root > div.mantine-Spoiler-content > div > div.mantine-Group-root > div")?.mapNotNull {
                 it.text().trim().takeIf { text ->  !text.isEmpty() }
             }
         }
     }
 
 
-    override suspend fun loadHtml(url: String): String? {
+    override suspend fun loadHtml(url: String): String {
         val document = app.get(url).document
         val contentElement = document.select("div.mantine-Container-root.mantine-sqid3s > div.mantine-Paper-root.mantine-18ybim5 > div:nth-child(3)").joinToString("</br>")
         return contentElement

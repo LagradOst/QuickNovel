@@ -1,7 +1,5 @@
 package com.lagradost.quicknovel.providers
 
-import com.fasterxml.jackson.annotation.JsonFormat
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
@@ -14,8 +12,6 @@ import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.newChapterData
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import kotlin.collections.map
 
 class FenrirRealProvider:  MainAPI() {
@@ -115,7 +111,7 @@ class FenrirRealProvider:  MainAPI() {
                 }
             }
 
-        val title = infoDiv.selectFirst("h1")?.text() ?: ""
+        val title = infoDiv.selectFirst("h1")?.text() ?: throw Exception("Title not found")
         return newStreamResponse(title,url, chapters) {
             infoDiv.select(" > div").forEachIndexed { index, inf ->
                 when (index) {
@@ -127,7 +123,7 @@ class FenrirRealProvider:  MainAPI() {
                     }
                     3 -> {
                         this.tags = infoDiv.select("a").mapNotNull {
-                            it.text().trim().takeIf { text -> !text.isEmpty() }
+                            it.text().trim().takeIf { text -> text.isNotEmpty()}
                         }
                     }
                 }
@@ -165,30 +161,35 @@ class FenrirRealProvider:  MainAPI() {
 
 
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
     data class FenrirMainPageResponse(
+        @JsonProperty("data")
         val data: List<Daum>,
     )
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    data class Daum(//Novel inf
+    data class Daum( // Novel inf
+        @JsonProperty("title")
         val title: String,
+        @JsonProperty("slug")
         val slug: String,
+        @JsonProperty("cover")
         val cover: String,
     )
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
     data class ChapterInf(
+        @JsonProperty("slug")
         val slug: String,
+        @JsonProperty("name")
         val name: String,
+        @JsonProperty("title")
         val title: String?,
         @JsonProperty("updated_at")
         val updatedAt: String,
+        @JsonProperty("locked")
         val locked: Locked,
     )
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
     data class Locked(
+        @JsonProperty("price")
         val price: Int,
     )
 

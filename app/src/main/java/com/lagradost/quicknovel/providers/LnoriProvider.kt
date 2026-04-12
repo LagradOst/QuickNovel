@@ -219,16 +219,7 @@ class LnoriProvider :  MainAPI() {
     {
         val document = app.get(url).document
         val infoDiv = document.select("section.hero-section")
-
-        // Extract title
-        val title = infoDiv.selectFirst("h1")?.text() ?: ""
-
-        // Extract author
-        val author = infoDiv.selectFirst("header.s-info p")?.text() ?: ""
-
-        // Extract description/synopsis
-        val synopsis = document.selectFirst("p.description.desc-wrapper")?.text() ?: ""
-
+        val title = infoDiv.selectFirst("h1")?.text() ?: throw Exception("Title not found")
         val chapters = document.select("section.content-section > section.vol-grid > article").mapNotNull { li ->
             val name = li.selectFirst("h3.card-title")?.text()?:return@mapNotNull null
             val url = li.selectFirst("figure > a")?.attr("href")?:return@mapNotNull null
@@ -236,9 +227,9 @@ class LnoriProvider :  MainAPI() {
         }
 
         return newStreamResponse(title,fixUrl(url), chapters) {
-            this.author = author
+            this.author = infoDiv.selectFirst("header.s-info p")?.text()
             this.posterUrl = infoDiv.selectFirst("article > figure > img")?.attr("src")
-            this.synopsis = synopsis
+            this.synopsis = document.selectFirst("p.description.desc-wrapper")?.text()
             this.tags = infoDiv.select("nav.tags-box.desktop a").mapNotNull {
                 it.text().trim().takeIf { text ->  !text.isEmpty() }
             }

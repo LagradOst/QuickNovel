@@ -67,9 +67,7 @@ class FuckNovelPiaProvider :  MainAPI() {
         tag: String?
     ): HeadMainPageResponse
     {
-        //search.php?status=ongoing&read_only=any&sort=popular&tag_mode=and&genre_mode=and&genres_include%5B%5D=1
         val url = "$mainUrl/search.php?q=&author=&uploader=&translator_group=&country=&year_from=&year_to=&page=$page&status=$mainCategory&language=&read_only=any&sort=$orderBy&tag_mode=&genre_mode=${if(!tag.isNullOrBlank()) "and&genres_include%5B%5D=$tag" else ""}"
-        println(url)
         val document = app.get(url).document
 
         val returnValue = document.select("div.grid > article.card-book").mapNotNull { card ->
@@ -88,14 +86,9 @@ class FuckNovelPiaProvider :  MainAPI() {
 
     override suspend fun load(url: String): LoadResponse
     {
-        val document = app.get(url).document//body > div.body > div > div > div.col-lg-8
+        val document = app.get(url).document
         val infoDiv = document.select("div.container section.hero")
-
-        // Extract title
-        val title = infoDiv.selectFirst("h1")?.text() ?: ""
-
-        // Extract description/synopsis
-        val synopsis = document.selectFirst("p.hero-summary")?.text() ?: ""
+        val title = infoDiv.selectFirst("h1")?.text() ?: throw Exception("Title not found")
 
         val chapters = document.select("ul.chapter-list li").mapNotNull { li ->
             val name = li.selectFirst("span.chapter-item-main")?.text()?:return@mapNotNull null
@@ -107,7 +100,7 @@ class FuckNovelPiaProvider :  MainAPI() {
             this.posterUrl = infoDiv.selectFirst("div.cover")?.attr("style")
                 ?.substringAfter("url(")
                 ?.substringBefore(")")
-            this.synopsis = synopsis
+            this.synopsis = document.selectFirst("p.hero-summary")?.text()
 
             document.select("ul.info-list li").forEach { span ->
                 if(span.text().contains("Author")){
@@ -118,7 +111,7 @@ class FuckNovelPiaProvider :  MainAPI() {
             }
 
             this.tags = infoDiv.select("div.tags a").mapNotNull {
-                it.text().trim().takeIf { text ->  !text.isEmpty() }
+                it.text().trim().takeIf { text ->  text.isNotEmpty() }
             }
         }
     }

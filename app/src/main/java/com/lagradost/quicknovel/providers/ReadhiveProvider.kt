@@ -1,6 +1,6 @@
 package com.lagradost.quicknovel.providers
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
@@ -101,16 +101,8 @@ class ReadhiveProvider  :  MainAPI() {
         val document = app.get(url).document//body > div.body > div > div > div.col-lg-8
         val infoDiv = document.selectFirst("main")?: return newStreamResponse(url, url, emptyList())
 
+        val title = infoDiv.selectFirst("h1")?.text() ?: throw Exception("Title not found")
 
-        // Extract title
-        val title = infoDiv.selectFirst("h1")?.text() ?: ""
-
-        // Extract description/synopsis
-        val synopsis = document.select(
-            "section.relative.grid.grid-cols-1.lg\\:grid-areas-series__body.lg\\:grid-cols-series.gap-x-4.px-4.py-2.sm\\:px-8 div.mb-4 > p"
-        ).joinToString("\n") { p -> p.text() }
-
-        // Extract chapters}
         val chapters = document.select(
             "section.relative.grid.grid-cols-1.lg\\:grid-areas-series__body.lg\\:grid-cols-series.gap-x-4.px-4.py-2.sm\\:px-8 > div.lg\\:grid-in-content.mt-4 > div:nth-child(1) > div:nth-child(3) > div > div > a"
         ).mapNotNull { li ->
@@ -122,7 +114,9 @@ class ReadhiveProvider  :  MainAPI() {
 
         return newStreamResponse(title,fixUrl(url), chapters) {
             this.posterUrl = fixUrlNull(infoDiv.selectFirst("img.object-cover")?.attr("src"))
-            this.synopsis = synopsis
+            this.synopsis = document.select(
+                "section.relative.grid.grid-cols-1.lg\\:grid-areas-series__body.lg\\:grid-cols-series.gap-x-4.px-4.py-2.sm\\:px-8 div.mb-4 > p"
+            ).joinToString("\n") { p -> p.text() }
 
             this.author = infoDiv.selectFirst("span.leading-7")?.text() ?: ""
 
@@ -147,13 +141,9 @@ class ReadhiveProvider  :  MainAPI() {
                 "action" to "fetch_browse",
             )
         ).parsed<Root>()
-        if(document.success){
-
-        }
         return document.data.posts.map { card ->
             val href = card.permalink.replace("\\","")
             val title = card.title
-
 
             newSearchResponse(
                 name = title,
@@ -166,17 +156,23 @@ class ReadhiveProvider  :  MainAPI() {
     }
 
     data class Root(
+        @JsonProperty("success")
         val success: Boolean,
+        @JsonProperty("data")
         val data: Data,
     )
-    @JsonIgnoreProperties(ignoreUnknown = true)
+
     data class Data(
+        @JsonProperty("posts")
         val posts: List<Post>,
     )
-    @JsonIgnoreProperties(ignoreUnknown = true)
+
     data class Post(
+        @JsonProperty("title")
         val title: String,
+        @JsonProperty("thumbnail")
         val thumbnail: String,
+        @JsonProperty("permalink")
         val permalink: String,
     )
 }
