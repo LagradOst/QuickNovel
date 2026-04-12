@@ -9,16 +9,17 @@ import com.lagradost.nicehttp.getHeaders
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.mvvm.debugWarning
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import okhttp3.*
 import java.net.URI
+import java.util.concurrent.ConcurrentHashMap
 
 @AnyThread
 class CloudflareKiller : Interceptor {
     companion object {
         const val TAG = "CloudflareKiller"
-        private val mutex = Semaphore(1)
+        private val mutex = Mutex()
 
         fun parseCookieMap(cookie: String): Map<String, String> {
             return cookie.split(";").associate {
@@ -28,7 +29,7 @@ class CloudflareKiller : Interceptor {
         }
     }
 
-    val savedCookies: MutableMap<String, Map<String, String>> = mutableMapOf()
+    val savedCookies = ConcurrentHashMap<String, Map<String, String>>()
 
     init {
         //CookieManager.getInstance().removeAllCookies(null)
@@ -67,7 +68,7 @@ class CloudflareKiller : Interceptor {
         }
         initialResponse.close()
 
-        mutex.withPermit {
+        mutex.withLock {
             savedCookies[host]?.let { cookies ->
                 val response = proceed(request, cookies)
                 if (!looksLikeCloudflareChallenge(response)) return@runBlocking response
