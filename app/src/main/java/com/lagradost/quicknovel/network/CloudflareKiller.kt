@@ -31,10 +31,6 @@ class CloudflareKiller : Interceptor {
 
     val savedCookies = ConcurrentHashMap<String, Map<String, String>>()
 
-    init {
-        //CookieManager.getInstance().removeAllCookies(null)
-        savedCookies.clear()
-    }
 
     /**
      * Gets the headers with cookies, webview user agent included!
