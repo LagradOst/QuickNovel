@@ -47,6 +47,23 @@ class CloudflareKiller : Interceptor {
         return getHeaders(userAgentHeaders, null, savedCookies[URI(url).host] ?: emptyMap())
     }
 
+    private fun clearCookiesForHost(url: HttpUrl) {
+        val host = url.host
+        val sUrl = url.toString()
+        savedCookies.remove(host)
+
+        val cookieManager = CookieManager.getInstance()
+        cookieManager.getCookie(sUrl)?.let{ cookies ->
+            cookies.split(";").forEach { cookie ->
+                val cookieName = cookie.split("=").getOrNull(0)?.trim()
+                if (cookieName != null) {
+                    cookieManager.setCookie(sUrl, "$cookieName=; Expires=Thu, 01 Jan 1970 00:00:00 GMT")
+                }
+            }
+            cookieManager.flush()
+        }
+    }
+
     override fun intercept(chain: Interceptor.Chain): Response = runBlocking {
         val request = chain.request()
         val host = request.url.host
@@ -57,7 +74,7 @@ class CloudflareKiller : Interceptor {
                 return@runBlocking response
             }
             response.close()
-            savedCookies.remove(host)
+            clearCookiesForHost(request.url)
         }
 
         // First try the request normally. Only invoke WebView bypass when
@@ -73,6 +90,7 @@ class CloudflareKiller : Interceptor {
                 val response = proceed(request, cookies)
                 if (!looksLikeCloudflareChallenge(response)) return@runBlocking response
                 response.close()
+                clearCookiesForHost(request.url)
             }
 
             Log.d(TAG, "Resolving Cloudflare for $host...")
