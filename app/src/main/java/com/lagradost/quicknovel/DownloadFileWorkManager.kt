@@ -1,8 +1,6 @@
 package com.lagradost.quicknovel
 
 import android.content.Context
-import android.service.notification.Condition.newId
-import android.util.Log
 import androidx.annotation.WorkerThread
 import androidx.core.net.toUri
 import androidx.work.CoroutineWorker
@@ -61,7 +59,7 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
         fun refreshAll(from: DownloadViewModel, context: Context) {
             viewModel = from
 
-            (WorkManager.getInstance(context)).enqueueUniqueWork(
+            getWorkerManager(context).enqueueUniqueWork(
                 ID_REFRESH_DOWNLOADS,
                 ExistingWorkPolicy.REPLACE,
                 OneTimeWorkRequest.Builder(DownloadFileWorkManager::class.java)
@@ -74,11 +72,7 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
             )
         }
 
-        fun refreshAllReadingProgress(from: DownloadViewModel, context: Context, currentTab: Int) {
-            viewModel = from
-            val uniqueWorkName = "${ID_REFRESH_READINGPROGRESS}_$currentTab"
-
-            val workManager = try {
+        fun getWorkerManager(context:Context): WorkManager = try {
                 WorkManager.getInstance(context.applicationContext)
             } catch (t: Throwable) {
                 logError(t)
@@ -87,7 +81,11 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
                 WorkManager.getInstance(context.applicationContext)
             }
 
-            workManager.enqueueUniqueWork(
+
+        fun refreshAllReadingProgress(from: DownloadViewModel, context: Context, currentTab: Int) {
+            viewModel = from
+            val uniqueWorkName = "${ID_REFRESH_READINGPROGRESS}_$currentTab"
+            getWorkerManager(context).enqueueUniqueWork(
                 uniqueWorkName,
                 ExistingWorkPolicy.KEEP,
                 OneTimeWorkRequest.Builder(DownloadFileWorkManager::class.java)
@@ -102,7 +100,7 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
         }
 
         private fun startDownload(data: Any, context: Context) {
-            (WorkManager.getInstance(context)).enqueueUniqueWork(
+            getWorkerManager(context).enqueueUniqueWork(
                 ID_DOWNLOAD + System.currentTimeMillis(),
                 ExistingWorkPolicy.APPEND,
                 OneTimeWorkRequest.Builder(DownloadFileWorkManager::class.java)
