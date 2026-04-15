@@ -1,21 +1,15 @@
 package com.lagradost.quicknovel.providers
 
-import android.R.id.input
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.module.kotlin.readValue
-import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
-import org.bouncycastle.asn1.x500.style.RFC4519Style.c
-import org.jsoup.Jsoup
 
 class MtlNovelProvider : MainAPI() {
     override val name = "MtlNovel"
@@ -25,13 +19,6 @@ class MtlNovelProvider : MainAPI() {
     override val iconId = R.drawable.icon_mtlnovel
 
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
-
-    fun fixImage(url: String?): String? {
-        return url?.replace(
-            "https://mtlnovel.me/",
-            "https://mtlnovel.me/wp-content/uploads/"
-        )
-    }
 
     override val tags = listOf(
         "All" to "",
@@ -156,15 +143,6 @@ class MtlNovelProvider : MainAPI() {
                 ?.toInt()
         }
 
-    }
-}
-
-
-private data class SearchResults(
-    @get:JsonProperty("items") val items: List<Item>? = null
-) {
-    companion object {
-        fun fromJson(json: String) = mapper.readValue<SearchResults>(json)
     }
 }
 
