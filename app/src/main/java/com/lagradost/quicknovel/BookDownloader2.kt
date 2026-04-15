@@ -674,9 +674,6 @@ object BookDownloader2Helper {
                     }
                 }
             }
-            catch(t: Throwable){
-                logError(t)
-            }
             finally {
                 if (rateLimit) {
                     api.api.rateLimitMutex.unlock()
@@ -888,23 +885,23 @@ object NotificationHelper {
 
     suspend fun createNotification(
         context: Context?,
-        source: String,
+        source: String?,
         id: Int,
         name: String,
         posterUrl: String? = null,
         stateProgressState: DownloadProgressState,
-        showNotification: Boolean = true,
         progressInBytes: Boolean = true,
-        isActionable: Boolean = true
+        isActionable: Boolean = true,
+        isStreamNovel: Boolean = true,
     ) {
-        if (context == null || !showNotification) return
+        if (context == null) return
         val state = stateProgressState.state
         val timeFormat = if (state == DownloadState.IsDownloading) etaToString(
             stateProgressState.etaMs
         ) else ""
 
         val intent = Intent(context, MainActivity::class.java).apply {
-            data = source.toUri()
+            data = source?.toUri()
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
 
@@ -926,7 +923,11 @@ object NotificationHelper {
         val extraText = if (stateProgressState.total > 1) {
             val unit = if (progressInBytes) "Kb" else ""
             val div = if (progressInBytes) 1024 else 1
-            "${stateProgressState.progress / div} $unit / ${stateProgressState.total / div} $unit"
+
+            if(isStreamNovel)
+                "${stateProgressState.progress} / ${stateProgressState.total}"
+            else
+                "${stateProgressState.progress / div} $unit / ${stateProgressState.total / div}${if(unit.isNotEmpty()) " $unit" else ""}"
         } else ""
 
         val statusText = when (state) {
@@ -1229,20 +1230,15 @@ object BookDownloader2 {
             ReadType.DROPPED,
         )
         coroutineScope {
-            try {
-                for (key in keys) {
-                    val state = getKey<Int>(key)
-                    if (state == readList[currentTabIndex].prefValue) {
-                        val id = key.replaceFirst(RESULT_BOOKMARK_STATE, RESULT_BOOKMARK)
-                        val cached = getKey<ResultCached>(id) ?: continue
-                        launch {
-                            getNewTotalChapters(cached)
-                        }
+            for (key in keys) {
+                val state = getKey<Int>(key)
+                if (state == readList[currentTabIndex].prefValue) {
+                    val id = key.replaceFirst(RESULT_BOOKMARK_STATE, RESULT_BOOKMARK)
+                    val cached = getKey<ResultCached>(id) ?: continue
+                    launch {
+                        getNewTotalChapters(cached)
                     }
                 }
-
-            } catch(t: Throwable){
-                logError(t)
             }
         }
     }

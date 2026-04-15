@@ -219,7 +219,7 @@ class InAppUpdater {
                             runBlocking {
                                 NotificationHelper.createNotification(
                                     context = this@downloadUpdate,
-                                    source = url,
+                                    source = null,
                                     id = UPDATE_NOTIFICATION_ID,
                                     name = "QuickNovel Update",
                                     stateProgressState = DownloadProgressState(
@@ -231,8 +231,8 @@ class InAppUpdater {
                                         etaMs = eta
                                     ),
                                     progressInBytes = true,
-                                    isActionable = false
-
+                                    isActionable = false,
+                                    isStreamNovel = false,
                                 )
                             }
                             lastUpdateTime = currentTime
@@ -267,8 +267,7 @@ class InAppUpdater {
                             clen.toLong(),
                             clen.toLong(),
                             lastUpdateTime,
-                            null),
-                        showNotification = false
+                            null)
                     )
                 }
 
