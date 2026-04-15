@@ -2540,10 +2540,10 @@ object BookDownloader2 {
         } catch (t: Throwable) {
             // also set it here in case of exception
             logError(t)
+            changeDownload(id) { state = DownloadState.IsFailed }
             if (downloadedTotal > 0) {
                 setSuffixData(load, api.name)
             }
-            changeDownload(id) { state = DownloadState.IsFailed }
         } finally {
             currentDownloadsMutex.withLock {
                 currentDownloads -= id
