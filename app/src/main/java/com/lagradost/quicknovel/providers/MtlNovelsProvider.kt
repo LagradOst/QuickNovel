@@ -1,6 +1,5 @@
 package com.lagradost.quicknovel.providers
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
@@ -145,16 +144,3 @@ class MtlNovelProvider : MainAPI() {
 
     }
 }
-
-private data class Item(
-    @get:JsonProperty("query") val query: String? = null,
-    @get:JsonProperty("results") val results: List<Result>? = null
-)
-
-private data class Result(
-    @get:JsonProperty("title") val title: String? = null,
-    @get:JsonProperty("permalink") val permalink: String? = null,
-    @get:JsonProperty("thumbnail") val thumbnail: String? = null,
-    @get:JsonProperty("shortname") val shortname: String? = null,
-    @get:JsonProperty("cn") val cn: String? = null
-)

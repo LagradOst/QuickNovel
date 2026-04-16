@@ -1,11 +1,10 @@
 package com.lagradost.quicknovel.providers
 
-import android.util.Log
 import com.lagradost.quicknovel.ChapterData
+import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrl
@@ -23,7 +22,6 @@ class LightNovelTranslationsProvider: MainAPI() {
 
     override val hasMainPage = true
 
-    // Permite elegir orden y estado de la novela en la UI
     override val mainCategories = listOf(
         "Most Liked" to "most-liked",
         "Most Recent" to "most-recent"
@@ -74,26 +72,7 @@ class LightNovelTranslationsProvider: MainAPI() {
     {
         val document = app.get(url).document
 
-        val title = document.selectFirst("div.novel_title h3")?.text()?.trim().orEmpty()
-        val author = document.selectFirst("div.novel_detail_info li:contains(Author)")
-            ?.text()?.trim().orEmpty()
-        val cover = document.selectFirst("div.novel-image img")?.attr("src")
-        val statusText = document.selectFirst("div.novel_status")?.text()?.trim()
-
-        val synopsis = try {
-            val body2 = app.get(url.replace("?tab=table_contents", "")).document
-            body2.selectFirst("div.novel_text p")?.text()?.trim().orEmpty()
-        } catch (t: Throwable) {
-            logError(t)
-            ""
-        }
-
-        val status = when (statusText) {
-            "Ongoing" -> "Ongoing"
-            "Hiatus" -> "On Hiatus"
-            "Completed" -> "Completed"
-            else -> null
-        }
+        val title = document.selectFirst("div.novel_title h3")?.text()?.trim() ?: throw ErrorLoadingException("Title not found")
 
         val chapters = mutableListOf<ChapterData>()
         document.select("li.chapter-item.unlock").forEach { li ->
@@ -110,10 +89,10 @@ class LightNovelTranslationsProvider: MainAPI() {
         }
 
         return newStreamResponse(title, fixUrl(url), chapters) {
-            this.author = author
-            this.posterUrl = fixUrlNull(cover)
+            this.author = document.selectFirst("div.novel_detail_info li:contains(Author)") ?.text()?.trim().orEmpty()
+            this.posterUrl = fixUrlNull(document.selectFirst("div.novel-image img")?.attr("src"))
             this.synopsis = synopsis
-            setStatus(status)
+            setStatus(document.selectFirst("div.novel_status")?.text()?.trim())
         }
     }
 

@@ -45,8 +45,31 @@ class CloudflareKiller : Interceptor {
 
     private fun clearCookiesForHost(url: HttpUrl) {
         val host = url.host
+        val sUrl = url.toString()
         savedCookies.remove(host)
-        CookieManager.getInstance().removeAllCookies(null)
+
+        val cookieManager = CookieManager.getInstance()
+        val cookieString = cookieManager.getCookie(sUrl) ?: return
+
+        // Separamos por si hay varias (aunque Cloudflare suele ser una importante)
+        val cookies = cookieString.split(";")
+
+        for (cookie in cookies) {
+            val name = cookie.split("=").getOrNull(0)?.trim() ?: continue
+
+            // El truco para que no se duplique es intentar borrarla
+            // con las dos variantes de dominio más comunes.
+            val domainsToClear = listOf(host, ".$host")
+
+            for (domain in domainsToClear) {
+                // Seteamos la cookie con valor vacío y fecha en el pasado
+                // Es VITAL incluir domain y path=/
+                val clearCookie = "$name=; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; path=/; domain=$domain"
+                cookieManager.setCookie(sUrl, clearCookie)
+            }
+        }
+        cookieManager.flush()
+        Log.d(TAG, "Cookies limpiadas para: $host")
     }
 
     override fun intercept(chain: Interceptor.Chain): Response = runBlocking {
@@ -126,7 +149,7 @@ class CloudflareKiller : Interceptor {
     private fun trySolveWithSavedCookies(request: Request): Boolean {
         // Not sure if this takes expiration into account
         return getWebViewCookie(request.url.toString())?.let { cookie ->
-            if (cookie.contains("cf_clearance")) {
+            if (cookie.contains("cf_clearance") && cookie.length > 15) {
                 savedCookies[request.url.host] = parseCookieMap(cookie)
                 true
             } else false
@@ -151,24 +174,21 @@ class CloudflareKiller : Interceptor {
 
         // If no cookies then try to get them
         // Remove this if statement if cookies expire
-        if (!trySolveWithSavedCookies(request)) {
-            Log.d(TAG, "Loading webview to solve cloudflare for ${request.url}")
-            WebViewResolver(
-                // Never exit based on url
-                Regex(".^"),
-                // Cloudflare needs default user agent
-                userAgent = null,
-                // Cannot use okhttp (i think intercepting cookies fails which causes the issues)
-                useOkhttp = false,
-                // Match every url for the requestCallBack
-                additionalUrls = listOf(Regex("."))
-            ).resolveUsingWebView(
-                url
-            ) {
-                trySolveWithSavedCookies(request)
-            }
+        Log.d(TAG, "Loading webview to solve cloudflare for ${request.url}")
+        WebViewResolver(
+            // Never exit based on url
+            Regex(".^"),
+            // Cloudflare needs default user agent
+            userAgent = null,
+            // Cannot use okhttp (i think intercepting cookies fails which causes the issues)
+            useOkhttp = false,
+            // Match every url for the requestCallBack
+            additionalUrls = listOf(Regex("."))
+        ).resolveUsingWebView(
+            url
+        ) {
+            trySolveWithSavedCookies(request)
         }
-
         val cookies = savedCookies[request.url.host] ?: return null
         return proceed(request, cookies)
     }

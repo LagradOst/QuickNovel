@@ -6,7 +6,6 @@ import com.lagradost.quicknovel.DownloadLink
 import com.lagradost.quicknovel.DownloadLinkType
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newEpubResponse
@@ -18,7 +17,7 @@ class AnnasArchive : MainAPI() {
     override val hasReviews = false
     override val lang = "en"
     override val name = "Annas Archive"
-    override val mainUrl = "https://annas-archive.li"
+    override val mainUrl = "https://annas-archive.pk"
 
     //open val searchTags = "lang=en&content=book_fiction&ext=epub&sort=&"
 
