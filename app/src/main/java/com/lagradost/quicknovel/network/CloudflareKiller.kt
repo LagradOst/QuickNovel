@@ -45,25 +45,8 @@ class CloudflareKiller : Interceptor {
 
     private fun clearCookiesForHost(url: HttpUrl) {
         val host = url.host
-        val sUrl = url.toString()
         savedCookies.remove(host)
-
-        val cookieManager = CookieManager.getInstance()
-        val cookieString = cookieManager.getCookie(sUrl) ?: return
-
-        val cookies = cookieString.split(";")
-
-        for (cookie in cookies) {
-            val name = cookie.split("=").getOrNull(0)?.trim() ?: continue
-
-            val domainsToClear = listOf(host, ".$host")
-
-            for (domain in domainsToClear) {
-                val clearCookie = "$name=; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; path=/; domain=$domain"
-                cookieManager.setCookie(sUrl, clearCookie)
-            }
-        }
-        cookieManager.flush()
+        CookieManager.getInstance().removeAllCookies(null)
     }
 
     override fun intercept(chain: Interceptor.Chain): Response = runBlocking {
@@ -143,7 +126,7 @@ class CloudflareKiller : Interceptor {
     private fun trySolveWithSavedCookies(request: Request): Boolean {
         // Not sure if this takes expiration into account
         return getWebViewCookie(request.url.toString())?.let { cookie ->
-            if (cookie.contains("cf_clearance") && cookie.length > 15) {
+            if (cookie.contains("cf_clearance")) {
                 savedCookies[request.url.host] = parseCookieMap(cookie)
                 true
             } else false
