@@ -13,7 +13,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.*
 import java.net.URI
-
 import java.util.concurrent.ConcurrentHashMap
 
 @AnyThread
@@ -46,19 +45,8 @@ class CloudflareKiller : Interceptor {
 
     private fun clearCookiesForHost(url: HttpUrl) {
         val host = url.host
-        val sUrl = url.toString()
         savedCookies.remove(host)
-
-        val cookieManager = CookieManager.getInstance()
-        cookieManager.getCookie(sUrl)?.let{ cookies ->
-            cookies.split(";").forEach { cookie ->
-                val cookieName = cookie.split("=").getOrNull(0)?.trim()
-                if (cookieName != null) {
-                    cookieManager.setCookie(sUrl, "$cookieName=; Expires=Thu, 01 Jan 1970 00:00:00 GMT")
-                }
-            }
-            cookieManager.flush()
-        }
+        CookieManager.getInstance().removeAllCookies(null)
     }
 
     override fun intercept(chain: Interceptor.Chain): Response = runBlocking {
@@ -83,7 +71,8 @@ class CloudflareKiller : Interceptor {
         initialResponse.close()
 
         mutex.withLock {
-            savedCookies[host]?.let { cookies ->
+            if(savedCookies[host] != null || trySolveWithSavedCookies(request)){
+                val cookies = savedCookies[host] ?: emptyMap()
                 val response = proceed(request, cookies)
                 if (!looksLikeCloudflareChallenge(response)) return@runBlocking response
                 response.close()
