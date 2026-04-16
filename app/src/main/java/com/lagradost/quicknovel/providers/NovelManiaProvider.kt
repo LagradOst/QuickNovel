@@ -2,6 +2,7 @@ package com.lagradost.quicknovel.providers
 
 import android.net.Uri
 import com.lagradost.quicknovel.ChapterData
+import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
@@ -18,6 +19,7 @@ class NovelManiaProvider : MainAPI() {
     override val name = "Novelmania"
     override val mainUrl = "https://novelmania.com.br"
     override val iconId = R.drawable.icon_novelmaina
+    override val iconBackgroundId = R.color.white
     override val lang = "pt-pt"
     override val hasMainPage = true
 
@@ -46,7 +48,7 @@ class NovelManiaProvider : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
 
-        val title = document.selectFirst(".novel-info h1")?.text()  ?: throw Exception("Title not found")
+        val title = document.selectFirst(".novel-info h1")?.text()  ?: throw ErrorLoadingException("Title not found")
 
 
         // AUTHOR

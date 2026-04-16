@@ -219,7 +219,7 @@ fun LoadResponse.setStatus(status: String?): Boolean {
         return false
     }
     this.status = when (status.lowercase().trim()) {
-        "ongoing", "on-going", "on_going" -> ReleaseStatus.Ongoing
+        "ongoing", "on-going", "on_going", "releasing" -> ReleaseStatus.Ongoing
         "completed", "complete", "done" -> ReleaseStatus.Completed
         "hiatus", "paused", "pause" -> ReleaseStatus.Paused
         "dropped", "drop" -> ReleaseStatus.Dropped

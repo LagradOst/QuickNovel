@@ -31,6 +31,7 @@ import com.lagradost.quicknovel.providers.NovelBinProvider
 import com.lagradost.quicknovel.providers.NovelFireProvider
 import com.lagradost.quicknovel.providers.NovelFullNETProvider
 import com.lagradost.quicknovel.providers.NovelFullProvider
+import com.lagradost.quicknovel.providers.NovelLightProvider
 import com.lagradost.quicknovel.providers.NovelManiaProvider
 import com.lagradost.quicknovel.providers.NovelsOnlineProvider
 import com.lagradost.quicknovel.providers.PawReadProver
@@ -41,6 +42,7 @@ import com.lagradost.quicknovel.providers.ReadOnlineFreeBookProvider
 import com.lagradost.quicknovel.providers.ReadfromnetProvider
 import com.lagradost.quicknovel.providers.ReadhiveProvider
 import com.lagradost.quicknovel.providers.RedditProvider
+import com.lagradost.quicknovel.providers.RewayatProvider
 import com.lagradost.quicknovel.providers.RoyalRoadProvider
 import com.lagradost.quicknovel.providers.SakuraNovelProvider
 import com.lagradost.quicknovel.providers.ScribblehubProvider
@@ -86,13 +88,15 @@ class Apis {
             //NovelPassionProvider(), // Site gone
             NovelsOnlineProvider(),
             NovLoveProvider(),
+            NovelLightProvider(),
             PawReadProver(),
             PlanetaEpubProvider(),
-            RanobesProvider(),
+            //RanobesProvider(),
             //ReadAnyBookProvider(), // Books locked behind login
             ReadfromnetProvider(),
             //ReadLightNovelProvider(), // NOT WORKING?
             ReadNovelFullProvider(),
+            RewayatProvider(),
             RoyalRoadProvider(),
             ReadOnlineFreeBookProvider(),
             ReadhiveProvider(),
