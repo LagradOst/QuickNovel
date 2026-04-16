@@ -4,9 +4,11 @@ import android.net.Uri
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.ChapterData
+import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
+import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrl
@@ -126,18 +128,13 @@ class RewayatProvider():  MainAPI() {
         val document = app.get(url).document
         val infoDiv = document.select("div.container")
 
-
-        // Extract title
-        val title = infoDiv.selectFirst("h1 > span")?.text() ?: ""
-
-        // Extract description/synopsis
-        val synopsis = infoDiv.selectFirst("div.text-body-2.font-weight-medium.font-dense.font-cairo.mb-6.text-pre-line span")?.text() ?: ""
+        val title = infoDiv.selectFirst("h1 > span")?.text() ?: throw ErrorLoadingException("No title")
 
         val chapters = getChapters(document, url)
         val imgUrls = getListOfPosters(document)[0]
         return newStreamResponse(title,fixUrl(url), chapters) {
             this.posterUrl = imgUrls
-            this.synopsis = synopsis
+            this.synopsis = infoDiv.selectFirst("div.text-body-2.font-weight-medium.font-dense.font-cairo.mb-6.text-pre-line span")?.text() ?: ""
         }
     }
 

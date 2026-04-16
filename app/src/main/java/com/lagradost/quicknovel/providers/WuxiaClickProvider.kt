@@ -19,7 +19,7 @@ class WuxiaClickProvider :  MainAPI() {
     override val name = "WuxiaClick"
     override val mainUrl = "https://wuxia.click"
     override val iconId = R.drawable.icon_wuxiaclick
-    override val iconBackgroundId = R.color.wuxiacliCkcolor
+    override val iconBackgroundId = R.color.wuxiacliColor
 
 
     override val hasMainPage = true

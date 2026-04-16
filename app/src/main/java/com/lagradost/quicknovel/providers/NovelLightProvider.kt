@@ -17,6 +17,7 @@ import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import com.lagradost.quicknovel.MainActivity.Companion.app
 
 class NovelLightProvider:  MainAPI() {
     override val name = "Novel Light"
