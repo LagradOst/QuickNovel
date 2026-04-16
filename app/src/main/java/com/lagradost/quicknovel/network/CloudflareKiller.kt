@@ -51,25 +51,19 @@ class CloudflareKiller : Interceptor {
         val cookieManager = CookieManager.getInstance()
         val cookieString = cookieManager.getCookie(sUrl) ?: return
 
-        // Separamos por si hay varias (aunque Cloudflare suele ser una importante)
         val cookies = cookieString.split(";")
 
         for (cookie in cookies) {
             val name = cookie.split("=").getOrNull(0)?.trim() ?: continue
 
-            // El truco para que no se duplique es intentar borrarla
-            // con las dos variantes de dominio más comunes.
             val domainsToClear = listOf(host, ".$host")
 
             for (domain in domainsToClear) {
-                // Seteamos la cookie con valor vacío y fecha en el pasado
-                // Es VITAL incluir domain y path=/
                 val clearCookie = "$name=; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; path=/; domain=$domain"
                 cookieManager.setCookie(sUrl, clearCookie)
             }
         }
         cookieManager.flush()
-        Log.d(TAG, "Cookies limpiadas para: $host")
     }
 
     override fun intercept(chain: Interceptor.Chain): Response = runBlocking {
