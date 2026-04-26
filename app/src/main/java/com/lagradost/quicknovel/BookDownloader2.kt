@@ -864,34 +864,12 @@ object NotificationHelper {
 
     suspend fun createNotification(
         context: Context?,
-        source: String,
-        id: Int,
-        load: LoadResponse,
-        stateProgressState: DownloadProgressState,
-        showNotification: Boolean,
-        progressInBytes: Boolean,
-    ){
-        createNotification(
-            context = context,
-            source = source,
-            id = id,
-            name = load.name,
-            posterUrl = load.posterUrl,
-            stateProgressState = stateProgressState,
-            progressInBytes = progressInBytes,
-            showNotification = showNotification
-        )
-    }
-
-    suspend fun createNotification(
-        context: Context?,
         source: String?,
         id: Int,
         name: String,
         posterUrl: String? = null,
         stateProgressState: DownloadProgressState,
         progressInBytes: Boolean = true,
-        showNotification: Boolean = true,
         isActionable: Boolean = true,
         isStreamNovel: Boolean = true,
     ) {
@@ -901,114 +879,113 @@ object NotificationHelper {
             stateProgressState.etaMs
         ) else ""
 
-        if(showNotification){
-            val intent = Intent(context, MainActivity::class.java).apply {
-                data = source?.toUri()
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            }
+        val intent = Intent(context, MainActivity::class.java).apply {
+            data = source?.toUri()
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
 
-            val pendingIntent: PendingIntent = PendingIntent.getActivity(
-                context, 0, intent,
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0
+        val pendingIntent: PendingIntent = PendingIntent.getActivity(
+            context, 0, intent,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0
+        )
+
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setAutoCancel(true)
+            .setColorized(true)
+            .setOnlyAlertOnce(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setColor(context.colorFromAttribute(R.attr.colorPrimary))
+            .setContentTitle(name)
+            .setContentIntent(pendingIntent)
+
+
+        val extraText = if (stateProgressState.total > 1) {
+            val unit = if (progressInBytes) "Kb" else ""
+            val div = if (progressInBytes) 1024 else 1
+
+            if(isStreamNovel)
+                "${stateProgressState.progress} / ${stateProgressState.total}"
+            else
+                "${stateProgressState.progress / div} $unit / ${stateProgressState.total / div}${if(unit.isNotEmpty()) " $unit" else ""}"
+        } else ""
+
+        val statusText = when (state) {
+            DownloadState.IsDone -> "Download Done"
+            DownloadState.IsDownloading -> "Downloading $extraText"
+            DownloadState.IsPaused -> "Paused $extraText"
+            DownloadState.IsFailed -> "Error $extraText"
+            DownloadState.IsStopped -> "Stopped $extraText"
+            else -> ""
+        }
+        builder.setContentText(statusText)
+
+        builder.setSmallIcon(
+            when (state) {
+                DownloadState.IsDone -> R.drawable.rddone
+                DownloadState.IsDownloading -> R.drawable.rdload
+                DownloadState.IsPaused -> R.drawable.rdpause
+                else -> R.drawable.rderror
+            }
+        )
+
+
+        if (state == DownloadState.IsDownloading || state == DownloadState.IsPaused) {
+            builder.setProgress(
+                stateProgressState.total.toInt(),
+                stateProgressState.progress.toInt(),
+                stateProgressState.total <= 1
             )
-
-            val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setAutoCancel(true)
-                .setColorized(true)
-                .setOnlyAlertOnce(true)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setColor(context.colorFromAttribute(R.attr.colorPrimary))
-                .setContentTitle(name)
-                .setContentIntent(pendingIntent)
+            if (timeFormat.isNotEmpty()) builder.setSubText("$timeFormat remaining")
+        }
 
 
-            val extraText = if (stateProgressState.total > 1) {
-                val unit = if (progressInBytes) "Kb" else ""
-                val div = if (progressInBytes) 1024 else 1
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && posterUrl != null) {
+            context.getImageBitmapFromUrl(posterUrl)?.let { builder.setLargeIcon(it) }
+        }
 
-                if(isStreamNovel)
-                    "${stateProgressState.progress} / ${stateProgressState.total}"
-                else
-                    "${stateProgressState.progress / div} $unit / ${stateProgressState.total / div}${if(unit.isNotEmpty()) " $unit" else ""}"
-            } else ""
 
-            val statusText = when (state) {
-                DownloadState.IsDone -> "Download Done"
-                DownloadState.IsDownloading -> "Downloading $extraText"
-                DownloadState.IsPaused -> "Paused $extraText"
-                DownloadState.IsFailed -> "Error $extraText"
-                DownloadState.IsStopped -> "Stopped $extraText"
-                else -> ""
-            }
-            builder.setContentText(statusText)
+        if (isActionable && (state == DownloadState.IsDownloading || state == DownloadState.IsPaused)) {
+            val actionTypes = if (state == DownloadState.IsDownloading)
+                listOf(DownloadActionType.Pause, DownloadActionType.Stop)
+            else
+                listOf(DownloadActionType.Resume, DownloadActionType.Stop)
 
-            builder.setSmallIcon(
-                when (state) {
-                    DownloadState.IsDone -> R.drawable.rddone
-                    DownloadState.IsDownloading -> R.drawable.rdload
-                    DownloadState.IsPaused -> R.drawable.rdpause
-                    else -> R.drawable.rderror
+            actionTypes.forEachIndexed { index, action ->
+                val resultIntent = Intent(context, DownloadNotificationService::class.java).apply {
+                    putExtra("type", action.name.lowercase())
+                    putExtra("id", id)
                 }
-            )
 
-
-            if (state == DownloadState.IsDownloading || state == DownloadState.IsPaused) {
-                builder.setProgress(
-                    stateProgressState.total.toInt(),
-                    stateProgressState.progress.toInt(),
-                    stateProgressState.total <= 1
+                val pending: PendingIntent = PendingIntent.getService(
+                    context, 4337 + index + id, resultIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0)
                 )
-                if (timeFormat.isNotEmpty()) builder.setSubText("$timeFormat remaining")
-            }
 
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && posterUrl != null) {
-                context.getImageBitmapFromUrl(posterUrl)?.let { builder.setLargeIcon(it) }
-            }
-
-
-            if (isActionable && (state == DownloadState.IsDownloading || state == DownloadState.IsPaused)) {
-                val actionTypes = if (state == DownloadState.IsDownloading)
-                    listOf(DownloadActionType.Pause, DownloadActionType.Stop)
-                else
-                    listOf(DownloadActionType.Resume, DownloadActionType.Stop)
-
-                actionTypes.forEachIndexed { index, action ->
-                    val resultIntent = Intent(context, DownloadNotificationService::class.java).apply {
-                        putExtra("type", action.name.lowercase())
-                        putExtra("id", id)
-                    }
-
-                    val pending: PendingIntent = PendingIntent.getService(
-                        context, 4337 + index + id, resultIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0)
+                builder.addAction(
+                    NotificationCompat.Action(
+                        when (action) {
+                            DownloadActionType.Resume -> R.drawable.rdload
+                            DownloadActionType.Pause -> R.drawable.rdpause
+                            DownloadActionType.Stop -> R.drawable.rderror
+                        },
+                        action.name, pending
                     )
-
-                    builder.addAction(
-                        NotificationCompat.Action(
-                            when (action) {
-                                DownloadActionType.Resume -> R.drawable.rdload
-                                DownloadActionType.Pause -> R.drawable.rdpause
-                                DownloadActionType.Stop -> R.drawable.rderror
-                            },
-                            action.name, pending
-                        )
-                    )
-                }
-            }
-
-            if (!hasCreatedNotChanel) {
-                context.createNotificationChannel()
-            }
-
-            with(NotificationManagerCompat.from(context)) {
-                try {
-                    notify(id, builder.build())
-                } catch (t: Throwable) {
-                    logError(t)
-                }
+                )
             }
         }
+
+        if (!hasCreatedNotChanel) {
+            context.createNotificationChannel()
+        }
+
+        with(NotificationManagerCompat.from(context)) {
+            try {
+                notify(id, builder.build())
+            } catch (t: Throwable) {
+                logError(t)
+            }
+        }
+
     }
 }
 
@@ -1388,12 +1365,15 @@ object BookDownloader2 {
         id: Int,
         load: LoadResponse,
         stateProgressState: DownloadProgressState,
-        show: Boolean = true,
         progressInBytes: Boolean = false
     ) {
         NotificationHelper.createNotification(
             activity,
-            load.url, id, load, stateProgressState, show, progressInBytes
+            load.url, id,
+            load.name,
+            load.posterUrl,
+            stateProgressState,
+            progressInBytes
         )
     }
 
