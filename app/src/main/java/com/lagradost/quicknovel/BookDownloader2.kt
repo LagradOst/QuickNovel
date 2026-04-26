@@ -673,7 +673,8 @@ object BookDownloader2Helper {
                         delay(api.rateLimitTime)
                     }
                 }
-            } finally {
+            }
+            finally {
                 if (rateLimit) {
                     api.api.rateLimitMutex.unlock()
                 }
@@ -863,164 +864,128 @@ object NotificationHelper {
 
     suspend fun createNotification(
         context: Context?,
-        source: String,
+        source: String?,
         id: Int,
-        load: LoadResponse,
+        name: String,
+        posterUrl: String? = null,
         stateProgressState: DownloadProgressState,
-        showNotification: Boolean,
-        progressInBytes: Boolean,
+        progressInBytes: Boolean = true,
+        isActionable: Boolean = true,
+        isStreamNovel: Boolean = true,
     ) {
         if (context == null) return
         val state = stateProgressState.state
-        var timeFormat = ""
-        if (state == DownloadState.IsDownloading) { // ETA
-            timeFormat = etaToString(stateProgressState.etaMs)
+        val timeFormat = if (state == DownloadState.IsDownloading) etaToString(
+            stateProgressState.etaMs
+        ) else ""
+
+        val intent = Intent(context, MainActivity::class.java).apply {
+            data = source?.toUri()
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
 
-        if (showNotification) {
-            val intent = Intent(context, MainActivity::class.java).apply {
-                data = source.toUri()
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            }
+        val pendingIntent: PendingIntent = PendingIntent.getActivity(
+            context, 0, intent,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0
+        )
 
-            val pendingIntent: PendingIntent = PendingIntent.getActivity(
-                context, 0, intent,
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-                    PendingIntent.FLAG_MUTABLE else 0
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setAutoCancel(true)
+            .setColorized(true)
+            .setOnlyAlertOnce(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setColor(context.colorFromAttribute(R.attr.colorPrimary))
+            .setContentTitle(name)
+            .setContentIntent(pendingIntent)
+
+
+        val extraText = if (stateProgressState.total > 1) {
+            val unit = if (progressInBytes) "Kb" else ""
+            val div = if (progressInBytes) 1024 else 1
+
+            if(isStreamNovel)
+                "${stateProgressState.progress} / ${stateProgressState.total}"
+            else
+                "${stateProgressState.progress / div} $unit / ${stateProgressState.total / div}${if(unit.isNotEmpty()) " $unit" else ""}"
+        } else ""
+
+        val statusText = when (state) {
+            DownloadState.IsDone -> "Download Done"
+            DownloadState.IsDownloading -> "Downloading $extraText"
+            DownloadState.IsPaused -> "Paused $extraText"
+            DownloadState.IsFailed -> "Error $extraText"
+            DownloadState.IsStopped -> "Stopped $extraText"
+            else -> ""
+        }
+        builder.setContentText(statusText)
+
+        builder.setSmallIcon(
+            when (state) {
+                DownloadState.IsDone -> R.drawable.rddone
+                DownloadState.IsDownloading -> R.drawable.rdload
+                DownloadState.IsPaused -> R.drawable.rdpause
+                else -> R.drawable.rderror
+            }
+        )
+
+
+        if (state == DownloadState.IsDownloading || state == DownloadState.IsPaused) {
+            builder.setProgress(
+                stateProgressState.total.toInt(),
+                stateProgressState.progress.toInt(),
+                stateProgressState.total <= 1
             )
-            val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setAutoCancel(true)
-                .setColorized(true)
-                .setAutoCancel(true)
-                .setOnlyAlertOnce(true)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setColor(context.colorFromAttribute(R.attr.colorPrimary))
-                .setContentText(
-                    if (stateProgressState.total > 1) {
-                        val extra = if (progressInBytes) {
-                            val bytesToKiloBytes = 1024
-                            "${stateProgressState.progress / bytesToKiloBytes} Kb/${stateProgressState.total / bytesToKiloBytes} Kb"
-                        } else {
-                            "${stateProgressState.progress}/${stateProgressState.total}"
-                        }
+            if (timeFormat.isNotEmpty()) builder.setSubText("$timeFormat remaining")
+        }
 
-                        when (state) {
-                            DownloadState.IsDone -> "Download Done - ${load.name}"
-                            DownloadState.IsDownloading -> "Downloading ${load.name} - $extra"
-                            DownloadState.IsPaused -> "Paused ${load.name} - $extra"
-                            DownloadState.IsFailed -> "Error ${load.name} - $extra"
-                            DownloadState.IsStopped -> "Stopped ${load.name} - $extra"
-                            else -> throw NotImplementedError()
-                        }
-                    } else {
-                        when (state) {
-                            DownloadState.IsDone -> "Download Done - ${load.name}"
-                            DownloadState.IsDownloading -> "Downloading ${load.name}"
-                            DownloadState.IsPaused -> "Paused ${load.name}"
-                            DownloadState.IsFailed -> "Error ${load.name}"
-                            DownloadState.IsStopped -> "Stopped ${load.name}"
-                            else -> throw NotImplementedError()
-                        }
-                    }
-                )
-                .setSmallIcon(
-                    when (state) {
-                        DownloadState.IsDone -> R.drawable.rddone
-                        DownloadState.IsDownloading -> R.drawable.rdload
-                        DownloadState.IsPaused -> R.drawable.rdpause
-                        DownloadState.IsFailed -> R.drawable.rderror
-                        DownloadState.IsStopped -> R.drawable.rderror
-                        else -> throw NotImplementedError()
-                    }
-                )
-                .setContentIntent(pendingIntent)
 
-            if (state == DownloadState.IsDownloading && stateProgressState.total > 2) {
-                builder.setSubText("$timeFormat remaining")
-            }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && posterUrl != null) {
+            context.getImageBitmapFromUrl(posterUrl)?.let { builder.setLargeIcon(it) }
+        }
 
-            if (state == DownloadState.IsDownloading || state == DownloadState.IsPaused) {
-                builder.setProgress(
-                    stateProgressState.total.toInt(),
-                    stateProgressState.progress.toInt(),
-                    stateProgressState.total <= 1
-                )
-            }
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                load.posterUrl?.let { url ->
-                    val poster = context.getImageBitmapFromUrl(url)
-                    if (poster != null)
-                        builder.setLargeIcon(poster)
-                }
-            }
+        if (isActionable && (state == DownloadState.IsDownloading || state == DownloadState.IsPaused)) {
+            val actionTypes = if (state == DownloadState.IsDownloading)
+                listOf(DownloadActionType.Pause, DownloadActionType.Stop)
+            else
+                listOf(DownloadActionType.Resume, DownloadActionType.Stop)
 
-            if ((state == DownloadState.IsDownloading || state == DownloadState.IsPaused) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val actionTypes: MutableList<DownloadActionType> = ArrayList()
-                // INIT
-                if (state == DownloadState.IsDownloading) {
-                    actionTypes.add(DownloadActionType.Pause)
-                    actionTypes.add(DownloadActionType.Stop)
+            actionTypes.forEachIndexed { index, action ->
+                val resultIntent = Intent(context, DownloadNotificationService::class.java).apply {
+                    putExtra("type", action.name.lowercase())
+                    putExtra("id", id)
                 }
 
-                if (state == DownloadState.IsPaused) {
-                    actionTypes.add(DownloadActionType.Resume)
-                    actionTypes.add(DownloadActionType.Stop)
-                }
+                val pending: PendingIntent = PendingIntent.getService(
+                    context, 4337 + index + id, resultIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0)
+                )
 
-                // ADD ACTIONS
-                for ((index, i) in actionTypes.withIndex()) {
-                    val resultIntent = Intent(context, DownloadNotificationService::class.java)
-
-                    resultIntent.putExtra(
-                        "type", when (i) {
-                            DownloadActionType.Resume -> "resume"
-                            DownloadActionType.Pause -> "pause"
-                            DownloadActionType.Stop -> "stop"
-                        }
+                builder.addAction(
+                    NotificationCompat.Action(
+                        when (action) {
+                            DownloadActionType.Resume -> R.drawable.rdload
+                            DownloadActionType.Pause -> R.drawable.rdpause
+                            DownloadActionType.Stop -> R.drawable.rderror
+                        },
+                        action.name, pending
                     )
-
-                    resultIntent.putExtra("id", id)
-
-                    val pending: PendingIntent =
-                        PendingIntent.getService(
-                            context, 4337 + index + id,
-                            resultIntent,
-                            PendingIntent.FLAG_UPDATE_CURRENT or
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-                                        PendingIntent.FLAG_MUTABLE else 0
-                        )
-
-
-                    builder.addAction(
-                        NotificationCompat.Action(
-                            when (i) {
-                                DownloadActionType.Resume -> R.drawable.rdload
-                                DownloadActionType.Pause -> R.drawable.rdpause
-                                DownloadActionType.Stop -> R.drawable.rderror
-                            }, when (i) {
-                                DownloadActionType.Resume -> "Resume"
-                                DownloadActionType.Pause -> "Pause"
-                                DownloadActionType.Stop -> "Stop"
-                            }, pending
-                        )
-                    )
-                }
-            }
-
-            if (!hasCreatedNotChanel) {
-                context.createNotificationChannel()
-            }
-
-            with(NotificationManagerCompat.from(context)) {
-                // notificationId is a unique int for each notification that you must define
-                try {
-                    notify(id, builder.build())
-                } catch (t: Throwable) {
-                    logError(t)
-                }
+                )
             }
         }
+
+        if (!hasCreatedNotChanel) {
+            context.createNotificationChannel()
+        }
+
+        with(NotificationManagerCompat.from(context)) {
+            try {
+                notify(id, builder.build())
+            } catch (t: Throwable) {
+                logError(t)
+            }
+        }
+
     }
 }
 
@@ -1234,7 +1199,7 @@ object BookDownloader2 {
     }
 
 
-    suspend fun getOldDataReadingProgress(currentTabIndex: Int){
+    suspend fun getOldDataReadingProgress(currentTabIndex: Int) {
         val keys = getKeys(RESULT_BOOKMARK_STATE) ?: return
         val readList = arrayListOf(
             ReadType.READING,
@@ -1400,12 +1365,15 @@ object BookDownloader2 {
         id: Int,
         load: LoadResponse,
         stateProgressState: DownloadProgressState,
-        show: Boolean = true,
         progressInBytes: Boolean = false
     ) {
         NotificationHelper.createNotification(
             activity,
-            load.url, id, load, stateProgressState, show, progressInBytes
+            load.url, id,
+            load.name,
+            load.posterUrl,
+            stateProgressState,
+            progressInBytes
         )
     }
 
@@ -2415,7 +2383,8 @@ object BookDownloader2 {
         api: APIRepository,
         range: ClosedRange<Int>
     ) {
-        val filesDir = activity?.filesDir ?: return
+        val context = activity ?: return
+        val filesDir = context.filesDir
         val sApiName = BookDownloader2Helper.sanitizeFilename(api.name)
         val sAuthor =
             BookDownloader2Helper.sanitizeFilename(load.author ?: "")
@@ -2476,10 +2445,9 @@ object BookDownloader2 {
                         index
                     )
                 val rFile = File(filepath)
-                if (rFile.exists()) {
-                    if (rFile.length() > 10) { // TO PREVENT INVALID FILE FROM HAVING TO REMOVE EVERYTHING
-                        continue
-                    }
+                // TO PREVENT INVALID FILE FROM HAVING TO REMOVE EVERYTHING
+                if (rFile.exists() && rFile.length() > 10) {
+                    continue
                 }
 
                 val beforeDownloadTime = System.currentTimeMillis()
@@ -2554,11 +2522,11 @@ object BookDownloader2 {
             }
         } catch (t: Throwable) {
             // also set it here in case of exception
+            logError(t)
+            changeDownload(id) { state = DownloadState.IsFailed }
             if (downloadedTotal > 0) {
                 setSuffixData(load, api.name)
             }
-
-            logError(t)
         } finally {
             currentDownloadsMutex.withLock {
                 currentDownloads -= id
