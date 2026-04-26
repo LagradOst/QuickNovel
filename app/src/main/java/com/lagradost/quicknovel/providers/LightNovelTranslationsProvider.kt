@@ -72,7 +72,7 @@ class LightNovelTranslationsProvider: MainAPI() {
     {
         val document = app.get(url).document
 
-        val title = document.selectFirst("div.novel_title h3")?.text()?.trim() ?: throw ErrorLoadingException("Title not found")
+        val title = document.selectFirst("div.novel_title h3")?.text()?.trim() ?: throw Exception("Title not found")
 
         val chapters = mutableListOf<ChapterData>()
         document.select("li.chapter-item.unlock").forEach { li ->
