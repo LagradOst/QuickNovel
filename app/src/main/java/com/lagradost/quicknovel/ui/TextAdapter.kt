@@ -184,7 +184,6 @@ data class TextConfig(
     val isTextSelectable: Boolean,
     /** Vertical text padding in dp */
     val verticalPadding: Float,
-    val requiresCloudflareKiller: Boolean = false
 ) {
     private val fontFile: File? by lazy {
         if (textFont == "") null else systemFonts.firstOrNull { it.name == textFont }
@@ -605,7 +604,7 @@ class TextAdapter(
         }
     }
 
-    private fun bindImage(binding: ViewBinding, img: AsyncDrawable, requireCloudFlare:Boolean = false) {
+    private fun bindImage(binding: ViewBinding, img: AsyncDrawable, requireCloudFlare:Boolean) {
         if (binding !is SingleImageBinding) return
         val url = img.destination
         if (binding.root.url == url) return
