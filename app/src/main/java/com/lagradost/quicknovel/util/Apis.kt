@@ -32,9 +32,11 @@ import com.lagradost.quicknovel.providers.NovelFullNETProvider
 import com.lagradost.quicknovel.providers.NovelFullProvider
 import com.lagradost.quicknovel.providers.NovelLightProvider
 import com.lagradost.quicknovel.providers.NovelManiaProvider
+import com.lagradost.quicknovel.providers.NovelasLigerasProvider
 import com.lagradost.quicknovel.providers.NovelsOnlineProvider
 import com.lagradost.quicknovel.providers.PawReadProver
 import com.lagradost.quicknovel.providers.PlanetaEpubProvider
+import com.lagradost.quicknovel.providers.RanobesProvider
 import com.lagradost.quicknovel.providers.ReadNovelFullProvider
 import com.lagradost.quicknovel.providers.ReadOnlineFreeBookProvider
 import com.lagradost.quicknovel.providers.ReadfromnetProvider
@@ -82,11 +84,13 @@ class Apis {
             NovelFullProvider(),
             NovelManiaProvider(),
             NovelFireProvider(),
+            NovelasLigerasProvider(),
             //NovelPassionProvider(), // Site gone
             NovelsOnlineProvider(),
             NovLoveProvider(),
             NovelLightProvider(),
             PawReadProver(),
+            RanobesProvider(),
             PlanetaEpubProvider(),
             //RanobesProvider(),
             //ReadAnyBookProvider(), // Books locked behind login

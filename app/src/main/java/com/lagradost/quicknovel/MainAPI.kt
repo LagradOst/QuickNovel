@@ -8,6 +8,7 @@ import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.UiImage
 import com.lagradost.quicknovel.ui.img
+import com.lagradost.quicknovel.util.DefaultImagesHeaders
 import kotlinx.coroutines.sync.Mutex
 import org.jsoup.Jsoup
 
@@ -20,11 +21,16 @@ abstract class MainAPI {
 
     open val lang = "en" // ISO_639_1 check SubtitleHelper
 
+    open val usesCloudFlareKiller = false
+    val app get() = if(!usesCloudFlareKiller) MainActivity.app else MainActivity.appWithInterceptor
+
+    fun fixPosterHeaders(headers: Map<String, String>?): Map<String, String>? {
+        return if (usesCloudFlareKiller) (headers ?: emptyMap()) + DefaultImagesHeaders.useCloudflareKillerHeader else headers
+    }
+
     open val rateLimitTime: Long = 0
     val hasRateLimit: Boolean get() = rateLimitTime > 0L
     val rateLimitMutex: Mutex = Mutex()
-
-    open val usesCloudFlareKiller = false
 
     // DECLARE HAS ACCESS TO MAIN PAGE INFORMATION
     open val hasMainPage = false
@@ -199,10 +205,13 @@ fun MainAPI.newSearchResponse(
     fix: Boolean = true,
     initializer: SearchResponse.() -> Unit = { },
 ): SearchResponse {
-    val builder =
-        SearchResponse(name = name, url = if (fix) fixUrl(url) else url, apiName = this.name)
+    val builder = SearchResponse(
+        name = name,
+        url = if (fix) fixUrl(url) else url,
+        apiName = this.name
+    )
     builder.initializer()
-
+    builder.posterHeaders = fixPosterHeaders(builder.posterHeaders)
     return builder
 }
 
@@ -292,6 +301,7 @@ suspend fun MainAPI.newStreamResponse(
         data = data
     )
     builder.initializer()
+    builder.posterHeaders = fixPosterHeaders(builder.posterHeaders)
 
     return builder
 }
@@ -368,6 +378,7 @@ suspend fun MainAPI.newEpubResponse(
         downloadExtractLinks = links.filterIsInstance<DownloadExtractLink>().toList()
     )
     builder.initializer()
+    builder.posterHeaders = fixPosterHeaders(builder.posterHeaders)
 
     return builder
 }

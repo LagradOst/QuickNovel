@@ -9,14 +9,18 @@ import com.lagradost.nicehttp.getHeaders
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.mvvm.debugWarning
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import okhttp3.*
 import java.net.URI
-
+import java.util.concurrent.ConcurrentHashMap
 
 @AnyThread
 class CloudflareKiller : Interceptor {
     companion object {
         const val TAG = "CloudflareKiller"
+        private val mutex = Mutex()
+
         fun parseCookieMap(cookie: String): Map<String, String> {
             return cookie.split(";").associate {
                 val split = it.split("=")
@@ -25,74 +29,91 @@ class CloudflareKiller : Interceptor {
         }
     }
 
-    init {
-        // Needs to clear cookies between sessions to generate new cookies.
-        CookieManager.getInstance().removeAllCookies(null)
-    }
+    val savedCookies = ConcurrentHashMap<String, Map<String, String>>()
 
-    val savedCookies: MutableMap<String, Map<String, String>> = mutableMapOf()
 
     /**
      * Gets the headers with cookies, webview user agent included!
      * */
     fun getCookieHeaders(url: String): Headers {
-        val userAgentHeaders =  WebViewResolver.webViewUserAgent?.let {
+        val userAgentHeaders = WebViewResolver.webViewUserAgent?.let {
             mapOf("user-agent" to it)
         } ?: emptyMap()
 
-        return getHeaders(userAgentHeaders, null,savedCookies[URI(url).host] ?: emptyMap())
+        return getHeaders(userAgentHeaders, null, savedCookies[URI(url).host] ?: emptyMap())
+    }
+
+    private fun clearCookiesForHost(url: HttpUrl) {
+        val host = url.host
+        savedCookies.remove(host)
+        CookieManager.getInstance().removeAllCookies(null)
     }
 
     override fun intercept(chain: Interceptor.Chain): Response = runBlocking {
         val request = chain.request()
-        val cookies = savedCookies[request.url.host]
+        val host = request.url.host
 
-        if (cookies != null) {
-            return@runBlocking proceed(request, cookies)
+        savedCookies[host]?.let { cookies ->
+            val response = proceed(request, cookies)
+            if (!looksLikeCloudflareChallenge(response)) {
+                return@runBlocking response
+            }
+            response.close()
+            clearCookiesForHost(request.url)
         }
 
         // First try the request normally. Only invoke WebView bypass when
         // the response actually looks like a Cloudflare challenge.
         val initialResponse = chain.proceed(request)
         if (!looksLikeCloudflareChallenge(initialResponse)) {
-                return@runBlocking initialResponse
+            return@runBlocking initialResponse
         }
         initialResponse.close()
 
-        bypassCloudflare(request)?.let {
+        mutex.withLock {
+            if(savedCookies[host] != null || trySolveWithSavedCookies(request)){
+                val cookies = savedCookies[host] ?: emptyMap()
+                val response = proceed(request, cookies)
+                if (!looksLikeCloudflareChallenge(response)) return@runBlocking response
+                response.close()
+                clearCookiesForHost(request.url)
+            }
+
+            Log.d(TAG, "Resolving Cloudflare for $host...")
+            val bypassResponse = bypassCloudflare(request)
+
+            if (bypassResponse != null) {
                 Log.d(TAG, "Succeeded bypassing cloudflare: ${request.url}")
-               return@runBlocking it
-         }
+                return@runBlocking bypassResponse
+            }
+        }
 
         debugWarning({ true }) { "Failed cloudflare at: ${request.url}" }
         return@runBlocking chain.proceed(request)
     }
 
-        private fun looksLikeCloudflareChallenge(response: Response): Boolean {
-                val code = response.code
-                val hasCloudflareHeaders =
-                        response.header("cf-ray") != null ||
-                                        response.header("server")?.contains("cloudflare", ignoreCase = true) == true
+    private fun looksLikeCloudflareChallenge(response: Response): Boolean {
+        val code = response.code
+        val hasCloudflareHeaders =
+            response.header("cf-ray") != null ||
+                    response.header("server")?.contains("cloudflare", ignoreCase = true) == true
 
-                val location = response.header("location").orEmpty().lowercase()
-                if (location.contains("/cdn-cgi/")) return true
+        if (code == 403 || code == 429 || code == 503) {
+            if (hasCloudflareHeaders) return true
 
-                val bodySample = runCatching {
-                        response.peekBody(64 * 1024).string().lowercase()
-                    }.getOrDefault("")
+            val bodySample = runCatching {
+                response.peekBody(1024 * 10).string().lowercase()
+            }.getOrDefault("")
 
-                val bodyLooksLikeChallenge =
-                        bodySample.contains("cf-browser-verification") ||
-                        bodySample.contains("checking your browser") ||
-                        bodySample.contains("just a moment") ||
-                        bodySample.contains("attention required") ||
-                        bodySample.contains("/cdn-cgi/")
+            return bodySample.contains("cf-browser-verification") ||
+                    bodySample.contains("checking your browser") ||
+                    bodySample.contains("just a moment") ||
+                    bodySample.contains("/cdn-cgi/")
+        }
 
-                if (bodyLooksLikeChallenge) return true
-
-                val challengeLikeStatus = code == 403 || code == 429 || code == 503
-                return hasCloudflareHeaders && challengeLikeStatus
-            }
+        val location = response.header("location").orEmpty().lowercase()
+        return location.contains("/cdn-cgi/")
+    }
 
     private fun getWebViewCookie(url: String): String? {
         return CookieManager.getInstance()?.getCookie(url)
@@ -105,19 +126,19 @@ class CloudflareKiller : Interceptor {
     private fun trySolveWithSavedCookies(request: Request): Boolean {
         // Not sure if this takes expiration into account
         return getWebViewCookie(request.url.toString())?.let { cookie ->
-            cookie.contains("cf_clearance").also { solved ->
-                if (solved) savedCookies[request.url.host] = parseCookieMap(cookie)
-            }
+            if (cookie.contains("cf_clearance")) {
+                savedCookies[request.url.host] = parseCookieMap(cookie)
+                true
+            } else false
         } ?: false
     }
 
     private suspend fun proceed(request: Request, cookies: Map<String, String>): Response {
-        val userAgentMap = WebViewResolver.getWebViewUserAgent()?.let {
-            mapOf("user-agent" to it)
-        } ?: emptyMap()
+        val ua = WebViewResolver.webViewUserAgent ?: WebViewResolver.getWebViewUserAgent()
+        val userAgentMap = ua?.let { mapOf("user-agent" to it) } ?: emptyMap()
 
-        val headers =
-            getHeaders(request.headers.toMap() + userAgentMap, null, cookies + request.cookies)
+        val headers = getHeaders(request.headers.toMap() + userAgentMap, null, cookies + request.cookies)
+
         return app.baseClient.newCall(
             request.newBuilder()
                 .headers(headers)
@@ -130,24 +151,21 @@ class CloudflareKiller : Interceptor {
 
         // If no cookies then try to get them
         // Remove this if statement if cookies expire
-        if (!trySolveWithSavedCookies(request)) {
-            Log.d(TAG, "Loading webview to solve cloudflare for ${request.url}")
-            WebViewResolver(
-                // Never exit based on url
-                Regex(".^"),
-                // Cloudflare needs default user agent
-                userAgent = null,
-                // Cannot use okhttp (i think intercepting cookies fails which causes the issues)
-                useOkhttp = false,
-                // Match every url for the requestCallBack
-                additionalUrls = listOf(Regex("."))
-            ).resolveUsingWebView(
-                url
-            ) {
-                trySolveWithSavedCookies(request)
-            }
+        Log.d(TAG, "Loading webview to solve cloudflare for ${request.url}")
+        WebViewResolver(
+            // Never exit based on url
+            Regex(".^"),
+            // Cloudflare needs default user agent
+            userAgent = null,
+            // Cannot use okhttp (i think intercepting cookies fails which causes the issues)
+            useOkhttp = false,
+            // Match every url for the requestCallBack
+            additionalUrls = listOf(Regex("."))
+        ).resolveUsingWebView(
+            url
+        ) {
+            trySolveWithSavedCookies(request)
         }
-
         val cookies = savedCookies[request.url.host] ?: return null
         return proceed(request, cookies)
     }

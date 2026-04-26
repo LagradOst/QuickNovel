@@ -10,8 +10,9 @@ import com.lagradost.nicehttp.requestCreator
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.USER_AGENT
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.Interceptor
 import okhttp3.Request
 import okhttp3.Response
@@ -32,7 +33,7 @@ class WebViewResolver(
     val useOkhttp: Boolean = true
 ) :
     Interceptor {
-    private val blockedTrackerHosts = listOf(
+    private val blockedTrackerHosts = setOf(
         "google-analytics.com",
         "googletagmanager.com",
         "googlesyndication.com",
@@ -41,6 +42,13 @@ class WebViewResolver(
         "sharethis.com",
         "count-server.sharethis.com",
         "fundingchoicesmessages.google.com"
+    )
+
+    private val blacklistedExtensions = setOf(
+        "jpg", "png", "webp", "mpg", "mpeg", "jpeg", "webm",
+        "mp4", "mp3", "gifv", "flv", "asf", "mov", "mng",
+        "mkv", "ogg", "avi", "wav", "woff2", "woff", "ttf",
+        "css", "vtt", "srt", "ts", "gif"
     )
 
     private fun isBlockedTrackerUrl(url: String): Boolean {
@@ -52,6 +60,7 @@ class WebViewResolver(
 
     companion object {
         var webViewUserAgent: String? = null
+        val CONTENT_TYPE_REGEX = Regex("""(.*);(?:.*charset=(.*)(?:|;)|)""")
 
         @JvmName("getWebViewUserAgent1")
         fun getWebViewUserAgent(): String? {
@@ -98,22 +107,20 @@ class WebViewResolver(
         val url = request.url.toString()
         val headers = request.headers
         println("Initial web-view request: $url")
+
+        val deferredResponse = CompletableDeferred<Pair<Request?, List<Request>>>()
         var webView: WebView? = null
-        // Extra assurance it exits as it should.
-        var shouldExit = false
+        val extraRequestList = mutableListOf<Request>()
+        var fixedRequest: Request? = null
 
         fun destroyWebView() {
             main {
                 webView?.stopLoading()
                 webView?.destroy()
                 webView = null
-                shouldExit = true
                 println("Destroyed webview")
             }
         }
-
-        var fixedRequest: Request? = null
-        val extraRequestList = mutableListOf<Request>()
 
         main {
             // Useful for debugging
@@ -133,7 +140,7 @@ class WebViewResolver(
                         settings.userAgentString = userAgent
                     }
                     // Blocks unnecessary images, remove if captcha fucks.
-//                    settings.blockNetworkImage = true
+                    //settings.blockNetworkImage = true
                 }
 
                 webView?.webViewClient = object : WebViewClient() {
@@ -157,61 +164,26 @@ class WebViewResolver(
                                 requestCallBack(it)
                             }
                             println("Web-view request finished: $webViewUrl")
-                            destroyWebView()
+                            deferredResponse.complete(fixedRequest to extraRequestList)
                             return@runBlocking null
                         }
 
                         if (additionalUrls.any { it.containsMatchIn(webViewUrl) }) {
-                            extraRequestList.add(request.toRequest().also {
-                                if (requestCallBack(it)) destroyWebView()
-                            })
+                            val req = request.toRequest()
+                            extraRequestList.add(req)
+                            if (requestCallBack(req)) {
+                                deferredResponse.complete(fixedRequest to extraRequestList)
+                            }
                         }
 
-                        // Suppress image requests as we don't display them anywhere
-                        // Less data, low chance of causing issues.
-                        // blockNetworkImage also does this job but i will keep it for the future.
-                        val blacklistedFiles = listOf(
-                            ".jpg",
-                            ".png",
-                            ".webp",
-                            ".mpg",
-                            ".mpeg",
-                            ".jpeg",
-                            ".webm",
-                            ".mp4",
-                            ".mp3",
-                            ".gifv",
-                            ".flv",
-                            ".asf",
-                            ".mov",
-                            ".mng",
-                            ".mkv",
-                            ".ogg",
-                            ".avi",
-                            ".wav",
-                            ".woff2",
-                            ".woff",
-                            ".ttf",
-                            ".css",
-                            ".vtt",
-                            ".srt",
-                            ".ts",
-                            ".gif",
-                            // Warning, this might fuck some future sites, but it's used to make Sflix work.
-                            "wss://"
-                        )
-
-                        /** NOTE!  request.requestHeaders is not perfect!
-                         *  They don't contain all the headers the browser actually gives.
-                         *  Overriding with okhttp might fuck up otherwise working requests,
-                         *  e.g the recaptcha request.
-                         * **/
+                        val path = runCatching { URI(webViewUrl).path }.getOrNull() ?: ""
+                        val extension = path.substringAfterLast('.', "").lowercase()
 
                         return@runBlocking try {
                             when {
-                                blacklistedFiles.any { URI(webViewUrl).path.contains(it) } || webViewUrl.endsWith(
-                                    "/favicon.ico"
-                                ) -> WebResourceResponse(
+                                blacklistedExtensions.contains(extension) ||
+                                        webViewUrl.endsWith("/favicon.ico") ||
+                                        webViewUrl.startsWith("wss://") -> WebResourceResponse(
                                     "image/png",
                                     null,
                                     null
@@ -248,49 +220,79 @@ class WebViewResolver(
                     ) {
                         handler?.proceed() // Ignore ssl issues
                     }
+
+                    override fun onPageFinished(view: WebView?, url: String?) {
+                        super.onPageFinished(view, url)
+                        if (url == null || url.contains("cdn-cgi") || url.contains("recaptcha")) return
+
+                        val script = """
+                            (function() {
+                                if (window.wasClicked) return;
+                    
+                                function tryClick() {
+                                    var isCloudflarePage = document.querySelector('#challenge-form') || 
+                                                           document.querySelector('#challenge-running') ||
+                                                           document.querySelector('#cf-challenge-running');
+                    
+                                    if (!isCloudflarePage) {
+                                        return; 
+                                    }
+                    
+                                    var cfToken = document.querySelector('[name="cf-turnstile-response"]')?.value 
+                                                  || document.querySelector('#cf-chl-widget-multi-token')?.value;
+                    
+                                    var submitButton = document.querySelector('#challenge-form button[type="submit"]') 
+                                                       || document.querySelector('#challenge-form input[type="submit"]');
+                    
+                                    if (cfToken && submitButton) {
+                                        window.wasClicked = true;
+                                        submitButton.click();
+                                    } else {
+                                        if (!window.retryCount) window.retryCount = 0;
+                                        if (window.retryCount < 15) { 
+                                            window.retryCount++;
+                                            setTimeout(tryClick, 1000);
+                                        }
+                                    }
+                                }
+                                tryClick();
+                            })();
+                        """.trimIndent()
+                        view?.evaluateJavascript(script, null)
+                    }
                 }
                 webView?.loadUrl(url, headers.toMap())
             } catch (e: Exception) {
                 logError(e)
+                deferredResponse.complete(null to emptyList())
             }
         }
 
-        var loop = 0
-        // Timeouts after this amount, 60s
-        val totalTime = 60000L
-
-        val delayTime = 100L
-
-        // A bit sloppy, but couldn't find a better way
-        while (loop < totalTime / delayTime && !shouldExit) {
-            if (fixedRequest != null) return fixedRequest to extraRequestList
-            delay(delayTime)
-            loop += 1
+        val result = withTimeoutOrNull(60000L) {
+            deferredResponse.await()
         }
 
-        println("Web-view timeout after ${totalTime / 1000}s")
-        destroyWebView()
-        return fixedRequest to extraRequestList
-    }
+        if (result == null) {
+            println("Web-view timeout after 60s")
+        }
 
+        destroyWebView()
+        return result ?: (fixedRequest to extraRequestList)
+    }
 }
 
 fun WebResourceRequest.toRequest(): Request {
-    val webViewUrl = this.url.toString()
-
     return requestCreator(
         this.method,
-        webViewUrl,
+        this.url.toString(),
         this.requestHeaders,
     )
 }
 
 fun Response.toWebResourceResponse(): WebResourceResponse {
     val contentTypeValue = this.header("Content-Type")
-    // 1. contentType. 2. charset
-    val typeRegex = Regex("""(.*);(?:.*charset=(.*)(?:|;)|)""")
     return if (contentTypeValue != null) {
-        val found = typeRegex.find(contentTypeValue)
+        val found = WebViewResolver.Companion.CONTENT_TYPE_REGEX.find(contentTypeValue)
         val contentType = found?.groupValues?.getOrNull(1)?.ifBlank { null } ?: contentTypeValue
         val charset = found?.groupValues?.getOrNull(2)?.ifBlank { null }
         WebResourceResponse(contentType, charset, this.body.byteStream())

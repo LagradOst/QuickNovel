@@ -22,6 +22,7 @@ import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.FailedSpanned
 import com.lagradost.quicknovel.LoadingSpanned
 import com.lagradost.quicknovel.MLException
+import com.lagradost.quicknovel.QuickBook
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.ReadActivityViewModel
 import com.lagradost.quicknovel.SpanDisplay
@@ -36,6 +37,7 @@ import com.lagradost.quicknovel.databinding.SingleOverscrollChapterBinding
 import com.lagradost.quicknovel.databinding.SingleSeparatorBinding
 import com.lagradost.quicknovel.databinding.SingleTextBinding
 import com.lagradost.quicknovel.mvvm.logError
+import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.UIHelper
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.showImage
@@ -443,7 +445,6 @@ class TextAdapter(
                 val y = outLocation[1] + binding.root.paddingTop
 
                 val list = arrayListOf<TextVisualLine>()
-                // Importante: verificar que el layout no sea nulo
                 binding.root.layout?.apply {
                     for (i in 0 until lineCount) {
                         list.add(
@@ -603,12 +604,12 @@ class TextAdapter(
         }
     }
 
-    private fun bindImage(binding: ViewBinding, img: AsyncDrawable) {
+    private fun bindImage(binding: ViewBinding, img: AsyncDrawable, requireCloudFlare:Boolean) {
         if (binding !is SingleImageBinding) return
         val url = img.destination
         if (binding.root.url == url) return
         binding.root.url = url // don't reload if already set
-        UIHelper.bindImage(binding.root, img)
+        UIHelper.bindImage(binding.root, img, requireCloudFlare)
     }
 
     private fun bindText(binding: ViewBinding, obj: TextSpan, config: TextConfig) {
@@ -619,13 +620,20 @@ class TextAdapter(
 
             is SingleImageBinding -> {
                 val img = obj.text.getSpans<AsyncDrawableSpan>(0, obj.text.length)[0]
-                bindImage(binding, img.drawable)
+                val book = viewModel.book
+                val requireCloudFlare = if (book is QuickBook) {
+                    Apis.getApiFromNameNull(book.data.meta.apiName)?.usesCloudFlareKiller == true
+                } else {
+                    false
+                }
+
+                bindImage(binding, img.drawable, requireCloudFlare)
 
                 binding.root.setOnClickListener { root ->
                     if (root !is TextImageView) {
                         return@setOnClickListener
                     }
-                    showImage(root.context, img.drawable)
+                    showImage(root.context, img.drawable, requireCloudFlare)
                 }
 
                 /*val size = 300.toPx

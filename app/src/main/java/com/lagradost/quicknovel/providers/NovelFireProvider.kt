@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.ChapterData
+import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
@@ -128,7 +129,7 @@ class NovelFireProvider:  MainAPI() {
         val document = app.get(url).document
         val infoDiv = document.select("div.novel-info")
 
-        val title = infoDiv.selectFirst("h1.novel-title")?.text() ?: throw Exception("Title not found")
+        val title = infoDiv.selectFirst("h1.novel-title")?.text() ?: throw ErrorLoadingException("Title not found")
 
         val chapters = getChapters(url)
 

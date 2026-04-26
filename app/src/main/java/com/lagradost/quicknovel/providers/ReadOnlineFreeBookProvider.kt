@@ -3,12 +3,12 @@ package com.lagradost.quicknovel.providers
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
+import com.lagradost.quicknovel.util.DefaultImagesHeaders
 
 class ReadOnlineFreeBookProvider : MainAPI() {
     override val name = "ReadNovelFreeBook"
@@ -32,6 +32,7 @@ class ReadOnlineFreeBookProvider : MainAPI() {
             val title = parent.selectFirst("div.title")?.text()?.trim() ?: return@mapNotNull null
             val novelUrl = fixUrlNull(parent.selectFirst("div.title a")?.attr("href"))?: return@mapNotNull null
             newSearchResponse(title, novelUrl) {
+                posterHeaders = mapOf(DefaultImagesHeaders.useIgnore500Header)
                 posterUrl =  fixUrlNull(parent.selectFirst("div.images a img")?.attr("src"))
             }
         }
@@ -58,6 +59,7 @@ class ReadOnlineFreeBookProvider : MainAPI() {
 
             val imgElement = document.selectFirst("div.images img")
             posterUrl = fixUrlNull(imgElement?.attr("src"))
+            posterHeaders = mapOf(DefaultImagesHeaders.useIgnore500Header)
             synopsis = document.selectFirst("div.des_novel")?.text()
         }
     }
