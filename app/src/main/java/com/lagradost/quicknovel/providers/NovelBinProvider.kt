@@ -1,24 +1,17 @@
 package com.lagradost.quicknovel.providers
 
-import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
-import com.lagradost.quicknovel.LoadResponse
-import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
-import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
-import com.lagradost.quicknovel.newStreamResponse
-import com.lagradost.quicknovel.setStatus
-import kotlin.math.roundToInt
 
 
 open class NovelBinProvider : AllNovelProvider() {
     override val name = "NovelBin"
     override val mainUrl = "https://novelbin.com"
     override val hasMainPage = true
+
+    override val usesCloudFlareKiller = true
 
     override val iconId = R.drawable.icon_novelbin
     override val ajaxUrl = "ajax/chapter-archive"
@@ -100,14 +93,12 @@ open class NovelBinProvider : AllNovelProvider() {
             list = document.select("div.list>div.row").mapNotNull { element ->
                 val a =
                     element.selectFirst("div > div > h3.novel-title > a") ?: return@mapNotNull null
-                SearchResponse(
+                newSearchResponse(
                     name = a.text(),
                     url = fixUrlNull(a.attr("href")) ?: return@mapNotNull null,
-                    fixUrlNull(element.selectFirst("div > div > img")?.attr("data-src")?.fullPosterFix()),
-                    null,
-                    null,
-                    this.name
-                )
+                ){
+                    posterUrl = fixUrlNull(element.selectFirst("div > div > img")?.attr("data-src")?.fullPosterFix())
+                }
             })
     }
 }

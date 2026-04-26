@@ -24,6 +24,10 @@ abstract class MainAPI {
     open val usesCloudFlareKiller = false
     val app get() = if(!usesCloudFlareKiller) MainActivity.app else MainActivity.appWithInterceptor
 
+    fun fixPosterHeaders(headers: Map<String, String>?): Map<String, String>? {
+        return if (usesCloudFlareKiller) (headers ?: emptyMap()) + DefaultImagesHeaders.useCloudflareKillerHeader else headers
+    }
+
     open val rateLimitTime: Long = 0
     val hasRateLimit: Boolean get() = rateLimitTime > 0L
     val rateLimitMutex: Mutex = Mutex()
@@ -201,16 +205,13 @@ fun MainAPI.newSearchResponse(
     fix: Boolean = true,
     initializer: SearchResponse.() -> Unit = { },
 ): SearchResponse {
-
-    val posterHeader =
-        if(this.usesCloudFlareKiller)
-            mapOf(DefaultImagesHeaders.useCloudflareKillerHeader)
-        else null
-
-    val builder =
-        SearchResponse(name = name, url = if (fix) fixUrl(url) else url, apiName = this.name, posterHeaders = posterHeader)
+    val builder = SearchResponse(
+        name = name,
+        url = if (fix) fixUrl(url) else url,
+        apiName = this.name
+    )
     builder.initializer()
-
+    builder.posterHeaders = fixPosterHeaders(builder.posterHeaders)
     return builder
 }
 
@@ -227,7 +228,7 @@ fun LoadResponse.setStatus(status: String?): Boolean {
         return false
     }
     this.status = when (status.lowercase().trim()) {
-        "ongoing", "on-going", "on_going" -> ReleaseStatus.Ongoing
+        "ongoing", "on-going", "on_going", "releasing" -> ReleaseStatus.Ongoing
         "completed", "complete", "done" -> ReleaseStatus.Completed
         "hiatus", "paused", "pause" -> ReleaseStatus.Paused
         "dropped", "drop" -> ReleaseStatus.Dropped
@@ -293,18 +294,14 @@ suspend fun MainAPI.newStreamResponse(
     fix: Boolean = true,
     initializer: suspend StreamResponse.() -> Unit = { },
 ): StreamResponse {
-    val posterHeader =
-        if(this.usesCloudFlareKiller)
-            mapOf(DefaultImagesHeaders.useCloudflareKillerHeader)
-        else null
     val builder = StreamResponse(
         name = name,
         url = if (fix) fixUrl(url) else url,
         apiName = this.name,
-        data = data,
-        posterHeaders = posterHeader
+        data = data
     )
     builder.initializer()
+    builder.posterHeaders = fixPosterHeaders(builder.posterHeaders)
 
     return builder
 }
@@ -381,6 +378,7 @@ suspend fun MainAPI.newEpubResponse(
         downloadExtractLinks = links.filterIsInstance<DownloadExtractLink>().toList()
     )
     builder.initializer()
+    builder.posterHeaders = fixPosterHeaders(builder.posterHeaders)
 
     return builder
 }

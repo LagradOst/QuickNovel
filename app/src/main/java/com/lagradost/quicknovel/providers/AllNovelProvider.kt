@@ -4,7 +4,6 @@ import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
@@ -103,7 +102,7 @@ open class AllNovelProvider : MainAPI() {
     )
 
     //this is to prevent zoom on images
-     open fun String.fullPosterFix(): String =
+    open fun String.fullPosterFix(): String =
         this.replace("fc05345726d3e134d2f7187dc70f047b","4d27e0af8cf6e971f7ee3c995fc55190")
             .replace("9798407846f8032e6a88fa71b2c62ce9","9c3d392ccc7c95187a8c6e37c6bdac6f")
 
@@ -122,14 +121,12 @@ open class AllNovelProvider : MainAPI() {
             list = document.select("div.list>div.row").mapNotNull { element ->
                 val a =
                     element.selectFirst("div > div > h3.truyen-title > a") ?: return@mapNotNull null
-                SearchResponse(
+                newSearchResponse(
                     name = a.text(),
                     url = fixUrlNull(a.attr("href")) ?: return@mapNotNull null,
-                    fixUrlNull(element.selectFirst("div > div > img")?.attr("src")?.fullPosterFix()),
-                    null,
-                    null,
-                    this.name
-                )
+                ){
+                    posterUrl = fixUrlNull(element.selectFirst("div > div > img")?.attr("src")?.fullPosterFix())
+                }
             })
     }
 
@@ -156,8 +153,8 @@ open class AllNovelProvider : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val document =
             if(requireMobilUserAgent)
-                 app.get("$mainUrl/search?keyword=$query", headers =  movilUserAgent).document
-             else
+                app.get("$mainUrl/search?keyword=$query", headers =  movilUserAgent).document
+            else
                 app.get("$mainUrl/search?keyword=$query").document// AJAX, MIGHT ADD QUICK SEARCH
         return document.select("#list-page>.archive>.list>.row").mapNotNull { h ->
             val title = h.selectFirst(">div>div>.truyen-title>a")
