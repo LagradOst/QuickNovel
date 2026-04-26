@@ -43,7 +43,7 @@ import java.nio.ByteBuffer
  */
 
 class DynamicInterceptor : Interceptor {
-    private val cloudflareKiller = CloudflareKiller()
+    private val cloudflareKiller by lazy { CloudflareKiller() }
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
