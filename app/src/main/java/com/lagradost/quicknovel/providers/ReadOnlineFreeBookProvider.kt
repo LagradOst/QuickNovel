@@ -13,9 +13,6 @@ import com.lagradost.quicknovel.newStreamResponse
 class ReadOnlineFreeBookProvider : MainAPI() {
     override val name = "ReadNovelFreeBook"
     override val mainUrl = "https://readonlinefreebook.com"
-    val baseHeaders = mapOf(
-        "user-agent" to "Mozilla/5.0",
-    )
 
     override suspend fun loadHtml(url: String): String? {
         val document = app.get(url).document
@@ -35,7 +32,6 @@ class ReadOnlineFreeBookProvider : MainAPI() {
             val title = parent.selectFirst("div.title")?.text()?.trim() ?: return@mapNotNull null
             val novelUrl = fixUrlNull(parent.selectFirst("div.title a")?.attr("href"))?: return@mapNotNull null
             newSearchResponse(title, novelUrl) {
-                posterHeaders = baseHeaders
                 posterUrl =  fixUrlNull(parent.selectFirst("div.images a img")?.attr("src"))
             }
         }

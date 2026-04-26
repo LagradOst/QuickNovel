@@ -128,27 +128,20 @@ class NovelFireProvider:  MainAPI() {
         val document = app.get(url).document
         val infoDiv = document.select("div.novel-info")
 
-
-        // Extract title
-        val title = infoDiv.selectFirst("h1.novel-title")?.text() ?: ""
-
-        // Extract author
-        val author = infoDiv.selectFirst("div.author > a")?.text() ?: ""
-
-        // Extract description/synopsis
-        val synopsis = document.selectFirst("meta[itemprop=description]")?.attr("content") ?: ""
+        val title = infoDiv.selectFirst("h1.novel-title")?.text() ?: throw Exception("Title not found")
 
         val chapters = getChapters(url)
 
         return newStreamResponse(title,fixUrl(url), chapters) {
-            this.author = author
+            this.author = infoDiv.selectFirst("div.author > a")?.text()
             this.posterUrl = fixUrlNull(document.selectFirst("figure.cover img")?.attr("src"))
-            this.synopsis = synopsis
+            this.synopsis = document.selectFirst("meta[itemprop=description]")?.attr("content") ?: ""
+
             this.tags = infoDiv.select("div.categories ul li").mapNotNull {
-                it.text().trim().takeIf { text ->  !text.isEmpty() }
+                it.text().trim().takeIf { text ->  text.isNotEmpty() }
             }
 
-            infoDiv.select("div.header-stats span").map{span ->
+            infoDiv.select("div.header-stats span").forEach{ span ->
                 if(span.text().contains("Status")){
                     setStatus(span.selectFirst("strong")?.text())
                 }
@@ -208,22 +201,27 @@ class NovelFireProvider:  MainAPI() {
         }
     }
 
+    fun normalize(text: String): String {
+        return text
+            .lowercase()
+            .replace(Regex("\\p{InCombiningDiacriticalMarks}+"), "")
+            .replace(Regex("[^a-z0-9]"), "")
+    }
+
     override suspend fun loadHtml(url: String): String? {
         val document = app.get(url).document
-        val title = document.selectFirst("span.chapter-title") ?: return null
+        var title = document.selectFirst("span.chapter-title")?.text() ?: ""
         val contentElement = document.selectFirst("div#content")?.apply {
-            selectFirst("p")?.let {
-                if(it.text()
-                    .replace(" ", "")
-                    .equals(
-                        title.text()
-                            .replace(" ", ""), ignoreCase = true
-                    )
-                ) it.remove()
+            selectFirst("p")?.let { p ->
+                if(normalize(p.text()) == normalize(title)) title = ""
             }
             select("img[src*=disable-blocker.jpg]").forEach { it.remove() }
         } ?: return null
-        return title.outerHtml() + contentElement.html()
+
+        return if(title.isEmpty())
+            contentElement.html()
+        else
+            "<p>$title</p><br>${contentElement.html()}"
     }
 
     override suspend fun search(query: String): List<SearchResponse> {

@@ -13,6 +13,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
+import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.download.DownloadViewModel
 import com.lagradost.quicknovel.util.Apis
@@ -76,7 +77,17 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
         fun refreshAllReadingProgress(from: DownloadViewModel, context: Context, currentTab: Int) {
             viewModel = from
             val uniqueWorkName = "${ID_REFRESH_READINGPROGRESS}_$currentTab"
-            (WorkManager.getInstance(context)).enqueueUniqueWork(
+
+            val workManager = try {
+                WorkManager.getInstance(context.applicationContext)
+            } catch (t: Throwable) {
+                logError(t)
+                val config = androidx.work.Configuration.Builder().build()
+                WorkManager.initialize(context.applicationContext, config)
+                WorkManager.getInstance(context.applicationContext)
+            }
+
+            workManager.enqueueUniqueWork(
                 uniqueWorkName,
                 ExistingWorkPolicy.KEEP,
                 OneTimeWorkRequest.Builder(DownloadFileWorkManager::class.java)
