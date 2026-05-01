@@ -80,11 +80,6 @@
                 <category android:name="android.intent.category.DEFAULT" />
 
                 <data
-                    android:host="www.reddit.com"
-                    android:pathPrefix="/r/"
-                    android:scheme="https" />
-
-                <data
                     android:host="allnovel.org"
                     android:pathPrefix="/"
                     android:scheme="https" />
@@ -97,11 +92,27 @@
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
-                    android:host="freewebnovel.com"
+                    android:host="chrysanthemumgarden.com"
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
                     android:host="www.fanmtl.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
+                    android:host="fenrirealm.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
+                    android:host="free.kolnovel.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
+                    android:host="freewebnovel.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
+                    android:host="fucknovelpia.com"
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
@@ -117,10 +128,6 @@
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
-                    android:host="kolnovel.com"
-                    android:pathPrefix="/"
-                    android:scheme="https" />
-                <data
                     android:host="libread.com"
                     android:pathPrefix="/"
                     android:scheme="https" />
@@ -129,11 +136,11 @@
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
-                    android:host="meionovels.com"
+                    android:host="lightnovelworld.org"
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
-                    android:host="risenovel.com"
+                    android:host="meionovels.com"
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
@@ -141,15 +148,15 @@
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
+                    android:host="www.nobadnovel.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
                     android:host="novelbin.com"
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
-                    android:host="novelfull.com"
-                    android:pathPrefix="/"
-                    android:scheme="https" />
-                <data
-                    android:host="novlove.com"
+                    android:host="novelbuddy.com"
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
@@ -157,7 +164,15 @@
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
+                    android:host="novelfull.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
                     android:host="novelsonline.org"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
+                    android:host="novlove.com"
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
@@ -176,7 +191,18 @@
                     android:host="readonlinefreebook.com"
                     android:pathPrefix="/"
                     android:scheme="https" />
-
+                <data
+                    android:host="www.reddit.com"
+                    android:pathPrefix="/r/"
+                    android:scheme="https" />
+                <data
+                    android:host="rewayat.club"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
+                    android:host="risenovel.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
                 <data
                     android:host="www.royalroad.com"
                     android:pathPrefix="/fiction"
@@ -190,7 +216,23 @@
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
+                    android:host="www.skynovels.net"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
+                    android:host="www.sonicmtl.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
+                    android:host="vynovel.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
                     android:host="wtr-lab.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
+                    android:host="wuxia.click"
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
