@@ -76,7 +76,7 @@
                 app:key="@string/external_reader_key"
                 android:title="@string/external_reader"
                 android:summary="@string/external_reader_desc"
-                app:defaultValue="true"
+                app:defaultValue="false"
                 android:icon="@drawable/ic_baseline_menu_book_24" />
         <SwitchPreference
                 app:key="@string/remove_external_key"

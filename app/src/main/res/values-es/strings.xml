@@ -167,6 +167,7 @@
     <!-- Traducción -->
     <string name="google_translate">Traductor de Google</string>
     <string name="online_translate">Traducción online</string>
+    <string name="toWhatLanguague">Al</string>
     <string name="download_ml">Descargar modelo de traducción</string>
     <string name="download_ml_long">Para traducir localmente se necesita descargar el modelo (~30MB)</string>
     <string name="translating">Traduciendo: </string>
