@@ -21,6 +21,7 @@ open class WuxiaBoxProvider : MainAPI() {
     override val name = "WuxiaBox"
     override val mainUrl = "https://www.wuxiabox.com"
     override val iconId = R.drawable.icon_wuxiabox
+    override val usesCloudFlareKiller = true
 
     override val hasMainPage = true
 

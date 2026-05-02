@@ -53,6 +53,7 @@ import com.lagradost.quicknovel.providers.ScribblehubProvider
 import com.lagradost.quicknovel.providers.SkyNovelsProvider
 import com.lagradost.quicknovel.providers.SonicMTLProvider
 import com.lagradost.quicknovel.providers.VynovelProvider
+import com.lagradost.quicknovel.providers.WattpadProvider
 import com.lagradost.quicknovel.providers.WtrLabProvider
 import com.lagradost.quicknovel.providers.WuxiaBoxProvider
 import com.lagradost.quicknovel.providers.WuxiaClickProvider
@@ -116,7 +117,7 @@ class Apis {
             SkyNovelsProvider(),
             SonicMTLProvider(),
             VynovelProvider(),
-            //WattpadProvider(), // they have randomized the css classes
+            WattpadProvider(),
             WtrLabProvider(),
             WuxiaBoxProvider(),
             WuxiaClickProvider(),
