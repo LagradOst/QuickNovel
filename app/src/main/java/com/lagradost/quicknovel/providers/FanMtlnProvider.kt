@@ -8,5 +8,4 @@ class FanMtlnProvider : WuxiaBoxProvider()
     override val mainUrl = "https://www.fanmtl.com"
     override val hasMainPage = true
     override val iconId = R.drawable.icon_fanmtl
-    override val usesCloudFlareKiller = true
 }
