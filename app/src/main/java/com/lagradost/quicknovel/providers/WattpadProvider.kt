@@ -239,11 +239,5 @@ class WattpadProvider : MainAPI() {
         val data = part_data.getJSONObject(key).getJSONObject("data")
         val unescaped = Parser.unescapeEntities(data.getString("storyText"), true)
         return Jsoup.parse(unescaped).html()
-        //var paragraphs = ""
-        //for (para: Element in Jsoup.parse(unescaped).select("p")) {
-            //paragraphs += para.text() + System.lineSeparator()
-        //}
-
-        //return paragraphs
     }
 }
