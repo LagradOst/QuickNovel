@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
@@ -11,6 +12,11 @@ import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.util.AppUtils.parseJson
+import org.json.JSONObject
+import org.json.JSONArray
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
+import org.jsoup.parser.Parser
 
 class WattpadProvider : MainAPI() {
     override val mainUrl = "https://www.wattpad.com"
@@ -178,64 +184,66 @@ class WattpadProvider : MainAPI() {
     )
 
     override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document
-
-        val toc = document.select(".story-parts > ul > li > a").mapNotNull { a ->
-            val href = fixUrlNull(a.attr("href")) ?: return@mapNotNull null
-            val name = (a.selectFirst("div") ?: a.selectFirst(".part__label"))?.text()
-                ?: return@mapNotNull null
-            newChapterData(url = href, name = name)
+        val response = app.get(url)
+        val script_regex = Regex("<script>.*?window._+remix.*?<\\/script>")
+        val script_text = script_regex.find(response.text)!!.value
+        val json_text = Regex("\\{.*\\}").find(script_text)!!.value
+        val wattpad_data = JSONObject(json_text)
+        val state = wattpad_data.getJSONObject("state").getJSONObject("loaderData")
+        val route = state.getJSONObject(state.names()!!.getString(state.length() - 1))
+        val story = route.getJSONObject("story")
+        val title = story.getString("title");
+        val parts = story.getJSONArray("parts")
+        val toc = mutableListOf<ChapterData>()
+        for (i in 0 until parts.length()) {
+            val chap = parts.getJSONObject(i)
+            val href = chap.getString("url")
+            val name = chap.getString("title")
+            val date = chap.getString("formattedCreateDate")
+            toc.add(newChapterData(name=name, url=href) {
+                dateOfRelease=date
+            })
+        }
+        val writer = story.getJSONObject("author").getString("username")
+        val cover = story.getString("cover")
+        val votes = story.getInt("voteCount")
+        val viewCount = story.getInt("readCount")
+        val desc = story.getString("description")
+        val labels = mutableListOf<String>()
+        val tag_array = story.getJSONArray("tags")
+        for (i in 0 until tag_array.length()) {
+            labels.add(tag_array.getString(i))
         }
 
-        val title = document.selectFirst(".story-info > .sr-only")?.text()
-            ?: document.selectFirst(".item-title")?.text()
-            ?: throw ErrorLoadingException("No title")
-
-
-        return newStreamResponse(name = title, url = url, data = toc) {
-            posterUrl = fixUrlNull(document.selectFirst(".story-cover > img")?.attr("src"))
-            author = document.selectFirst(".author-info__username > a")
-                ?.text()
-            tags = document.select("ul.tag-items > li > a").map { element ->
-                element.text()
-            }
-            synopsis = document.selectFirst(".description-text")?.text()
+        return newStreamResponse(
+            name=title,
+            url=url,
+            data=toc
+        ) {
+            author=writer
+            posterUrl=cover
+            peopleVoted=votes
+            views=viewCount
+            synopsis=desc
+            tags=labels
         }
     }
 
-    /*window.prefetched = */
-
     override suspend fun loadHtml(url: String): String {
-        val response = app.get(url)
-        val htmlJson =
-            response.text.substringAfter("window.prefetched = ").substringBefore("</script>")
+        val resp = app.get(url)
+        val script_regex = Regex("window\\.prefetched\\s*?=\\s*?\\{.*\\}")
+        val script_text = script_regex.find(resp.text)!!.value
+        val json_text = Regex("\\{.*\\}").find(script_text)!!.value
+        val part_data = JSONObject(json_text)
+        val key = part_data.names()!!.getString(0)
+        val data = part_data.getJSONObject(key).getJSONObject("data")
+        val unescaped = Parser.unescapeEntities(data.getString("storyText"), true)
+        return Jsoup.parse(unescaped).text()
+        //var paragraphs = ""
+        //for (para: Element in Jsoup.parse(unescaped).select("p")) {
+            //paragraphs += para.text() + System.lineSeparator()
+        //}
 
-        var suffix = ""
-        try {
-            val data = parseJson<Map<String, Metadata>>(htmlJson)
-            data.values.firstOrNull()?.data?.textUrl?.text?.let { str ->
-                val index = str.indexOf('?')
-                val before = str.substring(0 until index)
-                val after = str.substring(index until str.length)
-
-                // should be while(true) but cant be sure so I placed a upper bounds of 100
-                for (i in 1..100) {
-                    val text = app.get("$before-$i$after").text
-                    // if the response is too short then we break because it probs did too much
-                    if (text.length < 30) {
-                        break
-                    }
-                    suffix += text
-                }
-            }
-        } catch (e: Exception) {
-            logError(e)
-            suffix = ""
-        }
-        return suffix
-        /*val document = response.document
-        return document.selectFirst("pre")
-            ?.apply { removeClass("trinityAudioPlaceholder"); removeClass("comment-marker") }
-            ?.html()?.plus(suffix)*/
+        //return paragraphs
     }
 }
