@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.providers
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.*
 import org.json.JSONObject
 import org.jsoup.Jsoup
@@ -173,14 +174,20 @@ class WattpadProvider : MainAPI() {
     // ================== DATA CLASSES ==================
 
     data class Root(
+        @JsonProperty("stories")
         val stories: List<Story>?,
+        @JsonProperty("total")
         val total: Int,
+        @JsonProperty("nextUrl")
         val nextUrl: String?,
     )
 
     data class Story(
+        @JsonProperty("cover")
         val cover: String?,
+        @JsonProperty("title")
         val title: String,
+        @JsonProperty("url")
         val url: String
     )
 }
