@@ -2,6 +2,8 @@ package com.lagradost.quicknovel.providers
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.util.AppUtils.parseJson
+import com.lagradost.quicknovel.util.AppUtils.toJson
 import org.json.JSONObject
 import org.jsoup.Jsoup
 import org.jsoup.parser.Parser
@@ -12,6 +14,7 @@ class WattpadProvider : MainAPI() {
     override val hasMainPage = true
     override val iconId = R.drawable.icon_wattpad
     override val iconBackgroundId = R.color.wattpadColor
+    override val rateLimitTime = 500L
 
 
     private val langHeaders = mapOf(
@@ -159,16 +162,26 @@ class WattpadProvider : MainAPI() {
 
     override suspend fun loadHtml(url: String): String {
         val resp = app.get(url)
-        val script_regex = Regex("window\\.prefetched\\s*?=\\s*?\\{.*\\}")
-        val script_text = script_regex.find(resp.text)!!.value
-        val json_text = Regex("\\{.*\\}").find(script_text)!!.value
-        val part_data = JSONObject(json_text)
-        val key = part_data.names()!!.getString(0)
-        val data = part_data.getJSONObject(key).getJSONObject("data")
-        val unescaped =
-            Parser.unescapeEntities(data.getString("storyText"), true)
-        return Jsoup.parse(unescaped)
-            .html()
+
+        val scriptRegex = Regex("window\\.prefetched\\s*=\\s*(\\{.*\\})")
+        val scriptText = scriptRegex.find(resp.text)?.groupValues?.get(1)
+            ?: throw Exception("Failed to get Data")
+
+        val parsed = parseJson<Map<String, ChapterWrapper>>(scriptText)
+
+        val data = parsed.values.first().data
+
+        val totalPages = data.pages
+        val textUrlBase = data.textUrl.text
+
+        val fullHtml = StringBuilder()
+
+        for (page in 1..totalPages) {
+            val pageUrl = "$textUrlBase$page"
+            val pageResp = app.get(pageUrl).text
+            fullHtml.append(pageResp)
+        }
+        return Jsoup.parse(fullHtml.toString()).html()
     }
 
     // ================== DATA CLASSES ==================
@@ -189,5 +202,27 @@ class WattpadProvider : MainAPI() {
         val title: String,
         @JsonProperty("url")
         val url: String
+    )
+
+
+    data class ChapterWrapper(
+        @JsonProperty("data")
+        val data: WChapterData
+    )
+
+    data class WChapterData(
+        @JsonProperty("pages")
+        val pages: Int,
+
+        @JsonProperty("text_url")
+        val textUrl: TextUrl,
+
+        @JsonProperty("storyText")
+        val storyText: String? = null
+    )
+
+    data class TextUrl(
+        @JsonProperty("text")
+        val text: String
     )
 }
