@@ -1,0 +1,298 @@
+<resources>
+    <string name="app_name">QuickNovel</string>
+    <string name="title_search">Поиск</string>
+    <string name="title_history">История</string>
+    <string name="title_settings">Сервис</string>
+    <string name="title_home">Обзор</string>
+    <string name="title_download">Книги</string>
+
+    <string name="locale_key" translatable="false">locale_key</string>
+    <string name="provider_lang_key" translatable="false">provider_lang_key</string>
+    <string name="restore_key" translatable="false">restore_key</string>
+    <string name="restore_settings">Восстановить данные из резервной копии</string>
+
+    <string name="search_hint">Поиск новелл…</string>
+    <string name="synopsis">Синопсис</string>
+    <string name="no_data">Нет данных</string>
+    <string name="no_author">Автор не найден</string>
+    <string name="no_chapters">Нет глав</string>
+    <string name="error_outside_chapter">Неверный переход</string>
+    <string name="generate_epub">Создать Epub</string>
+    <string name="generating_epub">Создание Epub</string>
+    <string name="reload_error">Повторить соединение…</string>
+    <string name="download_text">Скачать</string>
+    <string name="download">Скачать</string>
+    <string name="download_from_chapter">Частичная загрузка</string>
+    <string name="download_ml">Скачать модель перевода</string>
+    <string name="download_ml_long">Для локального перевода нужно скачать модель перевода (~30МБ)</string>
+    <string name="novel_imagecover_descript">Обложка новеллы</string>
+    <string name="background_image_descript">Фон</string>
+    <string name="back_to_search">Назад к поиску</string>
+    <string name="downloads_text">Загрузки</string>
+    <string name="open_text">Читать</string>
+    <string name="update_text">Обновить</string>
+    <string name="provider_list_key">provider_list</string>
+    <string name="search_providers_list_key">search_providers_list</string>
+    <string name="auto_update_key">auto_update</string>
+    <string name="external_reader_key">external_reader</string>
+    <string name="remove_external_key">remove_external</string>
+    <string name="manual_check_update_key">manual_check_update</string>
+    <string name="backup_key">backup_key</string>
+    <string name="rating_format_key">rating_format</string>
+    <string name="grid_format_key">grid_format</string>
+    <string name="download_format_key">download_format</string>
+    <string name="exampleTXT">"this is <annotation key="rounded">a regular</annotation> paragraph."</string>
+    <string name="tags">Теги</string>
+    <string name="views">Просмотров</string>
+    <string name="delete">Удалить</string>
+    <string name="open_in_browser">Открыть в браузере</string>
+    <string name="select_chapter">Выбрать главу</string>
+    <string name="poster_descript">Плакат</string>
+    <string name="sort_downloads_descript">Сортировать загрузки</string>
+    <string name="search_roviders">Поисковые провайдеры</string>
+    <string name="search">Поиск</string>
+    <string name="general">Общие</string>
+    <string name="info">Инфо</string>
+
+    <string name="advanced_search">Расширенный поиск</string>
+    <string name="advanced_search_desc">Показывает результаты поиска отдельно по каждому провайдеру</string>
+    <string name="show_app_updates">Показывать обновления приложения</string>
+    <string name="show_app_updates_desc">Автопоиск обновлений при запуске</string>
+    <string name="external_reader">Внешняя читалка</string>
+    <string name="external_reader_desc">Использовать внешнее приложение для чтения</string>
+    <string name="remove_bloat">Убрать лишнее</string>
+    <string name="remove_bloat_desc">Убирает заголовки и переводчика со всех страниц, увеличивает время генерации</string>
+    <string name="check_for_update">Проверить обновления</string>
+    <string name="translating">Переводится</string>
+
+    <string name="filter_dialog_sort_by">Сортировать по</string>
+    <string name="filter_dialog_filter">Применить</string>
+    <string name="filter_dialog_general">Общие</string>
+    <string name="filter_dialog_order_by">Порядок</string>
+    <string name="filter_dialog_genre">Жанр</string>
+    <string name="browse_list_icon">Иконка</string>
+    <string name="home_title_text">Обзор</string>
+    <string name="mainpage_filter">Фильтр</string>
+    <string name="shadow_descript">Тень</string>
+    <string name="user_image_avatar">Аватар</string>
+    <string name="change_providers_descript">Сменить провайдера</string>
+    <string name="poster_open_source_descript">Открытый исходный код</string>
+    <string name="mainpage_sort_by_button_text">Сортировать</string>
+    <string name="read_action_settings">Настройки</string>
+    <string name="read_action_chapters">Главы</string>
+    <string name="read_action_chapters_formatted" formatted="true">%d глав</string>
+
+    <string name="read_action_tts">Озвучка</string>
+    <string name="read_action_screen_rotation">Поворот экрана</string>
+
+    <string name="grid_view">Сетка</string>
+    <string name="list_view">Список</string>
+
+    <string name="download_open_action">Открыть</string>
+    <string name="download_read_action">Читать</string>
+    <string name="download_update_action">Обновить</string>
+    <string name="download_delete_action">Удалить</string>
+
+    <!-- rotations -->
+    <string name="default_text">По умолчанию</string>
+    <string name="rotation_type">Тип поворота</string>
+    <string name="rotation_free">Свободный</string>
+    <string name="rotation_portrait">Портретный</string>
+    <string name="rotation_landscape">Альбомный</string>
+    <string name="rotation_force_portrait">Зафиксированный портретный</string>
+    <string name="rotation_force_landscape">Зафиксированный альбомный</string>
+
+    <!-- scroll -->
+    <string name="inf_scroll">Бесконечная прокрутка</string>
+    <string name="button_scroll">Кнопки глав</string>
+    <string name="overscroll_scroll">Перепрокрутка</string>
+
+    <!-- read -->
+    <string name="read_epub">Читать epub</string>
+    <string name="type_reading">Читаю</string>
+    <string name="type_on_hold">На паузе</string>
+    <string name="type_completed">Завершено</string>
+    <string name="type_dropped">Брошено</string>
+    <string name="type_plan_to_read">Планирую читать</string>
+    <string name="type_none">Нет</string>
+    <string name="has_read">Прочитано</string>
+
+    <string name="read_display_settings">Настройки</string>
+    <string name="read_text_size">Текст</string>
+    <string name="bigger_font">Увеличить шрифт</string>
+    <string name="smaller_font">Уменьшить шрифт</string>
+    <string name="scroll_with_volume_keys">Прокрутка кнопками громкости</string>
+    <string name="general_settings">Общие</string>
+    <string name="lock_tts">Заблокировать область TTS</string>
+    <string name="reading_color">Цвет чтения</string>
+    <string name="read_color">Тема читалки</string>
+    <string name="show_battery">Показать заряд</string>
+    <string name="show_time">Показать время</string>
+    <string name="result_share">Поделиться</string>
+    <string name="reader_font">Шрифт читалки</string>
+    <string name="font">Шрифт</string>
+    <string name="background_color">Цвет фона</string>
+    <string name="text_color">Цвет текста</string>
+    <string name="long_download_time">Внимание! У этого источника очень долгая загрузка, лучше читать онлайн</string>
+    <string name="quickstream_novel_text">Чтение новеллы онлайн</string>
+    <string name="history_more_options">Другие опции</string>
+    <string name="stream_read">Чтение онлай</string>
+    <string name="clear_history">Очистить историю</string>
+    <string name="nothing_read_recently">Недавно ничего не читалось</string>
+    <string name="monke_eating">Обезьяна ест</string>
+    <string name="tab_downloads">Загрузки</string>
+    <string name="reviews_to_top">Наверх</string>
+    <string name="text_size">Размер текста</string>
+    <string name="text_padding">Боковые отступы текста</string>
+    <string name="reset_value">Сбросить по умолчанию</string>
+    <string name="text_font">Шрифт текста</string>
+    <string name="scroll_type">Тип прокрутки</string>
+    <string name="no_chapters_found">Главы не найдены</string>
+    <string name="error_loading_novel">Ошибка загрузки новеллы</string>
+    <string name="error_loading_chapter">Ошибка загрузки главы</string>
+
+    <string name="text_padding_top">Верхний отступ текста</string>
+
+    <string name="home_more_info">Подробнее</string>
+    <string name="home_expanded_hide">Скрыть</string>
+    <string name="reload_chapter">Перезагрузить главу</string>
+    <string name="provider_lang_settings">Языки провайдеров</string>
+    <string name="locale_settings">Языки приложения</string>
+    <string name="sort_apply">Применить</string>
+    <string name="sort_cancel">Отмена</string>
+    <string name="keep_screen_active">Не выключать экран</string>
+    <string name="twelve_hour_time">12-часовой формат</string>
+
+    <string name="backup_settings">Резервное копирование</string>
+    <string name="restore_success">Загружен файл резервной копии</string>
+    <string name="restore_failed_format" formatted="true">Не удалось восстановить данные из файла %s</string>
+    <string name="backup_success">Данные успешно сохранены</string>
+    <string name="backup_failed">Нет прав на хранение, попробуйте снова</string>
+    <string name="backup_failed_error_format">Ошибка резервного копирования %s</string>
+    <string name="tts_locale">Язык</string>
+    <string name="tts_voice">Голос</string>
+    <string name="tts_voice_title">Голос TTS</string>
+    <string name="theme_key">theme_key</string>
+    <string name="theme">Тема</string>
+    <string name="primary_color_key">primary_color_key</string>
+    <string name="primary_color_settings">Основной цвет</string>
+    <string name="library_display_mode">Режим отображения библиотеки</string>
+    <string name="rating_format">Формат рейтинга</string>
+    <string name="cancel">Отмена</string>
+    <string name="remove">Удалить</string>
+    <string name="remove_from_history_format">Это удалит %s из вашей истории.
+Вы уверены?</string>
+    <string name="permanently_delete_format">Это навсегда удалит %s.
+Вы уверены?</string>
+    <string name="remove_all_history">Вы уверены?
+Вся история будет потеряна.</string>
+    <string name="remove_history">Удалить историю</string>
+    <string name="search_providers">Поисковые провайдеры</string>
+    <string name="no_more_chapters">Больше нет глав</string>
+    <string name="paused">Приостановлено</string>
+    <string name="stopped">Остановлено</string>
+    <string name="stop">Остановить</string>
+    <string name="failed">Ошибка</string>
+    <string name="done">Готово</string>
+    <string name="ongoing">Продолжается</string>
+    <string name="completed">Завершено</string>
+    <string name="dropped">Брошено</string>
+    <string name="stubbed">Заглушка</string>
+    <string name="text_to_speech">Озвучка</string>
+    <string name="text_to_speech_channel_description">Канал уведомлений TTS</string>
+    <string name="overall_rating_format">Общий рейтинг %s</string>
+    <string name="battery_format">%d%%</string>
+    <string name="novel">Новелла</string>
+    <string name="reviews">Отзывы</string>
+    <string name="related">Похожие</string>
+    <string name="votes_format">%d голосов</string>
+    <string name="latest_format">Последнее: %s</string>
+    <string name="new_update_found_format">Найдено обновление!
+ %s -> %s</string>
+    <string name="download_started">Загрузка начата</string>
+    <string name="download_failed">Ошибка загрузки</string>
+    <string name="update">Обновить</string>
+    <string name="dont_show_again">Больше не показывать</string>
+    <string name="downloaded">Загружено</string>
+    <string name="manage">Управление</string>
+    <string name="pause">Пауза</string>
+    <string name="resume">Продолжить</string>
+    <string name="re_downloaded">Перезагрузить</string>
+    <string name="loading">Загрузка…</string>
+    <string name="loading_format" formatted="true">Загрузка %s…</string>
+    <string name="chapter_format" formatted="true">Глава %s</string>
+
+    <string name="default_sort">По умолчанию</string>
+    <string name="recently_sort">Недавно открытые</string>
+    <string name="alpha_sort">По алфавиту</string>
+    <string name="download_sort">Количество загрузок</string>
+    <string name="download_perc">Процент загрузки</string>
+    <string name="recently_updated_sort">Недавно обновленные</string>
+    <string name="chapter_sort">Глава</string>
+
+    <string name="alpha_sort_az">По алфавиту (А-Я)</string>
+    <string name="alpha_sort_za">По алфавиту (Я-А)</string>
+    <string name="download_sort_hl">"Количество загрузок (много → мало)"</string>
+    <string name="download_sort_lh">"Количество загрузок (мало → много)"</string>
+    <string name="download_perc_hl">Процент загрузки (много → мало)</string>
+    <string name="download_perc_lh">Процент загрузки (мало → много)</string>
+
+    <string name="reload_chapter_format">Перезагрузка главы %s</string>
+    <string name="ok">OK</string>
+    <string name="more_info">Подробнее</string>
+    <string name="download_path_key">download_path_key</string>
+    <string name="download_path_pref">Путь загрузки</string>
+    <string name="bionic_reading">Бионическое чтение</string>
+    <string name="selectable_text">Выделяемый текст</string>
+    <string name="sleep_timer">Сон</string>
+    <string name="sleep_format">%d мин</string>
+    <string name="sleep_format_stop">TTS остановится через %d мин</string>
+    <string name="google_translate">Google перевод</string>
+    <string name="online_translate">Онлайн перевод</string>
+    <string name="start_chapter">Пропущенные главы</string>
+    <string name="tts_speed">Темп TTS</string>
+    <string name="tts_pitch">Тембр TTS</string>
+    <string name="show_logcat_key" translatable="false">show_logcat_key</string>
+    <string name="close">Закрыть</string>
+    <string name="clear">Очистить</string>
+    <string name="copylog">Копировать</string>
+    <string name="save">Сохранить</string>
+    <string name="history">История</string>
+    <string name="explore">Обзор</string>
+    <string name="unable_to_download_language">Не удалось скачать язык</string>
+
+    <string name="toast_copied">скопировано!</string>
+    <string name="clipboard_too_large">Слишком много текста. Не удалось сохранить в буфер обмена.</string>
+    <string name="clipboard_permission_error">Ошибка доступа к буферу обмена, попробуйте снова.</string>
+    <string name="clipboard_unknown_error">Ошибка копирования. Скопируйте логкат и обратитесь в поддержку.</string>
+    <string name="show_log_cat">Показать Логкат 🐈</string>
+    <string name="unread">Непрочитано</string>
+    <string name="bookmarks">Закладки</string>
+    <string name="bookmark">Закладка</string>
+    <string name="read">Прочитано</string>
+    <string name="import_epub">Импорт книги</string>
+    <string name="show_authors_notes">Показывать заметки автора</string>
+
+    <!-- Some errors -->
+    <string name="connection_timeout">"Таймаут соединения
+Попробуйте позже."</string>
+    <string name="cannot_conect">Не удалось подключиться к серверу, попробуйте позже.</string>
+    <string name="error_loading">Ошибка загрузки, попробуйте позже.</string>
+    <string name="operation_no_implemented">Эта операция не реализована.</string>
+    <string name="conection_error">Ошибка соединения.</string>
+    <string name="got_null_data">Получены пустые данные</string>
+    <string name="permission_error">Ошибка прав доступа</string>
+    <string name="tts_language_error">Не удалось инициализировать TTS, скачайте язык</string>
+
+    <!-- Some details -->
+    <string name="unknown">Неизвестно</string>
+    <string name="chapter">Глава</string>
+    <string name="no_update_found">Обновления не найдены</string>
+
+    <string name="search_downloads">Поиск загрузок…</string>
+    <string name="chapters">Главы</string>
+    <string name="paragraph_spacing">Отступы абзацев</string>
+    <string name="more_spacing">Больше отступов</string>
+    <string name="less_spacing">Меньше отступов</string>
+    <string name="unable_to_inflate">Не удаётся создать интерфейс корректно — КРИТИЧЕСКАЯ ОШИБКА, срочно сообщите %s</string>
+</resources>
