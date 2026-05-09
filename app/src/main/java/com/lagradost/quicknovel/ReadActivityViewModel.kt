@@ -331,9 +331,16 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
     }
 
     override fun loadImage(image: String): ByteArray? {
+        val decodedImage = try { URLDecoder.decode(image, "UTF-8") } catch (e: Exception) { image }
+
+        data.resources.resourceMap[decodedImage]?.data?.let { return it }
         data.resources.resourceMap[image]?.data?.let { return it }
-        val fileName = image.substringAfterLast("/")
-        return data.resources.resourceMap.values.find { it.href.endsWith(fileName) }?.data
+
+        val fileName = decodedImage.substringAfterLast("/")
+        return data.resources.resourceMap.values.find {
+            val entryName = it.href.substringAfterLast("/")
+            entryName.equals(fileName, ignoreCase = true)
+        }?.data
     }
 
     override fun size(): Int = allTocReferences.size
@@ -373,7 +380,12 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
                     val attrName = if (img.tagName() == "image") "xlink:href" else "src"
                     var src = img.attr(attrName)
                     if (src.isNotEmpty() && !src.startsWith("http") && !src.startsWith("data:")) {
-                        src = resolveRelativePath(basePath, src)
+                        try {
+                            val decodedSrc = URLDecoder.decode(src, "UTF-8")
+                            src = resolveRelativePath(basePath, decodedSrc)
+                        } catch (e: Throwable) {
+                            logError(e)
+                        }
                     }
                     if (img.tagName() == "image") {
                         val newImg = doc.createElement("img")
@@ -394,7 +406,12 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
 
     private fun resolveRelativePath(basePath: String, relativePath: String): String {
         val cleanRelative = relativePath.substringBefore("?").substringBefore("#")
-        val fullPath = if (basePath.isEmpty()) cleanRelative else "$basePath/$cleanRelative"
+
+        val fullPath = if (cleanRelative.startsWith("/") || basePath.isEmpty()) {
+            cleanRelative
+        } else {
+            "$basePath/$cleanRelative"
+        }
 
         val parts = fullPath.split("/")
         val resolvedParts = ArrayDeque<String>()
@@ -402,7 +419,7 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
         for (part in parts) {
             when (part) {
                 "", "." -> continue
-                ".." -> resolvedParts.removeLastOrNull()
+                ".." -> if (resolvedParts.isNotEmpty()) resolvedParts.removeLast()
                 else -> resolvedParts.addLast(part)
             }
         }
