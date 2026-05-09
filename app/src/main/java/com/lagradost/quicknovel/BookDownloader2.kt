@@ -2100,9 +2100,7 @@ object BookDownloader2 {
                 if (coverBytes != null) {
                     // Store the image and override it
                     val filepath = BookDownloader2Helper.getFilenameIMG(sApiName, sAuthor, sName)
-                    val posterFilepath =
-                        filesDir.toString() + filepath
-                    val pFile = File(posterFilepath)
+                    val pFile = File(filesDir, filepath)
                     pFile.parentFile?.mkdirs()
                     pFile.writeBytes(coverBytes)
                 }
@@ -2115,11 +2113,12 @@ object BookDownloader2 {
                 File(filesDir.toString() + getDirectory(sApiName, sAuthor, sName), LOCAL_EPUB)
 
             file.parentFile?.mkdirs()
-            file.createNewFile()
-            file.writeBytes(
-                context.contentResolver.openInputStream(data)?.readBytes()
-                    ?: throw IOException("No file found")
-            )
+
+            contentResolver.openInputStream(data)?.use { input ->
+                file.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            } ?: throw IOException("No file found")
 
             setSuffixData(load, apiName)
             changeDownload(id) {
