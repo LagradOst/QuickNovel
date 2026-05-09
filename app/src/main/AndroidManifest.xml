@@ -140,6 +140,10 @@
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
+                    android:host="lnmtl.com"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
                     android:host="meionovels.com"
                     android:pathPrefix="/"
                     android:scheme="https" />
