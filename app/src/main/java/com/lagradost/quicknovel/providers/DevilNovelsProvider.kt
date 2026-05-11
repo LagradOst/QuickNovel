@@ -2,21 +2,25 @@ package com.lagradost.quicknovel.providers
 
 import android.net.Uri
 import com.lagradost.quicknovel.ChapterData
+import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.USER_AGENT
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import org.jsoup.nodes.Document
+import kotlin.jvm.Throws
 
-class DevilNovelsProvider  : MainAPI() {
+class DevilNovelsProvider : MainAPI() {
 
     override val name = "DevilNovels"
     override val mainUrl = "https://devilnovels.com"
+    private val ajaxUrl = "$mainUrl/wp-admin/admin-ajax.php"
     override val iconId = R.drawable.icon_devilnovels
     override val lang = "es"
     override val hasMainPage = true
@@ -27,7 +31,6 @@ class DevilNovelsProvider  : MainAPI() {
         orderBy: String?,
         tag: String?
     ): HeadMainPageResponse {
-
         val url = "$mainUrl/listado-de-novelas/"
         val document = app.get(url).document
 
@@ -43,61 +46,77 @@ class DevilNovelsProvider  : MainAPI() {
         return HeadMainPageResponse(url, items)
     }
 
-    private suspend fun getChapters(document: Document, url: String): List<ChapterData> {
-        val pagination = document.select("nav.elementor-pagination a.page-numbers")
-        if (pagination.size > 1) {
-            val lastPageElement = pagination[pagination.size - 1]
-            val lastPageNumber = lastPageElement.ownText().toIntOrNull() ?: 1
-
-            val lastPageUrl = "$url/?e-page-bc939d8=$lastPageNumber"
-            val lastPageDoc = app.get(lastPageUrl).document
-            val lastTotalChapters = lastPageDoc.select("div.elementor-posts-container > article").size
-            val totalChapters = ((lastPageNumber - 1) * 100) + lastTotalChapters
-
-            return (0..< totalChapters).map { chapterNumber ->
-                newChapterData("Chapter ${chapterNumber + 1}", "$url--------$chapterNumber")
-            }
-        }
-
-        return document.select("div.elementor-posts-container > article").mapNotNull { li ->
-            val name = li.selectFirst("a")?.text() ?: return@mapNotNull null
-            val url = li.selectFirst("a")?.attr("href") ?: return@mapNotNull null
-            newChapterData(name, url)
-        }
+    private suspend fun getPageChapters(id: Int, page: Int = 1): GetFirstPageChaptersResponse {
+        return app.post(
+            ajaxUrl, headers = mapOf(
+                "referer" to mainUrl,
+                "x-requested-with" to "XMLHttpRequest",
+                "content-type" to "application/x-www-form-urlencoded",
+                "accept" to "*/*",
+                "user-agent" to USER_AGENT
+            ), data = mapOf(
+                "action" to "dv_load_chapters",
+                "cat_id" to "$id",
+                "page" to "$page",
+                "search" to "",
+            )
+        ).parsed<GetFirstPageChaptersResponse>()
     }
-
 
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
-        val chapters = getChapters(document, url)
 
-        return newStreamResponse(document.selectFirst("div.elementor-widget-container p")?.text() ?: "", url, chapters) {
-            this.posterUrl = document.selectFirst("div.elementor-widget-container > p > img")?.attr("src")
-            this.synopsis =  document.select("div.elementor-widget-container > p")?.drop(1)?.joinToString("\n"){it.text()}
-            this.author = author
-            this.tags = tags
+        val scriptContent = document.select("script").find { it.data().contains("var CAT_ID") }?.data()
+            ?: ""
+        val catIdRegex = Regex("""var\s+CAT_ID\s*=\s*(\d+);""")
+        val totalChaptersRegex = Regex("""var\s+TOTAL_CH\s*=\s*(\d+);""")
+
+        val novelId = catIdRegex.find(scriptContent)?.groupValues?.get(1)?.toIntOrNull() ?: throw ErrorLoadingException("No id found")
+        val totalChapters = totalChaptersRegex.find(scriptContent)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        val chapters = if (totalChapters > 100) {
+            (0 until totalChapters).map { index ->
+                newChapterData("Chapter ${index + 1}", "$url--------$novelId--------$index")
+            }
+        } else {
+            val res = getPageChapters(novelId, 1)
+            res.data.chapters.map { ch ->
+                newChapterData(ch.title, ch.link)
+            }
+        }
+
+        return newStreamResponse(document.selectFirst("div.nv-meta > h1")?.text() ?: "", url, chapters) {
+            this.posterUrl = document.selectFirst("div.nv-cover > img")?.attr("src")
+            this.synopsis = document.selectFirst("#nvt-sinopsis > div")?.html()
+            this.author = document.selectFirst("#nvt-sinopsis > div > p:nth-child(3)")?.ownText()
+            this.tags = document.selectFirst("#nvt-sinopsis > div > p:nth-child(5)")?.text()
+                ?.replace("Géneros: ", "")?.split(",")?.map { it.trim() }
         }
     }
 
-    private suspend fun getSpecificChapter(url:String, number:Int):String{
-        val page = (number + 100 - 1)/100
-        val document = app.get("$url/?e-page-bc939d8=$page").document
-        val realNumber = number % 100
-        val chapter = document.select("div.elementor-posts-container > article")[realNumber]
-        return chapter.selectFirst("a")?.attr("href") ?: ""
+    private suspend fun getSpecificChapter(novelId: Int, index: Int): String {
+        val page = (index / 100) + 1
+        val res = getPageChapters(novelId, page)
+
+        val relativeIndex = index % 100
+        return res.data.chapters.getOrNull(relativeIndex)?.link ?: ""
     }
 
     override suspend fun loadHtml(url: String): String? {
-        var newUrl = url
-        val chapterNumber = url.split("--------")
-        if(chapterNumber.size > 1) {
-            newUrl = getSpecificChapter(chapterNumber[0],chapterNumber[1].toInt())
+        var realUrl = url
+
+        if (url.contains("--------")) {
+            val parts = url.split("--------")
+            if (parts.size >= 3) {
+                val novelId = parts[1].toInt()
+                val index = parts[2].toInt()
+                realUrl = getSpecificChapter(novelId, index)
+            }
         }
 
-        val document = app.get(newUrl).document
-        val content = document.select("div.ast-post-format- > div.entry-content > p")
-            ?.joinToString("</br>") { it.html() }
-        return content
+        if (realUrl.isEmpty()) return null
+
+        val document = app.get(realUrl).document
+        return document.selectFirst("article.dv-post-article")?.html()
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
@@ -113,4 +132,22 @@ class DevilNovelsProvider  : MainAPI() {
             }
         }
     }
+
+    data class GetFirstPageChaptersResponse(
+        val success: Boolean,
+        val data: ChaptersPage
+    )
+
+    data class ChaptersPage(
+        val chapters: List<Chapters>,
+        val page: Int,
+        val pages: Int,
+        val total: Int,
+    )
+
+    data class Chapters(
+        val id: Int,
+        val link: String,
+        val title: String,
+    )
 }
