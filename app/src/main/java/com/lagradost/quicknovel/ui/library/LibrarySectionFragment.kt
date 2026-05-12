@@ -204,19 +204,20 @@ class LibrarySectionFragment : Fragment() {
     }
 
     private fun showDeleteDialog(item: DefaultLibrary) {
+        val context = requireContext()
         val inUse = requireContext().getLibraryBookmarkCount(item.id)
         if (inUse > 0) {
-            showToast("${item.title}: $inUse bookmark(s). Empty it before delete.")
+            showToast(R.string.library_delete_empty_only_message)
             return
         }
 
-        val builder = MaterialAlertDialogBuilder(requireContext())
+        val builder = MaterialAlertDialogBuilder(context)
         builder.setTitle(R.string.library_delete)
         builder.setMessage(R.string.library_delete_message)
         builder.setPositiveButton(R.string.delete) { dialog, _ ->
             dialog.dismiss()
             postLibraryAction {
-                requireContext().deleteLibrary(item.id)
+                context.deleteLibrary(item.id)
                 refresh()
             }
         }

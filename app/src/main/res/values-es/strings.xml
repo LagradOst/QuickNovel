@@ -100,7 +100,7 @@
     <string name="library_merge">Unir en</string>
     <string name="library_delete">Eliminar</string>
     <string name="library_delete_message">Todos los libros de esta biblioteca pasaran a Ninguno.</string>
-    <string name="library_delete_empty_only_message">Esta biblioteca solo se puede eliminar cuando este vacia.</string>
+    <string name="library_delete_empty_only_message">Tiene que estar vacia para poder ser eliminada!</string>
     <string name="library_editable">Editable</string>
     <string name="library_fixed">Fija</string>
     <string name="library_rename_only">Solo renombrar</string>
