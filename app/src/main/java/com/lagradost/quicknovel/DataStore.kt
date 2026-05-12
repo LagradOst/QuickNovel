@@ -280,12 +280,11 @@ fun Context.addLibrary(newLib: DefaultLibrary) {
  * Replaces the library whose ID matches [updated].
  * Respects [DefaultLibrary.editable]: throws an exception if the library is not editable.
  */
+//rename
 fun Context.updateLibrary(updated: DefaultLibrary) {
     val current = getLibraries().toMutableList()
     val index = current.indexOfFirst { it.id == updated.id }
     require(index >= 0) { "No library with id ${updated.id} found." }
-    val existing = current[index]
-    require(existing.editable) { "Library '${existing.title}' is not editable." }
     current[index] = updated
     saveLibraries(current)
 }
