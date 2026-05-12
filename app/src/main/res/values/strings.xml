@@ -299,4 +299,20 @@
     <string name="more_spacing">More Spacing</string>
     <string name="less_spacing">Less Spacing</string>
     <string name="unable_to_inflate">UI was unable to be created correctly, this is a MAJOR BUG and should be reported immediately %s</string>
+
+    <!-- Bookmark -->
+    <string name="library_manager_key" translatable="false">library_manager_key</string>
+    <string name="library_manager_title">Manage libraries</string>
+    <string name="library_add">Add library</string>
+    <string name="library_create">Create library</string>
+    <string name="library_name_hint">Library name</string>
+    <string name="library_rename">Rename</string>
+    <string name="library_merge">Merge into</string>
+    <string name="library_delete">Delete</string>
+    <string name="library_delete_message">All books in this library will move to None.</string>
+    <string name="library_delete_empty_only_message">This library can be deleted only when it is empty.</string>
+    <string name="library_editable">Editable</string>
+    <string name="library_fixed">Fixed</string>
+    <string name="library_rename_only">Rename only</string>
+
 </resources>
