@@ -123,6 +123,7 @@
     <string name="has_read">Has read</string>
 
     <string name="read_display_settings">Settings</string>
+    <string name="tab_translation">Translate</string>
     <string name="read_text_size">Text</string>
     <string name="bigger_font">Bigger Font</string>
     <string name="smaller_font">Smaller Font</string>
