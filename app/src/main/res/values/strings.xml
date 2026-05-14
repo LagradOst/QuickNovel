@@ -314,5 +314,6 @@
     <string name="library_editable">Editable</string>
     <string name="library_fixed">Fixed</string>
     <string name="library_rename_only">Rename only</string>
+    <string name="drag_handle">Drag to reorder</string>
 
 </resources>

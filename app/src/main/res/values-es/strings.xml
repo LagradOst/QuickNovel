@@ -104,6 +104,7 @@
     <string name="library_editable">Editable</string>
     <string name="library_fixed">Fija</string>
     <string name="library_rename_only">Solo renombrar</string>
+    <string name="drag_handle">Arrastrar para reordenar</string>
 
     <!-- Interfaz del Lector -->
     <string name="read_action_settings">Ajustes</string>

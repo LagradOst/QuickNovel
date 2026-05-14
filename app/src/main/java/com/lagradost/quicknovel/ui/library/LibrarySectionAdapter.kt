@@ -1,68 +1,115 @@
 package com.lagradost.quicknovel.ui.library
 
+import android.content.res.ColorStateList
 import android.view.LayoutInflater
-import android.view.View
+import android.view.MotionEvent
 import android.view.ViewGroup
+import androidx.core.view.ViewCompat
+import androidx.core.view.isVisible
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.color.MaterialColors
 import com.lagradost.quicknovel.DEFAULT_LIBRARIES
 import com.lagradost.quicknovel.DefaultLibrary
+import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.ItemLibrarySectionBinding
+import com.lagradost.quicknovel.ui.BaseAdapter
+import com.lagradost.quicknovel.ui.BaseDiffCallback
+import com.lagradost.quicknovel.ui.ViewHolderState
 import java.util.Collections
+import com.google.android.material.R as MatR
 
 class LibrarySectionAdapter(
     private val onRenameClick: (DefaultLibrary) -> Unit,
     private val onMergeClick: (DefaultLibrary) -> Unit,
     private val onDeleteClick: (DefaultLibrary) -> Unit,
-) : RecyclerView.Adapter<LibrarySectionAdapter.ViewHolder>() {
-
-    private val items = mutableListOf<DefaultLibrary>()
-    val _items get() = items
+    private val onDragFinished: () -> Unit,
+) : BaseAdapter<DefaultLibrary, Any>(
+    id = "LibrarySectionAdapter".hashCode(),
+    diffCallback = BaseDiffCallback(
+        itemSame = { a, b -> a.id == b.id },
+        contentSame = { a, b -> a == b }
+    )
+) {
+    private var counts = mutableMapOf<Int, Int>()
     private val builtInKeys = DEFAULT_LIBRARIES.map { it.key }.toSet()
+    val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.Callback() {
+            override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder): Int {
+                return makeMovementFlags(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0)
+            }
 
-    fun submitList(newItems: List<DefaultLibrary>) {
-        items.clear()
-        items.addAll(newItems)
-        notifyDataSetChanged()
+            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+                moveItemVisual(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
+                return true
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+
+            override fun isLongPressDragEnabled(): Boolean = false
+
+            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                super.clearView(recyclerView, viewHolder)
+                onDragFinished()
+            }
+        })
+
+
+    fun submitList(newItems: List<DefaultLibrary>, novelCounts: Map<Int, Int> = emptyMap()) {
+        counts.clear()
+        counts.putAll(novelCounts)
+        super.submitList(newItems, null)
     }
 
     fun moveItemVisual(fromPosition: Int, toPosition: Int) {
-        if (fromPosition < 0 || fromPosition >= items.size ||
-            toPosition < 0 || toPosition >= items.size) return
+        val currentItems = immutableCurrentList.toMutableList()
+        if (fromPosition !in currentItems.indices || toPosition !in currentItems.indices) return
 
-        Collections.swap(items, fromPosition, toPosition)
-
-        notifyItemMoved(fromPosition, toPosition)
-    }
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val binding = ItemLibrarySectionBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return ViewHolder(binding)
-    }
-
-    override fun getItemCount(): Int = items.size
-
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val item = items[position]
-        val isBuiltIn = item.key in builtInKeys
-        val canRename = isBuiltIn || item.editable
-        val canMergeDelete = !isBuiltIn && item.editable
-        holder.binding.sectionName.text = item.title
-
-        holder.binding.actionRename.visibility = if (canRename) View.VISIBLE else View.GONE
-        holder.binding.actionMerge.visibility = if (canMergeDelete) View.VISIBLE else View.GONE
-        holder.binding.actionDelete.visibility = if (canMergeDelete) View.VISIBLE else View.GONE
-
-        holder.binding.actionRename.setOnClickListener { onRenameClick(item) }
-        holder.binding.actionMerge.setOnClickListener { onMergeClick(item) }
-        holder.binding.actionDelete.setOnClickListener { onDeleteClick(item) }
-
-        // Built-in rows are rename-only, so tapping the row acts as a direct rename shortcut.
-        holder.itemView.setOnClickListener {
-            if (isBuiltIn) onRenameClick(item)
+        if (fromPosition < toPosition) {
+            for (i in fromPosition until toPosition) {
+                Collections.swap(currentItems, i, i + 1)
+            }
+        } else {
+            for (i in fromPosition downTo toPosition + 1) {
+                Collections.swap(currentItems, i, i - 1)
+            }
         }
-
-        holder.itemView.setOnLongClickListener { false }
+        submitList(currentItems, counts)
     }
 
-    inner class ViewHolder(val binding: ItemLibrarySectionBinding) : RecyclerView.ViewHolder(binding.root)
+    override fun onCreateContent(parent: ViewGroup): ViewHolderState<Any> {
+        return ViewHolderState(
+            ItemLibrarySectionBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        )
+    }
+
+    override fun onBindContent(holder: ViewHolderState<Any>, item: DefaultLibrary, position: Int) {
+        val binding = holder.view as? ItemLibrarySectionBinding ?: return
+        val isBuiltIn = item.key in builtInKeys
+
+        binding.sectionName.text = item.title
+        binding.novelCount.text = "${counts[item.id] ?: 0}"
+
+        val bgColor =MaterialColors.getColor(binding.root, R.attr.colorPrimary, 0)
+        val fgColor = MaterialColors.getColor(binding.root, MatR.attr.colorOnSecondaryContainer, 0)
+        ViewCompat.setBackgroundTintList(binding.novelCount, ColorStateList.valueOf(bgColor))
+        binding.novelCount.setTextColor(fgColor)
+
+        binding.actionRename.isVisible = isBuiltIn || item.editable
+        binding.actionMerge.isVisible = !isBuiltIn && item.editable
+        binding.actionDelete.isVisible = !isBuiltIn && item.editable
+
+        binding.actionRename.setOnClickListener { onRenameClick(item) }
+        binding.actionMerge.setOnClickListener { onMergeClick(item) }
+        binding.actionDelete.setOnClickListener { onDeleteClick(item) }
+
+        binding.root.setOnClickListener { if (isBuiltIn) onRenameClick(item) }
+
+        binding.dragHandle.setOnTouchListener { v, event ->
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                v.performClick()
+                itemTouchHelper.startDrag(holder)
+            }
+            false
+        }
+    }
 }

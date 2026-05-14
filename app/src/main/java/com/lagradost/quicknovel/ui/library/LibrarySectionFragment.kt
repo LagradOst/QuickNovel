@@ -41,62 +41,30 @@ class LibrarySectionFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
-            ItemTouchHelper.UP or ItemTouchHelper.DOWN,
-            0
-        ) {
-            override fun onMove(
-                recyclerView: RecyclerView,
-                viewHolder: RecyclerView.ViewHolder,
-                target: RecyclerView.ViewHolder
-            ): Boolean {
-                val fromPos = viewHolder.bindingAdapterPosition
-                val toPos = target.bindingAdapterPosition
-
-                adapter.moveItemVisual(fromPos, toPos)
-                return true
-            }
-
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-            }
-
-            //user drop the item
-            override fun clearView(
-                recyclerView: RecyclerView,
-                viewHolder: RecyclerView.ViewHolder
-            ) {
-                super.clearView(recyclerView, viewHolder)
-                saveNewOrder()
-            }
-        })
-        itemTouchHelper.attachToRecyclerView(binding.recyclerView)
-
-        binding.libraryToolbar.setNavigationOnClickListener {
-            activity?.onBackPressedDispatcher?.onBackPressed()
-        }
-
         adapter = LibrarySectionAdapter(
             onRenameClick = ::showRenameDialog,
             onMergeClick = ::showMergeDialog,
             onDeleteClick = ::showDeleteDialog,
+            onDragFinished = { saveNewOrder() }
         )
+
+
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerView.adapter = adapter
-        binding.recyclerView.setHasFixedSize(true)
-
+        adapter.itemTouchHelper.attachToRecyclerView(binding.recyclerView)
         binding.fabAddFolder.setOnClickListener { showCreateDialog() }
         refresh()
     }
 
-    private fun saveNewOrder() {
-        val _context = context ?: return
-        val currentItems = adapter._items.toList()
 
-        postLibraryAction {
+    private fun saveNewOrder() {
+        val ctx = context ?: return
+        val currentItems = adapter.immutableCurrentList
             val reorderedList = currentItems.mapIndexed { index, library ->
                 library.copy(position = index + 1)
             }
-            _context.saveLibraries(reorderedList)
+        postLibraryAction {
+            ctx.saveLibraries(reorderedList)
         }
     }
 
@@ -107,7 +75,9 @@ class LibrarySectionFragment : Fragment() {
 
     private fun refresh() {
         val ctx = requireContext()
-        adapter.submitList(ctx.getLibraries())
+        val libs = ctx.getLibraries()
+        val counts = libs.associate { lib -> lib.id to ctx.getLibraryBookmarkCount(lib.id) }
+        adapter.submitList(libs, counts)
     }
 
     private inline fun postLibraryAction(crossinline action: () -> Unit) {

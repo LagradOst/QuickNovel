@@ -4,12 +4,12 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    android:background="?attr/colorSurface">
+    android:background="?attr/primaryBlackBackground"> <!-- Negro profundo como en los ajustes -->
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/colorSurface"
+        android:background="?attr/primaryBlackBackground"
         app:elevation="0dp">
 
         <com.google.android.material.appbar.MaterialToolbar
@@ -18,9 +18,9 @@
             android:layout_height="wrap_content"
             android:minHeight="?attr/actionBarSize"
             app:title="@string/library_manager_title"
-            android:titleTextColor="?attr/colorOnSurface"
+            app:titleTextColor="?attr/textColor"
             app:navigationIcon="@drawable/ic_baseline_arrow_back_24"
-            app:navigationIconTint="?attr/colorOnSurface" />
+            app:navigationIconTint="?attr/textColor" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.recyclerview.widget.RecyclerView
@@ -43,6 +43,7 @@
         android:contentDescription="@string/library_add"
         app:srcCompat="@drawable/ic_baseline_add_24"
         app:backgroundTint="?attr/colorPrimary"
-        android:tint="?attr/colorOnPrimary" />
+        app:tint="@color/white"
+        app:elevation="4dp" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
