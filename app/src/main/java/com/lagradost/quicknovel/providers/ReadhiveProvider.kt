@@ -11,13 +11,13 @@ import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
-import com.lagradost.quicknovel.MainActivity.Companion.app
 
 class ReadhiveProvider  :  MainAPI() {
     override val name = "ReadHive"
     override val mainUrl = "https://readhive.org"
     override val iconId = R.drawable.icon_readhive
     override val hasMainPage = true
+    override val rateLimitTime = 500L
 
     override val tags = listOf(
         "All" to "",
@@ -135,21 +135,19 @@ class ReadhiveProvider  :  MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val document = app.post(
             "$mainUrl/ajax", data = mapOf(
-                "search" to query,
-                "orderBy" to "recent",
-                "post" to "e5100ffd19",
-                "action" to "fetch_browse",
+                "query" to query,
+                "action" to "search"
             )
         ).parsed<Root>()
-        return document.data.posts.map { card ->
-            val href = card.permalink.replace("\\","")
+        return document.data.map { card ->
+            val href = card.url.replace("\\","")
             val title = card.title
 
             newSearchResponse(
                 name = title,
                 url = href
             ) {
-                posterUrl = fixUrlNull(card.thumbnail.replace("\\",""))
+                posterUrl = fixUrlNull(card.thumb.replace("\\",""))
             }
 
         }
@@ -159,20 +157,15 @@ class ReadhiveProvider  :  MainAPI() {
         @JsonProperty("success")
         val success: Boolean,
         @JsonProperty("data")
-        val data: Data,
-    )
-
-    data class Data(
-        @JsonProperty("posts")
-        val posts: List<Post>,
+        val data: List<Post>,
     )
 
     data class Post(
         @JsonProperty("title")
         val title: String,
-        @JsonProperty("thumbnail")
-        val thumbnail: String,
-        @JsonProperty("permalink")
-        val permalink: String,
+        @JsonProperty("thumb")
+        val thumb: String,
+        @JsonProperty("url")
+        val url: String,
     )
 }
