@@ -501,13 +501,6 @@
                     app:icon="@drawable/ic_baseline_menu_book_24"
                     tools:text="English" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/toWhatLanguague"
-                    android:textSize="16dp"
-                    />
-
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/read_ml_to"
                     style="@style/BlackButton"
