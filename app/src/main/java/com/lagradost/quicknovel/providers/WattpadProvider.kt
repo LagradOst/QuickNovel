@@ -7,6 +7,7 @@ import com.lagradost.quicknovel.util.AppUtils.toJson
 import org.json.JSONObject
 import org.jsoup.Jsoup
 import org.jsoup.parser.Parser
+import kotlin.collections.mapNotNull
 
 class WattpadProvider : MainAPI() {
     override val mainUrl = "https://www.wattpad.com"
@@ -79,8 +80,8 @@ class WattpadProvider : MainAPI() {
 
         val document = app.get(nextUrl).parsed<Root>()
 
-        val results = document.stories?.map {
-            newSearchResponse(it.title, it.url) {
+        val results = document.stories?.mapNotNull {
+            newSearchResponse(it.title ?: return@mapNotNull null, it.url ?: return@mapNotNull null) {
                 posterUrl = it.cover
             }
         } ?: emptyList()
@@ -119,44 +120,34 @@ class WattpadProvider : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse {
         val response = app.get(url)
-        val script_regex = Regex("<script>.*?window._+remix.*?<\\/script>")
-        val script_text = script_regex.find(response.text)!!.value
-        val json_text = Regex("\\{.*\\}").find(script_text)!!.value
-        val wattpad_data = JSONObject(json_text)
-        val state = wattpad_data.getJSONObject("state").getJSONObject("loaderData")
-        val route = state.getJSONObject(state.names()!!.getString(state.length() - 1))
-        val story = route.getJSONObject("story")
-        val title = story.getString("title");
-        val parts = story.getJSONArray("parts")
-        val toc = mutableListOf<ChapterData>()
-        for (i in 0 until parts.length()) {
-            val chap = parts.getJSONObject(i)
-            val href = chap.getString("url")
-            val name = chap.getString("title")
-            val date = chap.getString("formattedCreateDate")
-            toc.add(
-                newChapterData(
-                    name = name,
-                    url = href
-                ) { dateOfRelease = date })
+        val script_text = Regex("<script>.*?window._+remix.*?</script>").find(response.text)!!.value
+        //idk how to parse "routes\/story.$storyid"
+        val state = JSONObject(Regex("\\{.*\\}").find(script_text)!!.value)
+            .getJSONObject("state")
+            .getJSONObject("loaderData")
+        val route = state.getString(state.names()!!.getString(state.length() - 1))
+
+        val novel = parseJson<LoadPageResponse>(route)
+        val story = novel.story
+        val ch =  story.parts?.map{ chap ->
+            val href = chap.url
+            val name = chap.title
+            val date = chap.formattedCreateDate
+            newChapterData(
+                name = name,
+                url = href
+            ) { dateOfRelease = date }
         }
-        val writer = story.getJSONObject("author").getString("username")
-        val cover = story.getString("cover")
-        val votes = story.getInt("voteCount")
-        val viewCount = story.getInt("readCount")
-        val desc = story.getString("description")
-        val labels = mutableListOf<String>()
-        val tag_array = story.getJSONArray("tags")
-        for (i in 0 until tag_array.length()) {
-            labels.add(tag_array.getString(i))
-        }
-        return newStreamResponse(name = title, url = url, data = toc) {
-            author = writer
-            posterUrl = cover
-            peopleVoted = votes
-            views = viewCount
-            synopsis = desc
-            tags = labels
+
+        return newStreamResponse(name = novel.title, url = url, data = ch ?: emptyList()) {
+            author = story.author?.username
+            posterUrl = story.cover
+            peopleVoted = story.voteCount
+            views = story.voteCount
+            synopsis = story.description
+            tags = story.tags?.mapNotNull {
+                it.trim().takeIf { text ->  text.isNotEmpty() }
+            }
         }
     }
 
@@ -177,14 +168,25 @@ class WattpadProvider : MainAPI() {
         val fullHtml = StringBuilder()
 
         for (page in 1..totalPages) {
-            val pageUrl = "$textUrlBase$page"
-            val pageResp = app.get(pageUrl).text
+            val pageResp = app.get("$textUrlBase$page").text
             fullHtml.append(pageResp)
         }
-        return Jsoup.parse(fullHtml.toString()).html()
+        return fullHtml.toString()
     }
 
     // ================== DATA CLASSES ==================
+    data class LoadPageResponse(
+        val story: Story,
+        val title: String
+    )
+    data class Part(
+        val url:String,
+        val title: String,
+        val formattedCreateDate: String
+    )
+    data class Author(
+        val username: String
+    )
 
     data class Root(
         @JsonProperty("stories")
@@ -199,9 +201,15 @@ class WattpadProvider : MainAPI() {
         @JsonProperty("cover")
         val cover: String?,
         @JsonProperty("title")
-        val title: String,
+        val title: String?,
         @JsonProperty("url")
-        val url: String
+        val url: String?,
+
+        val author: Author?,
+        val voteCount: Int?,
+        val description: String?,
+        val tags: List<String>?,
+        val parts: List<Part>?
     )
 
 
