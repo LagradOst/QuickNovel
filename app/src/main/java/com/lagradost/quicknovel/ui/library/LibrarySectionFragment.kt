@@ -2,6 +2,7 @@ package com.lagradost.quicknovel.ui.library
 
 import android.view.View
 import android.widget.EditText
+import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -17,6 +18,7 @@ import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.saveLibraries
 import com.lagradost.quicknovel.ui.BaseFragment
 import com.lagradost.quicknovel.updateLibrary
+import com.lagradost.quicknovel.util.SingleSelectionHelper.showBottomDialog
 
 class LibrarySectionFragment : BaseFragment<FragmentLibrarySectionBinding>(
     BindingCreator.Inflate(FragmentLibrarySectionBinding::inflate)
@@ -77,15 +79,15 @@ class LibrarySectionFragment : BaseFragment<FragmentLibrarySectionBinding>(
     }
 
     private fun showCreateDialog() {
+        val context = requireContext()
         val inputView = layoutInflater.inflate(R.layout.dialog_add_folder, null)
-        MaterialAlertDialogBuilder(requireContext())
+        AlertDialog.Builder(context, R.style.AlertDialogCustom)
             .setTitle(R.string.library_create)
             .setView(inputView)
             .setPositiveButton(R.string.save) { dialog, _ ->
                 val editText = inputView.findViewById<EditText>(R.id.editFolderName)
                 val title = editText.text.toString().trim()
                 if (title.isNotEmpty()) {
-                    val context = requireContext()
                     dialog.dismiss()
                     postLibraryAction {
                         val current = context.getLibraries()
@@ -119,7 +121,7 @@ class LibrarySectionFragment : BaseFragment<FragmentLibrarySectionBinding>(
 
         inputView.findViewById<EditText>(R.id.editFolderName).setText(currentTitle)
 
-        MaterialAlertDialogBuilder(context)
+        MaterialAlertDialogBuilder(context, R.style.AlertDialogCustom)
             .setTitle(R.string.library_rename)
             .setView(inputView)
             .setPositiveButton(R.string.save) { dialog, _ ->
@@ -148,19 +150,22 @@ class LibrarySectionFragment : BaseFragment<FragmentLibrarySectionBinding>(
         val names = targetCandidates.map { lib ->
             val resId = lib.title.toIntOrNull()
             if (resId != null) context.getString(resId) else lib.title
-        }.toTypedArray()
+        }
 
-        MaterialAlertDialogBuilder(context)
-            .setTitle(R.string.library_merge)
-            .setItems(names) { dialog, which ->
-                val target = targetCandidates.getOrNull(which) ?: return@setItems
-                dialog.dismiss()
+        context.showBottomDialog(
+            items = names,
+            selectedIndex = -1,
+            name = getString(R.string.library_merge),
+            showApply = false,
+            dismissCallback = {},
+            callback = { which ->
+                val target = targetCandidates.getOrNull(which) ?: return@showBottomDialog
                 postLibraryAction {
                     context.mergeLibraries(item.id, target.id)
                     refresh()
                 }
             }
-            .show()
+        )
     }
 
     private fun showDeleteDialog(item: DefaultLibrary) {
@@ -171,7 +176,7 @@ class LibrarySectionFragment : BaseFragment<FragmentLibrarySectionBinding>(
             return
         }
 
-        MaterialAlertDialogBuilder(context)
+        AlertDialog.Builder(context, R.style.AlertDialogCustom)
             .setTitle(R.string.library_delete)
             .setMessage(R.string.library_delete_message)
             .setPositiveButton(R.string.delete) { dialog, _ ->
