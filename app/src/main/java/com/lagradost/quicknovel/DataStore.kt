@@ -9,6 +9,7 @@ import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.lagradost.quicknovel.mvvm.logError
 import androidx.core.content.edit
+import com.lagradost.quicknovel.util.AppUtils.parseJson
 
 const val PREFERENCES_NAME: String = "rebuild_preference"
 const val DOWNLOAD_FOLDER: String = "downloads_data"
@@ -328,6 +329,31 @@ fun Context.reassignLibraryBookmarks(sourceId: Int, targetId: Int = 0) {
         if (current == sourceId) {
             with(DataStore) { this@reassignLibraryBookmarks.setKey(key, targetId) }
         }
+    }
+}
+
+fun Context.mergeLibraries(backupJson: String) {
+    try {
+        val currentLibs = getLibraries().toMutableList()
+        val currentKeys = currentLibs.map { it.key }.toSet()
+
+        val backupLibs = parseJson<List<DefaultLibrary>>(backupJson)
+
+        val newLibs = backupLibs.filter { it.key !in currentKeys }
+
+        if (newLibs.isNotEmpty()) {
+            var lastId = currentLibs.maxOfOrNull { it.id } ?: 0
+            var lastPos = currentLibs.maxOfOrNull { it.position } ?: 0
+
+            newLibs.forEach { lib ->
+                lastId++
+                lastPos++
+                currentLibs.add(lib.copy(id = lastId, position = lastPos))
+            }
+            saveLibraries(currentLibs)
+        }
+    } catch (e: Exception) {
+       logError(e)
     }
 }
 
