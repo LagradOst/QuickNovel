@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    android:background="?attr/primaryBlackBackground"> <!-- Negro profundo como en los ajustes -->
+    android:background="?attr/primaryBlackBackground">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
@@ -36,14 +36,22 @@
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAddFolder"
+        android:contentDescription="@string/library_add"
+        app:srcCompat="@drawable/ic_baseline_add_24"
+        app:tint="@color/white"
+        android:layout_margin="16dp"
+        android:text="+"
+        app:icon="@drawable/ic_baseline_add_24"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="end|bottom"
-        android:layout_margin="20dp"
-        android:contentDescription="@string/library_add"
-        app:srcCompat="@drawable/ic_baseline_add_24"
-        app:backgroundTint="?attr/colorPrimary"
-        app:tint="@color/white"
-        app:elevation="4dp" />
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="56dp"
+        android:textColor="?attr/textColor"
+        android:textStyle="bold"
+        app:backgroundTint="?attr/primaryGrayBackground"
+        app:elevation="4dp"
+        app:iconTint="?attr/textColor"
+        />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
