@@ -1,31 +1,24 @@
 package com.lagradost.quicknovel.ui.library
-
-import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.ViewGroup
-import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.color.MaterialColors
 import com.lagradost.quicknovel.DEFAULT_LIBRARIES
 import com.lagradost.quicknovel.DefaultLibrary
-import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.ItemLibrarySectionBinding
-import com.lagradost.quicknovel.ui.BaseAdapter
 import com.lagradost.quicknovel.ui.BaseDiffCallback
+import com.lagradost.quicknovel.ui.NoStateAdapter
 import com.lagradost.quicknovel.ui.ViewHolderState
 import java.util.Collections
-import com.google.android.material.R as MatR
 
 class LibrarySectionAdapter(
     private val onRenameClick: (DefaultLibrary) -> Unit,
     private val onMergeClick: (DefaultLibrary) -> Unit,
     private val onDeleteClick: (DefaultLibrary) -> Unit,
     private val onDragFinished: () -> Unit,
-) : BaseAdapter<DefaultLibrary, Any>(
-    id = "LibrarySectionAdapter".hashCode(),
+) : NoStateAdapter<DefaultLibrary>(
     diffCallback = BaseDiffCallback(
         itemSame = { a, b -> a.id == b.id },
         contentSame = { a, b -> a == b }
@@ -34,25 +27,23 @@ class LibrarySectionAdapter(
     private var counts = mutableMapOf<Int, Int>()
     private val builtInKeys = DEFAULT_LIBRARIES.map { it.key }.toSet()
     val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.Callback() {
-            override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder): Int {
-                return makeMovementFlags(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0)
-            }
+        override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder): Int {
+            return makeMovementFlags(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0)
+        }
 
-            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
-                moveItemVisual(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
-                return true
-            }
+        override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+            moveItemVisual(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
+            return true
+        }
 
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+        override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+        override fun isLongPressDragEnabled(): Boolean = false
 
-            override fun isLongPressDragEnabled(): Boolean = false
-
-            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
-                super.clearView(recyclerView, viewHolder)
-                onDragFinished()
-            }
-        })
-
+        override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+            super.clearView(recyclerView, viewHolder)
+            onDragFinished()
+        }
+    })
 
     fun submitList(newItems: List<DefaultLibrary>, novelCounts: Map<Int, Int> = emptyMap()) {
         counts.clear()
@@ -84,15 +75,14 @@ class LibrarySectionAdapter(
 
     override fun onBindContent(holder: ViewHolderState<Any>, item: DefaultLibrary, position: Int) {
         val binding = holder.view as? ItemLibrarySectionBinding ?: return
+        val context = binding.root.context
         val isBuiltIn = item.key in builtInKeys
 
-        binding.sectionName.text = item.title
+        val resId = item.title.toIntOrNull()
+        binding.sectionName.text = if (resId != null) context.getString(resId) else item.title
+
         binding.novelCount.text = "${counts[item.id] ?: 0}"
 
-        val bgColor =MaterialColors.getColor(binding.root, R.attr.colorPrimary, 0)
-        val fgColor = MaterialColors.getColor(binding.root, MatR.attr.colorOnSecondaryContainer, 0)
-        ViewCompat.setBackgroundTintList(binding.novelCount, ColorStateList.valueOf(bgColor))
-        binding.novelCount.setTextColor(fgColor)
 
         binding.actionRename.isVisible = isBuiltIn || item.editable
         binding.actionMerge.isVisible = !isBuiltIn && item.editable

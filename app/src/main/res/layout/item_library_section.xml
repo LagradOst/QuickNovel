@@ -51,7 +51,7 @@
             android:paddingBottom="3dp"
             android:textSize="12sp"
             android:textStyle="bold"
-            android:textColor="?attr/white"
+            android:textColor="?attr/colorOnSecondaryContainer"
             android:background="@drawable/bg_novel_count_badge"
             android:backgroundTint="?attr/colorPrimary" />
 
