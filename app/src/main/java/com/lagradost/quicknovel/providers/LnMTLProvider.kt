@@ -12,6 +12,8 @@ import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.util.AppUtils.parseJson
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.jsoup.nodes.Document
 
 class LnMTLProvider : MainAPI() {
@@ -22,20 +24,22 @@ class LnMTLProvider : MainAPI() {
     override val iconId = R.drawable.icon_lnmtl
     override val iconBackgroundId = R.color.white
     private var allNovels: Array<NovelInfo> = emptyArray()
-
-    private suspend fun prefetchAllNovels(){
-        if(allNovels.isEmpty()){
-            val home = app.get(mainUrl).text
-
-            val path = Regex("prefetch: '/(.*?\\.json)'")
-                .find(home)
-                ?.groupValues
-                ?.get(1)
-
-            allNovels =
-                app.get("$mainUrl/$path")
-                    .parsed<Array<NovelInfo>>()
-                    .apply { shuffle() }
+    private val mutex: Mutex = Mutex()
+    private suspend fun prefetchAllNovels() {
+        if (allNovels.isNotEmpty()) return
+        mutex.withLock {
+            if (allNovels.isEmpty()) {
+                val home = app.get(mainUrl).text
+                val path = Regex("prefetch: '/(.*?\\.json)'")
+                    .find(home)
+                    ?.groupValues
+                    ?.get(1)
+                if (path != null) {
+                    allNovels = app.get("$mainUrl/$path")
+                        .parsed<Array<NovelInfo>>()
+                        .apply { shuffle() }
+                }
+            }
         }
     }
 
