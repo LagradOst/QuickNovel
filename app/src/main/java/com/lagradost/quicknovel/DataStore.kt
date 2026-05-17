@@ -236,11 +236,11 @@ data class DefaultLibrary(
 )
 
 val DEFAULT_LIBRARIES: List<DefaultLibrary> = listOf(
-    DefaultLibrary(1, "READING",       "Reading",    position = 1),
-    DefaultLibrary(2, "PLAN_TO_READ",  "Plan to read",  editable = false, position = 2),
-    DefaultLibrary(3, "ON_HOLD",       "On hold",    position = 3),
-    DefaultLibrary(4, "COMPLETED",     "Completed",  position = 4),
-    DefaultLibrary(5, "DROPPED",       "Dropped",    position = 5),
+    DefaultLibrary(1, "READING",       R.string.type_reading.toString(),      editable = false, position = 1),
+    DefaultLibrary(2, "PLAN_TO_READ",  R.string.type_plan_to_read.toString(), editable = false, position = 2),
+    DefaultLibrary(3, "ON_HOLD",       R.string.type_on_hold.toString(),      editable = false, position = 3),
+    DefaultLibrary(4, "COMPLETED",     R.string.type_completed.toString(),    editable = false, position = 4),
+    DefaultLibrary(5, "DROPPED",       R.string.type_dropped.toString(),      editable = false, position = 5),
 )
 /**
  * Returns the list of persisted libraries, sorted by [DefaultLibrary.position].
