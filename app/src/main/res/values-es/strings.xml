@@ -171,6 +171,7 @@
     <string name="download_ml">Descargar modelo de traducción</string>
     <string name="download_ml_long">Para traducir localmente se necesita descargar el modelo (~30MB)</string>
     <string name="translating">Traduciendo: </string>
+    <string name="toWhatLanguague">-></string>
     <string name="unable_to_download_language">No se pudo descargar el lenguaje</string>
 
 
