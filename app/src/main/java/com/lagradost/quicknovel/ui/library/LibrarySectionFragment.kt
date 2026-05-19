@@ -74,7 +74,7 @@ class LibrarySectionFragment : BaseFragment<FragmentLibrarySectionBinding>(
             showToast(R.string.done)
         } catch (t: Throwable) {
             logError(t)
-            showToast(t.message ?: getString(R.string.error_loading))
+            showToast(t.message?.toIntOrNull() ?: R.string.error_loading)
         }
     }
 
@@ -121,7 +121,7 @@ class LibrarySectionFragment : BaseFragment<FragmentLibrarySectionBinding>(
 
         inputView.findViewById<EditText>(R.id.editFolderName).setText(currentTitle)
 
-        MaterialAlertDialogBuilder(context, R.style.AlertDialogCustom)
+        AlertDialog.Builder(context, R.style.AlertDialogCustom)
             .setTitle(R.string.library_rename)
             .setView(inputView)
             .setPositiveButton(R.string.save) { dialog, _ ->

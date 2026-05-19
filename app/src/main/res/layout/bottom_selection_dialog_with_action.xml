@@ -45,6 +45,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="60dp"
         android:paddingTop="10dp"
+        android:nestedScrollingEnabled="true"
         tools:listitem="@layout/sort_bottom_single_choice" />
 
     <LinearLayout

@@ -105,6 +105,12 @@
     <string name="library_fixed">Fija</string>
     <string name="library_rename_only">Solo renombrar</string>
     <string name="drag_handle">Arrastrar para reordenar</string>
+    <string name="library_error_duplicate_ids">La lista contiene IDs duplicados</string>
+    <string name="library_error_exists">Ya existe una librería con ese nombre o ID</string>
+    <string name="library_error_not_found">No se encontró la librería</string>
+    <string name="library_error_not_editable">Esta categoría es del sistema y no se puede modificar</string>
+    <string name="library_error_same_ids">La librería de origen y destino deben ser diferentes</string>
+    <string name="library_error_target_not_found">La librería de destino no existe</string>
 
     <!-- Interfaz del Lector -->
     <string name="read_action_settings">Ajustes</string>

@@ -179,17 +179,7 @@ class DownloadFragment : BaseFragment<FragmentDownloadsBinding>(
         binding.bookmarkTabs.apply {
             val tabLabels = mutableListOf(this@DownloadFragment.getString(R.string.tab_downloads))
             for (lib in viewModel.libraries()) {
-                val title = try {
-                    val resId = lib.title.toIntOrNull()
-                    if (resId != null) {
-                        context.getString(resId)
-                    } else {
-                        lib.title
-                    }
-                } catch (e: Exception) {
-                    lib.title
-                }
-                tabLabels.add(title)
+                tabLabels.add(lib.title)
             }
             TabLayoutMediator(this, binding.viewpager) { tab, position ->
                 if(position >= tabLabels.size) return@TabLayoutMediator

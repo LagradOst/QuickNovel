@@ -300,7 +300,7 @@
     <string name="less_spacing">Less Spacing</string>
     <string name="unable_to_inflate">UI was unable to be created correctly, this is a MAJOR BUG and should be reported immediately %s</string>
 
-    <!-- Bookmark -->
+    <!-- Library fragment strings -->
     <string name="library_manager_key" translatable="false">library_manager_key</string>
     <string name="library_manager_title">Manage libraries</string>
     <string name="library_add">Add library</string>
@@ -316,4 +316,11 @@
     <string name="library_rename_only">Rename only</string>
     <string name="drag_handle">Drag to reorder</string>
 
+    <!-- Library fragment errors -->
+    <string name="library_error_duplicate_ids">Library list contains duplicate IDs.</string>
+    <string name="library_error_exists">A library with this ID or name already exists.</string>
+    <string name="library_error_not_found">Library not found.</string>
+    <string name="library_error_not_editable">This category is protected and cannot be modified.</string>
+    <string name="library_error_same_ids">Source and target libraries must be different.</string>
+    <string name="library_error_target_not_found">Target library not found.</string>
 </resources>
