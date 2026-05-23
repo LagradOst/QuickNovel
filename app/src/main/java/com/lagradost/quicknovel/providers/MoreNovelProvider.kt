@@ -158,7 +158,7 @@ open class MoreNovelProvider : MainAPI() {
     suspend fun getChapters(url: String): List<ChapterData> {
 
         val document = app.post(
-            "${url}ajax/chapters/",
+            "${url.removeSuffix("/")}/ajax/chapters/",
         ).document
         val data: ArrayList<ChapterData> = ArrayList()
         val chapterHeaders = document.select("ul.version-chap li.wp-manga-chapter")
