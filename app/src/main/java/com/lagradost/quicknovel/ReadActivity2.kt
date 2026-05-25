@@ -78,7 +78,7 @@ import java.util.Locale
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import kotlin.properties.Delegates
-
+import com.google.android.material.tabs.TabLayout
 
 class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     companion object {
@@ -1136,6 +1136,29 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
             val binding = ReadBottomSettingsBinding.inflate(layoutInflater, null, false)
             bottomSheetDialog.setContentView(binding.root)
+
+            //Create and Order tabs
+            val tabsToViews = listOf(
+                R.string.read_display_settings to binding.tabSettingsContainer,     // Tab 0 — Settings
+                R.string.tab_translation to binding.tabTranslationContainer,  // Tab 1 — Translation
+                R.string.tts_voice to binding.tabVoiceContainer,        // Tab 2 — Voice
+                R.string.read_text_size to binding.tabTextContainer,         // Tab 3 — Text
+            )
+            tabsToViews.forEachIndexed { index, (resId, view) ->
+                binding.readSettingsTabs.addTab(binding.readSettingsTabs.newTab().setText(resId))
+                view.isVisible = index == 0
+            }
+
+            // Show specific tab
+            binding.readSettingsTabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+                override fun onTabSelected(tab: TabLayout.Tab) {
+                    tabsToViews.forEachIndexed { index, (_, view) ->
+                        view.isVisible = index == tab.position
+                    }
+                }
+                override fun onTabUnselected(tab: TabLayout.Tab) {}
+                override fun onTabReselected(tab: TabLayout.Tab) {}
+            })
 
             binding.readReadingType.setText(viewModel.readerType.stringRes)
             binding.readReadingType.setOnLongClickListener {

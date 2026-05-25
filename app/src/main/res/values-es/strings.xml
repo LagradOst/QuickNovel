@@ -101,8 +101,9 @@
     <string name="reload_chapter_format">Recargando capítulo %s</string>
     <string name="latest_format">Último: %s</string>
     <string name="chapter_format" formatted="true">Capítulo %s</string>
-    <string name="read_display_settings">Ajustes de pantalla</string>
-    <string name="read_text_size">Tamaño de texto</string>
+    <string name="read_display_settings">Pantalla</string>
+    <string name="tab_translation">Traductor</string>
+    <string name="read_text_size">Texto</string>
     <string name="bigger_font">Fuente más grande</string>
     <string name="smaller_font">Fuente más pequeña</string>
     <string name="reader_font">Fuente del lector</string>
@@ -170,6 +171,7 @@
     <string name="download_ml">Descargar modelo de traducción</string>
     <string name="download_ml_long">Para traducir localmente se necesita descargar el modelo (~30MB)</string>
     <string name="translating">Traduciendo: </string>
+    <string name="toWhatLanguague">-></string>
     <string name="unable_to_download_language">No se pudo descargar el lenguaje</string>
 
 
