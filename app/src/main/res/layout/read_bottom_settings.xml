@@ -5,552 +5,555 @@
     android:id="@+id/read_settings_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?attr/primaryBlackBackground"
+    android:background="@drawable/white_card"
     android:orientation="vertical">
 
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/read_settings_tabs"
+        style="@style/Theme.Widget.Tabs"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_gravity="bottom"
+        android:layout_marginTop="10dp"
+        android:background="@color/transparent"
+        android:descendantFocusability="blocksDescendants"
+        android:focusable="false"
+        android:paddingHorizontal="5dp"
+        app:layout_scrollFlags="noScroll"
+        app:tabGravity="start"
+        app:tabIndicator="@drawable/indicator_background"
+        app:tabIndicatorColor="?attr/white"
+        app:tabIndicatorGravity="center"
+        app:tabIndicatorHeight="30dp"
+        app:tabMode="scrollable"
+        app:tabSelectedTextColor="?attr/primaryBlackBackground"
+        app:tabTextAppearance="@style/TabNoCaps"
+        app:tabTextColor="?attr/textColor"
+    />
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <LinearLayout
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingStart="?android:attr/listPreferredItemPaddingStart"
-            android:paddingEnd="?android:attr/listPreferredItemPaddingEnd">
+            android:layout_height="wrap_content">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_rowWeight="1"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="10dp"
-                android:paddingTop="10dp"
-                android:text="@string/read_display_settings"
-                android:textColor="?attr/textColor"
-                android:textSize="20sp"
-                android:textStyle="bold" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/hard_reset_stream"
-                style="@style/BlackButton"
-                android:layout_width="match_parent"
-                android:layout_marginStart="0dp"
-                android:layout_marginTop="10dp"
-                android:layout_marginEnd="0dp"
-                android:text="@string/reload_chapter"
-
-                android:visibility="visible"
-                app:icon="@drawable/ic_baseline_autorenew_24" />
-
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/read_settings_scroll_vol"
-                style="@style/WhiteCheckmark"
-                android:text="@string/scroll_with_volume_keys"
-                tools:checked="true" />
-
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/read_settings_lock_tts"
-
-                style="@style/WhiteCheckmark"
-                android:text="@string/lock_tts" />
-
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/read_settings_show_time"
-                style="@style/WhiteCheckmark"
-                android:text="@string/show_time" />
-
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/read_settings_twelve_hour_time"
-                style="@style/WhiteCheckmark"
-                android:text="@string/twelve_hour_time"
-                android:textColor="?attr/textColor"
-                android:visibility="gone" />
-
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/read_settings_show_battery"
-                style="@style/WhiteCheckmark"
-                android:text="@string/show_battery" />
-
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/read_settings_show_bionic"
-                style="@style/WhiteCheckmark"
-                android:text="@string/bionic_reading" />
-
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/read_settings_is_text_selectable"
-                style="@style/WhiteCheckmark"
-                android:text="@string/selectable_text" />
-
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/read_settings_keep_screen_active"
-                style="@style/WhiteCheckmark"
-                android:text="@string/keep_screen_active" />
-
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/read_settings_author_notes"
-                style="@style/WhiteCheckmark"
-                android:text="@string/show_authors_notes" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:text="@string/scroll_type"
-                android:textSize="16sp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/read_reading_type"
-                style="@style/BlackButton"
-                android:layout_width="match_parent"
-                android:layout_marginStart="0dp"
-                android:layout_marginTop="10dp"
-                android:layout_marginEnd="0dp"
-                app:icon="@drawable/swipe_vertical_24px"
-                tools:text="@string/inf_scroll" />
-
-            <TextView
-                android:id="@+id/read_settings_text_font_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:text="@string/text_font"
-                android:textSize="16sp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/read_show_fonts"
-                style="@style/BlackButton"
-                android:layout_width="match_parent"
-                android:layout_marginStart="0dp"
-                android:layout_marginTop="10dp"
-                android:layout_marginEnd="0dp"
-                android:text="@string/reader_font"
-                app:icon="@drawable/ic_baseline_font_download_24" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:text="@string/tts_voice_title"
-                android:textSize="16sp" />
-
+            <!-- Tab 0: General -->
             <LinearLayout
+                android:id="@+id/tab_settings_container"
                 android:layout_width="match_parent"
-
                 android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:orientation="horizontal">
+                android:orientation="vertical"
+                android:paddingStart="?android:attr/listPreferredItemPaddingStart"
+                android:paddingEnd="?android:attr/listPreferredItemPaddingEnd"
+                android:paddingBottom="20dp"
+                android:visibility="visible">
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/read_language"
+                    android:id="@+id/hard_reset_stream"
                     style="@style/BlackButton"
+                    android:layout_width="match_parent"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/reload_chapter"
+                    app:icon="@drawable/ic_baseline_autorenew_24" />
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/read_settings_scroll_vol"
+                    style="@style/WhiteCheckmark"
+                    android:text="@string/scroll_with_volume_keys" />
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/read_settings_lock_tts"
+                    style="@style/WhiteCheckmark"
+                    android:text="@string/lock_tts" />
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/read_settings_show_time"
+                    style="@style/WhiteCheckmark"
+                    android:text="@string/show_time" />
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/read_settings_show_battery"
+                    style="@style/WhiteCheckmark"
+                    android:text="@string/show_battery" />
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/read_settings_show_bionic"
+                    style="@style/WhiteCheckmark"
+                    android:text="@string/bionic_reading" />
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/read_settings_is_text_selectable"
+                    style="@style/WhiteCheckmark"
+                    android:text="@string/selectable_text" />
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/read_settings_keep_screen_active"
+                    style="@style/WhiteCheckmark"
+                    android:text="@string/keep_screen_active" />
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/read_settings_author_notes"
+                    style="@style/WhiteCheckmark"
+                    android:text="@string/show_authors_notes" />
+
+                <TextView
                     android:layout_width="wrap_content"
-                    android:layout_marginStart="0dp"
-                    android:layout_weight="1"
-                    android:text="@string/tts_locale"
-                    app:icon="@drawable/ic_baseline_language_24" />
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp"
+                    android:text="@string/scroll_type"
+                    android:textSize="16sp" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/read_voice"
+                    android:id="@+id/read_reading_type"
                     style="@style/BlackButton"
-                    android:layout_width="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/tts_voice"
-                    app:icon="@drawable/ic_baseline_volume_up_24" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/read_sleep_timer"
-                    style="@style/BlackButton"
-                    android:layout_width="wrap_content"
-                    android:layout_marginEnd="0dp"
-                    android:layout_weight="1"
-                    android:text="@string/sleep_timer"
-                    app:icon="@drawable/nights_stay_24px" />
+                    android:layout_width="match_parent"
+                    android:layout_marginTop="10dp"
+                    app:icon="@drawable/swipe_vertical_24px"
+                    tools:text="@string/inf_scroll" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/read_settings_tts_speed_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:text="@string/tts_speed"
-                android:textSize="16sp" />
-
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="match_parent"
-
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="center_vertical"
-                    android:src="@drawable/pace_24px"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toStartOf="@id/read_settings_tts_speed"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:tint="?attr/white" />
-
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/read_settings_tts_speed"
-                    style="@style/SettingsSliderTheme"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:stepSize="0.1"
-
-                    android:value="1.0"
-                    android:valueFrom="0.1"
-                    android:valueTo="7"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="center_vertical"
-                    android:src="@drawable/acute_24px"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@id/read_settings_tts_speed"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:tint="?attr/white" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-            <TextView
-                android:id="@+id/read_settings_tts_pitch_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:text="@string/tts_pitch"
-                android:textSize="16sp" />
-
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="match_parent"
-
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="center_vertical"
-                    android:contentDescription="@string/smaller_font"
-                    android:src="@drawable/hiking_24px"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toStartOf="@id/read_settings_tts_pitch"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:tint="?attr/white" />
-
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/read_settings_tts_pitch"
-                    style="@style/SettingsSliderTheme"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:stepSize="0.1"
-
-                    android:value="1.0"
-                    android:valueFrom="0.1"
-                    android:valueTo="3"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="center_vertical"
-                    android:contentDescription="@string/bigger_font"
-                    android:src="@drawable/directions_run_24px"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@id/read_settings_tts_pitch"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:tint="?attr/white" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-
-            <TextView
-                android:id="@+id/read_settings_text_size_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:text="@string/text_size"
-                android:textSize="16sp" />
-
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="match_parent"
-
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="center_vertical"
-                    android:contentDescription="@string/smaller_font"
-                    android:src="@drawable/smaller_font"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toStartOf="@id/read_settings_text_size"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/read_settings_text_size"
-                    style="@style/SettingsSliderTheme"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:stepSize="1"
-
-                    android:value="4"
-                    android:valueFrom="0"
-                    android:valueTo="10"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="center_vertical"
-                    android:contentDescription="@string/bigger_font"
-                    android:src="@drawable/bigger_font"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@id/read_settings_text_size"
-                    app:layout_constraintTop_toTopOf="parent" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-            <TextView
-                android:id="@+id/read_settings_text_padding_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:text="@string/text_padding"
-                android:textSize="16sp" />
-
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="match_parent"
-
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="center_vertical"
-                    android:contentDescription="@string/smaller_font"
-                    android:src="@drawable/format_padding_decrease_white_24dp"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toStartOf="@id/read_settings_text_padding"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/read_settings_text_padding"
-                    style="@style/SettingsSliderTheme"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:stepSize="1"
-
-                    android:value="4"
-                    android:valueFrom="0"
-                    android:valueTo="10"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="center_vertical"
-                    android:contentDescription="@string/bigger_font"
-                    android:src="@drawable/format_padding_increase_white_24dp"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@id/read_settings_text_padding"
-                    app:layout_constraintTop_toTopOf="parent" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-            <TextView
-                android:id="@+id/read_settings_text_padding_text_top"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:text="@string/text_padding_top"
-                android:textSize="16sp" />
-
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="match_parent"
-
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="center_vertical"
-                    android:contentDescription="@string/smaller_font"
-                    android:src="@drawable/text_top_bottom_margin"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toStartOf="@id/read_settings_text_padding_top"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/read_settings_text_padding_top"
-                    style="@style/SettingsSliderTheme"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:stepSize="1"
-
-                    android:value="4"
-                    android:valueFrom="0"
-                    android:valueTo="10"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="center_vertical"
-                    android:contentDescription="@string/bigger_font"
-                    android:src="@drawable/text_top_bottom_margin_expand"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@id/read_settings_text_padding_top"
-                    app:layout_constraintTop_toTopOf="parent" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-
-            <TextView
-                android:id="@+id/read_settings_text_vertical_padding_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:text="@string/paragraph_spacing"
-                android:textSize="16sp" />
-
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="match_parent"
-
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="center_vertical"
-                    android:contentDescription="@string/less_spacing"
-                    android:src="@drawable/density_small_24px"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toStartOf="@id/read_settings_text_vertical_padding"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/read_settings_text_vertical_padding"
-                    style="@style/SettingsSliderTheme"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:stepSize="0.5"
-
-                    android:value="7.5"
-                    android:valueFrom="0"
-                    android:valueTo="30.0"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="center_vertical"
-                    android:contentDescription="@string/more_spacing"
-                    android:src="@drawable/density_medium_24px"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@id/read_settings_text_vertical_padding"
-                    app:layout_constraintTop_toTopOf="parent" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-
-            <TextView
-                android:id="@+id/read_ml_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:text="@string/google_translate"
-                android:textSize="16sp" />
-
+            <!-- Tab 1: Translation -->
             <LinearLayout
-                android:layout_width="match_parent"
-
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:orientation="horizontal">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/read_ml_from"
-                    style="@style/BlackButton"
-                    android:layout_width="wrap_content"
-                    android:layout_marginStart="0dp"
-                    android:layout_weight="1"
-                    android:text="@string/tts_locale"
-                    app:icon="@drawable/ic_baseline_menu_book_24"
-                    tools:text="English" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/read_ml_to"
-                    style="@style/BlackButton"
-                    android:layout_width="wrap_content"
-                    android:layout_weight="1"
-                    android:text=""
-                    app:icon="@drawable/fiber_new_24px"
-                    tools:text="English" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/read_apply_translation"
-                    style="@style/WhiteButton"
-                    android:layout_width="wrap_content"
-                    android:layout_marginEnd="0dp"
-                    android:layout_weight="1"
-                    android:text="@string/sort_apply"
-                    app:icon="@drawable/translate_24px" />
-
-            </LinearLayout>
-
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/read_online_translation_switch"
-                style="@style/WhiteCheckmark"
+                android:id="@+id/tab_translation_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="@string/online_translate"
-                android:textSize="16sp" />
+                android:orientation="vertical"
+                android:paddingStart="?android:attr/listPreferredItemPaddingStart"
+                android:paddingEnd="?android:attr/listPreferredItemPaddingEnd"
+                android:paddingBottom="20dp"
+                android:visibility="gone">
 
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="15dp"
-                android:text="@string/read_color"
-                android:textSize="16sp" />
-
-            <HorizontalScrollView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:scrollbars="none">
+                <TextView
+                    android:id="@+id/read_ml_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp"
+                    android:text="@string/google_translate"
+                    android:textSize="16sp" />
 
                 <LinearLayout
-                    android:id="@+id/read_settings_colors"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/read_ml_from"
+                        style="@style/BlackButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        app:icon="@drawable/ic_baseline_menu_book_24"
+                        tools:text="English" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/toWhatLanguague"
+                        android:textSize="16sp"
+                        />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/read_ml_to"
+                        style="@style/BlackButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        app:icon="@drawable/fiber_new_24px"
+                        tools:text="Spanish" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/read_apply_translation"
+                        style="@style/WhiteButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/sort_apply"
+                        app:icon="@drawable/translate_24px" />
+                </LinearLayout>
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/read_online_translation_switch"
+                    style="@style/WhiteCheckmark"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/online_translate" />
+            </LinearLayout>
+
+            <!-- Tab 2: Voice -->
+            <LinearLayout
+                android:id="@+id/tab_voice_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingStart="?android:attr/listPreferredItemPaddingStart"
+                android:paddingEnd="?android:attr/listPreferredItemPaddingEnd"
+                android:paddingBottom="20dp"
+                android:visibility="gone">
+
+                <TextView
                     android:layout_width="wrap_content"
-                    android:layout_height="70dp"
-                    android:orientation="horizontal" />
-            </HorizontalScrollView>
-        </LinearLayout>
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp"
+                    android:text="@string/tts_voice_title"
+                    android:textSize="16sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/read_language"
+                        style="@style/BlackButton"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:text="@string/tts_locale"
+                        app:icon="@drawable/ic_baseline_language_24" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/read_voice"
+                        style="@style/BlackButton"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:text="@string/tts_voice"
+                        app:icon="@drawable/ic_baseline_volume_up_24" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/read_sleep_timer"
+                        style="@style/BlackButton"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:text="@string/sleep_timer"
+                        app:icon="@drawable/nights_stay_24px" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/read_settings_tts_speed_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp"
+                    android:text="@string/tts_speed"
+                    android:textSize="16sp" />
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp">
+
+                    <ImageView
+                        android:id="@+id/icon_speed_slow"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:src="@drawable/pace_24px"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:tint="?attr/white" />
+
+                    <com.google.android.material.slider.Slider
+                        android:id="@+id/read_settings_tts_speed"
+                        style="@style/SettingsSliderTheme"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:stepSize="0.1"
+                        android:value="1.0"
+                        android:valueFrom="0.1"
+                        android:valueTo="7"
+                        app:layout_constraintEnd_toStartOf="@id/icon_speed_fast"
+                        app:layout_constraintStart_toEndOf="@id/icon_speed_slow"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <ImageView
+                        android:id="@+id/icon_speed_fast"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:src="@drawable/acute_24px"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:tint="?attr/white" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <TextView
+                    android:id="@+id/read_settings_tts_pitch_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp"
+                    android:text="@string/tts_pitch"
+                    android:textSize="16sp" />
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp">
+
+                    <ImageView
+                        android:id="@+id/icon_pitch_low"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:src="@drawable/hiking_24px"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:tint="?attr/white" />
+
+                    <com.google.android.material.slider.Slider
+                        android:id="@+id/read_settings_tts_pitch"
+                        style="@style/SettingsSliderTheme"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:stepSize="0.1"
+                        android:value="1.0"
+                        android:valueFrom="0.1"
+                        android:valueTo="3"
+                        app:layout_constraintEnd_toStartOf="@id/icon_pitch_high"
+                        app:layout_constraintStart_toEndOf="@id/icon_pitch_low"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <ImageView
+                        android:id="@+id/icon_pitch_high"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:src="@drawable/directions_run_24px"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:tint="?attr/white" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </LinearLayout>
+
+            <!-- Tab 3: Text -->
+            <LinearLayout
+                android:id="@+id/tab_text_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingStart="?android:attr/listPreferredItemPaddingStart"
+                android:paddingEnd="?android:attr/listPreferredItemPaddingEnd"
+                android:paddingBottom="20dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/read_settings_text_font_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp"
+                    android:text="@string/text_font"
+                    android:textSize="16sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/read_show_fonts"
+                    style="@style/BlackButton"
+                    android:layout_width="match_parent"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/reader_font"
+                    app:icon="@drawable/ic_baseline_font_download_24" />
+
+                <TextView
+                    android:id="@+id/read_settings_text_size_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp"
+                    android:text="@string/text_size"
+                    android:textSize="16sp" />
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp">
+
+                    <ImageView
+                        android:id="@+id/icon_size_small"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:src="@drawable/smaller_font"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <com.google.android.material.slider.Slider
+                        android:id="@+id/read_settings_text_size"
+                        style="@style/SettingsSliderTheme"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:stepSize="1"
+                        android:value="4"
+                        android:valueFrom="10"
+                        android:valueTo="30"
+                        app:layout_constraintEnd_toStartOf="@id/icon_size_big"
+                        app:layout_constraintStart_toEndOf="@id/icon_size_small"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <ImageView
+                        android:id="@+id/icon_size_big"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:src="@drawable/bigger_font"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <TextView
+                    android:id="@+id/read_settings_text_padding_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp"
+                    android:text="@string/text_padding"
+                    android:textSize="16sp" />
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp">
+
+                    <ImageView
+                        android:id="@+id/icon_pad_less"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:src="@drawable/format_padding_decrease_white_24dp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <com.google.android.material.slider.Slider
+                        android:id="@+id/read_settings_text_padding"
+                        style="@style/SettingsSliderTheme"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:stepSize="1"
+                        android:value="4"
+                        android:valueFrom="0"
+                        android:valueTo="50"
+                        app:layout_constraintEnd_toStartOf="@id/icon_pad_more"
+                        app:layout_constraintStart_toEndOf="@id/icon_pad_less"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <ImageView
+                        android:id="@+id/icon_pad_more"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:src="@drawable/format_padding_increase_white_24dp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <TextView
+                    android:id="@+id/read_settings_text_padding_text_top"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp"
+                    android:text="@string/text_padding_top"
+                    android:textSize="16sp" />
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp">
+
+                    <ImageView
+                        android:id="@+id/icon_pad_top_less"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:src="@drawable/text_top_bottom_margin"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <com.google.android.material.slider.Slider
+                        android:id="@+id/read_settings_text_padding_top"
+                        style="@style/SettingsSliderTheme"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:stepSize="1"
+                        android:value="4"
+                        android:valueFrom="0"
+                        android:valueTo="50"
+                        app:layout_constraintEnd_toStartOf="@id/icon_pad_top_more"
+                        app:layout_constraintStart_toEndOf="@id/icon_pad_top_less"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <ImageView
+                        android:id="@+id/icon_pad_top_more"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:src="@drawable/text_top_bottom_margin_expand"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <TextView
+                    android:id="@+id/read_settings_text_vertical_padding_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp"
+                    android:text="@string/paragraph_spacing"
+                    android:textSize="16sp" />
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp">
+
+                    <ImageView
+                        android:id="@+id/icon_dens_low"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:src="@drawable/density_small_24px"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <com.google.android.material.slider.Slider
+                        android:id="@+id/read_settings_text_vertical_padding"
+                        style="@style/SettingsSliderTheme"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:stepSize="0.5"
+                        android:value="7.5"
+                        android:valueFrom="0"
+                        android:valueTo="30.0"
+                        app:layout_constraintEnd_toStartOf="@id/icon_dens_high"
+                        app:layout_constraintStart_toEndOf="@id/icon_dens_low"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <ImageView
+                        android:id="@+id/icon_dens_high"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:src="@drawable/density_medium_24px"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp"
+                    android:text="@string/read_color"
+                    android:textSize="16sp" />
+
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="15dp"
+                    android:scrollbars="none">
+
+                    <LinearLayout
+                        android:id="@+id/read_settings_colors"
+                        android:layout_width="wrap_content"
+                        android:layout_height="70dp"
+                        android:orientation="horizontal" />
+                </HorizontalScrollView>
+            </LinearLayout>
+
+        </FrameLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>
