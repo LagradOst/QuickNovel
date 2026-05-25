@@ -87,6 +87,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
             Triple("", "English", "en"),
             Triple("", "Türkçe", "tr"),
             Triple("", "Español", "es"),
+            Triple("", "Русский", "ru"),
             /* end language list */
         ).sortedBy { it.second.lowercase() } //ye, we go alphabetical, so ppl don't put their lang on top
 
