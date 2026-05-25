@@ -15,21 +15,24 @@ import kotlin.text.contains
 // https://morenovel.net/
 // https://meionovel.id/
  */
-class MeioNovelProvider : MoreNovelProvider() {
+open class MeioNovelProvider : MoreNovelProvider() {
     override val name = "MeioNovel"
     override val mainUrl = "https://meionovels.com"
     override val iconId = R.drawable.ic_meionovel
     override val iconBackgroundId = R.color.colorPrimaryBlue
 
     override suspend fun load(url: String): LoadResponse? {
-        val document = app.get(url).document
+        //This is for migrating NovLove URLs.
+        val path = url.substringAfter("://").substringAfter("/", "")
+        val adaptedPath = path.replaceFirst("novel/", "read/")
+        val finalUrl = "${mainUrl}/$adaptedPath".removeSuffix("/")
+        val document = app.get(finalUrl).document
         val name =
             document.selectFirst("div.post-title > h1")?.text()?.replace("  ", " ")
                 ?.replace("\n", "")
                 ?.replace("\t", "") ?: return null
-
-        val data = getChapters(url)
-        return newStreamResponse(url = url, name = name, data = data) {
+        val data = getChapters(finalUrl)
+        return newStreamResponse(url = finalUrl, name = name, data = data) {
             tags = document.select("div.genres-content > a").map { it.text() }
             val authors = document.selectFirst("div.author-content > a")
             author = authors?.text()

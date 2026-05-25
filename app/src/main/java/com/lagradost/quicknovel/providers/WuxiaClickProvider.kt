@@ -315,8 +315,7 @@ class WuxiaClickProvider :  MainAPI() {
 
     override suspend fun loadHtml(url: String): String {
         val document = app.get(url).document
-        val contentElement = document.select("div.mantine-Container-root.mantine-sqid3s > div.mantine-Paper-root.mantine-18ybim5 > div:nth-child(3)").joinToString("</br>")
-        return contentElement
+        return document.selectFirst("#__next .mantine-Container-root .mantine-Paper-root > div:nth-child(4) > div")?.html() ?: ""
     }
 
     override suspend fun search(query: String): List<SearchResponse> {

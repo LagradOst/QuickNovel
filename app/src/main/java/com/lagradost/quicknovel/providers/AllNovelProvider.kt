@@ -173,9 +173,10 @@ open class AllNovelProvider : MainAPI() {
         val dataNovelId = document.select("#rating").attr("data-novel-id")
         val ajaxUrl = "$mainUrl/$ajaxUrl?novelId=$dataNovelId"
         val chapterData = app.get(ajaxUrl).document
+
         var parsed = chapterData.select("select > option")
         if (parsed.isEmpty()) {
-            parsed = chapterData.select(".list-chapter>li>a")
+            parsed = chapterData.select("li[data-chapter-item] > a")
         }
 
         val data = parsed.mapNotNull { c ->

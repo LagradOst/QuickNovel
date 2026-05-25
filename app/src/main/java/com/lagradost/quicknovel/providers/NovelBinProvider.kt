@@ -9,12 +9,12 @@ import com.lagradost.quicknovel.newSearchResponse
 open class NovelBinProvider : AllNovelProvider() {
     override val name = "NovelBin"
     override val mainUrl = "https://novelbin.com"
+    override val ajaxUrl = "ajax/chapter-archive"
     override val hasMainPage = true
 
     override val usesCloudFlareKiller = true
 
     override val iconId = R.drawable.icon_novelbin
-    override val ajaxUrl = "ajax/chapter-archive"
     override val tags = listOf(
         "All" to "All",
         "Action" to "action",

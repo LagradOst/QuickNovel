@@ -127,9 +127,7 @@ open class MoreNovelProvider : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val response = app.get("$mainUrl/?s=$query&post_type=wp-manga")
-
-        val document = Jsoup.parse(response.text)
+        val document = app.get("$mainUrl/?s=$query&post_type=wp-manga").document
         val headers = document.select("div.c-tabs-item__content")
         return headers.mapNotNull { h ->
             val head = h.selectFirst("> div > div.tab-summary")
@@ -160,7 +158,7 @@ open class MoreNovelProvider : MainAPI() {
     suspend fun getChapters(url: String): List<ChapterData> {
 
         val document = app.post(
-            "${url}ajax/chapters/",
+            "${url.removeSuffix("/")}/ajax/chapters/",
         ).document
         val data: ArrayList<ChapterData> = ArrayList()
         val chapterHeaders = document.select("ul.version-chap li.wp-manga-chapter")

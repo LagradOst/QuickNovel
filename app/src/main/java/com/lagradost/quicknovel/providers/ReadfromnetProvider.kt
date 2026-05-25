@@ -1,11 +1,6 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
-import org.jsoup.Jsoup
-import com.lagradost.quicknovel.MainActivity.Companion.app
-import org.jsoup.nodes.Document
-import java.net.HttpURLConnection
-import java.net.URL
 
 open class ReadfromnetProvider : MainAPI() {
     override val name = "ReadFrom.Net"
@@ -1369,8 +1364,8 @@ open class ReadfromnetProvider : MainAPI() {
 
     //both are necessary
     private val baseHeaders = mapOf(
-        "user-agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
         "user-agent" to "Mozilla/5.0",
+        "user-agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
     )
 
 
@@ -1408,7 +1403,7 @@ open class ReadfromnetProvider : MainAPI() {
         val document = app.get("$mainUrl/build_in_search/?q=$query", headers = baseHeaders).document
         val headers = document.select("div > article > div.box_in[id='search result']")
         return headers.mapNotNull { h ->
-            val name = h?.selectFirst(" div > h2.title > a > b")?.text() ?: return@mapNotNull null
+            val name = h.selectFirst(" div > h2.title > a > b")?.text() ?: return@mapNotNull null
             val cUrl = fixUrlNull( h.selectFirst(" div > h2.title > a ")?.attr("href"))?:""
 
             newSearchResponse(

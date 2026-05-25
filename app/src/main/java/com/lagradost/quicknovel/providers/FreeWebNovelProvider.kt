@@ -11,6 +11,7 @@ class FreewebnovelProvider : LibReadProvider() {
     override val iconId = R.drawable.icon_freewebnovel
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
     override val removeHtml = true
+    override val rateLimitTime = 500L
 
     override suspend fun loadMainPage(
         page: Int,
