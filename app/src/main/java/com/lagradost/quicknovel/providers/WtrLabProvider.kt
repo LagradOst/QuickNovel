@@ -21,7 +21,7 @@ import javax.crypto.spec.SecretKeySpec
 import kotlin.math.roundToInt
 
 
-class WtrLabProvider : MainAPI() {
+class  WtrLabProvider : MainAPI() {
     override val mainUrl = "https://wtr-lab.com"
     override val name = "WTR-LAB"
     override val lang = "en"
@@ -113,13 +113,10 @@ class WtrLabProvider : MainAPI() {
     ): HeadMainPageResponse {
         val url = "$mainUrl/en/novel-list?page=$page&status=$mainCategory&orderBy=$orderBy&genre=$tag"
         val doc = app.get(url).document
-        val returnValue =  doc.select(".series-list>div>div>.serie-item").mapNotNull { select ->
-            val titleWrap = select.selectFirst(".title-wrap") ?: return@mapNotNull null
-            val titleHolder = titleWrap.selectFirst("a.title") ?: return@mapNotNull null
+        val returnValue =  doc.select(".series-list>div").mapNotNull { select ->
+            val titleHolder = select.selectFirst("a") ?: return@mapNotNull null
             val href = titleHolder.attr("href") ?: return@mapNotNull null
-            titleHolder.selectFirst(".rawtitle")?.remove()
-
-            val name = titleHolder.text() ?: return@mapNotNull null
+            val name = titleHolder.attr("title") ?: return@mapNotNull null
             newSearchResponse(name, href) {
                 posterUrl = fixUrlNull(select.selectFirst("a img")?.attr("src"))
             }
@@ -130,13 +127,10 @@ class WtrLabProvider : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/en/novel-finder?text=${query.replace(" ", "+")}"
         val doc = app.get(url).document
-        return doc.select(".series-list>div>div>.serie-item").mapNotNull { select ->
-            val titleWrap = select.selectFirst(".title-wrap") ?: return@mapNotNull null
-            val titleHolder = titleWrap.selectFirst("a.title") ?: return@mapNotNull null
+        return doc.select(".series-list>div").mapNotNull { select ->
+            val titleHolder = select.selectFirst("a") ?: return@mapNotNull null
             val href = titleHolder.attr("href") ?: return@mapNotNull null
-            titleHolder.selectFirst(".rawtitle")?.remove()
-
-            val name = titleHolder.text() ?: return@mapNotNull null
+            val name = titleHolder.attr("title") ?: return@mapNotNull null
             newSearchResponse(name, href) {
                 posterUrl = fixUrlNull(select.selectFirst("a img")?.attr("src"))
             }
@@ -168,10 +162,8 @@ class WtrLabProvider : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse {
         val doc = app.get(url).document
-        val titleWrap =
-            doc.selectFirst(".title-wrap") ?: throw ErrorLoadingException("No title wrapping")
         val title =
-            titleWrap.selectFirst(".text-uppercase")?.text()
+            doc.selectFirst("h1")?.text()
                 ?: throw ErrorLoadingException("No title")
         val jsonNode = doc.selectFirst("#__NEXT_DATA__")
         val json = jsonNode?.data() ?: throw ErrorLoadingException("no chapters")
