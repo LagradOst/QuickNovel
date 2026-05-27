@@ -79,6 +79,7 @@ import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import kotlin.properties.Delegates
 import com.google.android.material.tabs.TabLayout
+import com.lagradost.quicknovel.ReadActivityViewModel.MLSettings.Companion.AUTO_LANG
 
 class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     companion object {
@@ -1333,11 +1334,23 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 }
             }
 
+            binding.readOnlineTranslationSwitch.isChecked = viewModel.mlUseOnlineTransaltion
+            binding.readOnlineTranslationSwitch.setOnCheckedChangeListener { _, isChecked ->
+                viewModel.mlUseOnlineTransaltion = isChecked
+                if (!isChecked && viewModel.mlFromLanguage == ReadActivityViewModel.MLSettings.AUTO_LANG) {
+                    viewModel.mlFromLanguage = "en"
+                    binding.readMlFrom.text = ReadActivityViewModel.MLSettings.fromShortToDisplay("en")
+                }
+            }
+
             binding.readMlFrom.setOnClickListener { view ->
                 if (view == null) return@setOnClickListener
                 val context = view.context
 
-                val items = ReadActivityViewModel.MLSettings.list
+                val items = ReadActivityViewModel.MLSettings.list.toMutableList()
+                if (!viewModel.mlUseOnlineTransaltion) {
+                    if (items.isNotEmpty()) items.removeAt(0)
+                }
 
                 context.showDialog(
                     items.map {
@@ -1350,11 +1363,6 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                     binding.readMlFrom.text =
                         ReadActivityViewModel.MLSettings.fromShortToDisplay(viewModel.mlFromLanguage)
                 }
-            }
-
-            binding.readOnlineTranslationSwitch.isChecked = viewModel.mlUseOnlineTransaltion
-            binding.readOnlineTranslationSwitch.setOnCheckedChangeListener { _, isChecked ->
-                viewModel.mlUseOnlineTransaltion = isChecked
             }
 
             binding.readApplyTranslation.setOnClickListener { view ->

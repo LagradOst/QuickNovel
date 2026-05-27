@@ -1941,7 +1941,9 @@ class ReadActivityViewModel : ViewModel() {
         val useOnlineTranslation: Boolean = false
     ) {
         companion object {
+            const val AUTO_LANG = "auto"
             val map = mapOf(
+                AUTO_LANG to "Auto",
                 "af" to "Afrikaans",
                 "ar" to "Arabic",
                 "be" to "Belarusian",
@@ -2023,13 +2025,12 @@ class ReadActivityViewModel : ViewModel() {
 
             val all = TranslateLanguage.getAllLanguages()
 
-            if (!all.contains(to)) {
+            if (!all.contains(to) || to == AUTO_LANG) {
                 // no translation
                 return false
             }
 
-            if (!all.contains(from)) {
-                // no support for auto yet, see https://developers.google.com/ml-kit/language/identification/android
+            if (!all.contains(from)  && !useOnlineTranslation) {
                 return false
             }
 
