@@ -33,7 +33,7 @@ class LibrarySectionFragment : BaseFragment<FragmentLibrarySectionBinding>(
             onDragFinished = { saveNewOrder() }
         )
 
-        binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        binding.recyclerView.layoutManager = LinearLayoutManager(context)
         binding.recyclerView.adapter = adapter
         adapter.itemTouchHelper.attachToRecyclerView(binding.recyclerView)
         binding.fabAddFolder.setOnClickListener { showCreateDialog() }
@@ -79,7 +79,7 @@ class LibrarySectionFragment : BaseFragment<FragmentLibrarySectionBinding>(
     }
 
     private fun showCreateDialog() {
-        val context = requireContext()
+        val context = context ?: return
         val inputView = layoutInflater.inflate(R.layout.dialog_add_folder, null)
         AlertDialog.Builder(context, R.style.AlertDialogCustom)
             .setTitle(R.string.library_create)
@@ -113,7 +113,7 @@ class LibrarySectionFragment : BaseFragment<FragmentLibrarySectionBinding>(
     }
 
     private fun showRenameDialog(item: DefaultLibrary) {
-        val context = requireContext()
+        val context = context ?: return
         val inputView = layoutInflater.inflate(R.layout.dialog_add_folder, null)
 
         val resId = item.title.toIntOrNull()
@@ -142,7 +142,7 @@ class LibrarySectionFragment : BaseFragment<FragmentLibrarySectionBinding>(
     }
 
     private fun showMergeDialog(item: DefaultLibrary) {
-        val context = requireContext()
+        val context = context ?: return
         val libraries = context.getLibraries()
         val targetCandidates = libraries.filter { it.id != item.id }
         if (targetCandidates.isEmpty()) return
