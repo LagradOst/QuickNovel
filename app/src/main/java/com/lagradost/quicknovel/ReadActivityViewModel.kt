@@ -2032,6 +2032,7 @@ class ReadActivityViewModel : ViewModel() {
                 return false
             }
 
+            // no support for auto yet (for offlineTranslations), see https://developers.google.com/ml-kit/language/identification/android
             //If the source language does not exist
             //and the user did not select auto-detect language, do not allow it.
             if (!all.contains(from)  && from != AUTO_LANG) {
