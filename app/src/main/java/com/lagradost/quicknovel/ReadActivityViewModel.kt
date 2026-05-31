@@ -2025,12 +2025,16 @@ class ReadActivityViewModel : ViewModel() {
 
             val all = TranslateLanguage.getAllLanguages()
 
+            //If the user wants to translate to a language that doesn't exist,
+            //or wants to auto-detect their own language, do not allow it.
             if (!all.contains(to) || to == AUTO_LANG) {
                 // no translation
                 return false
             }
 
-            if (!all.contains(from)  && !useOnlineTranslation) {
+            //If the source language does not exist
+            //and the user did not select auto-detect language, do not allow it.
+            if (!all.contains(from)  && from != AUTO_LANG) {
                 return false
             }
 
