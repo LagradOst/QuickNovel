@@ -31,7 +31,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.net.toUri
 import androidx.preference.PreferenceManager
-import androidx.work.ListenableWorker
 import coil3.Extras
 import coil3.SingletonImageLoader
 import coil3.asDrawable
@@ -52,7 +51,6 @@ import com.lagradost.quicknovel.BookDownloader2Helper.getDirectory
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.mapper
-import com.lagradost.quicknovel.DownloadFileWorkManager.Companion.viewModel
 import com.lagradost.quicknovel.ImageDownloader.getImageBitmapFromUrl
 import com.lagradost.quicknovel.NotificationHelper.etaToString
 import com.lagradost.quicknovel.extractors.ExtractorApi
@@ -452,6 +450,7 @@ object BookDownloader2Helper {
             val total = getKey<Int>(DOWNLOAD_TOTAL, id.toString()) ?: return null
             return DownloadProgress(count.toLong(), total.toLong(), downloaded.toLong())
         } catch (e: Exception) {
+            logError(e)
             return null
         }
     }
@@ -660,7 +659,7 @@ object BookDownloader2Helper {
             try {
                 val page = api.loadHtml(data.url)
 
-                if (!page.isNullOrBlank()) {
+                if (!page.isNullOrBlank() && page.length > 100) {
                     rFile.createNewFile() // only create the file when actually needed
                     rFile.writeText("${data.name}\n${page}")
                     if (api.rateLimitTime > 0) {
@@ -668,11 +667,14 @@ object BookDownloader2Helper {
                     }
                     return@withContext true
                 } else {
-                    delay(5000) // ERROR
+                    delay(5000L * (i + 1)) // ERROR
                     if (api.rateLimitTime > 0) {
                         delay(api.rateLimitTime)
                     }
                 }
+            }catch (e: Exception) {
+                logError(e)
+                delay(5000L * (i + 1))
             }
             finally {
                 if (rateLimit) {
@@ -2139,6 +2141,7 @@ object BookDownloader2 {
         }
     }
 
+    //this is for complete epubs like from anna's archive
     @WorkerThread
     suspend fun downloadWorkThread(load: EpubResponse, api: APIRepository) {
         val filesDir = activity?.filesDir ?: return
@@ -2225,75 +2228,80 @@ object BookDownloader2 {
                     delay(api.rateLimitTime + 1000)
                     continue
                 }
-
-                val totalBytes = ArrayList<Byte>()
                 var progress = 0L
                 val startedTime = System.currentTimeMillis()
                 file.parentFile?.mkdirs()
                 file.createNewFile()
                 val size = DEFAULT_BUFFER_SIZE
                 var lastUpdatedMs = 0L
-                stream.byteStream().buffered(size).iterator().asSequence().chunked(size)
-                    .forEach { bytes ->
-                        progress += bytes.size
-                        totalBytes.addAll(bytes)
-                        val total = maxOf(length, progress)
-                        val currentTime = System.currentTimeMillis()
-                        val totalTimeSoFar = currentTime - startedTime
-                        val state = DownloadProgressState(
-                            state = DownloadState.IsDownloading,
-                            progress = progress,
-                            total = total,
-                            downloaded = progress,
-                            lastUpdatedMs = currentTime,
-                            etaMs = maxOf(((totalTimeSoFar * total) / progress) - totalTimeSoFar, 0)
-                        )
 
-                        run {
-                            var currentState = DownloadState.IsDownloading
-                            while (true) {
-                                when (consumeAction(id)) {
-                                    DownloadActionType.Pause -> DownloadState.IsPaused
-                                    DownloadActionType.Resume -> DownloadState.IsDownloading
-                                    DownloadActionType.Stop -> DownloadState.IsStopped
-                                    else -> null
-                                }?.let { newState ->
-                                    // if a new state is consumed then push that data instantly
-                                    changeDownload(id) {
-                                        this.state = newState
-                                    }
-                                    createNotification(
-                                        id,
-                                        load,
-                                        state.copy(state = newState),
-                                        progressInBytes = true
-                                    )
-                                    currentState = newState
-                                }
-                                if (currentState != DownloadState.IsPaused) {
-                                    break
-                                }
-                                delay(200)
-                            }
+                stream.byteStream().buffered(size).use { input ->
+                    file.outputStream().use { output ->
+                        val buffer = ByteArray(size)
+                        var bytesRead: Int
 
-                            if (currentState == DownloadState.IsStopped) {
-                                return
-                            }
-                        }
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            output.write(buffer, 0, bytesRead)
+                            progress += bytesRead
+                            val total = maxOf(length, progress)
+                            val currentTime = System.currentTimeMillis()
+                            val totalTimeSoFar = currentTime - startedTime
 
-                        // don't spam notifications so only update once per sec
-                        if (lastUpdatedMs + 1000 < System.currentTimeMillis()) {
-                            lastUpdatedMs = System.currentTimeMillis()
-                            createNotification(
-                                id,
-                                load,
-                                state,
-                                progressInBytes = true
+                            val state = DownloadProgressState(
+                                state = DownloadState.IsDownloading,
+                                progress = progress,
+                                total = total,
+                                downloaded = progress,
+                                lastUpdatedMs = currentTime,
+                                etaMs = maxOf(((totalTimeSoFar * total) / progress) - totalTimeSoFar, 0)
                             )
+
+                            run {
+                                var currentState = DownloadState.IsDownloading
+                                while (true) {
+                                    when (consumeAction(id)) {
+                                        DownloadActionType.Pause -> DownloadState.IsPaused
+                                        DownloadActionType.Resume -> DownloadState.IsDownloading
+                                        DownloadActionType.Stop -> DownloadState.IsStopped
+                                        else -> null
+                                    }?.let { newState ->
+                                        changeDownload(id) {
+                                            this.state = newState
+                                        }
+                                        createNotification(
+                                            id,
+                                            load,
+                                            state.copy(state = newState),
+                                            progressInBytes = true
+                                        )
+                                        currentState = newState
+                                    }
+                                    if (currentState != DownloadState.IsPaused) {
+                                        break
+                                    }
+                                    delay(200)
+                                }
+
+                                if (currentState == DownloadState.IsStopped) {
+                                    return
+                                }
+                            }
+
+                            // don't spam notifications so only update once per sec
+                            if (lastUpdatedMs + 1000 < System.currentTimeMillis()) {
+                                lastUpdatedMs = System.currentTimeMillis()
+                                createNotification(
+                                    id,
+                                    load,
+                                    state,
+                                    progressInBytes = true
+                                )
+                            }
                         }
                     }
+                }
 
-                file.writeBytes(totalBytes.toByteArray())
+
 
                 setSuffixData(load, api.name)
 
