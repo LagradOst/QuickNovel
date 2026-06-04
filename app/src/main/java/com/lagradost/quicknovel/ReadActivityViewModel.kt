@@ -27,13 +27,7 @@ import coil3.request.Disposable
 import coil3.request.ImageRequest
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.google.android.gms.tasks.Tasks
-import com.google.mlkit.common.model.RemoteModelManager
 import com.google.mlkit.nl.translate.TranslateLanguage
-import com.google.mlkit.nl.translate.TranslateRemoteModel
-import com.google.mlkit.nl.translate.Translation
-import com.google.mlkit.nl.translate.Translator
-import com.google.mlkit.nl.translate.TranslatorOptions
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeyClass
@@ -53,7 +47,6 @@ import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.map
 import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.mvvm.safeApiCall
-import com.lagradost.quicknovel.mvvm.safeAsync
 import com.lagradost.quicknovel.mvvm.throwableToResource
 import com.lagradost.quicknovel.providers.RedditProvider
 import com.lagradost.quicknovel.ui.OrientationType
@@ -69,8 +62,7 @@ import com.lagradost.quicknovel.util.CoilImagesPlugin
 import com.lagradost.quicknovel.util.CoilImagesPlugin.CoilStore
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.runOnMainThread
-import com.lagradost.quicknovel.util.GoogleTranslateOnline
-import com.lagradost.safefile.closeQuietly
+import com.lagradost.quicknovel.util.Translation.TranslationManager
 import io.noties.markwon.AbstractMarkwonPlugin
 import io.noties.markwon.Markwon
 import io.noties.markwon.MarkwonConfiguration
@@ -99,8 +91,6 @@ import java.io.File
 import java.net.URLDecoder
 import java.security.MessageDigest
 import java.util.Locale
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
@@ -464,8 +454,6 @@ class ReadActivityViewModel : ViewModel() {
     private lateinit var markwon: Markwon
     private var isInApp: Boolean = true
     private var leftAppAt: ScrollIndex? = null
-    private var mlTranslator: Translator? = null
-
     fun leftApp() {
         lastChangeIndex?.let { setScrollKeys(it) }
         isInApp = false
@@ -1011,33 +999,17 @@ class ReadActivityViewModel : ViewModel() {
             }
             if(cachedData != null) return cachedData
 
+            if (currentSettings.useOnlineTranslation == false && mlSettings.isInvalid()) return text to spans
 
-            var translatedList: List<String>
-
-            // --- Online mode ---
-            if (currentSettings.useOnlineTranslation) {
-                translatedList = GoogleTranslateOnline.onlineTranslate(
-                        spans.map { it.text.toString() },
-                        currentSettings.from,
-                        currentSettings.to
-                    ){ progress, total ->
-                        loading.invoke(Triple(spans[0].index, progress, total))
-                    }
-
+            val translatedList = TranslationManager.translate(
+                textList = spans.map { it.text.toString() },
+                from = currentSettings.from,
+                to = currentSettings.to,
+                useOnline = currentSettings.useOnlineTranslation
+            ) { progress, total ->
+                loading.invoke(Triple(spans[0].index, progress, total))
             }
 
-            // --- Offline mode ---
-            else {
-                val translator = mlTranslator ?: return text to spans
-                translatedList = spans.mapIndexed { i,  span ->
-                    loading.invoke(Triple(span.index, i, spans.size))
-                    try {
-                        Tasks.await(translator.translate(span.text.toString()))
-                    } catch (t: ExecutionException) {
-                        throw t.cause ?: t
-                    }
-                }
-            }
 
             val (builder, out) = getFinalTranslatedText(spans, translatedList)
 
@@ -1059,34 +1031,17 @@ class ReadActivityViewModel : ViewModel() {
 
     @Throws
     suspend fun requireMLDownload(): Boolean {
-        val settings = MLSettings(from = mlFromLanguage, to = mlToLanguage, mlUseOnlineTransaltion)
-        if (settings.isInvalid() || mlUseOnlineTransaltion) {
-            return false
-        }
-        val modelManager = RemoteModelManager.getInstance()
-
-        for (model in arrayOf(settings.from, settings.to)) {
-            if (model == "en") continue
-
-            if (!Tasks.await(
-                    modelManager.isModelDownloaded(
-                        TranslateRemoteModel.Builder(model).build()
-                    )
-                )
-            ) {
-                return true
-            }
-        }
-
-        return false
+        val settings = mlSettings
+        if (settings.isInvalid() || mlUseOnlineTransaltion) return false
+        return !TranslationManager.isModelDownloaded(settings.from, settings.to)
     }
 
-    fun applyMLSettings(allowDownload: Boolean) = ioSafe {
+    fun applyMLSettings() = ioSafe {
         val settings = MLSettings(from = mlFromLanguage, to = mlToLanguage, mlUseOnlineTransaltion)
-        if (settings.isValid() && allowDownload && safeAsync { requireMLDownload() } == true) {
+        if (settings.isValid() && requireMLDownload()) {
             _loadingStatus.postValue(Resource.Loading("Downloading language"))
         }
-        initMLFromSettings(settings, allowDownload)
+        initMLFromSettings(settings)
         reloadMLForAllChapters()
     }
 
@@ -1150,35 +1105,16 @@ class ReadActivityViewModel : ViewModel() {
         //refreshChapters()
     }
 
-    private suspend fun initMLFromSettings(settings: MLSettings, allowDownload: Boolean) {
+    private suspend fun initMLFromSettings(settings: MLSettings) {
         try {
-            mlTranslator?.closeQuietly()
-            mlTranslator = null
-
-            if (settings.isInvalid() || settings.useOnlineTranslation) {
-                mlSettings = settings
-                return
+            TranslationManager.release()
+            if (settings.isValid() && !settings.useOnlineTranslation) {
+                TranslationManager.prepareModel(settings.from, settings.to)
             }
-
-            val options = TranslatorOptions.Builder()
-                .setSourceLanguage(settings.from)
-                .setTargetLanguage(settings.to)
-                .build()
-
-            val translator = Translation.getClient(options)
-            mlTranslator = translator
-
-            if (allowDownload) {
-                Tasks.await(
-                    translator.downloadModelIfNeeded(), 120L, TimeUnit.SECONDS
-                )//for bad wifi, like my 2mb/s one TT
-            }
-
             mlSettings = settings
         } catch (_: TimeoutException) {
             showToast(R.string.unable_to_download_language)
-            mlTranslator?.closeQuietly()
-            mlTranslator = null
+            TranslationManager.release()
         } catch (t: Throwable) {
             logError(t)
         }
@@ -1216,7 +1152,7 @@ class ReadActivityViewModel : ViewModel() {
             is Resource.Success -> {
                 init(loadedBook.value, context)
 
-                initMLFromSettings(mlSettings, false)
+                initMLFromSettings(mlSettings)
 
                 // cant assume we know a chapter max as it can expand
 
@@ -1771,8 +1707,7 @@ class ReadActivityViewModel : ViewModel() {
         lastChangeIndex?.let { setScrollKeys(it) }
         ttsSession?.release()
         ttsSession = null
-        mlTranslator?.close()
-        mlTranslator = null
+        TranslationManager.release()
         super.onCleared()
     }
 
