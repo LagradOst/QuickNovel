@@ -6,6 +6,7 @@ import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.fixUrl
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
@@ -90,10 +91,15 @@ class NovelsOnlineProvider : MainAPI() {
     }
 
     override suspend fun loadHtml(url: String): String? {
-        val response = app.get(url)
-        val document =
-            Jsoup.parse(response.text.replace("Your browser does not support JavaScript!", ""))
-        return document.selectFirst("#contentall")!!.html()
+        val response = app.get(url).document
+        val document = response.selectFirst("#contentall")
+        document?.select("img")?.forEach { img ->
+            val src = img.attr("src")
+            if (src.isNotBlank()) {
+                img.attr("src", fixUrl(src))
+            }
+        }
+        return document?.html()
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
