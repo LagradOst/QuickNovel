@@ -72,7 +72,6 @@ class AnnasArchive : MainAPI() {
                 name = title,
                 url = href
             ) {
-                println("la imagen: ${fixUrlNull(node.selectFirst("img")?.attr("src"))}")
                 posterUrl = fixUrlNull(node.selectFirst("img")?.attr("src"))
             }
 
