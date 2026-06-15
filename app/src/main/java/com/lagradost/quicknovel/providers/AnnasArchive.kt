@@ -4,8 +4,10 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.DownloadExtractLink
 import com.lagradost.quicknovel.DownloadLink
 import com.lagradost.quicknovel.DownloadLinkType
+import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
+import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newEpubResponse
@@ -13,14 +15,69 @@ import com.lagradost.quicknovel.newSearchResponse
 import org.jsoup.Jsoup
 
 class AnnasArchive : MainAPI() {
-    override val hasMainPage = false
-    override val hasReviews = false
     override val lang = "en"
     override val name = "Annas Archive"
-    override val mainUrl = "https://annas-archive.pk"
+    override val mainUrl = "https://annas-archive.gl"
+    override val hasMainPage = true
+    override val iconId = R.drawable.icon_annasarchive
+    override val iconBackgroundId = R.color.white
+    override val hasReviews = false
 
     //open val searchTags = "lang=en&content=book_fiction&ext=epub&sort=&"
+    override val tags = listOf(
+        "Fiction" to "book_fiction",
+        "Non-fiction" to "book_nonfiction",
+        "Unknown" to "book_unknown",
+        "Magazine" to "magazine",
+        "Comic" to "book_comic",
+        "Standards" to "standards_document",
+    )
+    override val mainCategories = listOf(
+        "English" to "en",
+        "Spanish" to "es",
+        "French" to "fr",
+        "German" to "de",
+        "Italian" to "it",
+        "Portuguese" to "pt",
+        "Chinese" to "zh",
+        "Japanese" to "ja",
+    )
+    override val orderBys = listOf(
+        "Z-Library" to "zlib",
+        "Libgen (li)" to "lgli",
+        "Libgen (rs)" to "lgrs",
+        "Internet Archive" to "ia",
+        "HathiTrust" to "hathi",
+        "Uploads" to "upload",
+        "Duxiu" to "duxiu",
+        "Sci-Hub" to "scihub",
+        "MagzDB" to "magzdb"
+    )
+    override suspend fun loadMainPage(
+        page: Int,
+        mainCategory: String?,
+        orderBy: String?,
+        tag: String?
+    ): HeadMainPageResponse {
+        val langParam = if (!mainCategory.isNullOrBlank()) "&lang=$mainCategory" else ""
+        val contentParam = if (!tag.isNullOrBlank()) "&content=$tag" else ""
+        val srcParam = if (!orderBy.isNullOrBlank()) "&src=$orderBy" else ""
+        val url = "$mainUrl/search?index=&page=$page&sort=$langParam$contentParam$srcParam&ext=epub"
+        val document = app.get(url).document
+        val returnValue = document.select("div.js-aarecord-list-outer > div").mapNotNull { node ->
+            val a = node.selectFirst("a.line-clamp-\\[3\\]")
+            val href = fixUrlNull(a?.attr("href")) ?: return@mapNotNull null
+            val title = a?.text() ?: return@mapNotNull null
+            newSearchResponse(
+                name = title,
+                url = href
+            ) {
+                posterUrl = fixUrlNull(node.selectFirst("img")?.attr("src"))
+            }
 
+        }
+        return HeadMainPageResponse(url, returnValue)
+    }
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/search?index=&page=1&sort=&ext=epub&display=&q=${query.replace(" ", "+")}"
         val text = app.get(url).text.replace(
