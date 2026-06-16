@@ -23,6 +23,7 @@ import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
 import com.lagradost.quicknovel.DownloadState
+import com.lagradost.quicknovel.MainActivity.Companion.navigate
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.FragmentDownloadsBinding
 import com.lagradost.quicknovel.databinding.SortBottomSheetBinding
@@ -34,7 +35,6 @@ import com.lagradost.quicknovel.ui.img
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
 import kotlinx.coroutines.launch
-
 class DownloadFragment : BaseFragment<FragmentDownloadsBinding>(
     BindingCreator.Inflate(FragmentDownloadsBinding::inflate)
 ) {
@@ -177,12 +177,13 @@ class DownloadFragment : BaseFragment<FragmentDownloadsBinding>(
         //binding.viewpager.reduceDragSensitivity()
 
         binding.bookmarkTabs.apply {
-            val tabs = mutableListOf(R.string.tab_downloads)
-            for (read in viewModel.readList) {
-                tabs.add(read.stringRes)
+            val tabLabels = mutableListOf(this@DownloadFragment.getString(R.string.tab_downloads))
+            for (lib in viewModel.libraries()) {
+                tabLabels.add(lib.title)
             }
             TabLayoutMediator(this, binding.viewpager) { tab, position ->
-                tab.setId(tabs[position]).setText(tabs[position])
+                if(position >= tabLabels.size) return@TabLayoutMediator
+                tab.text = tabLabels[position]
             }.attach()
 
             addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
@@ -200,6 +201,7 @@ class DownloadFragment : BaseFragment<FragmentDownloadsBinding>(
             })
         }
 
+        //sort button
         binding.downloadFab.setOnClickListener { view ->
             val binding = SortBottomSheetBinding.inflate(layoutInflater, null, false)
             val bottomSheetDialog = BottomSheetDialog(view.context)
@@ -244,6 +246,10 @@ class DownloadFragment : BaseFragment<FragmentDownloadsBinding>(
 
         //swipe_container.setProgressBackgroundColorSchemeColor(requireContext().colorFromAttribute(R.attr.darkBackground))
 
+        //libraries button
+        binding.downloadLibraryManagerIcon.setOnClickListener {
+            activity.navigate(R.id.navigation_library_section)
+        }
 
         binding.swipeContainer.apply {
             setColorSchemeColors(context.colorFromAttribute(R.attr.colorPrimary))

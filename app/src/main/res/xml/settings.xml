@@ -66,6 +66,10 @@
                 app:useSimpleSummaryProvider="true"
                 android:entries="@array/DownloadGridFormat"
                 android:entryValues="@array/DownloadGridFormatData" />
+        <Preference
+            app:icon="@drawable/ic_baseline_collections_bookmark_24"
+            android:key="@string/library_manager_key"
+            android:title="@string/library_manager_title" />
         <SwitchPreference
                 app:key="@string/auto_update_key"
                 android:title="@string/show_app_updates"

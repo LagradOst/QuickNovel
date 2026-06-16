@@ -7,10 +7,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
@@ -19,21 +16,20 @@ import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.BookDownloader2.currentDownloads
 import com.lagradost.quicknovel.BookDownloader2.currentDownloadsMutex
-import com.lagradost.quicknovel.BookDownloader2.downloadDataRefreshed
 import com.lagradost.quicknovel.BookDownloader2.downloadInfoMutex
 import com.lagradost.quicknovel.BookDownloader2.downloadProgress
 import com.lagradost.quicknovel.BookDownloader2.downloadProgressChanged
-import com.lagradost.quicknovel.BookDownloader2.downloadRemoved
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.CURRENT_TAB
 import com.lagradost.quicknovel.CommonActivity.activity
+import com.lagradost.quicknovel.DEFAULT_LIBRARIES
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
 import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
+import com.lagradost.quicknovel.DefaultLibrary
 import com.lagradost.quicknovel.DownloadActionType
 import com.lagradost.quicknovel.DownloadFileWorkManager
-import com.lagradost.quicknovel.DownloadFileWorkManager.Companion.viewModel
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.MainActivity
@@ -41,36 +37,21 @@ import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
-import com.lagradost.quicknovel.StreamResponse
-import com.lagradost.quicknovel.mvvm.Resource
+import com.lagradost.quicknovel.getLibraries
 import com.lagradost.quicknovel.mvvm.launchSafe
-import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.ReadType
-import com.lagradost.quicknovel.util.Apis.Companion.getApiFromNameOrNull
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.sample
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import me.xdrop.fuzzywuzzy.FuzzySearch
-import java.util.Collections
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.collections.set
-import kotlin.coroutines.cancellation.CancellationException
 
 const val DEFAULT_SORT = 0
 const val ALPHA_SORT = 1
@@ -114,13 +95,8 @@ class DownloadViewModel : ViewModel() {
         )
     }
 
-    val readList = arrayListOf(
-        ReadType.READING,
-        ReadType.ON_HOLD,
-        ReadType.PLAN_TO_READ,
-        ReadType.COMPLETED,
-        ReadType.DROPPED,
-    )
+    fun libraries(): List<DefaultLibrary> =
+        context?.getLibraries() ?: DEFAULT_LIBRARIES
 
     var activeQuery: String = ""
     val _pages: MutableLiveData<List<Page>> = MutableLiveData(null)
@@ -454,13 +430,11 @@ class DownloadViewModel : ViewModel() {
 
     fun loadAllData(refreshAll: Boolean) = viewModelScope.launch {
         if (refreshAll) fetchAllData(false)
-        val mapping: HashMap<Int, ArrayList<ResultCached>> = hashMapOf(
-            ReadType.PLAN_TO_READ.prefValue to arrayListOf(),
-            ReadType.DROPPED.prefValue to arrayListOf(),
-            ReadType.COMPLETED.prefValue to arrayListOf(),
-            ReadType.ON_HOLD.prefValue to arrayListOf(),
-            ReadType.READING.prefValue to arrayListOf(),
-        )
+        val libs = libraries()
+
+        val mapping = LinkedHashMap<Int, ArrayList<ResultCached>>().apply {
+            libs.forEach { lib -> put(lib.id, arrayListOf()) }
+        }
 
         withContext(Dispatchers.IO) {
             val keys = getKeys(RESULT_BOOKMARK_STATE)
@@ -475,21 +449,17 @@ class DownloadViewModel : ViewModel() {
             }
         }
 
-        val pages = mutableListOf(
-            getDownloadedCards(),
-        )
-        for (read in readList) {
-            pages.add(
-                Page(
-                    read.name,
-                    unsortedItems = mapping[read.prefValue]!!,
-                    items = sortNormalArray(mapping[read.prefValue]!!)
-                ),
-            )
+        val pages = mutableListOf<Page>()
+
+        pages.add(getDownloadedCards())
+
+        for (lib in libs) {
+            val items = mapping[lib.id] ?: arrayListOf()
+            val sortedItems = sortNormalArray(ArrayList(items))
+            pages.add(Page(lib.title, unsortedItems = items, items = sortedItems))
         }
+
         _pages.postValue(pages)
-
-
     }
 
     private suspend fun getDownloadedCards(): Page = cardsDataMutex.withLock {

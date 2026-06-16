@@ -26,6 +26,13 @@
             tools:layout="@layout/fragment_downloads">
     </fragment>
     <fragment
+        android:id="@+id/navigation_library_section"
+        android:name="com.lagradost.quicknovel.ui.library.LibrarySectionFragment"
+        android:label="@string/library_manager_title"
+        android:layout_height="match_parent"
+        tools:layout="@layout/fragment_library_section">
+    </fragment>
+    <fragment
             android:id="@+id/navigation_settings"
             android:name="com.lagradost.quicknovel.ui.settings.SettingsFragment"
             android:label="@string/title_download"

@@ -19,13 +19,13 @@ import com.lagradost.quicknovel.APIRepository.Companion.providersActive
 import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.ErrorLoadingException
+import com.lagradost.quicknovel.MainActivity.Companion.navigate
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.LogcatBinding
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.ui.clear
 import com.lagradost.quicknovel.ui.download.AnyAdapter
-import com.lagradost.quicknovel.ui.history.HistoryAdapter
 import com.lagradost.quicknovel.ui.txt
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiProviderLangSettings
@@ -259,6 +259,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
         getPref(R.string.backup_key)?.setOnPreferenceClickListener {
             activity?.backup()
             return@setOnPreferenceClickListener true
+        }
+
+        getPref(R.string.library_manager_key)?.setOnPreferenceClickListener {
+            activity.navigate(R.id.navigation_library_section)
+            true
         }
 
         getPref(R.string.restore_key)?.setOnPreferenceClickListener {

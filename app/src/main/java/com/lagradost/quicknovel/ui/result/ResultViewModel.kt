@@ -41,14 +41,11 @@ import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.launchSafe
-import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.download.CHAPTER_SORT
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.download.LAST_ACCES_SORT
-import com.lagradost.quicknovel.ui.download.LAST_UPDATED_SORT
 import com.lagradost.quicknovel.ui.download.REVERSE_CHAPTER_SORT
 import com.lagradost.quicknovel.ui.download.REVERSE_LAST_ACCES_SORT
-import com.lagradost.quicknovel.ui.download.REVERSE_LAST_UPDATED_SORT
 import com.lagradost.quicknovel.ui.download.SortingMethod
 import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
@@ -192,8 +189,7 @@ class ResultViewModel : ViewModel() {
     var isGetLoaded = false
 
     var id: MutableLiveData<Int> = MutableLiveData<Int>(-1)
-    var readState: MutableLiveData<ReadType> = MutableLiveData<ReadType>(ReadType.NONE)
-
+    var libraryId: MutableLiveData<Int> = MutableLiveData<Int>(0)
     var apiName : String = ""
 
     /*This is to detect whether it actually returned to
@@ -213,6 +209,8 @@ class ResultViewModel : ViewModel() {
     private var loadId: Int = 0
     private var loadUrl: String = ""
     private var hasLoaded: Boolean = false
+
+
 
     val loadResponse: MutableLiveData<Resource<LoadResponse>?> =
         MutableLiveData<Resource<LoadResponse>?>()
@@ -555,16 +553,16 @@ class ResultViewModel : ViewModel() {
         )
     }
 
-    fun bookmark(state: Int) = viewModelScope.launch {
+    fun bookmark(bookMarkId: Int) = viewModelScope.launch {
         loadMutex.withLock {
             if (!hasLoaded) return@launch
             setKey(
-                RESULT_BOOKMARK_STATE, loadId.toString(), state
+                RESULT_BOOKMARK_STATE, loadId.toString(), bookMarkId
             )
             updateBookmarkData()
         }
 
-        readState.postValue(ReadType.fromSpinner(state))
+        libraryId.postValue(bookMarkId)
     }
 
     fun share() = viewModelScope.launch {
@@ -701,19 +699,14 @@ class ResultViewModel : ViewModel() {
         }
     }
 
-    private fun setState(tid: Int) {
-        loadId = tid
+    private fun setState(novelId: Int) {
+        loadId = novelId
 
-        readState.postValue(
-            ReadType.fromSpinner(
-                getKey(
-                    RESULT_BOOKMARK_STATE, tid.toString()
-                )
-            )
-        )
+        val currentLibraryId = getKey<Int>(RESULT_BOOKMARK_STATE, novelId.toString()) ?: 0
+        libraryId.postValue(currentLibraryId)
 
         setKey(
-            DOWNLOAD_EPUB_LAST_ACCESS, tid.toString(), System.currentTimeMillis()
+            DOWNLOAD_EPUB_LAST_ACCESS, novelId.toString(), System.currentTimeMillis()
         )
         reCacheChapters()
         updateBookmarkData()

@@ -53,7 +53,6 @@ import com.lagradost.quicknovel.mvvm.observeNullable
 import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.network.CloudflareKiller
 import com.lagradost.quicknovel.providers.RedditProvider
-import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.result.ResultFragment
 import com.lagradost.quicknovel.ui.result.ResultViewModel
@@ -72,7 +71,6 @@ import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.dismissSafe
 import com.lagradost.quicknovel.util.UIHelper.getResourceColor
 import com.lagradost.quicknovel.util.UIHelper.html
-import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.safefile.SafeFile
 import kotlinx.coroutines.Dispatchers
@@ -82,6 +80,7 @@ import java.lang.ref.WeakReference
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.reflect.KClass
+import com.lagradost.quicknovel.util.SingleSelectionHelper.showBottomDialogWithAction
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -590,12 +589,6 @@ class MainActivity : AppCompatActivity() {
             true
         }*/
 
-        observe(viewModel.readState) {
-            bottomPreviewBinding?.apply {
-                bookmark.setIconResource(if (it == ReadType.NONE) R.drawable.ic_baseline_bookmark_border_24 else R.drawable.ic_baseline_bookmark_24)
-                bookmark.setText(it.stringRes)
-            }
-        }
 
         observe(viewModel.downloadState) { progressState ->
             val hasDownload = progressState != null && progressState.progress > 0
@@ -605,6 +598,12 @@ class MainActivity : AppCompatActivity() {
                 isVisible = hasDownload
                 isClickable = hasDownload
             }
+        }
+
+        observe(viewModel.libraryId) { libraryId ->
+            bottomPreviewBinding?.bookmark?.setIconResource(if ( libraryId == 0) R.drawable.ic_baseline_bookmark_border_24 else R.drawable.ic_baseline_bookmark_24)
+            val selectedLibrary = this@MainActivity.getLibraries().firstOrNull { it.id == libraryId }
+            bottomPreviewBinding?.bookmark?.text = selectedLibrary?.title ?: getString(R.string.type_none)
         }
 
         observeNullable(viewModel.loadResponse) { resource ->
@@ -631,13 +630,31 @@ class MainActivity : AppCompatActivity() {
                         downloadDeleteTrashFromResult.setOnClickListener {
                             viewModel.deleteAlert()
                         }
-
+                        //change bookmark
                         bookmark.setOnClickListener { view ->
-                            view.popupMenu(
-                                ReadType.entries.map { it.prefValue to it.stringRes },
-                                selectedItemId = viewModel.readState.value?.prefValue
-                            ) {
-                                viewModel.bookmark(itemId)
+                            val context = view.context ?: return@setOnClickListener
+                            val libraries = context.getLibraries()
+                            val allOptions = listOf(context.getString(R.string.type_none)) + libraries.map { it.title }
+                            val currentLibraryId = viewModel.libraryId.value ?: 0
+                            val selectedIndex = if (currentLibraryId == 0) 0 else libraries.indexOfFirst { it.id == currentLibraryId } + 1
+
+                            context.showBottomDialogWithAction(
+                                allOptions,
+                                selectedIndex = selectedIndex,
+                                context.getString(R.string.bookmark),
+                                false, {},
+                                {
+                                    bottomPreviewPopup?.dismissSafe(this@MainActivity)
+                                    this@MainActivity.navigate(R.id.navigation_library_section)
+                                }
+                            ) { selected ->
+                                //library none
+                                if (selected == 0) {
+                                    viewModel.bookmark(0)
+                                } else {
+                                    val selectedLibrary = libraries.getOrNull(selected - 1) ?: return@showBottomDialogWithAction
+                                    viewModel.bookmark(selectedLibrary.id)
+                                }
                             }
                         }
 
