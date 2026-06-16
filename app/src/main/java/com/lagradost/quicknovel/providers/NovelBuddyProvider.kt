@@ -80,7 +80,7 @@ class NovelBuddyProvider : MainAPI() {
 
     override suspend fun loadHtml(url: String): String? {
         val document = app.get(url).document
-        val content = document.selectFirst("div.novel-tts-content > div:nth-child(2)") ?: return null
+        val content = document.selectFirst("div.novel-tts-content") ?: return null
         content.select(".ads, .hidden, script").remove()
         return content.html()
     }
