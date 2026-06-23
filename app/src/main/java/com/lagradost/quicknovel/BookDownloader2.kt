@@ -659,7 +659,7 @@ object BookDownloader2Helper {
             try {
                 val page = api.loadHtml(data.url)
 
-                if (!page.isNullOrBlank() && page.length > 100) {
+                if (!page.isNullOrBlank()) {
                     rFile.createNewFile() // only create the file when actually needed
                     rFile.writeText("${data.name}\n${page}")
                     if (api.rateLimitTime > 0) {
