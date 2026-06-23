@@ -1943,7 +1943,6 @@ class ReadActivityViewModel : ViewModel() {
         companion object {
             const val AUTO_LANG = "auto"
             val map = mapOf(
-                AUTO_LANG to "Auto",
                 "af" to "Afrikaans",
                 "ar" to "Arabic",
                 "be" to "Belarusian",
@@ -2004,11 +2003,11 @@ class ReadActivityViewModel : ViewModel() {
                 "vi" to "Vietnamese",
                 "zh" to "Chinese",
             )
-
-            val list = map.toList()
-
+            val mapOnline = mapOf(AUTO_LANG to "Auto") + map
+            val mapList = map.toList()
+            val mapOnlineList = mapOnline.toList()
             fun fromShortToDisplay(from: String): String {
-                return map[from] ?: "Unknown"
+                return mapOnline[from] ?: "Unknown"
             }
         }
 
@@ -2027,7 +2026,7 @@ class ReadActivityViewModel : ViewModel() {
 
             //If the user wants to translate to a language that doesn't exist,
             //or wants to auto-detect their own language, do not allow it.
-            if (!all.contains(to) || to == AUTO_LANG) {
+            if (!all.contains(to)) {
                 // no translation
                 return false
             }
@@ -2035,7 +2034,7 @@ class ReadActivityViewModel : ViewModel() {
             // no support for auto yet (for offlineTranslations), see https://developers.google.com/ml-kit/language/identification/android
             //If the source language does not exist
             //and the user did not select auto-detect language, do not allow it.
-            if (!all.contains(from)  && from != AUTO_LANG) {
+            if (!all.contains(from) && !(useOnlineTranslation && from == AUTO_LANG)) {
                 return false
             }
 

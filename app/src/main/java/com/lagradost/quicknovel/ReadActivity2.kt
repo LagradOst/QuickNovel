@@ -1319,7 +1319,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 if (view == null) return@setOnClickListener
                 val context = view.context
 
-                val items = ReadActivityViewModel.MLSettings.list
+                val items = ReadActivityViewModel.MLSettings.mapList
 
                 context.showDialog(
                     items.map {
@@ -1349,16 +1349,16 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 if (view == null) return@setOnClickListener
                 val context = view.context
 
-                val items = ReadActivityViewModel.MLSettings.list.toMutableList()
-                if (!viewModel.mlUseOnlineTransaltion) {
-                    if (items.isNotEmpty()) items.removeAt(0)
-                }
+                val items = (
+                    if (!viewModel.mlUseOnlineTransaltion) ReadActivityViewModel.MLSettings.mapList
+                    else ReadActivityViewModel.MLSettings.mapOnlineList
+                )
 
                 context.showDialog(
-                    items.map {
-                        it.second
+                    items.map { item ->
+                        item.second
                     },
-                    items.map { it.first }.indexOf(viewModel.mlFromLanguage),
+                    items.map { item -> item.first }.indexOf(viewModel.mlFromLanguage),
                     context.getString(R.string.sleep_timer), false, {}
                 ) { index ->
                     viewModel.mlFromLanguage = items[index].first
