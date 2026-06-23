@@ -8,6 +8,7 @@ import com.google.mlkit.nl.translate.TranslateRemoteModel
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
+import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.safefile.closeQuietly
 import kotlinx.coroutines.Dispatchers
@@ -41,8 +42,8 @@ object TranslationManager {
                 translator?.close()
             }
 
-            val sourceTag = TranslateLanguage.fromLanguageTag(from) ?: TranslateLanguage.ENGLISH
-            val targetTag = TranslateLanguage.fromLanguageTag(to) ?: TranslateLanguage.SPANISH
+            val sourceTag = TranslateLanguage.fromLanguageTag(from) ?: throw ErrorLoadingException("Language doesn't exist")
+            val targetTag = TranslateLanguage.fromLanguageTag(to) ?: throw ErrorLoadingException("Language doesn't exist")
 
             val options = TranslatorOptions.Builder()
                 .setSourceLanguage(sourceTag)
@@ -74,22 +75,24 @@ object TranslationManager {
     ): List<String> {
         if (textList.isEmpty()) return emptyList()
 
-        if (useOnline) return GoogleTranslateOnline.translate(textList, from, to, progress)
-
-        val client = translator ?: prepareModel(from, to) ?: throw Exception("Model not available")
-
-        // Safe paragraph processing loop to prevent single failures from crashing whole chapters
+        return if (useOnline)  GoogleTranslateOnline.translate(textList, from, to, progress)
+        else offlineTranslate(textList, from, to, progress)
+    }
+    private suspend fun offlineTranslate(
+        textList: List<String>,
+        from: String,
+        to: String,
+        progress: suspend (Int, Int) -> Unit = { _, _ -> }): List<String>
+    {
+        val client = translator ?: prepareModel(from, to) ?: throw Exception("Offline model not available")
         return textList.mapIndexed { index, text ->
-            if (!text.trim().any{it.isLetter()}) return@mapIndexed text
-            try {
-                progress(index, textList.size)
-                Tasks.await(client.translate(text))
-            } catch (e: Exception) {
-                // Return original untranslated paragraph as fallback item on error
-                text
-            }
+            //Translation is resource-intensive, so only translate when the text is not just a set of non-letter characters
+            if (!text.trim().any { it.isLetter() }) return@mapIndexed text
+            progress(index, textList.size)
+            Tasks.await(client.translate(text))
         }
     }
+
     /**
      * Reset translator
      * */
