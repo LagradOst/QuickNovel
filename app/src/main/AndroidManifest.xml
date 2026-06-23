@@ -228,10 +228,6 @@
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
-                    android:host="vynovel.com"
-                    android:pathPrefix="/"
-                    android:scheme="https" />
-                <data
                     android:host="wtr-lab.com"
                     android:pathPrefix="/"
                     android:scheme="https" />
