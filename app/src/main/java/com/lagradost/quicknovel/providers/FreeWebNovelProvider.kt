@@ -20,7 +20,7 @@ class FreewebnovelProvider : LibReadProvider() {
         tag: String?
     ): HeadMainPageResponse {
         val url =
-            if (tag.isNullOrBlank()) "$mainUrl/latest-release-novels/$page" else "$mainUrl/genres/$tag/$page"
+            if (tag.isNullOrBlank()) "$mainUrl/sort/$orderBy/$page" else "$mainUrl/genres/$tag/$page"
         val document = app.get(url).document
         val headers = document.select("div.ul-list1.ul-list1-2.ss-custom > div.li-row")
         val returnValue = headers.mapNotNull { h ->
