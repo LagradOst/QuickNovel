@@ -494,6 +494,10 @@ class ReadActivityViewModel : ViewModel() {
         MutableLiveData<Resource<Boolean>>(null)
     val loadingStatus: LiveData<Resource<Boolean>> = _loadingStatus
 
+    //requires download model observer
+    private val _downloadLanguageRequest = MutableLiveData<MLSettings?>()
+    val downloadLanguageRequest: LiveData<MLSettings?> = _downloadLanguageRequest
+
     private val _chaptersTitles: MutableLiveData<List<UiText>> =
         MutableLiveData<List<UiText>>(null)
     val chaptersTitles: LiveData<List<UiText>> = _chaptersTitles
@@ -1031,7 +1035,7 @@ class ReadActivityViewModel : ViewModel() {
 
     @Throws
     suspend fun requireMLDownload(): Boolean {
-        val settings = mlSettings
+        val settings = MLSettings(from = mlFromLanguage, to = mlToLanguage, mlUseOnlineTransaltion)
         if (settings.isInvalid() || mlUseOnlineTransaltion) return false
         return !TranslationManager.isModelDownloaded(settings.from, settings.to)
     }
@@ -1039,7 +1043,7 @@ class ReadActivityViewModel : ViewModel() {
     fun applyMLSettings() = ioSafe {
         val settings = MLSettings(from = mlFromLanguage, to = mlToLanguage, mlUseOnlineTransaltion)
         if (settings.isValid() && requireMLDownload()) {
-            _loadingStatus.postValue(Resource.Loading("Downloading language"))
+            _loadingStatus.postValue(Resource.Loading(context?.getString(R.string.downloading_language)))
         }
         initMLFromSettings(settings)
         reloadMLForAllChapters()
@@ -1874,7 +1878,8 @@ class ReadActivityViewModel : ViewModel() {
         val to: String,
         @JsonProperty("useOnlineTranslation")
         val useOnlineTranslation: Boolean = false
-    ) {
+    )
+    {
         companion object {
             const val AUTO_LANG = "auto"
             val map = mapOf(
