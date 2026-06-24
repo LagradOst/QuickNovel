@@ -484,7 +484,7 @@ class ReadActivityViewModel : ViewModel() {
     var mlSettings
         get() = getKey<MLSettings>(EPUB_CURRENT_ML, book.title()) ?: MLSettings("en", "en", false)
         set(value) = setKey(EPUB_CURRENT_ML, book.title(), value)
-
+    val translationManager = TranslationManager()
     private val _chapterData: MutableLiveData<ChapterUpdate> =
         MutableLiveData<ChapterUpdate>(null)
     val chapter: LiveData<ChapterUpdate> = _chapterData
@@ -493,11 +493,6 @@ class ReadActivityViewModel : ViewModel() {
     val _loadingStatus: MutableLiveData<Resource<Boolean>> =
         MutableLiveData<Resource<Boolean>>(null)
     val loadingStatus: LiveData<Resource<Boolean>> = _loadingStatus
-
-    //requires download model observer
-    private val _downloadLanguageRequest = MutableLiveData<MLSettings?>()
-    val downloadLanguageRequest: LiveData<MLSettings?> = _downloadLanguageRequest
-
     private val _chaptersTitles: MutableLiveData<List<UiText>> =
         MutableLiveData<List<UiText>>(null)
     val chaptersTitles: LiveData<List<UiText>> = _chaptersTitles
@@ -1005,7 +1000,7 @@ class ReadActivityViewModel : ViewModel() {
 
             if (currentSettings.useOnlineTranslation == false && mlSettings.isInvalid()) return text to spans
 
-            val translatedList = TranslationManager.translate(
+            val translatedList = translationManager.translate(
                 textList = spans.map { it.text.toString() },
                 from = currentSettings.from,
                 to = currentSettings.to,
@@ -1037,7 +1032,7 @@ class ReadActivityViewModel : ViewModel() {
     suspend fun requireMLDownload(): Boolean {
         val settings = MLSettings(from = mlFromLanguage, to = mlToLanguage, mlUseOnlineTransaltion)
         if (settings.isInvalid() || mlUseOnlineTransaltion) return false
-        return !TranslationManager.isModelDownloaded(settings.from, settings.to)
+        return !translationManager.isModelDownloaded(settings.from, settings.to)
     }
 
     fun applyMLSettings() = ioSafe {
@@ -1111,14 +1106,14 @@ class ReadActivityViewModel : ViewModel() {
 
     private suspend fun initMLFromSettings(settings: MLSettings) {
         try {
-            TranslationManager.release()
+            translationManager.release()
             if (settings.isValid() && !settings.useOnlineTranslation) {
-                TranslationManager.prepareModel(settings.from, settings.to)
+                translationManager.prepareModel(settings.from, settings.to)
             }
             mlSettings = settings
         } catch (_: TimeoutException) {
             showToast(R.string.unable_to_download_language)
-            TranslationManager.release()
+            translationManager.release()
         } catch (t: Throwable) {
             logError(t)
         }
@@ -1711,7 +1706,7 @@ class ReadActivityViewModel : ViewModel() {
         lastChangeIndex?.let { setScrollKeys(it) }
         ttsSession?.release()
         ttsSession = null
-        TranslationManager.release()
+        translationManager.release()
         super.onCleared()
     }
 

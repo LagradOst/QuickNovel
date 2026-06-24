@@ -14,7 +14,7 @@ import com.lagradost.safefile.closeQuietly
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-object TranslationManager {
+class TranslationManager {
     private var translator: Translator? = null
     private var currentFrom: String? = null
     private var currentTo: String? = null
