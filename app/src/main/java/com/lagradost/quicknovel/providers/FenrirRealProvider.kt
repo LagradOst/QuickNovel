@@ -3,7 +3,6 @@ package com.lagradost.quicknovel.providers
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
@@ -19,7 +18,8 @@ class FenrirRealProvider:  MainAPI() {
     override val mainUrl = "https://fenrirealm.com"
     override val iconId = R.drawable.icon_fenrirealm
     override val hasMainPage = true
-    override val rateLimitTime = 500L
+    //I don't know why, but this fixes the timeout issue for this provider
+    override val rateLimitTime = 3000L
 
     override val mainCategories = listOf(
         "All" to "any",
@@ -100,6 +100,7 @@ class FenrirRealProvider:  MainAPI() {
     override suspend fun load(url: String): LoadResponse
     {
         val document = app.get(url).document
+        document.select("script, style, iframe, svg, noscript").remove()//avoid out of memory
         val infoDiv = document.select("div.flex.flex-col.items-center.gap-5 div.flex-1")
         val chapters = app
             .get("$mainUrl/api/new/v2/series/${url.getSlugFromUrl()}/chapters")
@@ -137,10 +138,12 @@ class FenrirRealProvider:  MainAPI() {
 
     override suspend fun loadHtml(url: String): String? {
         val document = app.get(url).document
-        val contentElement = document.selectFirst("div.reader-area[role=region]")
+        document.select("script, style, iframe, svg, noscript").remove()//avoid out of memory
+        val contentElement = (document.selectFirst("div.reader-area[role=region]")
             ?: document.selectFirst("div.main-area div.chapter-view div.content-area")
-            ?: return null
-        return contentElement.html()
+            ?: return null).html()
+        document.empty()
+        return contentElement
     }
 
 
