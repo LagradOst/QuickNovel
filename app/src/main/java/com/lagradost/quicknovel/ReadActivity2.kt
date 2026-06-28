@@ -1371,24 +1371,22 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 if (view == null) return@setOnClickListener
                 ioSafe {
                     try {
-                        if (!viewModel.requireMLDownload()) {
-                            viewModel.applyMLSettings(true)
+                        val needsDownload = viewModel.requireMLDownload()
+                        if (!needsDownload) {
+                            viewModel.applyMLSettings()
                             runOnUiThread { bottomSheetDialog.dismiss() }
-
-                            return@ioSafe
-                        }
-                        runOnUiThread {
-                            val builder: AlertDialog.Builder =
+                        } else {
+                            runOnUiThread {
                                 AlertDialog.Builder(view.context, R.style.AlertDialogCustom)
-                            builder.setTitle(R.string.download_ml)
-                            builder.setMessage(R.string.download_ml_long)
-                            builder.setPositiveButton(R.string.download) { _, _ ->
-                                viewModel.applyMLSettings(true)
-                                bottomSheetDialog.dismiss()
+                                    .setTitle(R.string.download_ml)
+                                    .setMessage(R.string.download_ml_long)
+                                    .setPositiveButton(R.string.download) { _, _ ->
+                                        viewModel.applyMLSettings()
+                                        bottomSheetDialog.dismiss()
+                                    }
+                                    .setNegativeButton(R.string.cancel, null)
+                                    .show()
                             }
-                            builder.setCancelable(true)
-                            builder.setNegativeButton(R.string.cancel) { _, _ -> }
-                            builder.show()
                         }
                     } catch (t: Throwable) {
                         showToast(t.message ?: t.toString())
