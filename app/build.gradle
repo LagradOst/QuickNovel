@@ -22,7 +22,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 35
         versionCode 56
-        versionName "3.6.0"
+        versionName "3.6.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -70,7 +70,7 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.16.0'
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
-    implementation 'org.jsoup:jsoup:1.21.2'
+    implementation 'org.jsoup:jsoup:1.22.2'
     implementation 'androidx.navigation:navigation-fragment-ktx:2.9.6'
     implementation 'androidx.navigation:navigation-ui-ktx:2.9.6'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
@@ -98,11 +98,11 @@ dependencies {
 
     implementation("com.google.android.material:material:1.13.0")
 
-    implementation 'androidx.media:media:1.7.1'
+    implementation 'androidx.media:media:1.7.1' // Media session aka notification
     implementation 'com.github.LagradOst:SafeFile:a926e7615a' // To Prevent the URI File Fu*kery
     implementation 'com.jaredrummler:colorpicker:1.1.0'
 
-    implementation 'com.github.Blatzar:NiceHttp:0.4.16'
+    implementation 'com.github.Blatzar:NiceHttp:0.4.18'
     implementation "io.coil-kt.coil3:coil:3.3.0"
     implementation "io.coil-kt.coil3:coil-network-okhttp:3.3.0"
 
@@ -116,8 +116,4 @@ dependencies {
 
     //to read PDFs
     implementation 'com.tom-roush:pdfbox-android:2.0.27.0'
-
-
-
-
 }

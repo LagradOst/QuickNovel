@@ -1326,7 +1326,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                         it.second
                     },
                     items.map { it.first }.indexOf(viewModel.mlToLanguage),
-                    context.getString(R.string.sleep_timer), false, {}
+                    context.getString(R.string.translate_to), false, {}
                 ) { index ->
                     viewModel.mlToLanguage = items[index].first
                     binding.readMlTo.text =
@@ -1359,7 +1359,7 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                         item.second
                     },
                     items.map { item -> item.first }.indexOf(viewModel.mlFromLanguage),
-                    context.getString(R.string.sleep_timer), false, {}
+                    context.getString(R.string.translate_from), false, {}
                 ) { index ->
                     viewModel.mlFromLanguage = items[index].first
                     binding.readMlFrom.text =
