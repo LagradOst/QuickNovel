@@ -1,13 +1,15 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
-import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
-
+import org.jsoup.nodes.Document
 
 open class LibReadProvider : MainAPI() {
     override val name = "LibRead"
     override val mainUrl = "https://libread.com"
+
+    //for some reason, now is freewebnovel
+    val secondUrl = "https://freewebnovel.com"
     override val hasMainPage = true
 
     open val removeHtml = false // because the two sites use .html or not for no reason
@@ -62,6 +64,22 @@ open class LibReadProvider : MainAPI() {
         "Completed Novels" to "completed-novel"
     )
 
+    private fun getChapterList(doc: Document, url: String): List<ChapterData> {
+        val scriptData = doc.select("script").map { it.data() }
+            .find { it.contains("window.chapterPagination") } ?: return emptyList()
+
+        val totalChapters = "totalChapters:\\s*(\\d+)".toRegex()
+            .find(scriptData)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+
+        val cleanedUrl = url.removeSuffix("/").substringAfterLast("/").replace("(-novel)?-\\d{4,}+$".toRegex(), "")
+
+        return (1..totalChapters).map { i ->
+            newChapterData(
+                name = "Chapter $i",
+                url = "$secondUrl/novel/$cleanedUrl/chapter-$i"
+            )
+        }
+    }
     override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
@@ -133,12 +151,7 @@ open class LibReadProvider : MainAPI() {
         val name = document.selectFirst("h1.tit")?.text() ?: return null
 
         //val aid = "[0-9]+s.jpg".toRegex().find(response.text)?.value?.substringBefore("s")
-        val chaptersDataphp = document.select("div.m-newest2 ul.ul-list5 li").mapNotNull { c ->
-            val a =  c.selectFirst("a") ?: return@mapNotNull null
-            val cName = a.text()
-            val cUrl = a.attr("href")
-            newChapterData(url = cUrl, name = cName)
-        }
+        val chaptersDataphp = getChapterList(document, url)
         /*
         val chaptersDataphp = app.post(
             "$mainUrl/api/chapterlist.php",
@@ -188,4 +201,9 @@ open class LibReadProvider : MainAPI() {
             )
         }
     }
+
+    data class ChapterResponse(
+        val code:Int,
+        val html: String
+    )
 }

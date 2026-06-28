@@ -237,10 +237,16 @@ class LnoriProvider :  MainAPI() {
     }
 
 
-    override suspend fun loadHtml(url: String): String? {
+    override suspend fun loadHtml(url: String): String {
         val document = app.get(url).document
-        val contentElement = document.select("main > article > *")
-        return contentElement?.html()
+        val contentElements = document.select("main > article > section")
+        for (picture in document.select("picture")) {
+            val img = picture.selectFirst("img")
+            if (img != null) {
+                picture.replaceWith(img)
+            }
+        }
+        return contentElements.joinToString(separator = "\n") { it.outerHtml() }
     }
 
 

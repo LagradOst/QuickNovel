@@ -46,7 +46,6 @@ Adfree FOSS Android app for downloading novels. It also functions as an Epub rea
 - https://www.scribblehub.com
 - https://www.skynovels.net
 - https://www.sonicmtl.com
-- https://vynovel.com
 - https://wtr-lab.com
 - https://wuxia.click
 - https://www.wuxiabox.com

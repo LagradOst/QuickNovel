@@ -38,13 +38,13 @@ class NovelBuddyProvider : MainAPI() {
         val document = app.get(url).parsed<Root>()
 
         return HeadMainPageResponse(url,
-        document.data.items.map { element ->
-            val title = element.name
-            val href = element.url
-            newSearchResponse(title, href) {
-                posterUrl = element.cover
-            }
-        })
+            document.data.items.map { element ->
+                val title = element.name
+                val href = element.url
+                newSearchResponse(title, href) {
+                    posterUrl = element.cover
+                }
+            })
     }
 
     override suspend fun load(url: String): LoadResponse {
@@ -80,7 +80,7 @@ class NovelBuddyProvider : MainAPI() {
 
     override suspend fun loadHtml(url: String): String? {
         val document = app.get(url).document
-        val content = document.selectFirst("#main-content > div > div > div.relative > div.novel-reader-content.rounded-lg.transition-colors.duration-200.pb-14.md\\:pb-0 > div.max-w-3xl.mx-auto.px-5.sm\\:px-8.pb-12.novel-tts-content > div:nth-child(2)") ?: return null
+        val content = document.selectFirst("div.novel-tts-content") ?: return null
         content.select(".ads, .hidden, script").remove()
         return content.html()
     }
