@@ -1,38 +1,20 @@
-package com.lagradost.quicknovel.util
+package com.lagradost.quicknovel.util.Translation
 
-import com.fasterxml.jackson.annotation.JsonFormat
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.lagradost.quicknovel.MainActivity
 import kotlin.math.pow
 import android.net.Uri
 import com.lagradost.quicknovel.mvvm.logError
+import com.lagradost.quicknovel.util.Translation.models.GoogleTranslationResponse
 import kotlinx.coroutines.delay
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-@JsonFormat(shape = JsonFormat.Shape.ARRAY)
-data class GoogleTranslationResponse(
-    val sentences: List<GoogleSentence>,
-    val extra: Any? = null,
-    val language: String? = null
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-@JsonFormat(shape = JsonFormat.Shape.ARRAY)
-data class GoogleSentence(
-    val trans: String,
-    val orig: String,
-    val translit: String? = null,
-    val srcTranslit: String? = null
-)
-
+import java.net.UnknownHostException
 object GoogleTranslateOnline {
 
-    private const val baseUrl = "https://translate.googleapis.com/translate_a/single?client=gtx&sl="
-    private const val paragraphsSeparator = "\nXQZX\n"
-    private const val charsLimit = 2000
+    private const val BASEURL = "https://translate.googleapis.com/translate_a/single?client=gtx&sl="
+    private const val PARAGRAPH_DELIMITER = "\nXQZX\n"
+    var charsLimit = 2000
     private val paragraphsSeparatorRegex = Regex("\\n?XQZX\\n?")
 
-    suspend fun onlineTranslate(
+    suspend fun translate(
         paragraphs: List<String>,
         from: String,
         to: String,
@@ -52,7 +34,7 @@ object GoogleTranslateOnline {
     private suspend fun callGoogleTranslateApi(text: String, from: String, to: String) =
         MainActivity
             .app
-            .get("$baseUrl$from&tl=$to&dt=t&q=${Uri.encode(text)}")
+            .get("$BASEURL$from&tl=$to&dt=t&q=${Uri.encode(text)}")
             .parsed<GoogleTranslationResponse>()
 
 
@@ -91,7 +73,7 @@ object GoogleTranslateOnline {
             } catch (t: Throwable) {
                 logError(t)
 
-                if (t is java.net.UnknownHostException) throw t
+                if (t is UnknownHostException) throw t
 
                 retryNumber++
 
@@ -111,27 +93,27 @@ object GoogleTranslateOnline {
 
         for (t in this) {
             val text = t.trim().ifBlank { " " }.let {
-                it + paragraphsSeparator
+                it + PARAGRAPH_DELIMITER
             }
 
             if (text.length > charsLimit) {
                 if (currentChunk.isNotEmpty()) {
-                    combinedChunks.add(currentChunk.toString().removeSuffix(paragraphsSeparator))
+                    combinedChunks.add(currentChunk.toString().removeSuffix(PARAGRAPH_DELIMITER))
                     currentChunk = StringBuilder()
                 }
-                combinedChunks.add(text.removeSuffix(paragraphsSeparator))
+                combinedChunks.add(text.removeSuffix(PARAGRAPH_DELIMITER))
                 continue
             }
 
             if (currentChunk.length + text.length > charsLimit) {
-                combinedChunks.add(currentChunk.toString().removeSuffix(paragraphsSeparator))
+                combinedChunks.add(currentChunk.toString().removeSuffix(PARAGRAPH_DELIMITER))
                 currentChunk = StringBuilder()
             }
             currentChunk.append(text)
         }
 
         if (currentChunk.isNotEmpty()) {
-            combinedChunks.add(currentChunk.toString().removeSuffix(paragraphsSeparator))
+            combinedChunks.add(currentChunk.toString().removeSuffix(PARAGRAPH_DELIMITER))
         }
         return combinedChunks
     }

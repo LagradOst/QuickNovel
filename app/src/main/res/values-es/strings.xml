@@ -169,10 +169,13 @@
     <string name="google_translate">Traductor de Google</string>
     <string name="online_translate">Traducción online</string>
     <string name="download_ml">Descargar modelo de traducción</string>
+    <string name="translate_from">Traducir desde el:</string>
+    <string name="translate_to">Traducir al:</string>
     <string name="download_ml_long">Para traducir localmente se necesita descargar el modelo (~30MB)</string>
     <string name="translating">Traduciendo: </string>
     <string name="toWhatLanguague">-></string>
     <string name="unable_to_download_language">No se pudo descargar el lenguaje</string>
+    <string name="downloading_language">Descargando modelo de lenguaje…</string>
 
 
     <!-- Configuración y Sistema -->
