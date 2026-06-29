@@ -69,9 +69,6 @@ class RanobesProvider : MainAPI() {
 
         val returnValue = document.select("div.short-cont").mapNotNull { h ->
             val h2 = h.selectFirst("h2.title > a") ?: return@mapNotNull null
-            //val latestChap =
-            //    mainUrl + (h.nextElementSibling()?.selectFirst("div > a")?.attr("href")
-            //        ?: return@mapNotNull null)
             newSearchResponse(name = h2.text(), url = h2.attr("href") ?: return@mapNotNull null) {
                 posterUrl = fixUrlNull(
                     h.selectFirst("div.cont.showcont > div > a > figure")?.attr("style")
@@ -171,30 +168,41 @@ class RanobesProvider : MainAPI() {
         return parseJson<Root>(jsonString).chapters.map { it.link }.reversed()
     }
 
-    override suspend fun loadHtml(url: String): String? {
-        val chapterData = url.split("-------")
-        if (chapterData.size < 3) {
-            val dc = app.get(url, headers = baseHeaders).document
-            return (dc.selectFirst("#dle-content > article > div.block.story.shortstory > h1")
-                ?.html() ?: "") + (dc.selectFirst("#arrticle")?.html() ?: return null)
-        }
-
-        val baseUrl = chapterData[0].removeSuffix("/")
-        val chapterBigIndex = chapterData[1].toInt()
-        val totalChapters = chapterData[2].toInt()
-        val itemsPerPage = 25
-
+    private fun getPaginationPositionAndRelativeIndexDescendant(
+        arguments:List<String>,
+        itemsPerPage: Int
+    ): Pair<Int, Int> {
+        val chapterBigIndex = arguments[1].toInt()
+        val totalChapters = arguments[2].toInt()
         val totalPages = (totalChapters + itemsPerPage - 1) / itemsPerPage
 
         val page = (totalChapters - 1 - chapterBigIndex) / itemsPerPage + 1
 
-        val chaptersInLastPage = totalChapters % itemsPerPage.let { if (it == 0) itemsPerPage else it }
+        val chaptersInLastPage = totalChapters % itemsPerPage.let {
+            if (it == 0) itemsPerPage else it
+        }
 
         val index = if (page == totalPages) {
             chapterBigIndex % itemsPerPage
         } else {
             (chapterBigIndex - chaptersInLastPage) % itemsPerPage
         }
+
+        return page to index
+    }
+
+    override suspend fun loadHtml(url: String): String? {
+        val chapterData = url.split("-------")
+        if (chapterData.size < 3) {
+            val dc = app.get(url, headers = baseHeaders).document
+            return (dc.selectFirst("#dle-content > article > div.block.story.shortstory > h1")?.html() ?: "") +
+                    (dc.selectFirst("#arrticle")?.html() ?: return null)
+        }
+
+        val baseUrl = chapterData[0].removeSuffix("/")
+        val itemsPerPage = 25
+
+        val (page, index) = getPaginationPositionAndRelativeIndexDescendant(chapterData, itemsPerPage)
 
         val pageUrl = if (page <= 1) "$baseUrl/" else "$baseUrl/page/$page/"
         val document = app.get(pageUrl, headers = baseHeaders).document
@@ -205,15 +213,14 @@ class RanobesProvider : MainAPI() {
         val dc = app.get(chapterUrl, headers = baseHeaders).document
         val title = dc.selectFirst("#dle-content > article > div.block.story.shortstory > h1")?.html() ?: ""
         val content = dc.selectFirst("#arrticle") ?: return null
+
         content.select("img").forEach { img ->
             val src = img.attr("src")
-            if(src.isNotBlank()){
-                val fixedSrc = fixUrlNull(src)
-                if(fixedSrc != null){
-                    img.attr("src", fixedSrc)
-                }
+            if (src.isNotBlank()) {
+                fixUrlNull(src)?.let { fixed -> img.attr("src", fixed) }
             }
         }
+
         return title + content.html()
     }
 
