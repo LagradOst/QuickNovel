@@ -4,7 +4,6 @@ import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
 import android.os.Build
-import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
@@ -19,7 +18,9 @@ import com.lagradost.quicknovel.DataStore
 import com.lagradost.quicknovel.DataStore.getDefaultSharedPrefs
 import com.lagradost.quicknovel.DataStore.getSharedPrefs
 import com.lagradost.quicknovel.DataStore.mapper
+import com.lagradost.quicknovel.LIBRARIES_KEY
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.mergeLibraries
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.settings.SettingsFragment
 import com.lagradost.safefile.SafeFile
@@ -48,7 +49,6 @@ object BackupUtils {
         @JsonProperty("datastore") val datastore: BackupVars,
         @JsonProperty("settings") val settings: BackupVars
     )
-
     fun setupStream(context: Context, displayName : String, ext : String, subDir : SafeFile?) : OutputStream? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { // && subDir?.isDownloadDir() == true
             val cr = context.contentResolver
@@ -211,8 +211,13 @@ object BackupUtils {
         isEditingAppSettings: Boolean = false
     ) {
         val editor = DataStore.editor(this, isEditingAppSettings)
-        map?.forEach {
-            editor.setKeyRaw(it.key, it.value)
+        map?.forEach { (key, value)->
+            if(key == LIBRARIES_KEY && value is String){
+                mergeLibraries(value)
+            }
+            else{
+                editor.setKeyRaw(key, value)
+            }
         }
         editor.apply()
     }

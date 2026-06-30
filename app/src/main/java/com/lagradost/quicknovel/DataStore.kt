@@ -9,6 +9,8 @@ import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.lagradost.quicknovel.mvvm.logError
 import androidx.core.content.edit
+import com.lagradost.quicknovel.CommonActivity.showToast
+import com.lagradost.quicknovel.util.AppUtils.parseJson
 
 const val PREFERENCES_NAME: String = "rebuild_preference"
 const val DOWNLOAD_FOLDER: String = "downloads_data"
@@ -57,7 +59,11 @@ const val EPUB_CURRENT_POSITION_SCROLL_CHAR: String = "reader_epub_position_scro
 const val EPUB_CURRENT_ML: String = "reader_epub_ml"
 const val EPUB_CURRENT_POSITION_READ_AT: String = "reader_epub_position_read"
 const val EPUB_CURRENT_POSITION_CHAPTER: String = "reader_epub_position_chapter"
+
+//all novel data like name, url, etc.
 const val RESULT_BOOKMARK: String = "result_bookmarked"
+
+//all novels's id saved in libraries
 const val RESULT_BOOKMARK_STATE: String = "result_bookmarked_state"
 const val HISTORY_FOLDER: String = "result_history"
 const val CURRENT_TAB : String = "current_tab"
@@ -220,4 +226,164 @@ object DataStore {
     inline fun <reified T : Any> Context.getKey(folder: String, path: String, defVal: T?): T? {
         return getKey(getFolderName(folder, path), defVal) ?: defVal
     }
+}
+
+const val LIBRARIES_KEY: String = "default_libraries"
+const val NOVEL_WATCH_FOLDER: String = "novel_watch_entries"
+data class DefaultLibrary(
+    val id: Int,
+    val key: String,
+    val title: String,
+    val editable: Boolean = true,
+    val position: Int = 0
+)
+
+val DEFAULT_LIBRARIES: List<DefaultLibrary> = listOf(
+    DefaultLibrary(1, "READING",       R.string.type_reading.toString(),      editable = false, position = 1),
+    DefaultLibrary(2, "PLAN_TO_READ",  R.string.type_plan_to_read.toString(), editable = false, position = 2),
+    DefaultLibrary(3, "ON_HOLD",       R.string.type_on_hold.toString(),      editable = false, position = 3),
+    DefaultLibrary(4, "COMPLETED",     R.string.type_completed.toString(),    editable = false, position = 4),
+    DefaultLibrary(5, "DROPPED",       R.string.type_dropped.toString(),      editable = false, position = 5),
+)
+/**
+ * Returns the list of persisted libraries, sorted by [DefaultLibrary.position].
+ * If no list is saved, returns [DEFAULT_LIBRARIES].
+ */
+fun Context.getLibraries(): List<DefaultLibrary> {
+    val stored = with(DataStore) { this@getLibraries.getKey<Array<DefaultLibrary>>(LIBRARIES_KEY) }
+
+    if (stored != null) {
+        return stored.map { it }.sortedBy { it.position }
+    }
+
+    val defaultLibs = DEFAULT_LIBRARIES.map { translateLibrary(it) }
+    saveLibraries(defaultLibs)
+
+    return defaultLibs
+}
+
+private fun Context.translateLibrary(lib: DefaultLibrary): DefaultLibrary {
+    val resId = lib.title.toIntOrNull() ?: return lib
+    return try {
+        lib.copy(title = this.getString(resId))
+    } catch (e: Exception) {
+        lib
+    }
+}
+
+/**
+ * Overwrites the persisted library list with [libs] (sorted by position).
+ * Throws an exception if there are duplicate IDs.
+ */
+fun Context.saveLibraries(libs: List<DefaultLibrary>) {
+    require(libs.map { it.id }.distinct().size == libs.size) { R.string.library_error_duplicate_ids }
+    val sorted = libs.sortedBy { it.position }
+    with(DataStore) { this@saveLibraries.setKey(LIBRARIES_KEY, sorted.toTypedArray()) }
+}
+
+/**
+ * Adds [newLib] to the persisted list.
+ * Throws an exception if a library with the same ID already exists.
+ */
+fun Context.addLibrary(newLib: DefaultLibrary) {
+    val current = getLibraries().toMutableList()
+    require(current.none { it.id == newLib.id || it.title == newLib.title }) {
+        R.string.library_error_exists
+    }
+    current.add(newLib)
+    saveLibraries(current)
+}
+
+/**
+ * Replaces the library whose ID matches [updated].
+ * Respects [DefaultLibrary.editable]: throws an exception if the library is not editable.
+ */
+//rename
+fun Context.updateLibrary(updated: DefaultLibrary) {
+    val current = getLibraries().toMutableList()
+    val index = current.indexOfFirst { it.id == updated.id }
+    require(index >= 0) { R.string.library_error_not_found }
+    current[index] = updated
+    saveLibraries(current)
+}
+
+/**
+ * Deletes the library with the given [id].
+ * Throws an exception if it is not editable (e.g., "Plan to read").
+ */
+fun Context.deleteLibrary(id: Int) {
+    val current = getLibraries().toMutableList()
+    val target = current.find { it.id == id }
+    require(target != null) { R.string.library_error_not_found }
+    require(target.editable) { R.string.library_error_not_editable }
+    current.removeAll { it.id == id }
+    saveLibraries(current)
+}
+
+/**
+ * Returns the number of bookmarks associated with a specific library [id].
+ */
+fun Context.getLibraryBookmarkCount(id: Int): Int {
+    return with(DataStore) {
+        this@getLibraryBookmarkCount.getKeys(RESULT_BOOKMARK_STATE)
+            .count { key -> getKey<Int>(key) == id }
+    }
+}
+
+/**
+ * Reassigns all bookmarks from [sourceId] to [targetId].
+ * Useful when moving books before deleting a category.
+ */
+fun Context.reassignLibraryBookmarks(sourceId: Int, targetId: Int = 0) {
+    require(sourceId != targetId) { R.string.library_error_same_ids }
+    if (targetId != 0) {
+        require(getLibraries().any { it.id == targetId }) { R.string.library_error_target_not_found }
+    }
+
+    val stateKeys = with(DataStore) { this@reassignLibraryBookmarks.getKeys(RESULT_BOOKMARK_STATE) }
+    stateKeys.forEach { key ->
+        val current = with(DataStore) { this@reassignLibraryBookmarks.getKey<Int>(key) } ?: return@forEach
+        if (current == sourceId) {
+            with(DataStore) { this@reassignLibraryBookmarks.setKey(key, targetId) }
+        }
+    }
+}
+
+fun Context.mergeLibraries(backupJson: String) {
+    try {
+        val currentLibs = getLibraries().toMutableList()
+        val currentKeys = currentLibs.map { it.key }.toSet()
+
+        val backupLibs = parseJson<List<DefaultLibrary>>(backupJson)
+
+        val newLibs = backupLibs.filter { it.key !in currentKeys }
+
+        if (newLibs.isNotEmpty()) {
+            var lastId = currentLibs.maxOfOrNull { it.id } ?: 0
+            var lastPos = currentLibs.maxOfOrNull { it.position } ?: 0
+
+            newLibs.forEach { lib ->
+                lastId++
+                lastPos++
+                currentLibs.add(lib.copy(id = lastId, position = lastPos))
+            }
+            saveLibraries(currentLibs)
+        }
+    } catch (e: Exception) {
+        logError(e)
+    }
+}
+
+/**
+ * Merges [sourceId] library into [targetId].
+ * All books are moved to the target library and the source library is deleted.
+ */
+fun Context.mergeLibraries(sourceId: Int, targetId: Int) {
+    require(sourceId != targetId) { R.string.library_error_same_ids }
+    val source = getLibraries().firstOrNull { it.id == sourceId }
+    require(source != null) { R.string.library_error_not_found }
+    require(source.editable) { R.string.library_error_not_editable }
+
+    reassignLibraryBookmarks(sourceId, targetId)
+    deleteLibrary(sourceId)
 }
