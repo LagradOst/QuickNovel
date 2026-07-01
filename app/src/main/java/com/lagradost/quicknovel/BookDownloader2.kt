@@ -50,6 +50,7 @@ import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.BookDownloader2Helper.createQuickStream
 import com.lagradost.quicknovel.BookDownloader2Helper.generateId
 import com.lagradost.quicknovel.BookDownloader2Helper.getDirectory
+import com.lagradost.quicknovel.BookDownloader2Helper.getSafeByteArray
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore.getSharedPrefs
@@ -93,7 +94,6 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import me.ag2s.epublib.domain.Author
 import me.ag2s.epublib.domain.EpubBook
-import me.ag2s.epublib.domain.MediaType
 import me.ag2s.epublib.domain.MediaTypes
 import me.ag2s.epublib.domain.Resource
 import me.ag2s.epublib.epub.EpubReader
@@ -105,6 +105,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.io.readBytes
 import kotlin.time.Duration.Companion.milliseconds
 
 enum class DownloadActionType {
@@ -200,93 +201,101 @@ object BookDownloader2Helper {
     private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
         val (height: Int, width: Int) = options.outHeight to options.outWidth
         var inSampleSize = 1
-
         if (height > reqHeight || width > reqWidth) {
             val halfHeight = height / 2
             val halfWidth = width / 2
-
             while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
                 inSampleSize *= 2
             }
         }
         return inSampleSize
     }
-    private val cachedBitmaps = hashMapOf<String, Bitmap>()
+
+    //to show images
+    /**
+     * Decodes a Bitmap from a File path with a maximum resolution constraint.
+     * It uses inJustDecodeBounds to avoid loading the full image into RAM.
+     */
+    fun decodeSafeBitmap(
+        path: String? = null,
+        data: ByteArray? = null,
+        maxRes: Int = 1200,
+        config: Bitmap.Config = Bitmap.Config.ARGB_8888
+    ): Bitmap?
+    {
+        return try {
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+
+            val finalData = when {
+                path != null -> {
+                    BitmapFactory.decodeFile(path, options)
+                    null
+                }
+                data != null -> {
+                    BitmapFactory.decodeByteArray(data, 0, data.size, options)
+                    data
+                }
+                else -> return null
+            }
+
+            options.inSampleSize = calculateInSampleSize(options, maxRes, maxRes)
+            options.inJustDecodeBounds = false
+            options.inPreferredConfig = config
+
+            when {
+                path != null -> BitmapFactory.decodeFile(path, options)
+                finalData != null -> BitmapFactory.decodeByteArray(finalData, 0, finalData.size, options)
+                else -> null
+            }
+        } catch (e: Exception) {
+            logError(e)
+            null
+        }
+    }
+    /**
+     *  Loads a Bitmap from disk for display.
+     */
+    fun decodeSafeBitmap(path: String, maxRes: Int = 1200): Bitmap? {
+        return decodeSafeBitmap(path = path, maxRes = maxRes, config = Bitmap.Config.ARGB_8888)
+    }
+
+
+    //to save images
+    /**
+     * Checks if a ByteArray image is too large and downsamples it if necessary.
+     * This prevents saving massive bitmaps that crash the Canvas later.
+     */
+    fun getSafeByteArray(data: ByteArray, maxRes: Int = 1200): ByteArray {
+        // If the image is already small, don't waste CPU
+        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(data, 0, data.size, options)
+        if (options.outWidth <= maxRes && options.outHeight <= maxRes) return data
+
+        // Process and re-compress
+        val bitmap = decodeSafeBitmap(data = data, maxRes = maxRes, config = Bitmap.Config.RGB_565) ?: return data
+        val outputStream = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+        val result = outputStream.toByteArray()
+        bitmap.recycle()
+        return result
+    }
+
+    //to get covers
     /**
      * Loads a book img from local storage, downsampling it to prevent memory issues
      * and caching it in memory for fast access.
      */
+    private val cachedBitmaps = hashMapOf<String, Bitmap>()
     fun getCachedBitmap(activity: Activity?, apiName: String, author: String?, name: String): Bitmap? {
         val filePath = getFilenameIMG(sanitizeFilename(apiName), sanitizeFilename(author ?: ""), sanitizeFilename(name))
         cachedBitmaps[filePath]?.let { return it }
 
-        val context = activity ?: return null
-        val file = File(context.filesDir, filePath)
+        val file = File(activity?.filesDir, filePath.trimStart(File.separatorChar))
         if (!file.exists()) return null
 
         return decodeSafeBitmap(file.absolutePath)?.also {
             cachedBitmaps[filePath] = it
         }
-    }
-    /**
-    * Checks if a ByteArray image is too large and downsamples it if necessary.
-    * This prevents saving massive bitmaps that crash the Canvas later.
-    */
-    fun getSafeByteArray(data: ByteArray, maxRes: Int = 1200): ByteArray {
-        try {
-            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            BitmapFactory.decodeByteArray(data, 0, data.size, options)
-
-            if (options.outWidth <= maxRes && options.outHeight <= maxRes) return data
-
-            options.inSampleSize = calculateInSampleSize(options, maxRes, maxRes)
-            options.inJustDecodeBounds = false
-            options.inPreferredConfig = Bitmap.Config.RGB_565
-
-            val bitmap = BitmapFactory.decodeByteArray(data, 0, data.size, options) ?: return data
-            val outputStream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
-            val result = outputStream.toByteArray()
-            bitmap.recycle()
-            return result
-        } catch (e: Exception) { return data }
-    }
-    /**
-     * Decodes a Bitmap from a File path with a maximum resolution constraint.
-     * It uses inJustDecodeBounds to avoid loading the full image into RAM.
-     */
-    fun decodeSafeBitmap(path: String, maxRes: Int = 1200): Bitmap? {
-        return try {
-            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            BitmapFactory.decodeFile(path, options)
-
-            options.inSampleSize = calculateInSampleSize(options, maxRes, maxRes)
-            options.inJustDecodeBounds = false
-            options.inPreferredConfig = Bitmap.Config.ARGB_8888
-
-            BitmapFactory.decodeFile(path, options)
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    /**
-     * Converts any image (File or ByteArray) into a safe, downsampled Resource for Epublib.
-     * This prevents the EpubBook object from holding "RAM bombs".
-     */
-    fun createSafeResource(file: File, maxRes: Int = 1200): Resource? {
-        if (!file.exists()) return null
-
-        // Use decodeSafeBitmap to get a resized version
-        val bitmap = decodeSafeBitmap(file.absolutePath, maxRes) ?: return null
-
-        return try {
-            val outStream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 85, outStream)
-            val data = outStream.toByteArray()
-            bitmap.recycle()
-            Resource(data, file.name)
-        } catch (e: Exception) { null }
     }
     fun generateId(apiName: String, author: String?, name: String): Int {
         val sApiname = sanitizeFilename(apiName)
@@ -798,8 +807,9 @@ object BookDownloader2Helper {
                 LOCAL_EPUB
             )
             if (epubFile.exists() && epubFile.length() > LOCAL_EPUB_MIN_SIZE) {
-                fileStream.write(epubFile.readBytes())
-
+                epubFile.inputStream().use { input ->
+                    input.copyTo(fileStream)
+                }
                 setKey(DOWNLOAD_EPUB_SIZE, id.toString(), 1)
             } else {
 
@@ -819,9 +829,7 @@ object BookDownloader2Helper {
                     activity.filesDir.toString() + getFilenameIMG(sApiName, sAuthor, sName)
                 val pFile = File(posterFilepath)
                 if (pFile.exists()) {
-                    BookDownloader2Helper.createSafeResource(pFile)?.let { res ->
-                        book.coverImage = res
-                    }
+                    book.coverImage = Resource(getSafeByteArray(pFile.readBytes()), pFile.name)
                 }
 
                 val stripHtml = activity.getStripHtml()
@@ -2137,7 +2145,7 @@ object BookDownloader2 {
                 tempFolder.listFiles()?.let { files ->
                     for ((i, file) in files.withIndex()) {
                         if (file.name.contains("img_")) {
-                            val res = BookDownloader2Helper.createSafeResource(file) ?: continue
+                            val res = Resource(getSafeByteArray(file.readBytes()), file.name)
                             book.addResource(res)
                             if (i == 0) book.coverImage = res
                         }
