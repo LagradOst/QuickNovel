@@ -192,35 +192,70 @@ object BookDownloader2Helper {
     }
 
     private val cachedBitmaps = hashMapOf<String, Bitmap>()
+    /**
+     * Loads a book img from local storage, downsampling it to prevent memory issues
+     * and caching it in memory for fast access.
+     */
     fun getCachedBitmap(
         activity: Activity?,
         apiName: String,
         author: String?,
         name: String
     ): Bitmap? {
-        try {
-            val filePath = getFilenameIMG(
-                sanitizeFilename(apiName),
-                sanitizeFilename(author ?: ""),
-                sanitizeFilename(name)
-            )
+        val filePath = getFilenameIMG(
+            sanitizeFilename(apiName),
+            sanitizeFilename(author ?: ""),
+            sanitizeFilename(name)
+        )
+        cachedBitmaps[filePath]?.let { return it }
+        val context = activity ?: return null
 
-            val existing = cachedBitmaps[filePath]
-            if (existing != null) return existing
-            if (activity == null) return null
+        return try {
+            val file = File(context.filesDir, filePath)
 
-            val file = activity.filesDir.toString() + filePath
-            val data = File(file).readBytes()
-            val bitmap = BitmapFactory.decodeByteArray(data, 0, data.size)
-            cachedBitmaps[filePath] = bitmap
+            // Decode dimensions to calculate sample size
+            val options = BitmapFactory.Options().apply {
+                //start only reading size
+                inJustDecodeBounds = true
+            }
 
-            return bitmap
-        } catch (t: Throwable) {
-            logError(t)
-            return null
+            //get img
+            BitmapFactory.decodeFile(file.absolutePath, options)
+
+            // Set downsampling to avoid "Canvas: drawing too large bitmap" crash
+            // We target ~1200px which is more than enough for high-quality images
+            options.inSampleSize = calculateInSampleSize(options, 1200, 1200)
+            options.inJustDecodeBounds = false
+            options.inPreferredConfig = Bitmap.Config.ARGB_8888
+
+            // Decode the actual bitmap and cache it
+            BitmapFactory.decodeFile(file.absolutePath, options)?.also {
+                cachedBitmaps[filePath] = it
+            }
+        } catch (e: Exception) {
+            logError(e)
+            null
         }
     }
 
+    /**
+     * Calculates the largest power-of-two inSampleSize that keeps the image
+     * dimensions larger than or equal to the requested dimensions.
+     */
+    private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+        val (height: Int, width: Int) = options.outHeight to options.outWidth
+        var inSampleSize = 1
+
+        if (height > reqHeight || width > reqWidth) {
+            val halfHeight = height / 2
+            val halfWidth = width / 2
+
+            while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+                inSampleSize *= 2
+            }
+        }
+        return inSampleSize
+    }
     fun generateId(apiName: String, author: String?, name: String): Int {
         val sApiname = sanitizeFilename(apiName)
         val sAuthor = if (author == null) "" else sanitizeFilename(author)
