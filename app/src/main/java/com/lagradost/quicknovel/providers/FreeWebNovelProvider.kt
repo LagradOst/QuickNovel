@@ -12,7 +12,16 @@ class FreewebnovelProvider : LibReadProvider() {
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
     override val removeHtml = true
     override val rateLimitTime = 500L
+    override val mainCategories = listOf(
+        "All" to "",
+        "Completed" to "completed"
+    )
 
+    override val orderBys = listOf(
+        "Latest Release" to "latest-release",
+        "Latest Novels" to "latest-novel",
+        "Most Popular" to "most-popular"
+    )
     override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
@@ -20,7 +29,7 @@ class FreewebnovelProvider : LibReadProvider() {
         tag: String?
     ): HeadMainPageResponse {
         val url =
-            if (tag.isNullOrBlank()) "$mainUrl/sort/$orderBy/$page" else "$mainUrl/genres/$tag/$page"
+            if (tag.isNullOrBlank()) "$mainUrl/sort/$orderBy/${if(mainCategory.isNullOrBlank()) "" else "$mainCategory/"}$page" else "$mainUrl/genre/$tag/${if (mainCategory.isNullOrBlank()) "" else "$mainCategory/"}$page"
         val document = app.get(url).document
         val headers = document.select("div.ul-list1.ul-list1-2.ss-custom > div.li-row")
         val returnValue = headers.mapNotNull { h ->
