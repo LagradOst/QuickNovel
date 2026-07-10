@@ -197,29 +197,44 @@ open class LibReadProvider : MainAPI() {
     }
 
     override suspend fun loadReviews(
-         url: String,
-         page: Int,
-         showSpoilers: Boolean
+        url: String,
+        page: Int,
+        showSpoilers: Boolean
     ): List<UserReview> {
-        if (novelId.isEmpty() || page > 1) return emptyList()
+        if (novelId.isEmpty()) return emptyList()
 
         val realUrl = "$mainUrl/api/comments.php"
 
-        val res = app.post(
-            realUrl, data = mapOf(
-                "action" to "count",
-                "articleid" to novelId,
-                "chapterid" to "0"
+        val responses: List<LibReadCommentsResponse> = if (page == 1) {
+            (1..4).mapNotNull { i ->
+                app.post(
+                    realUrl, data = mapOf(
+                        "action" to "list",
+                        "articleid" to novelId,
+                        "chapterid" to "0",
+                        "page" to i.toString()
+                    )
+                ).parsedSafe<LibReadCommentsResponse>()
+            }
+        } else {
+            listOfNotNull(
+                app.post(
+                    realUrl, data = mapOf(
+                        "action" to "list",
+                        "articleid" to novelId,
+                        "chapterid" to "0",
+                        "page" to (page + 3).toString()
+                    )
+                ).parsedSafe<LibReadCommentsResponse>()
             )
-        ).parsedSafe<LibReadCommentsResponse>()
-        val dataList = res?.data?.data_list ?: return emptyList()
+        }
 
-        return dataList.map { item ->
+        return responses.flatMap { it.data?.dataList ?: emptyList() }.map { item ->
             UserReview(
                 review = item.content ?: "",
-                username = item.user_info?.nickname ?: "User",
-                reviewDate = item.created_at,
-                avatarUrl = fixUrlNull(item.user_info?.picture),
+                username = item.userInfo?.nickname ?: "User",
+                reviewDate = item.createdAt,
+                avatarUrl = fixUrlNull(item.userInfo?.picture),
             )
         }
     }
@@ -228,14 +243,14 @@ open class LibReadProvider : MainAPI() {
     )
 
     data class LibReadCommentData(
-        @JsonProperty("is_end") val is_end: Boolean? = null,
-        @JsonProperty("data_list") val data_list: List<LibReadCommentItem>? = null
+        @JsonProperty("is_end") val isEnd: Boolean? = null,
+        @JsonProperty("data_list") val dataList: List<LibReadCommentItem>? = null
     )
 
     data class LibReadCommentItem(
         @JsonProperty("content") val content: String? = null,
-        @JsonProperty("created_at") val created_at: String? = null,
-        @JsonProperty("user_info") val user_info: LibReadUserInfo? = null
+        @JsonProperty("created_at") val createdAt: String? = null,
+        @JsonProperty("user_info") val userInfo: LibReadUserInfo? = null
     )
 
     data class LibReadUserInfo(
