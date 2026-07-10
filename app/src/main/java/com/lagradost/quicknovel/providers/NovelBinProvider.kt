@@ -10,10 +10,13 @@ import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.UserReview
+import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
+import org.jsoup.nodes.Document
 
 
 open class NovelBinProvider : MainAPI() {
@@ -22,6 +25,7 @@ open class NovelBinProvider : MainAPI() {
     override val hasMainPage = true
     override val usesCloudFlareKiller = true
     override val iconId = R.drawable.icon_novelbin
+    override val hasReviews = true
 
     override val mainCategories =listOf(
         "All" to "all"
@@ -134,20 +138,56 @@ open class NovelBinProvider : MainAPI() {
     }
 
 
-    override suspend fun load(url: String): LoadResponse
-    {
+    override suspend fun load(url: String): LoadResponse {
         val realUrl = url.replace("https://novelbin.com/b/", mainUrl + "/novel/")
         val document = app.get(realUrl).document
         val title = document.selectFirst("title")?.text() ?: throw ErrorLoadingException("No title")
 
         val chapters = getChapters(realUrl.substringAfter("/novel/"))
-        return newStreamResponse(title,realUrl,chapters) {
+        return newStreamResponse(title, realUrl, chapters) {
             this.posterUrl = document.selectFirst("meta[property=og:image]")?.attr("content")
             this.synopsis = document.selectFirst("meta[name=description]")?.attr("content")
             this.author = document.selectFirst("meta[name=author]")?.attr("content")
-            this.tags = document.selectFirst("meta[name=category]")?.attr("content")?.let {listOf(it)}
+            this.tags =
+                document.selectFirst("meta[name=category]")?.attr("content")?.let { listOf(it) }
             setStatus(document.selectFirst("meta[name=og:novel:status]")?.attr("content"))
+            related = getRelated(document)
         }
+    }
+
+    private fun getRelated(dc: Document): List<SearchResponse>{
+        return dc.select("aside.classic-detail-aside > section.mt-5 > div.site-panel > div > a.group").mapNotNull { element ->
+            val href = element.attr("href") ?: return@mapNotNull null
+            val title = element.selectFirst("> div.font-extrabold")?.text() ?: return@mapNotNull null
+            newSearchResponse(
+                name = title,
+                url = href
+            ) {
+                posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
+            }
+        }
+    }
+
+    override suspend fun loadReviews(
+        url: String,
+        page: Int,
+        showSpoilers: Boolean
+    ): List<UserReview> {
+        val slug = url.removeSuffix("/").substringAfter("/novel/")
+        val realUrl = "$mainUrl/api-web/novels/$slug/comments?page=$page&limit=10&sort=most-liked&scope=novel"
+
+        val response = app.get(realUrl).parsedSafe<ReviewResponse>()
+
+        return response?.items?.mapNotNull { item ->
+            if (!showSpoilers && item.isSpoiler == true) return@mapNotNull null
+
+            UserReview(
+                review = org.jsoup.Jsoup.parse(item.content ?: "").text(),
+                username = item.disqusUser?.name ?: "User",
+                reviewDate = item.createdDate,
+                avatarUrl = fixUrlNull(item.disqusUser?.avatarUrl),
+            )
+        } ?: emptyList()
     }
 
     override suspend fun loadHtml(url: String): String {
@@ -228,5 +268,20 @@ open class NovelBinProvider : MainAPI() {
         val limit: Int,
         val total: Int,
         val totalPages: Int
+    )
+
+    data class ReviewResponse(@JsonProperty("items") val items: List<ReviewItem>?
+    )
+
+    data class ReviewItem(
+        @JsonProperty("content") val content: String?,
+        @JsonProperty("isSpoiler") val isSpoiler: Boolean?,
+        @JsonProperty("disqusUser") val disqusUser: DisqusUser?,
+        @JsonProperty("created_date") val createdDate: String?
+    )
+
+    data class DisqusUser(
+        @JsonProperty("name") val name: String?,
+        @JsonProperty("avatarUrl") val avatarUrl: String?
     )
 }
