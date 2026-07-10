@@ -3,9 +3,7 @@ package com.lagradost.quicknovel.providers
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.util.AppUtils.parseJson
-import com.lagradost.quicknovel.util.AppUtils.toJson
-import com.lagradost.quicknovel.util.AppUtils.tryParseJson
-import org.json.JSONObject
+import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
 
@@ -17,6 +15,8 @@ class RanobesProvider : MainAPI() {
     override val iconBackgroundId = R.color.white
     override val usesCloudFlareKiller = true
     override val rateLimitTime = 500L
+    override val hasReviews = true
+    var novelId = ""
     override val tags = listOf(
         "Action" to "Action",
         "Adult" to "Adult",
@@ -130,6 +130,7 @@ class RanobesProvider : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse? {
         val document = app.get(url).document
+        novelId = document.selectFirst("input[name=newsid]")?.attr("value") ?: ""
         val name = document.selectFirst("h1.title")?.ownText() ?: return null
         val chapters = getChapters(document)
         return newStreamResponse(url = url, name = name, data = chapters) {
@@ -154,9 +155,64 @@ class RanobesProvider : MainAPI() {
             val statusHeader =
                 document.selectFirst("li[title=Original status in: Chinese, Japanese, English, etc.] > span")
             setStatus(statusHeader?.text())
+            related = getRelated(document)
         }
     }
 
+    private fun getRelated(dc: Document): List<SearchResponse>{
+        return dc.select("div.tab-content > div.tab-pane > div.story_line").mapNotNull { element ->
+            val href = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+            val title = element.selectFirst("span.title")?.text() ?: return@mapNotNull null
+            newSearchResponse(
+                name = title,
+                url = href
+            ) {
+                posterUrl = element.selectFirst("i.image.cover")?.attr("style")?.substringAfter(":url(")?.substringBefore(")")
+            }
+        }
+    }
+
+    override suspend fun loadReviews(
+        url: String,
+        page: Int,
+        showSpoilers: Boolean
+    ): List<UserReview> {
+        if (novelId.isEmpty()) return emptyList()
+
+        val ajaxUrl = "$mainUrl/engine/ajax/controller.php?mod=comments&cstart=$page&news_id=$novelId&skin=Dark"
+
+        val res = app.get(ajaxUrl).parsedSafe<RanobesCommentsResponse>()
+        val htmlContent = res?.comments ?: return emptyList()
+        val document = Jsoup.parse(htmlContent)
+
+        return document.select("div.comment").mapNotNull { item ->
+            val info = item.selectFirst("div.com_info")
+            val body = item.selectFirst("div.com_content")
+
+            val contentElement = body?.selectFirst("div.cont-text")
+
+            if (!showSpoilers) {
+                contentElement?.select(".spoiler-cont")?.remove()
+            }
+
+            val reviewTxt = contentElement?.text() ?: ""
+            if (reviewTxt.isBlank()) return@mapNotNull null
+
+            val scoreRaw = item.selectFirst("span.review-rating-num")?.text()?.toFloatOrNull()
+            val overallScore = scoreRaw?.times(200)?.toInt()
+
+            UserReview(
+                review = reviewTxt,
+                username = info?.selectFirst(".name")?.text() ?: "User",
+                reviewDate = info?.selectFirst("time")?.text(),
+                avatarUrl = fixUrlNull(info?.selectFirst(".avatar .cover")?.attr("style")
+                    ?.substringAfter("url(")
+                    ?.substringBefore(")")
+                    ?.replace("'", "")),
+                rating = overallScore,
+            )
+        }
+    }
 
     private fun getChapter(document: Document): List< String> {
         val script = document.selectFirst("script:containsData(window.__DATA__)")
@@ -263,5 +319,8 @@ class RanobesProvider : MainAPI() {
         val showDate: String?,
         @JsonProperty("link")
         val link: String,
+    )
+    data class RanobesCommentsResponse(
+        @JsonProperty("comments") val comments: String? = null
     )
 }
