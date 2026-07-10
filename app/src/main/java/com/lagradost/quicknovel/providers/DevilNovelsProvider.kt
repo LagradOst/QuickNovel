@@ -10,9 +10,12 @@ import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.USER_AGENT
+import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
+import com.lagradost.quicknovel.providers.NovelFireProvider.RelatedResponse
+import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import kotlin.jvm.Throws
 
@@ -63,6 +66,20 @@ class DevilNovelsProvider : MainAPI() {
         ).parsed<GetFirstPageChaptersResponse>()
     }
 
+    private fun getRelated(document: Document): List<SearchResponse> {
+        return document.select("div.nv-related-grid a").mapNotNull { element ->
+            val href = element.attr("href") ?: return@mapNotNull null
+            val title = element.selectFirst("div.nv-related-name")?.text() ?: return@mapNotNull null
+            newSearchResponse(
+                name = title,
+                url = href
+            ) {
+                posterUrl = fixUrlNull(
+                    element.selectFirst("img")?.attr("src")
+                )
+            }
+        }
+    }
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
 
@@ -90,6 +107,7 @@ class DevilNovelsProvider : MainAPI() {
             this.author = document.selectFirst("#nvt-sinopsis > div > p:nth-child(3)")?.ownText()
             this.tags = document.selectFirst("#nvt-sinopsis > div > p:nth-child(5)")?.text()
                 ?.replace("Géneros: ", "")?.split(",")?.map { it.trim() }
+            related = getRelated(document)
         }
     }
 
