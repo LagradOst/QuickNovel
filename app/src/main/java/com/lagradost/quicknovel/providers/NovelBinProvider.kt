@@ -132,7 +132,7 @@ open class NovelBinProvider : MainAPI() {
 
             newChapterData(
                 name = ch.chapterName,
-                url = "$mainUrl/chapter/$slug/${ch.chapterId}"
+                url = "$mainUrl/api-web/novels/$slug/chapters/${ch.chapterId}"
             )
         }
     }
@@ -191,22 +191,9 @@ open class NovelBinProvider : MainAPI() {
     }
 
     override suspend fun loadHtml(url: String): String {
-        val document = app.get(url).document
-        val script = document.select("script")
-            .firstOrNull {
-                it.data().contains("\\u003ch1\\u003e")
-            }?.data()
-            ?: error("No encontrado")
-
-        val raw = Regex(
-            """"((?:\\.|[^"])*)"""",
-            RegexOption.DOT_MATCHES_ALL
-        ).findAll(script)
-            .map { it.groupValues[1] }
-            .first { it.contains("\\u003ch1\\u003e") }
-
-        //I'm not sure if this is the right way to do it, or if there's already a function that does this.
-        return ObjectMapper().readValue("\"$raw\"", String::class.java)
+        val response = app.get(url).parsed<ChapterResponse>()
+        val content = response.item?.chapterInfo?.chapterContent ?:throw ErrorLoadingException("No content")
+        return content
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
@@ -226,52 +213,63 @@ open class NovelBinProvider : MainAPI() {
     }
 
     data class MainPageResponse(
-        @JsonProperty("items") val items:List<NovelInfo>
+        @JsonProperty("items") val items: List<NovelInfo>
     )
+
     data class NovelInfo(
-        @JsonProperty("novel_name") val novelName:String,
-        @JsonProperty("novel_id") val novelId:String
+        @JsonProperty("novel_name") val novelName: String,
+        @JsonProperty("novel_id") val novelId: String
     )
 
     data class ChaptersResponse(
-        val items: List<ChapterInfo>,
-        val pagination: Pagination
+        @JsonProperty("items") val items: List<ChapterInfo>,
+        @JsonProperty("pagination") val pagination: Pagination
     )
 
     data class ChaptersResponseNested(
-        val items: List<List<ChapterInfo>>,
-        val pagination: Pagination
+        @JsonProperty("items") val items: List<List<ChapterInfo>>,
+        @JsonProperty("pagination") val pagination: Pagination
+    )
+
+    data class ChapterResponse(
+        @JsonProperty("item") val item: ChapterItemWrapper?
+    )
+
+    data class ChapterItemWrapper(
+        @JsonProperty("chapterInfo") val chapterInfo: ChapterInfo?
     )
 
     data class ChapterInfo(
         @JsonProperty("chapter_id")
-        val chapterId: String,
+        val chapterId: String?,
 
         @JsonProperty("chapter_name")
         val chapterName: String,
 
         @JsonProperty("platinum_content")
-        val platinum: Boolean,
+        val platinum: Boolean = false,
 
         @JsonProperty("premium_content")
-        val premium: Boolean,
+        val premium: Boolean = false,
 
         @JsonProperty("coin_price")
-        val coinPrice: Int,
+        val coinPrice: Int? = 0,
 
         @JsonProperty("comments_count")
-        val commentsCount: Int
+        val commentsCount: Int? = 0,
+
+        @JsonProperty("chapter_content")
+        val chapterContent: String?
     )
 
     data class Pagination(
-        val page: Int,
-        val limit: Int,
-        val total: Int,
-        val totalPages: Int
+        @JsonProperty("page") val page: Int,
+        @JsonProperty("limit") val limit: Int,
+        @JsonProperty("total") val total: Int,
+        @JsonProperty("totalPages") val totalPages: Int
     )
 
-    data class ReviewResponse(@JsonProperty("items") val items: List<ReviewItem>?
-    )
+    data class ReviewResponse(@JsonProperty("items") val items: List<ReviewItem>?)
 
     data class ReviewItem(
         @JsonProperty("content") val content: String?,
