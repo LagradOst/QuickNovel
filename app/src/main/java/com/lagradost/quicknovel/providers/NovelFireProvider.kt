@@ -1,19 +1,22 @@
 package com.lagradost.quicknovel.providers
 
+import android.net.Uri
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrl
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
+import org.jsoup.Jsoup
 import kotlin.math.roundToInt
 
 open class NovelFireProvider:  MainAPI() {
@@ -22,7 +25,9 @@ open class NovelFireProvider:  MainAPI() {
     override val iconId = R.drawable.icon_novelfire
     override val rateLimitTime = 500L
     override val hasMainPage = true
-
+    override val hasReviews = true
+    var novelId: String = ""
+    var nextPosts: String = ""
     override val mainCategories = listOf(
         "All" to "status-all",
         "Completed" to "status-completed",
@@ -133,6 +138,9 @@ open class NovelFireProvider:  MainAPI() {
 
         val chapters = getChapters(url)
 
+        novelId = document.selectFirst("a#novel-report")?.attr("report-post_id") ?: ""
+        nextPosts = ""
+
         return newStreamResponse(title,fixUrl(url), chapters) {
             this.author = infoDiv.selectFirst("div.author > a")?.text()
             this.posterUrl = fixUrlNull(document.selectFirst("figure.cover img")?.attr("src"))
@@ -163,7 +171,7 @@ open class NovelFireProvider:  MainAPI() {
                     ?.toIntOrNull() ?: 0
             this.rating = document.selectFirst("div.rating strong.nub")?.text()
                 ?.toFloatOrNull()?.times(20)?.times(10)?.roundToInt()
-
+            related = getRelated()
         }
     }
 
@@ -202,6 +210,67 @@ open class NovelFireProvider:  MainAPI() {
         }
     }
 
+    suspend fun getRelated(): List<SearchResponse> {
+        val url = "$mainUrl/ajax/novelYouMayLike?post_id=$novelId"
+        val document = app.get(url).parsed<RelatedResponse>()
+        return Jsoup.parse(document.html).select("li.novel-item").mapNotNull { element ->
+            val href = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+            val title = element.selectFirst("h5")?.text() ?: return@mapNotNull null
+            newSearchResponse(
+                name = title,
+                url = href
+            ) {
+                posterUrl = fixUrlNull(
+                    element.selectFirst("img")?.attr("data-src")
+                        ?: element.selectFirst("img")?.attr("src")
+                )
+            }
+        }
+    }
+
+    override suspend fun loadReviews(
+        url: String,
+        page: Int,
+        showSpoilers: Boolean
+    ): List<UserReview> {
+        val realUrl = "$mainUrl/comment/show?post_id=$novelId&chapter_id=&order_by=newest&cursor=$nextPosts"
+        val res = app.get(realUrl).parsed<PostsResponse>()
+        nextPosts = res.nextCursor
+        val reviews = Jsoup.parse(res.html).select("li:has(.comment-item)")
+
+        return reviews.mapNotNull { r ->
+            val header = r.selectFirst("div.comment-header")
+            val body = r.selectFirst("div.comment-body")
+
+            val username = header?.selectFirst(".username")?.text()
+            val avatarUrl = header?.selectFirst("img.avatar")?.attr("src")
+            val reviewTime = header?.selectFirst(".post-date")?.text() // Ej: "11h", "1d"
+
+            val reviewContent = body?.selectFirst(".comment-text")
+
+            /*
+            val isSpoiler = reviewContent?.attr("data-spoiler") == "1"
+            if (isSpoiler && !showSpoilers) {
+
+            }*/
+
+            val reviewTxt = reviewContent?.html()
+
+            val overallScore = null
+            val scoresData = ArrayList<Pair<Int, String>>()
+
+            UserReview(
+                reviewTxt ?: return@mapNotNull null,
+                reviewTitle = null,
+                username = username,
+                reviewTime,
+                avatarUrl = fixUrlNull(avatarUrl),
+                overallScore,
+                scoresData
+            )
+        }
+    }
+
     fun normalize(text: String): String {
         return text
             .lowercase()
@@ -226,7 +295,7 @@ open class NovelFireProvider:  MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val url = "$mainUrl/search/?keyword=$query&page=1"
+        val url = "$mainUrl/search/?keyword=${Uri.encode(query.trim()).replace("%20","+")}&page=1"
         val document = app.get(url).document
 
         return document.select("ul.novel-list.horizontal.col2.chapters li.novel-item").mapNotNull { element ->
@@ -239,4 +308,18 @@ open class NovelFireProvider:  MainAPI() {
             }
         }
     }
+
+    data class RelatedResponse(
+        @JsonProperty("html")
+        val html:String
+    )
+
+    data class PostsResponse(
+        @JsonProperty("has_more_pages")
+        val hasMore: Boolean,
+        @JsonProperty("html")
+        val html: String,
+        @JsonProperty("next_cursor")
+        val nextCursor: String,
+    )
 }
