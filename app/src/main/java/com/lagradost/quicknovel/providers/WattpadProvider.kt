@@ -2,10 +2,12 @@ package com.lagradost.quicknovel.providers
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.providers.WtrLabProvider.ReviewResponse
 import com.lagradost.quicknovel.util.AppUtils.parseJson
 import com.lagradost.quicknovel.util.AppUtils.toJson
 import org.json.JSONObject
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
 import org.jsoup.parser.Parser
 import kotlin.collections.mapNotNull
 
@@ -16,7 +18,7 @@ class WattpadProvider : MainAPI() {
     override val iconId = R.drawable.icon_wattpad
     override val iconBackgroundId = R.color.wattpadColor
     override val rateLimitTime = 500L
-
+    var novelId = ""
 
     private val langHeaders = mapOf(
         "" to "en-US,en;q=0.9", // English default
@@ -148,7 +150,43 @@ class WattpadProvider : MainAPI() {
             tags = story.tags?.mapNotNull {
                 it.trim().takeIf { text ->  text.isNotEmpty() }
             }
+            related = getRelated(response.document)
         }
+    }
+
+
+    private fun getRelated(dc: Document): List<SearchResponse>{
+        return dc.select("div[data-testid=similar-stories-slide-column] > a").mapNotNull { element ->
+            val href = element.attr("href") ?: return@mapNotNull null
+            val title = element.selectFirst("h5")?.text() ?: return@mapNotNull null
+            newSearchResponse(
+                name = title,
+                url = href
+            ) {
+                posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
+            }
+        }
+    }
+
+    override suspend fun loadReviews(
+        url: String,
+        page: Int,
+        showSpoilers: Boolean
+    ): List<UserReview> {
+        if (novelId.isEmpty()) return emptyList()
+
+        val realUrl = "$mainUrl/api/review/get?serie_id=$novelId&page=${page - 1}&sort=most_liked"
+        val res = app.get(realUrl).parsedSafe<ReviewResponse>()
+
+        return res?.data?.mapNotNull { item ->
+            val reviewTxt = item.comment ?: return@mapNotNull null
+            UserReview(
+                review = reviewTxt,
+                username = item.username ?: "User",
+                reviewDate = item.createdAt,
+                rating = item.rate?.times(200)
+            )
+        } ?: emptyList()
     }
 
     override suspend fun loadHtml(url: String): String {
