@@ -8,12 +8,16 @@ import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrl
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
+import com.lagradost.quicknovel.providers.NovelFireProvider.PostsResponse
+import com.lagradost.quicknovel.providers.NovelFireProvider.RelatedResponse
 import com.lagradost.quicknovel.setStatus
+import org.jsoup.Jsoup
 
 class LightNovelWorldProvider : MainAPI() {
     override val name = "LightNovelWorld"
@@ -21,7 +25,8 @@ class LightNovelWorldProvider : MainAPI() {
     override val hasMainPage = true
     override val iconId = R.drawable.icon_lightnovelworld
     override val iconBackgroundId = R.color.colorPrimaryWhite
-
+    override val hasReviews = true
+    var novelId = ""
     override val mainCategories = listOf(
         "New Update" to "/updates/",
         "Top Ranked" to "/ranking/?sort=rank",
@@ -85,7 +90,7 @@ class LightNovelWorldProvider : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse? {
         val document = app.get(url).document
-
+        novelId = document.selectFirst("meta[name=novel-id]")?.attr("content") ?: ""
         val title = document.selectFirst("h1.novel-title, meta[property=og:title]")?.let {
             if (it.tagName() == "meta") it.attr("content") else it.text()
         }?.trim() ?: return null
@@ -101,6 +106,50 @@ class LightNovelWorldProvider : MainAPI() {
             synopsis = document.selectFirst("div.summary-content")?.text()?.trim()
             tags = document.select("div.genre-tags > span.genre-tag").map { it.text().trim() }
             setStatus(document.selectFirst("span.status-badge")?.text()?.trim())
+            related = getRelated()
+        }
+    }
+    suspend fun getRelated(): List<SearchResponse> {
+        val url = "$mainUrl/api/recommendations/"
+        val document = app.get(url).parsed<RelatedResponse>()
+        return document.novels.map { element ->
+            val href = fixUrl(element.slug)
+            val title = element.title
+            newSearchResponse(
+                name = title,
+                url = href
+            ) {
+                posterUrl = fixUrlNull(element.coverPath)
+            }
+        }
+    }
+
+    override suspend fun loadReviews(
+        url: String,
+        page: Int,
+        showSpoilers: Boolean
+    ): List<UserReview> {
+        if (novelId.isEmpty()) return emptyList()
+        val realUrl = "$mainUrl/api/comments/?comment_type=novel&commentable_id=$novelId&sort=newest&page=$page&parent_only=true"
+        val res = app.get(realUrl).parsedSafe<PostsResponse>()
+        val dataList = res?.comments ?: return emptyList()
+
+        return dataList.map { item ->
+            val content = if (item.isSpoiler == true && !showSpoilers) {
+                "Spoiler content hidden"
+            } else {
+                item.content ?: ""
+            }
+
+            // ¿2025-10-18T23:39:33..." -> "2025-10-18 23:39:33"
+            val cleanDate = item.createdAt?.replace("T", " ")
+
+            UserReview(
+                review = content,
+                username = item.author?.username ?: "User",
+                reviewDate = cleanDate,
+                avatarUrl = fixUrlNull(item.author?.profileImageUrl),
+            )
         }
     }
 
@@ -157,4 +206,39 @@ class LightNovelWorldProvider : MainAPI() {
     private fun withPageParam(url: String, page: Int): String {
         return if (url.contains("?")) "$url&page=$page" else "$url?page=$page"
     }
+
+    data class RelatedResponse(
+        @JsonProperty("novels")
+        val novels:List<Novel>
+    )
+    data class Novel(
+        @JsonProperty("title")
+        val title:String,
+        @JsonProperty("slug")
+        val slug:String,
+        @JsonProperty("cover_path")
+        val coverPath:String
+    )
+    data class PostsResponse(
+        @JsonProperty("comments") val comments: List<Comment>? = null,        @JsonProperty("pagination") val pagination: Pagination? = null
+    )
+
+    data class Pagination(
+        @JsonProperty("current_page") val currentPage: Int? = null,
+        @JsonProperty("total_pages") val totalPages: Int? = null,
+        @JsonProperty("has_next") val hasNext: Boolean? = null
+    )
+
+    data class Comment(
+        @JsonProperty("content") val content: String? = null,
+        @JsonProperty("created_at") val createdAt: String? = null,
+        @JsonProperty("author") val author: Author? = null,
+        @JsonProperty("is_spoiler") val isSpoiler: Boolean? = null
+    )
+
+    data class Author(
+        @JsonProperty("username") val username: String? = null,
+        @JsonProperty("profile_image_url") val profileImageUrl: String? = null
+    )
+
 }
