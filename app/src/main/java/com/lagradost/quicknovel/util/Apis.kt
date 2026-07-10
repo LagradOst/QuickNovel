@@ -104,7 +104,7 @@ class Apis {
             NovelLightProvider(),
             NovelManiaProvider(),
             //NovelPassionProvider(), // Site gone
-            NovelsOnlineProvider(),
+            //NovelsOnlineProvider(), // not working
             NovLoveProvider(),
             NovelPhoenixProvider(),
             PawReadProver(),
