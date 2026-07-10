@@ -153,7 +153,6 @@ class  WtrLabProvider : MainAPI() {
         val chaptersDataJson =
             app.get(chapterDataUrl).text
         val chaptersData = parseJson<ResultChaptersJsonResponse.Root>(chaptersDataJson)
-
         return chaptersData.chapters.map { chapter ->
             newChapterData(
                 "#${chapter.order} ${chapter.title}",
@@ -212,17 +211,18 @@ class  WtrLabProvider : MainAPI() {
         val url = "$mainUrl/api/v2/novel/similar/$novelId"
         val response = app.get(url).parsedSafe<RelatedResponse>()
 
-        return response?.data?.mapNotNull { item ->
-            val title = item.data?.title ?: return@mapNotNull null
-            val slug = item.slug ?: return@mapNotNull null
+        return response?.data?.map { item ->
+            val title = item.innerData.title
+            val id = item.id
+            val slug = item.slug
 
-            val href = "$mainUrl/en/novel/$slug"
+            val href = "$mainUrl/en/novel/$id/$slug"
 
             newSearchResponse(
                 name = title,
                 url = href
             ) {
-                posterUrl = fixUrlNull(item.data.image)
+                posterUrl = fixUrlNull(item.innerData.image)
             }
         } ?: emptyList()
     }
@@ -235,7 +235,6 @@ class  WtrLabProvider : MainAPI() {
 
         val realUrl = "$mainUrl/api/review/get?serie_id=$novelId&page=${page - 1}&sort=most_liked"
         val res = app.get(realUrl).parsedSafe<ReviewResponse>()
-
         return res?.data?.mapNotNull { item ->
             val reviewTxt = item.comment ?: return@mapNotNull null
             UserReview(
@@ -321,18 +320,19 @@ class  WtrLabProvider : MainAPI() {
     }
 
     data class RelatedResponse(
-        @JsonProperty("success") val success: Boolean? = null,
+        @JsonProperty("success") val success: Boolean,
         @JsonProperty("data") val data: List<RelatedItem>? = null
     )
 
     data class RelatedItem(
-        @JsonProperty("slug") val slug: String? = null,
-        @JsonProperty("data") val data: RelatedInnerData? = null
+        @JsonProperty("raw_id") val id: Long,
+        @JsonProperty("slug") val slug: String,
+        @JsonProperty("data") val innerData: RelatedInnerData,
     )
 
     data class RelatedInnerData(
-        @JsonProperty("title") val title: String? = null,
-        @JsonProperty("image") val image: String? = null
+        @JsonProperty("title") val title: String,
+        @JsonProperty("image") val image: String? = null,
     )
     data class ReviewResponse(
         @JsonProperty("success") val success: Boolean? = null,
