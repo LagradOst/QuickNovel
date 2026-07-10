@@ -248,25 +248,16 @@ open class NovelFireProvider:  MainAPI() {
 
             val reviewContent = body?.selectFirst(".comment-text")
 
-            /*
             val isSpoiler = reviewContent?.attr("data-spoiler") == "1"
-            if (isSpoiler && !showSpoilers) {
-
-            }*/
+            if (!showSpoilers && isSpoiler == true) return@mapNotNull null
 
             val reviewTxt = reviewContent?.html()
 
-            val overallScore = null
-            val scoresData = ArrayList<Pair<Int, String>>()
-
             UserReview(
                 reviewTxt ?: return@mapNotNull null,
-                reviewTitle = null,
                 username = username,
-                reviewTime,
+                reviewDate = reviewTime,
                 avatarUrl = fixUrlNull(avatarUrl),
-                overallScore,
-                scoresData
             )
         }
     }
