@@ -18,6 +18,8 @@ import com.lagradost.quicknovel.setStatus
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import com.lagradost.quicknovel.MainActivity.Companion.app
+import com.lagradost.quicknovel.UserReview
+import com.lagradost.quicknovel.providers.LightNovelWorldProvider.PostsResponse
 
 class NovelLightProvider:  MainAPI() {
     override val name = "Novel Light"
@@ -26,6 +28,8 @@ class NovelLightProvider:  MainAPI() {
     override val iconId = R.drawable.icon_novelight
     override val iconBackgroundId = R.color.novelightColor
     override val hasMainPage = true
+    override val hasReviews = true
+    var novelId = ""
 
     fun baseHeaders(url:String = "") =
         if(url.isNotEmpty())
@@ -87,6 +91,10 @@ class NovelLightProvider:  MainAPI() {
         val infoDiv = document.select("div.container > div.flex-content")
         val title = document.selectFirst("header h1")?.text() ?: throw ErrorLoadingException("Title not found")
 
+        val scriptData = document.selectFirst("#comments script")?.data() ?: ""
+        novelId = Regex("""const OBJECT_BY_COMMENT = (\d+);""").find(scriptData)?.groupValues?.get(1) ?: ""
+
+
         val chapters = getChapters(document)
         return newStreamResponse(title,fixUrl(url), chapters) {
             this.posterUrl = fixUrlNull(infoDiv.selectFirst("div.poster > img")?.attr("src"))
@@ -103,9 +111,47 @@ class NovelLightProvider:  MainAPI() {
             this.tags = infoDiv.selectFirst("div.block.mini-info > div > div.info")?.select("> a")?.mapNotNull {
                 it.text().trim().takeIf { text ->  !text.isEmpty() }
             }
+            related = getRelated(document)
         }
     }
 
+    private fun getRelated(dc: Document): List<SearchResponse>{
+        return dc.select("section.manga-list > div.swiper-container > div.swiper-wrapper a").mapNotNull { element ->
+            val href = element.attr("href") ?: return@mapNotNull null
+            val title = element.selectFirst("div.title")?.text() ?: return@mapNotNull null
+            newSearchResponse(
+                name = title,
+                url = href
+            ) {
+                posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
+            }
+        }
+    }
+
+    override suspend fun loadReviews(
+        url: String,
+        page: Int,
+        showSpoilers: Boolean
+    ): List<UserReview> {
+        if (novelId.isEmpty()) return emptyList()
+
+        //https://novelight.net/api/comments/?content_type=18&limit=20&object_id=308&page=1
+        val realUrl = "$mainUrl/api/comments/?content_type=18&limit=20&object_id=$novelId&page=$page"
+
+        val res = app.get(realUrl).parsedSafe<NovelLightReviewsResponse>()
+        val dataList = res?.results ?: return emptyList()
+
+        return dataList.map { item ->
+            val cleanDate = item.timeCreated?.replace("T", " ")
+
+            UserReview(
+                review = item.content ?: "",
+                username = item.userObject?.username ?: "User",
+                reviewDate = cleanDate,
+                avatarUrl = fixUrlNull(item.userObject?.avatar),
+            )
+        }
+    }
     override suspend fun loadHtml(url: String): String {
         val jsonResponse = app.get(
             url = ajaxUrl + "/${url.substringAfterLast("/book/chapter/")}",
@@ -139,6 +185,23 @@ class NovelLightProvider:  MainAPI() {
     data class ChapterResponse(
         @JsonProperty("html")
         val html: String,
+    )
+
+    data class NovelLightReviewsResponse(
+        @JsonProperty("results") val results: List<ReviewItem>? = null,
+        @JsonProperty("count") val count: Int? = null
+    )
+
+    data class ReviewItem(
+        @JsonProperty("content") val content: String? = null,
+        @JsonProperty("time_created") val timeCreated: String? = null,
+        @JsonProperty("user_object") val userObject: ReviewUser? = null,
+        @JsonProperty("rating") val rating: Int? = null
+    )
+
+    data class ReviewUser(
+        @JsonProperty("username") val username: String? = null,
+        @JsonProperty("avatar") val avatar: String? = null
     )
 }
 
