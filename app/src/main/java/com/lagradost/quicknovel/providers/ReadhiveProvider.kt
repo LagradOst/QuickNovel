@@ -11,6 +11,7 @@ import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
+import org.jsoup.nodes.Document
 
 class ReadhiveProvider  :  MainAPI() {
     override val name = "ReadHive"
@@ -77,12 +78,26 @@ class ReadhiveProvider  :  MainAPI() {
         mainCategory: String?,
         orderBy: String?,
         tag: String?
-    ): HeadMainPageResponse
-    {
-        val url = "$mainUrl/${if(!tag.isNullOrBlank()) "genre/$tag/" else ""}page/$page/"
-        val document = app.get(url).document
+    ): HeadMainPageResponse {
+        val hasTag = !tag.isNullOrBlank()
+        val tagPath = if (hasTag) "tag/$tag/" else ""
 
-        val returnValue = document.select("a.peer").mapNotNull { card ->
+        val url = "$mainUrl/${tagPath}page/$page/"
+        val document = app.get(url).document
+        val returnValue = parsePageCards(document).toMutableList()
+
+        if (hasTag && page == 1) {
+            val nextUrl = "$mainUrl/${tagPath}page/2/"
+            val nextDocument = app.get(nextUrl).document
+            val secondPageCards = parsePageCards(nextDocument)
+            returnValue.addAll(secondPageCards)
+        }
+
+        return HeadMainPageResponse(url, returnValue)
+    }
+
+    private fun parsePageCards(document: Document): List<SearchResponse> {
+        return document.select("a.peer, a.col-span-2").mapNotNull { card ->
             val href = card?.attr("href") ?: return@mapNotNull null
             val title = card.selectFirst("img")?.attr("alt") ?: return@mapNotNull null
             newSearchResponse(
@@ -92,7 +107,6 @@ class ReadhiveProvider  :  MainAPI() {
                 posterUrl = fixUrlNull(card.selectFirst("img")?.attr("src"))
             }
         }
-        return HeadMainPageResponse(url, returnValue)
     }
 
 
@@ -122,6 +136,20 @@ class ReadhiveProvider  :  MainAPI() {
 
             this.tags = infoDiv.select("section.relative.grid.grid-cols-1.lg\\:grid-areas-series__body.lg\\:grid-cols-series.gap-x-4.px-4.py-2.sm\\:px-8 > div.lg\\:grid-in-content.mt-4 > div:nth-child(1) > div:nth-child(2) > div.flex.flex-wrap > a").mapNotNull {
                 it.text().trim().takeIf { text ->  !text.isEmpty() }
+            }
+            related = getRelated(document)
+        }
+    }
+
+    private fun getRelated(dc: Document): List<SearchResponse>{
+        return dc.select("div.swiper > div.swiper-wrapper > div.swiper-slide").mapNotNull { element ->
+            val href = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+            val title = element.selectFirst("h6")?.text() ?: return@mapNotNull null
+            newSearchResponse(
+                name = title,
+                url = href
+            ) {
+                posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
             }
         }
     }
