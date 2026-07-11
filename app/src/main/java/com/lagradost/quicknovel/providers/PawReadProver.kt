@@ -130,7 +130,7 @@ class PawReadProver : MainAPI() {
             rating = document.select(".comic-score>span").getOrNull(1)?.text()?.toFloatOrNull()
                 ?.times(1000.0 / 5.0)?.roundToInt()
             peopleVoted = document.selectFirst("#scoreCount")?.text()?.toIntOrNull()
-            tags = document.select(".tags").map { it.text().trim().removePrefix("#").trim() }
+            tags = document.select("div.col-md-9 > div.mt20 > a.btn").map { it.text().trim().removePrefix("#").trim() }
             synopsis = document.selectFirst("#simple-des")?.text()
             val attr = board.selectFirst(">.col-md-3>div")
             posterUrl =
