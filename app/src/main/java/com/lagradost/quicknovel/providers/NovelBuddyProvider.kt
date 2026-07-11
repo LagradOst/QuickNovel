@@ -27,10 +27,95 @@ class NovelBuddyProvider : MainAPI() {
     override val hasReviews = true
     var novelId = ""
     override val mainCategories = listOf(
-        "Popular (Month)" to "month",
-        "Popular (All Time)" to "all-time",
-        "Newest" to "latest-release",
-        "Completed" to "completed"
+        "Ongoing" to "ongoing",
+        "Completed" to "completed",
+        "Hiatus" to "hiatus",
+        "Cancelled" to "cancelled"
+    )
+    override val tags = listOf(
+        "All" to "",
+        "Action" to "action",
+        "ActionAdventure" to "actionadventure",
+        "Adult" to "adult",
+        "Adventure" to "adventure",
+        "Adventurei" to "adventurei",
+        "Comedy" to "comedy",
+        "Drama" to "drama",
+        "Eastern" to "eastern",
+        "Easterni" to "easterni",
+        "Ecchi" to "ecchi",
+        "Ecchi Fantasy" to "ecchi fantasy",
+        "Fan-Fiction" to "fan-fiction",
+        "Fantasy" to "fantasy",
+        "Gam" to "gam",
+        "Game" to "game",
+        "Games" to "games",
+        "Gender Bender" to "gender bender",
+        "Harem" to "harem",
+        "Historical" to "historical",
+        "Horror" to "horror",
+        "Isekai" to "isekai",
+        "Josei" to "josei",
+        "Light Novel" to "light novel",
+        "Lolicon" to "lolicon",
+        "Magic" to "magic",
+        "Martial Arts" to "martial arts",
+        "Martial ArtsReincarnation" to "martial artsreincarnation",
+        "Mature" to "mature",
+        "Mecha" to "mecha",
+        "Military" to "military",
+        "Modern Life" to "modern life",
+        "Movies" to "movies",
+        "Mystery" to "mystery",
+        "Psychologic" to "psychologic",
+        "Psychological" to "psychological",
+        "Reincarnatio" to "reincarnatio",
+        "Reincarnation" to "reincarnation",
+        "Romanc" to "romanc",
+        "Romance" to "romance",
+        "Romance.Adventure" to "romance.adventure",
+        "Romance.Harem" to "romance.harem",
+        "Romance.Smut" to "romance.smut",
+        "RomanceAction" to "romanceaction",
+        "RomanceAdventure" to "romanceadventure",
+        "RomanceHarem" to "romanceharem",
+        "Romancei" to "romancei",
+        "Romancel" to "romancel",
+        "Romancem" to "romancem",
+        "School Life" to "school life",
+        "Sci-fi" to "sci-fi",
+        "Seinen" to "seinen",
+        "Seinen Wuxia" to "seinen wuxia",
+        "Shoujo" to "shoujo",
+        "Shoujo Ai" to "shoujo ai",
+        "Shounen" to "shounen",
+        "Shounen Ai" to "shounen ai",
+        "Slice of Lif" to "slice of lif",
+        "Slice Of Life" to "slice of life",
+        "Slice of Lifel" to "slice of lifel",
+        "Smut" to "smut",
+        "Sports" to "sports",
+        "Superna" to "superna",
+        "Supernatural" to "supernatural",
+        "System" to "system",
+        "Thriller" to "thriller",
+        "Tragedy" to "tragedy",
+        "Urban" to "urban",
+        "Urban Life" to "urban life",
+        "Wuxia" to "wuxia",
+        "Xianxia" to "xianxia",
+        "Xuanhuan" to "xuanhuan",
+        "Yaoi" to "yaoi",
+        "Yuri" to "yuri"
+    )
+
+    override val orderBys = listOf(
+        "Default Order" to "",
+        "Latest Updated" to "latest",
+        "Most Popular" to "popular",
+        "Highest Rating" to "rating",
+        "Most Viewed" to "views",
+        "Most Chapters" to "chapters",
     )
 
     override suspend fun loadMainPage(
@@ -39,11 +124,17 @@ class NovelBuddyProvider : MainAPI() {
         orderBy: String?,
         tag: String?
     ): HeadMainPageResponse {
-        val url = "$apiUrl/search?top_views=$mainCategory&page=$page&limit=24"
-        val document = app.get(url).parsed<Root>()
+        val params = mutableListOf<Pair<String, String>>()
+        if (!tag.isNullOrBlank()) params.add("genres" to tag)
+        if (!mainCategory.isNullOrBlank()) params.add("status" to mainCategory)
+        if (!orderBy.isNullOrBlank()) params.add("sort" to orderBy)
 
+        val queryPath = params.joinToString("") { "${it.first}=${it.second}&" }
+        val url = "$apiUrl/search?${queryPath}page=$page"
+        println(url)
+        val response = app.get(url).parsed<Root>()
         return HeadMainPageResponse(url,
-            document.data.items.map { element ->
+            response.data.items.map { element ->
                 val title = element.name
                 val href = element.url
                 newSearchResponse(title, href) {
@@ -158,58 +249,24 @@ class NovelBuddyProvider : MainAPI() {
     )
 
     data class Root(
-        @JsonProperty("success") val success: Boolean,
         @JsonProperty("data") val data: Data,
-        @JsonProperty("message") val message: String,
     )
 
     data class Data(
         @JsonProperty("items") val items: List<Item>,
-        @JsonProperty("pagination") val pagination: Pagination,
     )
 
     data class Item(
         @JsonProperty("id") val id: String,
         @JsonProperty("url") val url: String,
         @JsonProperty("name") val name: String,
-        @JsonProperty("alt_name") val altName: String,
         @JsonProperty("slug") val slug: String,
-        @JsonProperty("cover") val cover: String,
+        @JsonProperty("cover") val cover: String?,
         @JsonProperty("status") val status: String,
         @JsonProperty("rating") val rating: Double,
-        @JsonProperty("stats") val stats: Stats,
-        @JsonProperty("updated_at") val updatedAt: String,
-        @JsonProperty("cv") val cv: Long,
-        @JsonProperty("latest_chapters") val latestChapters: List<LatestChapter>,
     )
 
-    data class Stats(
-        @JsonProperty("views") val views: Long,
-        @JsonProperty("bookmarks_count") val bookmarksCount: Long,
-        @JsonProperty("comments_count") val commentsCount: Long,
-        @JsonProperty("chapters_count") val chaptersCount: Long,
-        @JsonProperty("ratings_count") val ratingsCount: Long,
-        @JsonProperty("reviews_count") val reviewsCount: Long,
-    )
 
-    data class LatestChapter(
-        @JsonProperty("id") val id: String,
-        @JsonProperty("url") val url: String,
-        @JsonProperty("name") val name: String,
-        @JsonProperty("slug") val slug: String,
-        @JsonProperty("created_at") val createdAt: String,
-        @JsonProperty("updated_at") val updatedAt: String,
-        @JsonProperty("cv") val cv: Long,
-    )
-
-    data class Pagination(
-        @JsonProperty("total") val total: Long,
-        @JsonProperty("page") val page: Long,
-        @JsonProperty("limit") val limit: Long,
-        @JsonProperty("total_pages") val totalPages: Long,
-        @JsonProperty("has_next") val hasNext: Boolean,
-        @JsonProperty("has_previous") val hasPrevious: Boolean,
-    )
 
     data class ChaptersApiResponse(
         @JsonProperty("success") val success: Boolean,
