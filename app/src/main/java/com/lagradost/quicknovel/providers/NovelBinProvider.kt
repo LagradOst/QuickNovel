@@ -27,71 +27,71 @@ open class NovelBinProvider : MainAPI() {
     override val iconId = R.drawable.icon_novelbin
     override val hasReviews = true
 
-    override val mainCategories =listOf(
-        "All" to "all"
+    override val mainCategories = listOf(
+        "Popular this week" to "POPULAR",
+        "Last updated" to "",
+        "Recently added" to "NEW",
+        "Top (most viewed)" to "ALL_TIME",
+        "Top rated" to "RATING",
+        "Most chapters" to "CHAPTERS"
     )
     override val tags = listOf(
-        "All Genres" to "ALL",
-        "Action" to "ACTION",
-        "Adult" to "ADULT",
-        "Adventure" to "ADVENTURE",
-        "Adventurei" to "ADVENTUREI",
-        "Anime & Comics" to "ANIME & COMICS",
-        "Comedy" to "COMEDY",
-        "Drama" to "DRAMA",
-        "Eastern" to "EASTERN",
-        "Ecchi" to "ECCHI",
-        "Fan-fiction" to "FAN-FICTION",
-        "Fantasy" to "FANTASY",
-        "Game" to "GAME",
-        "Gender Bender" to "GENDER BENDER",
-        "Harem" to "HAREM",
-        "Historical" to "HISTORICAL",
-        "Horror" to "HORROR",
-        "Isekai" to "ISEKAI",
-        "Josei" to "JOSEI",
-        "LGBT+" to "LGBT+",
-        "LitRPG" to "LITRPG",
-        "Magic" to "MAGIC",
-        "Magical Realism" to "MAGICAL REALISM",
-        "Martial Arts" to "MARTIAL ARTS",
-        "Mature" to "MATURE",
-        "Mecha" to "MECHA",
-        "Military" to "MILITARY",
-        "Modern Life" to "MODERN LIFE",
-        "Mystery" to "MYSTERY",
-        "Other" to "OTHER",
-        "Psychological" to "PSYCHOLOGICAL",
-        "Realistic" to "REALISTIC",
-        "Reincarnation" to "REINCARNATION",
-        "Romance" to "ROMANCE",
-        "Romancel" to "ROMANCEL",
-        "School Life" to "SCHOOL LIFE",
-        "Sci-Fi" to "SCI-FI",
-        "Seinen" to "SEINEN",
-        "Shoujo" to "SHOUJO",
-        "Shoujo Ai" to "SHOUJO AI",
-        "Shounen" to "SHOUNEN",
-        "Shounen Ai" to "SHOUNEN AI",
-        "Slice of Life" to "SLICE OF LIFE",
-        "Smut" to "SMUT",
-        "Sports" to "SPORTS",
-        "Supernatural" to "SUPERNATURAL",
-        "System" to "SYSTEM",
-        "Thriller" to "THRILLER",
-        "Tragedy" to "TRAGEDY",
-        "Urban" to "URBAN",
-        "Video Games" to "VIDEO GAMES",
-        "War" to "WAR",
-        "Wuxia" to "WUXIA",
-        "Xianxia" to "XIANXIA",
-        "Xuanhuan" to "XUANHUAN",
-        "Yaoi" to "YAOI",
-        "Yuri" to "YURI",
-    )
-
-    override val orderBys = listOf(
-        "Last" to "LASTEST",
+        "Action" to "action",
+        "Adult" to "adult",
+        "Adventure" to "adventure",
+        "Adventurei" to "adventurei",
+        "Anime & Comics" to "anime & comics",
+        "Comedy" to "comedy",
+        "Drama" to "drama",
+        "Eastern" to "eastern",
+        "Ecchi" to "ecchi",
+        "Fan-fiction" to "fan-fiction",
+        "Fantasy" to "fantasy",
+        "Game" to "game",
+        "Gender Bender" to "gender bender",
+        "Harem" to "harem",
+        "Historical" to "historical",
+        "Horror" to "horror",
+        "Isekai" to "isekai",
+        "Josei" to "josei",
+        "LGBT+" to "lgbt+",
+        "LitRPG" to "litrpg",
+        "Magic" to "magic",
+        "Magical Realism" to "magical realism",
+        "Martial Arts" to "martial arts",
+        "Mature" to "mature",
+        "Mecha" to "mecha",
+        "Military" to "military",
+        "Modern Life" to "modern life",
+        "Mystery" to "mystery",
+        "Other" to "other",
+        "Psychological" to "psychological",
+        "Realistic" to "realistic",
+        "Reincarnation" to "reincarnation",
+        "Romance" to "romance",
+        "Romancel" to "romancel",
+        "School Life" to "school life",
+        "Sci-Fi" to "sci-fi",
+        "Seinen" to "seinen",
+        "Shoujo" to "shoujo",
+        "Shoujo Ai" to "shoujo ai",
+        "Shounen" to "shounen",
+        "Shounen Ai" to "shounen ai",
+        "Slice of Life" to "slice of life",
+        "Smut" to "smut",
+        "Sports" to "sports",
+        "Supernatural" to "supernatural",
+        "System" to "system",
+        "Thriller" to "thriller",
+        "Tragedy" to "tragedy",
+        "Urban" to "urban",
+        "Video Games" to "video games",
+        "War" to "war",
+        "Wuxia" to "wuxia",
+        "Xianxia" to "xianxia",
+        "Xuanhuan" to "xuanhuan",
+        "Yaoi" to "yaoi",
+        "Yuri" to "yuri",
     )
 
 
@@ -102,18 +102,22 @@ open class NovelBinProvider : MainAPI() {
         tag: String?
     ): HeadMainPageResponse
     {
-        val url = "$mainUrl/api-web/novels?limit=30&page=$page&status=$mainCategory&sort=$orderBy&genre=$tag"
-        val document = app.get(url).parsed<MainPageResponse>()
+        val url = "$mainUrl/genre/$tag?sort=$mainCategory&page=$page"
+        val document = app.get(url).document
 
-        val returnValue = document.items.map { card ->
-            val href = "$mainUrl/novel/" + card.novelId
-            val title = card.novelName
+        val returnValue = document.select("article.site-panel.group.flex").mapNotNull { card ->
+            val href = card.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+            val title = card.selectFirst("h2")?.text() ?: return@mapNotNull null
+
             newSearchResponse(
                 name = title,
                 url = href
             ) {
-                posterUrl = "https://images.novelarrow.com/novel_164_245/" + card.novelId + ".jpg"
+                posterUrl = fixUrlNull(
+                    card.selectFirst("img")?.attr("src")
+                )
             }
+
         }
         return HeadMainPageResponse(url, returnValue)
     }
@@ -149,7 +153,7 @@ open class NovelBinProvider : MainAPI() {
             this.synopsis = document.selectFirst("meta[name=description]")?.attr("content")
             this.author = document.selectFirst("meta[name=author]")?.attr("content")
             this.tags =
-                document.selectFirst("meta[name=category]")?.attr("content")?.let { listOf(it) }
+                document.selectFirst("meta[name=category]")?.attr("content")?.let { listOf(it.trim().lowercase().replaceFirstChar { char -> char.uppercase() }) }
             setStatus(document.selectFirst("meta[name=og:novel:status]")?.attr("content"))
             related = getRelated(document)
         }
