@@ -136,10 +136,8 @@ open class NovelFireProvider:  MainAPI() {
 
         val title = infoDiv.selectFirst("h1.novel-title")?.text() ?: throw ErrorLoadingException("Title not found")
 
+        novelId = document.selectFirst("a#novel-report")?.attr("report-post_id") ?: throw ErrorLoadingException("Id not found")
         val chapters = getChapters(url)
-
-        novelId = document.selectFirst("a#novel-report")?.attr("report-post_id") ?: ""
-        nextPosts = ""
 
         return newStreamResponse(title,fixUrl(url), chapters) {
             this.author = infoDiv.selectFirst("div.author > a")?.text()
@@ -176,38 +174,42 @@ open class NovelFireProvider:  MainAPI() {
     }
 
     open suspend fun getChapters(url: String): List<ChapterData> {
-        val bookId = url.substringAfterLast("/book/").substringBefore("?").substringBefore("/")
-        val firstPageUrl = "$mainUrl/book/$bookId/chapters?page=1"
-        val document = app.get(firstPageUrl).document
+        val bookSlug = url.trimEnd('/').substringAfterLast("/")
+        val ajaxUrl = "$mainUrl/ajax/listChapterDataAjax"
+        val response = app.get(ajaxUrl, params = mapOf(
+            "draw" to "1",
+            "columns[0][data]" to "n_sort",
+            "columns[0][name]" to "cmm_posts_detail.n_sort",
+            "columns[0][searchable]" to "true",
+            "columns[0][orderable]" to "true",
+            "columns[0][search][value]" to "",
+            "columns[0][search][regex]" to "false",
+            "columns[1][data]" to "bookmark_created_at",
+            "columns[1][name]" to "bookmark_chapters.created_at",
+            "columns[1][searchable]" to "false",
+            "columns[1][orderable]" to "true",
+            "columns[1][search][value]" to "",
+            "columns[1][search][regex]" to "false",
+            "order[0][column]" to "0",
+            "order[0][dir]" to "asc",
+            "order[0][name]" to "cmm_posts_detail.n_sort",
+            "start" to "0",
+            "length" to "-1",
+            "search[value]" to "",
+            "search[regex]" to "false",
+            "post_id" to novelId,
+            "only_bookmark" to "false"
+        )).parsed<AjaxChapterRoot>()
 
-        val pagination = document.selectFirst("div.pagenav div.pagination-container nav ul.pagination")
-        if (pagination != null) {
-            val lastPageElement = pagination.select("li").let { it.getOrNull(it.size - 2) }
-            val lastPageNumber = lastPageElement?.text()?.toIntOrNull() ?: 1
+        return response.data?.mapNotNull { item ->
+            val nSort = item.nSort ?: return@mapNotNull null
 
-            val lastPageUrl = "$mainUrl/book/$bookId/chapters?page=$lastPageNumber"
-            val lastPageDoc = app.get(lastPageUrl).document
-            val lastChapterLink = lastPageDoc.select("ul.chapter-list li a").last()?.attr("href") ?: ""
-            val totalChapters = lastChapterLink.substringAfterLast("/chapter-").toIntOrNull()
-
-            if (totalChapters != null) {
-                return (1..totalChapters).map { chapterNumber ->
-                    val chapterUrl = "$mainUrl/book/$bookId/chapter-$chapterNumber"
-                    newChapterData("Chapter $chapterNumber", chapterUrl)
-                }
+            val rawTitle = item.title ?: "Chapter $nSort"
+            val chapterUrl = "$mainUrl/book/$bookSlug/chapter-$nSort"
+            newChapterData(rawTitle, chapterUrl) {
+                this.dateOfRelease = item.createdAt
             }
-        }
-
-        return document.select("ul.chapter-list li").mapNotNull { li ->
-            val a = li.selectFirst("a") ?: return@mapNotNull null
-            val name = a.selectFirst("span.chapter-title")?.text() ?: a.text()
-            val url = a.attr("href")
-            val date = li.selectFirst("span.chapter-update")?.text()
-
-            newChapterData(name, url) {
-                this.dateOfRelease = date
-            }
-        }
+        } ?: emptyList()
     }
 
     suspend fun getRelated(): List<SearchResponse> {
@@ -312,5 +314,15 @@ open class NovelFireProvider:  MainAPI() {
         val html: String,
         @JsonProperty("next_cursor")
         val nextCursor: String,
+    )
+
+    data class AjaxChapterRoot(
+        @JsonProperty("data") val data: List<AjaxChapterItem>? = null
+    )
+
+    data class AjaxChapterItem(
+        @JsonProperty("n_sort") val nSort: Int? = null,
+        @JsonProperty("title") val title: String? = null,
+        @JsonProperty("bookmark_created_at") val createdAt: String? = null
     )
 }
