@@ -131,7 +131,7 @@ class MtlNovelProvider : MainAPI() {
 
             posterUrl = fixUrlNull(document.selectFirst("div.content-main-image img")?.attr("src"))
 
-            tags = lis.getOrNull(5)?.select("a")?.map { it.text() }
+            tags = lis.getOrNull(3)?.select("a")?.map { it.text() }
 
             synopsis = document.selectFirst("div.m-card.text-break")?.ownText()
 
