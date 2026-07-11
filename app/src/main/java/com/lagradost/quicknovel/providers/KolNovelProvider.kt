@@ -1,7 +1,6 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
-import com.lagradost.quicknovel.MainActivity.Companion.app
 import java.util.*
 
 class KolNovelProvider : MainAPI() {

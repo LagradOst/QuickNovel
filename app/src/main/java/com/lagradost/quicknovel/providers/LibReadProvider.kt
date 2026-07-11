@@ -1,9 +1,19 @@
 package com.lagradost.quicknovel.providers
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.lagradost.quicknovel.*
-import com.lagradost.quicknovel.providers.NovelFireProvider.PostsResponse
-import com.lagradost.quicknovel.providers.WtrLabProvider.LoadJsonResponse2
+import com.lagradost.quicknovel.ChapterData
+import com.lagradost.quicknovel.HeadMainPageResponse
+import com.lagradost.quicknovel.LoadResponse
+import com.lagradost.quicknovel.MainAPI
+import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.USER_AGENT
+import com.lagradost.quicknovel.UserReview
+import com.lagradost.quicknovel.fixUrlNull
+import com.lagradost.quicknovel.newChapterData
+import com.lagradost.quicknovel.newSearchResponse
+import com.lagradost.quicknovel.newStreamResponse
+import com.lagradost.quicknovel.setStatus
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
@@ -70,7 +80,9 @@ open class LibReadProvider : MainAPI() {
     )
 
     private suspend fun getChapterList(doc: Document, url: String): List<ChapterData> {
-        val novelId = doc.selectFirst("a.set-case.add")?.attr("data-articleid") ?: return emptyList()
+        val novelId = doc.selectFirst("a.set-case.add")?.attr("data-articleid")
+            ?: doc.selectFirst("meta[name=image]")?.attr("content")?.substringAfterLast("/")?.substringBefore("s.jpg")
+            ?: return emptyList()
         val res = app.post(
             "$mainUrl/api/chapterlist.php", data = mapOf(
                 "aid" to novelId,
