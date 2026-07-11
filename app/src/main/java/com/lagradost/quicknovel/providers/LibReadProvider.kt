@@ -69,19 +69,20 @@ open class LibReadProvider : MainAPI() {
         "Completed Novels" to "completed-novel"
     )
 
-    private fun getChapterList(doc: Document, url: String): List<ChapterData> {
-        val scriptData = doc.select("script").map { it.data() }
-            .find { it.contains("window.chapterPagination") } ?: return emptyList()
-
-        val totalChapters = "totalChapters:\\s*(\\d+)".toRegex()
-            .find(scriptData)?.groupValues?.get(1)?.toIntOrNull() ?: 0
-
-        val cleanedUrl = url.removeSuffix("/").substringAfterLast("/").replace("(-novel)?-\\d{4,}+$".toRegex(), "")
-
-        return (1..totalChapters).map { i ->
+    private suspend fun getChapterList(doc: Document, url: String): List<ChapterData> {
+        val novelId = doc.selectFirst("a.set-case.add")?.attr("data-articleid") ?: return emptyList()
+        val res = app.post(
+            "$mainUrl/api/chapterlist.php", data = mapOf(
+                "aid" to novelId,
+                "acode" to url.removeSuffix("/").substringAfterLast("/"),
+                "cid" to "1"
+            )
+        ).parsed<ChaptersResponse>()
+        val document = Jsoup.parse(res.html)
+        return document.select("option").mapNotNull { i ->
             newChapterData(
-                name = "Chapter $i",
-                url = "$secondUrl/novel/$cleanedUrl/chapter-$i"
+                name = i.text(),
+                url = "$secondUrl${i.attr("value")}"
             )
         }
     }
@@ -256,5 +257,9 @@ open class LibReadProvider : MainAPI() {
     data class LibReadUserInfo(
         @JsonProperty("nickname") val nickname: String? = null,
         @JsonProperty("picture") val picture: String? = null
+    )
+
+    data class ChaptersResponse(
+        @JsonProperty("html") val html: String
     )
 }
