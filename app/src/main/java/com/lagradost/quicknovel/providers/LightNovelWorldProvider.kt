@@ -28,11 +28,75 @@ class LightNovelWorldProvider : MainAPI() {
     override val hasReviews = true
     var novelId = ""
     override val mainCategories = listOf(
-        "New Update" to "/updates/",
-        "Top Ranked" to "/ranking/?sort=rank",
-        "Top Reviews" to "/ranking/?sort=reviews",
-        "Top Comments" to "/ranking/?sort=comments",
-        "Top Collections" to "/ranking/?sort=collections"
+        "All" to "all",
+        "Ongoing" to "ongoing",
+        "Completed" to "completed"
+    )
+
+    override val tags = listOf(
+        "All" to "all",
+        "Action" to "action",
+        "Adult" to "adult",
+        "Adventure" to "adventure",
+        "Anime" to "anime",
+        "Arts" to "arts",
+        "Comedy" to "comedy",
+        "Drama" to "drama",
+        "Eastern" to "eastern",
+        "Ecchi" to "ecchi",
+        "Fan-Fiction" to "fan-fiction",
+        "Fantasy" to "fantasy",
+        "Game" to "game",
+        "Gender-Bender" to "gender-bender",
+        "Harem" to "harem",
+        "Historical" to "historical",
+        "Horror" to "horror",
+        "Isekai" to "isekai",
+        "Josei" to "josei",
+        "Lgbt+" to "lgbt+",
+        "Magic" to "magic",
+        "Magical-Realism" to "magical-realism",
+        "Manhua" to "manhua",
+        "Martial-Arts" to "martial-arts",
+        "Mature" to "mature",
+        "Mecha" to "mecha",
+        "Military" to "military",
+        "Modern-Life" to "modern-life",
+        "Movies" to "movies",
+        "Mystery" to "mystery",
+        "Other" to "other",
+        "Psychological" to "psychological",
+        "Realistic-Fiction" to "realistic-fiction",
+        "Reincarnation" to "reincarnation",
+        "Romance" to "romance",
+        "School-Life" to "school-life",
+        "Sci-Fi" to "sci-fi",
+        "Seinen" to "seinen",
+        "Shoujo" to "shoujo",
+        "Shoujo-Ai" to "shoujo-ai",
+        "Shounen" to "shounen",
+        "Shounen-Ai" to "shounen-ai",
+        "Slice-Of-Life" to "slice-of-life",
+        "Smut" to "smut",
+        "Sports" to "sports",
+        "Supernatural" to "supernatural",
+        "System" to "system",
+        "Tragedy" to "tragedy",
+        "Urban" to "urban",
+        "Urban-Life" to "urban-life",
+        "Video-Games" to "video-games",
+        "War" to "war",
+        "Wuxia" to "wuxia",
+        "Xianxia" to "xianxia",
+        "Xuanhuan" to "xuanhuan",
+        "Yaoi" to "yaoi",
+        "Yuri" to "yuri"
+    )
+
+    override val orderBys = listOf(
+        "New" to "new",
+        "Popular" to "popular",
+        "Updates" to "updates"
     )
 
     data class SearchNovel(
@@ -51,22 +115,16 @@ class LightNovelWorldProvider : MainAPI() {
         orderBy: String?,
         tag: String?
     ): HeadMainPageResponse {
-        val url = withPageParam(fixUrl(mainCategory ?: "/updates/"), page)
+        val url = "$mainUrl/genre-$tag/?page=$page&order=$orderBy&status$mainCategory"
         val document = app.get(url).document
 
-        val cards = (document.select("div.ranking-list > a") + document.select("a.card-link"))
-            .distinctBy { it.attr("href") }
-
-        val novels = cards.mapNotNull { card ->
-            val href = card.attr("href").takeIf { it.isNotBlank() } ?: return@mapNotNull null
-            val title = card.selectFirst("h4.ranking-item-title, h3.card-title, h4")?.text()?.trim()
-                ?: return@mapNotNull null
+        val novels = document.select("div.recommendations-grid > div.recommendation-card").mapNotNull { card ->
+            val href = card.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+            val title = card.selectFirst("h3")?.text() ?: return@mapNotNull null
 
             newSearchResponse(name = title, url = href) {
                 posterUrl = fixUrlNull(
-                    card.selectFirst("div.ranking-item-cover > img")?.attr("src")
-                        ?: card.selectFirst("div.card-cover")?.attr("data-bg-image")
-                        ?: card.selectFirst("img")?.attr("src")
+                    card.selectFirst("img")?.attr("src")
                 )
             }
         }
@@ -104,7 +162,9 @@ class LightNovelWorldProvider : MainAPI() {
                     ?: document.selectFirst("img.novel-cover")?.attr("src")
             )
             synopsis = document.selectFirst("div.summary-content")?.text()?.trim()
-            tags = document.select("div.genre-tags > span.genre-tag").map { it.text().trim() }
+            tags = document.select("div.genre-tags > span.genre-tag").map {
+                it.text().trim().lowercase().replaceFirstChar { char -> char.uppercase() }
+            }
             setStatus(document.selectFirst("span.status-badge")?.text()?.trim())
             related = getRelated()
         }
@@ -202,11 +262,6 @@ class LightNovelWorldProvider : MainAPI() {
             }
         }
     }
-
-    private fun withPageParam(url: String, page: Int): String {
-        return if (url.contains("?")) "$url&page=$page" else "$url?page=$page"
-    }
-
     data class RelatedResponse(
         @JsonProperty("novels")
         val novels:List<Novel>
