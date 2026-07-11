@@ -18,22 +18,22 @@ import org.jsoup.Jsoup
 
 class NovelBuddyProvider : MainAPI() {
     override val name = "Novel Buddy"
-    override val mainUrl = "https://novelbuddy.com"
-    private val apiUrl = "https://api.novelbuddy.com/titles"
+    override val mainUrl = "https://novelbuddy.me"
+    private val apiUrl = "https://api.novelbuddy.me/titles"
     override val iconId = R.drawable.icon_novelbuddy
     override val iconBackgroundId = R.color.novelBuddyColor
     override val lang = "en"
     override val hasMainPage = true
     override val hasReviews = true
     var novelId = ""
+    /*
     override val mainCategories = listOf(
         "Ongoing" to "ongoing",
         "Completed" to "completed",
         "Hiatus" to "hiatus",
         "Cancelled" to "cancelled"
-    )
+    )*/
     override val tags = listOf(
-        "All" to "",
         "Action" to "action",
         "ActionAdventure" to "actionadventure",
         "Adult" to "adult",
@@ -130,8 +130,7 @@ class NovelBuddyProvider : MainAPI() {
         if (!orderBy.isNullOrBlank()) params.add("sort" to orderBy)
 
         val queryPath = params.joinToString("") { "${it.first}=${it.second}&" }
-        val url = "$apiUrl/search?${queryPath}page=$page"
-        println(url)
+        val url = "$apiUrl/search?${queryPath}page=$page&limit=24"
         val response = app.get(url).parsed<Root>()
         return HeadMainPageResponse(url,
             response.data.items.map { element ->
@@ -144,7 +143,7 @@ class NovelBuddyProvider : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document
+        val document = app.get(url.replaceFirst("y.com","y.me")).document
 
         val jsonData = document.selectFirst("script#__NEXT_DATA__")?.data()
             ?: throw Exception("Invalid data")
