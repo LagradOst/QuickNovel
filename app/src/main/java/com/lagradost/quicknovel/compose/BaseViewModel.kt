@@ -10,10 +10,13 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 abstract class BaseViewModel<Action, State, Effect> : ViewModel() {
     private val _state: MutableStateFlow<State> by lazy { MutableStateFlow(initialState()) }
     val state: StateFlow<State> get() = _state.asStateFlow()
+    private val stateMutex = Mutex()
 
     private val _effect = MutableSharedFlow<Effect>()
     val effect: SharedFlow<Effect> get() = _effect.asSharedFlow()

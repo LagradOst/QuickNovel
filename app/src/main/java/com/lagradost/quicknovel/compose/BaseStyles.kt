@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.compose
 
+import androidx.compose.material3.ButtonColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.text.TextStyle
@@ -17,5 +18,19 @@ object BaseStyles {
         color = colors.onSurfaceVariant,
         fontSize = 14.sp,
         lineHeight = 15.sp,
+    )
+
+    val blackButtonColors  @Composable @ReadOnlyComposable get() = ButtonColors(
+        containerColor = colors.surface,
+        contentColor = colors.onBackground,
+        disabledContainerColor = colors.surface.copy(alpha = 0.9f),
+        disabledContentColor = colors.onBackground.copy(alpha = 0.9f)
+    )
+
+    val whiteButtonColors @Composable @ReadOnlyComposable get() =  ButtonColors(
+        containerColor = colors.onBackground,
+        contentColor = colors.surface,
+        disabledContainerColor = colors.onBackground.copy(alpha = 0.9f),
+        disabledContentColor = colors.surface.copy(alpha = 0.9f)
     )
 }
