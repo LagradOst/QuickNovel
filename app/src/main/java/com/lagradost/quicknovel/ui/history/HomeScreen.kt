@@ -30,10 +30,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -88,7 +87,7 @@ fun HistoryScreenImpl(
                 actions = {
                     IconButton(onClick = { action(HistoryAction.AskDeleteAll) }) {
                         Icon(
-                            imageVector = ImageVector.vectorResource(R.drawable.clear_all_24px),
+                            painter = painterResource(R.drawable.clear_all_24px),
                             contentDescription = stringResource(R.string.history_more_options),
                             tint = colors.onBackground,
                         )
@@ -225,8 +224,8 @@ fun ResultCachedCompact(
 
         Spacer(Modifier.weight(1f))
 
-        Image(
-            imageVector = ImageVector.vectorResource(R.drawable.ic_baseline_delete_outline_24),
+        Icon(
+            painter = painterResource(R.drawable.ic_baseline_delete_outline_24),
             contentDescription = stringResource(R.string.remove_history),
             modifier = Modifier
                 .size(54.dp)
@@ -242,8 +241,8 @@ fun ResultCachedCompact(
                 .padding(15.dp)
         )
 
-        Image(
-            imageVector = ImageVector.vectorResource(R.drawable.netflix_play),
+        Icon(
+            painter = painterResource(R.drawable.netflix_play),
             contentDescription = stringResource(R.string.stream_read),
             modifier = Modifier
                 .size(54.dp)

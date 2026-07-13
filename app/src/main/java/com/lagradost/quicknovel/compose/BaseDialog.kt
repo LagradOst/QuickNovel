@@ -19,7 +19,7 @@ fun BaseDialog(
     confirm: () -> Unit
 ) {
     AlertDialog(
-        modifier = Modifier.background(colors.background),
+        containerColor = colors.background,
         onDismissRequest = dismiss,
         title = { Text(text = title) },
         text = { Text(text = text) },
