@@ -161,11 +161,18 @@ object DataStore {
     }
 
     fun Context.removeKeys(folder: String): Int {
-        val keys = getKeys(folder)
-        keys.forEach { value ->
-            removeKey(value)
+        val keys = getKeys("$folder/")
+        try {
+            getSharedPrefs().edit {
+                keys.forEach { value ->
+                    remove(value)
+                }
+            }
+            return keys.size
+        } catch (e: Exception) {
+            logError(e)
+            return 0
         }
-        return keys.size
     }
 
     fun <T> Context.setKey(path: String, value: T) {

@@ -1,11 +1,13 @@
 package com.lagradost.quicknovel.util
 
+import androidx.compose.runtime.Immutable
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.ui.UiImage
 import com.lagradost.quicknovel.ui.img
 
+@Immutable
 data class ResultCached(
     val source : String,
     val name: String,
