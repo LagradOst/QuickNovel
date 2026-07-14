@@ -134,4 +134,5 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.coil3.coil.compose)
     implementation(libs.coil.network.okhttp)
+    implementation(libs.activity.compose)
 }

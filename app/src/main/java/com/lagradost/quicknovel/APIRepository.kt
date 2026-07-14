@@ -26,7 +26,7 @@ private fun String?.removeAds(): String? {
         // https://stackoverflow.com/questions/14384431/html-element-for-ad
 
         document.html()
-    } catch (t : Throwable) {
+    } catch (t: Throwable) {
         logError(t)
         this
     }
@@ -112,6 +112,19 @@ class APIRepository(val api: MainAPI) {
         return safeApiCall {
             api.search(query) ?: throw ErrorLoadingException("No data")
         }
+    }
+
+    suspend fun searchResult(query: String): Result<List<SearchResponse>> = runCatching {
+        api.search(query) ?: throw ErrorLoadingException("No data")
+    }
+
+    suspend fun loadMainPageResult(
+        page: Int,
+        mainCategory: String?,
+        orderBy: String?,
+        tag: String?,
+    ): Result<HeadMainPageResponse> = runCatching {
+        api.loadMainPage(page, mainCategory, orderBy, tag)
     }
 
     /**

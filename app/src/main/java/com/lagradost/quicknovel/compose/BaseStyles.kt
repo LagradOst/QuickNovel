@@ -21,7 +21,7 @@ object BaseStyles {
     )
 
     val blackButtonColors  @Composable @ReadOnlyComposable get() = ButtonColors(
-        containerColor = colors.surface,
+        containerColor = colors.surfaceVariant,
         contentColor = colors.onBackground,
         disabledContainerColor = colors.surface.copy(alpha = 0.9f),
         disabledContentColor = colors.onBackground.copy(alpha = 0.9f)
@@ -29,7 +29,7 @@ object BaseStyles {
 
     val whiteButtonColors @Composable @ReadOnlyComposable get() =  ButtonColors(
         containerColor = colors.onBackground,
-        contentColor = colors.surface,
+        contentColor = colors.surfaceVariant,
         disabledContainerColor = colors.onBackground.copy(alpha = 0.9f),
         disabledContentColor = colors.surface.copy(alpha = 0.9f)
     )
