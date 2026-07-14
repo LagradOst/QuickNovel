@@ -3,23 +3,19 @@ package com.lagradost.quicknovel.ui.mainpage
 import android.os.Bundle
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.lagradost.quicknovel.APIRepository
-import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
-import com.lagradost.quicknovel.BookDownloader2
-import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.SearchResponse
-import com.lagradost.quicknovel.compose.BaseViewModel
-import com.lagradost.quicknovel.compose.removingBy
-import com.lagradost.quicknovel.ui.history.HistoryDialog
-import com.lagradost.quicknovel.ui.history.ResultOperation
+import com.lagradost.quicknovel.compose.ActionHandler
+import com.lagradost.quicknovel.compose.DefaultEffectContainer
+import com.lagradost.quicknovel.compose.DefaultStateContainer
+import com.lagradost.quicknovel.compose.EffectContainer
+import com.lagradost.quicknovel.compose.StateContainer
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
-import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
@@ -27,9 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import me.xdrop.fuzzywuzzy.FuzzySearch
 import java.util.concurrent.CancellationException
 
 @Immutable
@@ -111,7 +105,15 @@ sealed class MainPageEffect {
 class MainPageViewModel2(
     val api: APIRepository,
     val initQuery: FilterQuery,
-) : BaseViewModel<MainPageAction, MainPageState, MainPageEffect>() {
+    stateContainer: StateContainer<MainPageState> = DefaultStateContainer(MainPageState(
+        filter = FilterState(query = initQuery)
+    )),
+    effectContainer: EffectContainer<MainPageEffect> = DefaultEffectContainer(),
+): ViewModel(),
+    StateContainer<MainPageState> by stateContainer,
+    EffectContainer<MainPageEffect> by effectContainer,
+    ActionHandler<MainPageAction>
+{
     companion object {
         fun provideFactory(bundle: Bundle) = viewModelFactory {
             initializer {
@@ -126,11 +128,6 @@ class MainPageViewModel2(
             }
         }
     }
-
-
-    override fun initialState(): MainPageState = MainPageState(
-        filter = FilterState(query = initQuery)
-    )
 
     private val expandMutex = Mutex()
 

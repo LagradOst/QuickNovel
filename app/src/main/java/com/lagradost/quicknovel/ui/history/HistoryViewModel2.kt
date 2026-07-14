@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.ui.history
 
 import androidx.compose.runtime.Immutable
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
@@ -10,10 +11,11 @@ import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
-import com.lagradost.quicknovel.compose.BaseViewModel
+import com.lagradost.quicknovel.compose.ActionHandler
+import com.lagradost.quicknovel.compose.DefaultStateContainer
+import com.lagradost.quicknovel.compose.StateContainer
 import com.lagradost.quicknovel.compose.removingBy
 import com.lagradost.quicknovel.util.ResultCached
-import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
@@ -66,14 +68,16 @@ enum class ResultOperation {
     Metadata,
 }
 
-
-sealed class HistoryEffect {
-}
-
+// HistoryAction, HistoryState, HistoryEffect
 @OptIn(FlowPreview::class)
-class HistoryViewModel2 : BaseViewModel<HistoryAction, HistoryState, HistoryEffect>() {
-    override fun initialState() = HistoryState()
-
+class HistoryViewModel2(
+    stateContainer: StateContainer<HistoryState> = DefaultStateContainer(HistoryState()),
+    //effectContainer: EffectContainer<HistoryEffect> = DefaultEffectContainer(),
+) : ViewModel(),
+    StateContainer<HistoryState> by stateContainer,
+    //EffectContainer<HistoryEffect> by effectContainer,
+    ActionHandler<HistoryAction>
+{
     private val searchPipe = MutableSharedFlow<String>(extraBufferCapacity = 64)
 
     override fun onAction(action: HistoryAction) {
@@ -109,6 +113,7 @@ class HistoryViewModel2 : BaseViewModel<HistoryAction, HistoryState, HistoryEffe
                     searchPipe.emit(action.data)
                 }
             }
+
             is HistoryAction.Refresh -> {
                 updateHistory()
             }
@@ -144,7 +149,7 @@ class HistoryViewModel2 : BaseViewModel<HistoryAction, HistoryState, HistoryEffe
 
 
     init {
-      //  updateHistory()
+        //  updateHistory()
 
         viewModelScope.launch {
             searchPipe.debounce(200L.milliseconds).distinctUntilChanged()

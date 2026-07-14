@@ -1,7 +1,5 @@
 package com.lagradost.quicknovel.compose
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -9,9 +7,23 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+
+/*
+Base viewmodel is not used to "Composition over inheritance"
+
+Instead, use delegation like https://kotlinlang.org/docs/delegation.html
+
+class XViewModel(
+    stateContainer: StateContainer<TyState> = DefaultStateContainer(HistoryState()),
+    effectContainer: EffectContainer<TyEffect> = DefaultEffectContainer(),
+) : ViewModel(),
+    StateContainer<TyState> by stateContainer,
+    EffectContainer<TyEffect> by effectContainer,
+    ActionHandler<TyAction>
+{
+
+}
+
 
 abstract class BaseViewModel<Action, State, Effect> : ViewModel() {
     private val _state: MutableStateFlow<State> by lazy { MutableStateFlow(initialState()) }
@@ -28,6 +40,39 @@ abstract class BaseViewModel<Action, State, Effect> : ViewModel() {
     }
 
     protected fun postEffect(builder: () -> Effect) = viewModelScope.launch {
+        _effect.emit(builder())
+    }
+}*/
+
+
+interface StateContainer<State> {
+    val state: StateFlow<State>
+    fun updateState(reducer: State.() -> State)
+}
+
+interface EffectContainer<Effect> {
+    val effect: SharedFlow<Effect>
+    suspend fun postEffect(builder: () -> Effect)
+}
+
+interface ActionHandler<Action> {
+    fun onAction(action: Action)
+}
+
+class DefaultStateContainer<State>(initialState: State) : StateContainer<State> {
+    private val _state = MutableStateFlow(initialState)
+    override val state: StateFlow<State> = _state.asStateFlow()
+
+    override fun updateState(reducer: State.() -> State) {
+        _state.update(reducer)
+    }
+}
+
+class DefaultEffectContainer<Effect> : EffectContainer<Effect> {
+    private val _effect = MutableSharedFlow<Effect>()
+    override val effect: SharedFlow<Effect> get() = _effect.asSharedFlow()
+
+    override suspend fun postEffect(builder: () -> Effect) {
         _effect.emit(builder())
     }
 }
