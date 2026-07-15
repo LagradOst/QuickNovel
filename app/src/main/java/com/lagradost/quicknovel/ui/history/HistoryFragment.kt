@@ -4,10 +4,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.loadPrimaryColor
 import com.lagradost.quicknovel.compose.loadThemeMode
@@ -102,7 +105,9 @@ class HistoryFragment : Fragment() {
                 mode = LocalContext.current.loadThemeMode(),
                 primaryColor = LocalContext.current.loadPrimaryColor(),
             ) {
-                HistoryScreen()
+                val viewModel = viewModel<HistoryViewModel2>()
+                val state by viewModel.state.collectAsStateWithLifecycle()
+                HistoryScreen(state, viewModel::onAction)
             }
         }
     }

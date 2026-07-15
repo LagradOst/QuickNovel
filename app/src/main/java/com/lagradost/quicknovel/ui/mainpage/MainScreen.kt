@@ -44,6 +44,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
@@ -55,35 +56,15 @@ import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.compose.BackHandler
 import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.BaseStyles.blackButtonColors
+import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.ObserveEvents
 import com.lagradost.quicknovel.compose.SingleSelectDialog
 import com.lagradost.quicknovel.compose.isLandscape
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
-
-@Composable
-fun MainPageScreen(viewModel: MainPageViewModel2) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-
-    ObserveEvents(viewModel.effect) { _ ->
-        // Not yet implemented
-    }
-
-    MainScreenImpl(state) { action ->
-        when (action) {
-            is MainPageAction.OpenInBrowser -> {
-                val url = action.url
-                if (url.isBlank()) return@MainScreenImpl
-                val i = Intent(Intent.ACTION_VIEW)
-                i.data = url.toUri()
-                activity?.startActivity(i)
-            }
-
-            else -> viewModel.onAction(action)
-        }
-    }
-}
+import com.lagradost.quicknovel.ui.history.HistoryScreen
+import com.lagradost.quicknovel.ui.history.HistoryState
 
 @Composable
 fun MainScreenDialog(
@@ -121,7 +102,7 @@ fun MainScreenDialog(
 }
 
 @Composable
-fun MainScreenImpl(state: MainPageState, action: (MainPageAction) -> Unit) {
+fun MainPageScreen(state: MainPageState, action: (MainPageAction) -> Unit) {
     if (state.openQuery) {
         BackHandler {
             action(MainPageAction.Back)
@@ -326,5 +307,16 @@ fun RowScope.SelectButton(text: String, onClick: () -> Unit) {
         Icon(
             painter = painterResource(R.drawable.arrow_drop_down_24px), contentDescription = text
         )
+    }
+}
+
+
+@PreviewLightDark
+@Composable
+private fun SettingsScreenPreview() {
+    CloudStreamTheme {
+        MainPageScreen(
+            state = MainPageState(),
+            action = {})
     }
 }

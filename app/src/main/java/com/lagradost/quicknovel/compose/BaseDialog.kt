@@ -30,6 +30,7 @@ import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.BaseStyles.blackButtonColors
 import com.lagradost.quicknovel.compose.BaseStyles.whiteButtonColors
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
+import kotlinx.collections.immutable.ImmutableMap
 
 @Composable
 fun ActionDialog(
@@ -116,7 +117,8 @@ fun <T> SingleSelectDialog(
     confirmText: String? = null,
     dismissText: String? = null,
     dismiss: () -> Unit,
-    confirm: (T) -> Unit
+    confirm: (T) -> Unit,
+    iconProvider: (@Composable (key: T, value: String) -> Unit)? = null
 ) {
     val selected = remember { mutableStateOf(selectedKey) }
 
@@ -135,8 +137,8 @@ fun <T> SingleSelectDialog(
                 entries.forEach { (key, value) ->
                     item(key = key) {
                         val isSelected = selected.value == key
-                        SingleSelectionItem(isSelected,value) {
-                            if(confirmText == null) {
+                        SingleSelectionItem(isSelected, key, value, iconProvider) {
+                            if (confirmText == null) {
                                 confirm(key)
                             } else {
                                 selected.value = key
@@ -167,7 +169,13 @@ fun <T> SingleSelectDialog(
 }
 
 @Composable
-fun SingleSelectionItem(isSelected : Boolean, text : String, onClick :  () -> Unit) {
+fun <T> SingleSelectionItem(
+    isSelected: Boolean,
+    key: T,
+    text: String,
+    iconProvider: (@Composable (key: T, value: String) -> Unit)? = null,
+    onClick: () -> Unit,
+) {
     val interactionSource = remember { MutableInteractionSource() }
     Row(
         modifier = Modifier
@@ -190,6 +198,7 @@ fun SingleSelectionItem(isSelected : Boolean, text : String, onClick :  () -> Un
                 modifier = Modifier.size(24.dp),
                 tint = colors.onBackground
             )
+            iconProvider?.invoke(key, text)
             Text(
                 text,
                 color = colors.onBackground,
@@ -197,6 +206,7 @@ fun SingleSelectionItem(isSelected : Boolean, text : String, onClick :  () -> Un
             )
         } else {
             Spacer(modifier = Modifier.size(24.dp))
+            iconProvider?.invoke(key, text)
             Text(
                 text,
                 color = colors.onSurfaceVariant,
@@ -224,7 +234,8 @@ fun <T> MultiSelectDialog(
     confirmText: String? = null,
     dismissText: String? = null,
     dismiss: () -> Unit,
-    confirm: (Set<T>) -> Unit
+    confirm: (Set<T>) -> Unit,
+    iconProvider: (@Composable (key: T, value: String) -> Unit)? = null
 ) {
     val selected = remember {
         entries.keys
@@ -253,7 +264,7 @@ fun <T> MultiSelectDialog(
                 entries.forEach { (key, value) ->
                     item(key = key) {
                         val isSelected = selected.contains(key)
-                        SingleSelectionItem(isSelected,value) {
+                        SingleSelectionItem(isSelected, key, value, iconProvider) {
                             if (isSelected) {
                                 selected.remove(key)
                             } else {

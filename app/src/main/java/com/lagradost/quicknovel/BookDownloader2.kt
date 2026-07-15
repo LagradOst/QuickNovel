@@ -224,7 +224,7 @@ object BookDownloader2Helper {
         return generateId(apiName, load.author, load.name)
     }
 
-    fun Activity.checkWrite(): Boolean {
+    fun Context.checkWrite(): Boolean {
         return (ContextCompat.checkSelfPermission(
             this,
             WRITE_EXTERNAL_STORAGE

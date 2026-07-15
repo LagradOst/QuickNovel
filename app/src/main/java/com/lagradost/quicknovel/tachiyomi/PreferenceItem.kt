@@ -83,10 +83,12 @@ internal fun PreferenceItem(
             }*/
             is Preference.PreferenceItem.ListPreference<*> -> {
                 val value by item.pref.collectAsState()
+                @Suppress("UNCHECKED_CAST")
                 ListPreferenceWidget(
                     value = value,
                     title = item.title,
                     subtitle = item.internalSubtitleProvider(value, item.entries),
+                    iconProvider = item::internalIconProvider,
                     icon = item.icon,
                     entries = item.entries,
                     onValueChange = { newValue ->

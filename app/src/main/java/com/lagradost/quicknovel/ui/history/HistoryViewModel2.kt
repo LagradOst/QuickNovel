@@ -70,11 +70,8 @@ enum class ResultOperation {
 
 // HistoryAction, HistoryState, HistoryEffect
 @OptIn(FlowPreview::class)
-class HistoryViewModel2(
-    stateContainer: StateContainer<HistoryState> = DefaultStateContainer(HistoryState()),
-    //effectContainer: EffectContainer<HistoryEffect> = DefaultEffectContainer(),
-) : ViewModel(),
-    StateContainer<HistoryState> by stateContainer,
+class HistoryViewModel2 : ViewModel(),
+    StateContainer<HistoryState> by DefaultStateContainer(HistoryState()),
     //EffectContainer<HistoryEffect> by effectContainer,
     ActionHandler<HistoryAction>
 {

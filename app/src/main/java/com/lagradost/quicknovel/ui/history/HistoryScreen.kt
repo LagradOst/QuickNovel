@@ -28,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,10 +35,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.ActionDialog
@@ -47,44 +44,22 @@ import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.BaseStyles
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
-import com.lagradost.quicknovel.compose.CloudStreamThemeMode
-import com.lagradost.quicknovel.compose.SingleSelectDialog
 import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.util.ResultCached
 
-@Composable
-fun HistoryScreen() {
-    val viewModel = viewModel<HistoryViewModel2>()
-    val state by viewModel.state.collectAsStateWithLifecycle()
-
-    /*val lifecycleOwner = LocalLifecycleOwner.current
-    LaunchedEffect(viewModel.effect, lifecycleOwner) {
-        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            viewModel.effect.collect { effect ->
-                when (effect) {
-                    else -> {}
-                }
-            }
-        }
-    }*/
-
-    LaunchedEffect(Unit) {
-        viewModel.onAction(HistoryAction.Refresh)
-    }
-
-    HistoryScreenImpl(state, viewModel::onAction)
-}
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-fun HistoryScreenImpl(
+fun HistoryScreen(
     state: HistoryState,
     action: (HistoryAction) -> Unit
 ) {
+    LaunchedEffect(Unit) {
+        action(HistoryAction.Refresh)
+    }
+
     HistoryDialog(state.dialog, action)
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(snapAnimationSpec = null)
     Scaffold(
@@ -288,10 +263,10 @@ fun ResultCachedCompact(
 }
 
 
-@Preview(name = "Dark") // Dark background
+@PreviewLightDark
 @Composable
 private fun SettingsScreenPreview() {
-    CloudStreamTheme(CloudStreamThemeMode.Dark) {
-        HistoryScreen()
+    CloudStreamTheme {
+        HistoryScreen(state = HistoryState(), action = {})
     }
 }

@@ -145,9 +145,8 @@ internal object CloudStreamPalette {
     val SilentBlueIcon = Color(0xFF7B83B0)
 }
 
-fun Context.loadThemeMode(): CloudStreamThemeMode {
-    val prefs = PreferenceManager.getDefaultSharedPreferences(this)
-    return when (prefs.getString("theme_key", "AmoledLight")) {
+fun perfToMode(perf: String?) =
+    when (perf) {
         "System" -> CloudStreamThemeMode.FollowSystem
         "Black" -> CloudStreamThemeMode.Dark
         "Light" -> CloudStreamThemeMode.Light
@@ -164,45 +163,51 @@ fun Context.loadThemeMode(): CloudStreamThemeMode {
 
         else -> CloudStreamThemeMode.Dark
     }
+
+fun perfToColor(perf : String?) = when (perf) {
+    "Normal" -> CloudStreamPrimaryColor.NORMAL
+    "Blue" -> CloudStreamPrimaryColor.BLUE
+    "Purple" -> CloudStreamPrimaryColor.PURPLE
+    "Green" -> CloudStreamPrimaryColor.GREEN
+    "GreenApple" -> CloudStreamPrimaryColor.GREEN_APPLE
+    "Red" -> CloudStreamPrimaryColor.RED
+    "Banana" -> CloudStreamPrimaryColor.BANANA
+    "Party" -> CloudStreamPrimaryColor.PARTY
+    "Pink" -> CloudStreamPrimaryColor.PINK
+    "CarnationPink" -> CloudStreamPrimaryColor.CARNATION_PINK
+    "Maroon" -> CloudStreamPrimaryColor.MAROON
+    "DarkGreen" -> CloudStreamPrimaryColor.DARK_GREEN
+    "NavyBlue" -> CloudStreamPrimaryColor.NAVY_BLUE
+    "Grey" -> CloudStreamPrimaryColor.GREY
+    "White" -> CloudStreamPrimaryColor.WHITE
+    "Brown" -> CloudStreamPrimaryColor.BROWN
+    "Orange" -> CloudStreamPrimaryColor.ORANGE
+    "DandelionYellow" -> CloudStreamPrimaryColor.DANDELION_YELLOW
+    "CoolBlue" -> CloudStreamPrimaryColor.COOL_BLUE
+    "Lavender" -> CloudStreamPrimaryColor.LAVENDER
+    "Monet" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        CloudStreamPrimaryColor.DYNAMIC
+    } else {
+        CloudStreamPrimaryColor.NORMAL
+    }
+
+    "Monet2" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        CloudStreamPrimaryColor.DYNAMIC_TWO
+    } else {
+        CloudStreamPrimaryColor.NORMAL
+    }
+
+    else -> CloudStreamPrimaryColor.NORMAL
+}
+
+fun Context.loadThemeMode(): CloudStreamThemeMode {
+    val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+    return perfToMode(prefs.getString("theme_key", "AmoledLight"))
 }
 
 fun Context.loadPrimaryColor(): CloudStreamPrimaryColor {
     val prefs = PreferenceManager.getDefaultSharedPreferences(this)
-    return when (prefs.getString("primary_color_key", "Normal")) {
-        "Normal" -> CloudStreamPrimaryColor.NORMAL
-        "Blue" -> CloudStreamPrimaryColor.BLUE
-        "Purple" -> CloudStreamPrimaryColor.PURPLE
-        "Green" -> CloudStreamPrimaryColor.GREEN
-        "GreenApple" -> CloudStreamPrimaryColor.GREEN_APPLE
-        "Red" -> CloudStreamPrimaryColor.RED
-        "Banana" -> CloudStreamPrimaryColor.BANANA
-        "Party" -> CloudStreamPrimaryColor.PARTY
-        "Pink" -> CloudStreamPrimaryColor.PINK
-        "CarnationPink" -> CloudStreamPrimaryColor.CARNATION_PINK
-        "Maroon" -> CloudStreamPrimaryColor.MAROON
-        "DarkGreen" -> CloudStreamPrimaryColor.DARK_GREEN
-        "NavyBlue" -> CloudStreamPrimaryColor.NAVY_BLUE
-        "Grey" -> CloudStreamPrimaryColor.GREY
-        "White" -> CloudStreamPrimaryColor.WHITE
-        "Brown" -> CloudStreamPrimaryColor.BROWN
-        "Orange" -> CloudStreamPrimaryColor.ORANGE
-        "DandelionYellow" -> CloudStreamPrimaryColor.DANDELION_YELLOW
-        "CoolBlue" -> CloudStreamPrimaryColor.COOL_BLUE
-        "Lavender" -> CloudStreamPrimaryColor.LAVENDER
-        "Monet" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            CloudStreamPrimaryColor.DYNAMIC
-        } else {
-            CloudStreamPrimaryColor.NORMAL
-        }
-
-        "Monet2" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            CloudStreamPrimaryColor.DYNAMIC_TWO
-        } else {
-            CloudStreamPrimaryColor.NORMAL
-        }
-
-        else -> CloudStreamPrimaryColor.NORMAL
-    }
+    return perfToColor(prefs.getString("primary_color_key", "Normal"))
 }
 
 @Composable
@@ -249,7 +254,6 @@ private fun buildMonetScheme(): CloudStreamColorScheme {
 }
 
 
-
 /**
  * Maps to the XML custom attrs declared in attrs.xml:
  * TODO: Remove this comment when we migrate fully
@@ -285,20 +289,28 @@ class CloudStreamColorScheme(
 ) {
     /** primaryBlackBackground */
     var background by mutableStateOf(background)
+
     /** primaryGrayBackground */
     var surfaceVariant by mutableStateOf(surfaceVariant)
+
     /** iconGrayBackground */
     var surface by mutableStateOf(surface)
+
     /** boxItemBackground */
     var surfaceContainer by mutableStateOf(surfaceContainer)
+
     /** textColor */
     var onBackground by mutableStateOf(onBackground)
+
     /** grayTextColor */
     var onSurfaceVariant by mutableStateOf(onSurfaceVariant)
+
     /** iconColor */
     var icon by mutableStateOf(icon)
+
     /** colorPrimary */
     var primary by mutableStateOf(primary)
+
     /** colorOngoing */
     var ongoing by mutableStateOf(ongoing)
     var isLight by mutableStateOf(isLight)
@@ -484,18 +496,12 @@ val typography = Typography(
 )
 
 @Composable
-fun CloudStreamTheme(
-    mode: CloudStreamThemeMode = CloudStreamThemeMode.FollowSystem,
-    primaryColor: CloudStreamPrimaryColor = CloudStreamPrimaryColor.NORMAL,
-    content: @Composable () -> Unit,
-) {
-    val systemDark = isSystemInDarkTheme()
+fun modeToTheme(mode : CloudStreamThemeMode, primaryColor: CloudStreamPrimaryColor) : CloudStreamColorScheme {
     val dynamicTheme = resolveDynamicTheme()
-
     val dynamicPrimary = resolveDynamicPrimaryColor()
     val dynamicSecondary = resolveDynamicSecondaryColor()
-
-    val csColors = remember(mode, primaryColor, systemDark, dynamicTheme, dynamicPrimary, dynamicSecondary) {
+    val systemDark = isSystemInDarkTheme()
+    val color = remember(mode, primaryColor, systemDark, dynamicTheme, dynamicPrimary, dynamicSecondary) {
         val base = when (mode) {
             CloudStreamThemeMode.Dark -> darkScheme()
             CloudStreamThemeMode.Amoled -> amoledScheme()
@@ -514,6 +520,17 @@ fun CloudStreamTheme(
             else -> base.copy(primary = primaryColor.color)
         }
     }
+    return color
+}
+
+@Composable
+fun CloudStreamTheme(
+    mode: CloudStreamThemeMode = CloudStreamThemeMode.FollowSystem,
+    primaryColor: CloudStreamPrimaryColor = CloudStreamPrimaryColor.NORMAL,
+    content: @Composable () -> Unit,
+) {
+
+    val csColors = modeToTheme(mode, primaryColor)
 
     CompositionLocalProvider(LocalCloudStreamColors provides csColors) {
         MaterialTheme(

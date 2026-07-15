@@ -54,6 +54,7 @@
     <string name="search">Search</string>
     <string name="general">General</string>
     <string name="info">Info</string>
+    <string name="app_settings">App settings</string>
 
     <string name="advanced_search">Advanced Search</string>
     <string name="advanced_search_desc">Gives you the search results separated by provider</string>
@@ -132,6 +133,7 @@
     <string name="general_settings">General</string>
     <string name="lock_tts">Lock TTS scroll area</string>
     <string name="reading_color">Reading Color</string>
+    <string name="reader_settings">Reader Settings</string>
     <string name="read_color">Reader Theme</string>
     <string name="show_battery">Show Battery</string>
     <string name="show_time">Show Time</string>

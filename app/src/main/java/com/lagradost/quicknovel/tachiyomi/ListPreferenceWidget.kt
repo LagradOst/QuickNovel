@@ -30,6 +30,7 @@ fun <T> ListPreferenceWidget(
     icon: Painter?,
     entries: Map<out T, String>,
     onValueChange: (T) -> Unit,
+    iconProvider: (@Composable (key: T, value: String) -> Unit)? = null
 ) {
     var isDialogShown by remember { mutableStateOf(false) }
 
@@ -51,7 +52,8 @@ fun <T> ListPreferenceWidget(
                 isDialogShown = false
             },
             confirmText = stringResource(R.string.ok),
-            dismissText = stringResource(R.string.cancel)
+            dismissText = stringResource(R.string.cancel),
+            iconProvider = iconProvider
         )
 
 

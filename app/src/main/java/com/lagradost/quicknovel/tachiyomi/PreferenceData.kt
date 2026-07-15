@@ -67,6 +67,7 @@ sealed class Preference {
             override val subtitle: String? = "%s",
             val subtitleProvider: @Composable (value: T, entries: ImmutableMap<T, String>) -> String? =
                 { v, e -> subtitle?.format(e[v]) },
+            val iconProvider: (@Composable (key: T, value: String) -> Unit)? = null,
             override val icon: Painter? = null,
             override val enabled: Boolean = true,
             override val onValueChanged: suspend (newValue: T) -> Boolean = { true },
@@ -79,6 +80,9 @@ sealed class Preference {
             @Composable
             internal fun internalSubtitleProvider(value: Any?, entries: ImmutableMap<out Any?, String>) =
                 subtitleProvider(value as T, entries as ImmutableMap<T, String>)
+            @Composable
+            internal fun internalIconProvider(key: Any?, value: String) =
+                iconProvider?.invoke(key as T, value)
         }
 
         /**

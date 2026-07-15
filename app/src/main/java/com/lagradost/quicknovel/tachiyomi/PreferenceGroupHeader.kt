@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.lagradost.quicknovel.compose.CloudStreamTheme
 
 @Composable
 fun PreferenceGroupHeader(title: String) {
@@ -20,7 +21,7 @@ fun PreferenceGroupHeader(title: String) {
     ) {
         Text(
             text = title,
-            color = MaterialTheme.colorScheme.secondary,
+            color = CloudStreamTheme.colors.onBackground,
             modifier = Modifier.padding(horizontal = PrefsHorizontalPadding),
             style = MaterialTheme.typography.bodyMedium,
         )

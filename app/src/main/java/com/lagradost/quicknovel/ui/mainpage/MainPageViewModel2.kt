@@ -16,6 +16,7 @@ import com.lagradost.quicknovel.compose.DefaultStateContainer
 import com.lagradost.quicknovel.compose.EffectContainer
 import com.lagradost.quicknovel.compose.StateContainer
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
+import com.lagradost.quicknovel.util.AppUtils.openInBrowser
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
@@ -29,7 +30,7 @@ import java.util.concurrent.CancellationException
 @Immutable
 data class MainPageState(
     val openQuery: Boolean = false,
-    val filter: FilterState,
+    val filter: FilterState = FilterState(),
     val filterVisual: FilterQueryVisual = FilterQueryVisual(),
     val query: QueryState = QueryState(),
     val dialog: MainPageDialog? = null,
@@ -49,7 +50,7 @@ data class FilterState(
     val items: PersistentList<SearchResponse> = persistentListOf(),
     val error: Throwable? = null,
     val url: String = "",
-    val query: FilterQuery,
+    val query: FilterQuery = FilterQuery(),
 )
 
 @Immutable
@@ -104,14 +105,12 @@ sealed class MainPageEffect {
 
 class MainPageViewModel2(
     val api: APIRepository,
-    val initQuery: FilterQuery,
-    stateContainer: StateContainer<MainPageState> = DefaultStateContainer(MainPageState(
+    initQuery: FilterQuery,
+): ViewModel(),
+    StateContainer<MainPageState> by DefaultStateContainer(MainPageState(
         filter = FilterState(query = initQuery)
     )),
-    effectContainer: EffectContainer<MainPageEffect> = DefaultEffectContainer(),
-): ViewModel(),
-    StateContainer<MainPageState> by stateContainer,
-    EffectContainer<MainPageEffect> by effectContainer,
+    EffectContainer<MainPageEffect> by DefaultEffectContainer(),
     ActionHandler<MainPageAction>
 {
     companion object {
@@ -253,7 +252,7 @@ class MainPageViewModel2(
             }
 
             is MainPageAction.OpenInBrowser -> {
-                //
+                openInBrowser(action.url)
             }
 
             is MainPageAction.Back -> {
