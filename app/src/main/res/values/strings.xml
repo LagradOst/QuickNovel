@@ -11,6 +11,7 @@
     <string name="restore_key" translatable="false">restore_key</string>
     <string name="restore_settings">Restore data from backup</string>
 
+    <string name="active_providers">%d providers enabled</string>
     <string name="search_hint">Search Novels…</string>
     <string name="synopsis">Synopsis</string>
     <string name="no_data">No Data</string>
@@ -49,7 +50,7 @@
     <string name="select_chapter">Select Chapter</string>
     <string name="poster_descript">Poster</string>
     <string name="sort_downloads_descript">Sort Downloads</string>
-    <string name="search_roviders">Search Providers</string>
+    <string name="search_providers">Search Providers</string>
     <string name="search">Search</string>
     <string name="general">General</string>
     <string name="info">Info</string>
@@ -191,7 +192,6 @@
     <string name="permanently_delete_format">This will permanently delete %s.\nAre you sure?</string>
     <string name="remove_all_history">Are you sure?\nAll history will be lost.</string>
     <string name="remove_history">Remove History</string>
-    <string name="search_providers">Search Providers</string>
     <string name="no_more_chapters">No more chapters</string>
     <string name="paused">Paused</string>
     <string name="stopped">Stopped</string>
@@ -244,6 +244,7 @@
     <string name="ok">OK</string>
     <string name="more_info">More Info</string>
     <string name="download_path_key">download_path_key</string>
+    <string name="download_path_visual">Download path</string>
     <string name="download_path_pref">Download path</string>
     <string name="bionic_reading">Bionic Reading</string>
     <string name="selectable_text">Selectable text</string>

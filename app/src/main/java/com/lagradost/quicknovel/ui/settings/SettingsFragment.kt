@@ -6,52 +6,493 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.core.content.edit
 import androidx.core.net.toUri
-import androidx.preference.Preference
-import androidx.preference.PreferenceFragmentCompat
+import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
-import androidx.recyclerview.widget.LinearLayoutManager
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
-import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.CommonActivity.showToast
-import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.databinding.LogcatBinding
+import com.lagradost.quicknovel.compose.CloudStreamTheme
+import com.lagradost.quicknovel.compose.loadPrimaryColor
+import com.lagradost.quicknovel.compose.loadThemeMode
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.safe
-import com.lagradost.quicknovel.ui.clear
-import com.lagradost.quicknovel.ui.download.AnyAdapter
-import com.lagradost.quicknovel.ui.history.HistoryAdapter
-import com.lagradost.quicknovel.ui.txt
+import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
+import com.lagradost.quicknovel.tachiyomi.Preference
+import com.lagradost.quicknovel.tachiyomi.SearchableSettings
+import com.lagradost.quicknovel.tachiyomi.collectAsState
 import com.lagradost.quicknovel.util.Apis.Companion.apis
-import com.lagradost.quicknovel.util.Apis.Companion.getApiProviderLangSettings
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
+import com.lagradost.quicknovel.util.AppUtils.openInBrowser
 import com.lagradost.quicknovel.util.BackupUtils.backup
 import com.lagradost.quicknovel.util.BackupUtils.restorePrompt
-import com.lagradost.quicknovel.util.BackupUtils.setupStream
-import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
-import com.lagradost.quicknovel.util.SingleSelectionHelper.showBottomDialog
-import com.lagradost.quicknovel.util.SingleSelectionHelper.showDialog
 import com.lagradost.quicknovel.util.SingleSelectionHelper.showMultiDialog
 import com.lagradost.quicknovel.util.SubtitleHelper
-import com.lagradost.quicknovel.util.UIHelper.clipboardHelper
-import com.lagradost.quicknovel.util.UIHelper.dismissSafe
 import com.lagradost.safefile.MediaFileContentType
 import com.lagradost.safefile.SafeFile
-import java.io.BufferedReader
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toPersistentHashSet
+import kotlinx.collections.immutable.toPersistentMap
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.InputStreamReader
-import java.io.OutputStream
-import java.lang.System.currentTimeMillis
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
+// TODO logcat! and reorganize
+class SettingsFragment : Fragment(), SearchableSettings {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View = ComposeView(inflater.context).apply {
+        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+
+        setContent {
+            CloudStreamTheme(
+                mode = LocalContext.current.loadThemeMode(),
+                primaryColor = LocalContext.current.loadPrimaryColor(),
+            ) {
+                this@SettingsFragment.Content()
+            }
+        }
+    }
+
+    @Composable
+    override fun getTitleRes(): String = stringResource(R.string.title_settings)
+
+    @Composable
+    override fun Content() {
+        val store = AndroidPreferenceStore(LocalContext.current)
+        val locale by store.getString(
+            stringResource(R.string.locale_key),
+            "en",
+        ).collectAsState()
+        val theme by store.getString(
+            stringResource(R.string.theme_key),
+            "AmoledLight",
+        ).collectAsState()
+        val color by store.getString(
+            stringResource(R.string.primary_color_key),
+            "Normal",
+        ).collectAsState()
+
+        //val context = LocalContext.current
+        //val scope = currentRecomposeScope
+
+        LaunchedEffectSkipFirst(locale) {
+            //setLocale(context, locale)
+            //scope.invalidate()
+            activity?.recreate()
+        }
+        LaunchedEffectSkipFirst(theme) {
+            activity?.recreate()
+        }
+        LaunchedEffectSkipFirst(color) {
+            activity?.recreate()
+        }
+        super.Content()
+    }
+
+    @Composable
+    fun LaunchedEffectSkipFirst(
+        key: Any?,
+        block: suspend CoroutineScope.() -> Unit
+    ) {
+        var isFirstChange by remember { mutableStateOf(true) }
+
+        LaunchedEffect(key) {
+            if (isFirstChange) {
+                isFirstChange = false
+            } else {
+                block()
+            }
+        }
+    }
+
+
+    @Composable
+    override fun getPreferences(): List<Preference> {
+        val context = LocalContext.current
+        val store = AndroidPreferenceStore(context)
+        val scope = rememberCoroutineScope()
+
+        val downloadKeyStore =
+            store.getString(stringResource(R.string.download_path_key))
+
+        return persistentListOf(
+            Preference.PreferenceGroup(
+                title = stringResource(R.string.search), preferenceItems = persistentListOf(
+                    Preference.PreferenceItem.MultiSelectListPreference(
+                        icon = painterResource(R.drawable.ic_baseline_cloud_24),
+                        title = stringResource(R.string.search_providers),
+                        pref = store.getStringSet(
+                            stringResource(R.string.search_providers_list_key),
+                            apis.map { it.name }.toSet()
+                        ),
+                        entries = apis.associate { it.name to it.name }.toPersistentMap(),
+                        subtitleProvider = { v, _ ->
+                            stringResource(R.string.active_providers, v.size)
+                        }),
+                    Preference.PreferenceItem.ListPreference(
+                        icon = painterResource(R.drawable.ic_baseline_language_24),
+                        title = stringResource(R.string.locale_settings),
+                        pref = store.getString(
+                            stringResource(R.string.locale_key),
+                            "en",
+                        ),
+                        entries = arrayListOf(
+                            /* begin language list */
+                            ("en" to "English"),
+                            ("tr" to "Türkçe"),
+                            ("es" to "Español"),
+                            ("ru" to "Русский"),
+                            /* end language list */
+                        ).sortedBy { it.second.lowercase() }.map { (code, name) ->
+                            val flag = SubtitleHelper.getFlagFromIso(code) ?: "🌐"
+                            code to "$flag $name"
+                        }.associate { it }.toPersistentMap(),
+                    ),
+                    Preference.PreferenceItem.MultiSelectListPreference(
+                        icon = painterResource(R.drawable.ic_baseline_language_24),
+                        title = stringResource(R.string.provider_lang_settings),
+                        pref = store.getStringSet(
+                            stringResource(R.string.provider_lang_key),
+                            apis.map { it.lang }.toPersistentHashSet(),
+                        ),
+                        entries = apis.map { api ->
+                            val lang = api.lang
+                            val langName = SubtitleHelper.fromTwoLettersToLanguage(lang)!!
+                            lang to langName
+                        }.sortedBy { it.second.lowercase() }.map { (code, name) ->
+                            val flag = SubtitleHelper.getFlagFromIso(code) ?: "🌐"
+                            code to "$flag $name"
+                        }.associate { it }.toPersistentMap(),
+                    ),
+                    Preference.PreferenceItem.ListPreference(
+                        icon = painterResource(R.drawable.ic_baseline_star_24),
+                        title = stringResource(R.string.rating_format),
+                        pref = store.getString(
+                            stringResource(R.string.rating_format_key),
+                            "star",
+                        ),
+                        entries = stringArrayResource(R.array.RatingFormatData).zip(
+                            stringArrayResource(R.array.RatingFormat)
+                        ).associate { it }.toPersistentMap()
+                    ),
+                    Preference.PreferenceItem.SwitchPreference(
+                        icon = painterResource(R.drawable.ic_baseline_notifications_active_24),
+                        title = stringResource(R.string.show_app_updates),
+                        subtitle = stringResource(R.string.show_app_updates_desc),
+                        pref = store.getBoolean(
+                            stringResource(R.string.auto_update_key),
+                            true,
+                        ),
+                    ),
+                    Preference.PreferenceItem.SwitchPreference(
+                        icon = painterResource(R.drawable.ic_baseline_menu_book_24),
+                        title = stringResource(R.string.external_reader),
+                        subtitle = stringResource(R.string.external_reader_desc),
+                        pref = store.getBoolean(
+                            stringResource(R.string.external_reader_key),
+                            true,
+                        ),
+                    ),
+                    Preference.PreferenceItem.SwitchPreference(
+                        icon = painterResource(R.drawable.ic_baseline_edit_24),
+                        title = stringResource(R.string.remove_bloat),
+                        subtitle = stringResource(R.string.remove_bloat_desc),
+                        pref = store.getBoolean(
+                            stringResource(R.string.remove_external_key),
+                            true,
+                        ),
+                    ),
+                    Preference.PreferenceItem.ListPreference(
+                        icon = painterResource(R.drawable.ic_baseline_color_lens_24),
+                        title = stringResource(R.string.theme),
+                        pref = store.getString(
+                            stringResource(R.string.theme_key),
+                            "AmoledLight",
+                        ),
+                        entries = stringArrayResource(R.array.themes_names_values).zip(
+                            stringArrayResource(R.array.themes_names)
+                        ).associate { it }.toPersistentMap().let { mapping ->
+                            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) { // remove monet on android 11 and less
+                                mapping.removing("Monet")
+                            } else {
+                                mapping
+                            }
+                        }
+                    ),
+                    Preference.PreferenceItem.ListPreference(
+                        icon = painterResource(R.drawable.ic_baseline_color_lens_24),
+                        title = stringResource(R.string.primary_color_settings),
+                        pref = store.getString(
+                            stringResource(R.string.primary_color_key),
+                            "Normal",
+                        ),
+                        entries = stringArrayResource(R.array.themes_overlay_names_values).zip(
+                            stringArrayResource(R.array.themes_overlay_names)
+                        ).associate { it }.toPersistentMap().let { mapping ->
+                            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) { // remove monet on android 11 and less
+                                mapping.removing("Monet").removing("Monet2")
+                            } else {
+                                mapping
+                            }
+                        }
+                    ),
+                    Preference.PreferenceItem.TextPreference(
+                        icon = painterResource(R.drawable.ic_baseline_system_update_24),
+                        title = stringResource(R.string.check_for_update),
+                        onClick = {
+                            // Todo refactor
+                            scope.launch {
+                                withContext(Dispatchers.IO) {
+                                    if (true != activity?.runAutoUpdate(false)) {
+                                        showToast(R.string.no_update_found, Toast.LENGTH_SHORT)
+                                    }
+                                }
+                            }
+                        }
+                    ),
+                    Preference.PreferenceItem.TextPreference(
+                        icon = painterResource(R.drawable.baseline_save_as_24),
+                        title = stringResource(R.string.backup_settings),
+                        onClick = {
+                            // Todo refactor
+                            scope.launch {
+                                withContext(Dispatchers.Default) {
+                                    activity?.backup()
+                                }
+                            }
+                        }
+                    ),
+                    Preference.PreferenceItem.TextPreference(
+                        icon = painterResource(R.drawable.baseline_restore_page_24),
+                        title = stringResource(R.string.restore_settings),
+                        onClick = {
+                            activity?.restorePrompt()
+                        }
+                    ),
+                    Preference.PreferenceItem.TextPreference(
+                        icon = painterResource(R.drawable.ic_github_logo),
+                        title = "Github",
+                        subtitle = "https://github.com/LagradOst/QuickNovel",
+                        onClick = {
+                            openInBrowser("https://github.com/LagradOst/QuickNovel")
+                        }
+                    ),
+                    Preference.PreferenceItem.TextPreference(
+                        icon = painterResource(R.drawable.cs3_cloud),
+                        title = "Anime and Movie app by the same devs",
+                        subtitle = "https://github.com/recloudstream/cloudstream",
+                        onClick = {
+                            openInBrowser("https://github.com/recloudstream/cloudstream")
+                        }
+                    ),
+                    Preference.PreferenceItem.TextPreference(
+                        icon = painterResource(R.drawable.ic_baseline_discord_24),
+                        title = "Join Discord",
+                        subtitle = "https://discord.gg/5Hus6fM",
+                        onClick = {
+                            openInBrowser("https://discord.gg/5Hus6fM")
+                        }
+                    ),
+                    Preference.PreferenceItem.ListPreference(
+                        title = stringResource(R.string.download_path_pref),
+                        icon = painterResource(R.drawable.netflix_download),
+                        pref =  store.getString(
+                            stringResource(R.string.download_path_visual),
+                            getDefaultDir(context)?.filePath() ?: stringResource(R.string.unknown)
+                        ),
+                        subtitleProvider = { v,e ->
+                            e[v] ?: v
+                        },
+                        entries = (getDownloadDirs(context) + "Custom").associateWith { it }
+                            .toPersistentMap(),
+                        onValueChanged = { value ->
+                            if (value != "Custom") {
+                                downloadKeyStore.set(value)
+                                true
+                            } else {
+                                try {
+                                    pathPicker.launch(Uri.EMPTY)
+                                } catch (e: Exception) {
+                                    logError(e)
+                                }
+                                false
+                            }
+                        }
+                    )
+                )
+            )
+        )
+    }
+
+    /*
+    getPref(R.string.download_path_key)?.setOnPreferenceClickListener {
+            val dirs = getDownloadDirs(context)
+
+            val currentDir =
+                settingsManager.getString(getString(R.string.download_path_pref), null)
+                    ?: context?.let { ctx -> getDefaultDir(ctx)?.filePath() }
+
+            activity?.showBottomDialog(
+                dirs + listOf("Custom"),
+                dirs.indexOf(currentDir),
+                getString(R.string.download_path_pref),
+                true,
+                {}) {
+                // Last = custom
+                if (it == dirs.size) {
+                    try {
+                        pathPicker.launch(Uri.EMPTY)
+                    } catch (e: Exception) {
+                        logError(e)
+                    }
+                } else {
+                    // Sets both visual and actual paths.
+                    // key = used path
+                    // pref = visual path
+                    settingsManager.edit {
+                        putString(getString(R.string.download_path_key), dirs[it])
+                        putString(getString(R.string.download_path_pref), dirs[it])
+                    }
+                }
+            }
+            return@setOnPreferenceClickListener true
+        }
+     */
+    private val pathPicker =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            // It lies, it can be null if file manager quits.
+            if (uri == null) return@registerForActivityResult
+            val context = context ?: return@registerForActivityResult
+            // RW perms for the path
+            val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+
+            context.contentResolver.takePersistableUriPermission(uri, flags)
+
+            val file = SafeFile.fromUri(context, uri)
+            val filePath = file?.filePath()
+            println("Selected URI path: $uri - Full path: $filePath")
+
+            // Stores the real URI using download_path_key
+            // Important that the URI is stored instead of filepath due to permissions.
+            PreferenceManager.getDefaultSharedPreferences(context)
+                .edit { putString(getString(R.string.download_path_key), uri.toString()) }
+
+            // From URI -> File path
+            // File path here is purely for cosmetic purposes in settings
+            (filePath ?: uri.toString()).let {
+                PreferenceManager.getDefaultSharedPreferences(context)
+                    .edit { putString(getString(R.string.download_path_visual), it) }
+            }
+        }
+
+    companion object {
+        fun getDefaultDir(context: Context): SafeFile? {
+            // See https://www.py4u.net/discuss/614761
+            return SafeFile.fromMedia(
+                context, MediaFileContentType.Downloads
+            )?.gotoDirectory("Epub")
+        }
+
+        /**
+         * Turns a string to an UniFile. Used for stored string paths such as settings.
+         * Should only be used to get a download path.
+         * */
+        private fun basePathToFile(context: Context, path: String?): SafeFile? {
+            return when {
+                path.isNullOrBlank() -> getDefaultDir(context)
+                path.startsWith("content://") -> SafeFile.fromUri(context, path.toUri())
+                else -> SafeFile.fromFilePath(
+                    context,
+                    path.removePrefix(Environment.getExternalStorageDirectory().path).removePrefix(
+                        File.separator
+                    ).removeSuffix(File.separator) + File.separator
+                )
+            }
+        }
+
+        /**
+         * Base path where downloaded things should be stored, changes depending on settings.
+         * Returns the file and a string to be stored for future file retrieval.
+         * UniFile.filePath is not sufficient for storage.
+         * */
+        fun Context.getBasePath(): Pair<SafeFile?, String?> {
+            val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
+            val basePathSetting =
+                settingsManager.getString(getString(R.string.download_path_key), null)
+            return basePathToFile(this, basePathSetting) to basePathSetting
+        }
+
+        fun getDownloadDirs(context: Context?): List<String> {
+            return safe {
+                context?.let { ctx ->
+                    val defaultDir = getDefaultDir(ctx)?.filePath()
+
+                    val first = listOf(defaultDir)
+                    (try {
+                        //val currentDir = ctx.getBasePath().let { it.first?.filePath() ?: it.second }
+
+                        (first + ctx.getExternalFilesDirs("").mapNotNull { it.path } )
+                    } catch (e: Exception) {
+                        first
+                    }).filterNotNull().distinct()
+                }
+            } ?: emptyList()
+        }
+
+        fun showSearchProviders(context: Context?) {
+            if (context == null) return
+            val apiNames = apis.map { it.name }
+            val displayNames = apis.map {
+                val flag = SubtitleHelper.getFlagFromIso(it.lang) ?: "🌐"
+                "$flag ${it.name}"
+            }
+            context.apply {
+                val active = getApiSettings()
+                showMultiDialog(
+                    displayNames,
+                    apiNames.mapIndexed { index, s -> index to active.contains(s) }
+                        .filter { it.second }.map { it.first }.toList(),
+                    getString(R.string.search_providers),
+                    {}) { list ->
+                    val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
+                    settingsManager.edit {
+                        putStringSet(
+                            getString(R.string.search_providers_list_key),
+                            list.map { apiNames[it] }.toSet()
+                        )
+                    }
+                    providersActive = getApiSettings()
+                }
+            }
+        }
+    }
+}/*
 class SettingsFragment : PreferenceFragmentCompat() {
     private fun PreferenceFragmentCompat?.getPref(id: Int): Preference? {
         if (this == null) return null
@@ -91,89 +532,10 @@ class SettingsFragment : PreferenceFragmentCompat() {
             /* end language list */
         ).sortedBy { it.second.lowercase() } //ye, we go alphabetical, so ppl don't put their lang on top
 
-        fun showSearchProviders(context: Context?) {
-            if (context == null) return
-            val apiNames = apis.map { it.name }
-            val displayNames = apis.map {
-                val flag = SubtitleHelper.getFlagFromIso(it.lang) ?: "🌐"
-                "$flag ${it.name}"
-            }
-            context.apply {
-                val active = getApiSettings()
-                showMultiDialog(
-                    displayNames,
-                    apiNames.mapIndexed { index, s -> index to active.contains(s) }
-                        .filter { it.second }
-                        .map { it.first }.toList(),
-                    getString(R.string.search_providers),
-                    {}) { list ->
-                    val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
-                    settingsManager.edit {
-                        putStringSet(
-                            getString(R.string.search_providers_list_key),
-                            list.map { apiNames[it] }.toSet()
-                        )
-                    }
-                    providersActive = getApiSettings()
-                }
-            }
-        }
-
-        fun getDefaultDir(context: Context): SafeFile? {
-            // See https://www.py4u.net/discuss/614761
-            return SafeFile.fromMedia(
-                context, MediaFileContentType.Downloads
-            )?.gotoDirectory("Epub")
-        }
-
-        /**
-         * Turns a string to an UniFile. Used for stored string paths such as settings.
-         * Should only be used to get a download path.
-         * */
-        private fun basePathToFile(context: Context, path: String?): SafeFile? {
-            return when {
-                path.isNullOrBlank() -> getDefaultDir(context)
-                path.startsWith("content://") -> SafeFile.fromUri(context, path.toUri())
-                else -> SafeFile.fromFilePath(
-                    context,
-                    path.removePrefix(Environment.getExternalStorageDirectory().path).removePrefix(
-                        File.separator
-                    ).removeSuffix(File.separator) + File.separator
-                )
-            }
-        }
 
 
-        /**
-         * Base path where downloaded things should be stored, changes depending on settings.
-         * Returns the file and a string to be stored for future file retrieval.
-         * UniFile.filePath is not sufficient for storage.
-         * */
-        fun Context.getBasePath(): Pair<SafeFile?, String?> {
-            val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
-            val basePathSetting =
-                settingsManager.getString(getString(R.string.download_path_key), null)
-            return basePathToFile(this, basePathSetting) to basePathSetting
-        }
 
-        fun getDownloadDirs(context: Context?): List<String> {
-            return safe {
-                context?.let { ctx ->
-                    val defaultDir = getDefaultDir(ctx)?.filePath()
 
-                    val first = listOf(defaultDir)
-                    (try {
-                        val currentDir = ctx.getBasePath().let { it.first?.filePath() ?: it.second }
-
-                        (first +
-                                ctx.getExternalFilesDirs("").mapNotNull { it.path } +
-                                currentDir)
-                    } catch (e: Exception) {
-                        first
-                    }).filterNotNull().distinct()
-                }
-            } ?: emptyList()
-        }
     }
 
     // Open file picker
@@ -572,4 +934,4 @@ class SettingsFragment : PreferenceFragmentCompat() {
             return@setOnPreferenceChangeListener true
         }*/
     }
-}
+}*/

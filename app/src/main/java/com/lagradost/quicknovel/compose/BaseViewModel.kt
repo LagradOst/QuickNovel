@@ -1,12 +1,19 @@
 package com.lagradost.quicknovel.compose
 
-import kotlinx.coroutines.flow.MutableSharedFlow
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withContext
 
 /*
 Base viewmodel is not used to "Composition over inheritance"
@@ -51,7 +58,7 @@ interface StateContainer<State> {
 }
 
 interface EffectContainer<Effect> {
-    val effect: SharedFlow<Effect>
+    val effect: Flow<Effect>
     suspend fun postEffect(builder: () -> Effect)
 }
 
@@ -69,10 +76,22 @@ class DefaultStateContainer<State>(initialState: State) : StateContainer<State> 
 }
 
 class DefaultEffectContainer<Effect> : EffectContainer<Effect> {
-    private val _effect = MutableSharedFlow<Effect>()
-    override val effect: SharedFlow<Effect> get() = _effect.asSharedFlow()
+    private val _effect = Channel<Effect>() // To ensure events are sent
+    override val effect: Flow<Effect> get() = _effect.receiveAsFlow()
 
     override suspend fun postEffect(builder: () -> Effect) {
-        _effect.emit(builder())
+        _effect.send(builder())
+    }
+}
+
+@Composable
+fun <T> ObserveEvents(flow : Flow<T>, onEvent : (T) -> Unit) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(flow, lifecycleOwner.lifecycle) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            withContext(Dispatchers.Main.immediate) { // To ensure events are sent
+                flow.collect(onEvent)
+            }
+        }
     }
 }

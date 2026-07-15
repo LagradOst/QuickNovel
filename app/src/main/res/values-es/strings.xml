@@ -38,7 +38,6 @@
     <string name="advanced_search">Búsqueda avanzada</string>
     <string name="advanced_search_desc">Muestra los resultados de búsqueda separados por proveedor</string>
     <string name="search_providers">Proveedores</string>
-    <string name="search_roviders">Proveedores</string>
     <string name="change_providers_descript">Cambiar proveedor</string>
     <string name="poster_open_source_descript">Ver fuente original</string>
     <string name="back_to_search">Volver a buscar</string>

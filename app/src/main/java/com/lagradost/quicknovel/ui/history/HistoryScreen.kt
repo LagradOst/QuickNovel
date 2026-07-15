@@ -42,12 +42,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.BaseDialog
+import com.lagradost.quicknovel.compose.ActionDialog
 import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.BaseStyles
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.CloudStreamThemeMode
+import com.lagradost.quicknovel.compose.SingleSelectDialog
 import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
@@ -147,7 +148,7 @@ fun HistoryDialog(
 
     val about = dialog.about
     if (about == null) {
-        BaseDialog(
+        ActionDialog(
             title = stringResource(R.string.remove_history),
             text = stringResource(R.string.remove_all_history),
             confirmText = stringResource(R.string.remove),
@@ -160,7 +161,7 @@ fun HistoryDialog(
             }
         )
     } else {
-        BaseDialog(
+        ActionDialog(
             title = stringResource(R.string.remove),
             text = stringResource(
                 R.string.remove_from_history_format,

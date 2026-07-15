@@ -10,6 +10,7 @@ composeMaterial3 = "1.11.0-alpha07"
 composeMultiplatform = "1.11.1"
 kotlinxCollectionsImmutable = "0.5.1"
 lifecycleViewmodelCompose = "2.11.0"
+preference = "2.2.0"
 
 [libraries]
 
@@ -27,6 +28,7 @@ compose-ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.r
 compose-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
 kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
 lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
+preference = { module = "me.zhanghai.compose.preference:preference", version.ref = "preference" }
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinGradlePlugin" }
