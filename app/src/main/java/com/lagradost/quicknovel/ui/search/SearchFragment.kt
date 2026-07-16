@@ -1,33 +1,81 @@
 package com.lagradost.quicknovel.ui.search
 
-import android.app.Dialog
-import android.content.res.Configuration
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
-import android.view.WindowManager
-import android.widget.ImageView
-import androidx.appcompat.widget.SearchView
-import androidx.core.view.isGone
-import androidx.core.view.isVisible
-import androidx.fragment.app.viewModels
-import androidx.preference.PreferenceManager
-import androidx.recyclerview.widget.GridLayoutManager
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.lagradost.quicknovel.CommonActivity.activity
-import com.lagradost.quicknovel.HomePageList
-import com.lagradost.quicknovel.databinding.FragmentSearchBinding
-import com.lagradost.quicknovel.databinding.HomeEpisodesExpandedBinding
-import com.lagradost.quicknovel.mvvm.Resource
-import com.lagradost.quicknovel.mvvm.observe
-import com.lagradost.quicknovel.mvvm.observeNullable
-import com.lagradost.quicknovel.ui.BaseFragment
-import com.lagradost.quicknovel.ui.home.BrowseAdapter
-import com.lagradost.quicknovel.ui.home.HomeViewModel
-import com.lagradost.quicknovel.ui.setRecycledViewPool
-import com.lagradost.quicknovel.ui.settings.SettingsFragment
-import com.lagradost.quicknovel.util.Event
-import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
+import android.view.ViewGroup
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lagradost.quicknovel.CommonActivity
+import com.lagradost.quicknovel.MainActivity.Companion.navigate
+import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.compose.CloudStreamTheme
+import com.lagradost.quicknovel.compose.ObserveEffect
+import com.lagradost.quicknovel.compose.loadPrimaryColor
+import com.lagradost.quicknovel.compose.loadThemeMode
+import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
+import com.lagradost.quicknovel.tachiyomi.collectAsState
+import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
+import com.lagradost.quicknovel.ui.settings.searchLangList
+import com.lagradost.quicknovel.ui.settings.searchProvidersList
+import kotlinx.collections.immutable.toPersistentSet
 
+
+class SearchFragment : Fragment() {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View = ComposeView(inflater.context).apply {
+        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+
+        setContent {
+            CloudStreamTheme(
+                mode = LocalContext.current.loadThemeMode(),
+                primaryColor = LocalContext.current.loadPrimaryColor(),
+            ) {
+                val viewModel = viewModel<HomeViewModel2>()
+                //val viewModel: HomeViewModel2 =
+               //     viewModel(factory = HomeViewModel2.provideFactory(store.searchProvidersList()))
+                val state by viewModel.state.collectAsStateWithLifecycle()
+
+                val store = AndroidPreferenceStore(context)
+                val selectionState by store.searchProvidersList().collectAsState()
+                LaunchedEffect(selectionState) {
+                    viewModel.onAction(HomeAction.ConfigureApisNames(selectionState.toPersistentSet()))
+                }
+
+                val selectionLangState by store.searchLangList().collectAsState()
+                LaunchedEffect(selectionLangState) {
+                    viewModel.onAction(HomeAction.ConfigureApisLanguages(selectionLangState.toPersistentSet()))
+                }
+
+                ObserveEffect(viewModel.effect) { effect ->
+                    when (effect) {
+                        is HomeEffect.NavigateToMainPage -> {
+                            CommonActivity.activity?.navigate(
+                                R.id.global_to_navigation_mainpage,
+                                MainPageFragment.newInstance(effect.api, effect.filter)
+                            )
+                        }
+
+                    }
+                }
+
+                SearchScreen(state, viewModel::onAction)
+            }
+        }
+    }
+}
+
+
+/*
 class SearchFragment : BaseFragment<FragmentSearchBinding>(
     BindingCreator.Inflate(FragmentSearchBinding::inflate)
 ) {
@@ -229,4 +277,4 @@ class SearchFragment : BaseFragment<FragmentSearchBinding>(
             }
         }*/
     }
-}
+}*/

@@ -5,14 +5,22 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
+import com.lagradost.quicknovel.mvvm.logError
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /*
@@ -85,13 +93,37 @@ class DefaultEffectContainer<Effect> : EffectContainer<Effect> {
 }
 
 @Composable
-fun <T> ObserveEvents(flow : Flow<T>, onEvent : (T) -> Unit) {
+fun <T> ObserveEffect(flow : Flow<T>, onEvent : (T) -> Unit) {
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(flow, lifecycleOwner.lifecycle) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
             withContext(Dispatchers.Main.immediate) { // To ensure events are sent
                 flow.collect(onEvent)
             }
+        }
+    }
+}
+
+data class SingleActiveQuery(
+    val dispatcher : CoroutineDispatcher,
+    private var job: Job? = null,
+    private val mutex: Mutex = Mutex(),
+) {
+    suspend fun launch(block: suspend CoroutineScope.() -> Unit) {
+        val currentScope = CoroutineScope(currentCoroutineContext())
+        val obj: suspend CoroutineScope.() -> Unit = {
+            try {
+                withContext(dispatcher) {
+                    block()
+                }
+            } catch (t: Throwable) {
+                logError(t)
+            }
+        }
+        mutex.withLock {
+            job?.cancel()
+            job?.join()
+            job = currentScope.launch(block = obj)
         }
     }
 }

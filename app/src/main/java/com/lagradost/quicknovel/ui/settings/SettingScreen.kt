@@ -119,10 +119,7 @@ class SettingScreen : SearchableSettings {
                     Preference.PreferenceItem.MultiSelectListPreference(
                         icon = painterResource(R.drawable.ic_baseline_cloud_24),
                         title = stringResource(R.string.search_providers),
-                        pref = store.getStringSet(
-                            stringResource(R.string.search_providers_list_key),
-                            apis.map { it.name }.toSet()
-                        ),
+                        pref = store.searchProvidersList(),
                         entries = apis.associate { it.name to it.name }.toPersistentMap(),
                         subtitleProvider = { v, _ ->
                             stringResource(R.string.active_providers, v.size)
@@ -149,10 +146,7 @@ class SettingScreen : SearchableSettings {
                     Preference.PreferenceItem.MultiSelectListPreference(
                         icon = painterResource(R.drawable.ic_baseline_language_24),
                         title = stringResource(R.string.provider_lang_settings),
-                        pref = store.getStringSet(
-                            stringResource(R.string.provider_lang_key),
-                            apis.map { it.lang }.toPersistentHashSet(),
-                        ),
+                        pref = store.searchLangList(),
                         entries = apis.map { api ->
                             val lang = api.lang
                             val langName = SubtitleHelper.fromTwoLettersToLanguage(lang)!!

@@ -199,6 +199,8 @@ data class SearchResponse(
     val image get() = img(posterUrl, posterHeaders)
 }
 
+
+
 fun MainAPI.newSearchResponse(
     name: String,
     url: String,

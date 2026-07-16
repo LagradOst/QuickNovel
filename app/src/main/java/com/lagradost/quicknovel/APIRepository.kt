@@ -1,10 +1,17 @@
 package com.lagradost.quicknovel
 
+import androidx.compose.runtime.Immutable
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.safeApiCall
 import com.lagradost.quicknovel.util.Coroutines.threadSafeListOf
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableMap
 import org.jsoup.Jsoup
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 data class OnGoingSearch(
     val apiName: String,
@@ -31,6 +38,47 @@ private fun String?.removeAds(): String? {
         this
     }
 }
+
+
+@Immutable
+data class ImmutableSearchResponse @OptIn(ExperimentalUuidApi::class) constructor(
+    val name: String,
+    val url: String,
+    val posterUrl: String? = null,
+    val rating: Int? = null,
+    val latestChapter: String? = null,
+    val apiName: String,
+    val posterHeaders: ImmutableMap<String, String>? = null,
+    val randomUuid: Uuid = Uuid.random(),
+) {
+    companion object {
+        @OptIn(ExperimentalUuidApi::class)
+        fun from(response: SearchResponse): ImmutableSearchResponse =
+            ImmutableSearchResponse(
+                name = response.name,
+                url = response.url,
+                posterUrl = response.posterUrl,
+                rating = response.rating,
+                latestChapter = response.latestChapter,
+                apiName = response.apiName,
+                posterHeaders = response.posterHeaders?.toImmutableMap()
+            )
+    }
+}
+
+@Immutable
+data class ImmutableHeadMainPageResponse(
+    val url: String,
+    val list: ImmutableList<ImmutableSearchResponse>,
+) {
+    companion object {
+        fun from(response: HeadMainPageResponse) = ImmutableHeadMainPageResponse(
+            url = response.url,
+            list = response.list.map(ImmutableSearchResponse::from).toImmutableList()
+        )
+    }
+}
+
 
 class APIRepository(val api: MainAPI) {
     val unixTime: Long
@@ -114,8 +162,9 @@ class APIRepository(val api: MainAPI) {
         }
     }
 
-    suspend fun searchResult(query: String): Result<List<SearchResponse>> = runCatching {
-        api.search(query) ?: throw ErrorLoadingException("No data")
+    suspend fun searchResult(query: String): Result<List<ImmutableSearchResponse>> = runCatching {
+        api.search(query)?.map(ImmutableSearchResponse::from)
+            ?: throw ErrorLoadingException("No data")
     }
 
     suspend fun loadMainPageResult(
@@ -123,8 +172,8 @@ class APIRepository(val api: MainAPI) {
         mainCategory: String?,
         orderBy: String?,
         tag: String?,
-    ): Result<HeadMainPageResponse> = runCatching {
-        api.loadMainPage(page, mainCategory, orderBy, tag)
+    ): Result<ImmutableHeadMainPageResponse> = runCatching {
+        ImmutableHeadMainPageResponse.from(api.loadMainPage(page, mainCategory, orderBy, tag))
     }
 
     /**

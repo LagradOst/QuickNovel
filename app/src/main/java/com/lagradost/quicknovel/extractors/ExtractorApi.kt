@@ -5,7 +5,7 @@ import com.lagradost.quicknovel.DownloadExtractLink
 import com.lagradost.quicknovel.DownloadLink
 import com.lagradost.quicknovel.DownloadLinkType
 import com.lagradost.quicknovel.mvvm.logError
-import com.lagradost.quicknovel.util.apmap
+import com.lagradost.quicknovel.util.amap
 
 fun ExtractorApi.fixUrl(url: String): String {
     if (url.startsWith("http") ||
@@ -43,18 +43,18 @@ abstract class ExtractorApi {
 
         /** recursive extraction of links */
         suspend fun extract(links: List<DownloadLinkType>, depth: Int = 5): List<DownloadLink> {
-            return links.apmap { link ->
+            return links.amap { link ->
                 when (link) {
                     is DownloadLink -> {
                         listOf(link)
                     }
                     is DownloadExtractLink -> {
                         if (depth <= 0) {
-                            return@apmap emptyList()
+                            return@amap emptyList()
                         }
                         val cmp = removePrefixHttp(link.url)
                         val newLinks = extractors.find { cmp.startsWith(it.mainUrlNoHttp) }
-                            ?.getSafeUrl(link) ?: return@apmap emptyList()
+                            ?.getSafeUrl(link) ?: return@amap emptyList()
 
                         extract(newLinks, depth - 1)
                     }

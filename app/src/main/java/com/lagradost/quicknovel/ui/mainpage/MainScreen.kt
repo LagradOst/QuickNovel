@@ -1,6 +1,5 @@
 package com.lagradost.quicknovel.ui.mainpage
 
-import android.content.Intent
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -19,26 +18,32 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -47,24 +52,27 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.net.toUri
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import com.lagradost.quicknovel.CommonActivity.activity
+import coil3.network.NetworkHeaders
+import coil3.network.httpHeaders
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import com.lagradost.quicknovel.ImmutableSearchResponse
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.compose.BackHandler
 import com.lagradost.quicknovel.compose.BaseSearchBar
+import com.lagradost.quicknovel.compose.BaseStyles
 import com.lagradost.quicknovel.compose.BaseStyles.blackButtonColors
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
-import com.lagradost.quicknovel.compose.ObserveEvents
 import com.lagradost.quicknovel.compose.SingleSelectDialog
 import com.lagradost.quicknovel.compose.isLandscape
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
-import com.lagradost.quicknovel.ui.history.HistoryScreen
-import com.lagradost.quicknovel.ui.history.HistoryState
+import com.lagradost.quicknovel.ui.search.SearchRow
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.coroutines.launch
+import kotlin.uuid.ExperimentalUuidApi
 
 @Composable
 fun MainScreenDialog(
@@ -101,6 +109,8 @@ fun MainScreenDialog(
         })*/
 }
 
+
+@OptIn(ExperimentalUuidApi::class)
 @Composable
 fun MainPageScreen(state: MainPageState, action: (MainPageAction) -> Unit) {
     if (state.openQuery) {
@@ -129,6 +139,17 @@ fun MainPageScreen(state: MainPageState, action: (MainPageAction) -> Unit) {
         }
     }
 
+    val openAction = remember<(ImmutableSearchResponse) -> Unit>(action) {
+        { item ->
+            action(MainPageAction.ResultAction(item, SearchOperation.Open))
+        }
+    }
+    val metadataAction = remember<(ImmutableSearchResponse) -> Unit>(action) {
+        { item ->
+            action(MainPageAction.ResultAction(item, SearchOperation.Metadata))
+        }
+    }
+
     Scaffold(
         topBar = {
             MainPageSearchBar(
@@ -147,46 +168,159 @@ fun MainPageScreen(state: MainPageState, action: (MainPageAction) -> Unit) {
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection)
     ) { innerPadding ->
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(if (isLandscape) 6 else 3),
-            state = listState,
+        SearchResponseGrid(
+            listState = listState,
+            items = if (state.openQuery) state.query.items else state.filter.items,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            contentPadding = PaddingValues(4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            items(
-                items = if (state.openQuery) state.query.items else state.filter.items,
-                key = { item -> item.url }) { result ->
-                SearchResponse(result, action)
-            }
-        }
+            open = openAction,
+            metadata = metadataAction,
+        )
     }
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchResponse(
-    response: SearchResponse, action: (MainPageAction) -> Unit
+fun SearchResponseDialog(
+    dialog: SearchRow,
+    open: (ImmutableSearchResponse) -> Unit,
+    metadata: (ImmutableSearchResponse) -> Unit,
+    dismiss: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
+    ModalBottomSheet(
+        sheetState = sheetState,
+        containerColor = colors.background,
+        onDismissRequest = dismiss,
+        modifier = Modifier.fillMaxSize(),
+        dragHandle = { },
+        shape = RectangleShape
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+                .combinedClickable(
+                    interactionSource = interactionSource,
+                    onClick = {
+                        scope.launch {
+                            sheetState.hide()
+                        }.invokeOnCompletion {
+                            dismiss()
+                        }
+                    }
+                )
+                .ripple(interactionSource)
+                .padding(horizontal = 10.dp)
+        ) {
+            Text(
+                text = dialog.name,
+                color = colors.onBackground,
+                fontSize = 20.sp,
+            )
+            Icon(
+                painter = painterResource(R.drawable.arrow_drop_down_24px),
+                tint = colors.onBackground,
+                contentDescription = null,
+            )
+        }
+
+        if (dialog.error != null) {
+            Text(
+                style = BaseStyles.textStyle,
+                text = dialog.error.toString(),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else if (dialog.items.isEmpty()) {
+            Text(
+                style = BaseStyles.textStyle,
+                text = stringResource(R.string.no_data),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            SearchResponseGrid(
+                items = dialog.items,
+                modifier = Modifier
+                    .fillMaxSize(),
+                open = open,
+                metadata = metadata,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalUuidApi::class)
+@Composable
+fun SearchResponseGrid(
+    listState: LazyGridState = rememberLazyGridState(),
+    items: ImmutableList<ImmutableSearchResponse>,
+    open: (ImmutableSearchResponse) -> Unit,
+    metadata: (ImmutableSearchResponse) -> Unit,
+    modifier: Modifier,
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(if (isLandscape) 6 else 3),
+        state = listState,
+        modifier = modifier,
+        contentPadding = PaddingValues(4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        items(
+            items = items,
+            key = { item -> item.randomUuid }) { response ->
+            SearchResponseItem(
+                response = response,
+                open = open,
+                metadata = metadata,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+            )
+        }
+    }
+}
+
+@Composable
+fun SearchResponseItem(
+    response: ImmutableSearchResponse,
+    open: (ImmutableSearchResponse) -> Unit,
+    metadata: (ImmutableSearchResponse) -> Unit,
+    modifier: Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+
+    val imageRequest = ImageRequest.Builder(LocalContext.current)
+        .data(response.posterUrl)
+        .httpHeaders(NetworkHeaders.Builder().also { headerBuilder ->
+            response.posterHeaders?.forEach { (key, value) ->
+                headerBuilder[key] = value
+            }
+        }.build()) // Set the headers here
+        .crossfade(true)
+        .build()
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .fillMaxWidth()
-            .wrapContentHeight()
+        modifier = modifier
             .combinedClickable(interactionSource = interactionSource, indication = null, onClick = {
-                action(MainPageAction.ResultAction(response, SearchOperation.Open))
+                open(response)
             }, onLongClick = {
-                action(MainPageAction.ResultAction(response, SearchOperation.Metadata))
+                metadata(response)
             })
             .rounded()
     ) {
         AsyncImage(
             contentScale = ContentScale.Crop,
-            model = response.posterUrl, // TODO headers
+            model = imageRequest,
             contentDescription = response.name,
             modifier = Modifier
                 .fillMaxWidth()
@@ -203,7 +337,8 @@ fun SearchResponse(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = response.name, style = TextStyle(
+                text = response.name,
+                style = TextStyle(
                     color = colors.onBackground,
                     fontSize = 13.sp,
                     lineHeight = 14.sp,

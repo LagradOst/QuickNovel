@@ -104,6 +104,6 @@ class SearchViewModel : ViewModel() {
     }
 
     fun loadHomepageList(item: HomePageList) {
-        SearchFragment.loadHomepageList(this, item)
+       // SearchFragment.loadHomepageList(this, item)
     }
 }

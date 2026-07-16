@@ -7,13 +7,14 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.lagradost.quicknovel.APIRepository
+import com.lagradost.quicknovel.ImmutableSearchResponse
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
-import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.compose.ActionHandler
 import com.lagradost.quicknovel.compose.DefaultEffectContainer
 import com.lagradost.quicknovel.compose.DefaultStateContainer
 import com.lagradost.quicknovel.compose.EffectContainer
+import com.lagradost.quicknovel.compose.SingleActiveQuery
 import com.lagradost.quicknovel.compose.StateContainer
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
 import com.lagradost.quicknovel.util.AppUtils.openInBrowser
@@ -21,7 +22,6 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
@@ -40,14 +40,14 @@ data class MainPageState(
 data class QueryState(
     val loading: Boolean = true,
     val query: String = "",
-    val items: PersistentList<SearchResponse> = persistentListOf(),
+    val items: PersistentList<ImmutableSearchResponse> = persistentListOf(),
     val error: Throwable? = null,
 )
 
 @Immutable
 data class FilterState(
     val loading: Boolean = true,
-    val items: PersistentList<SearchResponse> = persistentListOf(),
+    val items: PersistentList<ImmutableSearchResponse> = persistentListOf(),
     val error: Throwable? = null,
     val url: String = "",
     val query: FilterQuery = FilterQuery(),
@@ -82,7 +82,7 @@ data class MainPageDialog(
 )
 
 sealed class MainPageAction {
-    data class ResultAction(val data: SearchResponse, val operation: SearchOperation) :
+    data class ResultAction(val data: ImmutableSearchResponse, val operation: SearchOperation) :
         MainPageAction()
 
     data class Search(val data: String) : MainPageAction()
@@ -202,13 +202,14 @@ class MainPageViewModel2(
         }
     }
 
-    suspend fun search(queryText: String) = withContext(Dispatchers.IO) {
+    val searchQuery = SingleActiveQuery(Dispatchers.IO)
+    suspend fun search(queryText: String) = searchQuery.launch {
         updateState {
             copy(openQuery = true, query = query.copy(loading = true, items = persistentListOf()))
         }
         api.searchResult(queryText).onFailure { error ->
             if (error is CancellationException) {
-                return@withContext
+                return@launch
             }
             updateState {
                 copy(query = query.copy(loading = false, error = error))
@@ -230,7 +231,6 @@ class MainPageViewModel2(
         }
     }
 
-    var searchQueryJob: Job? = null
     override fun onAction(action: MainPageAction) {
         when (action) {
             is MainPageAction.ResultAction -> {
@@ -238,8 +238,7 @@ class MainPageViewModel2(
             }
 
             is MainPageAction.Search -> {
-                searchQueryJob?.cancel()
-                searchQueryJob = viewModelScope.launch {
+                viewModelScope.launch {
                     search(action.data)
                 }
             }
@@ -269,7 +268,7 @@ class MainPageViewModel2(
                     copy(
                         dialog = MainPageDialog(
                             selected = when (action.type) {
-                                DialogType.Category -> filter.query.orderBy
+                                DialogType.Category -> filter.query.category
                                 DialogType.Tags -> filter.query.tag
                                 DialogType.OrderBy -> filter.query.orderBy
                             },
@@ -307,7 +306,7 @@ class MainPageViewModel2(
         }
     }
 
-    private fun resultAction(data: SearchResponse, operation: SearchOperation) {
+    private fun resultAction(data: ImmutableSearchResponse, operation: SearchOperation) {
         when (operation) {
             SearchOperation.Open -> loadResult(data.url, data.apiName)
             SearchOperation.Metadata -> {

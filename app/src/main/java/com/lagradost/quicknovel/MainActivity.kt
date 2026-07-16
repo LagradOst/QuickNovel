@@ -94,6 +94,9 @@ class MainActivity : AppCompatActivity() {
         fun loadPreviewPage(searchResponse: SearchResponse) {
             mainActivity?.loadPopup(searchResponse.url, searchResponse.apiName)
         }
+        fun loadPreviewPage(searchResponse: ImmutableSearchResponse) {
+            mainActivity?.loadPopup(searchResponse.url, searchResponse.apiName)
+        }
 
         fun loadPreviewPage(card: DownloadFragment.DownloadDataLoaded) {
             mainActivity?.loadPopup(card)
@@ -170,7 +173,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         fun FragmentActivity.loadResult(url: String, apiName: String, startAction: Int = 0) {
-            SearchFragment.currentDialog?.dismiss()
+           // SearchFragment.currentDialog?.dismiss()
             runOnUiThread {
                 this.navigate(
                     R.id.global_to_navigation_results,

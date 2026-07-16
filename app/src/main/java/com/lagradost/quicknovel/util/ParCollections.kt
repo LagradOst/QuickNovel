@@ -2,14 +2,15 @@ package com.lagradost.quicknovel.util
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
-import kotlinx.coroutines.runBlocking
-import java.util.*
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.withContext
+import java.util.Collections
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import kotlin.collections.ArrayList
+import kotlin.coroutines.cancellation.CancellationException
 
 //https://stackoverflow.com/questions/34697828/parallel-operations-on-kotlin-collections
 fun <T, R> Iterable<T>.pmap(
@@ -32,12 +33,30 @@ fun <T, R> Iterable<T>.pmap(
     return ArrayList<R>(destination)
 }
 
-fun <A, B>List<A>.apmap(f: suspend (A) -> B): List<B> = runBlocking {
-    map { async { f(it) } }.map { it.await() }
-}
 
 @OptIn(DelicateCoroutinesApi::class)
 suspend fun <A, B> List<A>.amap(f: suspend (A) -> B): List<B> =
-    with(CoroutineScope(GlobalScope.coroutineContext)) {
+    with(CoroutineScope(currentCoroutineContext())) {
         map { async { f(it) } }.map { it.await() }
+    }
+
+/** amap with stronger cancellation guarantee, aka will only return when each job is joined */
+@OptIn(DelicateCoroutinesApi::class)
+suspend fun <A, B> List<A>.cmap(f: suspend (A) -> B): List<B> =
+    with(CoroutineScope(currentCoroutineContext())) {
+        // 1. Spawn all jobs
+        map { async { f(it) } }.map { deferred ->
+            // 2. Await all jobs without throwing, and join if canceled
+            try {
+                Result.success(deferred.await())
+            } catch (e: CancellationException) {
+                withContext(NonCancellable) {
+                    deferred.join()
+                }
+                Result.failure(e)
+            } catch (t : Throwable) {
+                Result.failure(t)
+            }
+            // 3. Throw if something goes wrong
+        }.map { it.getOrThrow() }
     }
