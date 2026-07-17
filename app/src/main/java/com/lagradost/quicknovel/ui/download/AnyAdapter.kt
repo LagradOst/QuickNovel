@@ -244,7 +244,7 @@ class AnyAdapter(
                             imageText.text = item.name
 
                             imageView.alpha = if (isAPdfDownloading) 0.6f else 1.0f
-                            imageView.setImage(item.image)
+                           // imageView.setImage(item.image)
 
                             progressReading.isVisible = false
                         }
@@ -321,7 +321,7 @@ class AnyAdapter(
                     val diff = card.downloadedCount - epubSize
                     imageTextMore.text = if (diff > 0) "+$diff " else ""
 
-                    imageView.setImage(card.image)
+                    //imageView.setImage(card.image)
 
                     downloadProgressText.text =
                         "${card.downloadedCount}/${card.downloadedTotal}" + if (card.ETA == "") "" else " - ${card.ETA}"

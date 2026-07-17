@@ -54,6 +54,7 @@ import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.ImageDownloader.getImageBitmapFromUrl
 import com.lagradost.quicknovel.NotificationHelper.etaToString
 import com.lagradost.quicknovel.extractors.ExtractorApi
+import com.lagradost.quicknovel.mvvm.launchSafe
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.download.DownloadFragment
@@ -74,6 +75,7 @@ import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.PDPage
 import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject
 import com.tom_roush.pdfbox.text.PDFTextStripperByArea
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -97,6 +99,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration.Companion.milliseconds
 
 enum class DownloadActionType {
     Pause,
@@ -197,7 +200,7 @@ object BookDownloader2Helper {
                 sanitizeFilename(name)
             )
 
-            val existing = cachedBitmaps.get(filePath)
+            val existing = cachedBitmaps[filePath]
             if (existing != null) return existing
             if (activity == null) return null
 
@@ -1107,6 +1110,20 @@ object BookDownloader2 {
         }
     }
 
+    fun stream(card: ImmutableSearchResponse) = ioSafe {
+        if (streamResultMutex.isLocked) return@ioSafe
+        streamResultMutex.withLock {
+            val api = getApiFromName(card.apiName)
+            val data = api.load(card.url)
+
+            if (data is com.lagradost.quicknovel.mvvm.Resource.Success) {
+                stream(data.value, card.apiName)
+            } else {
+                showToast(R.string.error_loading_novel, Toast.LENGTH_SHORT)
+            }
+        }
+    }
+
     private fun generateAndReadEpub(
         author: String?,
         name: String,
@@ -1309,9 +1326,9 @@ object BookDownloader2 {
     val downloadRemoved = Event<Int>()
     val downloadDataRefreshed = Event<Int>()
 
-    private fun initDownloadProgress() = ioSafe {
+    private fun initDownloadProgress() = CoroutineScope(Dispatchers.Default).launchSafe {
         downloadInfoMutex.withLock {
-            val keys = getKeys(DOWNLOAD_FOLDER) ?: return@ioSafe
+            val keys = getKeys(DOWNLOAD_FOLDER) ?: return@withLock
             for (key in keys) {
                 val res =
                     getKey<DownloadFragment.DownloadData>(key) ?: continue
@@ -1493,6 +1510,84 @@ object BookDownloader2 {
         try {
             val api = getApiFromName(card.apiName)
             val data = api.load(card.source, allowCache = false)
+
+            if (data is com.lagradost.quicknovel.mvvm.Resource.Success) {
+                val res = data.value
+                val newId = generateId(res, card.apiName)
+                val oldId = card.id
+                // migrate all data here and delete the old
+                if (oldId != newId) {
+                    // we cant have 2 migrations happening at the same time in case they overlap somehow, this is a *very* cold path anyways
+                    migrationNovelMutex.withLock {
+                        //showToast("Id mismatch, migrating data from ${card.name} to ${res.name}")
+                        migrateKeys(oldId, newId, card.name, res.name)
+                        BookDownloader2Helper.copyAllData(
+                            activity,
+                            card.author,
+                            card.name,
+                            card.apiName,
+                            res.author,
+                            res.name,
+                            api.name
+                        )
+                        deleteNovelAsync(card.author, card.name, card.apiName)
+                    }
+                }
+
+                when (res) {
+                    is EpubResponse -> {
+                        downloadWorkThread(
+                            res, api
+                        )
+                    }
+
+                    is StreamResponse -> {
+                        downloadWorkThread(
+                            res, api
+                        )
+                    }
+                }
+            } else {
+                // failed to get, but not inside download function, so fail here
+                downloadInfoMutex.withLock {
+                    downloadProgress[card.id]?.apply {
+                        state = DownloadState.IsFailed
+                        lastUpdatedMs = System.currentTimeMillis()
+                        downloadProgressChanged.invoke(card.id to this)
+                    }
+                }
+            }
+        } catch (t: Throwable) {
+            logError(t)
+        }
+    }
+    @WorkerThread
+    suspend fun downloadWorkThread(
+        card: ImmutableSearchResponse,
+    ) {
+        if (card.isImported) {
+            return
+        }
+        val id = card.id ?: return
+
+        currentDownloadsMutex.withLock {
+            if (currentDownloads.contains(id)) {
+                return
+            }
+        }
+
+        // set pending before download
+        downloadInfoMutex.withLock {
+            downloadProgress[id]?.apply {
+                state = DownloadState.IsPending
+                lastUpdatedMs = System.currentTimeMillis()
+                downloadProgressChanged.invoke(id to this)
+            }
+        }
+
+        try {
+            val api = getApiFromName(card.apiName)
+            val data = api.load(card.url, allowCache = false)
 
             if (data is com.lagradost.quicknovel.mvvm.Resource.Success) {
                 val res = data.value
@@ -2206,7 +2301,7 @@ object BookDownloader2 {
                         if (currentState != DownloadState.IsPaused) {
                             break
                         }
-                        delay(200)
+                        delay(200.milliseconds)
                     }
 
                     if (currentState == DownloadState.IsStopped) {
@@ -2218,14 +2313,14 @@ object BookDownloader2 {
                 val stream = try {
                     link.get().body
                 } catch (e: Exception) {
-                    delay(api.rateLimitTime + 1000)
+                    delay((api.rateLimitTime + 1000).milliseconds)
                     continue
                 }
 
                 val length = stream.contentLength()
 
                 if (length <= LOCAL_EPUB_MIN_SIZE) {
-                    delay(api.rateLimitTime + 1000)
+                    delay((api.rateLimitTime + 1000).milliseconds)
                     continue
                 }
                 var progress = 0L

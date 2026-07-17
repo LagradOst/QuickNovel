@@ -9,19 +9,26 @@ import com.lagradost.quicknovel.mvvm.logError
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.milliseconds
 
 /*
 Base viewmodel is not used to "Composition over inheritance"
@@ -93,7 +100,7 @@ class DefaultEffectContainer<Effect> : EffectContainer<Effect> {
 }
 
 @Composable
-fun <T> ObserveEffect(flow : Flow<T>, onEvent : (T) -> Unit) {
+fun <T> ObserveEffect(flow: Flow<T>, onEvent: (T) -> Unit) {
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(flow, lifecycleOwner.lifecycle) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -105,7 +112,7 @@ fun <T> ObserveEffect(flow : Flow<T>, onEvent : (T) -> Unit) {
 }
 
 data class SingleActiveQuery(
-    val dispatcher : CoroutineDispatcher,
+    val dispatcher: CoroutineDispatcher,
     private var job: Job? = null,
     private val mutex: Mutex = Mutex(),
 ) {
@@ -125,5 +132,19 @@ data class SingleActiveQuery(
             job?.join()
             job = currentScope.launch(block = obj)
         }
+    }
+}
+
+data class DebounceQuery(
+    private val pipe: MutableSharedFlow<String> = MutableSharedFlow(extraBufferCapacity = 64)
+) {
+    @OptIn(FlowPreview::class)
+    suspend fun launch(collector: FlowCollector<String>) {
+        pipe.debounce(200L.milliseconds).distinctUntilChanged()
+            .flowOn(Dispatchers.Default)
+            .collect(collector)
+    }
+    suspend fun emit(query : String) {
+        this.pipe.emit(query)
     }
 }

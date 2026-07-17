@@ -4,6 +4,7 @@ import android.content.DialogInterface
 import androidx.annotation.StringRes
 import androidx.annotation.WorkerThread
 import androidx.appcompat.app.AlertDialog
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -87,6 +88,7 @@ const val REVERSE_LAST_UPDATED_SORT = 10
 const val CHAPTER_SORT = 11
 const val REVERSE_CHAPTER_SORT = 12
 
+@Immutable
 data class SortingMethod(@StringRes val name: Int, val id: Int, val inverse: Int = id)
 class DownloadViewModel : ViewModel() {
 

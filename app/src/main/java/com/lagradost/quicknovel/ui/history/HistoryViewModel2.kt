@@ -7,11 +7,12 @@ import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKeys
-import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.HISTORY_FOLDER
-import com.lagradost.quicknovel.MainActivity
-import com.lagradost.quicknovel.MainActivity.Companion.loadResult
+import com.lagradost.quicknovel.ImmutableSearchResponse
+import com.lagradost.quicknovel.SearchResponseAction
+import com.lagradost.quicknovel.SearchResponseOperation
 import com.lagradost.quicknovel.compose.ActionHandler
+import com.lagradost.quicknovel.compose.DebounceQuery
 import com.lagradost.quicknovel.compose.DefaultStateContainer
 import com.lagradost.quicknovel.compose.StateContainer
 import com.lagradost.quicknovel.compose.removingBy
@@ -22,37 +23,26 @@ import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import me.xdrop.fuzzywuzzy.FuzzySearch
-import kotlin.time.Duration.Companion.milliseconds
 
 @Immutable
 data class HistoryState(
     val loading: Boolean = true,
-    val allHistory: PersistentList<ResultCached> = persistentListOf(),
-    val filteredHistory: PersistentList<ResultCached> = persistentListOf(),
+    val allHistory: PersistentList<ImmutableSearchResponse> = persistentListOf(),
+    val filteredHistory: PersistentList<ImmutableSearchResponse> = persistentListOf(),
     val dialog: HistoryDialog? = null,
     val query: String = "",
-) {
-    fun filter(item: ResultCached) =
-        FuzzySearch.partialRatio(item.name.lowercase(), query) > 50
-}
+)
 
 
 @Immutable
 data class HistoryDialog(
-    val about: ResultCached?,
+    val about: ImmutableSearchResponse?,
 )
 
 sealed class HistoryAction {
-    data class ResultAction(val data: ResultCached, val operation: ResultOperation) :
-        HistoryAction()
-
+    data class ResultAction(val action: SearchResponseAction) : HistoryAction()
     object AskDeleteAll : HistoryAction()
     object DeleteAll : HistoryAction()
     object DismissDialog : HistoryAction()
@@ -60,27 +50,19 @@ sealed class HistoryAction {
     object Refresh : HistoryAction()
 }
 
-enum class ResultOperation {
-    Open,
-    Stream,
-    AskDelete,
-    Delete,
-    Metadata,
-}
 
 // HistoryAction, HistoryState, HistoryEffect
 @OptIn(FlowPreview::class)
 class HistoryViewModel2 : ViewModel(),
     StateContainer<HistoryState> by DefaultStateContainer(HistoryState()),
     //EffectContainer<HistoryEffect> by effectContainer,
-    ActionHandler<HistoryAction>
-{
-    private val searchPipe = MutableSharedFlow<String>(extraBufferCapacity = 64)
+    ActionHandler<HistoryAction> {
+    private val searchPipe = DebounceQuery()
 
     override fun onAction(action: HistoryAction) {
         when (action) {
             is HistoryAction.ResultAction -> {
-                resultAction(action.data, action.operation)
+                resultAction(action.action)
             }
 
             is HistoryAction.AskDeleteAll -> {
@@ -117,61 +99,55 @@ class HistoryViewModel2 : ViewModel(),
         }
     }
 
-    private fun resultAction(data: ResultCached, operation: ResultOperation) {
-        when (operation) {
-            ResultOperation.Open -> loadResult(data.source, data.apiName)
-            ResultOperation.Stream -> BookDownloader2.stream(data)
-            ResultOperation.AskDelete -> {
+    private fun resultAction(action: SearchResponseAction) {
+        when (action.operation) {
+            SearchResponseOperation.AskDelete -> {
                 updateState {
-                    copy(dialog = HistoryDialog(data))
+                    copy(dialog = HistoryDialog(action.response))
                 }
             }
 
-            ResultOperation.Delete -> {
-                removeKey(HISTORY_FOLDER, data.id.toString())
+            SearchResponseOperation.Delete -> {
+                removeKey(HISTORY_FOLDER, action.response.id.toString())
+                val id = action.response.id
                 updateState {
                     copy(
                         dialog = null,
-                        allHistory = allHistory.removingBy { it.id == data.id },
-                        filteredHistory = filteredHistory.removingBy { it.id == data.id }
+                        allHistory = allHistory.removingBy { it.id == id },
+                        filteredHistory = filteredHistory.removingBy { it.id == id }
                     )
                 }
             }
 
-            ResultOperation.Metadata -> {
-                MainActivity.loadPreviewPage(data)
-            }
+            else -> action.doAction()
         }
     }
 
 
     init {
         //  updateHistory()
-
         viewModelScope.launch {
-            searchPipe.debounce(200L.milliseconds).distinctUntilChanged()
-                .flowOn(Dispatchers.Default)
-                .collect { query ->
-                    updateState {
-                        if (query == this.query) {
-                            this
-                        } else {
-                            copy(filteredHistory = filterHistory(query, allHistory), query = query)
-                        }
+            searchPipe.launch { query ->
+                updateState {
+                    if (query == this.query) {
+                        this
+                    } else {
+                        copy(filteredHistory = filterHistory(query, allHistory), query = query)
                     }
                 }
+            }
         }
     }
 
     fun filterHistory(
         query: String,
-        data: PersistentList<ResultCached>
-    ): PersistentList<ResultCached> {
+        data: PersistentList<ImmutableSearchResponse>
+    ): PersistentList<ImmutableSearchResponse> {
         val results = if (query.isBlank() || query.length < 2) {
             data
         } else {
             data.filter { item ->
-                FuzzySearch.partialRatio(query, item.name) > 50
+                item.filter(query)
             }.toPersistentList()
         }
         return results
@@ -183,8 +159,10 @@ class HistoryViewModel2 : ViewModel(),
                 copy(loading = true)
             }
             val keys = getKeys(HISTORY_FOLDER) ?: return@withContext
-            val data = keys.mapNotNull { getKey<ResultCached>(it) }.sortedBy { -it.cachedTime }
-                .toPersistentList()
+            val data =
+                keys.mapNotNull { getKey<ResultCached>(it)?.let(ImmutableSearchResponse::from) }
+                    .sortedBy { -it.updateTime }
+                    .toPersistentList()
 
             updateState {
                 copy(

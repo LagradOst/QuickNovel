@@ -68,6 +68,7 @@ fun BaseSearchBar(
     trailingIcon: @Composable (() -> Unit)? = null,
     leadingIcon: @Composable (() -> Unit)? = null,
     scrollBehavior: TopAppBarScrollBehavior,
+    placeholder : String = stringResource(R.string.search_hint),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -103,7 +104,7 @@ fun BaseSearchBar(
                         },
                         expanded = false,
                         onExpandedChange = { },
-                        placeholder = { Text(stringResource(R.string.search_hint)) },
+                        placeholder = { Text(placeholder) },
                         leadingIcon = leadingIcon,
                         trailingIcon = trailingIcon
                     )

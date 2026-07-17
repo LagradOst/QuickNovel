@@ -95,7 +95,11 @@ class MainActivity : AppCompatActivity() {
             mainActivity?.loadPopup(searchResponse.url, searchResponse.apiName)
         }
         fun loadPreviewPage(searchResponse: ImmutableSearchResponse) {
-            mainActivity?.loadPopup(searchResponse.url, searchResponse.apiName)
+            if(searchResponse.downloadState == null) {
+                mainActivity?.loadPopup(searchResponse.url, searchResponse.apiName)
+            } else {
+                mainActivity?.loadPopup(searchResponse)
+            }
         }
 
         fun loadPreviewPage(card: DownloadFragment.DownloadDataLoaded) {
@@ -337,6 +341,12 @@ class MainActivity : AppCompatActivity() {
     private fun hidePreviewPopupDialog() {
         viewModel.clear()
         bottomPreviewPopup.dismissSafe(this)
+    }
+
+    fun loadPopup(
+        result: ImmutableSearchResponse,
+    ) {
+        viewModel.initState(result)
     }
 
     fun loadPopup(

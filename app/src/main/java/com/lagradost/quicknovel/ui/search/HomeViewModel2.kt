@@ -8,6 +8,7 @@ import com.lagradost.quicknovel.ImmutableSearchResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
+import com.lagradost.quicknovel.SearchResponseAction
 import com.lagradost.quicknovel.compose.ActionHandler
 import com.lagradost.quicknovel.compose.DefaultEffectContainer
 import com.lagradost.quicknovel.compose.DefaultStateContainer
@@ -15,7 +16,6 @@ import com.lagradost.quicknovel.compose.EffectContainer
 import com.lagradost.quicknovel.compose.SingleActiveQuery
 import com.lagradost.quicknovel.compose.StateContainer
 import com.lagradost.quicknovel.ui.mainpage.FilterQuery
-import com.lagradost.quicknovel.ui.mainpage.SearchOperation
 import com.lagradost.quicknovel.ui.search.HomeEffect.NavigateToMainPage
 import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.cmap
@@ -60,8 +60,7 @@ sealed class HomeAction {
     data class ConfigureApisNames(val names: ImmutableSet<String>) : HomeAction()
     data class ConfigureApisLanguages(val languages: ImmutableSet<String>) : HomeAction()
     object CloseQuery : HomeAction()
-    data class ResultAction(val data: ImmutableSearchResponse, val operation: SearchOperation) :
-        HomeAction()
+    data class ResultAction(val action: SearchResponseAction) : HomeAction()
 
     data class OpenRow(val row: SearchRow) : HomeAction()
     object CloseRow : HomeAction()
@@ -164,7 +163,7 @@ class HomeViewModel2 : ViewModel(),
             }
 
             is HomeAction.ResultAction -> {
-                resultAction(action.data, action.operation)
+                resultAction(action.action)
             }
 
             HomeAction.CloseRow -> {
@@ -181,13 +180,8 @@ class HomeViewModel2 : ViewModel(),
         }
     }
 
-    private fun resultAction(data: ImmutableSearchResponse, operation: SearchOperation) {
-        when (operation) {
-            SearchOperation.Open -> loadResult(data.url, data.apiName)
-            SearchOperation.Metadata -> {
-                MainActivity.loadPreviewPage(data)
-            }
-        }
+    private fun resultAction(action: SearchResponseAction) {
+        action.doAction()
     }
 
     val searchQuery = SingleActiveQuery(Dispatchers.IO)

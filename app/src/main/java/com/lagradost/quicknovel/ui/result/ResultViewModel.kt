@@ -26,7 +26,9 @@ import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_CHAPTER
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_READ_AT
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_SCROLL_CHAR
+import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HISTORY_FOLDER
+import com.lagradost.quicknovel.ImmutableSearchResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.PreferenceDelegate
 import com.lagradost.quicknovel.R
@@ -747,6 +749,32 @@ class ResultViewModel : ViewModel() {
             load = data
             loadResponse.postValue(Resource.Success(data))
             setState(card.id)
+        }
+    }
+    fun initState(card: ImmutableSearchResponse) = viewModelScope.launch {
+        val id = card.id ?: throw ErrorLoadingException("Require Id")
+        isGetLoaded = false
+        loadResponse.postValue(Resource.Loading(card.url))
+
+        loadMutex.withLock {
+            this@ResultViewModel.apiName = card.apiName
+            repo = Apis.getApiFromName(card.apiName)
+            loadUrl = card.url
+
+            val data = StreamResponse(
+                url = card.url,
+                name = card.name,
+                data = listOf(),
+                author = card.author,
+                posterUrl = card.posterUrl,
+                rating = card.rating,
+                synopsis = card.synopsis,
+                tags = card.tags,
+                apiName = card.apiName
+            )
+            load = data
+            loadResponse.postValue(Resource.Success(data))
+            setState(id)
         }
     }
 

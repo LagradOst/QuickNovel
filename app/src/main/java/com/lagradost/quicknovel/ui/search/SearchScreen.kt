@@ -46,6 +46,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.lagradost.quicknovel.ImmutableSearchResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.SearchResponseAction
 import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.BaseStyles
 import com.lagradost.quicknovel.compose.CloudStreamTheme
@@ -55,7 +56,7 @@ import com.lagradost.quicknovel.compose.isLandscape
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
-import com.lagradost.quicknovel.ui.mainpage.SearchOperation
+import com.lagradost.quicknovel.ui.download.DownloadPageAction
 import com.lagradost.quicknovel.ui.mainpage.SearchResponseDialog
 import com.lagradost.quicknovel.ui.mainpage.SearchResponseItem
 import com.lagradost.quicknovel.ui.settings.searchProvidersList
@@ -75,14 +76,10 @@ fun SearchScreen(state: HomeViewModelState, action: (HomeAction) -> Unit) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(snapAnimationSpec = null)
     val listState = rememberLazyGridState()
 
-    val openAction = remember<(ImmutableSearchResponse) -> Unit>(action) {
+
+    val searchAction = remember<(SearchResponseAction) -> Unit>(action) {
         { item ->
-            action(HomeAction.ResultAction(item, SearchOperation.Open))
-        }
-    }
-    val metadataAction = remember<(ImmutableSearchResponse) -> Unit>(action) {
-        { item ->
-            action(HomeAction.ResultAction(item, SearchOperation.Metadata))
+            action(HomeAction.ResultAction(item))
         }
     }
     val dismissAction = remember(action) {
@@ -92,7 +89,7 @@ fun SearchScreen(state: HomeViewModelState, action: (HomeAction) -> Unit) {
     }
 
     if (state.openRow != null) {
-        SearchResponseDialog(state.openRow, openAction, metadataAction, dismissAction)
+        SearchResponseDialog(state.openRow, action = searchAction, dismiss = dismissAction)
     }
 
     Scaffold(
@@ -253,21 +250,15 @@ private fun SettingsScreenPreview() {
     }
 }
 
-
 @OptIn(ExperimentalUuidApi::class)
 @Composable
 private fun SearchRow(
     row: SearchRow,
     action: (HomeAction) -> Unit
 ) {
-    val openAction = remember<(ImmutableSearchResponse) -> Unit>(action) {
+    val searchAction = remember<(SearchResponseAction) -> Unit>(action) {
         { item ->
-            action(HomeAction.ResultAction(item, SearchOperation.Open))
-        }
-    }
-    val metadataAction = remember<(ImmutableSearchResponse) -> Unit>(action) {
-        { item ->
-            action(HomeAction.ResultAction(item, SearchOperation.Metadata))
+            action(HomeAction.ResultAction(item))
         }
     }
 
@@ -304,8 +295,7 @@ private fun SearchRow(
             items(items = row.items, key = { item -> item.randomUuid }) { response ->
                 SearchResponseItem(
                     response = response,
-                    open = openAction,
-                    metadata = metadataAction,
+                    action = searchAction,
                     modifier = Modifier.width(120.dp)
                 )
             }

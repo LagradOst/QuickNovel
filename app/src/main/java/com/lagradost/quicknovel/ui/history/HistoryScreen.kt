@@ -38,7 +38,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.lagradost.quicknovel.ImmutableSearchResponse
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.SearchResponseAction
+import com.lagradost.quicknovel.SearchResponseOperation
 import com.lagradost.quicknovel.compose.ActionDialog
 import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.BaseStyles
@@ -47,7 +50,6 @@ import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
-import com.lagradost.quicknovel.util.ResultCached
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +60,12 @@ fun HistoryScreen(
 ) {
     LaunchedEffect(Unit) {
         action(HistoryAction.Refresh)
+    }
+
+    val searchAction = remember<(SearchResponseAction) -> Unit> {
+        { data ->
+            action(HistoryAction.ResultAction(data))
+        }
     }
 
     HistoryDialog(state.dialog, action)
@@ -102,10 +110,10 @@ fun HistoryScreen(
             contentPadding = PaddingValues(10.dp),
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
-            items(state.filteredHistory, key = { item -> item.id }) { result ->
-                ResultCachedCompact(
-                    result = result,
-                    action = action,
+            items(state.filteredHistory, key = { item -> item.id!! }) { result ->
+                SearchResponseRow(
+                    response = result,
+                    action = searchAction,
                     modifier = Modifier.animateItem()
                 )
             }
@@ -148,7 +156,14 @@ fun HistoryDialog(
                 action(HistoryAction.DismissDialog)
             },
             confirm = {
-                action(HistoryAction.ResultAction(about, ResultOperation.Delete))
+                action(
+                    HistoryAction.ResultAction(
+                        SearchResponseAction(
+                            about,
+                            SearchResponseOperation.Delete
+                        )
+                    )
+                )
             }
         )
     }
@@ -156,14 +171,16 @@ fun HistoryDialog(
 
 
 @Composable
-fun ResultCachedCompact(
-    result: ResultCached,
-    action: (HistoryAction) -> Unit,
+fun SearchResponseRow(
+    response: ImmutableSearchResponse,
+    action: (SearchResponseAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val streamInteractionSource = remember { MutableInteractionSource() }
     val deleteInteractionSource = remember { MutableInteractionSource() }
+
+    val imageRequest = response.imageRequest()
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -176,18 +193,18 @@ fun ResultCachedCompact(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = {
-                    action(HistoryAction.ResultAction(result, ResultOperation.Open))
+                    action(SearchResponseAction(response, SearchResponseOperation.Open))
                 },
                 onLongClick = {
-                    action(HistoryAction.ResultAction(result, ResultOperation.Metadata))
+                    action(SearchResponseAction(response, SearchResponseOperation.Metadata))
                 }
             )
             .ripple(interactionSource)
     ) {
         AsyncImage(
             contentScale = ContentScale.Crop,
-            model = result.poster,
-            contentDescription = result.name,
+            model = imageRequest,
+            contentDescription = response.name,
             modifier = Modifier
                 .width(67.5.dp)
                 .fillMaxHeight()
@@ -196,10 +213,10 @@ fun ResultCachedCompact(
                     interactionSource = interactionSource,
                     indication = null,
                     onClick = {
-                        action(HistoryAction.ResultAction(result, ResultOperation.Open))
+                        action(SearchResponseAction(response, SearchResponseOperation.Open))
                     },
                     onLongClick = {
-                        action(HistoryAction.ResultAction(result, ResultOperation.Metadata))
+                        action(SearchResponseAction(response, SearchResponseOperation.Metadata))
                     }
                 )
         )
@@ -212,12 +229,12 @@ fun ResultCachedCompact(
                 .padding(10.dp)
         ) {
             Text(
-                result.name,
+                response.name,
                 maxLines = 2,
                 style = BaseStyles.textStyle
             )
             Text(
-                "${result.totalChapters} ${stringResource(R.string.read_action_chapters)}",
+                "${response.totalChapters} ${stringResource(R.string.read_action_chapters)}",
                 style = BaseStyles.textAltStyle
             )
         }
@@ -233,7 +250,7 @@ fun ResultCachedCompact(
                     interactionSource = deleteInteractionSource,
                     indication = null,
                     onClick = {
-                        action(HistoryAction.ResultAction(result, ResultOperation.AskDelete))
+                        action(SearchResponseAction(response, SearchResponseOperation.AskDelete))
                     }
                 )
                 .circle()
@@ -250,7 +267,7 @@ fun ResultCachedCompact(
                     interactionSource = streamInteractionSource,
                     indication = null,
                     onClick = {
-                        action(HistoryAction.ResultAction(result, ResultOperation.Stream))
+                        action(SearchResponseAction(response, SearchResponseOperation.Stream))
                     }
                 )
                 .circle()

@@ -1,15 +1,34 @@
 package com.lagradost.quicknovel
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
+import coil3.network.NetworkHeaders
+import coil3.network.httpHeaders
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
+import com.lagradost.quicknovel.BookDownloader2Helper.getFilenameIMG
+import com.lagradost.quicknovel.BookDownloader2Helper.sanitizeFilename
+import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.safeApiCall
+import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.util.Coroutines.threadSafeListOf
+import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
+import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.jsoup.Jsoup
+import kotlin.collections.component1
+import kotlin.collections.component2
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -40,6 +59,14 @@ private fun String?.removeAds(): String? {
 }
 
 
+enum class SearchResponseOperation {
+    Open,
+    Stream,
+    AskDelete,
+    Delete,
+    Metadata,
+}
+
 @Immutable
 data class ImmutableSearchResponse @OptIn(ExperimentalUuidApi::class) constructor(
     val name: String,
@@ -50,7 +77,43 @@ data class ImmutableSearchResponse @OptIn(ExperimentalUuidApi::class) constructo
     val apiName: String,
     val posterHeaders: ImmutableMap<String, String>? = null,
     val randomUuid: Uuid = Uuid.random(),
+    val updateTime: Long,
+    val downloadTime: Long? = null,
+    val totalChapters: Int? = null,
+    val id: Int? = null,
+    val author: String? = null,
+    val downloadState: ImmutableDownloadState? = null,
+    val synopsis : String? = null,
+    val tags : ImmutableList<String>? = null,
 ) {
+    fun filter(query: String): Boolean =
+        FuzzySearch.partialRatio(name.lowercase(), query) > 50
+
+    val isImported: Boolean get() = (apiName == IMPORT_SOURCE || apiName == IMPORT_SOURCE_PDF)
+    val imageRequest
+        get() = @Composable {
+            val context = LocalContext.current
+            remember(context) {
+                if (isImported) {
+                    (context.filesDir.toString() + getFilenameIMG(
+                        sanitizeFilename(apiName),
+                        sanitizeFilename(author ?: ""),
+                        sanitizeFilename(name)
+                    )).toUri()
+                } else {
+                    ImageRequest.Builder(context)
+                        .data(posterUrl)
+                        .httpHeaders(NetworkHeaders.Builder().also { headerBuilder ->
+                            posterHeaders?.forEach { (key, value) ->
+                                headerBuilder[key] = value
+                            }
+                        }.build()) // Set the headers here
+                        .crossfade(true)
+                        .build()
+                }
+            }
+        }
+
     companion object {
         @OptIn(ExperimentalUuidApi::class)
         fun from(response: SearchResponse): ImmutableSearchResponse =
@@ -61,8 +124,93 @@ data class ImmutableSearchResponse @OptIn(ExperimentalUuidApi::class) constructo
                 rating = response.rating,
                 latestChapter = response.latestChapter,
                 apiName = response.apiName,
-                posterHeaders = response.posterHeaders?.toImmutableMap()
+                posterHeaders = response.posterHeaders?.toImmutableMap(),
+                updateTime = System.currentTimeMillis(),
             )
+
+        @OptIn(ExperimentalUuidApi::class)
+        fun from(cache: ResultCached): ImmutableSearchResponse =
+            ImmutableSearchResponse(
+                name = cache.name,
+                url = cache.source,
+                posterUrl = cache.poster,
+                posterHeaders = persistentMapOf(),
+                apiName = cache.apiName,
+                rating = cache.rating,
+                id = cache.id,
+                updateTime = cache.cachedTime,
+                totalChapters = cache.totalChapters,
+                author = cache.author,
+            )
+
+        @OptIn(ExperimentalUuidApi::class)
+        fun from(
+            id: Int,
+            cache: DownloadFragment.DownloadData,
+            downloadState: ImmutableDownloadState? = null
+        ) =
+            ImmutableSearchResponse(
+                name = cache.name,
+                url = cache.source,
+                posterUrl = cache.posterUrl,
+                posterHeaders = persistentMapOf(),
+                apiName = cache.apiName,
+                rating = cache.rating,
+                id = id,
+                updateTime = cache.lastUpdated ?: System.currentTimeMillis(),
+                downloadTime = cache.lastDownloaded,
+                author = cache.author,
+                downloadState = downloadState,
+                synopsis = cache.synopsis,
+                tags = cache.tags?.toImmutableList()
+            )
+    }
+
+    fun doAction(operation : SearchResponseOperation) {
+        when (operation) {
+            SearchResponseOperation.Open -> loadResult(url, apiName)
+            SearchResponseOperation.Stream -> BookDownloader2.stream(this)
+            SearchResponseOperation.Metadata -> {
+                MainActivity.loadPreviewPage(this)
+            }
+            else -> throw NotImplementedError()
+        }
+    }
+}
+
+@Immutable
+data class SearchResponseAction(
+    val response: ImmutableSearchResponse,
+    val operation: SearchResponseOperation,
+) {
+    fun doAction() {
+        response.doAction(operation)
+    }
+}
+
+@Immutable
+data class ImmutableDownloadState(
+    val state: DownloadState,
+    // How many chapters/bytes much have we downloaded, not including skipped chapters
+    val progress: Long,
+    // How many have we actually downloaded
+    val downloaded: Long,
+    // How many is there in total
+    val total: Long,
+    val lastUpdatedMs: Long,
+    val etaMs: Long?
+) {
+    val downloadPercentage get() = downloaded.toFloat() / maxOf(total, 1)
+
+    companion object {
+        fun from(state: DownloadProgressState) = ImmutableDownloadState(
+            state = state.state,
+            progress = state.progress,
+            downloaded = state.downloaded,
+            total = state.total,
+            lastUpdatedMs = state.lastUpdatedMs,
+            etaMs = state.etaMs
+        )
     }
 }
 

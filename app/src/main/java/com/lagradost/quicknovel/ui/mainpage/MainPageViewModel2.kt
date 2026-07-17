@@ -10,6 +10,8 @@ import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.ImmutableSearchResponse
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
+import com.lagradost.quicknovel.SearchResponseAction
+import com.lagradost.quicknovel.SearchResponseOperation
 import com.lagradost.quicknovel.compose.ActionHandler
 import com.lagradost.quicknovel.compose.DefaultEffectContainer
 import com.lagradost.quicknovel.compose.DefaultStateContainer
@@ -82,7 +84,9 @@ data class MainPageDialog(
 )
 
 sealed class MainPageAction {
-    data class ResultAction(val data: ImmutableSearchResponse, val operation: SearchOperation) :
+    data class ResultAction(
+        val action: SearchResponseAction
+    ) :
         MainPageAction()
 
     data class Search(val data: String) : MainPageAction()
@@ -94,11 +98,6 @@ sealed class MainPageAction {
     data class SelectDialog(val type: DialogType, val selected: Int) : MainPageAction()
 }
 
-enum class SearchOperation {
-    Open,
-    Metadata,
-}
-
 sealed class MainPageEffect {
     data class ErrorLoading(val error: Throwable) : MainPageEffect()
 }
@@ -106,13 +105,14 @@ sealed class MainPageEffect {
 class MainPageViewModel2(
     val api: APIRepository,
     initQuery: FilterQuery,
-): ViewModel(),
-    StateContainer<MainPageState> by DefaultStateContainer(MainPageState(
-        filter = FilterState(query = initQuery)
-    )),
+) : ViewModel(),
+    StateContainer<MainPageState> by DefaultStateContainer(
+        MainPageState(
+            filter = FilterState(query = initQuery)
+        )
+    ),
     EffectContainer<MainPageEffect> by DefaultEffectContainer(),
-    ActionHandler<MainPageAction>
-{
+    ActionHandler<MainPageAction> {
     companion object {
         fun provideFactory(bundle: Bundle) = viewModelFactory {
             initializer {
@@ -234,7 +234,7 @@ class MainPageViewModel2(
     override fun onAction(action: MainPageAction) {
         when (action) {
             is MainPageAction.ResultAction -> {
-                resultAction(action.data, action.operation)
+                resultAction(action.action)
             }
 
             is MainPageAction.Search -> {
@@ -306,12 +306,7 @@ class MainPageViewModel2(
         }
     }
 
-    private fun resultAction(data: ImmutableSearchResponse, operation: SearchOperation) {
-        when (operation) {
-            SearchOperation.Open -> loadResult(data.url, data.apiName)
-            SearchOperation.Metadata -> {
-                MainActivity.loadPreviewPage(data)
-            }
-        }
+    private fun resultAction(action: SearchResponseAction) {
+        action.doAction()
     }
 }

@@ -59,6 +59,8 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.lagradost.quicknovel.ImmutableSearchResponse
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.SearchResponseAction
+import com.lagradost.quicknovel.SearchResponseOperation
 import com.lagradost.quicknovel.compose.BackHandler
 import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.BaseStyles
@@ -139,14 +141,9 @@ fun MainPageScreen(state: MainPageState, action: (MainPageAction) -> Unit) {
         }
     }
 
-    val openAction = remember<(ImmutableSearchResponse) -> Unit>(action) {
-        { item ->
-            action(MainPageAction.ResultAction(item, SearchOperation.Open))
-        }
-    }
-    val metadataAction = remember<(ImmutableSearchResponse) -> Unit>(action) {
-        { item ->
-            action(MainPageAction.ResultAction(item, SearchOperation.Metadata))
+    val seachAction = remember<(SearchResponseAction) -> Unit>(action) {
+        { action ->
+            action(MainPageAction.ResultAction(action))
         }
     }
 
@@ -174,8 +171,7 @@ fun MainPageScreen(state: MainPageState, action: (MainPageAction) -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            open = openAction,
-            metadata = metadataAction,
+            action = seachAction,
         )
     }
 }
@@ -185,8 +181,7 @@ fun MainPageScreen(state: MainPageState, action: (MainPageAction) -> Unit) {
 @Composable
 fun SearchResponseDialog(
     dialog: SearchRow,
-    open: (ImmutableSearchResponse) -> Unit,
-    metadata: (ImmutableSearchResponse) -> Unit,
+    action: (SearchResponseAction) -> Unit,
     dismiss: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -250,8 +245,7 @@ fun SearchResponseDialog(
                 items = dialog.items,
                 modifier = Modifier
                     .fillMaxSize(),
-                open = open,
-                metadata = metadata,
+                action = action,
             )
         }
     }
@@ -262,8 +256,7 @@ fun SearchResponseDialog(
 fun SearchResponseGrid(
     listState: LazyGridState = rememberLazyGridState(),
     items: ImmutableList<ImmutableSearchResponse>,
-    open: (ImmutableSearchResponse) -> Unit,
-    metadata: (ImmutableSearchResponse) -> Unit,
+    action: (SearchResponseAction) -> Unit,
     modifier: Modifier,
 ) {
     LazyVerticalGrid(
@@ -276,12 +269,13 @@ fun SearchResponseGrid(
     ) {
         items(
             items = items,
-            key = { item -> item.randomUuid }) { response ->
+            key = { item -> item.randomUuid }
+        ) { response ->
             SearchResponseItem(
                 response = response,
-                open = open,
-                metadata = metadata,
+                action = action,
                 modifier = Modifier
+                    .animateItem()
                     .fillMaxWidth()
                     .wrapContentHeight()
             )
@@ -292,29 +286,19 @@ fun SearchResponseGrid(
 @Composable
 fun SearchResponseItem(
     response: ImmutableSearchResponse,
-    open: (ImmutableSearchResponse) -> Unit,
-    metadata: (ImmutableSearchResponse) -> Unit,
+    action: (SearchResponseAction) -> Unit,
     modifier: Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-
-    val imageRequest = ImageRequest.Builder(LocalContext.current)
-        .data(response.posterUrl)
-        .httpHeaders(NetworkHeaders.Builder().also { headerBuilder ->
-            response.posterHeaders?.forEach { (key, value) ->
-                headerBuilder[key] = value
-            }
-        }.build()) // Set the headers here
-        .crossfade(true)
-        .build()
+    val imageRequest = response.imageRequest()
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .combinedClickable(interactionSource = interactionSource, indication = null, onClick = {
-                open(response)
+                action(SearchResponseAction(response, SearchResponseOperation.Open))
             }, onLongClick = {
-                metadata(response)
+                action(SearchResponseAction(response, SearchResponseOperation.Metadata))
             })
             .rounded()
     ) {
