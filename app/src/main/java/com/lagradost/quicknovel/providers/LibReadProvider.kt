@@ -9,7 +9,7 @@ open class LibReadProvider : MainAPI() {
     override val mainUrl = "https://libread.com"
 
     //for some reason, now is freewebnovel
-    val secondUrl = "https://freewebnovel.com"
+    val secondUrl = "http://10.0.2.2:8080"
     override val hasMainPage = true
 
     open val removeHtml = false // because the two sites use .html or not for no reason
@@ -65,19 +65,34 @@ open class LibReadProvider : MainAPI() {
     )
 
     private fun getChapterList(doc: Document, url: String): List<ChapterData> {
+        // Template A (JS-paginated): the chapter count lives in a
+        // `window.chapterPagination` script block. Construct chapter URLs from
+        // the slug + index.
         val scriptData = doc.select("script").map { it.data() }
-            .find { it.contains("window.chapterPagination") } ?: return emptyList()
+            .find { it.contains("window.chapterPagination") }
+        if (scriptData != null) {
+            val totalChapters = "totalChapters:\\s*(\\d+)".toRegex()
+                .find(scriptData)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+            val cleanedUrl = url.removeSuffix("/").substringAfterLast("/")
+                .replace("(-novel)?-\\d{4,}+$".toRegex(), "")
+            return (1..totalChapters).map { i ->
+                newChapterData(
+                    name = "Chapter $i",
+                    url = "$secondUrl/novel/$cleanedUrl/chapter-$i"
+                )
+            }
+        }
 
-        val totalChapters = "totalChapters:\\s*(\\d+)".toRegex()
-            .find(scriptData)?.groupValues?.get(1)?.toIntOrNull() ?: 0
-
-        val cleanedUrl = url.removeSuffix("/").substringAfterLast("/").replace("(-novel)?-\\d{4,}+$".toRegex(), "")
-
-        return (1..totalChapters).map { i ->
-            newChapterData(
-                name = "Chapter $i",
-                url = "$secondUrl/novel/$cleanedUrl/chapter-$i"
-            )
+        // Template B (legacy all-chapters-on-page): no pagination script is
+        // present, so fall back to scraping the chapter <li> elements directly.
+        // This is the pre-#459 behaviour and is still required for a large
+        // subset of FreeWebNovel novel pages (e.g. `a-practical-guide-to-evil`).
+        // Without this fallback, load() returns a StreamResponse with 0
+        // chapters, which overwrites DOWNLOAD_TOTAL with 0 and surfaces to the
+        // user as a permanent "0/0" download row (issue #481).
+        return doc.select("div.m-newest2 ul.ul-list5 li").mapNotNull { c ->
+            val a = c.selectFirst("a") ?: return@mapNotNull null
+            newChapterData(url = a.attr("href"), name = a.text())
         }
     }
     override suspend fun loadMainPage(
