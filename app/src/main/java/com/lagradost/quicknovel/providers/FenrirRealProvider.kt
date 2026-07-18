@@ -12,9 +12,6 @@ import com.lagradost.quicknovel.setStatus
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.newChapterData
-import com.lagradost.quicknovel.providers.NovelFireProvider.PostsResponse
-import com.lagradost.quicknovel.providers.NovelFireProvider.RelatedResponse
-import org.jsoup.Jsoup
 import kotlin.collections.map
 
 class FenrirRealProvider:  MainAPI() {
@@ -25,6 +22,7 @@ class FenrirRealProvider:  MainAPI() {
     //I don't know why, but this fixes the timeout issue for this provider
     override val rateLimitTime = 3000L
     override val hasReviews = true
+    override val usesCloudFlareKiller = true
     var libraryId = ""
 
     override val mainCategories = listOf(
