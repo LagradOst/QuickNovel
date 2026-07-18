@@ -27,6 +27,11 @@ import com.lagradost.quicknovel.ui.settings.searchProvidersList
 import kotlinx.collections.immutable.toPersistentSet
 
 
+object SearchFragmentExtras {
+    @JvmStatic
+    var pendingSearchQuery: String? = null
+}
+
 class SearchFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -44,6 +49,9 @@ class SearchFragment : Fragment() {
                 //val viewModel: HomeViewModel2 =
                //     viewModel(factory = HomeViewModel2.provideFactory(store.searchProvidersList()))
                 val state by viewModel.state.collectAsStateWithLifecycle()
+
+                // Auto-search if a query was passed (e.g. from novel title long-press)
+                val pendingQuery = SearchFragmentExtras.pendingSearchQuery
 
                 val store = AndroidPreferenceStore(context)
                 val selectionState by store.searchProvidersList().collectAsState()
@@ -68,7 +76,7 @@ class SearchFragment : Fragment() {
                     }
                 }
 
-                SearchScreen(state, viewModel::onAction)
+                SearchScreen(state, viewModel::onAction, pendingQuery)
             }
         }
     }
