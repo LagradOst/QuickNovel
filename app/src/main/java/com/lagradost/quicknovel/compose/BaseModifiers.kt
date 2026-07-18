@@ -22,10 +22,12 @@ fun Modifier.ripple(
     indication = ripple(bounded = bounded, color = colors.onBackground),
 )
 
+@Composable
+fun RoundedImageShape() = RoundedCornerShape(dimensionResource(R.dimen.roundedImageRadius))
 
 @Composable
 fun Modifier.rounded(): Modifier =
-    clip(RoundedCornerShape(dimensionResource(R.dimen.roundedImageRadius)))
+    clip(RoundedImageShape())
 
 
 @Composable

@@ -523,7 +523,6 @@ class DownloadViewModel : ViewModel() {
     }
 
     override fun onCleared() {
-        super.onCleared()
         BookDownloader2.downloadProgressChanged -= ::progressChanged
         BookDownloader2.downloadDataChanged -= ::progressDataChanged
         BookDownloader2.downloadDataRefreshed -= ::downloadDataRefreshed

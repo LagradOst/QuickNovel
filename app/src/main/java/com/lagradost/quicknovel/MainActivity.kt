@@ -95,7 +95,7 @@ class MainActivity : AppCompatActivity() {
             mainActivity?.loadPopup(searchResponse.url, searchResponse.apiName)
         }
         fun loadPreviewPage(searchResponse: ImmutableSearchResponse) {
-            if(searchResponse.downloadState == null) {
+            if(searchResponse.id == null) {
                 mainActivity?.loadPopup(searchResponse.url, searchResponse.apiName)
             } else {
                 mainActivity?.loadPopup(searchResponse)

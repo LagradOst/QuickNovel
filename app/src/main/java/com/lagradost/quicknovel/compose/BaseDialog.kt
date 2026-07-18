@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -168,12 +169,99 @@ fun <T> SingleSelectDialog(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun <T> SinglePairSelectDialog(
+    modifier: Modifier = Modifier,
+    shape: Shape = AlertDialogDefaults.shape,
+    containerColor: Color = colors.background,
+    iconContentColor: Color = AlertDialogDefaults.iconContentColor,
+    tonalElevation: Dp = AlertDialogDefaults.TonalElevation,
+    icon: @Composable (() -> Unit)? = null,
+    title: String? = null,
+    properties: DialogProperties = DialogProperties(),
+    /* key - visual */
+    entries: Map<Pair<T, T>, String>,
+    /* Selected keys used in entries */
+    selectedKey: T,
+    confirmText: String? = null,
+    dismissText: String? = null,
+    dismiss: () -> Unit,
+    confirm: (T) -> Unit,
+    iconProvider: (@Composable (key: T, value: String) -> Unit)? = null
+) {
+    val selected = remember { mutableStateOf(selectedKey) }
+
+    AlertDialog(
+        properties = properties,
+        tonalElevation = tonalElevation,
+        modifier = modifier,
+        icon = icon,
+        shape = shape,
+        iconContentColor = iconContentColor,
+        containerColor = containerColor,
+        onDismissRequest = dismiss,
+        title = title?.let { { Text(text = it) } },
+        text = {
+            LazyColumn {
+                entries.forEach { (keyPair, value) ->
+                    item(key = keyPair) {
+                        val (a, b) = keyPair
+                        val isSelected = selected.value == a || selected.value == b
+
+                        val painter = if (a == b)  {
+                            R.drawable.ic_baseline_check_24_listview
+                        } else if(selected.value == a) {
+                            R.drawable.ic_baseline_arrow_downward_24
+                        } else {
+                            R.drawable.ic_baseline_arrow_upward_24
+                        }
+
+                        val nextKey = if (selected.value != a) a else b
+                        SingleSelectionItem(
+                            isSelected = isSelected,
+                            key = nextKey,
+                            text = value,
+                            iconProvider = iconProvider,
+                            selectIcon = painter
+                        ) {
+                            if (confirmText == null) {
+                                confirm(nextKey)
+                            } else {
+                                selected.value = nextKey
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (confirmText != null) {
+                Button(
+                    onClick = {
+                        confirm(selected.value)
+                    },
+                    colors = whiteButtonColors
+                ) { Text(text = confirmText) }
+            }
+        },
+        dismissButton = {
+            if (dismissText != null) {
+                Button(
+                    onClick = dismiss, colors = blackButtonColors
+                ) { Text(text = dismissText) }
+            }
+        }
+    )
+}
+
 @Composable
 fun <T> SingleSelectionItem(
     isSelected: Boolean,
     key: T,
     text: String,
     iconProvider: (@Composable (key: T, value: String) -> Unit)? = null,
+    selectIcon: Int = R.drawable.ic_baseline_check_24_listview,
     onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -193,7 +281,7 @@ fun <T> SingleSelectionItem(
     ) {
         if (isSelected) {
             Icon(
-                painter = painterResource(R.drawable.ic_baseline_check_24_listview),
+                painter = painterResource(selectIcon),
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
                 tint = colors.onBackground

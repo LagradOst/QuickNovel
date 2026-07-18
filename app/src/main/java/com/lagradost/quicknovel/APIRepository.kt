@@ -68,7 +68,7 @@ enum class SearchResponseOperation {
 }
 
 @Immutable
-data class ImmutableSearchResponse @OptIn(ExperimentalUuidApi::class) constructor(
+data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
     val name: String,
     val url: String,
     val posterUrl: String? = null,
@@ -141,6 +141,7 @@ data class ImmutableSearchResponse @OptIn(ExperimentalUuidApi::class) constructo
                 updateTime = cache.cachedTime,
                 totalChapters = cache.totalChapters,
                 author = cache.author,
+                synopsis = cache.synopsis
             )
 
         @OptIn(ExperimentalUuidApi::class)
@@ -201,6 +202,7 @@ data class ImmutableDownloadState(
     val etaMs: Long?
 ) {
     val downloadPercentage get() = downloaded.toFloat() / maxOf(total, 1)
+    val progressPercentage get() = progress.toFloat() / maxOf(total, 1)
 
     companion object {
         fun from(state: DownloadProgressState) = ImmutableDownloadState(

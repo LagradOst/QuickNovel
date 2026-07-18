@@ -50,6 +50,7 @@ import com.lagradost.quicknovel.BookDownloader2Helper.generateId
 import com.lagradost.quicknovel.BookDownloader2Helper.getDirectory
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
+import com.lagradost.quicknovel.DataStore.getSharedPrefs
 import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.ImageDownloader.getImageBitmapFromUrl
 import com.lagradost.quicknovel.NotificationHelper.etaToString
@@ -68,6 +69,7 @@ import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.Event
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
+import com.lagradost.quicknovel.util.amap
 import com.lagradost.quicknovel.util.pmap
 import com.lagradost.safefile.SafeFile
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
@@ -675,11 +677,10 @@ object BookDownloader2Helper {
                         delay(api.rateLimitTime)
                     }
                 }
-            }catch (e: Exception) {
+            } catch (e: Exception) {
                 logError(e)
                 delay(5000L * (i + 1))
-            }
-            finally {
+            } finally {
                 if (rateLimit) {
                     api.api.rateLimitMutex.unlock()
                 }
@@ -908,10 +909,10 @@ object NotificationHelper {
             val unit = if (progressInBytes) "Kb" else ""
             val div = if (progressInBytes) 1024 else 1
 
-            if(isStreamNovel)
+            if (isStreamNovel)
                 "${stateProgressState.progress} / ${stateProgressState.total}"
             else
-                "${stateProgressState.progress / div} $unit / ${stateProgressState.total / div}${if(unit.isNotEmpty()) " $unit" else ""}"
+                "${stateProgressState.progress / div} $unit / ${stateProgressState.total / div}${if (unit.isNotEmpty()) " $unit" else ""}"
         } else ""
 
         val statusText = when (state) {
@@ -1244,11 +1245,9 @@ object BookDownloader2 {
 
 
     private val getNewTotalChaptersSemaphore = Semaphore(5)
-    suspend fun getNewTotalChapters(cached: ResultCached)
-    {
+    suspend fun getNewTotalChapters(cached: ResultCached) {
         getNewTotalChaptersSemaphore.withPermit {
-            try
-            {
+            try {
                 val api = getApiFromNameOrNull(cached.apiName) ?: return@withPermit
                 val response = api.load(cached.source, true)
 
@@ -1256,7 +1255,7 @@ object BookDownloader2 {
                 val loaded = response.value as? StreamResponse ?: return@withPermit
 
                 val totalChapters = loaded.data.size
-                if(totalChapters == cached.totalChapters) return@withPermit
+                if (totalChapters == cached.totalChapters) return@withPermit
 
                 setKey(
                     RESULT_BOOKMARK,
@@ -1267,12 +1266,14 @@ object BookDownloader2 {
                 )
 
                 val newId = generateId(loaded, cached.apiName)
-                if(cached.id != newId){
+                if (cached.id != newId) {
                     migrationNovelMutex.withLock {
-                        migrateKeys(cached.id,
+                        migrateKeys(
+                            cached.id,
                             newId,
                             cached.name,
-                            loaded.name)
+                            loaded.name
+                        )
                     }
                 }
             } catch (e: Throwable) {
@@ -1328,33 +1329,34 @@ object BookDownloader2 {
 
     private fun initDownloadProgress() = CoroutineScope(Dispatchers.Default).launchSafe {
         downloadInfoMutex.withLock {
+            // 1. 1000ms startup time from reading the *first* key <- this cant be optimized without better db
+            // 2. 100ms to get all keys in DOWNLOAD_FOLDER
             val keys = getKeys(DOWNLOAD_FOLDER) ?: return@withLock
-            for (key in keys) {
+            keys.forEach { key ->
                 val res =
-                    getKey<DownloadFragment.DownloadData>(key) ?: continue
+                    getKey<DownloadFragment.DownloadData>(key) ?: return@forEach
 
                 val localId = generateId(res.apiName, res.author, res.name)
 
-                BookDownloader2Helper.downloadInfo(
+                // 3. 1000ms to get all "downloadInfo"
+                val info = BookDownloader2Helper.downloadInfo(
                     context,
                     res.author,
                     res.name,
                     res.apiName
-                )?.let { info ->
-                    downloadData[localId] = res
+                ) ?: return@forEach
 
-                    downloadProgress[localId] = DownloadProgressState(
-                        state = DownloadState.Nothing,
-                        progress = info.progress,
-                        total = info.total,
-                        downloaded = info.downloaded,
-                        lastUpdatedMs = System.currentTimeMillis(),
-                        etaMs = null
-                    )
-                }
+                downloadData[localId] = res
+                downloadProgress[localId] = DownloadProgressState(
+                    state = DownloadState.Nothing,
+                    progress = info.progress,
+                    total = info.total,
+                    downloaded = info.downloaded,
+                    lastUpdatedMs = System.currentTimeMillis(),
+                    etaMs = null
+                )
             }
         }
-
         downloadDataRefreshed.invoke(0)
     }
 
@@ -1561,6 +1563,7 @@ object BookDownloader2 {
             logError(t)
         }
     }
+
     @WorkerThread
     suspend fun downloadWorkThread(
         card: ImmutableSearchResponse,
@@ -1720,9 +1723,8 @@ object BookDownloader2 {
         setKey(DOWNLOAD_TOTAL, id.toString(), total)
 
         downloadInfoMutex.withLock {
-            downloadData[id] = currentDownloadData
-            downloadDataChanged.invoke(id to currentDownloadData)
 
+            downloadData[id] = currentDownloadData
             downloadProgress[id]?.apply {
                 state = DownloadState.IsPending
                 lastUpdatedMs = System.currentTimeMillis()
@@ -1749,6 +1751,7 @@ object BookDownloader2 {
                     downloadProgressChanged.invoke(id to it)
                 }
             }
+            downloadDataChanged.invoke(id to currentDownloadData)
         }
     }
 
@@ -2348,7 +2351,10 @@ object BookDownloader2 {
                                 total = total,
                                 downloaded = progress,
                                 lastUpdatedMs = currentTime,
-                                etaMs = maxOf(((totalTimeSoFar * total) / progress) - totalTimeSoFar, 0)
+                                etaMs = maxOf(
+                                    ((totalTimeSoFar * total) / progress) - totalTimeSoFar,
+                                    0
+                                )
                             )
 
                             run {

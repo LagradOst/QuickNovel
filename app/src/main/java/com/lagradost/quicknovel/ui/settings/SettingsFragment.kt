@@ -25,6 +25,7 @@ import androidx.preference.PreferenceManager
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.CloudStreamTheme
+import com.lagradost.quicknovel.compose.LaunchedEffectSkipFirst
 import com.lagradost.quicknovel.compose.loadPrimaryColor
 import com.lagradost.quicknovel.compose.loadThemeMode
 import com.lagradost.quicknovel.mvvm.safe
@@ -92,21 +93,6 @@ class SettingsFragment : Fragment(), SearchableSettings by SettingScreen() {
         super.Content()
     }
 
-    @Composable
-    fun LaunchedEffectSkipFirst(
-        key: Any?,
-        block: suspend CoroutineScope.() -> Unit
-    ) {
-        var isFirstChange by remember { mutableStateOf(true) }
-
-        LaunchedEffect(key) {
-            if (isFirstChange) {
-                isFirstChange = false
-            } else {
-                block()
-            }
-        }
-    }
 
     companion object {
         fun getDefaultDir(context: Context): SafeFile? {

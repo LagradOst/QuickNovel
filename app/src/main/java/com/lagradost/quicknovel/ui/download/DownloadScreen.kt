@@ -14,10 +14,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScrollableTabRow
@@ -28,6 +32,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.currentRecomposeScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,19 +56,55 @@ import com.lagradost.quicknovel.SearchResponseOperation
 import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
+import com.lagradost.quicknovel.compose.IsScrolling
+import com.lagradost.quicknovel.compose.LaunchedEffectSkipFirst
+import com.lagradost.quicknovel.compose.SinglePairSelectDialog
+import com.lagradost.quicknovel.compose.SingleSelectDialog
 import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.ui.mainpage.SearchResponseGrid
 import com.lagradost.quicknovel.ui.search.HomeAction
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
-fun DownloadScreen(state: DownloadPageState, action: (DownloadPageAction) -> Unit) {
+fun DownloadScreen(
+    state: DownloadPageState,
+    action: (DownloadPageAction) -> Unit
+) {
+    DownloadSort(
+        state.downloadSortingMethod,
+        state.regularSortingMethod,
+        state.sortingMethodDialog,
+        action
+    )
+    var fabExpanded by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(snapAnimationSpec = null)
     Scaffold(
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                modifier = Modifier.padding(bottom = 30.dp),
+                onClick = {
+                    action(DownloadPageAction.ShowSorting)
+                },
+                containerColor = colors.surfaceVariant,
+                contentColor = colors.onBackground,
+                text = {
+                    Text(stringResource(R.string.filter_dialog_sort_by))
+                },
+                icon = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_sort_24dp),
+                        contentDescription = stringResource(R.string.filter_dialog_sort_by)
+                    )
+                },
+                expanded = fabExpanded
+            )
+        },
         topBar = {
             BaseSearchBar(
                 content = {
@@ -86,15 +128,20 @@ fun DownloadScreen(state: DownloadPageState, action: (DownloadPageAction) -> Uni
             )
         }, modifier = Modifier
             .fillMaxSize()
-        //.nestedScroll(scrollBehavior.nestedScrollConnection)
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
     ) { innerPadding ->
         if (state.filteredPages.isEmpty()) return@Scaffold
 
         val pagerState = rememberPagerState(
+            initialPage = state.activePage,
             pageCount = { state.filteredPages.size }
         )
 
         val currentPage = pagerState.currentPage
+        LaunchedEffect(currentPage) {
+            action(DownloadPageAction.SelectPage(currentPage))
+        }
+
         Column {
             HorizontalPager(
                 state = pagerState,
@@ -103,7 +150,9 @@ fun DownloadScreen(state: DownloadPageState, action: (DownloadPageAction) -> Uni
                     .padding(innerPadding)
                     .weight(1.0f)
             ) { page ->
-                DownloadRow(state.filteredPages[page], action)
+                DownloadRow(state.filteredPages[page], action, scrollingChange = { isScrollingUp ->
+                    fabExpanded = isScrollingUp
+                })
             }
 
             SecondaryScrollableTabRow(
@@ -144,13 +193,62 @@ fun DownloadScreen(state: DownloadPageState, action: (DownloadPageAction) -> Uni
 }
 
 @Composable
-fun DownloadRow(row: DownloadRow, action: (DownloadPageAction) -> Unit) {
+fun DownloadSort(
+    downloadSortingMethod: Int,
+    regularSortingMethod: Int,
+    sortingMethodDialog: Boolean?,
+    action: (DownloadPageAction) -> Unit,
+) {
+    if (sortingMethodDialog == null) return
+    val data = if (sortingMethodDialog) {
+        DownloadSorting.sortingMethods
+    } else {
+        DownloadSorting.normalSortingMethods
+    }
+    val key = if (sortingMethodDialog) {
+        downloadSortingMethod
+    } else {
+        regularSortingMethod
+    }
+
+    SinglePairSelectDialog(
+        entries = data.associate { (it.id to it.inverse) to stringResource(it.name) },
+        selectedKey = key,
+        title = stringResource(R.string.filter_dialog_sort_by),
+        confirmText = stringResource(R.string.sort_apply),
+        dismissText = stringResource(R.string.sort_cancel),
+        dismiss = {
+            action(DownloadPageAction.DismissSorting)
+        },
+        confirm = { key ->
+            if(sortingMethodDialog) {
+                action(DownloadPageAction.SelectSortingMethod(downloadSortingMethod = key))
+            } else {
+                action(DownloadPageAction.SelectSortingMethod(regularSortingMethod = key))
+            }
+            action(DownloadPageAction.DismissSorting)
+        }
+    )
+}
+
+@Composable
+fun DownloadRow(
+    row: DownloadRow,
+    action: (DownloadPageAction) -> Unit,
+    scrollingChange: (Boolean) -> Unit
+) {
     val searchAction = remember<(SearchResponseAction) -> Unit>(action) {
         { item ->
             action(DownloadPageAction.ResultAction(item))
         }
     }
     var refreshing by remember { mutableStateOf(false) }
+    val state: LazyGridState = rememberLazyGridState()
+    state.IsScrolling(up = {
+        scrollingChange(true)
+    }, down = {
+        scrollingChange(false)
+    })
 
     val scope = rememberCoroutineScope()
     PullToRefreshBox(
@@ -165,7 +263,12 @@ fun DownloadRow(row: DownloadRow, action: (DownloadPageAction) -> Unit) {
         },
         modifier = Modifier.fillMaxSize()
     ) {
-        SearchResponseGrid(items = row.row, action = searchAction, modifier = Modifier)
+        SearchResponseGrid(
+            items = row.row,
+            action = searchAction,
+            modifier = Modifier,
+            listState = state
+        )
     }
 }
 

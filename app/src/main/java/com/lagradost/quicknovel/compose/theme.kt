@@ -6,6 +6,8 @@ import android.content.Context
 import android.os.Build
 
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.core.InfiniteTransition
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -523,6 +525,7 @@ fun modeToTheme(mode : CloudStreamThemeMode, primaryColor: CloudStreamPrimaryCol
     return color
 }
 
+val LocalSharedInfiniteTransition = staticCompositionLocalOf<InfiniteTransition> { throw NotImplementedError() }
 @Composable
 fun CloudStreamTheme(
     mode: CloudStreamThemeMode = CloudStreamThemeMode.FollowSystem,
@@ -532,7 +535,8 @@ fun CloudStreamTheme(
 
     val csColors = modeToTheme(mode, primaryColor)
 
-    CompositionLocalProvider(LocalCloudStreamColors provides csColors) {
+    val globalTransition = rememberInfiniteTransition(label = "GlobalSharedTransition")
+    CompositionLocalProvider(LocalCloudStreamColors provides csColors, LocalSharedInfiniteTransition provides globalTransition) {
         MaterialTheme(
             colorScheme = csColors.toMaterial3ColorScheme(),
             content = content,

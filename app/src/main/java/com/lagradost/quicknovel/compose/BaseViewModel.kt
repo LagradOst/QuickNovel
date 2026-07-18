@@ -85,6 +85,7 @@ class DefaultStateContainer<State>(initialState: State) : StateContainer<State> 
     private val _state = MutableStateFlow(initialState)
     override val state: StateFlow<State> = _state.asStateFlow()
 
+    @Synchronized
     override fun updateState(reducer: State.() -> State) {
         _state.update(reducer)
     }
@@ -136,7 +137,7 @@ data class SingleActiveQuery(
 }
 
 data class DebounceQuery(
-    private val pipe: MutableSharedFlow<String> = MutableSharedFlow(extraBufferCapacity = 64)
+    private val pipe: MutableSharedFlow<String> = MutableSharedFlow(extraBufferCapacity = 64, replay = 64)
 ) {
     @OptIn(FlowPreview::class)
     suspend fun launch(collector: FlowCollector<String>) {
