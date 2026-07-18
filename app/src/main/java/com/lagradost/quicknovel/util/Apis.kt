@@ -53,6 +53,7 @@ import com.lagradost.quicknovel.providers.SakuraNovelProvider
 import com.lagradost.quicknovel.providers.ScribblehubProvider
 import com.lagradost.quicknovel.providers.SkyNovelsProvider
 import com.lagradost.quicknovel.providers.SonicMTLProvider
+import com.lagradost.quicknovel.providers.SyosetuProvider
 import com.lagradost.quicknovel.providers.WattpadProvider
 import com.lagradost.quicknovel.providers.WtrLabProvider
 import com.lagradost.quicknovel.providers.WuxiaBoxProvider
@@ -115,6 +116,7 @@ class Apis {
             RoyalRoadProvider(),
             SakuraNovelProvider(), // cloudflare?
             ScribblehubProvider(),
+            SyosetuProvider(),
             SkyNovelsProvider(),
             SonicMTLProvider(),
             WattpadProvider(),
