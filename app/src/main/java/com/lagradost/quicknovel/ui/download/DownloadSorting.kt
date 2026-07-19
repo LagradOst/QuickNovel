@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
+import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.ImmutableDownloadState
 import com.lagradost.quicknovel.ImmutableSearchResponse
 import com.lagradost.quicknovel.R
@@ -281,17 +282,18 @@ val normalSortingMethods = persistentListOf(
 )
 
 fun <T> PersistentList<T>.updateRow(
-    index : Int,
-    update : T.() -> T
-) : PersistentList<T> {
+    index: Int,
+    update: T.() -> T
+): PersistentList<T> {
     val item = this.getOrNull(index) ?: return this
     val newItem = update(item)
     return this.replacingAt(index, newItem)
 }
+
 fun <T> PersistentList<T>.updateRows(
-    update : T.(Int) -> T
-) : PersistentList<T> {
-   return this.mapIndexed { index, t -> t.update(index) }.toPersistentList()
+    update: T.(Int) -> T
+): PersistentList<T> {
+    return this.mapIndexed { index, t -> t.update(index) }.toPersistentList()
 }
 
 @Immutable
@@ -314,19 +316,21 @@ data class ImmutableSearchList(
         id: Int,
         newItem: ImmutableSearchResponse
     ): ImmutableSearchList {
-        val passesFilter = !data.contains(id) && (skipQuery(query) || newItem.matchesQuery(query))
+        val item = data[id]
+
+        val passesFilter = (skipQuery(query) || newItem.matchesQuery(query))
         val newData = data.putting(id, newItem)
         val newFiltered = if (passesFilter) {
             filtered.adding(id)
         } else {
             filtered
         }
-        val newSorted = if (passesFilter) {
-            // TODO make this better tbh
-            sortList(newData, newFiltered, sortingMethod)
-        } else {
-            sorted
-        }
+        val newSorted =
+            if (passesFilter && (item == null || shouldUpdateItem(sortingMethod, item, newItem))) {
+                sortList(newData, newFiltered, sortingMethod)
+            } else {
+                sorted
+            }
 
         return copy(
             data = newData,
@@ -338,22 +342,17 @@ data class ImmutableSearchList(
     fun update(
         id: Int,
         updater: ImmutableSearchResponse.() -> ImmutableSearchResponse
-    ) : ImmutableSearchList {
+    ): ImmutableSearchList {
         val item = this.data[id] ?: return this
         val newItem = updater(item)
         val newData = data.putting(id, newItem)
 
-        val shouldUpdate = when(sortingMethod) {
-            SortingMethodType.RevAlphabetical, SortingMethodType.Alphabetical -> false
-            else -> true
-        }
-
-        val newSorted = if (shouldUpdate) {
-            // TODO make this better tbh
-            sortList(newData, filtered, sortingMethod)
-        } else {
-            sorted
-        }
+        val newSorted =
+            if (filtered.contains(id) && shouldUpdateItem(sortingMethod, item, newItem)) {
+                sortList(newData, filtered, sortingMethod)
+            } else {
+                sorted
+            }
 
         return copy(
             data = newData,
@@ -388,6 +387,37 @@ data class ImmutableSearchList(
     }
 
     companion object {
+        fun shouldUpdateItem(
+            sortingMethod: SortingMethodType,
+            item: ImmutableSearchResponse,
+            newItem: ImmutableSearchResponse
+        ) = when (sortingMethod) {
+            SortingMethodType.RevAlphabetical, SortingMethodType.Alphabetical -> newItem.name != item.name
+            SortingMethodType.DownloadCount, SortingMethodType.RevDownloadCount -> {
+                newItem.downloadState?.downloaded != item.downloadState?.downloaded
+                        // Do not spam with update notifications for downloading items, as that is frequent
+                        && newItem.downloadState?.state != DownloadState.IsDownloading
+            }
+
+            SortingMethodType.DownloadPercentage, SortingMethodType.RevDownloadPercentage -> {
+                newItem.downloadState?.downloadPercentage != item.downloadState?.downloadPercentage
+                        // Do not spam with update notifications for downloading items, as that is frequent
+                        && newItem.downloadState?.state != DownloadState.IsDownloading
+            }
+
+            SortingMethodType.Default, SortingMethodType.LastOpened, SortingMethodType.RevLastOpened -> {
+                newItem.timeOfPageOpened != item.timeOfPageOpened
+            }
+
+            SortingMethodType.LastNewChapterDownloaded, SortingMethodType.RevLastNewChapterDownloaded -> {
+                newItem.timeOfChapterDownloaded != item.timeOfChapterDownloaded
+            }
+
+            SortingMethodType.LastCached, SortingMethodType.RevLastCached -> {
+                newItem.timeOfCached != item.timeOfCached
+            }
+        }
+
         fun skipQuery(query: String) = query.trim().length < 2
 
         fun filterList(
@@ -404,6 +434,7 @@ data class ImmutableSearchList(
             list: PersistentSet<Int>,
             method: SortingMethodType
         ): PersistentList<Int> {
+            println("Sorting list")
             val sorted = when (method) {
                 SortingMethodType.Alphabetical -> {
                     list.sortedBy { data[it]?.name ?: "" }
