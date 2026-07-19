@@ -19,6 +19,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -57,7 +61,12 @@ import com.lagradost.quicknovel.compose.SinglePairSelectDialog
 import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
+import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
+import com.lagradost.quicknovel.tachiyomi.collectAsState
+import com.lagradost.quicknovel.ui.common.SearchList
+import com.lagradost.quicknovel.ui.common.SearchListRow
 import com.lagradost.quicknovel.ui.download.DownloadPageAction
+import com.lagradost.quicknovel.ui.download.ImmutableSearchList
 import com.lagradost.quicknovel.ui.download.normalSortingMethods
 import com.lagradost.quicknovel.ui.history.HistoryAction.*
 
@@ -77,6 +86,11 @@ fun HistoryScreen(
             action(ResultAction(data))
         }
     }
+
+    val context = LocalContext.current
+    val store = AndroidPreferenceStore(context)
+    val historyIsRow = store.getBoolean(stringResource(R.string.history_list_view_key), true)
+    val historyIsRowState by historyIsRow.collectAsState()
 
     var fabExpanded by remember { mutableStateOf(false) }
     HistoryDialog(state.dialog, action)
@@ -113,13 +127,26 @@ fun HistoryScreen(
                     action(Search(query))
                 },
                 trailingIcon = {
-                    IconButton(onClick = { action(HistoryAction.AskDeleteAll) }) {
-                        Icon(
-                            painter = painterResource(R.drawable.clear_all_24px),
-                            contentDescription = stringResource(R.string.history_more_options),
-                            tint = colors.onBackground
-                        )
+                    Row {
+                        IconButton(onClick = { action(AskDeleteAll) }) {
+                            Icon(
+                                painter = painterResource(R.drawable.clear_all_24px),
+                                contentDescription = stringResource(R.string.history_more_options),
+                                tint = colors.onBackground
+                            )
+                        }
+                        IconButton(onClick = {
+                            historyIsRow.set(!historyIsRowState)
+                        }) {
+                            Icon(
+                                painter = painterResource(if (historyIsRowState) R.drawable.ic_baseline_grid_view_24 else R.drawable.ic_baseline_list_24),
+                                contentDescription = stringResource(if (historyIsRowState) R.string.grid_view else R.string.list_view),
+                                modifier = Modifier.size(24.dp),
+                                tint = colors.onBackground
+                            )
+                        }
                     }
+
                 },
                 scrollBehavior = scrollBehavior,
                 leadingIcon = {
@@ -134,31 +161,21 @@ fun HistoryScreen(
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection)
     ) { innerPadding ->
-        val lazyState = rememberLazyListState()
-        lazyState.IsScrolling(up = {
+        val lazyGridState: LazyGridState = rememberLazyGridState()
+        lazyGridState.IsScrolling(up = {
             fabExpanded = true
         }, down = {
             fabExpanded = false
         })
 
-        LazyColumn(
-            state = lazyState,
+        SearchList(
+            isRow = historyIsRowState,
+            lazyGridState = lazyGridState,
             modifier = Modifier
                 .padding(innerPadding),
-            contentPadding = PaddingValues(10.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp)
-        ) {
-            items(
-                state.history.sorted,
-                key = { id -> id },
-                contentType = { id -> state.history.data[id] }) { id ->
-                SearchResponseRow(
-                    response = state.history.data[id]!!,
-                    action = searchAction,
-                    modifier = Modifier.animateItem()
-                )
-            }
-        }
+            state = state.history,
+            searchAction = searchAction
+        )
     }
 }
 
@@ -195,7 +212,7 @@ fun HistoryDialog(
                 confirmText = stringResource(R.string.remove),
                 dismissText = stringResource(R.string.cancel),
                 dismiss = {
-                    action(HistoryAction.DismissDialog)
+                    action(DismissDialog)
                 },
                 confirm = {
                     action(
@@ -229,117 +246,6 @@ fun HistoryDialog(
         }
     }
 }
-
-
-@Composable
-fun SearchResponseRow(
-    response: ImmutableSearchResponse,
-    action: (SearchResponseAction) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val streamInteractionSource = remember { MutableInteractionSource() }
-    val deleteInteractionSource = remember { MutableInteractionSource() }
-
-    val imageRequest = response.imageRequest()
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(100.dp)
-            .rounded()
-            .background(colors.surfaceContainer)
-            .combinedClickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = {
-                    action(SearchResponseAction(response, SearchResponseOperation.Open))
-                },
-                onLongClick = {
-                    action(SearchResponseAction(response, SearchResponseOperation.Metadata))
-                }
-            )
-            .ripple(interactionSource)
-    ) {
-        AsyncImage(
-            contentScale = ContentScale.Crop,
-            model = imageRequest,
-            contentDescription = response.name,
-            modifier = Modifier
-                .width(67.5.dp)
-                .fillMaxHeight()
-                .rounded()
-                .combinedClickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = {
-                        action(SearchResponseAction(response, SearchResponseOperation.Open))
-                    },
-                    onLongClick = {
-                        action(SearchResponseAction(response, SearchResponseOperation.Metadata))
-                    }
-                )
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth(0.6f)
-                .wrapContentHeight()
-                .align(Alignment.CenterVertically)
-                .padding(10.dp)
-        ) {
-            Text(
-                response.name,
-                maxLines = 2,
-                style = BaseStyles.textStyle
-            )
-            Text(
-                "${response.totalChapters} ${stringResource(R.string.read_action_chapters)}",
-                style = BaseStyles.textAltStyle
-            )
-        }
-
-        Spacer(Modifier.weight(1f))
-
-        Icon(
-            painter = painterResource(R.drawable.ic_baseline_delete_outline_24),
-            contentDescription = stringResource(R.string.remove_history),
-            modifier = Modifier
-                .size(54.dp)
-                .combinedClickable(
-                    interactionSource = deleteInteractionSource,
-                    indication = null,
-                    onClick = {
-                        action(SearchResponseAction(response, SearchResponseOperation.AskDelete))
-                    }
-                )
-                .circle()
-                .ripple(deleteInteractionSource)
-                .padding(15.dp)
-        )
-
-        Icon(
-            painter = painterResource(R.drawable.netflix_play),
-            contentDescription = stringResource(R.string.stream_read),
-            modifier = Modifier
-                .size(54.dp)
-                .combinedClickable(
-                    interactionSource = streamInteractionSource,
-                    indication = null,
-                    onClick = {
-                        action(SearchResponseAction(response, SearchResponseOperation.Stream))
-                    }
-                )
-                .circle()
-                .ripple(streamInteractionSource)
-                .padding(15.dp)
-        )
-
-        Spacer(Modifier.width(10.dp))
-    }
-}
-
 
 @PreviewLightDark
 @Composable

@@ -94,6 +94,10 @@
     <string name="grid_view">Grid</string>
     <string name="list_view">List</string>
 
+    <string name="download_list_view_key" translatable="false">download_list_view_key</string>
+    <string name="history_list_view_key" translatable="false">history_list_view_key</string>
+    <string name="search_list_view_key" translatable="false">search_list_view_key</string>
+
     <string name="download_open_action">Open</string>
     <string name="download_read_action">Read</string>
     <string name="download_update_action">Update</string>

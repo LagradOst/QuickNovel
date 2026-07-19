@@ -1,12 +1,12 @@
 package com.lagradost.quicknovel.ui.download
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,12 +14,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Tab
@@ -34,38 +37,33 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Alignment.Companion
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import coil3.compose.AsyncImage
-import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponseAction
-import com.lagradost.quicknovel.SearchResponseOperation
 import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.IsScrolling
-import com.lagradost.quicknovel.compose.RoundedImageShape
 import com.lagradost.quicknovel.compose.SinglePairSelectDialog
-import com.lagradost.quicknovel.compose.animatedOutline
 import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
-import com.lagradost.quicknovel.ui.mainpage.SearchResponseGrid
+import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
+import com.lagradost.quicknovel.tachiyomi.collectAsState
+import com.lagradost.quicknovel.ui.common.SearchList
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
@@ -81,7 +79,8 @@ fun DownloadScreen(
         state.sortingMethodDialog,
         action
     )
-    val pagesNames = listOf(
+
+    val pagesNames = persistentListOf(
         R.string.tab_downloads,
         R.string.type_reading,
         R.string.type_dropped,
@@ -90,6 +89,12 @@ fun DownloadScreen(
         R.string.type_on_hold,
         R.string.type_plan_to_read,
     )
+
+    val context = LocalContext.current
+    val store = AndroidPreferenceStore(context)
+
+    val downloadIsRow = store.getBoolean(stringResource(R.string.download_list_view_key), true)
+    val downloadIsRowState by downloadIsRow.collectAsState()
 
     var fabExpanded by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(snapAnimationSpec = null)
@@ -133,6 +138,18 @@ fun DownloadScreen(
                         modifier = Modifier.size(24.dp)
                     )
                 },
+                trailingIcon = {
+                    IconButton(onClick = {
+                        downloadIsRow.set(!downloadIsRowState)
+                    }) {
+                        Icon(
+                            painter = painterResource(if (downloadIsRowState) R.drawable.ic_baseline_grid_view_24 else R.drawable.ic_baseline_list_24),
+                            contentDescription = stringResource(if (downloadIsRowState) R.string.grid_view else R.string.list_view),
+                            modifier = Modifier.size(24.dp),
+                            tint = colors.onBackground
+                        )
+                    }
+                },
                 placeholder = stringResource(R.string.search_downloads)
             )
         }, modifier = Modifier
@@ -160,6 +177,7 @@ fun DownloadScreen(
                     .weight(1.0f)
             ) { page ->
                 DownloadRow(
+                    isRow = downloadIsRowState,
                     page,
                     state.pages.getOrNull(page) ?: ImmutableSearchList(),
                     action,
@@ -246,6 +264,7 @@ fun DownloadSort(
 
 @Composable
 fun DownloadRow(
+    isRow: Boolean,
     index: Int,
     row: ImmutableSearchList?,
     action: (DownloadPageAction) -> Unit,
@@ -259,8 +278,8 @@ fun DownloadRow(
         }
     }
     var refreshing by remember { mutableStateOf(false) }
-    val state: LazyGridState = rememberLazyGridState()
-    state.IsScrolling(up = {
+    val lazyGridState: LazyGridState = rememberLazyGridState()
+    lazyGridState.IsScrolling(up = {
         scrollingChange(true)
     }, down = {
         scrollingChange(false)
@@ -279,13 +298,18 @@ fun DownloadRow(
         },
         modifier = Modifier.fillMaxSize()
     ) {
-        SearchResponseGrid(
-            items = row,
-            action = searchAction,
+        SearchList(
+            isRow = isRow,
+            state = row,
+            searchAction = searchAction,
             modifier = Modifier,
-            listState = state,
+            lazyGridState = lazyGridState,
             footer = if (index == 0) {
-                ::Footer
+                if (isRow) {
+                    ::RowFooter
+                } else {
+                    ::BoxFooter
+                }
             } else {
                 null
             }
@@ -294,7 +318,48 @@ fun DownloadRow(
 }
 
 @Composable
-fun Footer() {
+fun RowFooter() {
+    val interactionSource = remember { MutableInteractionSource() }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp)
+            .rounded()
+            .background(colors.surfaceContainer)
+            .combinedClickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = {
+                    MainActivity.importEpub()
+                },
+                onLongClick = {
+                }
+            )
+            .ripple(interactionSource)
+    ) {
+        Icon(
+            modifier = Modifier.size(30.dp),
+            painter = painterResource(R.drawable.ic_baseline_add_24),
+            contentDescription = stringResource(R.string.import_epub),
+            tint = colors.onBackground
+        )
+
+        Text(
+            modifier = Modifier.padding(start = 15.dp),
+            text = stringResource(R.string.import_epub),
+            style = TextStyle(
+                color = colors.onBackground,
+                fontSize = 13.sp,
+                lineHeight = 14.sp,
+            ), maxLines = 2, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+fun BoxFooter() {
     val interactionSource = remember { MutableInteractionSource() }
 
     Column(

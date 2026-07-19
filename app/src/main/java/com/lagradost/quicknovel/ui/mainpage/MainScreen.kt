@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.ui.mainpage
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.InfiniteTransition
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -76,6 +77,7 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -106,6 +108,11 @@ import com.lagradost.quicknovel.compose.animatedOutline
 import com.lagradost.quicknovel.compose.isLandscape
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
+import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
+import com.lagradost.quicknovel.tachiyomi.collectAsState
+import com.lagradost.quicknovel.ui.common.SearchList
+import com.lagradost.quicknovel.ui.common.SearchResponseGrid
+import com.lagradost.quicknovel.ui.common.SearchResponseItem
 import com.lagradost.quicknovel.ui.download.ImmutableSearchList
 import com.lagradost.quicknovel.ui.search.SearchRow
 import kotlinx.collections.immutable.ImmutableList
@@ -183,6 +190,11 @@ fun MainPageScreen(state: MainPageState, action: (MainPageAction) -> Unit) {
         }
     }
 
+    val context = LocalContext.current
+    val store = AndroidPreferenceStore(context)
+    val searchIsRow = store.getBoolean(stringResource(R.string.search_list_view_key), false)
+    val searchIsRowState by searchIsRow.collectAsState()
+
     Scaffold(
         topBar = {
             MainPageSearchBar(
@@ -197,17 +209,19 @@ fun MainPageScreen(state: MainPageState, action: (MainPageAction) -> Unit) {
                 query = state.filterVisual,
                 scrollBehavior = scrollBehavior
             )
-        }, modifier = Modifier
+        },
+        modifier = Modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection)
     ) { innerPadding ->
-        SearchResponseGrid(
-            listState = listState,
+        SearchList(
+            lazyGridState = listState,
+            isRow = searchIsRowState,
             items = if (state.openQuery) state.query.items else state.filter.items,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            action = searchAction,
+            searchAction = searchAction,
         )
     }
 }
@@ -277,163 +291,17 @@ fun SearchResponseDialog(
                 modifier = Modifier.fillMaxSize(),
             )
         } else {
-            SearchResponseGrid(
+            SearchList(
+                isRow = false,
                 items = dialog.items,
                 modifier = Modifier
                     .fillMaxSize(),
-                action = action,
+                searchAction = action,
             )
         }
     }
 }
 
-@OptIn(ExperimentalUuidApi::class)
-@Composable
-fun SearchResponseGrid(
-    listState: LazyGridState = rememberLazyGridState(),
-    items: ImmutableList<ImmutableSearchResponse>,
-    action: (SearchResponseAction) -> Unit,
-    modifier: Modifier,
-) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(if (isLandscape) 6 else 3),
-        state = listState,
-        modifier = modifier,
-        contentPadding = PaddingValues(4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        items(
-            items = items,
-            key = { item -> item.randomUuid }
-        ) { response ->
-            SearchResponseItem(
-                response = response,
-                action = action,
-                modifier = Modifier
-                    .animateItem()
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalUuidApi::class)
-@Composable
-fun SearchResponseGrid(
-    listState: LazyGridState = rememberLazyGridState(),
-    items: ImmutableSearchList,
-    action: (SearchResponseAction) -> Unit,
-    modifier: Modifier,
-    footer: @Composable (() -> Unit)? = null,
-) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(if (isLandscape) 6 else 3),
-        state = listState,
-        modifier = modifier,
-        contentPadding = PaddingValues(4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        items(
-            items = items.sorted,
-            key = { id -> id },
-            contentType = { id -> items.data[id] }
-        ) { id ->
-            SearchResponseItem(
-                response = items.data[id]!!,
-                action = action,
-                modifier = Modifier
-                    .animateItem()
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-            )
-        }
-        if(footer != null) {
-            item(key = "footer") {
-                footer()
-            }
-        }
-    }
-}
-
-@Composable
-fun SearchResponseItem(
-    response: ImmutableSearchResponse,
-    action: (SearchResponseAction) -> Unit,
-    modifier: Modifier,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val imageRequest = response.imageRequest()
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
-            .combinedClickable(interactionSource = interactionSource, indication = null, onClick = {
-                action(SearchResponseAction(response, SearchResponseOperation.Open))
-            }, onLongClick = {
-                action(SearchResponseAction(response, SearchResponseOperation.Metadata))
-            })
-            .rounded()
-    ) {
-        AsyncImage(
-            contentScale = ContentScale.Crop,
-            model = imageRequest,
-            contentDescription = response.name,
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(0.68f)
-                .rounded()
-                .let { modifier ->
-                    val downloadState = response.downloadState?.state ?: return@let  modifier
-                    return@let when (downloadState) {
-
-                        DownloadState.IsDownloading, DownloadState.IsPending -> {
-                            modifier.animatedOutline(
-                                defaultPalette = listOf(
-                                    Color.Transparent,
-                                    colors.primary,
-                                    Color.Transparent,
-                                    colors.primary,
-                                )
-                            )
-                        }
-                        else  -> {
-                            val color = when(downloadState) {
-                                DownloadState.IsPaused -> colors.onBackground
-                                DownloadState.IsDone -> colors.primary
-                                DownloadState.IsFailed -> Color.Red
-                                else -> return@let modifier
-                            }
-
-                            modifier.border(width = 2.dp, color = color, shape = RoundedImageShape())
-                        }
-                    }
-                }
-
-                .ripple(interactionSource)
-        )
-
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(40.dp)
-                .padding(horizontal = 5.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = response.name,
-                style = TextStyle(
-                    color = colors.onBackground,
-                    fontSize = 13.sp,
-                    lineHeight = 14.sp,
-                ), maxLines = 2, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
 
 @Composable
 fun MainPageSearchBar(
@@ -444,6 +312,12 @@ fun MainPageSearchBar(
     action: (MainPageAction) -> Unit,
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
+
+    val context = LocalContext.current
+    val store = AndroidPreferenceStore(context)
+    val searchIsRow = store.getBoolean(stringResource(R.string.search_list_view_key), false)
+    val searchIsRowState by searchIsRow.collectAsState()
+
     BaseSearchBar(
         onQueryChange = { _ ->
             // action(MainPageAction.Search(query))
@@ -472,22 +346,38 @@ fun MainPageSearchBar(
         },
         scrollBehavior = scrollBehavior,
         trailingIcon = {
-            if (loading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = colors.onBackground
-                )
-            } else if (!openQuery) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .padding(5.dp),
+                        color = colors.onBackground, strokeWidth = 3.0.dp
+                    )
+                } else if (!openQuery) {
+                    IconButton(onClick = {
+                        action(MainPageAction.OpenInBrowser(url))
+                    }) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_baseline_public_24),
+                            contentDescription = stringResource(R.string.open_in_browser),
+                            tint = colors.onBackground
+                        )
+                    }
+                }
+
                 IconButton(onClick = {
-                    action(MainPageAction.OpenInBrowser(url))
+                    searchIsRow.set(!searchIsRowState)
                 }) {
                     Icon(
-                        painter = painterResource(R.drawable.ic_baseline_public_24),
-                        contentDescription = stringResource(R.string.open_in_browser),
+                        painter = painterResource(if (searchIsRowState) R.drawable.ic_baseline_grid_view_24 else R.drawable.ic_baseline_list_24),
+                        contentDescription = stringResource(if (searchIsRowState) R.string.grid_view else R.string.list_view),
+                        modifier = Modifier.size(24.dp),
                         tint = colors.onBackground
                     )
                 }
             }
+
         },
     ) {
         Row(
@@ -531,7 +421,6 @@ fun RowScope.SelectButton(text: String, onClick: () -> Unit) {
         )
     }
 }
-
 
 @PreviewLightDark
 @Composable

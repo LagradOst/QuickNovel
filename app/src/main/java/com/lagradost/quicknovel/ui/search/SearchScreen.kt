@@ -56,9 +56,9 @@ import com.lagradost.quicknovel.compose.isLandscape
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
+import com.lagradost.quicknovel.ui.common.SearchResponseItem
 import com.lagradost.quicknovel.ui.download.DownloadPageAction
 import com.lagradost.quicknovel.ui.mainpage.SearchResponseDialog
-import com.lagradost.quicknovel.ui.mainpage.SearchResponseItem
 import com.lagradost.quicknovel.ui.settings.searchProvidersList
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import kotlinx.collections.immutable.ImmutableSet

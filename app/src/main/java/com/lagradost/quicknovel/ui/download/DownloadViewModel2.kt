@@ -75,9 +75,6 @@ sealed class DownloadPageAction {
 class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
     StateContainer<DownloadPageState> by DefaultStateContainer(DownloadPageState()) {
 
-    /* On next filter apply this */
-    private val dirtyIds = ConcurrentHashMap<Int, ImmutableDownloadState>()
-
     private val searchPipe = DebounceQuery()
     override fun onAction(action: DownloadPageAction) {
         when (action) {
@@ -257,7 +254,6 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
     fun onDownloadStateChange(data: Pair<Int, DownloadProgressState>) = viewModelScope.launch {
         val (id, downloadState) = data
         val newDownloadState = ImmutableDownloadState.from(downloadState)
-        dirtyIds[id] = newDownloadState
 
         updateState {
             copy(
