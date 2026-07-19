@@ -119,10 +119,10 @@ class DownloadFragment : Fragment() {
         val tags: List<String>?,
         @JsonProperty("apiName")
         val apiName: String,
-        /** Unix time ms */
+        /** Unix time ms, downloaded update check */
         @JsonProperty("lastUpdated")
         val lastUpdated: Long?,
-        /** Unix time ms */
+        /** Unix time ms, last chapter downloaded */
         @JsonProperty("lastDownloaded")
         val lastDownloaded: Long?,
     )

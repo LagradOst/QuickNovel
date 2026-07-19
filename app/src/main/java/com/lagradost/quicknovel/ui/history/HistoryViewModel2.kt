@@ -15,11 +15,10 @@ import com.lagradost.quicknovel.compose.ActionHandler
 import com.lagradost.quicknovel.compose.DebounceQuery
 import com.lagradost.quicknovel.compose.DefaultStateContainer
 import com.lagradost.quicknovel.compose.StateContainer
-import com.lagradost.quicknovel.compose.removingBy
+import com.lagradost.quicknovel.ui.download.ImmutableSearchList
+import com.lagradost.quicknovel.ui.download.SortingMethodType
 import com.lagradost.quicknovel.util.ResultCached
-import kotlinx.collections.immutable.PersistentList
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toPersistentHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -29,10 +28,8 @@ import kotlinx.coroutines.withContext
 @Immutable
 data class HistoryState(
     val loading: Boolean = true,
-    val allHistory: PersistentList<ImmutableSearchResponse> = persistentListOf(),
-    val filteredHistory: PersistentList<ImmutableSearchResponse> = persistentListOf(),
+    val history: ImmutableSearchList = ImmutableSearchList(),
     val dialog: HistoryDialog? = null,
-    val query: String = "",
 )
 
 
@@ -108,13 +105,12 @@ class HistoryViewModel2 : ViewModel(),
             }
 
             SearchResponseOperation.Delete -> {
-                removeKey(HISTORY_FOLDER, action.response.id.toString())
-                val id = action.response.id
+                val id = action.response.id!!
+                removeKey(HISTORY_FOLDER, id.toString())
                 updateState {
                     copy(
                         dialog = null,
-                        allHistory = allHistory.removingBy { it.id == id },
-                        filteredHistory = filteredHistory.removingBy { it.id == id }
+                        history = history.delete(id)
                     )
                 }
             }
@@ -129,28 +125,10 @@ class HistoryViewModel2 : ViewModel(),
         viewModelScope.launch {
             searchPipe.launch { query ->
                 updateState {
-                    if (query == this.query) {
-                        this
-                    } else {
-                        copy(filteredHistory = filterHistory(query, allHistory), query = query)
-                    }
+                    copy(history = history.search(query = query))
                 }
             }
         }
-    }
-
-    fun filterHistory(
-        query: String,
-        data: PersistentList<ImmutableSearchResponse>
-    ): PersistentList<ImmutableSearchResponse> {
-        val results = if (query.isBlank() || query.length < 2) {
-            data
-        } else {
-            data.filter { item ->
-                item.filter(query)
-            }.toPersistentList()
-        }
-        return results
     }
 
     private fun updateHistory() = viewModelScope.launch {
@@ -160,15 +138,15 @@ class HistoryViewModel2 : ViewModel(),
             }
             val keys = getKeys(HISTORY_FOLDER) ?: return@withContext
             val data =
-                keys.mapNotNull { getKey<ResultCached>(it)?.let(ImmutableSearchResponse::from) }
-                    .sortedBy { -it.updateTime }
-                    .toPersistentList()
+                keys.mapNotNull { key ->
+                    val cached = getKey<ResultCached>(key) ?: return@mapNotNull null
+                    ImmutableSearchResponse.from(cached)
+                }.associateBy { searchResponse -> searchResponse.id!! }.toPersistentHashMap()
 
             updateState {
                 copy(
                     loading = false,
-                    allHistory = data,
-                    filteredHistory = filterHistory(query, data)
+                    history = ImmutableSearchList.new(data, query = history.query, sortingMethod = SortingMethodType.LastOpened)
                 )
             }
         }

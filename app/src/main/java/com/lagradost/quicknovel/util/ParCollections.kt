@@ -42,7 +42,7 @@ suspend fun <A, B> List<A>.amap(f: suspend (A) -> B): List<B> =
 
 /** amap with stronger cancellation guarantee, aka will only return when each job is joined */
 @OptIn(DelicateCoroutinesApi::class)
-suspend fun <A, B> List<A>.cmap(f: suspend (A) -> B): List<B> =
+suspend fun <A, B> Collection<A>.cmap(f: suspend (A) -> B): List<B> =
     with(CoroutineScope(currentCoroutineContext())) {
         // 1. Spawn all jobs
         map { async { f(it) } }.map { deferred ->

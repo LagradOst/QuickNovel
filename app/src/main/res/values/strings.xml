@@ -229,6 +229,7 @@
 
     <string name="default_sort">Default</string>
     <string name="recently_sort">Recently opened</string>
+    <string name="recently_checked_sort">Recently refreshed</string>
     <string name="alpha_sort">Alphabetical</string>
     <string name="download_sort">Download count</string>
     <string name="download_perc">Download percentage</string>

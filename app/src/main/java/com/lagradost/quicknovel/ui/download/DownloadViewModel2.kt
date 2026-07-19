@@ -41,6 +41,7 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentHashMap
+import kotlinx.collections.immutable.toPersistentHashSet
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -52,19 +53,11 @@ import kotlin.collections.remove
 import kotlin.uuid.ExperimentalUuidApi
 
 @Immutable
-data class DownloadRow(
-    val name: Int,
-    val row: PersistentList<ImmutableSearchResponse>,
-)
-
-
-@Immutable
 data class DownloadPageState(
-    val pages: PersistentList<DownloadRow> = persistentListOf(),
     val query: String = "",
-    val filteredPages: PersistentList<DownloadRow> = persistentListOf(),
-    val downloadSortingMethod: Int = DEFAULT_SORT,
-    val regularSortingMethod: Int = DEFAULT_SORT,
+    val pages: PersistentList<ImmutableSearchList> = persistentListOf(),
+    val downloadSortingMethod: SortingMethodType = SortingMethodType.Default,
+    val regularSortingMethod: SortingMethodType = SortingMethodType.Default,
     val activePage: Int = 0,
     /**
      * true -> downloads
@@ -82,8 +75,8 @@ sealed class DownloadPageAction {
     object ShowSorting : DownloadPageAction()
     object DismissSorting : DownloadPageAction()
     data class SelectSortingMethod(
-        val downloadSortingMethod: Int? = null,
-        val regularSortingMethod: Int? = null
+        val downloadSortingMethod: SortingMethodType? = null,
+        val regularSortingMethod: SortingMethodType? = null
     ) : DownloadPageAction()
 
     data class SelectPage(val page: Int) : DownloadPageAction()
@@ -123,7 +116,15 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             is DownloadPageAction.SelectPage -> {
                 setKey(DOWNLOAD_SETTINGS, CURRENT_TAB, action.page)
                 updateState {
-                    copy(activePage = action.page)
+                    val activeQuery = query
+                    copy(
+                        activePage = action.page,
+                        pages = pages.updateRows { index ->
+                            search(
+                                query = activeQuery,
+                                sortingMethod = if (index == 0) downloadSortingMethod else sortingMethod
+                            )
+                        })
                 }
             }
 
@@ -140,34 +141,29 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                     val newDownloadSortingMethod =
                         action.downloadSortingMethod ?: downloadSortingMethod
 
-                    setKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, newDownloadSortingMethod)
+                    setKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, newDownloadSortingMethod.id)
                     setKey(
                         DOWNLOAD_SETTINGS,
                         DOWNLOAD_NORMAL_SORTING_METHOD,
-                        newRegularSortingMethod
+                        newRegularSortingMethod.id
                     )
 
+                    val activeQuery = query
                     copy(
                         downloadSortingMethod = newDownloadSortingMethod,
-                        regularSortingMethod = newRegularSortingMethod
-                    ).applyFilter()
+                        regularSortingMethod = newRegularSortingMethod,
+                        pages = pages.updateRows { index ->
+                            search(
+                                query = activeQuery,
+                                sortingMethod = if (index == 0) newDownloadSortingMethod else newRegularSortingMethod
+                            )
+                        }
+                    )
                 }
             }
         }
     }
 
-    fun DownloadPageState.applyFilter(): DownloadPageState {
-        val dirty = DownloadSorting.updateDirty(pages, dirtyIds)
-        return copy(
-            pages = dirty,
-            filteredPages = DownloadSorting.filterRows(
-                rows = dirty,
-                query = query,
-                downloadSortingMethod = downloadSortingMethod,
-                regularSortingMethod = regularSortingMethod
-            )
-        )
-    }
 
     private fun resultAction(action: SearchResponseAction) {
         action.doAction()
@@ -178,22 +174,23 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         val downloadPage = progressState.pages.getOrNull(0) ?: return
 
         val values =
-            downloadPage.row.filter { card ->
-                val notImported = !card.isImported && card.apiName != IMPORT_SOURCE_PDF
-                val downloadState = card.downloadState ?: return@filter false
+            currentDownloadsMutex.withLock {
+                downloadPage.data.filter { (id, card) ->
+                    val notImported = !card.isImported && card.apiName != IMPORT_SOURCE_PDF
+                    val downloadState = card.downloadState ?: return@filter false
 
-                val canDownload =
-                    downloadState.total > 0 && downloadState.progressPercentage > 0.9f
+                    val canDownload =
+                        downloadState.total > 0 && downloadState.progressPercentage > 0.9f
 
-                val notDownloading = !currentDownloads.contains(
-                    card.id
-                )
-                notImported && canDownload && notDownloading
+                    val notDownloading = !currentDownloads.contains(
+                        id
+                    )
+                    notImported && canDownload && notDownloading
+                }
             }
 
         downloadInfoMutex.withLock {
-            for (card in values) {
-                val id = card.id ?: return@withLock
+            for ((id, _) in values) {
                 downloadProgress[id]?.apply {
                     state = DownloadState.IsPending
                     lastUpdatedMs = System.currentTimeMillis()
@@ -203,7 +200,7 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         }
 
         withContext(Dispatchers.IO) {
-            values.cmap { card ->
+            values.values.cmap { card ->
                 BookDownloader2.downloadWorkThread(card)
             }
         }
@@ -213,13 +210,12 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         viewModelScope.launch {
             searchPipe.launch { newQuery ->
                 updateState {
-                    if (query == newQuery) {
-                        this
-                    } else {
-                        copy(
-                            query = newQuery,
-                        ).applyFilter()
-                    }
+                    copy(
+                        query = newQuery,
+                        pages = pages.updateRows {
+                            search(newQuery)
+                        }
+                    )
                 }
             }
         }
@@ -250,8 +246,9 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
 
         updateState {
             copy(
-                pages = pages.updateSearchItem(0, searchResponse),
-                filteredPages = filteredPages.updateSearchItem(0, searchResponse)
+                pages = pages.updateRow(0) {
+                    insert(id, searchResponse)
+                },
             )
         }
     }
@@ -259,8 +256,9 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
     fun onDownloadRemoved(id: Int) = viewModelScope.launch {
         updateState {
             copy(
-                pages = pages.removeFromRow(0, id),
-                filteredPages = filteredPages.removeFromRow(0, id)
+                pages = pages.updateRow(0) {
+                    delete(id)
+                },
             )
         }
     }
@@ -273,9 +271,9 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
 
         updateState {
             copy(
-                filteredPages = filteredPages.updateRow(0) { row ->
-                    row.updateList(id) { item ->
-                        item.copy(downloadState = newDownloadState)
+                pages = pages.updateRow(0) {
+                    update(id) {
+                        copy(downloadState = newDownloadState)
                     }
                 }
             )
@@ -293,14 +291,14 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             updateState {
                 copy(
                     query = query,
-                    regularSortingMethod = regularSortingMethod,
-                    downloadSortingMethod = downloadSortingMethod,
+                    regularSortingMethod = SortingMethodType.from(regularSortingMethod),
+                    downloadSortingMethod = SortingMethodType.from(downloadSortingMethod),
                     activePage = page
                 )
             }
         }
 
-        val mapping: HashMap<Int, ArrayList<ImmutableSearchResponse>> = hashMapOf(
+        val mapping: HashMap<Int, ArrayList<Pair<Int, ImmutableSearchResponse>>> = hashMapOf(
             ReadType.PLAN_TO_READ.prefValue to arrayListOf(),
             ReadType.DROPPED.prefValue to arrayListOf(),
             ReadType.COMPLETED.prefValue to arrayListOf(),
@@ -316,13 +314,13 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             )
             val cached = getKey<ResultCached>(id) ?: continue
             mapping[type]?.add(
-                ImmutableSearchResponse.from(cached)
+                cached.id to ImmutableSearchResponse.from(cached)
             )
         }
 
         val map = downloadInfoMutex.withLock {
             BookDownloader2.downloadData.mapNotNull { entry ->
-                ImmutableSearchResponse.from(
+                entry.key to ImmutableSearchResponse.from(
                     entry.key,
                     entry.value,
                     ImmutableDownloadState.from(
@@ -340,17 +338,31 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             ReadType.DROPPED,
         )
 
-        val concat: List<DownloadRow> = buildList {
-            add(DownloadRow(name = R.string.tab_downloads, row = map.toPersistentList()))
+        val stateValue = state.value
+
+        val concat: List<ImmutableSearchList> = buildList {
+            add(
+                ImmutableSearchList.new(
+                    map.toMap().toPersistentHashMap(),
+                    stateValue.query,
+                    stateValue.downloadSortingMethod
+                )
+            )
             for (x in readList) {
-                add(DownloadRow(x.stringRes, row = mapping[x.prefValue]!!.toPersistentList()))
+                add(
+                    ImmutableSearchList.new(
+                        mapping[x.prefValue]!!.toMap().toPersistentHashMap(),
+                        stateValue.query,
+                        stateValue.downloadSortingMethod
+                    )
+                )
             }
         }
 
         val pages = concat.toPersistentList()
 
         updateState {
-            copy(pages = pages).applyFilter()
+            copy(pages = pages)
         }
     }
 }

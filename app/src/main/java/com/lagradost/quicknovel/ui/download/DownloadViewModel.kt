@@ -223,8 +223,12 @@ class DownloadViewModel : ViewModel() {
         DownloadFileWorkManager.refreshAll(this@DownloadViewModel, context ?: return)
     }
 
-    fun refreshReadingProgress(){
-        DownloadFileWorkManager.refreshAllReadingProgress(this@DownloadViewModel, context ?: return, currentTab.value ?: 1)
+    fun refreshReadingProgress() {
+        DownloadFileWorkManager.refreshAllReadingProgress(
+            this@DownloadViewModel,
+            context ?: return,
+            currentTab.value ?: 1
+        )
     }
 
     fun showMetadata(card: DownloadFragment.DownloadDataLoaded) {
@@ -535,12 +539,12 @@ class DownloadViewModel : ViewModel() {
         extraBufferCapacity = 32
     )
     val refresh = _refresh.asSharedFlow()
-    fun setIsLoading(isActive: Boolean, currentTab: Int){
+    fun setIsLoading(isActive: Boolean, currentTab: Int) {
         isRefreshing.postValue(isActive)
-        synchronized(activeRefreshTabs){
-            if(isActive && !activeRefreshTabs.contains(currentTab))
+        synchronized(activeRefreshTabs) {
+            if (isActive && !activeRefreshTabs.contains(currentTab))
                 activeRefreshTabs.add(currentTab)
-            else{
+            else {
                 _refresh.tryEmit(currentTab)
                 activeRefreshTabs.remove(currentTab)
             }

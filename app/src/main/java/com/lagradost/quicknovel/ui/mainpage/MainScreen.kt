@@ -106,6 +106,7 @@ import com.lagradost.quicknovel.compose.animatedOutline
 import com.lagradost.quicknovel.compose.isLandscape
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
+import com.lagradost.quicknovel.ui.download.ImmutableSearchList
 import com.lagradost.quicknovel.ui.search.SearchRow
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.launch
@@ -308,6 +309,39 @@ fun SearchResponseGrid(
         ) { response ->
             SearchResponseItem(
                 response = response,
+                action = action,
+                modifier = Modifier
+                    .animateItem()
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalUuidApi::class)
+@Composable
+fun SearchResponseGrid(
+    listState: LazyGridState = rememberLazyGridState(),
+    items: ImmutableSearchList,
+    action: (SearchResponseAction) -> Unit,
+    modifier: Modifier,
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(if (isLandscape) 6 else 3),
+        state = listState,
+        modifier = modifier,
+        contentPadding = PaddingValues(4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        items(
+            items = items.sorted,
+            key = { id -> id },
+            contentType = { id -> items.data[id] }
+        ) { id ->
+            SearchResponseItem(
+                response = items.data[id]!!,
                 action = action,
                 modifier = Modifier
                     .animateItem()

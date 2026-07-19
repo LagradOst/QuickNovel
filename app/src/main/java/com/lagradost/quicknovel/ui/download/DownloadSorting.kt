@@ -1,5 +1,7 @@
 package com.lagradost.quicknovel.ui.download
 
+import androidx.annotation.StringRes
+import androidx.compose.runtime.Immutable
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
 import com.lagradost.quicknovel.ImmutableDownloadState
@@ -7,10 +9,18 @@ import com.lagradost.quicknovel.ImmutableSearchResponse
 import com.lagradost.quicknovel.R
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.PersistentMap
+import kotlinx.collections.immutable.PersistentSet
+import kotlinx.collections.immutable.mutate
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toPersistentSet
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.uuid.ExperimentalUuidApi
 
+/*
 object DownloadSorting {
     val sortingMethods = arrayOf(
         SortingMethod(R.string.default_sort, DEFAULT_SORT),
@@ -89,7 +99,7 @@ object DownloadSorting {
             items
         } else {
             items.filter { item ->
-                item.filter(query)
+                item.matchesQuery(query)
             }
         }
 
@@ -131,7 +141,7 @@ object DownloadSorting {
             }
 
             LAST_UPDATED_SORT -> {
-                if (currentArray.any { it.downloadTime == null }) {
+                if (currentArray.any { it.timeOfChapterDownloaded == null }) {
                     currentArray.sortedByDescending { t ->
                         (getKey<Long>(
                             DOWNLOAD_EPUB_LAST_ACCESS,
@@ -141,11 +151,11 @@ object DownloadSorting {
                     }
                 } else {
                     currentArray
-                }.sortedByDescending { it.downloadTime ?: 0L }
+                }.sortedByDescending { it.timeOfChapterDownloaded ?: 0L }
             }
 
             REVERSE_LAST_UPDATED_SORT -> {
-                if (currentArray.any { it.downloadTime == null }) {
+                if (currentArray.any { it.timeOfChapterDownloaded == null }) {
                     currentArray.sortedByDescending { t ->
                         (getKey<Long>(
                             DOWNLOAD_EPUB_LAST_ACCESS,
@@ -155,7 +165,7 @@ object DownloadSorting {
                     }
                 } else {
                     currentArray
-                }.sortedBy { it.downloadTime ?: 0L }
+                }.sortedBy { it.timeOfChapterDownloaded ?: 0L }
             }
             //DEFAULT_SORT, LAST_ACCES_SORT
             else -> {
@@ -170,12 +180,305 @@ object DownloadSorting {
         }.toPersistentList()
     }
 
+}*/
+
+@Immutable
+enum class SortingMethodType(val id: Int) {
+    /** Default,  */
+    Default(0),
+
+    /** Ordering on the name */
+    Alphabetical(1),
+    RevAlphabetical(2),
+
+    /** Download count, aka chapters downloaded */
+    DownloadCount(3),
+    RevDownloadCount(4),
+
+    /** Download Percentage, aka chapters downloaded / total chapters or bytes */
+    DownloadPercentage(5),
+    RevDownloadPercentage(6),
+
+    /** Last opened */
+    LastOpened(7),
+    RevLastOpened(8),
+
+    /** Last update of *new* content */
+    LastNewChapterDownloaded(9),
+    RevLastNewChapterDownloaded(10),
+
+    /**
+     * In the case of downloads, this is the
+     * Last update time the downloader was invoked,
+     * even if no chapter was downloaded.
+     *
+     * For history this is when they are added
+     * */
+    LastCached(13),
+    RevLastCached(14);
+
+    companion object {
+        fun from(value: Int): SortingMethodType {
+            return entries.firstOrNull { it.id == value } ?: Default
+        }
+    }
+
 }
 
+@Immutable
+data class SortingMethodPair(
+    @StringRes val name: Int,
+    val id: SortingMethodType,
+    val inverse: SortingMethodType = id
+)
 
+val sortingMethods = persistentListOf(
+    SortingMethodPair(R.string.default_sort, SortingMethodType.Default),
+    SortingMethodPair(
+        R.string.recently_sort,
+        SortingMethodType.LastOpened,
+        SortingMethodType.RevLastOpened
+    ),
+    SortingMethodPair(
+        R.string.recently_updated_sort,
+        SortingMethodType.LastNewChapterDownloaded,
+        SortingMethodType.RevLastNewChapterDownloaded
+    ),
+    SortingMethodPair(
+        R.string.recently_checked_sort,
+        SortingMethodType.LastCached,
+        SortingMethodType.RevLastCached
+    ),
+
+    SortingMethodPair(
+        R.string.alpha_sort,
+        SortingMethodType.Alphabetical,
+        SortingMethodType.RevAlphabetical
+    ),
+    SortingMethodPair(
+        R.string.download_sort,
+        SortingMethodType.DownloadCount,
+        SortingMethodType.RevDownloadCount
+    ),
+    SortingMethodPair(
+        R.string.download_perc, SortingMethodType.DownloadPercentage,
+        SortingMethodType.RevDownloadPercentage
+    ),
+)
+
+val normalSortingMethods = persistentListOf(
+    SortingMethodPair(R.string.default_sort, SortingMethodType.Default),
+    SortingMethodPair(
+        R.string.recently_sort,
+        SortingMethodType.LastOpened,
+        SortingMethodType.RevLastOpened
+    ),
+    SortingMethodPair(
+        R.string.alpha_sort,
+        SortingMethodType.Alphabetical,
+        SortingMethodType.RevAlphabetical
+    ),
+)
+
+fun <T> PersistentList<T>.updateRow(
+    index : Int,
+    update : T.() -> T
+) : PersistentList<T> {
+    val item = this.getOrNull(index) ?: return this
+    val newItem = update(item)
+    return this.replacingAt(index, newItem)
+}
+fun <T> PersistentList<T>.updateRows(
+    update : T.(Int) -> T
+) : PersistentList<T> {
+   return this.mapIndexed { index, t -> t.update(index) }.toPersistentList()
+}
+
+@Immutable
+data class ImmutableSearchList(
+    val data: PersistentMap<Int, ImmutableSearchResponse> = persistentMapOf(),
+    val filtered: PersistentSet<Int> = persistentSetOf(),
+    val sorted: PersistentList<Int> = persistentListOf(),
+    val query: String = "",
+    val sortingMethod: SortingMethodType = SortingMethodType.Default,
+) {
+    fun delete(id: Int): ImmutableSearchList {
+        return copy(
+            data = data.removing(id),
+            filtered = filtered.removing(id),
+            sorted = sorted.removing(id)
+        )
+    }
+
+    fun insert(
+        id: Int,
+        newItem: ImmutableSearchResponse
+    ): ImmutableSearchList {
+        val passesFilter = !data.contains(id) && (skipQuery(query) || newItem.matchesQuery(query))
+        val newData = data.putting(id, newItem)
+        val newFiltered = if (passesFilter) {
+            filtered.adding(id)
+        } else {
+            filtered
+        }
+        val newSorted = if (passesFilter) {
+            // TODO make this better tbh
+            sortList(newData, newFiltered, sortingMethod)
+        } else {
+            sorted
+        }
+
+        return copy(
+            data = newData,
+            filtered = newFiltered,
+            sorted = newSorted
+        )
+    }
+
+    fun update(
+        id: Int,
+        updater: ImmutableSearchResponse.() -> ImmutableSearchResponse
+    ) : ImmutableSearchList {
+        val item = this.data[id] ?: return this
+        val newItem = updater(item)
+        val newData = data.putting(id, newItem)
+
+        val shouldUpdate = when(sortingMethod) {
+            SortingMethodType.RevAlphabetical, SortingMethodType.Alphabetical -> false
+            else -> true
+        }
+
+        val newSorted = if (shouldUpdate) {
+            // TODO make this better tbh
+            sortList(newData, filtered, sortingMethod)
+        } else {
+            sorted
+        }
+
+        return copy(
+            data = newData,
+            sorted = newSorted
+        )
+    }
+
+    fun search(
+        query: String = this.query,
+        sortingMethod: SortingMethodType = this.sortingMethod
+    ): ImmutableSearchList {
+        val sameQuery = this.query == query
+        val sameSorting = this.sortingMethod == sortingMethod
+
+        val filtered = if (sameQuery) {
+            filtered
+        } else {
+            filterList(data, query)
+        }
+        val sorted = if (sameSorting && sameQuery) {
+            sorted
+        } else {
+            sortList(data, filtered, sortingMethod)
+        }
+
+        return this.copy(
+            filtered = filtered,
+            sorted = sorted,
+            query = query,
+            sortingMethod = sortingMethod,
+        )
+    }
+
+    companion object {
+        fun skipQuery(query: String) = query.trim().length < 2
+
+        fun filterList(
+            data: PersistentMap<Int, ImmutableSearchResponse>,
+            query: String
+        ): PersistentSet<Int> {
+            val set = data.keys.toPersistentSet()
+            if (query.trim().length < 2) return set
+            return set.removingAll { data[it]?.matchesQuery(query) != true }
+        }
+
+        fun sortList(
+            data: PersistentMap<Int, ImmutableSearchResponse>,
+            list: PersistentSet<Int>,
+            method: SortingMethodType
+        ): PersistentList<Int> {
+            val sorted = when (method) {
+                SortingMethodType.Alphabetical -> {
+                    list.sortedBy { data[it]?.name ?: "" }
+                }
+
+                SortingMethodType.RevAlphabetical -> {
+                    list.sortedByDescending { data[it]?.name ?: "" }
+                }
+
+                SortingMethodType.DownloadCount -> {
+                    list.sortedByDescending { data[it]?.downloadState?.downloaded ?: 0 }
+                }
+
+                SortingMethodType.RevDownloadCount -> {
+                    list.sortedBy { data[it]?.downloadState?.downloaded ?: 0 }
+                }
+
+                SortingMethodType.DownloadPercentage -> {
+                    list.sortedByDescending { data[it]?.downloadState?.downloadPercentage ?: 0.0f }
+                }
+
+                SortingMethodType.RevDownloadPercentage -> {
+                    list.sortedBy { data[it]?.downloadState?.downloadPercentage ?: 0.0f }
+                }
+
+                SortingMethodType.Default, SortingMethodType.LastOpened -> {
+                    list.sortedByDescending { data[it]?.timeOfPageOpened ?: 0L }
+                }
+
+                SortingMethodType.RevLastOpened -> {
+                    list.sortedBy { data[it]?.timeOfPageOpened ?: 0L }
+                }
+
+                SortingMethodType.LastNewChapterDownloaded -> {
+                    list.sortedByDescending { data[it]?.timeOfChapterDownloaded ?: 0L }
+                }
+
+                SortingMethodType.RevLastNewChapterDownloaded -> {
+                    list.sortedBy { data[it]?.timeOfChapterDownloaded ?: 0L }
+                }
+
+                SortingMethodType.LastCached -> {
+                    list.sortedByDescending { data[it]?.timeOfCached ?: 0L }
+                }
+
+                SortingMethodType.RevLastCached -> {
+                    list.sortedBy { data[it]?.timeOfCached ?: 0L }
+                }
+            }
+
+            return sorted.toPersistentList()
+        }
+
+        fun new(
+            items: PersistentMap<Int, ImmutableSearchResponse>,
+            query: String,
+            sortingMethod: SortingMethodType
+        ): ImmutableSearchList {
+            val filtered = filterList(items, query)
+            val sorted = sortList(items, filtered, sortingMethod)
+            return ImmutableSearchList(
+                data = items,
+                filtered = filtered,
+                sorted = sorted,
+                query = query,
+                sortingMethod = sortingMethod
+            )
+        }
+    }
+}
+
+/*
 fun PersistentList<DownloadRow>.updateSearchItem(
     index: Int,
-    newItem : ImmutableSearchResponse,
+    newItem: ImmutableSearchResponse,
 ): PersistentList<DownloadRow> {
     val row = this.getOrNull(index) ?: return this
 
@@ -223,4 +526,4 @@ fun PersistentList<DownloadRow>.removeFromRow(
             row
         }
     }
-}
+}*/

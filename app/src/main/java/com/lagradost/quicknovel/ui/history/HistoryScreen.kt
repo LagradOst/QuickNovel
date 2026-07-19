@@ -110,9 +110,9 @@ fun HistoryScreen(
             contentPadding = PaddingValues(10.dp),
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
-            items(state.filteredHistory, key = { item -> item.id!! }) { result ->
+            items(state.history.sorted, key = { id -> id }, contentType = { id -> state.history.data[id] }) { id ->
                 SearchResponseRow(
-                    response = result,
+                    response = state.history.data[id]!!,
                     action = searchAction,
                     modifier = Modifier.animateItem()
                 )

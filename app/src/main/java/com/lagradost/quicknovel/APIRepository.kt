@@ -9,6 +9,7 @@ import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.BookDownloader2Helper.getFilenameIMG
@@ -70,23 +71,26 @@ enum class SearchResponseOperation {
 @Immutable
 data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
     val name: String,
+    val apiName: String,
+    val author: String? = null,
+
     val url: String,
     val posterUrl: String? = null,
     val rating: Int? = null,
-    val latestChapter: String? = null,
-    val apiName: String,
+    val latestChapterName: String? = null,
     val posterHeaders: ImmutableMap<String, String>? = null,
     val randomUuid: Uuid = Uuid.random(),
-    val updateTime: Long,
-    val downloadTime: Long? = null,
     val totalChapters: Int? = null,
-    val id: Int? = null,
-    val author: String? = null,
     val downloadState: ImmutableDownloadState? = null,
-    val synopsis : String? = null,
-    val tags : ImmutableList<String>? = null,
+    val synopsis: String? = null,
+    val tags: ImmutableList<String>? = null,
+
+    val id: Int? = null,
+    val timeOfCached: Long,
+    val timeOfChapterDownloaded: Long? = null,
+    val timeOfPageOpened: Long? = null,
 ) {
-    fun filter(query: String): Boolean =
+    fun matchesQuery(query: String): Boolean =
         FuzzySearch.partialRatio(name.lowercase(), query) > 50
 
     val isImported: Boolean get() = (apiName == IMPORT_SOURCE || apiName == IMPORT_SOURCE_PDF)
@@ -122,10 +126,10 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 url = response.url,
                 posterUrl = response.posterUrl,
                 rating = response.rating,
-                latestChapter = response.latestChapter,
+                latestChapterName = response.latestChapter,
                 apiName = response.apiName,
                 posterHeaders = response.posterHeaders?.toImmutableMap(),
-                updateTime = System.currentTimeMillis(),
+                timeOfCached = System.currentTimeMillis(),
             )
 
         @OptIn(ExperimentalUuidApi::class)
@@ -138,10 +142,14 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 apiName = cache.apiName,
                 rating = cache.rating,
                 id = cache.id,
-                updateTime = cache.cachedTime,
+                timeOfCached = cache.cachedTime,
                 totalChapters = cache.totalChapters,
                 author = cache.author,
-                synopsis = cache.synopsis
+                synopsis = cache.synopsis,
+                timeOfPageOpened = getKey<Long>(
+                    DOWNLOAD_EPUB_LAST_ACCESS,
+                    cache.id.toString(),
+                ) ?: 0
             )
 
         @OptIn(ExperimentalUuidApi::class)
@@ -158,26 +166,32 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 apiName = cache.apiName,
                 rating = cache.rating,
                 id = id,
-                updateTime = cache.lastUpdated ?: System.currentTimeMillis(),
-                downloadTime = cache.lastDownloaded,
+                timeOfCached = cache.lastUpdated ?: System.currentTimeMillis(),
+                timeOfChapterDownloaded = cache.lastDownloaded,
                 author = cache.author,
                 downloadState = downloadState,
                 synopsis = cache.synopsis,
-                tags = cache.tags?.toImmutableList()
+                tags = cache.tags?.toImmutableList(),
+                timeOfPageOpened = getKey<Long>(
+                    DOWNLOAD_EPUB_LAST_ACCESS,
+                    id.toString(),
+                ) ?: 0
             )
     }
 
-    fun doAction(operation : SearchResponseOperation) {
+    fun doAction(operation: SearchResponseOperation) {
         when (operation) {
             SearchResponseOperation.Open -> loadResult(url, apiName)
             SearchResponseOperation.Stream -> BookDownloader2.stream(this)
             SearchResponseOperation.Metadata -> {
                 MainActivity.loadPreviewPage(this)
             }
+
             else -> throw NotImplementedError()
         }
     }
 }
+
 
 @Immutable
 data class SearchResponseAction(

@@ -82,6 +82,16 @@ fun DownloadScreen(
         state.sortingMethodDialog,
         action
     )
+    val pagesNames = listOf(
+        R.string.tab_downloads,
+        R.string.type_reading,
+        R.string.type_dropped,
+        R.string.type_none,
+        R.string.type_completed,
+        R.string.type_on_hold,
+        R.string.type_plan_to_read,
+    )
+
     var fabExpanded by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(snapAnimationSpec = null)
     Scaffold(
@@ -130,11 +140,11 @@ fun DownloadScreen(
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection)
     ) { innerPadding ->
-        if (state.filteredPages.isEmpty()) return@Scaffold
+        if (state.pages.isEmpty()) return@Scaffold
 
         val pagerState = rememberPagerState(
             initialPage = state.activePage,
-            pageCount = { state.filteredPages.size }
+            pageCount = { pagesNames.size }
         )
 
         val currentPage = pagerState.currentPage
@@ -150,9 +160,12 @@ fun DownloadScreen(
                     .padding(innerPadding)
                     .weight(1.0f)
             ) { page ->
-                DownloadRow(state.filteredPages[page], action, scrollingChange = { isScrollingUp ->
-                    fabExpanded = isScrollingUp
-                })
+                DownloadRow(
+                    state.pages.getOrNull(page) ?: ImmutableSearchList(),
+                    action,
+                    scrollingChange = { isScrollingUp ->
+                        fabExpanded = isScrollingUp
+                    })
             }
 
             SecondaryScrollableTabRow(
@@ -171,7 +184,7 @@ fun DownloadScreen(
                     )
                 }, divider = {}
             ) {
-                state.filteredPages.forEachIndexed { index, row ->
+                pagesNames.forEachIndexed { index, row ->
                     val selected = index == currentPage
                     Tab(
                         modifier = Modifier.height(30.dp),
@@ -179,7 +192,7 @@ fun DownloadScreen(
                             pagerState.requestScrollToPage(index)
                         }, text = {
                             Text(
-                                stringResource(row.name), color = if (selected) {
+                                stringResource(row), color = if (selected) {
                                     colors.background
                                 } else {
                                     colors.onBackground
@@ -194,16 +207,16 @@ fun DownloadScreen(
 
 @Composable
 fun DownloadSort(
-    downloadSortingMethod: Int,
-    regularSortingMethod: Int,
+    downloadSortingMethod: SortingMethodType,
+    regularSortingMethod: SortingMethodType,
     sortingMethodDialog: Boolean?,
     action: (DownloadPageAction) -> Unit,
 ) {
     if (sortingMethodDialog == null) return
     val data = if (sortingMethodDialog) {
-        DownloadSorting.sortingMethods
+        sortingMethods
     } else {
-        DownloadSorting.normalSortingMethods
+        normalSortingMethods
     }
     val key = if (sortingMethodDialog) {
         downloadSortingMethod
@@ -221,7 +234,7 @@ fun DownloadSort(
             action(DownloadPageAction.DismissSorting)
         },
         confirm = { key ->
-            if(sortingMethodDialog) {
+            if (sortingMethodDialog) {
                 action(DownloadPageAction.SelectSortingMethod(downloadSortingMethod = key))
             } else {
                 action(DownloadPageAction.SelectSortingMethod(regularSortingMethod = key))
@@ -233,10 +246,12 @@ fun DownloadSort(
 
 @Composable
 fun DownloadRow(
-    row: DownloadRow,
+    row: ImmutableSearchList?,
     action: (DownloadPageAction) -> Unit,
     scrollingChange: (Boolean) -> Unit
 ) {
+    if (row == null) return
+
     val searchAction = remember<(SearchResponseAction) -> Unit>(action) {
         { item ->
             action(DownloadPageAction.ResultAction(item))
@@ -264,7 +279,7 @@ fun DownloadRow(
         modifier = Modifier.fillMaxSize()
     ) {
         SearchResponseGrid(
-            items = row.row,
+            items = row,
             action = searchAction,
             modifier = Modifier,
             listState = state
@@ -277,16 +292,6 @@ fun DownloadRow(
 fun DownloadScreenPreview() {
     CloudStreamTheme {
         DownloadScreen(
-            state = DownloadPageState(
-                pages = persistentListOf(
-                    DownloadRow(R.string.tab_downloads, persistentListOf()),
-                    DownloadRow(R.string.type_reading, persistentListOf()),
-                    DownloadRow(R.string.type_dropped, persistentListOf()),
-                    DownloadRow(R.string.type_none, persistentListOf()),
-                    DownloadRow(R.string.type_completed, persistentListOf()),
-                    DownloadRow(R.string.type_on_hold, persistentListOf()),
-                    DownloadRow(R.string.type_plan_to_read, persistentListOf()),
-                )
-            ), action = {})
+            state = DownloadPageState(), action = {})
     }
 }
