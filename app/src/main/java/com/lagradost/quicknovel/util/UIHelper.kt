@@ -282,6 +282,12 @@ object UIHelper {
                     transformations(transformations)
                 }
             }
+
+            is UiImage.Uri -> {
+                this.loadImage(uiImage.uri) {
+                    transformations(transformations)
+                }
+            }
         }
         return true
         /*val glideImage=

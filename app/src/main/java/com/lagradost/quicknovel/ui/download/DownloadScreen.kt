@@ -1,55 +1,57 @@
 package com.lagradost.quicknovel.ui.download
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.SecondaryScrollableTabRow
-import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.currentRecomposeScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.Modifier.Companion
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import com.lagradost.quicknovel.ImmutableSearchResponse
+import coil3.compose.AsyncImage
+import com.lagradost.quicknovel.DownloadState
+import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponseAction
 import com.lagradost.quicknovel.SearchResponseOperation
@@ -57,16 +59,13 @@ import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.IsScrolling
-import com.lagradost.quicknovel.compose.LaunchedEffectSkipFirst
+import com.lagradost.quicknovel.compose.RoundedImageShape
 import com.lagradost.quicknovel.compose.SinglePairSelectDialog
-import com.lagradost.quicknovel.compose.SingleSelectDialog
+import com.lagradost.quicknovel.compose.animatedOutline
 import com.lagradost.quicknovel.compose.circle
+import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.ui.mainpage.SearchResponseGrid
-import com.lagradost.quicknovel.ui.search.HomeAction
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toPersistentList
-import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
@@ -161,6 +160,7 @@ fun DownloadScreen(
                     .weight(1.0f)
             ) { page ->
                 DownloadRow(
+                    page,
                     state.pages.getOrNull(page) ?: ImmutableSearchList(),
                     action,
                     scrollingChange = { isScrollingUp ->
@@ -246,6 +246,7 @@ fun DownloadSort(
 
 @Composable
 fun DownloadRow(
+    index: Int,
     row: ImmutableSearchList?,
     action: (DownloadPageAction) -> Unit,
     scrollingChange: (Boolean) -> Unit
@@ -282,8 +283,60 @@ fun DownloadRow(
             items = row,
             action = searchAction,
             modifier = Modifier,
-            listState = state
+            listState = state,
+            footer = if (index == 0) {
+                ::Footer
+            } else {
+                null
+            }
         )
+    }
+}
+
+@Composable
+fun Footer() {
+    val interactionSource = remember { MutableInteractionSource() }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .combinedClickable(interactionSource = interactionSource, indication = null, onClick = {
+                MainActivity.importEpub()
+            })
+            .rounded()
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.68f)
+                .rounded()
+                .ripple(interactionSource),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                modifier = Modifier.size(40.dp),
+                painter = painterResource(R.drawable.ic_baseline_add_24),
+                contentDescription = stringResource(R.string.import_epub),
+                tint = colors.onBackground
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(40.dp)
+                .padding(horizontal = 5.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = stringResource(R.string.import_epub),
+                style = TextStyle(
+                    color = colors.onBackground,
+                    fontSize = 13.sp,
+                    lineHeight = 14.sp,
+                ), maxLines = 2, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 

@@ -223,7 +223,6 @@ enum class SortingMethodType(val id: Int) {
             return entries.firstOrNull { it.id == value } ?: Default
         }
     }
-
 }
 
 @Immutable
@@ -434,7 +433,6 @@ data class ImmutableSearchList(
             list: PersistentSet<Int>,
             method: SortingMethodType
         ): PersistentList<Int> {
-            println("Sorting list")
             val sorted = when (method) {
                 SortingMethodType.Alphabetical -> {
                     list.sortedBy { data[it]?.name ?: "" }

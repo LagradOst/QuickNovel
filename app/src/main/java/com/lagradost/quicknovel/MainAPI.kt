@@ -2,7 +2,12 @@ package com.lagradost.quicknovel
 
 import androidx.annotation.StringRes
 import androidx.annotation.WorkerThread
+import androidx.core.net.toUri
 import com.lagradost.nicehttp.NiceResponse
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
+import com.lagradost.quicknovel.BookDownloader2Helper.getFilenameIMG
+import com.lagradost.quicknovel.BookDownloader2Helper.sanitizeFilename
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.mvvm.logError
@@ -260,13 +265,18 @@ interface LoadResponse {
     var related: List<SearchResponse>?
 
     fun downloadImage(): UiImage? {
-        val act = activity
-        val bitmap = BookDownloader2Helper.getCachedBitmap(act, apiName, author, name)
 
-        return if (bitmap == null) {
-            img(url = posterUrl, headers = posterHeaders)
+        return if ((apiName == IMPORT_SOURCE || apiName == IMPORT_SOURCE_PDF)) {
+            activity?.let {
+                val uri = (it.filesDir.toString() + getFilenameIMG(
+                    sanitizeFilename(apiName),
+                    sanitizeFilename(author ?: ""),
+                    sanitizeFilename(name)
+                )).toUri()
+                UiImage.Uri(uri)
+            }
         } else {
-            UiImage.Bitmap(bitmap)
+            img(url = posterUrl, headers = posterHeaders)
         }
     }
 }

@@ -50,7 +50,15 @@ fun LazyGridState.IsScrolling(up : Runnable, down : Runnable) {
         if(lastScrolledForward) down.run()
     }
 }
-
+@Composable
+fun LazyListState.IsScrolling(up : Runnable, down : Runnable) {
+    LaunchedEffect(lastScrolledBackward) {
+        if(lastScrolledBackward) up.run()
+    }
+    LaunchedEffect(lastScrolledForward) {
+        if(lastScrolledForward) down.run()
+    }
+}
 @Composable
 fun LaunchedEffectSkipFirst(
     key: Any?,

@@ -326,6 +326,7 @@ fun SearchResponseGrid(
     items: ImmutableSearchList,
     action: (SearchResponseAction) -> Unit,
     modifier: Modifier,
+    footer: @Composable (() -> Unit)? = null,
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(if (isLandscape) 6 else 3),
@@ -348,6 +349,11 @@ fun SearchResponseGrid(
                     .fillMaxWidth()
                     .wrapContentHeight()
             )
+        }
+        if(footer != null) {
+            item(key = "footer") {
+                footer()
+            }
         }
     }
 }

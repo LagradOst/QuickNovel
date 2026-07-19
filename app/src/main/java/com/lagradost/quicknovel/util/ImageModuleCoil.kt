@@ -170,6 +170,7 @@ object ImageLoader {
         is UiImage.Bitmap -> loadImageInternal(imageData = imageData.bitmap, builder = builder)
         is UiImage.Drawable -> loadImageInternal(imageData = imageData.resId, builder = builder)
         null -> loadImageInternal(null, builder = builder)
+        is UiImage.Uri -> loadImageInternal(imageData = imageData.uri, builder = builder)
     }
 
     fun ImageView.loadImage(

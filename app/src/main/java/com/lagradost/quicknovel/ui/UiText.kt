@@ -68,6 +68,7 @@ sealed class UiImage {
 
     data class Drawable(@DrawableRes val resId: Int) : UiImage()
     data class Bitmap(val bitmap: android.graphics.Bitmap) : UiImage()
+    data class Uri(val uri: android.net.Uri) : UiImage()
 }
 
 fun ImageView?.setImage(value: UiImage?, fadeIn: Boolean = true) {

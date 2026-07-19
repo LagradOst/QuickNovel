@@ -7,7 +7,11 @@ import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKeys
+import com.lagradost.quicknovel.BaseApplication.Companion.setKey
+import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
+import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
 import com.lagradost.quicknovel.HISTORY_FOLDER
+import com.lagradost.quicknovel.HISTORY_SORTING_METHOD
 import com.lagradost.quicknovel.ImmutableSearchResponse
 import com.lagradost.quicknovel.SearchResponseAction
 import com.lagradost.quicknovel.SearchResponseOperation
@@ -15,6 +19,7 @@ import com.lagradost.quicknovel.compose.ActionHandler
 import com.lagradost.quicknovel.compose.DebounceQuery
 import com.lagradost.quicknovel.compose.DefaultStateContainer
 import com.lagradost.quicknovel.compose.StateContainer
+import com.lagradost.quicknovel.ui.download.DownloadPageAction
 import com.lagradost.quicknovel.ui.download.ImmutableSearchList
 import com.lagradost.quicknovel.ui.download.SortingMethodType
 import com.lagradost.quicknovel.util.ResultCached
@@ -34,17 +39,23 @@ data class HistoryState(
 
 
 @Immutable
-data class HistoryDialog(
-    val about: ImmutableSearchResponse?,
-)
+sealed class HistoryDialog {
+    data class DeleteItem(val about: ImmutableSearchResponse) : HistoryDialog()
+    object DeleteAll : HistoryDialog()
+    data class Sort(val method : SortingMethodType) : HistoryDialog()
+}
 
+
+@Immutable
 sealed class HistoryAction {
     data class ResultAction(val action: SearchResponseAction) : HistoryAction()
+    object ShowSorting : HistoryAction()
     object AskDeleteAll : HistoryAction()
     object DeleteAll : HistoryAction()
     object DismissDialog : HistoryAction()
     data class Search(val data: String) : HistoryAction()
     object Refresh : HistoryAction()
+    data class SelectSortingMethod(val method: SortingMethodType) : HistoryAction()
 }
 
 
@@ -64,7 +75,7 @@ class HistoryViewModel2 : ViewModel(),
 
             is HistoryAction.AskDeleteAll -> {
                 updateState {
-                    copy(dialog = HistoryDialog(about = null))
+                    copy(dialog = HistoryDialog.DeleteAll)
                 }
             }
 
@@ -93,6 +104,19 @@ class HistoryViewModel2 : ViewModel(),
             is HistoryAction.Refresh -> {
                 updateHistory()
             }
+
+            is HistoryAction.SelectSortingMethod -> {
+                setKey(DOWNLOAD_SETTINGS, HISTORY_SORTING_METHOD, action.method.id)
+                updateState {
+                    copy(history = history.search(sortingMethod = action.method))
+                }
+            }
+
+            HistoryAction.ShowSorting -> {
+                updateState {
+                    copy(dialog = HistoryDialog.Sort(history.sortingMethod))
+                }
+            }
         }
     }
 
@@ -100,7 +124,7 @@ class HistoryViewModel2 : ViewModel(),
         when (action.operation) {
             SearchResponseOperation.AskDelete -> {
                 updateState {
-                    copy(dialog = HistoryDialog(action.response))
+                    copy(dialog = HistoryDialog.DeleteItem(action.response))
                 }
             }
 
@@ -143,10 +167,12 @@ class HistoryViewModel2 : ViewModel(),
                     ImmutableSearchResponse.from(cached)
                 }.associateBy { searchResponse -> searchResponse.id!! }.toPersistentHashMap()
 
+            val method = getKey<Int>(DOWNLOAD_SETTINGS, HISTORY_SORTING_METHOD) ?: 0
+
             updateState {
                 copy(
                     loading = false,
-                    history = ImmutableSearchList.new(data, query = history.query, sortingMethod = SortingMethodType.LastOpened)
+                    history = ImmutableSearchList.new(data, query = history.query, sortingMethod = SortingMethodType.from(method))
                 )
             }
         }

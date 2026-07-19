@@ -52,6 +52,7 @@ data class SearchRow(
     val error: Throwable? = null,
 )
 
+@Immutable
 sealed class HomeAction {
     data class Search(val query: String) : HomeAction()
     object ConfigureApis : HomeAction()
@@ -61,11 +62,10 @@ sealed class HomeAction {
     data class ConfigureApisLanguages(val languages: ImmutableSet<String>) : HomeAction()
     object CloseQuery : HomeAction()
     data class ResultAction(val action: SearchResponseAction) : HomeAction()
-
     data class OpenRow(val row: SearchRow) : HomeAction()
     object CloseRow : HomeAction()
 }
-
+@Immutable
 sealed class HomeEffect {
     data class NavigateToMainPage(val api: String, val filter: FilterQuery) : HomeEffect()
 }
