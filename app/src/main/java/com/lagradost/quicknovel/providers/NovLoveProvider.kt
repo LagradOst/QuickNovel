@@ -20,42 +20,27 @@ class NovLoveProvider  : MeioNovelProvider()
         val adaptedPath = path.replaceFirst("novel/", "read/")
         val finalUrl = "${mainUrl}/$adaptedPath".removeSuffix("/")
         val document = app.get(finalUrl).document
-        val name =
-            document.selectFirst("div.post-title > h1")?.text()?.replace("  ", " ")
-                ?.replace("\n", "")
-                ?.replace("\t", "") ?: return null
-        val data = getChapters(finalUrl)
-        return newStreamResponse(url = finalUrl, name = name, data = data) {
-            tags = document.select("div.genres-content > a").map { it.text() }
-            val authors = document.selectFirst("div.author-content > a")
-            author = authors?.text()
-            var synopsis = ""
-            var synopsisParts = document.select("#editdescription > p")
-            if (synopsisParts.size == 0) synopsisParts = document.select("div.j_synopsis > p")
-            if (synopsisParts.size == 0) synopsisParts = document.select("div.summary__content > p")
-            for (s in synopsisParts) {
-                if (s.hasText() && !s.text().lowercase(Locale.getDefault())
-                        .contains(mainUrl)
-                ) { // FUCK ADS
-                    synopsis += s.text() + "\n\n"
-                }
-            }
-            if (synopsis.isNotEmpty()) {
-                this.synopsis = synopsis
-            }
-            setStatus(document.select("div.post-status > div.post-content_item > div.summary-content")
-                .last()?.text())
-            posterUrl = fixUrlNull(document.select("div.summary_image > a > img").attr("src"))
-            rating = ((document.selectFirst("span#averagerate")?.text()?.toFloatOrNull()
-                ?: 0f) * 200).toInt()
+        val name = document.selectFirst("div.post-title > h1")?.text()?.clean() ?: return null
 
-            val peopleVotedText =
-                document.selectFirst("span#countrate")?.text()
-            // Turn K to thousands, 9.3k -> 2 zeroes | 95K -> 3 zeroes
-            peopleVoted =
-                peopleVotedText?.replace("K", if (peopleVotedText.contains(".")) "00" else "000")
-                    ?.replace(".", "")
-                    ?.toIntOrNull() ?: 0
+        return newStreamResponse(url, name, getChapters(url)) {
+            tags = document.select("div.genres-content > a").map { it.text() }
+            author = document.selectFirst("div.author-content > a")?.text()
+
+            synopsis = document.select("#editdescription > p, div.j_synopsis > p, div.summary__content > p")
+                .filter { it.hasText() && !it.text().lowercase().contains(mainUrl) }
+                .joinToString("\n\n") { it.text() }
+
+            setStatus(document.select("div.post-status > div.post-content_item > div.summary-content").last()?.text())
+
+            posterUrl = fixUrlNull(document.selectFirst("div.summary_image > a > img")?.let {
+                it.attr("data-src").takeIf { src -> src.isNotBlank() } ?: it.attr("src")
+            })
+
+            rating = (document.selectFirst("span#averagerate")?.text()?.toFloatOrNull()?.times(200))?.toInt()
+            peopleVoted = document.selectFirst("span#countrate")?.text()?.let { text ->
+                text.replace("K", if (text.contains(".")) "00" else "000")
+                    .replace(".", "").toIntOrNull()
+            } ?: 0
 
             related = getRelated(document)
         }
