@@ -100,6 +100,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -1318,14 +1319,14 @@ object BookDownloader2 {
     }
 
     val downloadInfoMutex = Mutex()
-    val downloadProgress: HashMap<Int, DownloadProgressState> =
-        hashMapOf()
-    val downloadData: HashMap<Int, DownloadFragment.DownloadData> = hashMapOf()
+    val downloadProgress: ConcurrentHashMap<Int, DownloadProgressState> = ConcurrentHashMap()
+    val downloadData: ConcurrentHashMap<Int, DownloadFragment.DownloadData> = ConcurrentHashMap()
 
     val downloadProgressChanged = Event<Pair<Int, DownloadProgressState>>()
     val downloadDataChanged = Event<Pair<Int, DownloadFragment.DownloadData>>()
     val downloadRemoved = Event<Int>()
     val downloadDataRefreshed = Event<Int>()
+    val bookmarkChanged = Event<Int>()
 
     private fun initDownloadProgress() = CoroutineScope(Dispatchers.Default).launchSafe {
         downloadInfoMutex.withLock {

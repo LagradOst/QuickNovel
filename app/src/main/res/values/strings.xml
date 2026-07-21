@@ -196,6 +196,7 @@
     <string name="remove">Remove</string>
     <string name="remove_from_history_format">This remove %s from your history.\nAre you sure?</string>
     <string name="permanently_delete_format">This will permanently delete %s.\nAre you sure?</string>
+    <string name="remove_from_bookmarks_format">This remove %s from your bookmarks.\nAre you sure?</string>
     <string name="remove_all_history">Are you sure?\nAll history will be lost.</string>
     <string name="remove_history">Remove History</string>
     <string name="no_more_chapters">No more chapters</string>

@@ -304,10 +304,14 @@ data class ImmutableSearchList(
     val sortingMethod: SortingMethodType = SortingMethodType.Default,
 ) {
     fun delete(id: Int): ImmutableSearchList {
+        if(!data.contains(id)) {
+            return this
+        }
+
         return copy(
             data = data.removing(id),
             filtered = filtered.removing(id),
-            sorted = sorted.removing(id)
+            sorted = if(filtered.contains(id)) sorted.removing(id) else sorted
         )
     }
 

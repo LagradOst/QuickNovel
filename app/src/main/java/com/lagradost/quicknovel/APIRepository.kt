@@ -66,6 +66,9 @@ enum class SearchResponseOperation {
     AskDelete,
     Delete,
     Metadata,
+    Download,
+    Pause,
+    Resume,
 }
 
 @Immutable
@@ -85,10 +88,12 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
     val synopsis: String? = null,
     val tags: ImmutableList<String>? = null,
 
+    val generating : Boolean = false,
     val id: Int? = null,
     val timeOfCached: Long,
     val timeOfChapterDownloaded: Long? = null,
     val timeOfPageOpened: Long? = null,
+    val epubSize : Int? = null,
 ) {
     fun matchesQuery(query: String): Boolean =
         FuzzySearch.partialRatio(name.lowercase(), query) > 50
@@ -175,7 +180,8 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 timeOfPageOpened = getKey<Long>(
                     DOWNLOAD_EPUB_LAST_ACCESS,
                     id.toString(),
-                ) ?: 0
+                ) ?: 0,
+                epubSize = getKey(DOWNLOAD_EPUB_SIZE, id.toString())
             )
     }
 

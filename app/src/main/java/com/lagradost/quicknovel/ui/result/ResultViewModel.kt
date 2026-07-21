@@ -564,6 +564,7 @@ class ResultViewModel : ViewModel() {
                 RESULT_BOOKMARK_STATE, loadId.toString(), state
             )
             updateBookmarkData()
+            BookDownloader2.bookmarkChanged(loadId)
         }
 
         readState.postValue(ReadType.fromSpinner(state))

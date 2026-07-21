@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
+import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.BookDownloader2.currentDownloads
@@ -14,9 +15,11 @@ import com.lagradost.quicknovel.BookDownloader2.downloadProgress
 import com.lagradost.quicknovel.BookDownloader2.downloadProgressChanged
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.CURRENT_TAB
+import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
 import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
+import com.lagradost.quicknovel.DownloadActionType
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.ImmutableDownloadState
@@ -24,11 +27,13 @@ import com.lagradost.quicknovel.ImmutableSearchResponse
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
 import com.lagradost.quicknovel.SearchResponseAction
+import com.lagradost.quicknovel.SearchResponseOperation
 import com.lagradost.quicknovel.compose.ActionHandler
 import com.lagradost.quicknovel.compose.DebounceQuery
 import com.lagradost.quicknovel.compose.DefaultStateContainer
 import com.lagradost.quicknovel.compose.StateContainer
 import com.lagradost.quicknovel.ui.ReadType
+import com.lagradost.quicknovel.ui.download.DownloadDialog.*
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.cmap
 import kotlinx.collections.immutable.PersistentList
@@ -39,7 +44,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.uuid.ExperimentalUuidApi
 
 @Immutable
@@ -49,13 +53,17 @@ data class DownloadPageState(
     val downloadSortingMethod: SortingMethodType = SortingMethodType.Default,
     val regularSortingMethod: SortingMethodType = SortingMethodType.Default,
     val activePage: Int = 0,
-    /**
-     * true -> downloads
-     * false -> bookmarks
-     * null -> not shown
-     * */
-    val sortingMethodDialog: Boolean? = null,
+    /** null -> not shown */
+    val dialog: DownloadDialog? = null,
 )
+
+@Immutable
+sealed class DownloadDialog {
+    object SortDownloads : DownloadDialog()
+    object SortBookmarks : DownloadDialog()
+    data class DeleteItem(val item: ImmutableSearchResponse) : DownloadDialog()
+    data class DeleteBookmark(val item: ImmutableSearchResponse) : DownloadDialog()
+}
 
 @Immutable
 sealed class DownloadPageAction {
@@ -63,7 +71,7 @@ sealed class DownloadPageAction {
     data class Search(val query: String) : DownloadPageAction()
     data class ResultAction(val action: SearchResponseAction) : DownloadPageAction()
     object ShowSorting : DownloadPageAction()
-    object DismissSorting : DownloadPageAction()
+    object DismissDialog : DownloadPageAction()
     data class SelectSortingMethod(
         val downloadSortingMethod: SortingMethodType? = null,
         val regularSortingMethod: SortingMethodType? = null
@@ -74,6 +82,15 @@ sealed class DownloadPageAction {
 
 class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
     StateContainer<DownloadPageState> by DefaultStateContainer(DownloadPageState()) {
+    companion object {
+        val readList = persistentListOf(
+            ReadType.READING,
+            ReadType.ON_HOLD,
+            ReadType.PLAN_TO_READ,
+            ReadType.COMPLETED,
+            ReadType.DROPPED,
+        )
+    }
 
     private val searchPipe = DebounceQuery()
     override fun onAction(action: DownloadPageAction) {
@@ -96,7 +113,13 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
 
             DownloadPageAction.ShowSorting -> {
                 updateState {
-                    copy(sortingMethodDialog = activePage == 0)
+                    copy(
+                        dialog = if (activePage == 0) {
+                            DownloadDialog.SortDownloads
+                        } else {
+                            DownloadDialog.SortBookmarks
+                        }
+                    )
                 }
             }
 
@@ -115,9 +138,9 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                 }
             }
 
-            DownloadPageAction.DismissSorting -> {
+            DownloadPageAction.DismissDialog -> {
                 updateState {
-                    copy(sortingMethodDialog = null)
+                    copy(dialog = null)
                 }
             }
 
@@ -151,9 +174,149 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         }
     }
 
+    private fun onBookmarkChanged(id: Int) = viewModelScope.launch {
+        val result = getKey<ResultCached>(RESULT_BOOKMARK, id.toString())
+        val state = getKey<Int>(RESULT_BOOKMARK_STATE, id.toString())
+
+        // Always remove it, and then readd it
+        updateState {
+            copy(
+                pages = pages.updateRows { index ->
+                    if (index != 0) {
+                        delete(id)
+                    } else {
+                        this
+                    }
+                },
+            )
+        }
+        if (result == null || state == null) {
+            return@launch
+        }
+
+        val newIndex = readList.indexOf(ReadType.fromSpinner(state))
+        if (newIndex == -1) {
+            return@launch
+        }
+        val response = ImmutableSearchResponse.from(result)
+        updateState {
+            copy(
+                pages = pages.updateRow(newIndex + 1) {
+                    insert(id, response)
+                },
+            )
+        }
+    }
+
+    private fun readEpub(response: ImmutableSearchResponse) = viewModelScope.launch {
+        withContext(Dispatchers.Default) {
+            val id = response.id!!
+            val downloadState = response.downloadState!!
+            try {
+                updateState {
+                    copy(pages = pages.updateRow(0) {
+                        update(id) {
+                            @OptIn(ExperimentalUuidApi::class)
+                            copy(generating = true)
+                        }
+                    })
+                }
+                BookDownloader2.readEpub(
+                    id,
+                    downloadState.progress.toInt(),
+                    response.author,
+                    response.name,
+                    response.apiName,
+                    response.synopsis
+                )
+            } finally {
+                val opened = System.currentTimeMillis()
+                setKey(DOWNLOAD_EPUB_LAST_ACCESS, id.toString(), opened)
+                updateState {
+                    copy(pages = pages.updateRow(0) {
+                        update(id) {
+                            @OptIn(ExperimentalUuidApi::class)
+                            copy(generating = false, timeOfPageOpened = opened)
+                        }
+                    })
+                }
+            }
+        }
+    }
 
     private fun resultAction(action: SearchResponseAction) {
-        action.doAction()
+        when (action.operation) {
+            SearchResponseOperation.Open -> {
+                if (action.response.downloadState != null) {
+                    readEpub(action.response)
+                } else {
+                    action.doAction()
+                }
+            }
+
+            SearchResponseOperation.Stream -> {
+                action.doAction()
+            }
+
+            SearchResponseOperation.AskDelete -> {
+                if (action.response.downloadState != null) {
+                    updateState { copy(dialog = DeleteItem(action.response)) }
+                } else {
+                    updateState { copy(dialog = DeleteBookmark(action.response)) }
+                }
+            }
+
+            SearchResponseOperation.Delete -> {
+                val id = action.response.id!!
+                if (action.response.downloadState != null) {
+                    BookDownloader2.deleteNovel(
+                        action.response.author,
+                        action.response.name,
+                        action.response.apiName
+                    )
+                } else {
+                    removeKey(RESULT_BOOKMARK, id.toString())
+                    removeKey(RESULT_BOOKMARK_STATE, id.toString())
+
+                    updateState {
+                        copy(
+                            pages = pages.updateRows { index ->
+                                if (index != 0) {
+                                    delete(id)
+                                } else {
+                                    this
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+
+            SearchResponseOperation.Metadata -> {
+                action.doAction()
+            }
+
+            SearchResponseOperation.Download -> {
+                viewModelScope.launch {
+                    BookDownloader2.downloadWorkThread(action.response)
+                }
+            }
+
+            SearchResponseOperation.Pause -> {
+                val id = action.response.id!!
+                BookDownloader2.addPendingAction(
+                    id,
+                    DownloadActionType.Pause
+                )
+            }
+            SearchResponseOperation.Resume -> {
+                val id = action.response.id!!
+                BookDownloader2.addPendingAction(
+                    id,
+                    DownloadActionType.Resume
+                )
+            }
+        }
     }
 
     suspend fun refreshDownloads() {
@@ -212,12 +375,14 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         BookDownloader2.downloadProgressChanged += this::onDownloadStateChange
         BookDownloader2.downloadRemoved += this::onDownloadRemoved
         BookDownloader2.downloadDataChanged += this::onDownloadAdded
+        BookDownloader2.bookmarkChanged += this::onBookmarkChanged
     }
 
     override fun onCleared() {
         BookDownloader2.downloadProgressChanged -= this::onDownloadStateChange
         BookDownloader2.downloadRemoved -= this::onDownloadRemoved
         BookDownloader2.downloadDataChanged -= this::onDownloadAdded
+        BookDownloader2.bookmarkChanged -= this::onBookmarkChanged
     }
 
     fun onDownloadAdded(item: Pair<Int, DownloadFragment.DownloadData>) = viewModelScope.launch {
@@ -315,14 +480,6 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                 )
             }
         }
-
-        val readList = arrayListOf(
-            ReadType.READING,
-            ReadType.ON_HOLD,
-            ReadType.PLAN_TO_READ,
-            ReadType.COMPLETED,
-            ReadType.DROPPED,
-        )
 
         val stateValue = state.value
 

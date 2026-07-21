@@ -178,12 +178,6 @@ fun MainPageScreen(state: MainPageState, action: (MainPageAction) -> Unit) {
         }
     }
 
-    LaunchedEffect(shouldLoadMore.value) {
-        if (shouldLoadMore.value && state.filter.error == null && !state.filter.loading) {
-            action(MainPageAction.Expand)
-        }
-    }
-
     val searchAction = remember<(SearchResponseAction) -> Unit>(action) {
         { action ->
             action(MainPageAction.ResultAction(action))
@@ -223,6 +217,12 @@ fun MainPageScreen(state: MainPageState, action: (MainPageAction) -> Unit) {
                 .padding(innerPadding),
             searchAction = searchAction,
         )
+
+        LaunchedEffect(shouldLoadMore.value) {
+            if (shouldLoadMore.value && state.filter.error == null && !state.filter.loading) {
+                action(MainPageAction.Expand)
+            }
+        }
     }
 }
 

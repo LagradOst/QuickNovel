@@ -14,10 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -52,6 +50,8 @@ import androidx.compose.ui.zIndex
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponseAction
+import com.lagradost.quicknovel.SearchResponseOperation
+import com.lagradost.quicknovel.compose.ActionDialog
 import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
@@ -62,9 +62,14 @@ import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
 import com.lagradost.quicknovel.tachiyomi.collectAsState
+import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.common.SearchList
+import com.lagradost.quicknovel.ui.history.HistoryAction.DismissDialog
+import com.lagradost.quicknovel.ui.history.HistoryAction.ResultAction
+import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -76,18 +81,17 @@ fun DownloadScreen(
     DownloadSort(
         state.downloadSortingMethod,
         state.regularSortingMethod,
-        state.sortingMethodDialog,
+        state.dialog,
         action
     )
 
     val pagesNames = persistentListOf(
         R.string.tab_downloads,
         R.string.type_reading,
-        R.string.type_dropped,
-        R.string.type_none,
-        R.string.type_completed,
         R.string.type_on_hold,
         R.string.type_plan_to_read,
+        R.string.type_completed,
+        R.string.type_dropped,
     )
 
     val context = LocalContext.current
@@ -159,7 +163,7 @@ fun DownloadScreen(
         if (state.pages.isEmpty()) return@Scaffold
 
         val pagerState = rememberPagerState(
-            initialPage = state.activePage,
+            initialPage = state.activePage.coerceIn(0, pagesNames.size - 1),
             pageCount = { pagesNames.size }
         )
 
@@ -192,20 +196,29 @@ fun DownloadScreen(
                 containerColor = colors.surfaceVariant,
                 indicator = {
                     Box(
+                        contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(30.dp)
+                            .height(40.dp)
                             .zIndex(-1.0f)
                             .tabIndicatorOffset(currentPage, matchContentSize = false)
-                            .circle()
-                            .background(colors.onBackground)
-                    )
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(5.dp)
+                                .circle()
+                                .background(colors.onBackground)
+                        )
+                    }
                 }, divider = {}
             ) {
                 pagesNames.forEachIndexed { index, row ->
                     val selected = index == currentPage
                     Tab(
-                        modifier = Modifier.height(30.dp),
+                        modifier = Modifier
+                            .height(40.dp)
+                            .circle(),
                         selected = selected, onClick = {
                             pagerState.requestScrollToPage(index)
                         }, text = {
@@ -227,11 +240,90 @@ fun DownloadScreen(
 fun DownloadSort(
     downloadSortingMethod: SortingMethodType,
     regularSortingMethod: SortingMethodType,
-    sortingMethodDialog: Boolean?,
+    sortingMethodDialog: DownloadDialog?,
     action: (DownloadPageAction) -> Unit,
 ) {
-    if (sortingMethodDialog == null) return
-    val data = if (sortingMethodDialog) {
+    when (sortingMethodDialog) {
+        is DownloadDialog.DeleteBookmark -> {
+            ActionDialog(
+                title = stringResource(R.string.remove),
+                text = stringResource(
+                    R.string.remove_from_bookmarks_format,
+                    sortingMethodDialog.item.name
+                ),
+                confirmText = stringResource(R.string.remove),
+                dismissText = stringResource(R.string.cancel),
+                dismiss = {
+                    action(DownloadPageAction.DismissDialog)
+                },
+                confirm = {
+                    action(DownloadPageAction.DismissDialog)
+                    action(
+                        DownloadPageAction.ResultAction(
+                            SearchResponseAction(
+                                sortingMethodDialog.item,
+                                SearchResponseOperation.Delete
+                            )
+                        )
+                    )
+                }
+            )
+        }
+
+        is DownloadDialog.DeleteItem -> {
+            ActionDialog(
+                title = stringResource(R.string.delete),
+                text = stringResource(
+                    R.string.permanently_delete_format,
+                    sortingMethodDialog.item.name
+                ),
+                confirmText = stringResource(R.string.delete),
+                dismissText = stringResource(R.string.cancel),
+                dismiss = {
+                    action(DownloadPageAction.DismissDialog)
+                },
+                confirm = {
+                    action(DownloadPageAction.DismissDialog)
+                    action(
+                        DownloadPageAction.ResultAction(
+                            SearchResponseAction(
+                                sortingMethodDialog.item,
+                                SearchResponseOperation.Delete
+                            )
+                        )
+                    )
+                }
+            )
+        }
+
+        DownloadDialog.SortBookmarks -> {
+            SortDialog(
+                items = normalSortingMethods,
+                sortingMethod = regularSortingMethod,
+                dismiss = {
+                    action(DownloadPageAction.DismissDialog)
+                },
+                select = { key ->
+                    action(DownloadPageAction.DismissDialog)
+                    action(DownloadPageAction.SelectSortingMethod(regularSortingMethod = key))
+                })
+        }
+
+        DownloadDialog.SortDownloads -> {
+            SortDialog(items = sortingMethods, sortingMethod = downloadSortingMethod, dismiss = {
+                action(DownloadPageAction.DismissDialog)
+            }, select = { key ->
+                action(DownloadPageAction.DismissDialog)
+                action(DownloadPageAction.SelectSortingMethod(downloadSortingMethod = key))
+            })
+        }
+
+        null -> {
+            // No dialog shown
+        }
+    }
+
+    /*val data = if (sortingMethodDialog) {
         sortingMethods
     } else {
         normalSortingMethods
@@ -249,7 +341,7 @@ fun DownloadSort(
         confirmText = stringResource(R.string.sort_apply),
         dismissText = stringResource(R.string.sort_cancel),
         dismiss = {
-            action(DownloadPageAction.DismissSorting)
+            action(DownloadPageAction.DismissDialog)
         },
         confirm = { key ->
             if (sortingMethodDialog) {
@@ -257,8 +349,26 @@ fun DownloadSort(
             } else {
                 action(DownloadPageAction.SelectSortingMethod(regularSortingMethod = key))
             }
-            action(DownloadPageAction.DismissSorting)
+            action(DownloadPageAction.DismissDialog)
         }
+    )*/
+}
+
+@Composable
+fun SortDialog(
+    items: PersistentList<SortingMethodPair>,
+    sortingMethod: SortingMethodType,
+    dismiss: () -> Unit,
+    select: (SortingMethodType) -> Unit,
+) {
+    SinglePairSelectDialog(
+        entries = items.associate { (it.id to it.inverse) to stringResource(it.name) },
+        selectedKey = sortingMethod,
+        title = stringResource(R.string.filter_dialog_sort_by),
+        confirmText = stringResource(R.string.sort_apply),
+        dismissText = stringResource(R.string.sort_cancel),
+        dismiss = dismiss,
+        confirm = select
     )
 }
 
