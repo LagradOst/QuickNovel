@@ -21,168 +21,6 @@ import kotlinx.collections.immutable.toPersistentSet
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.uuid.ExperimentalUuidApi
 
-/*
-object DownloadSorting {
-    val sortingMethods = arrayOf(
-        SortingMethod(R.string.default_sort, DEFAULT_SORT),
-        SortingMethod(R.string.recently_sort, LAST_ACCES_SORT, REVERSE_LAST_ACCES_SORT),
-        SortingMethod(
-            R.string.recently_updated_sort,
-            LAST_UPDATED_SORT,
-            REVERSE_LAST_UPDATED_SORT
-        ),
-        SortingMethod(R.string.alpha_sort, ALPHA_SORT, REVERSE_ALPHA_SORT),
-        SortingMethod(R.string.download_sort, DOWNLOADSIZE_SORT, REVERSE_DOWNLOADSIZE_SORT),
-        SortingMethod(
-            R.string.download_perc, DOWNLOADPRECENTAGE_SORT,
-            REVERSE_DOWNLOADPRECENTAGE_SORT
-        ),
-    )
-
-    val normalSortingMethods = arrayOf(
-        SortingMethod(R.string.default_sort, DEFAULT_SORT),
-        SortingMethod(R.string.recently_sort, LAST_ACCES_SORT, REVERSE_LAST_ACCES_SORT),
-        SortingMethod(R.string.alpha_sort, ALPHA_SORT, REVERSE_ALPHA_SORT),
-    )
-
-    @OptIn(ExperimentalUuidApi::class)
-    fun updateDirty(
-        pages: PersistentList<DownloadRow>,
-        dirtyIds: ConcurrentHashMap<Int, ImmutableDownloadState>,
-    ): PersistentList<DownloadRow> {
-        val row = pages.getOrNull(0) ?: return pages
-        // Also update the download state when we filter
-        val items = if (dirtyIds.isEmpty()) {
-            row.row
-        } else {
-            row.row.map { item ->
-                item.copy(
-                    downloadState = dirtyIds.remove(item.id) ?: item.downloadState
-                )
-            }.toPersistentList()
-        }
-        return pages.replacingAt(0, row.copy(row = items))
-    }
-
-    fun filterRows(
-        rows: ImmutableList<DownloadRow>,
-        query: String,
-        downloadSortingMethod: Int,
-        regularSortingMethod: Int
-    ): PersistentList<DownloadRow> {
-        return rows.mapIndexed { index, row ->
-            if (index != 0) {
-                return@mapIndexed row.copy(
-                    row = filterItems(
-                        row.row,
-                        regularSortingMethod,
-                        query
-                    )
-                )
-            }
-
-            row.copy(
-                row = filterItems(
-                    row.row,
-                    downloadSortingMethod,
-                    query
-                )
-            )
-        }.toPersistentList()
-    }
-
-    fun filterItems(
-        items: List<ImmutableSearchResponse>,
-        sort: Int,
-        query: String,
-    ): PersistentList<ImmutableSearchResponse> {
-        val currentArray = if (query.isBlank() || query.length < 2) {
-            items
-        } else {
-            items.filter { item ->
-                item.matchesQuery(query)
-            }
-        }
-
-        return when (sort) {
-            ALPHA_SORT -> {
-                currentArray.sortedBy { t -> t.name }
-            }
-
-            REVERSE_ALPHA_SORT -> {
-                currentArray.sortedByDescending { t -> t.name }
-            }
-
-            DOWNLOADSIZE_SORT -> {
-                currentArray.sortedByDescending { t -> t.downloadState?.downloaded }
-            }
-
-            REVERSE_DOWNLOADSIZE_SORT -> {
-                currentArray.sortedBy { t -> t.downloadState?.downloaded }
-            }
-
-            DOWNLOADPRECENTAGE_SORT -> {
-                currentArray.sortedByDescending { t ->
-                    t.downloadState?.downloadPercentage ?: 0.0f
-                }
-            }
-
-            REVERSE_DOWNLOADPRECENTAGE_SORT -> {
-                currentArray.sortedBy { t -> t.downloadState?.downloadPercentage ?: 0.0f }
-            }
-
-            REVERSE_LAST_ACCES_SORT -> {
-                currentArray.sortedBy { t ->
-                    (getKey<Long>(
-                        DOWNLOAD_EPUB_LAST_ACCESS,
-                        t.id.toString(),
-                        0
-                    )!!)
-                }
-            }
-
-            LAST_UPDATED_SORT -> {
-                if (currentArray.any { it.timeOfChapterDownloaded == null }) {
-                    currentArray.sortedByDescending { t ->
-                        (getKey<Long>(
-                            DOWNLOAD_EPUB_LAST_ACCESS,
-                            t.id.toString(),
-                            0
-                        )!!)
-                    }
-                } else {
-                    currentArray
-                }.sortedByDescending { it.timeOfChapterDownloaded ?: 0L }
-            }
-
-            REVERSE_LAST_UPDATED_SORT -> {
-                if (currentArray.any { it.timeOfChapterDownloaded == null }) {
-                    currentArray.sortedByDescending { t ->
-                        (getKey<Long>(
-                            DOWNLOAD_EPUB_LAST_ACCESS,
-                            t.id.toString(),
-                            0
-                        )!!)
-                    }
-                } else {
-                    currentArray
-                }.sortedBy { it.timeOfChapterDownloaded ?: 0L }
-            }
-            //DEFAULT_SORT, LAST_ACCES_SORT
-            else -> {
-                currentArray.sortedByDescending { t ->
-                    (getKey<Long>(
-                        DOWNLOAD_EPUB_LAST_ACCESS,
-                        t.id.toString(),
-                        0
-                    )!!)
-                }
-            }
-        }.toPersistentList()
-    }
-
-}*/
-
 @Immutable
 enum class SortingMethodType(val id: Int) {
     /** Default,  */
@@ -216,7 +54,9 @@ enum class SortingMethodType(val id: Int) {
      * For history this is when they are added
      * */
     LastCached(13),
-    RevLastCached(14);
+    RevLastCached(14),
+    ChapterCount(15),
+    RevChapterCount(16);
 
     companion object {
         fun from(value: Int): SortingMethodType {
@@ -264,6 +104,10 @@ val sortingMethods = persistentListOf(
         R.string.download_perc, SortingMethodType.DownloadPercentage,
         SortingMethodType.RevDownloadPercentage
     ),
+    SortingMethodPair(
+        R.string.chapters, SortingMethodType.ChapterCount,
+        SortingMethodType.RevChapterCount
+    ),
 )
 
 val normalSortingMethods = persistentListOf(
@@ -277,6 +121,10 @@ val normalSortingMethods = persistentListOf(
         R.string.alpha_sort,
         SortingMethodType.Alphabetical,
         SortingMethodType.RevAlphabetical
+    ),
+    SortingMethodPair(
+        R.string.chapters, SortingMethodType.ChapterCount,
+        SortingMethodType.RevChapterCount
     ),
 )
 
@@ -294,7 +142,7 @@ fun PersistentList<ImmutableSearchResponse>.updateItem(
     update: ImmutableSearchResponse.() -> ImmutableSearchResponse
 ): PersistentList<ImmutableSearchResponse> {
     val index = this.indexOfFirst { it.url == item.url }
-    if(index == -1) return this
+    if (index == -1) return this
     val newItem = update(this[index])
     return this.replacingAt(index, newItem)
 }
@@ -314,14 +162,14 @@ data class ImmutableSearchList(
     val sortingMethod: SortingMethodType = SortingMethodType.Default,
 ) {
     fun delete(id: Int): ImmutableSearchList {
-        if(!data.contains(id)) {
+        if (!data.contains(id)) {
             return this
         }
 
         return copy(
             data = data.removing(id),
             filtered = filtered.removing(id),
-            sorted = if(filtered.contains(id)) sorted.removing(id) else sorted
+            sorted = if (filtered.contains(id)) sorted.removing(id) else sorted
         )
     }
 
@@ -429,6 +277,10 @@ data class ImmutableSearchList(
             SortingMethodType.LastCached, SortingMethodType.RevLastCached -> {
                 newItem.timeOfCached != item.timeOfCached
             }
+
+            SortingMethodType.ChapterCount, SortingMethodType.RevChapterCount -> (((item.totalChapters?.toLong()
+                ?: item.downloadState?.total) != (newItem.totalChapters?.toLong()
+                ?: newItem.downloadState?.total)))
         }
 
         fun skipQuery(query: String) = query.trim().length < 2
@@ -494,6 +346,13 @@ data class ImmutableSearchList(
 
                 SortingMethodType.RevLastCached -> {
                     list.sortedBy { data[it]?.timeOfCached ?: 0L }
+                }
+
+                SortingMethodType.ChapterCount -> {
+                    list.sortedByDescending { data[it]?.totalChapters?.toLong() ?: data[it]?.downloadState?.total ?: 0L }
+                }
+                SortingMethodType.RevChapterCount -> {
+                    list.sortedBy { data[it]?.totalChapters?.toLong() ?: data[it]?.downloadState?.total ?: 0L }
                 }
             }
 
