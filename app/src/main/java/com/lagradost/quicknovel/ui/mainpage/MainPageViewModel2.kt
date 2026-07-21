@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.lagradost.quicknovel.APIRepository
+import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.ImmutableSearchResponse
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
@@ -18,6 +19,8 @@ import com.lagradost.quicknovel.compose.DefaultStateContainer
 import com.lagradost.quicknovel.compose.EffectContainer
 import com.lagradost.quicknovel.compose.SingleActiveQuery
 import com.lagradost.quicknovel.compose.StateContainer
+import com.lagradost.quicknovel.ui.download.updateItem
+import com.lagradost.quicknovel.ui.download.updateRow
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
 import com.lagradost.quicknovel.util.AppUtils.openInBrowser
 import kotlinx.collections.immutable.PersistentList
@@ -28,6 +31,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import java.util.concurrent.CancellationException
+import kotlin.uuid.ExperimentalUuidApi
 
 @Immutable
 data class MainPageState(
@@ -307,6 +311,36 @@ class MainPageViewModel2(
     }
 
     private fun resultAction(action: SearchResponseAction) {
-        action.doAction()
+        when (action.operation) {
+            SearchResponseOperation.Stream -> {
+                viewModelScope.launch {
+                    updateState {
+                        copy(query = query.copy(items = query.items.updateItem(action.response) {
+                            @OptIn(ExperimentalUuidApi::class)
+                            copy(generating = true)
+                        }), filter = filter.copy(items = filter.items.updateItem(action.response) {
+                            @OptIn(ExperimentalUuidApi::class)
+                            copy(generating = true)
+                        }))
+                    }
+
+                    BookDownloader2.stream(action.response)
+
+                    updateState {
+                        copy(query = query.copy(items = query.items.updateItem(action.response) {
+                            @OptIn(ExperimentalUuidApi::class)
+                            copy(generating = false)
+                        }), filter = filter.copy(items = filter.items.updateItem(action.response) {
+                            @OptIn(ExperimentalUuidApi::class)
+                            copy(generating = false)
+                        }))
+                    }
+                }
+            }
+
+            else -> {
+                action.doAction()
+            }
+        }
     }
 }

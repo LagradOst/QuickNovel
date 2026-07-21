@@ -8,6 +8,7 @@ import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
+import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
 import com.lagradost.quicknovel.HISTORY_FOLDER
@@ -22,6 +23,7 @@ import com.lagradost.quicknovel.compose.StateContainer
 import com.lagradost.quicknovel.ui.download.DownloadPageAction
 import com.lagradost.quicknovel.ui.download.ImmutableSearchList
 import com.lagradost.quicknovel.ui.download.SortingMethodType
+import com.lagradost.quicknovel.ui.download.updateRows
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.collections.immutable.toPersistentHashMap
 import kotlinx.coroutines.CoroutineScope
@@ -29,6 +31,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.uuid.ExperimentalUuidApi
 
 @Immutable
 data class HistoryState(
@@ -138,8 +141,28 @@ class HistoryViewModel2 : ViewModel(),
                     )
                 }
             }
+            SearchResponseOperation.Stream -> {
+                viewModelScope.launch {
+                    val id = action.response.id!!
+                    updateState {
+                        copy(history = history.update(id) {
+                            @OptIn(ExperimentalUuidApi::class)
+                            copy(generating = true)
+                        })
+                    }
+                    BookDownloader2.stream(action.response)
+                    updateState {
+                        copy(history = history.update(id) {
+                            @OptIn(ExperimentalUuidApi::class)
+                            copy(generating = false)
+                        })
+                    }
+                }
+            }
 
-            else -> action.doAction()
+            else -> {
+                action.doAction()
+            }
         }
     }
 

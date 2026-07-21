@@ -105,7 +105,7 @@ fun DownloadScreen(
     Scaffold(
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                modifier = Modifier.padding(bottom = 30.dp),
+                modifier = Modifier.padding(bottom = 40.dp),
                 onClick = {
                     action(DownloadPageAction.ShowSorting)
                 },

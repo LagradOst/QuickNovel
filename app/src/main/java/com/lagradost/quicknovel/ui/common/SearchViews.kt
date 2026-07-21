@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -44,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.ImmutableSearchResponse
@@ -199,7 +201,7 @@ fun SearchResponseRow(
             }, onLongClick = {
                 action(SearchResponseAction(response, SearchResponseOperation.Metadata))
             })
-            .downloadOutline(response.downloadState?.state)
+            .downloadOutline(if (response.generating) DownloadState.IsDownloading else response.downloadState?.state)
             .ripple(interactionSource)
     ) {
         AsyncImage(
@@ -235,18 +237,24 @@ fun SearchResponseRow(
             if (response.downloadState != null) {
                 if (response.downloadState.state == DownloadState.IsDownloading) {
                     Text(
-                        "${response.downloadState.progress}/${response.downloadState.total} - ${
+                        "${response.downloadState.progress}/${response.downloadState.total}${
                             response.downloadState.etaMs?.let {
-                                etaToString(
+                                " • " + etaToString(
                                     it
                                 )
                             } ?: ""
                         }", style = BaseStyles.textAltStyle)
                 } else {
+                    // TODO not use chapter text for bytes?
+                    // TODO not show for imported?
                     Text(
                         "${response.downloadState.progress} ${
                             stringResource(
-                                R.string.read_action_chapters
+                                if (response.downloadState.progress == 1L) {
+                                    R.string.chapter
+                                } else {
+                                    R.string.chapters
+                                }
                             )
                         }", style = BaseStyles.textAltStyle
                     )
@@ -341,6 +349,7 @@ fun RefreshButton(
             Spacer(Modifier.width(54.dp))
             return
         }
+
         DownloadState.Nothing -> R.drawable.arrow_circle_down_24px
     }
 
@@ -449,17 +458,39 @@ fun SearchResponseItem(
             })
             .rounded()
     ) {
-        AsyncImage(
-            contentScale = ContentScale.Crop,
-            model = imageRequest,
-            contentDescription = response.name,
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(0.68f)
                 .rounded()
-                .downloadOutline(response.downloadState?.state)
-                .ripple(interactionSource)
-        )
+                // We do the funny and assign generating = downloading
+                .downloadOutline(if (response.generating) DownloadState.IsDownloading else response.downloadState?.state)
+                .ripple(interactionSource),
+            contentAlignment = Alignment.TopEnd
+        ) {
+            AsyncImage(
+                contentScale = ContentScale.Crop,
+                model = imageRequest,
+                contentDescription = response.name,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            if (response.downloadState != null && response.epubSize != null && response.epubSize < response.downloadState.progress) {
+                Box(
+                    modifier = Modifier
+                        .padding(5.dp)
+                        .circle()
+                        .background(colors.primary)
+                        .padding(vertical = 3.dp, horizontal = 13.dp)
+                ) {
+                    Text(
+                        text = "+${(response.downloadState.progress - response.epubSize)}",
+                        color = colors.background,
+                        style = TextStyle(fontSize = 14.sp),
+                    )
+                }
+            }
+        }
 
         Box(
             modifier = Modifier

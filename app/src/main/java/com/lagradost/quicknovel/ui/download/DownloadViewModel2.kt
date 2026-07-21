@@ -16,6 +16,7 @@ import com.lagradost.quicknovel.BookDownloader2.downloadProgressChanged
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.CURRENT_TAB
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
+import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
 import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
@@ -232,11 +233,13 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             } finally {
                 val opened = System.currentTimeMillis()
                 setKey(DOWNLOAD_EPUB_LAST_ACCESS, id.toString(), opened)
+                val newEpubSize = getKey<Int>(DOWNLOAD_EPUB_SIZE, id.toString())
+
                 updateState {
                     copy(pages = pages.updateRow(0) {
                         update(id) {
                             @OptIn(ExperimentalUuidApi::class)
-                            copy(generating = false, timeOfPageOpened = opened)
+                            copy(generating = false, timeOfPageOpened = opened, epubSize = newEpubSize ?: this.epubSize)
                         }
                     })
                 }
@@ -255,7 +258,27 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             }
 
             SearchResponseOperation.Stream -> {
-                action.doAction()
+                viewModelScope.launch {
+                    val id = action.response.id!!
+                    updateState {
+                        copy(pages = pages.updateRows {
+                            update(id) {
+                                @OptIn(ExperimentalUuidApi::class)
+                                copy(generating = true)
+                            }
+                        })
+                    }
+                    BookDownloader2.stream(action.response)
+                    updateState {
+                        copy(pages = pages.updateRows {
+                            update(id) {
+                                @OptIn(ExperimentalUuidApi::class)
+                                copy(generating = false)
+                            }
+                        })
+                    }
+                }
+
             }
 
             SearchResponseOperation.AskDelete -> {

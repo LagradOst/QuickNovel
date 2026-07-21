@@ -1112,8 +1112,8 @@ object BookDownloader2 {
         }
     }
 
-    fun stream(card: ImmutableSearchResponse) = ioSafe {
-        if (streamResultMutex.isLocked) return@ioSafe
+    suspend fun stream(card: ImmutableSearchResponse) = withContext(Dispatchers.IO) {
+        if (streamResultMutex.isLocked) return@withContext
         streamResultMutex.withLock {
             val api = getApiFromName(card.apiName)
             val data = api.load(card.url)

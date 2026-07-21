@@ -188,7 +188,6 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
     fun doAction(operation: SearchResponseOperation) {
         when (operation) {
             SearchResponseOperation.Open -> loadResult(url, apiName)
-            SearchResponseOperation.Stream -> BookDownloader2.stream(this)
             SearchResponseOperation.Metadata -> {
                 MainActivity.loadPreviewPage(this)
             }

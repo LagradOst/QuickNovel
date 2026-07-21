@@ -289,6 +289,16 @@ fun <T> PersistentList<T>.updateRow(
     return this.replacingAt(index, newItem)
 }
 
+fun PersistentList<ImmutableSearchResponse>.updateItem(
+    item: ImmutableSearchResponse,
+    update: ImmutableSearchResponse.() -> ImmutableSearchResponse
+): PersistentList<ImmutableSearchResponse> {
+    val index = this.indexOfFirst { it.url == item.url }
+    if(index == -1) return this
+    val newItem = update(this[index])
+    return this.replacingAt(index, newItem)
+}
+
 fun <T> PersistentList<T>.updateRows(
     update: T.(Int) -> T
 ): PersistentList<T> {
