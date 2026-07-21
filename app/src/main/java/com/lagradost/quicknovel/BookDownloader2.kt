@@ -348,21 +348,24 @@ object BookDownloader2Helper {
             return false
         }
 
-        val relativePath = (Environment.DIRECTORY_DOWNLOADS + "${fs}Epub${fs}")
         val displayName = "${sanitizeFilename(name)}.epub"
 
-        if (isScopedStorage()) {
-            val cr = activity.contentResolver ?: return false
-            val fileUri =
-                cr.getExistingDownloadUriOrNullQ(relativePath, displayName) ?: return false
-            val fileLength = cr.getFileLength(fileUri) ?: return false
-            return fileLength != 0L
-        } else {
-            val normalPath =
-                "${Environment.getExternalStorageDirectory()}${fs}$relativePath$displayName"
+        return try {
+            val (baseDir, _) = activity.getBasePath()
 
-            val bookFile = File(normalPath)
-            return bookFile.exists()
+            val epubFile = baseDir?.findFile(displayName)
+
+            if (epubFile != null && epubFile.exists() == true) {
+
+                activity.contentResolver.openFileDescriptor(epubFile.uriOrThrow(), "r")?.use {
+                    it.statSize > 0
+                } ?: false
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            com.lagradost.safefile.logError(e)
+            false
         }
     }
 
