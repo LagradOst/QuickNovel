@@ -43,10 +43,8 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
-import com.lagradost.quicknovel.ImmutableSearchResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.SearchResponseAction
 import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.BaseStyles
 import com.lagradost.quicknovel.compose.CloudStreamTheme
@@ -56,6 +54,7 @@ import com.lagradost.quicknovel.compose.isLandscape
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
+import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseItem
 import com.lagradost.quicknovel.ui.download.DownloadPageAction
 import com.lagradost.quicknovel.ui.mainpage.SearchResponseDialog

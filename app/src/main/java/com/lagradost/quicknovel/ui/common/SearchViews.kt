@@ -45,14 +45,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import com.lagradost.quicknovel.DownloadState
-import com.lagradost.quicknovel.ImmutableSearchResponse
 import com.lagradost.quicknovel.NotificationHelper.etaToString
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.SearchResponseAction
-import com.lagradost.quicknovel.SearchResponseOperation
 import com.lagradost.quicknovel.compose.BaseStyles
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.RoundedImageShape
@@ -61,7 +57,6 @@ import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.isLandscape
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
-import com.lagradost.quicknovel.ui.download.ImmutableSearchList
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
@@ -201,7 +196,7 @@ fun SearchResponseRow(
             }, onLongClick = {
                 action(SearchResponseAction(response, SearchResponseOperation.Metadata))
             })
-            .downloadOutline(if (response.generating) DownloadState.IsDownloading else response.downloadState?.state)
+            .downloadOutline(if (response.generating) DownloadState.IsDownloading else response.downloadState?.status)
             .ripple(interactionSource)
     ) {
         AsyncImage(
@@ -259,9 +254,9 @@ fun SearchResponseRow(
                         }", style = BaseStyles.textAltStyle
                     )
                 }
-            } else if (response.totalChapters != null) {
+            } else if (response.chapters != null) {
                 Text(
-                    "${response.totalChapters} ${stringResource(R.string.read_action_chapters)}",
+                    "${response.chapters} ${stringResource(R.string.read_action_chapters)}",
                     style = BaseStyles.textAltStyle
                 )
             } else if (response.latestChapterName != null) {
@@ -344,7 +339,7 @@ fun RefreshButton(
     }
     val refreshInteractionSource = remember { MutableInteractionSource() }
 
-    val icon = when (response.downloadState.state) {
+    val icon = when (response.downloadState.status) {
         DownloadState.IsDownloading -> R.drawable.ic_baseline_pause_24
         DownloadState.IsPaused -> R.drawable.netflix_play
         DownloadState.IsStopped -> R.drawable.arrow_circle_down_24px
@@ -358,7 +353,7 @@ fun RefreshButton(
         DownloadState.Nothing -> R.drawable.arrow_circle_down_24px
     }
 
-    val operation = when (response.downloadState.state) {
+    val operation = when (response.downloadState.status) {
         DownloadState.IsDownloading -> SearchResponseOperation.Pause
         DownloadState.IsPaused -> SearchResponseOperation.Resume
         DownloadState.IsStopped -> SearchResponseOperation.Download
@@ -469,7 +464,7 @@ fun SearchResponseItem(
                 .aspectRatio(0.68f)
                 .rounded()
                 // We do the funny and assign generating = downloading
-                .downloadOutline(if (response.generating) DownloadState.IsDownloading else response.downloadState?.state)
+                .downloadOutline(if (response.generating) DownloadState.IsDownloading else response.downloadState?.status)
                 .ripple(interactionSource),
             contentAlignment = Alignment.TopEnd
         ) {

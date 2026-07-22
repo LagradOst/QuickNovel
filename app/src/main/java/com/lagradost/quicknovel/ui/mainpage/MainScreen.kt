@@ -91,10 +91,7 @@ import androidx.compose.ui.zIndex
 import androidx.core.graphics.rotationMatrix
 import coil3.compose.AsyncImage
 import com.lagradost.quicknovel.DownloadState
-import com.lagradost.quicknovel.ImmutableSearchResponse
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.SearchResponseAction
-import com.lagradost.quicknovel.SearchResponseOperation
 import com.lagradost.quicknovel.compose.BackHandler
 import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.BaseStyles
@@ -111,9 +108,9 @@ import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
 import com.lagradost.quicknovel.tachiyomi.collectAsState
 import com.lagradost.quicknovel.ui.common.SearchList
+import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseGrid
 import com.lagradost.quicknovel.ui.common.SearchResponseItem
-import com.lagradost.quicknovel.ui.download.ImmutableSearchList
 import com.lagradost.quicknovel.ui.search.SearchRow
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.launch
@@ -201,7 +198,8 @@ fun MainPageScreen(state: MainPageState, action: (MainPageAction) -> Unit) {
                 url = state.filter.url,
                 action = action,
                 query = state.filterVisual,
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                apiName = state.apiName
             )
         },
         modifier = Modifier
@@ -311,6 +309,7 @@ fun MainPageSearchBar(
     query: FilterQueryVisual,
     action: (MainPageAction) -> Unit,
     scrollBehavior: TopAppBarScrollBehavior,
+    apiName : String,
 ) {
 
     val context = LocalContext.current
@@ -319,6 +318,7 @@ fun MainPageSearchBar(
     val searchIsRowState by searchIsRow.collectAsState()
 
     BaseSearchBar(
+        placeholder = "${stringResource(R.string.search)} $apiName…" ,
         onQueryChange = { _ ->
             // action(MainPageAction.Search(query))
         },
@@ -427,7 +427,7 @@ fun RowScope.SelectButton(text: String, onClick: () -> Unit) {
 private fun SettingsScreenPreview() {
     CloudStreamTheme {
         MainPageScreen(
-            state = MainPageState(),
+            state = MainPageState(apiName = "hello world"),
             action = {})
     }
 }

@@ -47,10 +47,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.lagradost.quicknovel.ImmutableSearchResponse
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.SearchResponseAction
-import com.lagradost.quicknovel.SearchResponseOperation
 import com.lagradost.quicknovel.compose.ActionDialog
 import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.BaseStyles
@@ -65,9 +62,10 @@ import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
 import com.lagradost.quicknovel.tachiyomi.collectAsState
 import com.lagradost.quicknovel.ui.common.SearchList
 import com.lagradost.quicknovel.ui.common.SearchListRow
+import com.lagradost.quicknovel.ui.common.SearchResponseAction
+import com.lagradost.quicknovel.ui.common.SearchResponseOperation
+import com.lagradost.quicknovel.ui.common.normalSortingMethods
 import com.lagradost.quicknovel.ui.download.DownloadPageAction
-import com.lagradost.quicknovel.ui.download.ImmutableSearchList
-import com.lagradost.quicknovel.ui.download.normalSortingMethods
 import com.lagradost.quicknovel.ui.history.HistoryAction.*
 
 @OptIn(ExperimentalMaterial3Api::class)

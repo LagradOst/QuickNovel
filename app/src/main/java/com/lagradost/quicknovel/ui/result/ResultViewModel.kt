@@ -28,7 +28,6 @@ import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_READ_AT
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_SCROLL_CHAR
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HISTORY_FOLDER
-import com.lagradost.quicknovel.ImmutableSearchResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.PreferenceDelegate
 import com.lagradost.quicknovel.R
@@ -44,13 +43,13 @@ import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.launchSafe
 import com.lagradost.quicknovel.ui.ReadType
+import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.download.CHAPTER_SORT
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.download.LAST_ACCES_SORT
 import com.lagradost.quicknovel.ui.download.LAST_UPDATED_SORT
 import com.lagradost.quicknovel.ui.download.REVERSE_CHAPTER_SORT
 import com.lagradost.quicknovel.ui.download.REVERSE_LAST_ACCES_SORT
-import com.lagradost.quicknovel.ui.download.REVERSE_LAST_UPDATED_SORT
 import com.lagradost.quicknovel.ui.download.SortingMethod
 import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
@@ -770,6 +769,7 @@ class ResultViewModel : ViewModel() {
                 data = listOf(),
                 author = card.author,
                 posterUrl = card.posterUrl,
+                posterHeaders = card.posterHeaders,
                 rating = card.rating,
                 synopsis = card.synopsis,
                 tags = card.tags,

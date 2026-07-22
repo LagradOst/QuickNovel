@@ -49,8 +49,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.SearchResponseAction
-import com.lagradost.quicknovel.SearchResponseOperation
 import com.lagradost.quicknovel.compose.ActionDialog
 import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.CloudStreamTheme
@@ -63,7 +61,14 @@ import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
 import com.lagradost.quicknovel.tachiyomi.collectAsState
 import com.lagradost.quicknovel.ui.ReadType
+import com.lagradost.quicknovel.ui.common.ImmutableSearchList
 import com.lagradost.quicknovel.ui.common.SearchList
+import com.lagradost.quicknovel.ui.common.SearchResponseAction
+import com.lagradost.quicknovel.ui.common.SearchResponseOperation
+import com.lagradost.quicknovel.ui.common.SortingMethodPair
+import com.lagradost.quicknovel.ui.common.SortingMethodType
+import com.lagradost.quicknovel.ui.common.normalSortingMethods
+import com.lagradost.quicknovel.ui.common.sortingMethods
 import com.lagradost.quicknovel.ui.history.HistoryAction.DismissDialog
 import com.lagradost.quicknovel.ui.history.HistoryAction.ResultAction
 import kotlinx.collections.immutable.PersistentList
@@ -71,6 +76,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlin.collections.getOrNull
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
