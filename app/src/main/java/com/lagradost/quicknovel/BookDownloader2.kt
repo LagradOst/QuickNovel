@@ -1925,6 +1925,7 @@ object BookDownloader2 {
         count: Int
     ): Boolean? {
         val originalBitmap = imageXObject.image ?: return null
+        if (originalBitmap.width <= 0 || originalBitmap.height <= 0) return null
         if (!originalBitmap.isRecycled) {
             try {
                 val maxRes = 1200
