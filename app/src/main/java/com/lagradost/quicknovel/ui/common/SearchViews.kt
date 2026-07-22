@@ -264,6 +264,11 @@ fun SearchResponseRow(
                     "${response.totalChapters} ${stringResource(R.string.read_action_chapters)}",
                     style = BaseStyles.textAltStyle
                 )
+            } else if (response.latestChapterName != null) {
+                Text(
+                    response.latestChapterName,
+                    style = BaseStyles.textAltStyle
+                )
             }
         }
 
