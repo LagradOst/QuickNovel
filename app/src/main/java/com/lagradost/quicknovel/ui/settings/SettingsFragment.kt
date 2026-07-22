@@ -110,7 +110,6 @@ class SettingsFragment : Fragment(), SearchableSettings by SettingScreen() {
             return when {
                 path.isNullOrBlank() -> getDefaultDir(context)
                 path.startsWith("content://") -> SafeFile.fromUri(context, path.toUri())
-                path.startsWith("/storage") -> SafeFile.fromFilePath(context, path)
                 else -> SafeFile.fromFilePath(
                     context,
                     path.removePrefix(Environment.getExternalStorageDirectory().path).removePrefix(
