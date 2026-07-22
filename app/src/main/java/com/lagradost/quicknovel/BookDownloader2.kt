@@ -348,24 +348,15 @@ object BookDownloader2Helper {
             return false
         }
 
-        val displayName = "${sanitizeFilename(name)}.epub"
+        try {
+            val subDir =
+                activity.getBasePath().first ?: getDefaultDir(activity) ?: throw IOException("No file")
+            val displayName = "${sanitizeFilename(name)}.epub"
+            val foundFile = subDir.findFileOrThrow(displayName)
 
-        return try {
-            val (baseDir, _) = activity.getBasePath()
-
-            val epubFile = baseDir?.findFile(displayName)
-
-            if (epubFile != null && epubFile.exists() == true) {
-
-                activity.contentResolver.openFileDescriptor(epubFile.uriOrThrow(), "r")?.use {
-                    it.statSize > 0
-                } ?: false
-            } else {
-                false
-            }
-        } catch (e: Exception) {
-            com.lagradost.safefile.logError(e)
-            false
+            return foundFile.uri() != null
+        } catch (_ : Throwable) {
+            return false
         }
     }
 
