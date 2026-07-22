@@ -11,6 +11,7 @@ import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.providers.AllNovelProvider
 import com.lagradost.quicknovel.providers.AnnasArchive
+import com.lagradost.quicknovel.providers.ArNoProvider
 import com.lagradost.quicknovel.providers.DevilNovelsProvider
 import com.lagradost.quicknovel.providers.ChrysanthemumGardenProvider
 import com.lagradost.quicknovel.providers.FanMtlnProvider
@@ -25,8 +26,8 @@ import com.lagradost.quicknovel.providers.LibReadProvider
 import com.lagradost.quicknovel.providers.LightNovelTranslationsProvider
 import com.lagradost.quicknovel.providers.LightNovelWorldProvider
 import com.lagradost.quicknovel.providers.LnMTLProvider
+import com.lagradost.quicknovel.providers.LuxonScansProvider
 import com.lagradost.quicknovel.providers.MeioNovelProvider
-import com.lagradost.quicknovel.providers.MoreNovelProvider
 import com.lagradost.quicknovel.providers.MtlNovelProvider
 import com.lagradost.quicknovel.providers.NoBadNovelProvider
 import com.lagradost.quicknovel.providers.NovLoveProvider
@@ -37,11 +38,13 @@ import com.lagradost.quicknovel.providers.NovelFullNETProvider
 import com.lagradost.quicknovel.providers.NovelFullProvider
 import com.lagradost.quicknovel.providers.NovelLightProvider
 import com.lagradost.quicknovel.providers.NovelManiaProvider
+import com.lagradost.quicknovel.providers.NovelPhoenixProvider
 import com.lagradost.quicknovel.providers.NovelasLigerasProvider
 import com.lagradost.quicknovel.providers.NovelsOnlineProvider
 import com.lagradost.quicknovel.providers.PawReadProver
 import com.lagradost.quicknovel.providers.PlanetaEpubProvider
 import com.lagradost.quicknovel.providers.RanobesProvider
+import com.lagradost.quicknovel.providers.RanovelProvider
 import com.lagradost.quicknovel.providers.ReadNovelFullProvider
 import com.lagradost.quicknovel.providers.ReadOnlineFreeBookProvider
 import com.lagradost.quicknovel.providers.ReadfromnetProvider
@@ -53,6 +56,7 @@ import com.lagradost.quicknovel.providers.SakuraNovelProvider
 import com.lagradost.quicknovel.providers.ScribblehubProvider
 import com.lagradost.quicknovel.providers.SkyNovelsProvider
 import com.lagradost.quicknovel.providers.SonicMTLProvider
+import com.lagradost.quicknovel.providers.SyosetuProvider
 import com.lagradost.quicknovel.providers.WattpadProvider
 import com.lagradost.quicknovel.providers.WtrLabProvider
 import com.lagradost.quicknovel.providers.WuxiaBoxProvider
@@ -65,6 +69,7 @@ class Apis {
             //AllProvider(),
             AllNovelProvider(),
             AnnasArchive(),
+            ArNoProvider(),
             //AzynovelProvider(), // dont exist anymore
             //BestLightNovelProvider(), //dont exist anymore
             ChrysanthemumGardenProvider(),
@@ -85,9 +90,9 @@ class Apis {
             LightNovelWorldProvider(),
             LnoriProvider(),
             LnMTLProvider(),
+            LuxonScansProvider(),
             MeioNovelProvider(),
             //MNovelFreeProvider(), // same as NovelFullVipProvider
-            MoreNovelProvider(),
             MtlNovelProvider(),
             NoBadNovelProvider(),
             NovelasLigerasProvider(),
@@ -101,9 +106,11 @@ class Apis {
             //NovelPassionProvider(), // Site gone
             NovelsOnlineProvider(),
             NovLoveProvider(),
+            NovelPhoenixProvider(),
             PawReadProver(),
             PlanetaEpubProvider(),
             RanobesProvider(),
+            RanovelProvider(),
             //RanobesProvider(),
             //ReadAnyBookProvider(), // Books locked behind login
             ReadfromnetProvider(),
@@ -115,6 +122,7 @@ class Apis {
             RoyalRoadProvider(),
             SakuraNovelProvider(), // cloudflare?
             ScribblehubProvider(),
+            SyosetuProvider(),
             SkyNovelsProvider(),
             SonicMTLProvider(),
             WattpadProvider(),

@@ -98,12 +98,13 @@ class CloudflareKiller : Interceptor {
             response.header("cf-ray") != null ||
                     response.header("server")?.contains("cloudflare", ignoreCase = true) == true
 
-        if (code == 403 || code == 429 || code == 503) {
+        val bodySample = runCatching {
+            response.peekBody(1024 * 10).string().lowercase()
+        }.getOrDefault("")
+
+        if (code == 403 || code == 429 || code == 503 || (code == 200 && bodySample.contains("one moment, please"))) {
             if (hasCloudflareHeaders) return true
 
-            val bodySample = runCatching {
-                response.peekBody(1024 * 10).string().lowercase()
-            }.getOrDefault("")
 
             return bodySample.contains("cf-browser-verification") ||
                     bodySample.contains("checking your browser") ||
