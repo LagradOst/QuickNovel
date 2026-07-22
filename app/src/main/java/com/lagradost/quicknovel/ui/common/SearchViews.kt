@@ -235,7 +235,7 @@ fun SearchResponseRow(
             )
 
             if (response.downloadState != null) {
-                if (response.downloadState.state == DownloadState.IsDownloading) {
+                if (response.downloadState.progress != response.downloadState.total) {
                     Text(
                         "${response.downloadState.progress}/${response.downloadState.total}${
                             response.downloadState.etaMs?.let {
@@ -269,7 +269,7 @@ fun SearchResponseRow(
 
         Spacer(Modifier.weight(1f))
 
-        if (response.downloadState != null && response.epubSize != null && response.epubSize < response.downloadState.progress) {
+        if (response.downloadState != null && response.epubSize != null && response.hasNewChapters) {
             Box(
                 modifier = Modifier
                     .padding(horizontal = 5.dp)
@@ -475,7 +475,7 @@ fun SearchResponseItem(
                 modifier = Modifier.fillMaxSize()
             )
 
-            if (response.downloadState != null && response.epubSize != null && response.epubSize < response.downloadState.progress) {
+            if (response.downloadState != null && response.epubSize != null && response.hasNewChapters) {
                 Box(
                     modifier = Modifier
                         .padding(5.dp)

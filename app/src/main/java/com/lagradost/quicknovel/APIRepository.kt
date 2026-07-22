@@ -99,6 +99,8 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
         FuzzySearch.partialRatio(name.lowercase(), query) > 50
 
     val isImported: Boolean get() = (apiName == IMPORT_SOURCE || apiName == IMPORT_SOURCE_PDF)
+    val hasNewChapters : Boolean get() = downloadState != null && epubSize != null && !isImported && epubSize < downloadState.progress
+
     val imageRequest
         get() = @Composable {
             val context = LocalContext.current
