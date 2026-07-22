@@ -73,7 +73,6 @@ open class MeioNovelProvider : MainAPI() {
         }
         val url = "$mainUrl/$order/page/$page/${if (orderBy.isNullOrBlank()) "" else "?m_orderby=$orderBy"}"
         val document = app.get(url).document
-        println(document)
         val returnValue = document.select("div.page-item-detail").mapNotNull { h ->
             val imageHeader = h.selectFirst("div.item-thumb > a") ?: return@mapNotNull null
             val name = imageHeader.attr("title")
@@ -97,7 +96,7 @@ open class MeioNovelProvider : MainAPI() {
         val document = app.get(url).document
         val name = document.selectFirst("div.post-title > h1")?.text()?.clean() ?: return null
 
-        return newStreamResponse(url, name, getChapters(url)) {
+        return newStreamResponse(name, url, getChapters(url)) {
             tags = document.select("div.genres-content > a").map { it.text() }
             author = document.selectFirst("div.author-content > a")?.text()
 
