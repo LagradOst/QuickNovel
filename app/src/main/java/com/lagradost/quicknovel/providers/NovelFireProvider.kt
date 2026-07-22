@@ -28,7 +28,6 @@ open class NovelFireProvider:  MainAPI() {
     override val hasMainPage = true
     override val hasReviews = true
     val novelsIdRequired = ConcurrentHashMap<String, String>()
-    var nextPosts: String = ""
     override val mainCategories = listOf(
         "All" to "status-all",
         "Completed" to "status-completed",
@@ -236,9 +235,11 @@ open class NovelFireProvider:  MainAPI() {
         page: Int,
         showSpoilers: Boolean
     ): List<UserReview> {
-        val realUrl = "$mainUrl/comment/show?post_id=${novelsIdRequired[url]}&chapter_id=&order_by=newest&cursor=$nextPosts"
+        val reviewData = novelsIdRequired[url]?.split("-!--")?:emptyList()
+        val realUrl = "$mainUrl/comment/show?post_id=${reviewData[0]}&chapter_id=&order_by=newest&cursor=${reviewData.getOrNull(1) ?: ""}"
         val res = app.get(realUrl).parsed<PostsResponse>()
-        nextPosts = res.nextCursor
+        if(res.nextCursor.isNotBlank())
+            novelsIdRequired[url] = reviewData[0] +"-!--"+res.nextCursor
         val reviews = Jsoup.parse(res.html).select("li:has(.comment-item)")
 
         return reviews.mapNotNull { r ->
