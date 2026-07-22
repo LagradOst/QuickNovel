@@ -22,7 +22,7 @@ class NovLoveProvider  : MeioNovelProvider()
         val document = app.get(finalUrl).document
         val name = document.selectFirst("div.post-title > h1")?.text()?.clean() ?: return null
 
-        return newStreamResponse(url, name, getChapters(url)) {
+        return newStreamResponse(name, url, getChapters(url)) {
             tags = document.select("div.genres-content > a").map { it.text() }
             author = document.selectFirst("div.author-content > a")?.text()
 
