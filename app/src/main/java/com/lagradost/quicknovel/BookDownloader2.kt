@@ -24,6 +24,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.annotation.WorkerThread
+import androidx.compose.runtime.Immutable
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -1235,9 +1236,10 @@ object BookDownloader2 {
                 val state = getKey<Int>(key)
                 if (state == readList[currentTabIndex].prefValue) {
                     val id = key.replaceFirst(RESULT_BOOKMARK_STATE, RESULT_BOOKMARK)
+
                     val cached = getKey<ResultCached>(id) ?: continue
                     launch {
-                        getNewTotalChapters(cached)
+                        getNewTotalChapters(cached,currentTabIndex)
                     }
                 }
             }
@@ -1246,9 +1248,10 @@ object BookDownloader2 {
 
 
     private val getNewTotalChaptersSemaphore = Semaphore(5)
-    suspend fun getNewTotalChapters(cached: ResultCached) {
+    suspend fun getNewTotalChapters(cached: ResultCached, page : Int) {
         getNewTotalChaptersSemaphore.withPermit {
             try {
+                refreshingChanged(RefreshQuery(cached.id,true,page))
                 val api = getApiFromNameOrNull(cached.apiName) ?: return@withPermit
                 val response = api.load(cached.source, true)
 
@@ -1265,6 +1268,7 @@ object BookDownloader2 {
                         totalChapters = totalChapters,
                     )
                 )
+                bookmarkChanged(cached.id)
 
                 val newId = generateId(loaded, cached.apiName)
                 if (cached.id != newId) {
@@ -1279,6 +1283,8 @@ object BookDownloader2 {
                 }
             } catch (e: Throwable) {
                 if (e !is CancellationException) logError(e)
+            } finally {
+                refreshingChanged(RefreshQuery(cached.id,false,page))
             }
         }
     }
@@ -1327,6 +1333,14 @@ object BookDownloader2 {
     val downloadRemoved = Event<Int>()
     val downloadDataRefreshed = Event<Int>()
     val bookmarkChanged = Event<Int>()
+    val refreshingChanged = Event<RefreshQuery>()
+
+    @Immutable
+    data class RefreshQuery(
+        val id : Int,
+        val refreshing : Boolean,
+        val page : Int,
+    )
 
     private fun initDownloadProgress() = CoroutineScope(Dispatchers.Default).launchSafe {
         downloadInfoMutex.withLock {
@@ -2089,6 +2103,49 @@ object BookDownloader2 {
     }
 
     fun preloadPartialImportedPdf(bk: DownloadFragment.DownloadDataLoaded, context: Context) {
+        try {
+            val finalBook = File(
+                File(context.filesDir, getDirectory(bk.apiName, bk.author ?: "", bk.name)),
+                LOCAL_EPUB
+            )
+            if (finalBook.exists()) finalBook.delete()
+            val tempFolder = File(context.cacheDir, "temp_${bk.id}")
+            val book = EpubBook().apply {
+                metadata.addTitle(bk.name)
+                metadata.addAuthor(Author(bk.author))
+            }
+            tempFolder.listFiles()?.let {
+                for ((i, file) in it.withIndex())
+                    if (file.name.contains("img_")) {
+                        val res = Resource(file.readBytes(), file.name)
+                        book.addResource(res)
+                        if (i == 0) book.coverImage = res
+                    }
+            }
+
+            //use twice, to sort chapters
+            tempFolder.listFiles { _, name -> name.startsWith("chapter") }?.sortedBy {
+                it.name.filter { char -> char.isDigit() }.toInt()
+            }?.forEach { file ->
+                val res = Resource(file.readBytes(), file.name)
+                book.addSection(
+                    "Chapter ${file.name.replace("chapter", "").replace(".xhtml", "")}",
+                    res
+                )
+            }
+
+            finalBook.parentFile?.mkdirs()
+            //save all the book
+            FileOutputStream(finalBook).use { fos ->
+                EpubWriter().write(book, fos)
+            }
+        } catch (t: Throwable) {
+            logError(t)
+        }
+    }
+
+    fun preloadPartialImportedPdf(bk: ImmutableSearchResponse) {
+        val context = activity ?: return
         try {
             val finalBook = File(
                 File(context.filesDir, getDirectory(bk.apiName, bk.author ?: "", bk.name)),

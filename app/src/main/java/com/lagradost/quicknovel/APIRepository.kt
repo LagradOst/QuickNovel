@@ -181,7 +181,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                     DOWNLOAD_EPUB_LAST_ACCESS,
                     id.toString(),
                 ) ?: 0,
-                epubSize = getKey(DOWNLOAD_EPUB_SIZE, id.toString())
+                epubSize = getKey(DOWNLOAD_EPUB_SIZE, id.toString()) ?: 0
             )
     }
 

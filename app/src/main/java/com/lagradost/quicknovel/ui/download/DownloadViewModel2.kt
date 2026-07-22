@@ -3,6 +3,7 @@ package com.lagradost.quicknovel.ui.download
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lagradost.quicknovel.BaseApplication
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
@@ -21,6 +22,7 @@ import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
 import com.lagradost.quicknovel.DownloadActionType
+import com.lagradost.quicknovel.DownloadFileWorkManager
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.ImmutableDownloadState
@@ -98,7 +100,12 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         when (action) {
             is DownloadPageAction.Refresh -> {
                 viewModelScope.launch {
-                    refreshDownloads()
+                    val page = state.value.activePage
+                    if (page == 0) {
+                        refreshDownloads()
+                    } else {
+                        refreshPage(page)
+                    }
                 }
             }
 
@@ -175,6 +182,20 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         }
     }
 
+    private fun onRefreshingChanged(item : BookDownloader2.RefreshQuery) = viewModelScope.launch {
+        // This is a hijack of the "generating" system, however we assume that it is fine
+        updateState {
+            copy(
+                pages = pages.updateRow(item.page) {
+                    update(item.id) {
+                        @OptIn(ExperimentalUuidApi::class)
+                        copy(generating = item.refreshing)
+                    }
+                },
+            )
+        }
+    }
+
     private fun onBookmarkChanged(id: Int) = viewModelScope.launch {
         val result = getKey<ResultCached>(RESULT_BOOKMARK, id.toString())
         val state = getKey<Int>(RESULT_BOOKMARK_STATE, id.toString())
@@ -222,6 +243,11 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                         }
                     })
                 }
+
+                if (response.isImported && downloadState.progress < downloadState.total) {
+                    BookDownloader2.preloadPartialImportedPdf(response)
+                }
+
                 BookDownloader2.readEpub(
                     id,
                     downloadState.progress.toInt(),
@@ -239,7 +265,11 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                     copy(pages = pages.updateRow(0) {
                         update(id) {
                             @OptIn(ExperimentalUuidApi::class)
-                            copy(generating = false, timeOfPageOpened = opened, epubSize = newEpubSize ?: this.epubSize)
+                            copy(
+                                generating = false,
+                                timeOfPageOpened = opened,
+                                epubSize = newEpubSize ?: this.epubSize
+                            )
                         }
                     })
                 }
@@ -332,6 +362,7 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                     DownloadActionType.Pause
                 )
             }
+
             SearchResponseOperation.Resume -> {
                 val id = action.response.id!!
                 BookDownloader2.addPendingAction(
@@ -340,6 +371,14 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                 )
             }
         }
+    }
+
+
+    fun refreshPage(page: Int) {
+        DownloadFileWorkManager.refreshAllReadingProgress(
+            BaseApplication.context ?: return,
+            page
+        )
     }
 
     suspend fun refreshDownloads() {
@@ -399,6 +438,7 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         BookDownloader2.downloadRemoved += this::onDownloadRemoved
         BookDownloader2.downloadDataChanged += this::onDownloadAdded
         BookDownloader2.bookmarkChanged += this::onBookmarkChanged
+        BookDownloader2.refreshingChanged += this::onRefreshingChanged
     }
 
     override fun onCleared() {
@@ -406,6 +446,7 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         BookDownloader2.downloadRemoved -= this::onDownloadRemoved
         BookDownloader2.downloadDataChanged -= this::onDownloadAdded
         BookDownloader2.bookmarkChanged -= this::onBookmarkChanged
+        BookDownloader2.refreshingChanged -= this::onRefreshingChanged
     }
 
     fun onDownloadAdded(item: Pair<Int, DownloadFragment.DownloadData>) = viewModelScope.launch {

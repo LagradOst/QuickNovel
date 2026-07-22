@@ -99,6 +99,22 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
             )
         }
 
+        fun refreshAllReadingProgress(context: Context, currentTab: Int) {
+            val uniqueWorkName = "${ID_REFRESH_READINGPROGRESS}_$currentTab"
+            getWorkerManager(context).enqueueUniqueWork(
+                uniqueWorkName,
+                ExistingWorkPolicy.KEEP,
+                OneTimeWorkRequest.Builder(DownloadFileWorkManager::class.java)
+                    .setInputData(
+                        Data.Builder()
+                            .putString(ID, ID_REFRESH_READINGPROGRESS)
+                            .putInt(CURRENT_TAB, currentTab)
+                            .build()
+                    )
+                    .build()
+            )
+        }
+
         private fun startDownload(data: Any, context: Context) {
             getWorkerManager(context).enqueueUniqueWork(
                 ID_DOWNLOAD + System.currentTimeMillis(),
