@@ -19,6 +19,7 @@ import com.lagradost.quicknovel.providers.NovelFireProvider.RelatedResponse
 import com.lagradost.quicknovel.setStatus
 import com.lagradost.quicknovel.util.AppUtils.parseJson
 import org.jsoup.Jsoup
+import java.util.concurrent.ConcurrentHashMap
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
@@ -33,8 +34,8 @@ class  WtrLabProvider : MainAPI() {
     override val hasMainPage = true
     override val usesCloudFlareKiller = true
     override val hasReviews = true
-    var novelId = ""
-    //&status=
+    val novelsIdRequired = ConcurrentHashMap<String, String>()
+
     override val mainCategories = listOf(
         "All" to "all",
         "Ongoing" to "ongoing",
@@ -169,7 +170,7 @@ class  WtrLabProvider : MainAPI() {
         val jsonNode = doc.selectFirst("#__NEXT_DATA__")
         val json = jsonNode?.data() ?: throw ErrorLoadingException("no chapters")
         val chaptersJson = parseJson<ResultJsonResponse.Root>(json)
-        novelId = chaptersJson.props.pageProps.serie.serieData.id.toString()
+        novelsIdRequired[url] = chaptersJson.props.pageProps.serie.serieData.id.toString()
 
         val chapters = mutableListOf<ChapterData>()
         chapters.addAll(
@@ -202,13 +203,11 @@ class  WtrLabProvider : MainAPI() {
                     it.times(20).times(10).roundToInt()
                 }
             }
-            related = getRelated()
+            related = getRelated(url)
         }
     }
-    suspend fun getRelated(): List<SearchResponse> {
-        if (novelId.isEmpty()) return emptyList()
-
-        val url = "$mainUrl/api/v2/novel/similar/$novelId"
+    suspend fun getRelated(url: String): List<SearchResponse> {
+        val url = "$mainUrl/api/v2/novel/similar/${novelsIdRequired[url]}"
         val response = app.get(url).parsedSafe<RelatedResponse>()
 
         return response?.data?.map { item ->
@@ -231,9 +230,7 @@ class  WtrLabProvider : MainAPI() {
         page: Int,
         showSpoilers: Boolean
     ): List<UserReview> {
-        if (novelId.isEmpty()) return emptyList()
-
-        val realUrl = "$mainUrl/api/review/get?serie_id=$novelId&page=${page - 1}&sort=most_liked"
+        val realUrl = "$mainUrl/api/review/get?serie_id=${novelsIdRequired[url]}&page=${page - 1}&sort=most_liked"
         val res = app.get(realUrl).parsedSafe<ReviewResponse>()
         return res?.data?.mapNotNull { item ->
             val reviewTxt = item.comment ?: return@mapNotNull null

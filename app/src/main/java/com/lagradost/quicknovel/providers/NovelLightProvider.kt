@@ -20,6 +20,7 @@ import org.jsoup.nodes.Document
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.providers.LightNovelWorldProvider.PostsResponse
+import java.util.concurrent.ConcurrentHashMap
 
 class NovelLightProvider:  MainAPI() {
     override val name = "Novel Light"
@@ -29,7 +30,7 @@ class NovelLightProvider:  MainAPI() {
     override val iconBackgroundId = R.color.novelightColor
     override val hasMainPage = true
     override val hasReviews = true
-    var novelId = ""
+    val novelsIdRequired = ConcurrentHashMap<String, String>()
 
     fun baseHeaders(url:String = "") =
         if(url.isNotEmpty())
@@ -92,7 +93,7 @@ class NovelLightProvider:  MainAPI() {
         val title = document.selectFirst("header h1")?.text() ?: throw ErrorLoadingException("Title not found")
 
         val scriptData = document.selectFirst("#comments script")?.data() ?: ""
-        novelId = Regex("""const OBJECT_BY_COMMENT = (\d+);""").find(scriptData)?.groupValues?.get(1) ?: ""
+        novelsIdRequired[url] = Regex("""const OBJECT_BY_COMMENT = (\d+);""").find(scriptData)?.groupValues?.get(1) ?: ""
 
 
         val chapters = getChapters(document)
@@ -133,10 +134,9 @@ class NovelLightProvider:  MainAPI() {
         page: Int,
         showSpoilers: Boolean
     ): List<UserReview> {
-        if (novelId.isEmpty()) return emptyList()
 
         //https://novelight.net/api/comments/?content_type=18&limit=20&object_id=308&page=1
-        val realUrl = "$mainUrl/api/comments/?content_type=18&limit=20&object_id=$novelId&page=$page"
+        val realUrl = "$mainUrl/api/comments/?content_type=18&limit=20&object_id=${novelsIdRequired[url]}&page=$page"
 
         val res = app.get(realUrl).parsedSafe<NovelLightReviewsResponse>()
         val dataList = res?.results ?: return emptyList()

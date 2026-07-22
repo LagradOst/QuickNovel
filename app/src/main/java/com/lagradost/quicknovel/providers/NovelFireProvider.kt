@@ -17,6 +17,7 @@ import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import org.jsoup.Jsoup
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
 
 open class NovelFireProvider:  MainAPI() {
@@ -26,7 +27,7 @@ open class NovelFireProvider:  MainAPI() {
     override val rateLimitTime = 500L
     override val hasMainPage = true
     override val hasReviews = true
-    var novelId: String = ""
+    val novelsIdRequired = ConcurrentHashMap<String, String>()
     var nextPosts: String = ""
     override val mainCategories = listOf(
         "All" to "status-all",
@@ -136,7 +137,7 @@ open class NovelFireProvider:  MainAPI() {
 
         val title = infoDiv.selectFirst("h1.novel-title")?.text() ?: throw ErrorLoadingException("Title not found")
 
-        novelId = document.selectFirst("a#novel-report")?.attr("report-post_id") ?: throw ErrorLoadingException("Id not found")
+        novelsIdRequired[url] = document.selectFirst("a#novel-report")?.attr("report-post_id") ?: throw ErrorLoadingException("Id not found")
         val chapters = getChapters(url)
 
         return newStreamResponse(title,fixUrl(url), chapters) {
@@ -169,7 +170,7 @@ open class NovelFireProvider:  MainAPI() {
                     ?.toIntOrNull() ?: 0
             this.rating = document.selectFirst("div.rating strong.nub")?.text()
                 ?.toFloatOrNull()?.times(20)?.times(10)?.roundToInt()
-            related = getRelated()
+            related = getRelated(url)
         }
     }
 
@@ -197,7 +198,7 @@ open class NovelFireProvider:  MainAPI() {
             "length" to "-1",
             "search[value]" to "",
             "search[regex]" to "false",
-            "post_id" to novelId,
+            "post_id" to novelsIdRequired[url].toString(),
             "only_bookmark" to "false"
         )).parsed<AjaxChapterRoot>()
 
@@ -212,8 +213,8 @@ open class NovelFireProvider:  MainAPI() {
         } ?: emptyList()
     }
 
-    suspend fun getRelated(): List<SearchResponse> {
-        val url = "$mainUrl/ajax/novelYouMayLike?post_id=$novelId"
+    suspend fun getRelated(url: String): List<SearchResponse> {
+        val url = "$mainUrl/ajax/novelYouMayLike?post_id=${novelsIdRequired[url]}"
         val document = app.get(url).parsed<RelatedResponse>()
         return Jsoup.parse(document.html).select("li.novel-item").mapNotNull { element ->
             val href = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
@@ -235,7 +236,7 @@ open class NovelFireProvider:  MainAPI() {
         page: Int,
         showSpoilers: Boolean
     ): List<UserReview> {
-        val realUrl = "$mainUrl/comment/show?post_id=$novelId&chapter_id=&order_by=newest&cursor=$nextPosts"
+        val realUrl = "$mainUrl/comment/show?post_id=${novelsIdRequired[url]}&chapter_id=&order_by=newest&cursor=$nextPosts"
         val res = app.get(realUrl).parsed<PostsResponse>()
         nextPosts = res.nextCursor
         val reviews = Jsoup.parse(res.html).select("li:has(.comment-item)")

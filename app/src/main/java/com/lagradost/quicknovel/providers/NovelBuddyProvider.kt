@@ -15,6 +15,7 @@ import com.lagradost.quicknovel.providers.NovelFireProvider.PostsResponse
 import com.lagradost.quicknovel.setStatus
 import com.lagradost.quicknovel.util.AppUtils.parseJson
 import org.jsoup.Jsoup
+import java.util.concurrent.ConcurrentHashMap
 
 class NovelBuddyProvider : MainAPI() {
     override val name = "Novel Buddy"
@@ -25,7 +26,8 @@ class NovelBuddyProvider : MainAPI() {
     override val lang = "en"
     override val hasMainPage = true
     override val hasReviews = true
-    var novelId = ""
+    val novelsIdRequired = ConcurrentHashMap<String, String>()
+
     /*
     override val mainCategories = listOf(
         "Ongoing" to "ongoing",
@@ -150,7 +152,7 @@ class NovelBuddyProvider : MainAPI() {
 
         val nextData = parseJson<NextData>(jsonData)
         val bookId = nextData.props.pageProps.initialManga.id
-        novelId = bookId
+        novelsIdRequired[url] = bookId
         val title = nextData.props.pageProps.initialManga.name
 
         val api = "$apiUrl/$bookId/chapters"
@@ -179,8 +181,8 @@ class NovelBuddyProvider : MainAPI() {
         page: Int,
         showSpoilers: Boolean
     ): List<UserReview> {
-        if (novelId.isEmpty()) return emptyList()
-        val realUrl = "${apiUrl.replace("/titles", "")}/comments/title/$novelId?page=$page&limit=10&sort=newest&skip_reactions=1"
+
+        val realUrl = "${apiUrl.replace("/titles", "")}/comments/title/${novelsIdRequired[url]}?page=$page&limit=10&sort=newest&skip_reactions=1"
         val res = app.get(realUrl).parsedSafe<CommentResponse>()
         val data = res?.data ?: return emptyList()
         return data.items?.map { item ->

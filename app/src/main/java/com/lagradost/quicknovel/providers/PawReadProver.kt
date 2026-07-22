@@ -15,6 +15,7 @@ import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.providers.NovelBuddyProvider.CommentResponse
 import org.jsoup.nodes.Document
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
 
 class PawReadProver : MainAPI() {
@@ -23,7 +24,7 @@ class PawReadProver : MainAPI() {
     override val iconId = R.drawable.pawread
     override val hasMainPage = true
     override val hasReviews = true
-    var novelId = ""
+    val novelsIdRequired = ConcurrentHashMap<String, String>()
     override val mainCategories = listOf(
         "All" to "all-",
         "Completed" to "wanjie-",
@@ -108,7 +109,7 @@ class PawReadProver : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
-        novelId = document.selectFirst("input[name=novel_id]")?.attr("value") ?: ""
+        novelsIdRequired[url] = document.selectFirst("input[name=novel_id]")?.attr("value") ?: ""
         //val comic = document.selectFirst(".comic-view")
         val board = document.selectFirst("#tab1_board")!!
         val regex = Regex("'(\\d+)'")
@@ -160,9 +161,9 @@ class PawReadProver : MainAPI() {
         page: Int,
         showSpoilers: Boolean
     ): List<UserReview> {
-        if (novelId.isEmpty() || page > 1) return emptyList()
+        if (page > 1) return emptyList()
 
-        val realUrl = "https://api.pawread.com/user/review/list?access-token=undefined&novel_id=$novelId&chapter_id=0"
+        val realUrl = "https://api.pawread.com/user/review/list?access-token=undefined&novel_id=${novelsIdRequired[url]}&chapter_id=0"
 
         val res = app.get(realUrl).parsedSafe<PawReadReviewsResponse>()
         val dataList = res?.items ?: return emptyList()

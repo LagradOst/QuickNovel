@@ -5,6 +5,7 @@ import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.util.AppUtils.parseJson
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import java.util.concurrent.ConcurrentHashMap
 
 
 class RanobesProvider : MainAPI() {
@@ -16,7 +17,8 @@ class RanobesProvider : MainAPI() {
     override val usesCloudFlareKiller = true
     override val rateLimitTime = 500L
     override val hasReviews = true
-    var novelId = ""
+    val novelsIdRequired = ConcurrentHashMap<String, String>()
+
     override val tags = listOf(
         "Action" to "Action",
         "Adult" to "Adult",
@@ -130,7 +132,7 @@ class RanobesProvider : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse? {
         val document = app.get(url).document
-        novelId = document.selectFirst("input[name=newsid]")?.attr("value") ?: ""
+        novelsIdRequired[url] = document.selectFirst("input[name=newsid]")?.attr("value") ?: ""
         val name = document.selectFirst("h1.title")?.ownText() ?: return null
         val chapters = getChapters(document)
         return newStreamResponse(url = url, name = name, data = chapters) {
@@ -177,9 +179,7 @@ class RanobesProvider : MainAPI() {
         page: Int,
         showSpoilers: Boolean
     ): List<UserReview> {
-        if (novelId.isEmpty()) return emptyList()
-
-        val ajaxUrl = "$mainUrl/engine/ajax/controller.php?mod=comments&cstart=$page&news_id=$novelId&skin=Dark"
+        val ajaxUrl = "$mainUrl/engine/ajax/controller.php?mod=comments&cstart=$page&news_id=${novelsIdRequired[url]}&skin=Dark"
 
         val res = app.get(ajaxUrl).parsedSafe<RanobesCommentsResponse>()
         val htmlContent = res?.comments ?: return emptyList()

@@ -16,6 +16,7 @@ import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import java.util.concurrent.ConcurrentHashMap
 
 open class LibReadProvider : MainAPI() {
     override val name = "LibRead"
@@ -31,7 +32,7 @@ open class LibReadProvider : MainAPI() {
 
     override val iconBackgroundId = R.color.libread_header_color
     override val hasReviews = true
-    var novelId = ""
+    val novelsIdRequired = ConcurrentHashMap<String, String>()
 
     override val tags = listOf(
         "All" to "",
@@ -178,12 +179,11 @@ open class LibReadProvider : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        novelId = ""
         val response = app.get(url)
         val document = response.document
         val name = document.selectFirst("h1.tit")?.text() ?: return null
         val chaptersDataphp = getChapterList(document, url)
-        novelId = document.selectFirst("a.set-case.add")?.attr("data-articleid") ?: ""
+        novelsIdRequired[url] = document.selectFirst("a.set-case.add")?.attr("data-articleid") ?: ""
         return newStreamResponse(url = url, name = name, data = chaptersDataphp) {
             author =
                 document.selectFirst("span.glyphicon.glyphicon-user")?.nextElementSibling()?.text()
@@ -214,7 +214,6 @@ open class LibReadProvider : MainAPI() {
         page: Int,
         showSpoilers: Boolean
     ): List<UserReview> {
-        if (novelId.isEmpty()) return emptyList()
 
         val realUrl = "$mainUrl/api/comments.php"
 
@@ -223,7 +222,7 @@ open class LibReadProvider : MainAPI() {
                 app.post(
                     realUrl, data = mapOf(
                         "action" to "list",
-                        "articleid" to novelId,
+                        "articleid" to novelsIdRequired[url].toString(),
                         "chapterid" to "0",
                         "page" to i.toString()
                     )
@@ -234,7 +233,7 @@ open class LibReadProvider : MainAPI() {
                 app.post(
                     realUrl, data = mapOf(
                         "action" to "list",
-                        "articleid" to novelId,
+                        "articleid" to novelsIdRequired[url].toString(),
                         "chapterid" to "0",
                         "page" to (page + 3).toString()
                     )

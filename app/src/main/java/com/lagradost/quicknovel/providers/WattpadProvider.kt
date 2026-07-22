@@ -9,6 +9,7 @@ import org.json.JSONObject
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.parser.Parser
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.mapNotNull
 
 class WattpadProvider : MainAPI() {
@@ -18,7 +19,7 @@ class WattpadProvider : MainAPI() {
     override val iconId = R.drawable.icon_wattpad
     override val iconBackgroundId = R.color.wattpadColor
     override val rateLimitTime = 500L
-    var novelId = ""
+    val novelsIdRequired = ConcurrentHashMap<String, String>()
 
     private val langHeaders = mapOf(
         "" to "en-US,en;q=0.9", // English default
@@ -173,9 +174,7 @@ class WattpadProvider : MainAPI() {
         page: Int,
         showSpoilers: Boolean
     ): List<UserReview> {
-        if (novelId.isEmpty()) return emptyList()
-
-        val realUrl = "$mainUrl/api/review/get?serie_id=$novelId&page=${page - 1}&sort=most_liked"
+        val realUrl = "$mainUrl/api/review/get?serie_id=${novelsIdRequired[url]}&page=${page - 1}&sort=most_liked"
         val res = app.get(realUrl).parsedSafe<ReviewResponse>()
 
         return res?.data?.mapNotNull { item ->

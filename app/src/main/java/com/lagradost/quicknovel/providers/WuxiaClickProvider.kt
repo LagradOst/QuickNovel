@@ -17,6 +17,7 @@ import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.providers.WtrLabProvider.ReviewResponse
 import com.lagradost.quicknovel.setStatus
 import org.jsoup.nodes.Element
+import java.util.concurrent.ConcurrentHashMap
 
 class WuxiaClickProvider :  MainAPI() {
     override val name = "WuxiaClick"
@@ -25,7 +26,7 @@ class WuxiaClickProvider :  MainAPI() {
     override val iconId = R.drawable.icon_wuxiaclick
     override val iconBackgroundId = R.color.wuxiacliColor
     override val hasReviews = true
-    var novelId = ""
+    val novelsIdRequired = ConcurrentHashMap<String, String>()
 
 
     override val hasMainPage = true
@@ -303,7 +304,7 @@ class WuxiaClickProvider :  MainAPI() {
         val infoDiv = document.selectFirst("div.mantine-Container-root > div.mantine-Paper-root.mantine-Card-root > div")
         val title = infoDiv?.selectFirst("h5")?.text() ?: throw Exception("Title not found")
         val chapters = getChapters(infoDiv, url)
-        novelId = url.removeSuffix("/").substringAfterLast("/")
+        novelsIdRequired[url] = url.removeSuffix("/").substringAfterLast("/")
         return newStreamResponse(title,fixUrl(url), chapters) {
             this.posterUrl = infoDiv.selectFirst("img")?.attr("src")
             this.synopsis = infoDiv.selectFirst("div.mantine-Spoiler-root > div.mantine-Spoiler-content > div > div.mantine-Text-root")?.text() ?: ""
@@ -312,17 +313,16 @@ class WuxiaClickProvider :  MainAPI() {
 
             setStatus(infoDiv.selectFirst("div.mantine-Group-root.mantine-1uxmzbt > div.mantine-1huvzos")?.text())
 
-            this.tags = infoDiv.select("div.mantine-Spoiler-root > div.mantine-Spoiler-content > div > div.mantine-Group-root > div")?.mapNotNull {
+            this.tags = infoDiv.select("div.mantine-Spoiler-root > div.mantine-Spoiler-content > div > div.mantine-Group-root > div").mapNotNull {
                 it.text().trim().takeIf { text ->  !text.isEmpty() }
             }
-            related = getRelated()
+            related = getRelated(url)
         }
     }
 
-    suspend fun getRelated(): List<SearchResponse> {
-        val url = "$secondUrl/api/novels/$novelId/recommendations/"
+    suspend fun getRelated(url: String): List<SearchResponse> {
+        val url = "$secondUrl/api/novels/${novelsIdRequired[url]}/recommendations/"
         val response = app.get(url).parsed<RelatedResponse>()
-        println(response)
         return response.results.map { item ->
             val title = item.name
             val slug = item.slug
@@ -344,7 +344,7 @@ class WuxiaClickProvider :  MainAPI() {
         showSpoilers: Boolean
     ): List<UserReview> {
 
-        val realUrl = "$secondUrl/api/review/?novel_id=$novelId&page=$page&itemsPerPage=10"
+        val realUrl = "$secondUrl/api/review/?novel_id=${novelsIdRequired[url]}&page=$page&itemsPerPage=10"
         val res = app.get(realUrl).parsedSafe<WuxiaWorldReviewResponse>()
 
         return res?.results?.mapNotNull { item ->

@@ -18,6 +18,7 @@ import com.lagradost.quicknovel.providers.NovelFireProvider.PostsResponse
 import com.lagradost.quicknovel.providers.NovelFireProvider.RelatedResponse
 import com.lagradost.quicknovel.setStatus
 import org.jsoup.Jsoup
+import java.util.concurrent.ConcurrentHashMap
 
 class LightNovelWorldProvider : MainAPI() {
     override val name = "LightNovelWorld"
@@ -26,7 +27,7 @@ class LightNovelWorldProvider : MainAPI() {
     override val iconId = R.drawable.icon_lightnovelworld
     override val iconBackgroundId = R.color.colorPrimaryWhite
     override val hasReviews = true
-    var novelId = ""
+    val novelsIdRequired = ConcurrentHashMap<String, String>()
     override val mainCategories = listOf(
         "All" to "all",
         "Ongoing" to "ongoing",
@@ -148,7 +149,7 @@ class LightNovelWorldProvider : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse? {
         val document = app.get(url).document
-        novelId = document.selectFirst("meta[name=novel-id]")?.attr("content") ?: ""
+        novelsIdRequired[url] = document.selectFirst("meta[name=novel-id]")?.attr("content") ?: ""
         val title = document.selectFirst("h1.novel-title, meta[property=og:title]")?.let {
             if (it.tagName() == "meta") it.attr("content") else it.text()
         }?.trim() ?: return null
@@ -189,8 +190,7 @@ class LightNovelWorldProvider : MainAPI() {
         page: Int,
         showSpoilers: Boolean
     ): List<UserReview> {
-        if (novelId.isEmpty()) return emptyList()
-        val realUrl = "$mainUrl/api/comments/?comment_type=novel&commentable_id=$novelId&sort=newest&page=$page&parent_only=true"
+        val realUrl = "$mainUrl/api/comments/?comment_type=novel&commentable_id=${novelsIdRequired[url]}&sort=newest&page=$page&parent_only=true"
         val res = app.get(realUrl).parsedSafe<PostsResponse>()
         val dataList = res?.comments ?: return emptyList()
 
