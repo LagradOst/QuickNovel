@@ -125,6 +125,8 @@ class DownloadFragment : Fragment() {
         /** Unix time ms, last chapter downloaded */
         @JsonProperty("lastDownloaded")
         val lastDownloaded: Long?,
+        @JsonProperty("posterHeaders")
+        val posterHeaders : Map<String,String>? = null,
     )
 
     data class DownloadDataLoaded(

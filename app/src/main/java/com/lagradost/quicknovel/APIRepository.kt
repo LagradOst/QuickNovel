@@ -23,13 +23,11 @@ import com.lagradost.quicknovel.util.Coroutines.threadSafeListOf
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
-import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
+import kotlinx.collections.immutable.toPersistentMap
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.jsoup.Jsoup
-import kotlin.collections.component1
-import kotlin.collections.component2
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -145,7 +143,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 name = cache.name,
                 url = cache.source,
                 posterUrl = cache.poster,
-                posterHeaders = persistentMapOf(),
+                posterHeaders = cache.posterHeaders?.toPersistentMap(),
                 apiName = cache.apiName,
                 rating = cache.rating,
                 id = cache.id,
@@ -169,7 +167,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 name = cache.name,
                 url = cache.source,
                 posterUrl = cache.posterUrl,
-                posterHeaders = persistentMapOf(),
+                posterHeaders = cache.posterHeaders?.toPersistentMap(),
                 apiName = cache.apiName,
                 rating = cache.rating,
                 id = id,
@@ -183,7 +181,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                     DOWNLOAD_EPUB_LAST_ACCESS,
                     id.toString(),
                 ) ?: 0,
-                epubSize = getKey(DOWNLOAD_EPUB_SIZE, id.toString()) ?: 0
+                epubSize = getKey(DOWNLOAD_EPUB_SIZE, id.toString()) ?: 0,
             )
     }
 

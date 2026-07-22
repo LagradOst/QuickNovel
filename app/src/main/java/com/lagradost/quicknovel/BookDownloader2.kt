@@ -1689,7 +1689,8 @@ object BookDownloader2 {
             load.tags,
             apiName,
             System.currentTimeMillis(),
-            System.currentTimeMillis()
+            System.currentTimeMillis(),
+            posterHeaders = load.posterHeaders
         )
 
         setKey(
@@ -1732,7 +1733,8 @@ object BookDownloader2 {
             load.tags,
             apiName,
             System.currentTimeMillis(),
-            prevDownloadData?.lastDownloaded
+            prevDownloadData?.lastDownloaded,
+            posterHeaders = load.posterHeaders
         )
         setKey(DOWNLOAD_FOLDER, id.toString(), currentDownloadData)
         setKey(DOWNLOAD_TOTAL, id.toString(), total)
