@@ -8,12 +8,31 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -22,9 +41,14 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
+import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.compose.BaseStyles
+import com.lagradost.quicknovel.compose.BaseStyles.blackButtonColors
+import com.lagradost.quicknovel.compose.BaseStyles.whiteButtonColors
 import com.lagradost.quicknovel.compose.CloudStreamPrimaryColor
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
@@ -32,26 +56,37 @@ import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.modeToTheme
 import com.lagradost.quicknovel.compose.perfToColor
 import com.lagradost.quicknovel.compose.perfToMode
+import com.lagradost.quicknovel.compose.ripple
+import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
 import com.lagradost.quicknovel.tachiyomi.Preference
 import com.lagradost.quicknovel.tachiyomi.SearchableSettings
+import com.lagradost.quicknovel.tachiyomi.TextPreferenceWidget
+import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getBasePath
 import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getDefaultDir
 import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getDownloadDirs
 import com.lagradost.quicknovel.ui.txt
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.AppUtils.openInBrowser
 import com.lagradost.quicknovel.util.BackupUtils
+import com.lagradost.quicknovel.util.BackupUtils.setupStream
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.util.SubtitleHelper
+import com.lagradost.quicknovel.util.UIHelper.clipboardHelper
 import com.lagradost.safefile.SafeFile
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toPersistentHashSet
+import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.IOException
+import java.io.OutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class SettingScreen : SearchableSettings {
     @Composable
@@ -346,6 +381,27 @@ class SettingScreen : SearchableSettings {
             Preference.PreferenceGroup(
                 title = stringResource(R.string.info),
                 preferenceItems = persistentListOf(
+                    Preference.PreferenceItem.CustomPreference(
+                        title = stringResource(R.string.show_log_cat),
+                        content = {
+                            var showDialog by remember { mutableStateOf(false) }
+                            TextPreferenceWidget(
+                                title = stringResource(R.string.show_log_cat),
+                                subtitle = null,
+                                icon = painterResource(R.drawable.baseline_description_24),
+                                onPreferenceClick = {
+                                    showDialog = true
+                                },
+                            )
+                            if (showDialog) {
+                                LogcatDialog {
+                                    showDialog = false
+                                }
+                            }
+
+                        }
+                    ),
+
                     Preference.PreferenceItem.TextPreference(
                         icon = painterResource(R.drawable.ic_github_logo),
                         title = "Github",
@@ -371,9 +427,177 @@ class SettingScreen : SearchableSettings {
                         }
                     ),
                 )
-            ),
+            ))
+    }
+}
 
+
+@Composable
+fun LogcatDialog(dismiss: () -> Unit) {
+
+    val list = remember { mutableStateOf(persistentListOf<LogcatItem>()) }
+    LaunchedEffect(dismiss) {
+        try {
+            // https://developer.android.com/studio/command-line/logcat
+            val process = Runtime.getRuntime().exec("logcat --binary -d")
+            val items = arrayListOf<LogcatItem>()
+            LogcatBinaryParser(process.inputStream).use { parser ->
+                while (true) {
+                    val item = parser.parseItem() ?: break
+                    items.add(item)
+                }
+            }
+
+            list.value = items.toPersistentList()
+        } catch (e: Exception) {
+            logError(e) // kinda ironic
+        }
+    }
+
+    val context = LocalContext.current
+    AlertDialog(
+        containerColor = colors.background,
+        onDismissRequest = dismiss,
+        title = {
+            Text(text = stringResource(R.string.log_cat))
+        },
+        text = {
+            LazyColumn {
+                items(items = list.value) { item ->
+                    LogcatItem(item)
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val date = SimpleDateFormat("yyyy_MM_dd_HH_mm", Locale.getDefault()).format(
+                        Date(System.currentTimeMillis())
+                    )
+                    var fileStream: OutputStream?
+                    try {
+                        fileStream = setupStream(
+                            context,
+                            "logcat_${date}",
+                            "txt",
+                            context.getBasePath().first ?: getDefaultDir(context)
+                            ?: throw IOException("No file")
+                        ) ?: throw ErrorLoadingException("No stream")
+
+                        fileStream.writer().use { writer ->
+                            list.value.forEach {
+                                writer.write(it.toString())
+                                writer.write("\n\n")
+                            }
+                        }
+                        dismiss()
+                        showToast(R.string.downloaded)
+                    } catch (t: Throwable) {
+                        logError(t)
+                        showToast(t.message)
+                    }
+                }, colors = whiteButtonColors
+            ) { Text(text = stringResource(R.string.save)) }
+            Button(
+                onClick = {
+                    clipboardHelper(
+                        txt("Logcat"),
+                        list.value.joinToString(separator = "\n\n") { it.toString() }
+                    )
+                }, colors = whiteButtonColors
+            ) { Text(text = stringResource(R.string.copylog)) }
+            Button(
+                onClick = {
+                    try {
+                        Runtime.getRuntime().exec("logcat -c")
+                    } catch (t: Throwable) {
+                        logError(t)
+                    }
+                    dismiss()
+                }, colors = whiteButtonColors
+            ) { Text(text = stringResource(R.string.clear)) }
+        },
+        dismissButton = {
+            Button(
+                onClick = dismiss, colors = blackButtonColors
+            ) { Text(text = stringResource(R.string.close)) }
+        },
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    )
+}
+
+
+@Composable
+fun LogcatItem(item: LogcatItem) {
+    val interactionSource = remember { MutableInteractionSource() }
+
+    val color = when (item.level) {
+        LogcatLevel.Fatal -> Color.Magenta
+        LogcatLevel.Error -> Color.Red
+        LogcatLevel.Warning -> Color.Yellow
+        LogcatLevel.Info -> Color.White
+        LogcatLevel.Debug -> Color.Green
+        LogcatLevel.Verbose -> Color.Gray
+        null -> Color.Transparent
+    }
+
+    Row(modifier = Modifier.fillMaxWidth()) {
+        item.level?.identifier?.let { value ->
+            Text(
+                value,
+                modifier = Modifier
+                    .padding(2.dp)
+                    .rounded()
+                    .background(colors.onBackground)
+                    .padding(4.dp),
+                color = colors.surfaceVariant
             )
+        }
+        Text(
+            item.date.toHumanReadable(),
+            modifier = Modifier
+                .padding(2.dp)
+                .rounded()
+                .background(colors.surfaceVariant)
+                .padding(4.dp),
+            color = colors.onBackground
+        )
+        Text(
+            item.tag,
+            modifier = Modifier
+                .padding(2.dp)
+                .rounded()
+                .background(colors.surfaceVariant)
+                .padding(4.dp),
+            color = colors.onBackground
+        )
+    }
+    Row(
+        modifier = Modifier
+            .height(IntrinsicSize.Min)
+            .fillMaxWidth()
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = {
+                    clipboardHelper(txt("Logcat"), item.toString())
+                })
+            .rounded()
+            .ripple(interactionSource)
+            .padding(5.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(4.dp)
+                .circle()
+                .background(color)
+        )
+        Spacer(modifier = Modifier.width(5.dp))
+        Text(
+            item.message,
+            style = BaseStyles.textStyle
+        )
     }
 }
 

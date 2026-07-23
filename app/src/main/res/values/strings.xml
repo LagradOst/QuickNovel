@@ -282,6 +282,7 @@
     <string name="clipboard_permission_error">Error accessing Clipboard, Please try again.</string>
     <string name="clipboard_unknown_error">Error copying, Please copy logcat and contact app support.</string>
     <string name="show_log_cat">Show Logcat 🐈</string>
+    <string name="log_cat">Logcat 🐈</string>
     <string name="unread">Unread</string>
     <string name="bookmarks">Bookmarks</string>
     <string name="bookmark">Bookmark</string>

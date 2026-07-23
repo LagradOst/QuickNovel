@@ -27,7 +27,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 37
         versionCode 56
-        versionName "3.7.1"
+        versionName "3.7.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -135,4 +135,5 @@ dependencies {
     implementation(libs.coil3.coil.compose)
     implementation(libs.coil.network.okhttp)
     implementation(libs.activity.compose)
+    implementation(libs.kotlinx.io.core)
 }

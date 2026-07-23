@@ -9,6 +9,7 @@ activity = "1.13.0"
 composeMaterial3 = "1.11.0-alpha07"
 composeMultiplatform = "1.11.1"
 kotlinxCollectionsImmutable = "0.5.1"
+kotlinxIoCore = "0.9.1"
 lifecycleViewmodelCompose = "2.11.0"
 preference = "2.2.0"
 
@@ -27,6 +28,7 @@ compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMul
 compose-ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "composeMultiplatform" }
 compose-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
 kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
+kotlinx-io-core = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinxIoCore" }
 lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
 preference = { module = "me.zhanghai.compose.preference:preference", version.ref = "preference" }
 [plugins]
