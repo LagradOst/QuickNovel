@@ -46,6 +46,7 @@ import com.lagradost.quicknovel.util.SingleSelectionHelper.showBottomDialog
 import com.lagradost.quicknovel.util.UIHelper
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
+import com.lagradost.quicknovel.util.UIHelper.fixSystemBarsPadding
 import com.lagradost.quicknovel.util.UIHelper.getStatusBarHeight
 import com.lagradost.quicknovel.util.UIHelper.hideKeyboard
 import com.lagradost.quicknovel.util.UIHelper.html
@@ -84,6 +85,13 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
         }
         binding?.resultHolder?.post { // BUG FIX
             updateScrollHeight()
+        }
+        binding?.resultDownloadCard?.let {
+            fixSystemBarsPadding(
+                it,
+                padTop = false,
+                overlayCutout = false
+            )
         }
     }
 

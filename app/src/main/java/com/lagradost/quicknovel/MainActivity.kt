@@ -58,7 +58,6 @@ import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.result.ResultFragment
 import com.lagradost.quicknovel.ui.result.ResultViewModel
-import com.lagradost.quicknovel.ui.search.SearchFragment
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.Apis.Companion.printProviders
@@ -70,6 +69,7 @@ import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getRating
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.dismissSafe
+import com.lagradost.quicknovel.util.UIHelper.fixSystemBarsPadding
 import com.lagradost.quicknovel.util.UIHelper.getResourceColor
 import com.lagradost.quicknovel.util.UIHelper.html
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
@@ -95,8 +95,9 @@ class MainActivity : AppCompatActivity() {
         fun loadPreviewPage(searchResponse: SearchResponse) {
             mainActivity?.loadPopup(searchResponse.url, searchResponse.apiName)
         }
+
         fun loadPreviewPage(searchResponse: ImmutableSearchResponse) {
-            if(searchResponse.id == null) {
+            if (searchResponse.id == null) {
                 mainActivity?.loadPopup(searchResponse.url, searchResponse.apiName)
             } else {
                 mainActivity?.loadPopup(searchResponse)
@@ -178,7 +179,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         fun FragmentActivity.loadResult(url: String, apiName: String, startAction: Int = 0) {
-           // SearchFragment.currentDialog?.dismiss()
+            // SearchFragment.currentDialog?.dismiss()
             runOnUiThread {
                 this.navigate(
                     R.id.global_to_navigation_results,
@@ -392,11 +393,10 @@ class MainActivity : AppCompatActivity() {
                     try {
                         if (mimeType == "application/pdf" || fileName?.endsWith(".pdf") == true) {
                             BookDownloader2.downloadPDFWorkThread(uri, ctx)
-                        }
-                        else{
+                        } else {
                             BookDownloader2.downloadWorkThread(uri, ctx)
                         }
-                    } catch (t : Throwable) {
+                    } catch (t: Throwable) {
                         logError(t)
                         showToast(t.message)
                     }
@@ -554,6 +554,12 @@ class MainActivity : AppCompatActivity() {
         navView.itemRippleColor = rippleColor
         navView.itemActiveIndicatorColor = rippleColor
 
+        fixSystemBarsPadding(
+            navView, heightResId = R.dimen.nav_view_height,
+            padTop = false,
+            overlayCutout = false
+        )
+
         navView.setOnItemSelectedListener { item ->
             onNavDestinationSelected(
                 item,
@@ -657,8 +663,10 @@ class MainActivity : AppCompatActivity() {
                             hidePreviewPopupDialog()
                         }
 
-                        readMore.isVisible = viewModel.apiName != IMPORT_SOURCE && viewModel.apiName != IMPORT_SOURCE_PDF
-                        bookmark.isVisible = viewModel.apiName != IMPORT_SOURCE && viewModel.apiName != IMPORT_SOURCE_PDF
+                        readMore.isVisible =
+                            viewModel.apiName != IMPORT_SOURCE && viewModel.apiName != IMPORT_SOURCE_PDF
+                        bookmark.isVisible =
+                            viewModel.apiName != IMPORT_SOURCE && viewModel.apiName != IMPORT_SOURCE_PDF
 
                         resultviewPreviewLoading.isVisible = false
                         resultviewPreviewResult.isVisible = true
@@ -678,7 +686,8 @@ class MainActivity : AppCompatActivity() {
                             hidePreviewPopupDialog()
                         }
 
-                        resultviewPreviewDescription.text = d.synopsis ?: getString(R.string.no_data)
+                        resultviewPreviewDescription.text =
+                            d.synopsis ?: getString(R.string.no_data)
 
                         resultviewPreviewDescription.setOnClickListener { view ->
                             view.context?.let { ctx ->
@@ -705,7 +714,8 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         if (d is StreamResponse) {
-                            resultviewPreviewMetaChapters.text = "${d.data.size} ${getString(R.string.chapter_sort)}"
+                            resultviewPreviewMetaChapters.text =
+                                "${d.data.size} ${getString(R.string.chapter_sort)}"
                             resultviewPreviewMetaChapters.isVisible = d.data.isNotEmpty()
                         } else {
                             resultviewPreviewMetaChapters.isVisible = false
