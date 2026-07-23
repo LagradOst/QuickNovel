@@ -12,18 +12,20 @@ import com.lagradost.quicknovel.setStatus
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.newChapterData
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.map
 
-class FenrirRealProvider:  MainAPI() {
+class FenrirRealProvider : MainAPI() {
     override val name = "FenrirRealm"
     override val mainUrl = "https://fenrirealm.com"
     override val iconId = R.drawable.icon_fenrirealm
     override val hasMainPage = true
+
     //I don't know why, but this fixes the timeout issue for this provider
     override val rateLimitTime = 3000L
     override val hasReviews = true
     override val usesCloudFlareKiller = true
-    var libraryId = ""
+    val novelsIdRequired = ConcurrentHashMap<String, String>()
 
     override val mainCategories = listOf(
         "All" to "any",
@@ -82,10 +84,10 @@ class FenrirRealProvider:  MainAPI() {
         mainCategory: String?,
         orderBy: String?,
         tag: String?
-    ): HeadMainPageResponse
-    {
-        val url = if(tag != "0") "$mainUrl/api/new/v2/series?page=$page&per_page=12&status=$mainCategory&sort=$orderBy&tags%5B%5D=$tag"
-        else "$mainUrl/api/new/v2/series?page=$page&per_page=24&status=$mainCategory&sort=$orderBy"
+    ): HeadMainPageResponse {
+        val url =
+            if (tag != "0") "$mainUrl/api/new/v2/series?page=$page&per_page=12&status=$mainCategory&sort=$orderBy&tags%5B%5D=$tag"
+            else "$mainUrl/api/new/v2/series?page=$page&per_page=24&status=$mainCategory&sort=$orderBy"
         val document = app.get(url).parsed<FenrirMainPageResponse>()
         val returnValue = document.data.map { novel ->
             newSearchResponse(
@@ -99,7 +101,7 @@ class FenrirRealProvider:  MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
-    suspend fun getRelated(url:String): List<SearchResponse> {
+    suspend fun getRelated(url: String): List<SearchResponse> {
         val name = url.substringAfter("/series/").removeSuffix("/")
         val url = "$mainUrl/api/new/v2/series/$name/recommendations?limit=10"
         val document = app.get(url).parsed<FenrirMainPageResponse>()
@@ -117,8 +119,7 @@ class FenrirRealProvider:  MainAPI() {
         }
     }
 
-    override suspend fun load(url: String): LoadResponse
-    {
+    override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
         document.select("style, iframe, svg, noscript").remove()//avoid out of memory
         val infoDiv = document.select("div.flex.flex-col.items-center.gap-5 div.flex-1")
@@ -126,27 +127,34 @@ class FenrirRealProvider:  MainAPI() {
             .get("$mainUrl/api/new/v2/series/${url.getSlugFromUrl()}/chapters")
             .parsed<Array<ChapterInf>>()
             .mapNotNull { ch ->
-                if(ch.locked.price > 0) null
-                else newChapterData("${ch.name} ${if(ch.title.isNullOrEmpty()) "" else "- ${ch.title}"}", "$url/${ch.slug}"){
+                if (ch.locked.price > 0) null
+                else newChapterData(
+                    "${ch.name} ${if (ch.title.isNullOrEmpty()) "" else "- ${ch.title}"}",
+                    "$url/${ch.slug}"
+                ) {
                     dateOfRelease = ch.updatedAt.split("T")[0]
                 }
             }
 
         val title = infoDiv.selectFirst("h1")?.text() ?: throw Exception("Title not found")
-        val script = document.select("script").find { it.html().contains("seriesData") }?.html() ?: ""
-        libraryId = Regex("""seriesData:\{id:(\d+)""").find(script)?.groupValues?.get(1) ?: ""
-        return newStreamResponse(title,url, chapters) {
+        val script =
+            document.select("script").find { it.html().contains("seriesData") }?.html() ?: ""
+        novelsIdRequired[url] =
+            Regex("""seriesData:\{id:(\d+)""").find(script)?.groupValues?.get(1) ?: ""
+        return newStreamResponse(title, url, chapters) {
             infoDiv.select(" > div").forEachIndexed { index, inf ->
                 when (index) {
                     1 -> {
                         setStatus(inf.selectFirst("span")?.text())
                     }
+
                     2 -> {
                         this.author = inf.selectFirst("a")?.text()
                     }
+
                     3 -> {
                         this.tags = infoDiv.select("a").mapNotNull {
-                            it.text().trim().takeIf { text -> text.isNotEmpty()}
+                            it.text().trim().takeIf { text -> text.isNotEmpty() }
                         }
                     }
                 }
@@ -163,7 +171,7 @@ class FenrirRealProvider:  MainAPI() {
         page: Int,
         showSpoilers: Boolean
     ): List<UserReview> {
-        if (libraryId.isEmpty()) return emptyList()
+        val libraryId = novelsIdRequired[url] ?: return emptyList()
 
         val realUrl = "$mainUrl/api/new/v2/comments/series/$libraryId?page=$page&sort=latest"
         val res = app.get(realUrl).parsed<CommentsResponse>()
@@ -190,21 +198,18 @@ class FenrirRealProvider:  MainAPI() {
     }
 
 
-
-
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/api/new/v2/series?page=1&per_page=5&search=$query"
         val document = app.get(url).parsed<FenrirMainPageResponse>()
 
-        return document.data.map{ novel ->
+        return document.data.map { novel ->
             val title = novel.title
             val novelUrl = mainUrl + "/series/" + novel.slug
-            newSearchResponse(title, novelUrl){
+            newSearchResponse(title, novelUrl) {
                 posterUrl = fixUrlNull(novel.cover)
             }
         }
     }
-
 
 
     data class FenrirMainPageResponse(
@@ -212,7 +217,8 @@ class FenrirRealProvider:  MainAPI() {
         val data: List<Daum>,
     )
 
-    data class Daum( // Novel inf
+    data class Daum(
+        // Novel inf
         @JsonProperty("title")
         val title: String,
         @JsonProperty("slug")

@@ -226,7 +226,7 @@ fun SearchResponseRow(
                 .padding(10.dp)
         ) {
             Text(
-                response.name, maxLines = 2, style = BaseStyles.textStyle
+                response.name, maxLines = 2, style = BaseStyles.textStyle, overflow = TextOverflow.Ellipsis
             )
 
             if (response.downloadState != null) {
