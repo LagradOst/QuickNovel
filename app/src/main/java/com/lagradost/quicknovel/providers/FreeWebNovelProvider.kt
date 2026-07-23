@@ -1,7 +1,12 @@
 package com.lagradost.quicknovel.providers
 
-import com.lagradost.quicknovel.*
-import com.lagradost.quicknovel.MainActivity.Companion.app
+import android.net.Uri
+import com.lagradost.quicknovel.HeadMainPageResponse
+import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.USER_AGENT
+import com.lagradost.quicknovel.fixUrlNull
+import com.lagradost.quicknovel.newSearchResponse
 import org.jsoup.Jsoup
 
 class FreewebnovelProvider : LibReadProvider() {
@@ -11,8 +16,17 @@ class FreewebnovelProvider : LibReadProvider() {
     override val iconId = R.drawable.icon_freewebnovel
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
     override val removeHtml = true
-    override val rateLimitTime = 500L
+    override val rateLimitTime = 800L
+    override val mainCategories = listOf(
+        "All" to "",
+        "Completed" to "completed"
+    )
 
+    override val orderBys = listOf(
+        "Latest Release" to "latest-release",
+        "Latest Novels" to "latest-novel",
+        "Most Popular" to "most-popular"
+    )
     override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
@@ -20,7 +34,7 @@ class FreewebnovelProvider : LibReadProvider() {
         tag: String?
     ): HeadMainPageResponse {
         val url =
-            if (tag.isNullOrBlank()) "$mainUrl/sort/$orderBy/$page" else "$mainUrl/genres/$tag/$page"
+            if (tag.isNullOrBlank()) "$mainUrl/sort/$orderBy/${if(mainCategory.isNullOrBlank()) "" else "$mainCategory/"}$page" else "$mainUrl/genre/$tag/${if (mainCategory.isNullOrBlank()) "" else "$mainCategory/"}$page"
         val document = app.get(url).document
         val headers = document.select("div.ul-list1.ul-list1-2.ss-custom > div.li-row")
         val returnValue = headers.mapNotNull { h ->
@@ -55,8 +69,32 @@ class FreewebnovelProvider : LibReadProvider() {
         document.selectFirst("div.txt>.notice-text")?.remove()
         return document.selectFirst("div.txt")?.html()
     }
-}
 
+     override suspend fun search(query: String): List<SearchResponse> {
+        val document = app.get(
+            "$mainUrl/search?keyword=${Uri.encode(query.trim()).replace("%20","+")}",
+            headers = mapOf(
+                "referer" to mainUrl,
+                "x-requested-with" to "XMLHttpRequest",
+                "content-type" to "application/x-www-form-urlencoded",
+                "accept" to "*/*",
+                "user-agent" to USER_AGENT
+            ),
+        ).document
+
+        return document.select("div.li-row > div.li > div.con").mapNotNull { h ->
+            val h3 = h.selectFirst("div.txt > h3.tit > a") ?: return@mapNotNull null
+
+            newSearchResponse(
+                name = h3.attr("title") ?: return@mapNotNull null,
+                url = h3.attr("href") ?: return@mapNotNull null
+            ) {
+                posterUrl = fixUrlNull(h.selectFirst("div.pic img")?.attr("src"))
+                //latestChapter = h.select("div.item")[2].selectFirst("> div > a")?.text()
+            }
+        }
+    }
+}
 
 /*
 class FreewebnovelProvider : MainAPI() {

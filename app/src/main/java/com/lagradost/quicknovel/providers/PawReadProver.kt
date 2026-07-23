@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.providers
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
@@ -7,19 +8,23 @@ import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
+import com.lagradost.quicknovel.providers.NovelBuddyProvider.CommentResponse
+import org.jsoup.nodes.Document
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
 
 class PawReadProver : MainAPI() {
     override val name = "PawRead"
     override val mainUrl = "https://pawread.com"
     override val iconId = R.drawable.pawread
-
     override val hasMainPage = true
-
+    override val hasReviews = true
+    val novelsIdRequired = ConcurrentHashMap<String, String>()
     override val mainCategories = listOf(
         "All" to "all-",
         "Completed" to "wanjie-",
@@ -104,7 +109,7 @@ class PawReadProver : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
-
+        novelsIdRequired[url] = document.selectFirst("input[name=novel_id]")?.attr("value") ?: ""
         //val comic = document.selectFirst(".comic-view")
         val board = document.selectFirst("#tab1_board")!!
         val regex = Regex("'(\\d+)'")
@@ -126,7 +131,7 @@ class PawReadProver : MainAPI() {
             rating = document.select(".comic-score>span").getOrNull(1)?.text()?.toFloatOrNull()
                 ?.times(1000.0 / 5.0)?.roundToInt()
             peopleVoted = document.selectFirst("#scoreCount")?.text()?.toIntOrNull()
-            tags = document.select(".tags").map { it.text().trim().removePrefix("#").trim() }
+            tags = document.select("div.col-md-9 > div.mt20 > a.btn").map { it.text().trim().removePrefix("#").trim() }
             synopsis = document.selectFirst("#simple-des")?.text()
             val attr = board.selectFirst(">.col-md-3>div")
             posterUrl =
@@ -135,9 +140,46 @@ class PawReadProver : MainAPI() {
                         attr?.attr("style") ?: ""
                     )?.groupValues?.get(1)
                 )
+            related = getRelated(document)
         }
     }
 
+    private fun getRelated(dc: Document): List<SearchResponse>{
+        return dc.select("div.comic-list > div.list-comic").mapNotNull { element ->
+            val href = element.selectFirst("h3 > a")?.attr("href") ?: return@mapNotNull null
+            val title = element.selectFirst("h3")?.text() ?: return@mapNotNull null
+            newSearchResponse(
+                name = title,
+                url = href
+            ) {
+                posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
+            }
+        }
+    }
+    override suspend fun loadReviews(
+        url: String,
+        page: Int,
+        showSpoilers: Boolean
+    ): List<UserReview> {
+        if (page > 1) return emptyList()
+
+        val realUrl = "https://api.pawread.com/user/review/list?access-token=undefined&novel_id=${novelsIdRequired[url]}&chapter_id=0"
+
+        val res = app.get(realUrl).parsedSafe<PawReadReviewsResponse>()
+        val dataList = res?.items ?: return emptyList()
+
+        return dataList.map { item ->
+            val reviewTxt = item.content?.joinToString("\n") ?: ""
+            UserReview(
+                review = reviewTxt,
+                reviewTitle = null,
+                username = item.user?.username ?: "Guest",
+                reviewDate = item.createdAt,
+                avatarUrl = fixUrlNull(item.user?.avatar),
+                rating = item.rating?.times(200),
+            )
+        }
+    }
     override suspend fun loadHtml(url: String): String? {
         val document = app.get(url).document
         val count = document.selectFirst("#countdown")
@@ -147,4 +189,21 @@ class PawReadProver : MainAPI() {
         val html = document.selectFirst("#chapter_item")!!.html()
         return html
     }
+
+    data class PawReadReviewsResponse(
+        @JsonProperty("items") val items: List<PawReadReviewItem>? = null,
+        @JsonProperty("status") val status: Int? = null
+    )
+
+    data class PawReadReviewItem(
+        @JsonProperty("content") val content: List<String>? = null, // Es una lista de párrafos
+        @JsonProperty("user") val user: PawReadUser? = null,
+        @JsonProperty("created_at") val createdAt: String? = null,
+        @JsonProperty("rating") val rating: Int? = null,
+    )
+
+    data class PawReadUser(
+        @JsonProperty("username") val username: String? = null,
+        @JsonProperty("avatar") val avatar: String? = null
+    )
 }

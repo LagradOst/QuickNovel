@@ -10,6 +10,7 @@ import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.newChapterData
 import kotlin.collections.map
 
@@ -20,6 +21,9 @@ class FenrirRealProvider:  MainAPI() {
     override val hasMainPage = true
     //I don't know why, but this fixes the timeout issue for this provider
     override val rateLimitTime = 3000L
+    override val hasReviews = true
+    override val usesCloudFlareKiller = true
+    var libraryId = ""
 
     override val mainCategories = listOf(
         "All" to "any",
@@ -95,12 +99,28 @@ class FenrirRealProvider:  MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
-
+    suspend fun getRelated(url:String): List<SearchResponse> {
+        val name = url.substringAfter("/series/").removeSuffix("/")
+        val url = "$mainUrl/api/new/v2/series/$name/recommendations?limit=10"
+        val document = app.get(url).parsed<FenrirMainPageResponse>()
+        return document.data.map { element ->
+            val href = "$mainUrl/series/${element.slug}"
+            val title = element.title
+            newSearchResponse(
+                name = title,
+                url = href
+            ) {
+                posterUrl = fixUrlNull(
+                    element.cover
+                )
+            }
+        }
+    }
 
     override suspend fun load(url: String): LoadResponse
     {
         val document = app.get(url).document
-        document.select("script, style, iframe, svg, noscript").remove()//avoid out of memory
+        document.select("style, iframe, svg, noscript").remove()//avoid out of memory
         val infoDiv = document.select("div.flex.flex-col.items-center.gap-5 div.flex-1")
         val chapters = app
             .get("$mainUrl/api/new/v2/series/${url.getSlugFromUrl()}/chapters")
@@ -113,6 +133,8 @@ class FenrirRealProvider:  MainAPI() {
             }
 
         val title = infoDiv.selectFirst("h1")?.text() ?: throw Exception("Title not found")
+        val script = document.select("script").find { it.html().contains("seriesData") }?.html() ?: ""
+        libraryId = Regex("""seriesData:\{id:(\d+)""").find(script)?.groupValues?.get(1) ?: ""
         return newStreamResponse(title,url, chapters) {
             infoDiv.select(" > div").forEachIndexed { index, inf ->
                 when (index) {
@@ -131,10 +153,31 @@ class FenrirRealProvider:  MainAPI() {
             }
             this.synopsis = document.selectFirst("div.synopsis")?.text()
             this.posterUrl = document.selectFirst("meta[property=og:image]")?.attr("content")
+            related = getRelated(url)
         }
     }
 
 
+    override suspend fun loadReviews(
+        url: String,
+        page: Int,
+        showSpoilers: Boolean
+    ): List<UserReview> {
+        if (libraryId.isEmpty()) return emptyList()
+
+        val realUrl = "$mainUrl/api/new/v2/comments/series/$libraryId?page=$page&sort=latest"
+        val res = app.get(realUrl).parsed<CommentsResponse>()
+        return res.data.map { comment ->
+            val date = comment.createdAt.split("T").firstOrNull()
+
+            UserReview(
+                review = comment.content,
+                username = comment.user.username,
+                reviewDate = date,
+                avatarUrl = fixUrlNull(comment.user.avatar)
+            )
+        }
+    }
 
     override suspend fun loadHtml(url: String): String? {
         val document = app.get(url).document
@@ -196,5 +239,25 @@ class FenrirRealProvider:  MainAPI() {
         val price: Int,
     )
 
+    data class CommentsResponse(
+        @JsonProperty("data")
+        val data: List<CommentData>
+    )
+
+    data class CommentData(
+        @JsonProperty("content")
+        val content: String,
+        @JsonProperty("created_at")
+        val createdAt: String,
+        @JsonProperty("user")
+        val user: CommentUser
+    )
+
+    data class CommentUser(
+        @JsonProperty("username")
+        val username: String,
+        @JsonProperty("avatar")
+        val avatar: String?
+    )
 }
 

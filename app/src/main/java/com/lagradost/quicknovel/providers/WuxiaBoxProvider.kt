@@ -1,12 +1,10 @@
 package com.lagradost.quicknovel.providers
 
-import android.R.attr.tag
-import android.util.Log
+
 import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrl
@@ -15,7 +13,7 @@ import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
-import kotlin.collections.isNotEmpty
+import org.jsoup.nodes.Document
 
 open class WuxiaBoxProvider : MainAPI() {
     override val name = "WuxiaBox"
@@ -122,6 +120,21 @@ open class WuxiaBoxProvider : MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
+    private fun getRelated(document: Document): List<SearchResponse> {
+        return document.select("div.section-body > ul.novel-list > li").mapNotNull { element ->
+            val href = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+            val title = element.selectFirst("h5")?.text() ?: return@mapNotNull null
+            newSearchResponse(
+                name = title,
+                url = href
+            ) {
+                posterUrl = fixUrlNull(
+                    element.selectFirst("img")?.attr("data-src")
+                )
+            }
+        }
+    }
+
     override suspend fun load(url: String): LoadResponse?
     {
         val document = app.get(url).document
@@ -172,6 +185,7 @@ open class WuxiaBoxProvider : MainAPI() {
             this.posterUrl = fixUrlNull(cover)
             this.synopsis = synopsis
             setStatus(status)
+            related = getRelated(document)
         }
     }
 

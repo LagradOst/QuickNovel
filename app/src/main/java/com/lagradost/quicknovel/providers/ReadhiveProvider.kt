@@ -11,6 +11,7 @@ import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
+import org.jsoup.nodes.Document
 
 class ReadhiveProvider  :  MainAPI() {
     override val name = "ReadHive"
@@ -20,56 +21,37 @@ class ReadhiveProvider  :  MainAPI() {
     override val rateLimitTime = 500L
 
     override val tags = listOf(
-        "All" to "",
-        "Abandoned Children" to "abandoned-children",
-        "Absent Parents" to "absent-parents",
-        "abusement" to "abusement",
-        "Abusive Characters" to "abusive-characters",
-        "Academy" to "academy",
-        "Accelerated Growth" to "accelerated-growth",
-        "Acting" to "acting",
-        "actor" to "actor",
-        "Adapted to Manhwa" to "adapted-to-manhwa",
-        "Adopted Children" to "adopted-children",
-        "Adopted Protagonist" to "adopted-protagonist",
-        "Adultery" to "adultery",
+        "Action" to "action",
+        "Adult" to "adult",
         "Adventure" to "adventure",
-        "Age Progression" to "age-progression",
-        "Age Regression" to "age-regression",
-        "Amnesia" to "amnesia",
-        "and Peasants" to "and-peasants",
-        "Animal Characteristics" to "animal-characteristics",
-        "Appearance Changes" to "appearance-changes",
-        "Appearance Different from Actual Age" to "appearance-different-from-actual-age",
-        "archduke" to "archduke",
-        "Aristocracy" to "aristocracy",
-        "Aristocrats" to "aristocrats",
-        "Army Building" to "army-building",
-        "Arranged Marriage" to "arranged-marriage",
-        "Arrogant Characters" to "arrogant-characters",
-        "Arrogant ML" to "arrogant-ml",
-        "Artifacts" to "artifacts",
-        "Artificial Intelligence" to "artificial-intelligence",
-        "Artists" to "artists",
-        "Assassins" to "assassins",
-        "baby" to "baby",
-        "Badass FL" to "badass-fl",
-        "Badass ML" to "badass-ml",
-        "beast" to "beast",
-        "Beasts" to "beasts",
-        "Beautiful Female Lead" to "beautiful-female-lead",
-        "Betrayal" to "betrayal",
-        "Bickering Couple" to "bickering-couple",
-        "bilateral salvation" to "bilateral-salvation",
         "BL" to "bl",
-        "BL. Yaoi" to "bl-yaoi",
-        "blood" to "blood",
-        "Bloodlines" to "bloodlines",
-        "blue-haired-fl" to "blue-haired-fl",
-        "Book Possessed" to "book-possessed",
-        "boss" to "boss",
-        "Boss-subordinate" to "boss-subordinate",
-        "Brainwashing" to "brainwashing"
+        "Boy's Love" to "boy's-love",
+        "Comedy" to "comedy",
+        "Drama" to "drama",
+        "Ecchi" to "ecchi",
+        "Fantasy" to "fantasy",
+        "Harem" to "harem",
+        "Historical" to "historical",
+        "Horror" to "horror",
+        "Josei" to "josei",
+        "Martial Arts" to "martial-arts",
+        "Mature" to "mature",
+        "Mecha" to "mecha",
+        "Mystery" to "mystery",
+        "Psychological" to "psychological",
+        "Reincarnation" to "reincarnation",
+        "Romance" to "romance",
+        "School Life" to "school-life",
+        "Sci-Fi" to "sci-fi",
+        "Shoujo" to "shoujo",
+        "Shounen Ai" to "shounen-ai",
+        "Slice of Life" to "slice-of-life",
+        "Sports" to "sports",
+        "Supernatural" to "supernatural",
+        "Tragedy" to "tragedy",
+        "Xianxia" to "xianxia",
+        "Xuanhuan" to "xuanhuan",
+        "Yaoi" to "yaoi"
     )
 
     override suspend fun loadMainPage(
@@ -77,12 +59,26 @@ class ReadhiveProvider  :  MainAPI() {
         mainCategory: String?,
         orderBy: String?,
         tag: String?
-    ): HeadMainPageResponse
-    {
-        val url = "$mainUrl/${if(!tag.isNullOrBlank()) "genre/$tag/" else ""}page/$page/"
-        val document = app.get(url).document
+    ): HeadMainPageResponse {
+        val hasTag = !tag.isNullOrBlank()
+        val tagPath = if (hasTag) "genre/$tag/" else ""
 
-        val returnValue = document.select("a.peer").mapNotNull { card ->
+        val url = "$mainUrl/${tagPath}page/$page/"
+        val document = app.get(url).document
+        val returnValue = parsePageCards(document).toMutableList()
+
+        if (hasTag && page == 1) {
+            val nextUrl = "$mainUrl/${tagPath}page/2/"
+            val nextDocument = app.get(nextUrl).document
+            val secondPageCards = parsePageCards(nextDocument)
+            returnValue.addAll(secondPageCards)
+        }
+
+        return HeadMainPageResponse(url, returnValue)
+    }
+
+    private fun parsePageCards(document: Document): List<SearchResponse> {
+        return document.select("a.peer, a.col-span-2").mapNotNull { card ->
             val href = card?.attr("href") ?: return@mapNotNull null
             val title = card.selectFirst("img")?.attr("alt") ?: return@mapNotNull null
             newSearchResponse(
@@ -92,7 +88,6 @@ class ReadhiveProvider  :  MainAPI() {
                 posterUrl = fixUrlNull(card.selectFirst("img")?.attr("src"))
             }
         }
-        return HeadMainPageResponse(url, returnValue)
     }
 
 
@@ -120,8 +115,22 @@ class ReadhiveProvider  :  MainAPI() {
 
             this.author = infoDiv.selectFirst("span.leading-7")?.text() ?: ""
 
-            this.tags = infoDiv.select("section.relative.grid.grid-cols-1.lg\\:grid-areas-series__body.lg\\:grid-cols-series.gap-x-4.px-4.py-2.sm\\:px-8 > div.lg\\:grid-in-content.mt-4 > div:nth-child(1) > div:nth-child(2) > div.flex.flex-wrap > a").mapNotNull {
+            this.tags = infoDiv.select("section.relative.grid.grid-cols-1.lg\\:grid-areas-series__body.lg\\:grid-cols-series.gap-x-4.px-4.py-2.sm\\:px-8 > div.lg\\:grid-in-info > div > a").mapNotNull {
                 it.text().trim().takeIf { text ->  !text.isEmpty() }
+            }
+            related = getRelated(document)
+        }
+    }
+
+    private fun getRelated(dc: Document): List<SearchResponse>{
+        return dc.select("div.swiper > div.swiper-wrapper > div.swiper-slide").mapNotNull { element ->
+            val href = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+            val title = element.selectFirst("h6")?.text() ?: return@mapNotNull null
+            newSearchResponse(
+                name = title,
+                url = href
+            ) {
+                posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
             }
         }
     }

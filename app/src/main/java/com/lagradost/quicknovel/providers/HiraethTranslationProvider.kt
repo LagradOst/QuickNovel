@@ -1,8 +1,12 @@
 package com.lagradost.quicknovel.providers
 
+import android.net.Uri
 import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.MainActivity.Companion.app
+import com.lagradost.quicknovel.providers.LibReadProvider.LibReadCommentsResponse
+import com.lagradost.quicknovel.providers.NovelFireProvider.RelatedResponse
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
 
 open class HiraethTranslationProvider : MainAPI() {
     override val name = "HiraethTranslation"
@@ -10,7 +14,7 @@ open class HiraethTranslationProvider : MainAPI() {
     override val hasMainPage = true
     override val iconId = R.drawable.icon_hiraethtranslation
     override val iconBackgroundId = R.color.hiraethtranslation_header_color
-
+    override val hasReviews = true
     override val orderBys = listOf(
         "Latest Release" to "latest",
         "Relevance" to "",
@@ -57,7 +61,7 @@ open class HiraethTranslationProvider : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val document = app.get("$mainUrl/?s=$query&post_type=wp-manga&m_orderby=latest").document
+        val document = app.get("$mainUrl/?s=${Uri.encode(query.trim()).replace("%20","+")}&post_type=wp-manga").document
 
         return document.select("div.c-tabs-item > div.row.c-tabs-item__content").mapNotNull { h ->
             val h3 = h.selectFirst("h3.h4 > a") ?: return@mapNotNull null
@@ -124,6 +128,38 @@ open class HiraethTranslationProvider : MainAPI() {
             val statusHeader = document.selectFirst("div.summary-content")
 
             setStatus(statusHeader?.text() ?: statusHeader0?.text())
+            related = getRelated(document)
+        }
+    }
+
+    private fun getRelated(dc: Document): List<SearchResponse>{
+        return dc.select("div.related-manga div.col-md-3").mapNotNull { element ->
+            val href = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+            val title = element.selectFirst("h5")?.text() ?: return@mapNotNull null
+            newSearchResponse(
+                name = title,
+                url = href
+            ) {
+                posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
+            }
+        }
+    }
+
+    override suspend fun loadReviews(
+        url: String,
+        page: Int,
+        showSpoilers: Boolean
+    ): List<UserReview> {
+        if (page > 1) return emptyList()
+        val response = app.get(url).document
+
+        return response.select("div.wpd-thread-list > div.comment").mapNotNull { item ->
+            UserReview(
+                review = item.selectFirst("div.wpd-comment-text")?.text() ?: "",
+                username = item.selectFirst("div.wpd-comment-author")?.text() ?: "User",
+                reviewDate = item.selectFirst("div.wpd-comment-date")?.attr("title"),
+                avatarUrl = fixUrlNull(item.selectFirst("img")?.attr("src")),
+            )
         }
     }
 }

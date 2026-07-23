@@ -7,9 +7,11 @@ import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrl
+import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
+import org.jsoup.nodes.Document
 
 class NovelasLigerasProvider : MainAPI() {
     override val name = "Nova"
@@ -91,6 +93,20 @@ class NovelasLigerasProvider : MainAPI() {
             this.synopsis = synopsis
             this.tags = infoDiv.select("div.product_meta span.tagged_as a").map {
                 it.text().trim()
+            }
+            related = getRelated(document)
+        }
+    }
+
+    private fun getRelated(dc: Document): List<SearchResponse>{
+        return dc.select("section.related > div > div > div").mapNotNull { element ->
+            val href = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+            val title = element.selectFirst("h4")?.text() ?: return@mapNotNull null
+            newSearchResponse(
+                name = title,
+                url = href
+            ) {
+                posterUrl = fixUrlNull(element.selectFirst("img")?.attr("data-src"))
             }
         }
     }
