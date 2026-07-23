@@ -44,6 +44,7 @@ import com.lagradost.quicknovel.ui.download.DownloadDialog.*
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.cmap
 import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentHashMap
 import kotlinx.collections.immutable.toPersistentList
@@ -186,7 +187,7 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         }
     }
 
-    private fun onRefreshingChanged(item : BookDownloader2.RefreshQuery) = viewModelScope.launch {
+    private fun onRefreshingChanged(item: BookDownloader2.RefreshQuery) = viewModelScope.launch {
         // This is a hijack of the "generating" system, however we assume that it is fine
         updateState {
             copy(
@@ -443,6 +444,7 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         BookDownloader2.downloadDataChanged += this::onDownloadAdded
         BookDownloader2.bookmarkChanged += this::onBookmarkChanged
         BookDownloader2.refreshingChanged += this::onRefreshingChanged
+        BookDownloader2.chapterReadChanged += this::onChapterChanged
     }
 
     override fun onCleared() {
@@ -451,6 +453,24 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         BookDownloader2.downloadDataChanged -= this::onDownloadAdded
         BookDownloader2.bookmarkChanged -= this::onBookmarkChanged
         BookDownloader2.refreshingChanged -= this::onRefreshingChanged
+        BookDownloader2.chapterReadChanged -= this::onChapterChanged
+    }
+
+    fun onChapterChanged(name: String) {
+        updateState {
+            copy(pages = pages.updateRows {
+                val ids = data.filter { it.value.name == name }
+                if(ids.isEmpty()) return@updateRows this
+
+                val new = data.builder()
+                for ((key, value) in ids) {
+                    @OptIn(ExperimentalUuidApi::class)
+                    val newResponse = value.copy(chaptersRead = ImmutableSearchResponse.chaptersRead(name))
+                    new[key] = newResponse
+                }
+                return@updateRows copy(data = new.build())
+            })
+        }
     }
 
     fun onDownloadAdded(item: Pair<Int, DownloadFragment.DownloadData>) = viewModelScope.launch {

@@ -1406,6 +1406,7 @@ object BookDownloader2 {
     val downloadDataRefreshed = Event<Int>()
     val bookmarkChanged = Event<Int>()
     val refreshingChanged = Event<RefreshQuery>()
+    val chapterReadChanged = Event<String>()
 
     @Immutable
     data class RefreshQuery(

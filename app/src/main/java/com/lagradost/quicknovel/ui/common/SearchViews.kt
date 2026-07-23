@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -226,7 +227,10 @@ fun SearchResponseRow(
                 .padding(10.dp)
         ) {
             Text(
-                response.name, maxLines = 2, style = BaseStyles.textStyle, overflow = TextOverflow.Ellipsis
+                response.name,
+                maxLines = 2,
+                style = BaseStyles.textStyle,
+                overflow = TextOverflow.Ellipsis
             )
 
             if (response.downloadState != null) {
@@ -466,7 +470,7 @@ fun SearchResponseItem(
                 // We do the funny and assign generating = downloading
                 .downloadOutline(if (response.generating) DownloadState.IsDownloading else response.downloadState?.status)
                 .ripple(interactionSource),
-            contentAlignment = Alignment.TopEnd
+            contentAlignment = Alignment.BottomStart
         ) {
             AsyncImage(
                 contentScale = ContentScale.Crop,
@@ -475,19 +479,37 @@ fun SearchResponseItem(
                 modifier = Modifier.fillMaxSize()
             )
 
-            if (response.downloadState != null && response.epubSize != null && response.hasNewChapters) {
+
+
+            Row(modifier = Modifier.padding(5.dp)) {
+
                 Box(
                     modifier = Modifier
-                        .padding(5.dp)
-                        .circle()
-                        .background(colors.primary)
-                        .padding(vertical = 3.dp, horizontal = 13.dp)
+                        .rounded()
+                        .background(Color.Black.copy(alpha = 0.6f))
+                        .padding(vertical = 3.dp, horizontal = 5.dp)
                 ) {
                     Text(
-                        text = "+${(response.downloadState.progress - response.epubSize)}",
-                        color = colors.background,
-                        style = TextStyle(fontSize = 14.sp),
+                        text = "${response.chaptersRead}/${response.chapters}",
+                        color = Color.White,
+                        style = TextStyle(fontSize = 12.sp),
                     )
+                }
+
+                if (response.downloadState != null && response.epubSize != null && response.hasNewChapters) {
+                    Box(
+                        modifier = Modifier
+                            .padding(start = 5.dp)
+                            .rounded()
+                            .background(colors.primary)
+                            .padding(vertical = 3.dp, horizontal = 5.dp)
+                    ) {
+                        Text(
+                            text = "+${(response.downloadState.progress - response.epubSize)}",
+                            color = colors.background,
+                            style = TextStyle(fontSize = 12.sp),
+                        )
+                    }
                 }
             }
         }

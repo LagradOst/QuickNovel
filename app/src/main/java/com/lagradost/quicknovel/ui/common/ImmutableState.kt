@@ -33,6 +33,7 @@ import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
+import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
@@ -135,6 +136,8 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
     val timeOfPageOpened: Long? = null,
     /** The size of the last written epub in chapters, aka how many chapters have we actually might have read */
     val epubSize : Int? = null,
+    /** How many chapters we have read with the built-in reader */
+    val chaptersRead : Int,
 ) {
     fun matchesQuery(query: String): Boolean =
         FuzzySearch.partialRatio(name.lowercase(), query) > 50
@@ -168,6 +171,8 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
         }
 
     companion object {
+        fun chaptersRead(name : String) : Int = getKey<Int>(EPUB_CURRENT_POSITION,name)?.let{it+1}?:0
+
         @OptIn(ExperimentalUuidApi::class)
         fun from(response: SearchResponse): ImmutableSearchResponse =
             ImmutableSearchResponse(
@@ -179,6 +184,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 apiName = response.apiName,
                 posterHeaders = response.posterHeaders?.toImmutableMap(),
                 timeOfCached = System.currentTimeMillis(),
+                chaptersRead = chaptersRead(response.name)
             )
 
         @OptIn(ExperimentalUuidApi::class)
@@ -198,7 +204,8 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 timeOfPageOpened = getKey<Long>(
                     DOWNLOAD_EPUB_LAST_ACCESS,
                     cache.id.toString(),
-                ) ?: 0
+                ) ?: 0,
+                chaptersRead = chaptersRead(cache.name)
             )
 
         @OptIn(ExperimentalUuidApi::class)
@@ -226,6 +233,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                     id.toString(),
                 ) ?: 0,
                 epubSize = getKey(DOWNLOAD_EPUB_SIZE, id.toString()) ?: 0,
+                chaptersRead = chaptersRead(cache.name)
             )
     }
 
