@@ -190,6 +190,7 @@ class FenrirRealProvider : MainAPI() {
     override suspend fun loadHtml(url: String): String? {
         val document = app.get(url).document
         document.select("script, style, iframe, svg, noscript").remove()//avoid out of memory
+        document.select("[aria-hidden=\"true\"]").remove()
         val contentElement = (document.selectFirst("div.reader-area[role=region]")
             ?: document.selectFirst("div.main-area div.chapter-view div.content-area")
             ?: return null).html()
