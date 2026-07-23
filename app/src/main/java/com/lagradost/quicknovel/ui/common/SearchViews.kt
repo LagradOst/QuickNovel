@@ -480,9 +480,8 @@ fun SearchResponseItem(
             )
 
 
-
-            Row(modifier = Modifier.padding(5.dp)) {
-
+            if(response.id != null) {
+                Row(modifier = Modifier.padding(5.dp)) {
                 Box(
                     modifier = Modifier
                         .rounded()
@@ -511,6 +510,7 @@ fun SearchResponseItem(
                         )
                     }
                 }
+            }
             }
         }
 
