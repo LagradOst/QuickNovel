@@ -17,7 +17,6 @@ import android.graphics.BitmapFactory
 import android.graphics.RectF
 import android.net.Uri
 import android.os.Build
-import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -53,14 +52,12 @@ import com.lagradost.quicknovel.BookDownloader2Helper.getDirectory
 import com.lagradost.quicknovel.BookDownloader2Helper.getSafeByteArray
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
-import com.lagradost.quicknovel.DataStore.getSharedPrefs
 import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.ImageDownloader.getImageBitmapFromUrl
 import com.lagradost.quicknovel.NotificationHelper.etaToString
 import com.lagradost.quicknovel.extractors.ExtractorApi
 import com.lagradost.quicknovel.mvvm.launchSafe
 import com.lagradost.quicknovel.mvvm.logError
-import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getBasePath
@@ -73,7 +70,6 @@ import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.Event
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
-import com.lagradost.quicknovel.util.amap
 import com.lagradost.quicknovel.util.pmap
 import com.lagradost.safefile.SafeFile
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
@@ -1293,25 +1289,20 @@ object BookDownloader2 {
     }
 
 
-    suspend fun getOldDataReadingProgress(currentTabIndex: Int) {
+    suspend fun getOldDataReadingProgress(currentLibraryIndex: Int) {
+        if (currentLibraryIndex <= 0) return   // Tab 0 = Downloads
         val keys = getKeys(RESULT_BOOKMARK_STATE) ?: return
-        val readList = arrayListOf(
-            ReadType.READING,
-            ReadType.READING,
-            ReadType.ON_HOLD,
-            ReadType.PLAN_TO_READ,
-            ReadType.COMPLETED,
-            ReadType.DROPPED,
-        )
+        val libraries = (context ?: return).getLibraries()
+        val library = libraries.getOrNull(currentLibraryIndex - 1) ?: return
         coroutineScope {
             for (key in keys) {
                 val state = getKey<Int>(key)
-                if (state == readList[currentTabIndex].prefValue) {
+                if (state == library.id) {
                     val id = key.replaceFirst(RESULT_BOOKMARK_STATE, RESULT_BOOKMARK)
 
                     val cached = getKey<ResultCached>(id) ?: continue
                     launch {
-                        getNewTotalChapters(cached,currentTabIndex)
+                        getNewTotalChapters(cached,currentLibraryIndex)
                     }
                 }
             }
@@ -1407,6 +1398,7 @@ object BookDownloader2 {
     val bookmarkChanged = Event<Int>()
     val refreshingChanged = Event<RefreshQuery>()
     val chapterReadChanged = Event<String>()
+    val updatePagesDetails = Event<Boolean>()
 
     @Immutable
     data class RefreshQuery(

@@ -33,6 +33,7 @@ import com.lagradost.quicknovel.BookDownloader2Helper.getFilenameIMG
 import com.lagradost.quicknovel.BookDownloader2Helper.sanitizeFilename
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
+import com.lagradost.quicknovel.DefaultLibrary
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION

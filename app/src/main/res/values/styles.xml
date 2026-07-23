@@ -424,7 +424,7 @@
         <item name="android:colorPrimary">@color/colorPrimaryPink</item>
         <item name="colorPrimaryDark">#DD1280</item>
         <item name="colorAccent">#FF4DAE</item>
-        <item name="colorOnPrimary">@color/blackText</item>
+        <item name="colorOnPrimary">#FF4DAE</item>
         <item name="android:colorAccent">@color/colorPrimaryPink</item>
     </style>
 

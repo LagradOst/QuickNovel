@@ -1,7 +1,8 @@
 package com.lagradost.quicknovel.ui.download
 
+import android.app.Application
 import androidx.compose.runtime.Immutable
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lagradost.quicknovel.BaseApplication
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
@@ -19,6 +20,7 @@ import com.lagradost.quicknovel.CURRENT_TAB
 import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
+import com.lagradost.quicknovel.DefaultLibrary
 import com.lagradost.quicknovel.DownloadActionType
 import com.lagradost.quicknovel.DownloadFileWorkManager
 import com.lagradost.quicknovel.DownloadProgressState
@@ -29,7 +31,6 @@ import com.lagradost.quicknovel.compose.ActionHandler
 import com.lagradost.quicknovel.compose.DebounceQuery
 import com.lagradost.quicknovel.compose.DefaultStateContainer
 import com.lagradost.quicknovel.compose.StateContainer
-import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.common.ImmutableDownloadState
 import com.lagradost.quicknovel.ui.common.ImmutableSearchList
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
@@ -38,11 +39,11 @@ import com.lagradost.quicknovel.ui.common.SearchResponseOperation
 import com.lagradost.quicknovel.ui.common.SortingMethodType
 import com.lagradost.quicknovel.ui.common.updateRow
 import com.lagradost.quicknovel.ui.common.updateRows
+import com.lagradost.quicknovel.getLibraries
 import com.lagradost.quicknovel.ui.download.DownloadDialog.*
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.cmap
 import kotlinx.collections.immutable.PersistentList
-import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentHashMap
 import kotlinx.collections.immutable.toPersistentList
@@ -50,6 +51,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlin.collections.mapNotNull
 import kotlin.uuid.ExperimentalUuidApi
 
 @Immutable
@@ -86,17 +88,11 @@ sealed class DownloadPageAction {
     data class SelectPage(val page: Int) : DownloadPageAction()
 }
 
-class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
+class DownloadViewModel2(application: Application) : AndroidViewModel(application),
+    ActionHandler<DownloadPageAction>,
     StateContainer<DownloadPageState> by DefaultStateContainer(DownloadPageState()) {
-    companion object {
-        val readList = persistentListOf(
-            ReadType.READING,
-            ReadType.ON_HOLD,
-            ReadType.PLAN_TO_READ,
-            ReadType.COMPLETED,
-            ReadType.DROPPED,
-        )
-    }
+
+    val readList: PersistentList<DefaultLibrary> get() = getApplication<Application>().getLibraries()
 
     private val searchPipe = DebounceQuery()
     override fun onAction(action: DownloadPageAction) {
@@ -199,6 +195,10 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         }
     }
 
+    private fun onPagesChanged(preserveState:Boolean) = viewModelScope.launch {
+        loadAll(preserveState)
+    }
+
     private fun onBookmarkChanged(id: Int) = viewModelScope.launch {
         val result = getKey<ResultCached>(RESULT_BOOKMARK, id.toString())
         val state = getKey<Int>(RESULT_BOOKMARK_STATE, id.toString())
@@ -219,14 +219,12 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             return@launch
         }
 
-        val newIndex = readList.indexOf(ReadType.fromSpinner(state))
-        if (newIndex == -1) {
-            return@launch
-        }
+        val newIndex = readList.find { it.id == state }?.position ?: return@launch
+
         val response = ImmutableSearchResponse.from(result)
         updateState {
             copy(
-                pages = pages.updateRow(newIndex + 1) {
+                pages = pages.updateRow(newIndex) {
                     insert(id, response)
                 },
             )
@@ -448,6 +446,8 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         BookDownloader2.bookmarkChanged += this::onBookmarkChanged
         BookDownloader2.refreshingChanged += this::onRefreshingChanged
         BookDownloader2.chapterReadChanged += this::onChapterChanged
+        BookDownloader2.refreshingChanged += this::onRefreshingChanged
+        BookDownloader2.updatePagesDetails += this::onPagesChanged
     }
 
     override fun onCleared() {
@@ -455,6 +455,8 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         BookDownloader2.downloadRemoved -= this::onDownloadRemoved
         BookDownloader2.downloadDataChanged -= this::onDownloadAdded
         BookDownloader2.bookmarkChanged -= this::onBookmarkChanged
+        BookDownloader2.refreshingChanged -= this::onRefreshingChanged
+        BookDownloader2.updatePagesDetails -= this::onPagesChanged
         BookDownloader2.refreshingChanged -= this::onRefreshingChanged
         BookDownloader2.chapterReadChanged -= this::onChapterChanged
     }
@@ -527,14 +529,17 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         }
     }
 
-    suspend fun loadAll() = withContext(Dispatchers.Default) {
+    suspend fun loadAll(preserveState: Boolean = false) = withContext(Dispatchers.Default) {
+        val currentState = state.value
         run {
             val downloadSortingMethod =
                 getKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD) ?: DEFAULT_SORT
             val regularSortingMethod =
                 getKey(DOWNLOAD_SETTINGS, DOWNLOAD_NORMAL_SORTING_METHOD) ?: DEFAULT_SORT
-            val query = ""
-            val page = getKey<Int>(DOWNLOAD_SETTINGS, CURRENT_TAB) ?: 0
+
+            val query = if (preserveState) currentState.query else ""
+            val page = if (preserveState) currentState.activePage else (getKey<Int>(DOWNLOAD_SETTINGS, CURRENT_TAB) ?: 0)
+
             updateState {
                 copy(
                     query = query,
@@ -545,13 +550,9 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             }
         }
 
-        val mapping: HashMap<Int, ArrayList<Pair<Int, ImmutableSearchResponse>>> = hashMapOf(
-            ReadType.PLAN_TO_READ.prefValue to arrayListOf(),
-            ReadType.DROPPED.prefValue to arrayListOf(),
-            ReadType.COMPLETED.prefValue to arrayListOf(),
-            ReadType.ON_HOLD.prefValue to arrayListOf(),
-            ReadType.READING.prefValue to arrayListOf(),
-        )
+        val mapping = LinkedHashMap<Int,  ArrayList<Pair<Int, ImmutableSearchResponse>>>().apply {
+            readList.forEach { lib -> put(lib.id, arrayListOf()) }
+        }
         val keys = getKeys(RESULT_BOOKMARK_STATE)
         for (key in keys ?: emptyList()) {
             val type = getKey<Int>(key) ?: continue
@@ -590,7 +591,7 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             for (x in readList) {
                 add(
                     ImmutableSearchList.new(
-                        mapping[x.prefValue]!!.toMap().toPersistentHashMap(),
+                        mapping[x.id]!!.toMap().toPersistentHashMap(),
                         stateValue.query,
                         stateValue.downloadSortingMethod
                     )
