@@ -1773,8 +1773,6 @@ class ReadActivityViewModel : ViewModel() {
         mlTranslator = null
 
         BookDownloader2.chapterReadChanged(book.title())
-
-        super.onCleared()
     }
 
 

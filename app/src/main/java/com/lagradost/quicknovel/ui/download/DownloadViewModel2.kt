@@ -16,8 +16,6 @@ import com.lagradost.quicknovel.BookDownloader2.downloadProgress
 import com.lagradost.quicknovel.BookDownloader2.downloadProgressChanged
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.CURRENT_TAB
-import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
-import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
 import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
@@ -262,9 +260,9 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                     response.synopsis
                 )
             } finally {
-                val opened = System.currentTimeMillis()
-                setKey(DOWNLOAD_EPUB_LAST_ACCESS, id.toString(), opened)
-                val newEpubSize = getKey<Int>(DOWNLOAD_EPUB_SIZE, id.toString())
+                val newTimeOfPageOpened = System.currentTimeMillis()
+                ImmutableSearchResponse.setTimeOfPageOpened(id, newTimeOfPageOpened)
+                val newEpubSize = ImmutableSearchResponse.epubSize(id)
 
                 updateState {
                     copy(pages = pages.updateRow(0) {
@@ -272,8 +270,8 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                             @OptIn(ExperimentalUuidApi::class)
                             copy(
                                 generating = false,
-                                timeOfPageOpened = opened,
-                                epubSize = newEpubSize ?: this.epubSize
+                                timeOfPageOpened = newTimeOfPageOpened,
+                                epubSize = newEpubSize
                             )
                         }
                     })
@@ -303,17 +301,22 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                             }
                         })
                     }
+
+                    val opened = System.currentTimeMillis()
+                    ImmutableSearchResponse.setTimeOfPageOpened(id, opened)
                     BookDownloader2.stream(action.response)
                     updateState {
                         copy(pages = pages.updateRows {
                             update(id) {
                                 @OptIn(ExperimentalUuidApi::class)
-                                copy(generating = false)
+                                copy(
+                                    generating = false,
+                                    timeOfPageOpened = opened
+                                )
                             }
                         })
                     }
                 }
-
             }
 
             SearchResponseOperation.AskDelete -> {
@@ -460,15 +463,20 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         updateState {
             copy(pages = pages.updateRows {
                 val ids = data.filter { it.value.name == name }
-                if(ids.isEmpty()) return@updateRows this
+                if (ids.isEmpty()) return@updateRows this
 
-                val new = data.builder()
-                for ((key, value) in ids) {
+                var out = this
+                for (id in ids.keys) {
                     @OptIn(ExperimentalUuidApi::class)
-                    val newResponse = value.copy(chaptersRead = ImmutableSearchResponse.chaptersRead(name))
-                    new[key] = newResponse
+                    out = out.update(id) {
+                        copy(
+                            chaptersRead = ImmutableSearchResponse.chaptersRead(name),
+                            timeOfPageOpened = System.currentTimeMillis(),
+                            epubSize = ImmutableSearchResponse.epubSize(id)
+                        )
+                    }
                 }
-                return@updateRows copy(data = new.build())
+                return@updateRows out
             })
         }
     }

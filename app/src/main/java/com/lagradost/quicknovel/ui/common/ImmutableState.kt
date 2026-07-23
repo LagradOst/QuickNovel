@@ -14,6 +14,7 @@ package com.lagradost.quicknovel.ui.common
  * The labels describe how these classes are used and where.
  * */
 
+import androidx.annotation.CheckResult
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -25,6 +26,7 @@ import coil3.network.httpHeaders
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
+import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.BookDownloader2Helper.getFilenameIMG
@@ -68,18 +70,25 @@ import kotlin.uuid.Uuid
 enum class SearchResponseOperation {
     /** Open the item in a result view */
     Open,
+
     /** Stream read the item */
     Stream,
+
     /** Ask the viewmodel to delete this item, from e.g. history or bookmarks. This should not delete the item directly */
     AskDelete,
+
     /** Actually delete this item */
     Delete,
+
     /** Show a popup of metadata */
     Metadata,
+
     /** Download the item */
     Download,
+
     /** Pause the download of the item */
     Pause,
+
     /** Resume the download of the item */
     Resume,
 }
@@ -125,7 +134,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
     /** The tags of an item */
     val tags: ImmutableList<String>? = null,
     /** If the item is "loading" in some way, like generating an epub or having some misc loading state unrelated to "downloading" */
-    val generating : Boolean = false,
+    val generating: Boolean = false,
     /** The ID of a card used for all keys, only non-null on regular search results */
     val id: Int? = null,
     /** The time we "cached"/"stored" the item and its metadata also known as "Recently refreshed" */
@@ -135,16 +144,17 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
     /** The time we actually read the item, also known as "Recently opened" */
     val timeOfPageOpened: Long? = null,
     /** The size of the last written epub in chapters, aka how many chapters have we actually might have read */
-    val epubSize : Int? = null,
+    val epubSize: Int? = null,
     /** How many chapters we have read with the built-in reader */
-    val chaptersRead : Int,
+    val chaptersRead: Int,
 ) {
+
     fun matchesQuery(query: String): Boolean =
         FuzzySearch.partialRatio(name.lowercase(), query) > 50
 
-    val chapters : Long? get() = totalChapters ?: downloadState?.total
+    val chapters: Long? get() = totalChapters ?: downloadState?.total
     val isImported: Boolean get() = (apiName == IMPORT_SOURCE || apiName == IMPORT_SOURCE_PDF)
-    val hasNewChapters : Boolean get() = downloadState != null && epubSize != null && !isImported && epubSize < downloadState.progress
+    val hasNewChapters: Boolean get() = downloadState != null && epubSize != null && !isImported && epubSize < downloadState.progress
 
     val imageRequest
         get() = @Composable {
@@ -171,7 +181,29 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
         }
 
     companion object {
-        fun chaptersRead(name : String) : Int = getKey<Int>(EPUB_CURRENT_POSITION,name)?.let{it+1}?:0
+        fun chaptersRead(name: String): Int =
+            getKey<Int>(EPUB_CURRENT_POSITION, name)?.let { it + 1 } ?: 0
+
+        fun timeOfPageOpened(id: Int): Long = getKey<Long>(
+            DOWNLOAD_EPUB_LAST_ACCESS,
+            id.toString(),
+        ) ?: 0L
+
+        fun epubSize(id: Int): Int = getKey(DOWNLOAD_EPUB_SIZE, id.toString()) ?: 0
+
+        fun setTimeOfPageOpened(id: Int, value: Long) {
+            setKey(
+                DOWNLOAD_EPUB_LAST_ACCESS,
+                id.toString(), value
+            )
+        }
+
+        fun setEpubSize(id: Int, value: Int) {
+            setKey(
+                DOWNLOAD_EPUB_SIZE,
+                id.toString(), value
+            )
+        }
 
         @OptIn(ExperimentalUuidApi::class)
         fun from(response: SearchResponse): ImmutableSearchResponse =
@@ -201,10 +233,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 totalChapters = cache.totalChapters.toLong(),
                 author = cache.author,
                 synopsis = cache.synopsis,
-                timeOfPageOpened = getKey<Long>(
-                    DOWNLOAD_EPUB_LAST_ACCESS,
-                    cache.id.toString(),
-                ) ?: 0,
+                timeOfPageOpened = timeOfPageOpened(cache.id),
                 chaptersRead = chaptersRead(cache.name)
             )
 
@@ -228,11 +257,8 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 downloadState = downloadState,
                 synopsis = cache.synopsis,
                 tags = cache.tags?.toImmutableList(),
-                timeOfPageOpened = getKey<Long>(
-                    DOWNLOAD_EPUB_LAST_ACCESS,
-                    id.toString(),
-                ) ?: 0,
-                epubSize = getKey(DOWNLOAD_EPUB_SIZE, id.toString()) ?: 0,
+                timeOfPageOpened = timeOfPageOpened(id),
+                epubSize = epubSize(id),
                 chaptersRead = chaptersRead(cache.name)
             )
     }
@@ -444,6 +470,7 @@ val normalSortingMethods = persistentListOf(
  *
  * Updates a singular index of a PersistentList with the new value, returning the update state
  * */
+@CheckResult
 fun <T> PersistentList<T>.updateRow(
     index: Int,
     update: T.() -> T
@@ -460,6 +487,7 @@ fun <T> PersistentList<T>.updateRow(
  *
  * This is done by updating based on the url, as that is assumed to be unique
  * */
+@CheckResult
 fun PersistentList<ImmutableSearchResponse>.updateItem(
     item: ImmutableSearchResponse,
     update: ImmutableSearchResponse.() -> ImmutableSearchResponse
@@ -476,6 +504,7 @@ fun PersistentList<ImmutableSearchResponse>.updateItem(
  * Update each item inside the PersistentList using the update function
  *
  * */
+@CheckResult
 fun <T> PersistentList<T>.updateRows(
     update: T.(Int) -> T
 ): PersistentList<T> {
@@ -497,6 +526,7 @@ data class ImmutableSearchList(
     val query: String = "",
     val sortingMethod: SortingMethodType = SortingMethodType.Default,
 ) {
+    @CheckResult
     fun delete(id: Int): ImmutableSearchList {
         if (!data.contains(id)) {
             return this
@@ -509,6 +539,7 @@ data class ImmutableSearchList(
         )
     }
 
+    @CheckResult
     fun insert(
         id: Int,
         newItem: ImmutableSearchResponse
@@ -536,6 +567,7 @@ data class ImmutableSearchList(
         )
     }
 
+    @CheckResult
     fun update(
         id: Int,
         updater: ImmutableSearchResponse.() -> ImmutableSearchResponse
@@ -557,6 +589,7 @@ data class ImmutableSearchList(
         )
     }
 
+    @CheckResult
     fun search(
         query: String = this.query,
         sortingMethod: SortingMethodType = this.sortingMethod
@@ -584,6 +617,7 @@ data class ImmutableSearchList(
     }
 
     companion object {
+        @CheckResult
         fun shouldUpdateItem(
             sortingMethod: SortingMethodType,
             item: ImmutableSearchResponse,
@@ -617,8 +651,10 @@ data class ImmutableSearchList(
             SortingMethodType.ChapterCount, SortingMethodType.RevChapterCount -> item.chapters != newItem.chapters
         }
 
+        @CheckResult
         fun skipQuery(query: String) = query.trim().length < 2
 
+        @CheckResult
         fun filterList(
             data: PersistentMap<Int, ImmutableSearchResponse>,
             query: String
@@ -628,6 +664,7 @@ data class ImmutableSearchList(
             return set.removingAll { data[it]?.matchesQuery(query) != true }
         }
 
+        @CheckResult
         fun sortList(
             data: PersistentMap<Int, ImmutableSearchResponse>,
             list: PersistentSet<Int>,
@@ -685,6 +722,7 @@ data class ImmutableSearchList(
                 SortingMethodType.ChapterCount -> {
                     list.sortedByDescending { data[it]?.chapters ?: 0L }
                 }
+
                 SortingMethodType.RevChapterCount -> {
                     list.sortedBy { data[it]?.chapters ?: 0L }
                 }
@@ -693,6 +731,7 @@ data class ImmutableSearchList(
             return sorted.toPersistentList()
         }
 
+        @CheckResult
         fun new(
             items: PersistentMap<Int, ImmutableSearchResponse>,
             query: String,

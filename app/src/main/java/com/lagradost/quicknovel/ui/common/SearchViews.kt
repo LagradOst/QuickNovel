@@ -233,36 +233,44 @@ fun SearchResponseRow(
                 overflow = TextOverflow.Ellipsis
             )
 
-            if (response.downloadState != null) {
-                if (response.downloadState.progress != response.downloadState.total) {
+            if (response.downloadState != null && response.downloadState.progress != response.downloadState.total) {
+                Text(
+                    "${response.downloadState.progress}/${response.downloadState.total}${
+                        response.downloadState.etaMs?.let {
+                            " • " + etaToString(
+                                it
+                            )
+                        } ?: ""
+                    }", style = BaseStyles.textAltStyle)
+            } else if (response.chapters != null) {
+                if (response.id != null && response.downloadState == null) {
+                    // Do not show response.chaptersRead for downloaded items, as it looks weird
                     Text(
-                        "${response.downloadState.progress}/${response.downloadState.total}${
-                            response.downloadState.etaMs?.let {
-                                " • " + etaToString(
-                                    it
-                                )
-                            } ?: ""
-                        }", style = BaseStyles.textAltStyle)
-                } else {
-                    // TODO not use chapter text for bytes?
-                    // TODO not show for imported?
-                    Text(
-                        "${response.downloadState.progress} ${
+                        "${response.chaptersRead}/${response.chapters} ${
                             stringResource(
-                                if (response.downloadState.progress == 1L) {
+                                if (response.chapters == 1L) {
                                     R.string.chapter
                                 } else {
                                     R.string.chapters
                                 }
                             )
-                        }", style = BaseStyles.textAltStyle
+                        }",
+                        style = BaseStyles.textAltStyle
+                    )
+                } else {
+                    Text(
+                        "${response.chapters} ${
+                            stringResource(
+                                if (response.chapters == 1L) {
+                                    R.string.chapter
+                                } else {
+                                    R.string.chapters
+                                }
+                            )
+                        }",
+                        style = BaseStyles.textAltStyle
                     )
                 }
-            } else if (response.chapters != null) {
-                Text(
-                    "${response.chapters} ${stringResource(R.string.read_action_chapters)}",
-                    style = BaseStyles.textAltStyle
-                )
             } else if (response.latestChapterName != null) {
                 Text(
                     response.latestChapterName,
@@ -479,38 +487,36 @@ fun SearchResponseItem(
                 modifier = Modifier.fillMaxSize()
             )
 
-
-            if(response.id != null) {
+            if (response.id != null) {
                 Row(modifier = Modifier.padding(5.dp)) {
-                Box(
-                    modifier = Modifier
-                        .rounded()
-                        .background(Color.Black.copy(alpha = 0.6f))
-                        .padding(vertical = 3.dp, horizontal = 5.dp)
-                ) {
-                    Text(
-                        text = "${response.chaptersRead}/${response.chapters}",
-                        color = Color.White,
-                        style = TextStyle(fontSize = 12.sp),
-                    )
-                }
-
-                if (response.downloadState != null && response.epubSize != null && response.hasNewChapters) {
-                    Box(
-                        modifier = Modifier
-                            .padding(start = 5.dp)
-                            .rounded()
-                            .background(colors.primary)
-                            .padding(vertical = 3.dp, horizontal = 5.dp)
-                    ) {
-                        Text(
-                            text = "+${(response.downloadState.progress - response.epubSize)}",
-                            color = colors.background,
-                            style = TextStyle(fontSize = 12.sp),
-                        )
+                    if(response.downloadState == null) {
+                        Box(
+                            modifier = Modifier
+                                .rounded()
+                                .background(Color.Black.copy(alpha = 0.6f))
+                                .padding(4.dp)
+                        ) {
+                            Text(
+                                text = "${response.chaptersRead}/${response.chapters}",
+                                color = Color.White,
+                                style = TextStyle(fontSize = 12.sp),
+                            )
+                        }
+                    } else if (response.epubSize != null && response.hasNewChapters) {
+                        Box(
+                            modifier = Modifier
+                                .rounded()
+                                .background(colors.primary)
+                                .padding(4.dp)
+                        ) {
+                            Text(
+                                text = "+${(response.downloadState.progress - response.epubSize)}",
+                                color = colors.background,
+                                style = TextStyle(fontSize = 12.sp),
+                            )
+                        }
                     }
                 }
-            }
             }
         }
 
