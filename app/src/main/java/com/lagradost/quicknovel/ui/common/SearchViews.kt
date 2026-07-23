@@ -36,7 +36,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -187,6 +186,7 @@ fun SearchResponseRow(
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Start,
         modifier = modifier
             .fillMaxWidth()
             .height(100.dp)
@@ -221,10 +221,9 @@ fun SearchResponseRow(
 
         Column(
             modifier = Modifier
-                .fillMaxWidth(0.6f)
                 .wrapContentHeight()
                 .align(Alignment.CenterVertically)
-                .padding(10.dp)
+                .padding(10.dp).weight(1.0f)
         ) {
             Text(
                 response.name,
@@ -279,7 +278,7 @@ fun SearchResponseRow(
             }
         }
 
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.width(5.dp).weight(0.01f))
 
         if (response.downloadState != null && response.epubSize != null && response.hasNewChapters) {
             Box(
