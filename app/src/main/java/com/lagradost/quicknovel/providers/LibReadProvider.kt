@@ -95,7 +95,7 @@ open class LibReadProvider : MainAPI() {
         return document.select("option").mapNotNull { i ->
             newChapterData(
                 name = i.text(),
-                url = "$secondUrl${i.attr("value")}"
+                url = "${url.removeSuffix("/")}/${i.attr("value").substringAfterLast("/")}"
             )
         }
     }
