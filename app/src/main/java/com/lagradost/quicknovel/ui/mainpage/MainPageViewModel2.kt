@@ -7,17 +7,19 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.lagradost.quicknovel.APIRepository
-import com.lagradost.quicknovel.ImmutableSearchResponse
+import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
-import com.lagradost.quicknovel.SearchResponseAction
-import com.lagradost.quicknovel.SearchResponseOperation
 import com.lagradost.quicknovel.compose.ActionHandler
 import com.lagradost.quicknovel.compose.DefaultEffectContainer
 import com.lagradost.quicknovel.compose.DefaultStateContainer
 import com.lagradost.quicknovel.compose.EffectContainer
 import com.lagradost.quicknovel.compose.SingleActiveQuery
 import com.lagradost.quicknovel.compose.StateContainer
+import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
+import com.lagradost.quicknovel.ui.common.SearchResponseAction
+import com.lagradost.quicknovel.ui.common.SearchResponseOperation
+import com.lagradost.quicknovel.ui.common.updateItem
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
 import com.lagradost.quicknovel.util.AppUtils.openInBrowser
 import kotlinx.collections.immutable.PersistentList
@@ -28,6 +30,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import java.util.concurrent.CancellationException
+import kotlin.uuid.ExperimentalUuidApi
 
 @Immutable
 data class MainPageState(
@@ -36,6 +39,7 @@ data class MainPageState(
     val filterVisual: FilterQueryVisual = FilterQueryVisual(),
     val query: QueryState = QueryState(),
     val dialog: MainPageDialog? = null,
+    val apiName: String,
 )
 
 @Immutable
@@ -71,9 +75,7 @@ data class FilterQuery(
 )
 
 enum class DialogType {
-    Tags,
-    Category,
-    OrderBy
+    Tags, Category, OrderBy
 }
 
 @Immutable
@@ -84,10 +86,7 @@ data class MainPageDialog(
 )
 
 sealed class MainPageAction {
-    data class ResultAction(
-        val action: SearchResponseAction
-    ) :
-        MainPageAction()
+    data class ResultAction(val action: SearchResponseAction) : MainPageAction()
 
     data class Search(val data: String) : MainPageAction()
     object Expand : MainPageAction()
@@ -105,14 +104,11 @@ sealed class MainPageEffect {
 class MainPageViewModel2(
     val api: APIRepository,
     initQuery: FilterQuery,
-) : ViewModel(),
-    StateContainer<MainPageState> by DefaultStateContainer(
-        MainPageState(
-            filter = FilterState(query = initQuery)
-        )
-    ),
-    EffectContainer<MainPageEffect> by DefaultEffectContainer(),
-    ActionHandler<MainPageAction> {
+) : ViewModel(), StateContainer<MainPageState> by DefaultStateContainer(
+    MainPageState(
+        filter = FilterState(query = initQuery), apiName = api.name
+    )
+), EffectContainer<MainPageEffect> by DefaultEffectContainer(), ActionHandler<MainPageAction> {
     companion object {
         fun provideFactory(bundle: Bundle) = viewModelFactory {
             initializer {
@@ -150,11 +146,8 @@ class MainPageViewModel2(
             updateState {
                 copy(
                     filterVisual = FilterQueryVisual(
-                        category = mainCategory?.first,
-                        tag = tag?.first,
-                        orderBy = orderBy?.first
-                    ),
-                    filter = filter.copy(
+                        category = mainCategory?.first, tag = tag?.first, orderBy = orderBy?.first
+                    ), filter = filter.copy(
                         loading = true,
                     )
                 )
@@ -271,9 +264,7 @@ class MainPageViewModel2(
                                 DialogType.Category -> filter.query.category
                                 DialogType.Tags -> filter.query.tag
                                 DialogType.OrderBy -> filter.query.orderBy
-                            },
-                            options = names.toPersistentList(),
-                            type = action.type
+                            }, options = names.toPersistentList(), type = action.type
                         )
                     )
                 }
@@ -289,8 +280,7 @@ class MainPageViewModel2(
                                 orderBy = if (action.type == DialogType.OrderBy) action.selected else filter.query.orderBy,
                                 page = 0,
                             ), items = persistentListOf(), error = null, url = ""
-                        ),
-                        dialog = null
+                        ), dialog = null
                     )
                 }
                 viewModelScope.launch {
@@ -307,6 +297,32 @@ class MainPageViewModel2(
     }
 
     private fun resultAction(action: SearchResponseAction) {
-        action.doAction()
+        when (action.operation) {
+            SearchResponseOperation.Stream -> {
+                viewModelScope.launch {
+                    updateState {
+                        copy(query = query.copy(items = query.items.updateItem(action.response) {
+                            @OptIn(ExperimentalUuidApi::class) copy(generating = true)
+                        }), filter = filter.copy(items = filter.items.updateItem(action.response) {
+                            @OptIn(ExperimentalUuidApi::class) copy(generating = true)
+                        }))
+                    }
+
+                    BookDownloader2.stream(action.response)
+
+                    updateState {
+                        copy(query = query.copy(items = query.items.updateItem(action.response) {
+                            @OptIn(ExperimentalUuidApi::class) copy(generating = false)
+                        }), filter = filter.copy(items = filter.items.updateItem(action.response) {
+                            @OptIn(ExperimentalUuidApi::class) copy(generating = false)
+                        }))
+                    }
+                }
+            }
+
+            else -> {
+                action.doAction()
+            }
+        }
     }
 }

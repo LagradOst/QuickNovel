@@ -1,6 +1,5 @@
 package com.lagradost.quicknovel.util
 
-import android.app.Activity
 import android.app.Dialog
 import android.content.Context
 import android.widget.*
@@ -21,7 +20,7 @@ object SingleSelectionHelper {
         showApply: Boolean,
         isMultiSelect: Boolean,
         callback: (List<Int>) -> Unit,
-        dismissCallback: () -> Unit
+        dismissCallback: () -> Unit,
     ) {
         val realShowApply = showApply || isMultiSelect
         val listView = dialog.findViewById<ListView>(R.id.listview1)!!

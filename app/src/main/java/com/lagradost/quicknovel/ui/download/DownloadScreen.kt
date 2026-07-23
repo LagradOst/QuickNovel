@@ -49,8 +49,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.SearchResponseAction
-import com.lagradost.quicknovel.SearchResponseOperation
 import com.lagradost.quicknovel.compose.ActionDialog
 import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.CloudStreamTheme
@@ -60,17 +58,21 @@ import com.lagradost.quicknovel.compose.SinglePairSelectDialog
 import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
+import com.lagradost.quicknovel.getLibraries
 import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
 import com.lagradost.quicknovel.tachiyomi.collectAsState
-import com.lagradost.quicknovel.ui.ReadType
+import com.lagradost.quicknovel.ui.common.ImmutableSearchList
 import com.lagradost.quicknovel.ui.common.SearchList
-import com.lagradost.quicknovel.ui.history.HistoryAction.DismissDialog
-import com.lagradost.quicknovel.ui.history.HistoryAction.ResultAction
+import com.lagradost.quicknovel.ui.common.SearchResponseAction
+import com.lagradost.quicknovel.ui.common.SearchResponseOperation
+import com.lagradost.quicknovel.ui.common.SortingMethodPair
+import com.lagradost.quicknovel.ui.common.SortingMethodType
+import com.lagradost.quicknovel.ui.common.normalSortingMethods
+import com.lagradost.quicknovel.ui.common.sortingMethods
 import kotlinx.collections.immutable.PersistentList
-import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlin.collections.getOrNull
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
@@ -85,16 +87,9 @@ fun DownloadScreen(
         action
     )
 
-    val pagesNames = persistentListOf(
-        R.string.tab_downloads,
-        R.string.type_reading,
-        R.string.type_on_hold,
-        R.string.type_plan_to_read,
-        R.string.type_completed,
-        R.string.type_dropped,
-    )
-
     val context = LocalContext.current
+
+    val pagesNames = listOf(stringResource(R.string.tab_downloads)) + context.getLibraries().map{it.title}
     val store = AndroidPreferenceStore(context)
 
     val downloadIsRow = store.getBoolean(stringResource(R.string.download_list_view_key), true)
@@ -105,7 +100,7 @@ fun DownloadScreen(
     Scaffold(
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                modifier = Modifier.padding(bottom = 30.dp),
+                modifier = Modifier.padding(bottom = 40.dp),
                 onClick = {
                     action(DownloadPageAction.ShowSorting)
                 },
@@ -223,7 +218,8 @@ fun DownloadScreen(
                             pagerState.requestScrollToPage(index)
                         }, text = {
                             Text(
-                                stringResource(row), color = if (selected) {
+                                text = row,
+                                color = if (selected) {
                                     colors.background
                                 } else {
                                     colors.onBackground

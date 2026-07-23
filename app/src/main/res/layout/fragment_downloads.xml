@@ -1,138 +1,97 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/downloadRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/primaryGrayBackground"
+    android:orientation="vertical">
+
+    <!-- Container inline (Search + Library icon) -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:id="@+id/downloadRoot"
-        android:background="?attr/primaryGrayBackground"
-        android:orientation="vertical">
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="10dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="5dp">
 
-    <FrameLayout
-            android:visibility="visible"
-            android:layout_height="40dp"
-            android:layout_margin="10dp"
-            android:background="@drawable/search_background"
-            android:layout_width="match_parent">
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="45dp"
+            android:layout_weight="1"
+            android:background="@drawable/search_background">
 
-        <androidx.appcompat.widget.SearchView
-                android:animateLayoutChanges="true"
+            <androidx.appcompat.widget.SearchView
                 android:id="@+id/download_search"
-                app:queryBackground="@color/transparent"
-                app:searchIcon="@drawable/search_icon"
-                android:paddingStart="-10dp"
-                android:iconifiedByDefault="false"
-                app:queryHint="@string/search_downloads"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_gravity="center_vertical"
+                android:animateLayoutChanges="true"
+                android:iconifiedByDefault="false"
                 app:iconifiedByDefault="false"
-                tools:ignore="RtlSymmetry">
+                app:queryBackground="@color/transparent"
+                app:queryHint="@string/search_downloads"
+                app:searchIcon="@drawable/search_icon"
+                tools:ignore="RtlSymmetry" />
+        </FrameLayout>
+    </LinearLayout>
 
-            <!--app:queryHint="@string/search_hint"
-             android:background="?attr/primaryGrayBackground" ?attr/itemBackground
-                        app:searchHintIcon="@drawable/search_white"
-                        -->
-        </androidx.appcompat.widget.SearchView>
-    </FrameLayout>
-
-    <!--<com.google.android.material.appbar.AppBarLayout
-            android:background="@android:color/transparent"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-        <com.google.android.material.appbar.MaterialToolbar
-                android:id="@+id/download_toolbar"
-                app:menu="@menu/download_actionbar"
-                android:paddingTop="@dimen/navbarHeight"
-                app:title="Library"
-                android:background="?attr/primaryGrayBackground"
-                app:navigationIconTint="?attr/iconColor"
-                app:titleTextColor="?attr/textColor"
-                app:layout_scrollFlags="scroll|enterAlways"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-
-        </com.google.android.material.appbar.MaterialToolbar>
-
-        <com.google.android.material.tabs.TabLayout
-                android:id="@+id/bookmark_tabs"
-                style="@style/Theme.Widget.Tabs"
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:layout_gravity="bottom"
-                android:background="?attr/primaryGrayBackground"
-                android:descendantFocusability="blocksDescendants"
-                android:focusable="false"
-                android:paddingHorizontal="5dp"
-                app:layout_scrollFlags="noScroll"
-                app:tabGravity="center"
-                app:tabIndicator="@drawable/indicator_background"
-                app:tabIndicatorColor="?attr/white"
-                app:tabIndicatorGravity="center"
-                app:tabIndicatorHeight="30dp"
-                app:tabMode="scrollable"
-                app:tabSelectedTextColor="?attr/primaryBlackBackground"
-                app:tabTextAppearance="@style/TabNoCaps"
-                app:tabTextColor="?attr/textColor" />
-    </com.google.android.material.appbar.AppBarLayout>-->
     <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
         <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-                android:background="?attr/primaryBlackBackground"
-                android:id="@+id/swipe_container"
-                android:layout_width="match_parent"
-                app:layout_behavior="@string/appbar_scrolling_view_behavior"
-                android:layout_height="match_parent">
+            android:id="@+id/swipe_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginBottom="40dp"
+            android:background="?attr/primaryBlackBackground">
+
             <androidx.viewpager2.widget.ViewPager2
-                    android:id="@+id/viewpager"
-                    android:paddingBottom="40dp"
-                    android:clipToPadding="false"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    tools:listitem="@layout/viewpager_page" />
+                android:id="@+id/viewpager"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                tools:listitem="@layout/viewpager_page" />
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
         <com.google.android.material.tabs.TabLayout
-                android:id="@+id/bookmark_tabs"
-                style="@style/Theme.Widget.Tabs"
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:layout_gravity="bottom"
-                android:background="?attr/primaryGrayBackground"
-                android:descendantFocusability="blocksDescendants"
-                android:focusable="false"
-                android:paddingHorizontal="5dp"
-                app:layout_scrollFlags="noScroll"
-                app:tabGravity="center"
-                app:tabIndicator="@drawable/indicator_background"
-                app:tabIndicatorColor="?attr/white"
-                app:tabIndicatorGravity="center"
-                app:tabIndicatorHeight="30dp"
-                app:tabMode="scrollable"
-                app:tabSelectedTextColor="?attr/primaryBlackBackground"
-                app:tabTextAppearance="@style/TabNoCaps"
-                app:tabTextColor="?attr/textColor" />
+            android:id="@+id/bookmark_tabs"
+            style="@style/Theme.Widget.Tabs"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_gravity="bottom"
+            android:background="?attr/primaryGrayBackground"
+            android:descendantFocusability="blocksDescendants"
+            android:focusable="false"
+            android:paddingHorizontal="5dp"
+            app:tabGravity="center"
+            app:tabIndicator="@drawable/indicator_background"
+            app:tabIndicatorColor="?attr/white"
+            app:tabIndicatorGravity="center"
+            app:tabIndicatorHeight="30dp"
+            app:tabMode="scrollable"
+            app:tabSelectedTextColor="?attr/primaryBlackBackground"
+            app:tabTextAppearance="@style/TabNoCaps"
+            app:tabTextColor="?attr/textColor" />
 
         <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-                android:id="@+id/download_fab"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="end|bottom"
-                app:elevation="0dp"
-                android:textStyle="bold"
+            android:id="@+id/download_fab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|bottom"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="56dp"
+            android:contentDescription="@string/mainpage_sort_by_button_text"
+            android:text="@string/mainpage_sort_by_button_text"
+            android:textColor="?attr/textColor"
+            android:textStyle="bold"
+            app:backgroundTint="?attr/primaryGrayBackground"
+            app:elevation="4dp"
+            app:icon="@drawable/ic_sort_24dp"
+            app:iconTint="?attr/textColor" />
 
-                app:backgroundTint="?attr/primaryGrayBackground"
-                app:tint="?attr/textColor"
-                android:textColor="?attr/textColor"
-                app:iconTint="?attr/textColor"
-                app:icon="@drawable/ic_sort_24dp"
-                android:text="@string/mainpage_sort_by_button_text"
-
-                android:contentDescription="@string/mainpage_sort_by_button_text"
-                android:layout_marginEnd="16dp"
-                android:layout_marginBottom="56dp" />
     </FrameLayout>
 </LinearLayout>

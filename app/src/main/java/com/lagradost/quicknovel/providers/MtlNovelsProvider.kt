@@ -5,10 +5,12 @@ import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.fixUrl
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
+import com.lagradost.quicknovel.providers.LightNovelWorldProvider.RelatedResponse
 
 class MtlNovelProvider : MainAPI() {
     override val name = "MtlNovel"
@@ -129,7 +131,7 @@ class MtlNovelProvider : MainAPI() {
 
             posterUrl = fixUrlNull(document.selectFirst("div.content-main-image img")?.attr("src"))
 
-            tags = lis.getOrNull(5)?.select("a")?.map { it.text() }
+            tags = lis.getOrNull(3)?.select("a")?.map { it.text() }
 
             synopsis = document.selectFirst("div.m-card.text-break")?.ownText()
 
@@ -140,7 +142,22 @@ class MtlNovelProvider : MainAPI() {
                 ?.toFloat()
                 ?.times(200)
                 ?.toInt()
+            related = getRelated(url.substringAfter("info/").removeSuffix("/"))
         }
+    }
 
+    suspend fun getRelated(slug:String): List<SearchResponse> {
+        val url = "$mainUrl/ajax/list/?type=related&slug=$slug"
+        val document = app.get(url).document
+        return document.select("div.novel-box").mapNotNull { element ->
+            val href = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+            val title = element.selectFirst("h3")?.text() ?: return@mapNotNull null
+            newSearchResponse(
+                name = title,
+                url = href
+            ) {
+                posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
+            }
+        }
     }
 }

@@ -1,5 +1,11 @@
 package com.lagradost.quicknovel.providers
 
+import android.annotation.SuppressLint
+import android.webkit.*
+import com.lagradost.quicknovel.BaseApplication.Companion.context
+import com.lagradost.quicknovel.util.Coroutines.main
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.withTimeoutOrNull
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.DownloadExtractLink
 import com.lagradost.quicknovel.DownloadLink
@@ -9,6 +15,7 @@ import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.USER_AGENT
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newEpubResponse
 import com.lagradost.quicknovel.newSearchResponse
@@ -109,8 +116,8 @@ class AnnasArchive : MainAPI() {
     }
 
 
-    private fun extract(url: String, name: String): DownloadLinkType {
-        return if (url.contains(".epub")) {
+    private fun extract(url: String, name: String, force:Boolean = false): DownloadLinkType {
+        return if (url.contains(".epub") || force) {
             DownloadLink(
                 url = url,
                 name = name,
@@ -124,57 +131,29 @@ class AnnasArchive : MainAPI() {
         }
     }
 
-    private suspend fun loadFromJsonUrl(md5: String): LoadResponse {
-        return app.get("$mainUrl/db/md5/$md5.json").parsed<AnnasArchiveRoot>().let { root ->
-            newEpubResponse(
-                name = root.fileUnifiedData?.titleBest ?: root.additional.topBox.title
-                ?: root.fileUnifiedData?.titleAdditional!!.first(),
-                url = "$mainUrl/md5/$md5",
-                links = root.additional.downloadUrls.mapNotNull { list ->
-                    val name = list.getOrNull(0) ?: return@mapNotNull null
-                    val link = list.getOrNull(1) ?: return@mapNotNull null
-                    extract(link, name)
-                }) {
-                author = root.fileUnifiedData?.authorBest ?: root.additional.topBox.author
-                        ?: root.fileUnifiedData?.authorAdditional?.firstOrNull()
-                posterUrl = root.fileUnifiedData?.coverUrlBest ?: root.additional.topBox.coverUrl
-                        ?: root.fileUnifiedData?.coverUrlAdditional?.firstOrNull()
-                synopsis = root.additional.topBox.description
-            }
-        }
-    }
-
     override suspend fun load(url: String): LoadResponse {
-        /* cloudflare
-        val md5Prefix = "$mainUrl/md5/"
-        if (url.startsWith(md5Prefix)) {
-            try {
-                return loadFromJsonUrl(url.removePrefix(md5Prefix))
-            } catch (t: Throwable) {
-                logError(t)
-            }
-        }*/
-
-        // backup non json parser
         val document = app.get(url).document
+        var slowLink: String? = null
 
         return newEpubResponse(
             name = document.selectFirst("div.text-2xl")?.ownText()!!,
             url = url,
-            links = document.select("ul.mb-4 > li > a.js-download-link").mapNotNull { element ->
-                val link = fixUrlNull(element.attr("href")) ?: return@mapNotNull null
-                // member
-                if (link.contains("fast_download")) {
-                    return@mapNotNull null
+            links = document.select("ul.mb-4 > li").mapNotNull { element ->
+                val link = fixUrlNull(element.selectFirst("a.js-download-link")?.attr("href")) ?: return@mapNotNull null
+
+                if (link.contains("fast_download")) return@mapNotNull null
+
+                // Cambio aquí: Usamos el WebView para el link de espera
+                if (element.text().contains("no waitlist")) {
+                    if (slowLink == null) {
+                        // Llamamos a nuestra nueva función
+                        slowLink = getSlowLinkWithWebView(link)
+                        println("consiguio el link?: $slowLink")
+                    }
+                    return@mapNotNull if (slowLink != null) extract(slowLink!!, element.text(), true) else null
                 }
-                // cloudflare
-                if (link.contains("slow_download")) {
-                    return@mapNotNull null
-                }
-                // no idea why this is in the js dl link
-                if (link.endsWith("/datasets")) {
-                    return@mapNotNull null
-                }
+
+                if (link.endsWith("/datasets")) return@mapNotNull null
                 extract(link, element.text())
             }) {
             posterUrl = document.selectFirst("main > div > div > div > div > div > img")?.attr("src")
@@ -183,117 +162,71 @@ class AnnasArchive : MainAPI() {
         }
     }
 
-    // ================================ JSON ================================
-    data class AnnasArchiveRoot(
-        /*@JsonProperty("///md5") var ___md5: ArrayList<String> = arrayListOf(),
-        @JsonProperty("md5") var md5: String? = null,
-        @JsonProperty("///lgrsnf_book") var ___lgrsnfBook: String? = null,
-        @JsonProperty("lgrsnf_book") var lgrsnfBook: String? = null,
-        @JsonProperty("///lgrsfic_book") var ___lgrsficBook: String? = null,
-        @JsonProperty("lgrsfic_book") var lgrsficBook: String? = null,
-        @JsonProperty("///lgli_file") var ___lgliFile: String? = null,
-        @JsonProperty("lgli_file") var lgliFile: LgliFile? = LgliFile(),
-        @JsonProperty("///zlib_book") var ___zlibBook: String? = null,
-        @JsonProperty("zlib_book") var zlibBook: ZlibBook? = ZlibBook(),
-        @JsonProperty("///aa_lgli_comics_2022_08_file") var ___aaLgliComics202208File: ArrayList<String> = arrayListOf(),
-        @JsonProperty("aa_lgli_comics_2022_08_file") var aaLgliComics202208File: String? = null,
-        @JsonProperty("///ipfs_infos") var ___ipfsInfos: String? = null,
-        @JsonProperty("ipfs_infos") var ipfsInfos: ArrayList<String> = arrayListOf(),
-        @JsonProperty("///file_unified_data") var ___fileUnifiedData: String? = null,
-        @JsonProperty("///search_only_fields") var ___searchOnlyFields: String? = null,
-        @JsonProperty("search_only_fields") var searchOnlyFields: SearchOnlyFields? = SearchOnlyFields(),
-        @JsonProperty("///additional") var ___additional: String? = null,*/
-        @JsonProperty("additional") var additional: Additional = Additional(),
-        @JsonProperty("file_unified_data") var fileUnifiedData: FileUnifiedData? = FileUnifiedData(),
-    )
+    @SuppressLint("SetJavaScriptEnabled")
+    /*
+        Before you guys kill me, I really, really tried every other way.
+        I heavily modified CloudflareKiller and DDoS-Guard still beat me—they have impressive
+        security for a pirate site! As a last resort, I mimicked the CloudflareKiller logic
+        and used a WebView directly to get the link I needed. This was the only solution that
+        actually worked. I think Anna’s Archive is too important to lose, so I felt using a heavy
+        measure like a WebView was worth it to keep all those books available.
+    * */
+    private suspend fun getSlowLinkWithWebView(url: String): String? {
+        val deferred = CompletableDeferred<String?>()
 
-    /*data class LgliFile(
-        @JsonProperty("f_id") var fId: Int? = null,
-        @JsonProperty("md5") var md5: String? = null,
-        @JsonProperty("libgen_topic") var libgenTopic: String? = null,
-        @JsonProperty("libgen_id") var libgenId: Int? = null,
-        @JsonProperty("fiction_id") var fictionId: Int? = null,
-        @JsonProperty("fiction_rus_id") var fictionRusId: Int? = null,
-        @JsonProperty("comics_id") var comicsId: Int? = null,
-        @JsonProperty("scimag_id") var scimagId: Int? = null,
-        @JsonProperty("standarts_id") var standartsId: Int? = null,
-        @JsonProperty("magz_id") var magzId: Int? = null,
-        @JsonProperty("scimag_archive_path") var scimagArchivePath: String? = null
-    )
+        main {
+            val ctx = context.let { ctx->
+                if(ctx == null){
+                    deferred.complete(null)
+                    return@main
+                }
+                else ctx
+            }
+            val webView = WebView(ctx)
+            webView.settings.javaScriptEnabled = true
+            webView.settings.domStorageEnabled = true
+            webView.settings.userAgentString = USER_AGENT
 
+            //bridge between JavaScript and kotlin. very important.
+            webView.addJavascriptInterface(object {
+                @JavascriptInterface
+                //this will be called in JavaScript text bellow
+                fun onElementFound(html: String) {
+                    deferred.complete(html)
+                }
+            }, "NativeAndroid")
 
-    data class ZlibBook(
-        @JsonProperty("zlibrary_id") var zlibraryId: Int? = null,
-        @JsonProperty("md5") var md5: String? = null,
-        @JsonProperty("md5_reported") var md5Reported: String? = null,
-        @JsonProperty("filesize") var filesize: Int? = null,
-        @JsonProperty("filesize_reported") var filesizeReported: Int? = null,
-        @JsonProperty("in_libgen") var inLibgen: Int? = null,
-        @JsonProperty("pilimi_torrent") var pilimiTorrent: String? = null
-    )
+            //this will check and look for the book url
+            webView.webViewClient = object : WebViewClient() {
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    val js = """
+                        (function() {
+                            var checkInterval = setInterval(function() {
+                                // selector específico: el span dentro del párrafo con clase mb-4
+                                var element = document.querySelector("main > div > p.mb-4.text-xs > span > span");
+                                if (element && element.innerText.trim().length > 0) {
+                                    clearInterval(checkInterval);
+                                    NativeAndroid.onElementFound(element.innerText.trim());
+                                }
+                            }, 1000);
+                        })();
+                    """.trimIndent()
+                    view?.evaluateJavascript(js, null)
+                }
+            }
 
+            //start loading the page
+            webView.loadUrl(url)
 
+            withTimeoutOrNull(45000) {
+                deferred.await()
+                main {
+                    webView.stopLoading()
+                    webView.destroy()
+                }
+            }
+        }
 
-    data class SearchOnlyFields(
-        @JsonProperty("search_text") var searchText: String? = null,
-        @JsonProperty("score_base") var scoreBase: Int? = null
-    )*/
-
-    data class FileUnifiedData(
-        @JsonProperty("original_filename_best") var originalFilenameBest: String? = null,
-        @JsonProperty("original_filename_additional") var originalFilenameAdditional: ArrayList<String> = arrayListOf(),
-        @JsonProperty("original_filename_best_name_only") var originalFilenameBestNameOnly: String? = null,
-        @JsonProperty("cover_url_best") var coverUrlBest: String? = null,
-        @JsonProperty("cover_url_additional") var coverUrlAdditional: ArrayList<String> = arrayListOf(),
-        @JsonProperty("extension_best") var extensionBest: String? = null,
-        @JsonProperty("extension_additional") var extensionAdditional: ArrayList<String> = arrayListOf(),
-        @JsonProperty("filesize_best") var filesizeBest: Int? = null,
-        @JsonProperty("filesize_additional") var filesizeAdditional: ArrayList<String> = arrayListOf(),
-        @JsonProperty("title_best") var titleBest: String? = null,
-        @JsonProperty("title_additional") var titleAdditional: ArrayList<String> = arrayListOf(),
-        @JsonProperty("author_best") var authorBest: String? = null,
-        @JsonProperty("author_additional") var authorAdditional: ArrayList<String> = arrayListOf(),
-        @JsonProperty("publisher_best") var publisherBest: String? = null,
-        @JsonProperty("publisher_additional") var publisherAdditional: ArrayList<String> = arrayListOf(),
-        @JsonProperty("edition_varia_best") var editionVariaBest: String? = null,
-        @JsonProperty("edition_varia_additional") var editionVariaAdditional: ArrayList<String> = arrayListOf(),
-        @JsonProperty("year_best") var yearBest: String? = null,
-        @JsonProperty("year_additional") var yearAdditional: ArrayList<String> = arrayListOf(),
-        @JsonProperty("comments_best") var commentsBest: String? = null,
-        @JsonProperty("comments_additional") var commentsAdditional: ArrayList<String> = arrayListOf(),
-        @JsonProperty("stripped_description_best") var strippedDescriptionBest: String? = null,
-        @JsonProperty("stripped_description_additional") var strippedDescriptionAdditional: ArrayList<String> = arrayListOf(),
-        @JsonProperty("language_codes") var languageCodes: ArrayList<String> = arrayListOf(),
-        @JsonProperty("most_likely_language_code") var mostLikelyLanguageCode: String? = null,
-        @JsonProperty("sanitized_isbns") var sanitizedIsbns: ArrayList<String> = arrayListOf(),
-        @JsonProperty("asin_multiple") var asinMultiple: ArrayList<String> = arrayListOf(),
-        @JsonProperty("googlebookid_multiple") var googlebookidMultiple: ArrayList<String> = arrayListOf(),
-        @JsonProperty("openlibraryid_multiple") var openlibraryidMultiple: ArrayList<String> = arrayListOf(),
-        @JsonProperty("doi_multiple") var doiMultiple: ArrayList<String> = arrayListOf(),
-        @JsonProperty("problems") var problems: ArrayList<String> = arrayListOf(),
-        @JsonProperty("content_type") var contentType: String? = null,
-        @JsonProperty("has_aa_downloads") var hasAaDownloads: Int? = null,
-        @JsonProperty("has_aa_exclusive_downloads") var hasAaExclusiveDownloads: Int? = null
-    )
-
-    data class TopBox(
-        @JsonProperty("meta_information") var metaInformation: ArrayList<String> = arrayListOf(),
-        @JsonProperty("cover_url") var coverUrl: String? = null,
-        @JsonProperty("top_row") var topRow: String? = null,
-        @JsonProperty("title") var title: String? = null,
-        @JsonProperty("publisher_and_edition") var publisherAndEdition: String? = null,
-        @JsonProperty("author") var author: String? = null,
-        @JsonProperty("description") var description: String? = null
-    )
-
-
-    data class Additional(
-        //@JsonProperty("most_likely_language_name") var mostLikelyLanguageName: String? = null,
-        @JsonProperty("top_box") var topBox: TopBox = TopBox(),
-        @JsonProperty("filename") var filename: String? = null,
-        //@JsonProperty("isbns_rich") var isbnsRich: ArrayList<ArrayList<String>> = arrayListOf(),
-        @JsonProperty("download_urls") var downloadUrls: ArrayList<ArrayList<String>> = arrayListOf(),
-        //@JsonProperty("has_aa_downloads") var hasAaDownloads: Int? = null,
-        //@JsonProperty("has_aa_exclusive_downloads") var hasAaExclusiveDownloads: Int? = null
-    )
+        return withTimeoutOrNull(46000) { deferred.await() }
+    }
 }

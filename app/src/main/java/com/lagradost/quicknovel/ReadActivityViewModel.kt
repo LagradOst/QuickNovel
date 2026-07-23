@@ -96,6 +96,7 @@ import me.ag2s.epublib.util.zip.AndroidZipFile
 import org.commonmark.node.Node
 import org.jsoup.Jsoup
 import java.io.File
+import java.io.InputStream
 import java.net.URLDecoder
 import java.security.MessageDigest
 import java.util.Locale
@@ -175,17 +176,19 @@ abstract class AbstractBook {
     abstract fun getLoadingStatus(index: Int): String?
 
     @Throws
-    open fun loadImage(image: String): ByteArray? {
-        return null
-    }
+    open fun loadImage(image: String): InputStream? = null
 
     fun loadImageBitmap(image: String): Bitmap? {
-        try {
-            val data = this.loadImage(image) ?: return null
-            return BitmapFactory.decodeByteArray(data, 0, data.size)
+        return try {
+            // read file and not save
+            val stream = this.loadImage(image)
+            return if (stream != null) {
+                 BookDownloader2Helper.decodeSafeBitmap(data = stream.readBytes())
+            }
+            else null
         } catch (t: Throwable) {
             logError(t)
-            return null
+            null
         }
     }
 
@@ -330,17 +333,11 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
         return listOfNotNull(author.firstname, author.lastname).joinToString(" ").ifBlank { null }
     }
 
-    override fun loadImage(image: String): ByteArray? {
+    override fun loadImage(image: String): InputStream? {
         val decodedImage = try { URLDecoder.decode(image, "UTF-8") } catch (e: Exception) { image }
-
-        data.resources.resourceMap[decodedImage]?.data?.let { return it }
-        data.resources.resourceMap[image]?.data?.let { return it }
-
-        val fileName = decodedImage.substringAfterLast("/")
-        return data.resources.resourceMap.values.find {
-            val entryName = it.href.substringAfterLast("/")
-            entryName.equals(fileName, ignoreCase = true)
-        }?.data
+        val res = data.resources.resourceMap[decodedImage]
+            ?: data.resources.resourceMap[image]
+        return res?.inputStream
     }
 
     override fun size(): Int = allTocReferences.size

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -46,11 +47,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.lagradost.quicknovel.DownloadState
-import com.lagradost.quicknovel.ImmutableSearchResponse
 import com.lagradost.quicknovel.NotificationHelper.etaToString
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.SearchResponseAction
-import com.lagradost.quicknovel.SearchResponseOperation
 import com.lagradost.quicknovel.compose.BaseStyles
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.RoundedImageShape
@@ -59,7 +57,6 @@ import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.isLandscape
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
-import com.lagradost.quicknovel.ui.download.ImmutableSearchList
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
@@ -199,7 +196,7 @@ fun SearchResponseRow(
             }, onLongClick = {
                 action(SearchResponseAction(response, SearchResponseOperation.Metadata))
             })
-            .downloadOutline(response.downloadState?.state)
+            .downloadOutline(if (response.generating) DownloadState.IsDownloading else response.downloadState?.status)
             .ripple(interactionSource)
     ) {
         AsyncImage(
@@ -229,31 +226,42 @@ fun SearchResponseRow(
                 .padding(10.dp)
         ) {
             Text(
-                response.name, maxLines = 2, style = BaseStyles.textStyle
+                response.name, maxLines = 2, style = BaseStyles.textStyle, overflow = TextOverflow.Ellipsis
             )
 
             if (response.downloadState != null) {
-                if (response.downloadState.state == DownloadState.IsDownloading) {
+                if (response.downloadState.progress != response.downloadState.total) {
                     Text(
-                        "${response.downloadState.progress}/${response.downloadState.total} - ${
+                        "${response.downloadState.progress}/${response.downloadState.total}${
                             response.downloadState.etaMs?.let {
-                                etaToString(
+                                " • " + etaToString(
                                     it
                                 )
                             } ?: ""
                         }", style = BaseStyles.textAltStyle)
                 } else {
+                    // TODO not use chapter text for bytes?
+                    // TODO not show for imported?
                     Text(
                         "${response.downloadState.progress} ${
                             stringResource(
-                                R.string.read_action_chapters
+                                if (response.downloadState.progress == 1L) {
+                                    R.string.chapter
+                                } else {
+                                    R.string.chapters
+                                }
                             )
                         }", style = BaseStyles.textAltStyle
                     )
                 }
-            } else if (response.totalChapters != null) {
+            } else if (response.chapters != null) {
                 Text(
-                    "${response.totalChapters} ${stringResource(R.string.read_action_chapters)}",
+                    "${response.chapters} ${stringResource(R.string.read_action_chapters)}",
+                    style = BaseStyles.textAltStyle
+                )
+            } else if (response.latestChapterName != null) {
+                Text(
+                    response.latestChapterName,
                     style = BaseStyles.textAltStyle
                 )
             }
@@ -261,7 +269,7 @@ fun SearchResponseRow(
 
         Spacer(Modifier.weight(1f))
 
-        if (response.downloadState != null && response.epubSize != null && response.epubSize < response.downloadState.progress) {
+        if (response.downloadState != null && response.epubSize != null && response.hasNewChapters) {
             Box(
                 modifier = Modifier
                     .padding(horizontal = 5.dp)
@@ -331,7 +339,7 @@ fun RefreshButton(
     }
     val refreshInteractionSource = remember { MutableInteractionSource() }
 
-    val icon = when (response.downloadState.state) {
+    val icon = when (response.downloadState.status) {
         DownloadState.IsDownloading -> R.drawable.ic_baseline_pause_24
         DownloadState.IsPaused -> R.drawable.netflix_play
         DownloadState.IsStopped -> R.drawable.arrow_circle_down_24px
@@ -341,10 +349,11 @@ fun RefreshButton(
             Spacer(Modifier.width(54.dp))
             return
         }
+
         DownloadState.Nothing -> R.drawable.arrow_circle_down_24px
     }
 
-    val operation = when (response.downloadState.state) {
+    val operation = when (response.downloadState.status) {
         DownloadState.IsDownloading -> SearchResponseOperation.Pause
         DownloadState.IsPaused -> SearchResponseOperation.Resume
         DownloadState.IsStopped -> SearchResponseOperation.Download
@@ -449,17 +458,39 @@ fun SearchResponseItem(
             })
             .rounded()
     ) {
-        AsyncImage(
-            contentScale = ContentScale.Crop,
-            model = imageRequest,
-            contentDescription = response.name,
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(0.68f)
                 .rounded()
-                .downloadOutline(response.downloadState?.state)
-                .ripple(interactionSource)
-        )
+                // We do the funny and assign generating = downloading
+                .downloadOutline(if (response.generating) DownloadState.IsDownloading else response.downloadState?.status)
+                .ripple(interactionSource),
+            contentAlignment = Alignment.TopEnd
+        ) {
+            AsyncImage(
+                contentScale = ContentScale.Crop,
+                model = imageRequest,
+                contentDescription = response.name,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            if (response.downloadState != null && response.epubSize != null && response.hasNewChapters) {
+                Box(
+                    modifier = Modifier
+                        .padding(5.dp)
+                        .circle()
+                        .background(colors.primary)
+                        .padding(vertical = 3.dp, horizontal = 13.dp)
+                ) {
+                    Text(
+                        text = "+${(response.downloadState.progress - response.epubSize)}",
+                        color = colors.background,
+                        style = TextStyle(fontSize = 14.sp),
+                    )
+                }
+            }
+        }
 
         Box(
             modifier = Modifier

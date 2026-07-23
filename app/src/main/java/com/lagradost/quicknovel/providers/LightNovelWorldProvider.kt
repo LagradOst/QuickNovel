@@ -8,12 +8,17 @@ import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrl
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
+import com.lagradost.quicknovel.providers.NovelFireProvider.PostsResponse
+import com.lagradost.quicknovel.providers.NovelFireProvider.RelatedResponse
 import com.lagradost.quicknovel.setStatus
+import org.jsoup.Jsoup
+import java.util.concurrent.ConcurrentHashMap
 
 class LightNovelWorldProvider : MainAPI() {
     override val name = "LightNovelWorld"
@@ -21,13 +26,78 @@ class LightNovelWorldProvider : MainAPI() {
     override val hasMainPage = true
     override val iconId = R.drawable.icon_lightnovelworld
     override val iconBackgroundId = R.color.colorPrimaryWhite
-
+    override val hasReviews = true
+    val novelsIdRequired = ConcurrentHashMap<String, String>()
     override val mainCategories = listOf(
-        "New Update" to "/updates/",
-        "Top Ranked" to "/ranking/?sort=rank",
-        "Top Reviews" to "/ranking/?sort=reviews",
-        "Top Comments" to "/ranking/?sort=comments",
-        "Top Collections" to "/ranking/?sort=collections"
+        "All" to "all",
+        "Ongoing" to "ongoing",
+        "Completed" to "completed"
+    )
+
+    override val tags = listOf(
+        "All" to "all",
+        "Action" to "action",
+        "Adult" to "adult",
+        "Adventure" to "adventure",
+        "Anime" to "anime",
+        "Arts" to "arts",
+        "Comedy" to "comedy",
+        "Drama" to "drama",
+        "Eastern" to "eastern",
+        "Ecchi" to "ecchi",
+        "Fan-Fiction" to "fan-fiction",
+        "Fantasy" to "fantasy",
+        "Game" to "game",
+        "Gender-Bender" to "gender-bender",
+        "Harem" to "harem",
+        "Historical" to "historical",
+        "Horror" to "horror",
+        "Isekai" to "isekai",
+        "Josei" to "josei",
+        "Lgbt+" to "lgbt+",
+        "Magic" to "magic",
+        "Magical-Realism" to "magical-realism",
+        "Manhua" to "manhua",
+        "Martial-Arts" to "martial-arts",
+        "Mature" to "mature",
+        "Mecha" to "mecha",
+        "Military" to "military",
+        "Modern-Life" to "modern-life",
+        "Movies" to "movies",
+        "Mystery" to "mystery",
+        "Other" to "other",
+        "Psychological" to "psychological",
+        "Realistic-Fiction" to "realistic-fiction",
+        "Reincarnation" to "reincarnation",
+        "Romance" to "romance",
+        "School-Life" to "school-life",
+        "Sci-Fi" to "sci-fi",
+        "Seinen" to "seinen",
+        "Shoujo" to "shoujo",
+        "Shoujo-Ai" to "shoujo-ai",
+        "Shounen" to "shounen",
+        "Shounen-Ai" to "shounen-ai",
+        "Slice-Of-Life" to "slice-of-life",
+        "Smut" to "smut",
+        "Sports" to "sports",
+        "Supernatural" to "supernatural",
+        "System" to "system",
+        "Tragedy" to "tragedy",
+        "Urban" to "urban",
+        "Urban-Life" to "urban-life",
+        "Video-Games" to "video-games",
+        "War" to "war",
+        "Wuxia" to "wuxia",
+        "Xianxia" to "xianxia",
+        "Xuanhuan" to "xuanhuan",
+        "Yaoi" to "yaoi",
+        "Yuri" to "yuri"
+    )
+
+    override val orderBys = listOf(
+        "New" to "new",
+        "Popular" to "popular",
+        "Updates" to "updates"
     )
 
     data class SearchNovel(
@@ -46,22 +116,16 @@ class LightNovelWorldProvider : MainAPI() {
         orderBy: String?,
         tag: String?
     ): HeadMainPageResponse {
-        val url = withPageParam(fixUrl(mainCategory ?: "/updates/"), page)
+        val url = "$mainUrl/genre-$tag/?page=$page&order=$orderBy&status$mainCategory"
         val document = app.get(url).document
 
-        val cards = (document.select("div.ranking-list > a") + document.select("a.card-link"))
-            .distinctBy { it.attr("href") }
-
-        val novels = cards.mapNotNull { card ->
-            val href = card.attr("href").takeIf { it.isNotBlank() } ?: return@mapNotNull null
-            val title = card.selectFirst("h4.ranking-item-title, h3.card-title, h4")?.text()?.trim()
-                ?: return@mapNotNull null
+        val novels = document.select("div.recommendations-grid > div.recommendation-card").mapNotNull { card ->
+            val href = card.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+            val title = card.selectFirst("h3")?.text() ?: return@mapNotNull null
 
             newSearchResponse(name = title, url = href) {
                 posterUrl = fixUrlNull(
-                    card.selectFirst("div.ranking-item-cover > img")?.attr("src")
-                        ?: card.selectFirst("div.card-cover")?.attr("data-bg-image")
-                        ?: card.selectFirst("img")?.attr("src")
+                    card.selectFirst("img")?.attr("src")
                 )
             }
         }
@@ -85,7 +149,7 @@ class LightNovelWorldProvider : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse? {
         val document = app.get(url).document
-
+        novelsIdRequired[url] = document.selectFirst("meta[name=novel-id]")?.attr("content") ?: ""
         val title = document.selectFirst("h1.novel-title, meta[property=og:title]")?.let {
             if (it.tagName() == "meta") it.attr("content") else it.text()
         }?.trim() ?: return null
@@ -99,8 +163,53 @@ class LightNovelWorldProvider : MainAPI() {
                     ?: document.selectFirst("img.novel-cover")?.attr("src")
             )
             synopsis = document.selectFirst("div.summary-content")?.text()?.trim()
-            tags = document.select("div.genre-tags > span.genre-tag").map { it.text().trim() }
+            tags = document.select("div.genre-tags > span.genre-tag").map {
+                it.text().trim().lowercase().replaceFirstChar { char -> char.uppercase() }
+            }
             setStatus(document.selectFirst("span.status-badge")?.text()?.trim())
+            related = getRelated()
+        }
+    }
+    suspend fun getRelated(): List<SearchResponse> {
+        val url = "$mainUrl/api/recommendations/"
+        val document = app.get(url).parsed<RelatedResponse>()
+        return document.novels.map { element ->
+            val href = fixUrl(element.slug)
+            val title = element.title
+            newSearchResponse(
+                name = title,
+                url = href
+            ) {
+                posterUrl = fixUrlNull(element.coverPath)
+            }
+        }
+    }
+
+    override suspend fun loadReviews(
+        url: String,
+        page: Int,
+        showSpoilers: Boolean
+    ): List<UserReview> {
+        val realUrl = "$mainUrl/api/comments/?comment_type=novel&commentable_id=${novelsIdRequired[url]}&sort=newest&page=$page&parent_only=true"
+        val res = app.get(realUrl).parsedSafe<PostsResponse>()
+        val dataList = res?.comments ?: return emptyList()
+
+        return dataList.map { item ->
+            val content = if (item.isSpoiler == true && !showSpoilers) {
+                "Spoiler content hidden"
+            } else {
+                item.content ?: ""
+            }
+
+            // ¿2025-10-18T23:39:33..." -> "2025-10-18 23:39:33"
+            val cleanDate = item.createdAt?.replace("T", " ")
+
+            UserReview(
+                review = content,
+                username = item.author?.username ?: "User",
+                reviewDate = cleanDate,
+                avatarUrl = fixUrlNull(item.author?.profileImageUrl),
+            )
         }
     }
 
@@ -153,8 +262,38 @@ class LightNovelWorldProvider : MainAPI() {
             }
         }
     }
+    data class RelatedResponse(
+        @JsonProperty("novels")
+        val novels:List<Novel>
+    )
+    data class Novel(
+        @JsonProperty("title")
+        val title:String,
+        @JsonProperty("slug")
+        val slug:String,
+        @JsonProperty("cover_path")
+        val coverPath:String
+    )
+    data class PostsResponse(
+        @JsonProperty("comments") val comments: List<Comment>? = null,        @JsonProperty("pagination") val pagination: Pagination? = null
+    )
 
-    private fun withPageParam(url: String, page: Int): String {
-        return if (url.contains("?")) "$url&page=$page" else "$url?page=$page"
-    }
+    data class Pagination(
+        @JsonProperty("current_page") val currentPage: Int? = null,
+        @JsonProperty("total_pages") val totalPages: Int? = null,
+        @JsonProperty("has_next") val hasNext: Boolean? = null
+    )
+
+    data class Comment(
+        @JsonProperty("content") val content: String? = null,
+        @JsonProperty("created_at") val createdAt: String? = null,
+        @JsonProperty("author") val author: Author? = null,
+        @JsonProperty("is_spoiler") val isSpoiler: Boolean? = null
+    )
+
+    data class Author(
+        @JsonProperty("username") val username: String? = null,
+        @JsonProperty("profile_image_url") val profileImageUrl: String? = null
+    )
+
 }

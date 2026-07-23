@@ -174,12 +174,12 @@ data class HeadMainPageResponse(
 
 data class UserReview(
     val review: String,
-    val reviewTitle: String?,
-    val username: String?,
-    val reviewDate: String?,
-    val avatarUrl: String?,
-    val rating: Int?,
-    val ratings: List<Pair<Int, String>>?,
+    val reviewTitle: String? = null,
+    val username: String? = null,
+    val reviewDate: String? = null,
+    val avatarUrl: String? = null,
+    val rating: Int? = null,
+    val ratings: List<Pair<Int, String>>? = null,
 )
 /*
 data class MainPageResponse(

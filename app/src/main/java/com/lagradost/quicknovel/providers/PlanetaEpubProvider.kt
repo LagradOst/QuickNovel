@@ -11,6 +11,7 @@ import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrl
+import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newEpubResponse
 import com.lagradost.quicknovel.newSearchResponse
 import org.jsoup.nodes.Document
@@ -152,8 +153,23 @@ class PlanetaEpubProvider :  MainAPI() {
             this.posterUrl = document.selectFirst("div.image-container > img")?.attr("src")
             this.synopsis =  document.selectFirst("#content > div:nth-child(2) > article > div > div.entry.themeform > div.entry-inner > div.descripcion-libro-premium > div:nth-child(2) > p")?.text() ?: ""
             this.author = titleContent.substringAfterLast("–")
+            related = getRelated(document)
         }
     }
+    private fun getRelated(dc: Document): List<SearchResponse>{
+        return dc.select("div#alxposts-2 > ul > li").mapNotNull { element ->
+            val href = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+            val title = element.selectFirst("p.post-item-title")?.text() ?: return@mapNotNull null
+            newSearchResponse(
+                name = title,
+                url = href
+            ) {
+                posterUrl = element.selectFirst("img")?.attr("src")?.replace("-520x245","")
+            }
+        }
+    }
+
+
 
 
     override suspend fun search(query: String): List<SearchResponse> {

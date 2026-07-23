@@ -2,7 +2,7 @@ package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
 
-class SakuraNovelProvider : WPReader() {
+class SakuraNovelProvider : IndoWebNovelProvider() {
     override val name = "SakuraNovel"
     override val mainUrl = "https://sakuranovel.id"
     override val iconId = R.drawable.ic_sakuranovel

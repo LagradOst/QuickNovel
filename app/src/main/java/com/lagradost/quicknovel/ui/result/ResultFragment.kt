@@ -13,7 +13,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
-import androidx.core.view.postDelayed
 import androidx.core.widget.NestedScrollView
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.viewModels
@@ -22,7 +21,9 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipDrawable
 import com.google.android.material.tabs.TabLayout
+import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.CommonActivity
+import com.lagradost.quicknovel.DefaultLibrary
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainActivity.Companion.navigate
@@ -36,13 +37,11 @@ import com.lagradost.quicknovel.mvvm.debugException
 import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.mvvm.observeNullable
 import com.lagradost.quicknovel.ui.BaseFragment
-import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.SortingMethodAdapter
 import com.lagradost.quicknovel.ui.mainpage.MainAdapter
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.ui.setRecycledViewPool
 import com.lagradost.quicknovel.util.SettingsHelper.getRating
-import com.lagradost.quicknovel.util.SingleSelectionHelper.showBottomDialog
 import com.lagradost.quicknovel.util.UIHelper
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
@@ -53,6 +52,8 @@ import com.lagradost.quicknovel.util.UIHelper.humanReadableByteCountSI
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.util.toPx
+import com.lagradost.quicknovel.getLibraries
+import com.lagradost.quicknovel.ui.library.LibraryManager
 
 const val MAX_SYNO_LENGH = 300
 
@@ -570,15 +571,29 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
                 override fun onTabReselected(tab: TabLayout.Tab?) {}
             })
 
+            //show bottom dialog with libraries
             resultBookmark.setOnClickListener { view ->
                 val context = view.context ?: return@setOnClickListener
-                context.showBottomDialog(
-                    ReadType.entries.map { context.getString(it.stringRes) },
-                    selectedIndex = ReadType.entries.map { it.prefValue }
-                        .indexOf(viewModel.readState.value?.prefValue),
-                    context.getString(R.string.bookmark), false, {}
+                val libraries = context.getLibraries()
+                val allOptions = mutableListOf(DefaultLibrary(-1, "", context.getString(R.string.type_none), false, -1))
+                allOptions.addAll(libraries)
+
+                val currentLibraryId = viewModel.libraryId.value ?: 0
+                val selectedIndex = if (currentLibraryId == 0) 0 else libraries.indexOfFirst { it.id == currentLibraryId } + 1
+
+                LibraryManager.showLibraryBottomDialog(
+                    context,
+                    allOptions,
+                    selectedIndex = selectedIndex,
+                    BookDownloader2.updatePagesDetails,
+                    context.getString(R.string.bookmark)
                 ) { selected ->
-                    viewModel.bookmark(ReadType.entries[selected].prefValue)
+                    if (selected == 0) {
+                        viewModel.bookmark(0)
+                    } else {
+                        val selectedLibrary = libraries.getOrNull(selected - 1) ?: return@showLibraryBottomDialog
+                        viewModel.bookmark(selectedLibrary.id)
+                    }
                 }
             }
 
@@ -638,15 +653,11 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
             }
         }
 
-        observe(viewModel.readState) { state ->
-            binding.resultBookmark.setText(if (state == ReadType.NONE) R.string.bookmark else state.stringRes)
-            binding.resultBookmark.setCompoundDrawablesWithIntrinsicBounds(
-                0,
-                0,
-                0,
-                if (state == ReadType.NONE) R.drawable.ic_baseline_bookmark_border_24 else R.drawable.ic_baseline_bookmark_24
-                //if (it == ReadType.NONE) R.drawable.ic_baseline_bookmark_border_24 else R.drawable.ic_baseline_bookmark_24
-            )
+        observe(viewModel.libraryId) { libraryId ->
+            val context = binding.root.context
+            binding.resultBookmark.text = context.getLibraries().firstOrNull { it.id == libraryId }?.title ?: context.getString(R.string.bookmark)
+            binding.resultBookmark.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0,
+                if (libraryId == 0) R.drawable.ic_baseline_bookmark_border_24 else R.drawable.ic_baseline_bookmark_24)
         }
         observe(viewModel.loadResponse, ::newState)
 

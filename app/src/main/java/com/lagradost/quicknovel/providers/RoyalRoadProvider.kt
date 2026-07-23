@@ -6,7 +6,6 @@ import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
@@ -27,9 +26,8 @@ class RoyalRoadProvider : MainAPI() {
     override val mainUrl = "https://www.royalroad.com"
     override val rateLimitTime = 500L
     override val hasMainPage = true
-
+    override val hasReviews = true
     override val iconId = R.drawable.big_icon_royalroad
-
     override val iconBackgroundId = R.color.royalRoadColor
 
     override val orderBys = listOf(
@@ -95,7 +93,6 @@ class RoyalRoadProvider : MainAPI() {
         "Tragedy" to "tragedy"
     ).sortedBy { it.first })
 
-    override val hasReviews = true
 
     @SuppressLint("SimpleDateFormat")
     override suspend fun loadReviews(
