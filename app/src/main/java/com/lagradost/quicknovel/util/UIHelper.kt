@@ -7,7 +7,12 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.res.Resources
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.ColorFilter
+import android.graphics.Paint
+import android.graphics.PixelFormat
+import android.graphics.drawable.Drawable
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Build
@@ -19,11 +24,14 @@ import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.View.LAYOUT_DIRECTION_LTR
+import android.view.View.LAYOUT_DIRECTION_RTL
 import android.view.inputmethod.InputMethodManager
 import android.widget.ImageView
 import android.widget.Toast.LENGTH_LONG
 import androidx.annotation.AttrRes
 import androidx.annotation.ColorInt
+import androidx.annotation.DimenRes
 import androidx.annotation.DrawableRes
 import androidx.annotation.MenuRes
 import androidx.appcompat.view.ContextThemeWrapper
@@ -37,7 +45,11 @@ import androidx.core.graphics.green
 import androidx.core.graphics.red
 import androidx.core.text.HtmlCompat
 import androidx.core.text.toSpanned
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.forEach
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import coil3.dispose
@@ -80,6 +92,120 @@ fun Long.divCeil(other: Long): Long {
 object UIHelper {
     fun String?.html(): Spanned {
         return getHtmlText(this?.trim()?.replace("\n", "<br>") ?: return "".toSpanned())
+    }
+    fun View.isLtr() = this.layoutDirection == LAYOUT_DIRECTION_LTR
+    fun View.isRtl() = this.layoutDirection == LAYOUT_DIRECTION_RTL
+
+    fun fixSystemBarsPadding(
+        v: View,
+        @DimenRes heightResId: Int? = null,
+        @DimenRes widthResId: Int? = null,
+        padTop: Boolean = true,
+        padBottom: Boolean = true,
+        padLeft: Boolean = true,
+        padRight: Boolean = true,
+        overlayCutout: Boolean = true,
+        fixIme: Boolean = false
+    ) {
+        // edge-to-edge is very buggy on earlier versions so we just
+        // handle the status bar here instead.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            if (padTop) {
+                val ctx = v.context ?: return
+                v.updatePadding(top = ctx.getStatusBarHeight())
+            }
+            return
+        }
+
+        ViewCompat.setOnApplyWindowInsetsListener(v) { view, windowInsets ->
+            val leftCheck = if (view.isRtl()) padRight else padLeft
+            val rightCheck = if (view.isRtl()) padLeft else padRight
+
+            val insetTypes = WindowInsetsCompat.Type.systemBars() or
+                    WindowInsetsCompat.Type.displayCutout() or
+                    if (fixIme) WindowInsetsCompat.Type.ime() else 0
+
+            val insets = windowInsets.getInsets(insetTypes)
+
+            view.updatePadding(
+                left = if (leftCheck) insets.left else view.paddingLeft,
+                right = if (rightCheck) insets.right else view.paddingRight,
+                bottom = if (padBottom) insets.bottom else view.paddingBottom,
+                top = if (padTop) insets.top else view.paddingTop
+            )
+
+            heightResId?.let {
+                val heightPx = view.resources.getDimensionPixelSize(it)
+                view.updateLayoutParams {
+                    height = heightPx + insets.bottom
+                }
+            }
+
+            widthResId?.let {
+                val widthPx = view.resources.getDimensionPixelSize(it)
+                view.updateLayoutParams {
+                    val startInset = if (view.isRtl()) insets.right else insets.left
+                    width = if (startInset > 0) widthPx + startInset else widthPx
+                }
+            }
+
+            if (overlayCutout ) {
+                // Draw a black overlay over the cutout. We do this so that
+                // it doesn't use the fragment background. We want it to
+                // appear as if the screen actually ends at cutout.
+                val cutout = windowInsets.displayCutout
+                if (cutout != null) {
+                    val left = if (!leftCheck) 0 else cutout.safeInsetLeft
+                    val right = if (!rightCheck) 0 else cutout.safeInsetRight
+                    view.overlay.clear()
+                    if (left > 0 || right > 0) {
+                        view.overlay.add(
+                            CutoutOverlayDrawable(
+                                view,
+                                leftCutout = left,
+                                rightCutout = right
+                            )
+                        )
+                    }
+                }
+            }
+
+            WindowInsetsCompat.CONSUMED
+        }
+    }
+
+    private class CutoutOverlayDrawable(
+        private val view: View,
+        private val leftCutout: Int,
+        private val rightCutout: Int,
+    ) : Drawable() {
+        private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.BLACK
+            style = Paint.Style.FILL
+        }
+
+        override fun setAlpha(alpha: Int) {}
+        override fun setColorFilter(colorFilter: ColorFilter?) {}
+        override fun draw(canvas: Canvas) {
+            if (leftCutout > 0) canvas.drawRect(
+                0f,
+                0f,
+                leftCutout.toFloat(),
+                view.height.toFloat(),
+                paint
+            )
+            if (rightCutout > 0) {
+                canvas.drawRect(
+                    view.width - rightCutout.toFloat(),
+                    0f, view.width.toFloat(),
+                    view.height.toFloat(),
+                    paint
+                )
+            }
+        }
+
+        @Suppress("OVERRIDE_DEPRECATION")
+        override fun getOpacity() = PixelFormat.OPAQUE
     }
 
     private fun getHtmlText(text: String): Spanned {
@@ -430,7 +556,7 @@ object UIHelper {
         }
     }
 
-    fun Activity.getStatusBarHeight(): Int {
+    fun Context.getStatusBarHeight(): Int {
         var result = 0
         val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
         if (resourceId > 0) {

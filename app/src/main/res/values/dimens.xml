@@ -19,6 +19,7 @@
     <dimen name="roundedTextBorderWidth">0dp</dimen>
     <dimen name="roundedImageRadius">7dp</dimen>
     <dimen name="navbarHeight">0dp</dimen>
+    <dimen name="nav_view_height">70dp</dimen>
     <dimen name="screenEdgeMargin">24dp</dimen>
 
     <dimen name="rounded_button_radius">4dp</dimen>

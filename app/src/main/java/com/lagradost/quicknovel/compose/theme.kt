@@ -226,7 +226,7 @@ fun resolveDynamicTheme(): CloudStreamColorScheme {
 @ReadOnlyComposable
 @RequiresApi(Build.VERSION_CODES.S)
 private fun buildMonetScheme(): CloudStreamColorScheme {
-    return if (isSystemInDarkTheme()) {
+    return if (true) { // isSystemInDarkTheme() disabled until everything is compose
         CloudStreamColorScheme(
             background = colorResource(android.R.color.system_neutral1_900),
             surfaceVariant = colorResource(android.R.color.system_neutral1_800),

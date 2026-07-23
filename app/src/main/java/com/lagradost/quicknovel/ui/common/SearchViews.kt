@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -226,39 +227,50 @@ fun SearchResponseRow(
                 .padding(10.dp)
         ) {
             Text(
-                response.name, maxLines = 2, style = BaseStyles.textStyle, overflow = TextOverflow.Ellipsis
+                response.name,
+                maxLines = 2,
+                style = BaseStyles.textStyle,
+                overflow = TextOverflow.Ellipsis
             )
 
-            if (response.downloadState != null) {
-                if (response.downloadState.progress != response.downloadState.total) {
+            if (response.downloadState != null && response.downloadState.progress != response.downloadState.total) {
+                Text(
+                    "${response.downloadState.progress}/${response.downloadState.total}${
+                        response.downloadState.etaMs?.let {
+                            " • " + etaToString(
+                                it
+                            )
+                        } ?: ""
+                    }", style = BaseStyles.textAltStyle)
+            } else if (response.chapters != null) {
+                if (response.id != null && response.downloadState == null) {
+                    // Do not show response.chaptersRead for downloaded items, as it looks weird
                     Text(
-                        "${response.downloadState.progress}/${response.downloadState.total}${
-                            response.downloadState.etaMs?.let {
-                                " • " + etaToString(
-                                    it
-                                )
-                            } ?: ""
-                        }", style = BaseStyles.textAltStyle)
-                } else {
-                    // TODO not use chapter text for bytes?
-                    // TODO not show for imported?
-                    Text(
-                        "${response.downloadState.progress} ${
+                        "${response.chaptersRead}/${response.chapters} ${
                             stringResource(
-                                if (response.downloadState.progress == 1L) {
+                                if (response.chapters == 1L) {
                                     R.string.chapter
                                 } else {
                                     R.string.chapters
                                 }
                             )
-                        }", style = BaseStyles.textAltStyle
+                        }",
+                        style = BaseStyles.textAltStyle
+                    )
+                } else {
+                    Text(
+                        "${response.chapters} ${
+                            stringResource(
+                                if (response.chapters == 1L) {
+                                    R.string.chapter
+                                } else {
+                                    R.string.chapters
+                                }
+                            )
+                        }",
+                        style = BaseStyles.textAltStyle
                     )
                 }
-            } else if (response.chapters != null) {
-                Text(
-                    "${response.chapters} ${stringResource(R.string.read_action_chapters)}",
-                    style = BaseStyles.textAltStyle
-                )
             } else if (response.latestChapterName != null) {
                 Text(
                     response.latestChapterName,
@@ -466,7 +478,7 @@ fun SearchResponseItem(
                 // We do the funny and assign generating = downloading
                 .downloadOutline(if (response.generating) DownloadState.IsDownloading else response.downloadState?.status)
                 .ripple(interactionSource),
-            contentAlignment = Alignment.TopEnd
+            contentAlignment = Alignment.BottomStart
         ) {
             AsyncImage(
                 contentScale = ContentScale.Crop,
@@ -475,19 +487,35 @@ fun SearchResponseItem(
                 modifier = Modifier.fillMaxSize()
             )
 
-            if (response.downloadState != null && response.epubSize != null && response.hasNewChapters) {
-                Box(
-                    modifier = Modifier
-                        .padding(5.dp)
-                        .circle()
-                        .background(colors.primary)
-                        .padding(vertical = 3.dp, horizontal = 13.dp)
-                ) {
-                    Text(
-                        text = "+${(response.downloadState.progress - response.epubSize)}",
-                        color = colors.background,
-                        style = TextStyle(fontSize = 14.sp),
-                    )
+            if (response.id != null) {
+                Row(modifier = Modifier.padding(5.dp)) {
+                    if(response.downloadState == null) {
+                        Box(
+                            modifier = Modifier
+                                .rounded()
+                                .background(Color.Black.copy(alpha = 0.6f))
+                                .padding(4.dp)
+                        ) {
+                            Text(
+                                text = "${response.chaptersRead}/${response.chapters}",
+                                color = Color.White,
+                                style = TextStyle(fontSize = 12.sp),
+                            )
+                        }
+                    } else if (response.epubSize != null && response.hasNewChapters) {
+                        Box(
+                            modifier = Modifier
+                                .rounded()
+                                .background(colors.primary)
+                                .padding(4.dp)
+                        ) {
+                            Text(
+                                text = "+${(response.downloadState.progress - response.epubSize)}",
+                                color = colors.background,
+                                style = TextStyle(fontSize = 12.sp),
+                            )
+                        }
+                    }
                 }
             }
         }

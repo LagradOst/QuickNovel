@@ -85,7 +85,7 @@ open class LibReadProvider : MainAPI() {
             ?: doc.selectFirst("meta[name=image]")?.attr("content")?.substringAfterLast("/")?.substringBefore("s.jpg")
             ?: return emptyList()
         val res = app.post(
-            "$secondUrl/api/chapterlist.php", data = mapOf(
+            "$mainUrl/api/chapterlist.php", data = mapOf(
                 "aid" to novelId,
                 "acode" to url.removeSuffix("/").substringAfterLast("/"),
                 "cid" to "1"
@@ -95,7 +95,7 @@ open class LibReadProvider : MainAPI() {
         return document.select("option").mapNotNull { i ->
             newChapterData(
                 name = i.text(),
-                url = "$secondUrl${i.attr("value")}"
+                url = "${url.removeSuffix("/")}/${i.attr("value").substringAfterLast("/")}"
             )
         }
     }
@@ -123,9 +123,7 @@ open class LibReadProvider : MainAPI() {
     }
 
     override suspend fun loadHtml(url: String): String? {
-        println(url)
         val response = app.get(url)
-        println(response)
         val document = Jsoup.parse(
             response.text
                 .replace(

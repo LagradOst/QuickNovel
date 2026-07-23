@@ -17,8 +17,6 @@ import com.lagradost.quicknovel.BookDownloader2.downloadProgress
 import com.lagradost.quicknovel.BookDownloader2.downloadProgressChanged
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.CURRENT_TAB
-import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
-import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
 import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
@@ -33,7 +31,6 @@ import com.lagradost.quicknovel.compose.ActionHandler
 import com.lagradost.quicknovel.compose.DebounceQuery
 import com.lagradost.quicknovel.compose.DefaultStateContainer
 import com.lagradost.quicknovel.compose.StateContainer
-import com.lagradost.quicknovel.getLibraries
 import com.lagradost.quicknovel.ui.common.ImmutableDownloadState
 import com.lagradost.quicknovel.ui.common.ImmutableSearchList
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
@@ -42,6 +39,7 @@ import com.lagradost.quicknovel.ui.common.SearchResponseOperation
 import com.lagradost.quicknovel.ui.common.SortingMethodType
 import com.lagradost.quicknovel.ui.common.updateRow
 import com.lagradost.quicknovel.ui.common.updateRows
+import com.lagradost.quicknovel.getLibraries
 import com.lagradost.quicknovel.ui.download.DownloadDialog.*
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.cmap
@@ -183,7 +181,7 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    private fun onRefreshingChanged(item : BookDownloader2.RefreshQuery) = viewModelScope.launch {
+    private fun onRefreshingChanged(item: BookDownloader2.RefreshQuery) = viewModelScope.launch {
         // This is a hijack of the "generating" system, however we assume that it is fine
         updateState {
             copy(
@@ -200,6 +198,7 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
     private fun onPagesChanged(preserveState:Boolean) = viewModelScope.launch {
         loadAll(preserveState)
     }
+
     private fun onBookmarkChanged(id: Int) = viewModelScope.launch {
         val result = getKey<ResultCached>(RESULT_BOOKMARK, id.toString())
         val state = getKey<Int>(RESULT_BOOKMARK_STATE, id.toString())
@@ -259,9 +258,9 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
                     response.synopsis
                 )
             } finally {
-                val opened = System.currentTimeMillis()
-                setKey(DOWNLOAD_EPUB_LAST_ACCESS, id.toString(), opened)
-                val newEpubSize = getKey<Int>(DOWNLOAD_EPUB_SIZE, id.toString())
+                val newTimeOfPageOpened = System.currentTimeMillis()
+                ImmutableSearchResponse.setTimeOfPageOpened(id, newTimeOfPageOpened)
+                val newEpubSize = ImmutableSearchResponse.epubSize(id)
 
                 updateState {
                     copy(pages = pages.updateRow(0) {
@@ -269,8 +268,8 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
                             @OptIn(ExperimentalUuidApi::class)
                             copy(
                                 generating = false,
-                                timeOfPageOpened = opened,
-                                epubSize = newEpubSize ?: this.epubSize
+                                timeOfPageOpened = newTimeOfPageOpened,
+                                epubSize = newEpubSize
                             )
                         }
                     })
@@ -300,17 +299,22 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
                             }
                         })
                     }
+
+                    val opened = System.currentTimeMillis()
+                    ImmutableSearchResponse.setTimeOfPageOpened(id, opened)
                     BookDownloader2.stream(action.response)
                     updateState {
                         copy(pages = pages.updateRows {
                             update(id) {
                                 @OptIn(ExperimentalUuidApi::class)
-                                copy(generating = false)
+                                copy(
+                                    generating = false,
+                                    timeOfPageOpened = opened
+                                )
                             }
                         })
                     }
                 }
-
             }
 
             SearchResponseOperation.AskDelete -> {
@@ -441,6 +445,8 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
         BookDownloader2.downloadDataChanged += this::onDownloadAdded
         BookDownloader2.bookmarkChanged += this::onBookmarkChanged
         BookDownloader2.refreshingChanged += this::onRefreshingChanged
+        BookDownloader2.chapterReadChanged += this::onChapterChanged
+        BookDownloader2.refreshingChanged += this::onRefreshingChanged
         BookDownloader2.updatePagesDetails += this::onPagesChanged
     }
 
@@ -451,6 +457,30 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
         BookDownloader2.bookmarkChanged -= this::onBookmarkChanged
         BookDownloader2.refreshingChanged -= this::onRefreshingChanged
         BookDownloader2.updatePagesDetails -= this::onPagesChanged
+        BookDownloader2.refreshingChanged -= this::onRefreshingChanged
+        BookDownloader2.chapterReadChanged -= this::onChapterChanged
+    }
+
+    fun onChapterChanged(name: String) {
+        updateState {
+            copy(pages = pages.updateRows {
+                val ids = data.filter { it.value.name == name }
+                if (ids.isEmpty()) return@updateRows this
+
+                var out = this
+                for (id in ids.keys) {
+                    @OptIn(ExperimentalUuidApi::class)
+                    out = out.update(id) {
+                        copy(
+                            chaptersRead = ImmutableSearchResponse.chaptersRead(name),
+                            timeOfPageOpened = System.currentTimeMillis(),
+                            epubSize = ImmutableSearchResponse.epubSize(id)
+                        )
+                    }
+                }
+                return@updateRows out
+            })
+        }
     }
 
     fun onDownloadAdded(item: Pair<Int, DownloadFragment.DownloadData>) = viewModelScope.launch {
