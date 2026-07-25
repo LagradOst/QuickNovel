@@ -192,7 +192,14 @@ open class LibReadProvider : MainAPI() {
                     ?.get(0)
                     ?.text()
                     ?.splitToSequence(", ")?.toList()
-            posterUrl = fixUrlNull(document.select(" div.pic > img").attr("src"))
+            posterUrl = fixUrlNull(
+                document.selectFirst("picture source")
+                    ?.attr("srcset")
+                    ?.split(",")
+                    ?.lastOrNull()
+                    ?.trim()
+                    ?.substringBefore(" ")
+            ) ?: fixUrlNull(document.selectFirst("div.pic img")?.attr("src"))
             synopsis = document.selectFirst("div.inner")?.text()
             val votes = document.selectFirst("div.m-desc > div.score > p:nth-child(2)")
             if (votes != null) {

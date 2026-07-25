@@ -43,7 +43,14 @@ class FreewebnovelProvider : LibReadProvider() {
                 name = h3.attr("title"),
                 url = h3.attr("href") ?: return@mapNotNull null
             ) {
-                posterUrl = fixUrlNull(h.selectFirst("div.pic > a > img")?.attr("src"))
+                posterUrl = fixUrlNull(
+                    h.selectFirst("picture source")
+                        ?.attr("srcset")
+                        ?.split(",")
+                        ?.lastOrNull()
+                        ?.trim()
+                        ?.substringBefore(" ")
+                ) ?: fixUrlNull(document.selectFirst("div.pic img")?.attr("src"))
                 latestChapter = h.select("div.item")[2].selectFirst("> div > a")?.text()
             }
         }
@@ -51,23 +58,22 @@ class FreewebnovelProvider : LibReadProvider() {
     }
 
     override suspend fun loadHtml(url: String): String? {
-        val response = app.get(url)
+        val document = app.get(url).document
+        document.selectFirst("div.txt>.notice-text")?.remove()
+        document.select(".slot-frame").remove()
 
-        val document = Jsoup.parse(
-            response.text
-                .replace("New novel chapters are published on Freewebnovel.com.", "")
-                .replace("The source of this content is Freewebnᴏvel.com.", "").replace(
-                    "☞ We are moving Freewebnovel.com to Libread.com, Please visit libread.com for more chapters! ☜",
-                    ""
-                )
-        )
         /*for (e in document.select("p")) {
             if (e.text().contains("The source of this ") || e.selectFirst("a")?.hasAttr("href") == true) {
                 e.remove()
             }
         }*/
-        document.selectFirst("div.txt>.notice-text")?.remove()
         return document.selectFirst("div.txt")?.html()
+            ?.replace("New novel chapters are published on Freewebnovel.com.", "")
+            ?.replace("The source of this content is Freewebnᴏvel.com.", "")
+            ?.replace(
+                "☞ We are moving Freewebnovel.com to Libread.com, Please visit libread.com for more chapters! ☜",
+                ""
+            )
     }
 
      override suspend fun search(query: String): List<SearchResponse> {
