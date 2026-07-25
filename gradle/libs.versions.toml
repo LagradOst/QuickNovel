@@ -12,6 +12,7 @@ kotlinxCollectionsImmutable = "0.5.1"
 kotlinxIoCore = "0.9.1"
 lifecycleViewmodelCompose = "2.11.0"
 preference = "2.2.0"
+navigationCompose = "2.9.8"
 
 [libraries]
 
@@ -31,6 +32,7 @@ kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collec
 kotlinx-io-core = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinxIoCore" }
 lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
 preference = { module = "me.zhanghai.compose.preference:preference", version.ref = "preference" }
+navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinGradlePlugin" }

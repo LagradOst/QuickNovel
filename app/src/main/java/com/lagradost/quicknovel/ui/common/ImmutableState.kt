@@ -14,6 +14,7 @@ package com.lagradost.quicknovel.ui.common
  * The labels describe how these classes are used and where.
  * */
 
+import android.content.Context
 import androidx.annotation.CheckResult
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
@@ -25,23 +26,37 @@ import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import coil3.request.transformations
+import com.lagradost.quicknovel.BaseApplication
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
+import com.lagradost.quicknovel.BookDownloader2
+import com.lagradost.quicknovel.BookDownloader2.downloadProgress
+import com.lagradost.quicknovel.BookDownloader2Helper
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
+import com.lagradost.quicknovel.BookDownloader2Helper.generateId
 import com.lagradost.quicknovel.BookDownloader2Helper.getFilenameIMG
 import com.lagradost.quicknovel.BookDownloader2Helper.sanitizeFilename
+import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
+import com.lagradost.quicknovel.DownloadExtractLink
+import com.lagradost.quicknovel.DownloadLink
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
+import com.lagradost.quicknovel.EpubResponse
 import com.lagradost.quicknovel.HeadMainPageResponse
+import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.ReleaseStatus
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.ui.download.DownloadFragment
+import com.lagradost.quicknovel.util.BlurTransformation
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
@@ -71,6 +86,9 @@ enum class SearchResponseOperation {
     /** Open the item in a result view */
     Open,
 
+    /** Read the epub */
+    Read,
+
     /** Stream read the item */
     Stream,
 
@@ -92,6 +110,39 @@ enum class SearchResponseOperation {
     /** Resume the download of the item */
     Resume,
 }
+
+@Immutable
+data class ImmutableChapterData(
+    val name: String,
+    val url: String,
+    val dateOfRelease: String? = null,
+    val views: Int? = null,
+) {
+    companion object {
+        fun from(chapter: ChapterData): ImmutableChapterData =
+            ImmutableChapterData(
+                name = chapter.name,
+                url = chapter.url,
+                dateOfRelease = chapter.dateOfRelease,
+                views = chapter.views
+            )
+
+    }
+
+}
+
+@Immutable
+data class ImmutableLoadData(
+    val related: PersistentList<ImmutableSearchResponse>?,
+    val status: ReleaseStatus?,
+    val chapters: PersistentList<ImmutableChapterData>?,
+    val views : Int?,
+    val peopleVoted : Int?,
+
+    // TODO make this better
+    var downloadLinks: PersistentList<DownloadLink>?,
+    var downloadExtractLinks: PersistentList<DownloadExtractLink>?,
+)
 
 /**
  * Viewmodel -> UI+Viewmodel
@@ -147,6 +198,8 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
     val epubSize: Int? = null,
     /** How many chapters we have read with the built-in reader */
     val chaptersRead: Int,
+
+    val loadData: ImmutableLoadData? = null,
 ) {
 
     fun matchesQuery(query: String): Boolean =
@@ -160,25 +213,52 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
         get() = @Composable {
             val context = LocalContext.current
             remember(context) {
-                if (isImported) {
-                    (context.filesDir.toString() + getFilenameIMG(
-                        sanitizeFilename(apiName),
-                        sanitizeFilename(author ?: ""),
-                        sanitizeFilename(name)
-                    )).toUri()
-                } else {
-                    ImageRequest.Builder(context)
-                        .data(posterUrl)
-                        .httpHeaders(NetworkHeaders.Builder().also { headerBuilder ->
-                            posterHeaders?.forEach { (key, value) ->
-                                headerBuilder[key] = value
-                            }
-                        }.build()) // Set the headers here
-                        .crossfade(true)
-                        .build()
-                }
+                ImageRequest(context)
             }
         }
+    val blurImageRequest
+        get() = @Composable {
+            val context = LocalContext.current
+            remember(context) {
+                ImageRequest(context, radius = 100, sample = 3)
+            }
+        }
+
+    fun ImageRequest(
+        context: Context,
+        radius: Int = 0,
+        sample: Int = 3
+    ): ImageRequest {
+        val transformations = if (radius > 0) listOf(
+            BlurTransformation(
+                scale = sample.toFloat(),
+                radius = radius
+            )
+        ) else emptyList()
+
+        return if (isImported) {
+            val uri = (context.filesDir.toString() + getFilenameIMG(
+                sanitizeFilename(apiName),
+                sanitizeFilename(author ?: ""),
+                sanitizeFilename(name)
+            )).toUri()
+            ImageRequest.Builder(context)
+                .data(uri)
+                .crossfade(true).transformations(transformations)
+                .build()
+        } else {
+            ImageRequest.Builder(context)
+                .data(posterUrl)
+                .httpHeaders(NetworkHeaders.Builder().also { headerBuilder ->
+                    posterHeaders?.forEach { (key, value) ->
+                        headerBuilder[key] = value
+                    }
+                }.build())
+                .crossfade(true).transformations(transformations)
+                .build()
+        }
+    }
+
 
     companion object {
         fun chaptersRead(name: String): Int =
@@ -218,6 +298,67 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 timeOfCached = System.currentTimeMillis(),
                 chaptersRead = chaptersRead(response.name)
             )
+
+        @OptIn(ExperimentalUuidApi::class)
+        fun from(response: LoadResponse): ImmutableSearchResponse {
+            val id = generateId(response, response.apiName)
+            val epubResponse = (response as? EpubResponse)
+            val streamResponse = (response as? StreamResponse)
+
+            val currentDownloadProgress =
+                downloadProgress[id] ?: BookDownloader2Helper.downloadInfo(
+                    BaseApplication.context,
+                    response.author,
+                    response.name,
+                    response.apiName
+                )?.let { info ->
+                    DownloadProgressState(
+                        state = DownloadState.Nothing,
+                        progress = info.progress,
+                        total = info.total,
+                        downloaded = info.downloaded,
+                        lastUpdatedMs = System.currentTimeMillis(),
+                        etaMs = null
+                    )
+                } ?: run {
+                    DownloadProgressState(
+                        state = DownloadState.Nothing,
+                        progress = 0,
+                        total = streamResponse?.data?.size?.toLong() ?: 1,
+                        downloaded = 0,
+                        lastUpdatedMs = System.currentTimeMillis(),
+                        etaMs = null
+                    )
+                }
+
+            return ImmutableSearchResponse(
+                name = response.name,
+                url = response.url,
+                posterUrl = response.posterUrl,
+                rating = response.rating,
+                apiName = response.apiName,
+                author = response.author,
+                synopsis = response.synopsis,
+                loadData = ImmutableLoadData(
+                    related = response.related?.map { from(it) }?.toPersistentList(),
+                    status = response.status,
+                    chapters = streamResponse?.data?.map {
+                        ImmutableChapterData.from(
+                            it
+                        )
+                    }?.toPersistentList(),
+                    downloadLinks = epubResponse?.downloadLinks?.toPersistentList(),
+                    downloadExtractLinks = epubResponse?.downloadExtractLinks?.toPersistentList(),
+                    views = response.views,
+                    peopleVoted = response.peopleVoted
+                ),
+                posterHeaders = response.posterHeaders?.toImmutableMap(),
+                timeOfCached = System.currentTimeMillis(),
+                chaptersRead = chaptersRead(response.name),
+                downloadState = ImmutableDownloadState.from(currentDownloadProgress)
+            )
+        }
+
 
         @OptIn(ExperimentalUuidApi::class)
         fun from(cache: ResultCached): ImmutableSearchResponse =

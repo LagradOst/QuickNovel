@@ -282,14 +282,12 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
 
     private fun resultAction(action: SearchResponseAction) {
         when (action.operation) {
-            SearchResponseOperation.Open -> {
-                if (action.response.downloadState != null) {
-                    readEpub(action.response)
-                } else {
-                    action.doAction()
-                }
+            SearchResponseOperation.Read -> {
+                readEpub(action.response)
             }
-
+            SearchResponseOperation.Open -> {
+                action.doAction()
+            }
             SearchResponseOperation.Stream -> {
                 viewModelScope.launch {
                     val id = action.response.id!!

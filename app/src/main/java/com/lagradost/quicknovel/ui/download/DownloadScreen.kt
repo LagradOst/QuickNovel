@@ -61,6 +61,7 @@ import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
 import com.lagradost.quicknovel.tachiyomi.collectAsState
 import com.lagradost.quicknovel.ui.ReadType
+import com.lagradost.quicknovel.ui.common.HorizontalTab
 import com.lagradost.quicknovel.ui.common.ImmutableSearchList
 import com.lagradost.quicknovel.ui.common.SearchList
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
@@ -196,48 +197,7 @@ fun DownloadScreen(
                     })
             }
 
-            SecondaryScrollableTabRow(
-                currentPage,
-                edgePadding = 0.dp,
-                containerColor = colors.surfaceVariant,
-                indicator = {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(40.dp)
-                            .zIndex(-1.0f)
-                            .tabIndicatorOffset(currentPage, matchContentSize = false)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(5.dp)
-                                .circle()
-                                .background(colors.onBackground)
-                        )
-                    }
-                }, divider = {}
-            ) {
-                pagesNames.forEachIndexed { index, row ->
-                    val selected = index == currentPage
-                    Tab(
-                        modifier = Modifier
-                            .height(40.dp)
-                            .circle(),
-                        selected = selected, onClick = {
-                            pagerState.requestScrollToPage(index)
-                        }, text = {
-                            Text(
-                                stringResource(row), color = if (selected) {
-                                    colors.background
-                                } else {
-                                    colors.onBackground
-                                }
-                            )
-                        })
-                }
-            }
+            HorizontalTab(pagerState, pagesNames, containerColor = colors.surfaceVariant)
         }
     }
 }

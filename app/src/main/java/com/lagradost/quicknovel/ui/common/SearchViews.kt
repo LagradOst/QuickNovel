@@ -181,6 +181,7 @@ fun SearchResponseRow(
     val interactionSource = remember { MutableInteractionSource() }
     val streamInteractionSource = remember { MutableInteractionSource() }
     val deleteInteractionSource = remember { MutableInteractionSource() }
+    val openInteractionSource = remember { MutableInteractionSource() }
 
     val imageRequest = response.imageRequest()
 
@@ -193,7 +194,15 @@ fun SearchResponseRow(
             .rounded()
             .background(colors.surfaceContainer)
             .combinedClickable(interactionSource = interactionSource, indication = null, onClick = {
-                action(SearchResponseAction(response, SearchResponseOperation.Open))
+                action(
+                    SearchResponseAction(
+                        response, if (response.downloadState != null) {
+                            SearchResponseOperation.Read
+                        } else {
+                            SearchResponseOperation.Open
+                        }
+                    )
+                )
             }, onLongClick = {
                 action(SearchResponseAction(response, SearchResponseOperation.Metadata))
             })
@@ -209,21 +218,22 @@ fun SearchResponseRow(
                 .fillMaxHeight()
                 .rounded()
                 .combinedClickable(
-                    interactionSource = interactionSource,
+                    interactionSource = openInteractionSource,
                     indication = null,
                     onClick = {
                         action(SearchResponseAction(response, SearchResponseOperation.Open))
                     },
                     onLongClick = {
                         action(SearchResponseAction(response, SearchResponseOperation.Metadata))
-                    })
+                    }).ripple(openInteractionSource)
         )
 
         Column(
             modifier = Modifier
                 .wrapContentHeight()
                 .align(Alignment.CenterVertically)
-                .padding(10.dp).weight(1.0f)
+                .padding(10.dp)
+                .weight(1.0f)
         ) {
             Text(
                 response.name,
@@ -278,7 +288,11 @@ fun SearchResponseRow(
             }
         }
 
-        Spacer(Modifier.width(5.dp).weight(0.01f))
+        Spacer(
+            Modifier
+                .width(5.dp)
+                .weight(0.01f)
+        )
 
         if (response.downloadState != null && response.epubSize != null && response.hasNewChapters) {
             Box(
@@ -463,7 +477,15 @@ fun SearchResponseItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .combinedClickable(interactionSource = interactionSource, indication = null, onClick = {
-                action(SearchResponseAction(response, SearchResponseOperation.Open))
+                action(
+                    SearchResponseAction(
+                        response, if (response.downloadState != null) {
+                            SearchResponseOperation.Read
+                        } else {
+                            SearchResponseOperation.Open
+                        }
+                    )
+                )
             }, onLongClick = {
                 action(SearchResponseAction(response, SearchResponseOperation.Metadata))
             })
@@ -488,7 +510,7 @@ fun SearchResponseItem(
 
             if (response.id != null) {
                 Row(modifier = Modifier.padding(5.dp)) {
-                    if(response.downloadState == null) {
+                    if (response.downloadState == null) {
                         Box(
                             modifier = Modifier
                                 .rounded()

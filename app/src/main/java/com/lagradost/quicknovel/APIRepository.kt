@@ -72,7 +72,6 @@ class APIRepository(val api: MainAPI) {
             val response: LoadResponse,
             val hash: Pair<String, String>
         )
-
         private val cache = threadSafeListOf<SavedLoadResponse>()
         private var cacheIndex: Int = 0
         const val cacheSize = 20
@@ -128,6 +127,62 @@ class APIRepository(val api: MainAPI) {
                         }
                     }
                 } ?: throw ErrorLoadingException("No data")
+            } finally {
+                if (api.hasRateLimit) {
+                    api.rateLimitMutex.unlock()
+                }
+            }
+        }
+    }
+
+    suspend fun loadResult(url: String, allowCache: Boolean = true): Result<ImmutableSearchResponse> {
+        return runCatching {
+            try {
+                if (api.hasRateLimit) {
+                    api.rateLimitMutex.lock()
+                }
+                val fixedUrl = api.fixUrl(url)
+                val lookingForHash = api.name to fixedUrl
+
+                if (allowCache) {
+                    synchronized(cache) {
+                        for (item in cache) {
+                            // 10 min save
+                            if (item.hash == lookingForHash && (unixTime - item.unixTime) < cacheTimeSec) {
+                                return@runCatching ImmutableSearchResponse.from(item.response)
+                            }
+                        }
+                    }
+                }
+
+                val response = api.load(fixedUrl) ?: throw ErrorLoadingException("No data")
+                val add = SavedLoadResponse(unixTime, response, lookingForHash)
+                if (allowCache) {
+                    synchronized(cache) {
+                        if (cache.size > cacheSize) {
+                            cache[cacheIndex] = add // rolling cache
+                            cacheIndex = (cacheIndex + 1) % cacheSize
+                        } else {
+                            cache.add(add)
+                        }
+                    }
+                }
+                ImmutableSearchResponse.from(response)
+                /*?.also { response ->
+                    // Remove all blank tags as early as possible
+                    val add = SavedLoadResponse(unixTime, response, lookingForHash)
+                    if (allowCache) {
+                        synchronized(cache) {
+                            if (cache.size > cacheSize) {
+                                cache[cacheIndex] = add // rolling cache
+                                cacheIndex = (cacheIndex + 1) % cacheSize
+                            } else {
+                                cache.add(add)
+                            }
+                        }
+                    }
+                }*/
+
             } finally {
                 if (api.hasRateLimit) {
                     api.rateLimitMutex.unlock()
