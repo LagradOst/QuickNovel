@@ -30,7 +30,6 @@ import coil3.request.transformations
 import com.lagradost.quicknovel.BaseApplication
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
-import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.BookDownloader2.downloadProgress
 import com.lagradost.quicknovel.BookDownloader2Helper
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
@@ -55,6 +54,7 @@ import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.ReleaseStatus
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.StreamResponse
+import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.util.BlurTransformation
 import com.lagradost.quicknovel.util.ResultCached
@@ -112,13 +112,15 @@ enum class SearchResponseOperation {
 }
 
 @Immutable
-data class ImmutableChapterData(
+data class ImmutableChapterData @OptIn(ExperimentalUuidApi::class) constructor(
     val name: String,
     val url: String,
     val dateOfRelease: String? = null,
     val views: Int? = null,
+    val randomUuid: Uuid = Uuid.random(),
 ) {
     companion object {
+        @OptIn(ExperimentalUuidApi::class)
         fun from(chapter: ChapterData): ImmutableChapterData =
             ImmutableChapterData(
                 name = chapter.name,
@@ -132,12 +134,42 @@ data class ImmutableChapterData(
 }
 
 @Immutable
+data class ImmutableReview @OptIn(ExperimentalUuidApi::class) constructor(
+    val content: String,
+    val title: String? = null,
+    val username: String? = null,
+    val date: String? = null,
+    val avatarUrl: String? = null,
+    val avatarHeaders : PersistentMap<String,String>,
+    val rating: Int? = null,
+    val ratings: PersistentList<Pair<Int, String>>? = null,
+    val randomUuid: Uuid = Uuid.random()
+) {
+    companion object
+    {
+        @OptIn(ExperimentalUuidApi::class)
+        fun from(review : UserReview) : ImmutableReview =
+            ImmutableReview(
+                content = review.review,
+                title = review.reviewTitle,
+                username = review.username,
+                date = review.reviewDate,
+                avatarUrl = review.avatarUrl,
+                avatarHeaders = persistentMapOf(),
+                rating = review.rating,
+                ratings = review.ratings?.toPersistentList(),
+            )
+    }
+}
+
+@Immutable
 data class ImmutableLoadData(
     val related: PersistentList<ImmutableSearchResponse>?,
     val status: ReleaseStatus?,
     val chapters: PersistentList<ImmutableChapterData>?,
     val views : Int?,
     val peopleVoted : Int?,
+    val reviews : PersistentList<ImmutableReview>,
 
     // TODO make this better
     var downloadLinks: PersistentList<DownloadLink>?,
@@ -198,7 +230,6 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
     val epubSize: Int? = null,
     /** How many chapters we have read with the built-in reader */
     val chaptersRead: Int,
-
     val loadData: ImmutableLoadData? = null,
 ) {
 
@@ -261,6 +292,43 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
 
 
     companion object {
+
+        @OptIn(ExperimentalUuidApi::class)
+        fun preview() : ImmutableSearchResponse =ImmutableSearchResponse(
+            name = "hello world",
+            apiName = "hello world",
+            author = "author",
+            url = "url",
+            posterUrl = "https://www.royalroadcdn.com/public/covers-full/36735-the-perfect-run.jpg?time=${System.currentTimeMillis()}",
+            posterHeaders = null,
+            loadData = ImmutableLoadData(
+                related = persistentListOf(),
+                status = ReleaseStatus.Ongoing,
+                chapters = persistentListOf(),
+                views = 1337,
+                peopleVoted = 42,
+                downloadLinks = null,
+                downloadExtractLinks = null,
+                reviews = persistentListOf(),
+            ),
+            tags = persistentListOf("tag 1","tag 2","tag 3","tag 4","tag 5","tag 6","tag 7","tag 8","tag 9","Hello World","More tags"),
+            synopsis = "synopsis",
+            id = 0,
+            rating = 123,
+            latestChapterName = "hello world chapters",
+            generating = false,
+            chaptersRead = 0,
+            timeOfCached = 0,
+            downloadState = ImmutableDownloadState(
+                status = DownloadState.Nothing,
+                progress = 123,
+                downloaded = 50,
+                total = 200,
+                lastUpdatedMs = System.currentTimeMillis(),
+                etaMs = 65240
+            )
+        )
+
         fun chaptersRead(name: String): Int =
             getKey<Int>(EPUB_CURRENT_POSITION, name)?.let { it + 1 } ?: 0
 
@@ -350,8 +418,10 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                     downloadLinks = epubResponse?.downloadLinks?.toPersistentList(),
                     downloadExtractLinks = epubResponse?.downloadExtractLinks?.toPersistentList(),
                     views = response.views,
-                    peopleVoted = response.peopleVoted
+                    peopleVoted = response.peopleVoted,
+                    reviews = persistentListOf()
                 ),
+                tags = response.tags?.toPersistentList(),
                 posterHeaders = response.posterHeaders?.toImmutableMap(),
                 timeOfCached = System.currentTimeMillis(),
                 chaptersRead = chaptersRead(response.name),

@@ -9,6 +9,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalGridApi
+import androidx.compose.foundation.layout.Grid
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -37,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -97,7 +100,6 @@ fun SearchList(
     modifier: Modifier,
     items: ImmutableList<ImmutableSearchResponse>,
     searchAction: (SearchResponseAction) -> Unit,
-    //footer: @Composable (() -> Unit)? = null,
 ) {
     if (isRow) {
         SearchListRow(
@@ -225,7 +227,8 @@ fun SearchResponseRow(
                     },
                     onLongClick = {
                         action(SearchResponseAction(response, SearchResponseOperation.Metadata))
-                    }).ripple(openInteractionSource)
+                    })
+                .ripple(openInteractionSource)
         )
 
         Column(
@@ -238,23 +241,24 @@ fun SearchResponseRow(
             Text(
                 response.name,
                 maxLines = 2,
-                style = BaseStyles.textStyle,
+                color = colors.onBackground,
+                fontSize = 14.sp,
+                lineHeight = 15.sp,
                 overflow = TextOverflow.Ellipsis
             )
 
-            if (response.downloadState != null && response.downloadState.progress != response.downloadState.total) {
-                Text(
+            val text =
+                if (response.downloadState != null && response.downloadState.progress != response.downloadState.total) {
                     "${response.downloadState.progress}/${response.downloadState.total}${
                         response.downloadState.etaMs?.let {
                             " • " + etaToString(
                                 it
                             )
                         } ?: ""
-                    }", style = BaseStyles.textAltStyle)
-            } else if (response.chapters != null) {
-                if (response.id != null && response.downloadState == null) {
-                    // Do not show response.chaptersRead for downloaded items, as it looks weird
-                    Text(
+                    }"
+                } else if (response.chapters != null) {
+                    if (response.id != null && response.downloadState == null) {
+                        // Do not show response.chaptersRead for downloaded items, as it looks weird
                         "${response.chaptersRead}/${response.chapters} ${
                             stringResource(
                                 if (response.chapters == 1L) {
@@ -263,11 +267,8 @@ fun SearchResponseRow(
                                     R.string.chapters
                                 }
                             )
-                        }",
-                        style = BaseStyles.textAltStyle
-                    )
-                } else {
-                    Text(
+                        }"
+                    } else {
                         "${response.chapters} ${
                             stringResource(
                                 if (response.chapters == 1L) {
@@ -276,14 +277,18 @@ fun SearchResponseRow(
                                     R.string.chapters
                                 }
                             )
-                        }",
-                        style = BaseStyles.textAltStyle
-                    )
+                        }"
+                    }
+                } else {
+                    response.latestChapterName
                 }
-            } else if (response.latestChapterName != null) {
+
+            if (text != null) {
                 Text(
-                    response.latestChapterName,
-                    style = BaseStyles.textAltStyle
+                    text,
+                    color = colors.onSurfaceVariant,
+                    fontSize = 14.sp,
+                    lineHeight = 15.sp,
                 )
             }
         }
@@ -520,7 +525,7 @@ fun SearchResponseItem(
                             Text(
                                 text = "${response.chaptersRead}/${response.chapters}",
                                 color = Color.White,
-                                style = TextStyle(fontSize = 12.sp),
+                                fontSize = 12.sp,
                             )
                         }
                     } else if (response.epubSize != null && response.hasNewChapters) {
@@ -533,7 +538,7 @@ fun SearchResponseItem(
                             Text(
                                 text = "+${(response.downloadState.progress - response.epubSize)}",
                                 color = colors.background,
-                                style = TextStyle(fontSize = 12.sp),
+                                fontSize = 12.sp,
                             )
                         }
                     }
@@ -549,11 +554,13 @@ fun SearchResponseItem(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = response.name, style = TextStyle(
-                    color = colors.onBackground,
-                    fontSize = 13.sp,
-                    lineHeight = 14.sp,
-                ), maxLines = 2, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis
+                text = response.name,
+                fontSize = 13.sp,
+                lineHeight = 14.sp,
+                color = colors.onBackground,
+                maxLines = 2,
+                textAlign = TextAlign.Center,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -598,6 +605,7 @@ fun SearchResponseGrid(
     }
 }
 
+@OptIn(ExperimentalGridApi::class)
 @Composable
 fun SearchResponseGrid(
     listState: LazyGridState = rememberLazyGridState(),
@@ -627,4 +635,5 @@ fun SearchResponseGrid(
             )
         }
     }
+
 }

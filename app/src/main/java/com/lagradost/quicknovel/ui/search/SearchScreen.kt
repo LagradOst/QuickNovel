@@ -236,7 +236,11 @@ fun MainAPIItem(
                 .background(colorResource(api.iconBackgroundId))
         )
         Text(
-            text = api.name, style = BaseStyles.textStyle, textAlign = TextAlign.Center
+            text = api.name,
+            color = colors.onBackground,
+            fontSize = 14.sp,
+            lineHeight = 15.sp,
+            textAlign = TextAlign.Center
         )
     }
 }

@@ -12,6 +12,7 @@ import com.lagradost.quicknovel.compose.DefaultEffectContainer
 import com.lagradost.quicknovel.compose.DefaultStateContainer
 import com.lagradost.quicknovel.compose.EffectContainer
 import com.lagradost.quicknovel.compose.StateContainer
+import com.lagradost.quicknovel.ui.common.ImmutableChapterData
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.download.DownloadPageAction
@@ -28,9 +29,14 @@ data class ResultState(
     val loading: Boolean = true,
 )
 
+enum class ChapterOperation {
+    Stream,
+}
+
 @Immutable
 sealed class ResultPageAction {
     data class ResultAction(val action: SearchResponseAction) : ResultPageAction()
+    data class ChapterAction(val chapter: ImmutableChapterData, val operation: ChapterOperation) : ResultPageAction()
 }
 
 @Immutable
@@ -66,6 +72,10 @@ class ResultViewModel2(
     override fun onAction(action: ResultPageAction) {
         when (action) {
             is ResultPageAction.ResultAction -> {
+                action.action.doAction()
+            }
+
+            is ResultPageAction.ChapterAction -> {
 
             }
         }

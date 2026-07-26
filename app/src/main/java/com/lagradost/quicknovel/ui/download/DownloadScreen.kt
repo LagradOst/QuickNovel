@@ -425,11 +425,12 @@ fun RowFooter() {
         Text(
             modifier = Modifier.padding(start = 15.dp),
             text = stringResource(R.string.import_epub),
-            style = TextStyle(
-                color = colors.onBackground,
-                fontSize = 13.sp,
-                lineHeight = 14.sp,
-            ), maxLines = 2, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis
+            color = colors.onBackground,
+            fontSize = 13.sp,
+            lineHeight = 14.sp,
+            maxLines = 2,
+            textAlign = TextAlign.Center,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -471,11 +472,12 @@ fun BoxFooter() {
         ) {
             Text(
                 text = stringResource(R.string.import_epub),
-                style = TextStyle(
-                    color = colors.onBackground,
-                    fontSize = 13.sp,
-                    lineHeight = 14.sp,
-                ), maxLines = 2, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis
+                color = colors.onBackground,
+                fontSize = 13.sp,
+                lineHeight = 14.sp,
+                maxLines = 2,
+                textAlign = TextAlign.Center,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

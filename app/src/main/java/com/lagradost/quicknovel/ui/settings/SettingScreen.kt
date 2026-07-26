@@ -41,6 +41,7 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
@@ -596,7 +597,9 @@ fun LogcatItem(item: LogcatItem) {
         Spacer(modifier = Modifier.width(5.dp))
         Text(
             item.message,
-            style = BaseStyles.textStyle
+            color = colors.onBackground,
+            fontSize = 14.sp,
+            lineHeight = 15.sp,
         )
     }
 }

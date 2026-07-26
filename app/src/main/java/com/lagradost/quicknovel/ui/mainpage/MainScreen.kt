@@ -276,14 +276,18 @@ fun SearchResponseDialog(
 
         if (dialog.error != null) {
             Text(
-                style = BaseStyles.textStyle,
+                color = colors.onBackground,
+                fontSize = 14.sp,
+                lineHeight = 15.sp,
                 text = dialog.error.toString(),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxSize(),
             )
         } else if (dialog.items.isEmpty()) {
             Text(
-                style = BaseStyles.textStyle,
+                color = colors.onBackground,
+                fontSize = 14.sp,
+                lineHeight = 15.sp,
                 text = stringResource(R.string.no_data),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxSize(),
