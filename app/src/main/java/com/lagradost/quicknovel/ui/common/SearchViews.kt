@@ -383,15 +383,7 @@ fun RefreshButton(
         DownloadState.Nothing -> R.drawable.arrow_circle_down_24px
     }
 
-    val operation = when (response.downloadState.status) {
-        DownloadState.IsDownloading -> SearchResponseOperation.Pause
-        DownloadState.IsPaused -> SearchResponseOperation.Resume
-        DownloadState.IsStopped -> SearchResponseOperation.Download
-        DownloadState.IsFailed -> SearchResponseOperation.Download
-        DownloadState.IsDone -> SearchResponseOperation.Download
-        DownloadState.IsPending -> return
-        DownloadState.Nothing -> SearchResponseOperation.Download
-    }
+    val operation = response.downloadState.operation
 
     Icon(
         painter = painterResource(icon),

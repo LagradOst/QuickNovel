@@ -285,7 +285,7 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             SearchResponseOperation.Read -> {
                 readEpub(action.response)
             }
-            SearchResponseOperation.Open -> {
+            SearchResponseOperation.Open,SearchResponseOperation.NoOp -> {
                 action.doAction()
             }
             SearchResponseOperation.Stream -> {

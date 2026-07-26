@@ -109,6 +109,9 @@ enum class SearchResponseOperation {
 
     /** Resume the download of the item */
     Resume,
+
+    /** No operation */
+    NoOp,
 }
 
 @Immutable
@@ -118,15 +121,17 @@ data class ImmutableChapterData @OptIn(ExperimentalUuidApi::class) constructor(
     val dateOfRelease: String? = null,
     val views: Int? = null,
     val randomUuid: Uuid = Uuid.random(),
+    val index: Int,
 ) {
     companion object {
         @OptIn(ExperimentalUuidApi::class)
-        fun from(chapter: ChapterData): ImmutableChapterData =
+        fun from(chapter: ChapterData, index: Int): ImmutableChapterData =
             ImmutableChapterData(
                 name = chapter.name,
                 url = chapter.url,
                 dateOfRelease = chapter.dateOfRelease,
-                views = chapter.views
+                views = chapter.views,
+                index = index,
             )
 
     }
@@ -140,15 +145,14 @@ data class ImmutableReview @OptIn(ExperimentalUuidApi::class) constructor(
     val username: String? = null,
     val date: String? = null,
     val avatarUrl: String? = null,
-    val avatarHeaders : PersistentMap<String,String>,
+    val avatarHeaders: PersistentMap<String, String>,
     val rating: Int? = null,
     val ratings: PersistentList<Pair<Int, String>>? = null,
     val randomUuid: Uuid = Uuid.random()
 ) {
-    companion object
-    {
+    companion object {
         @OptIn(ExperimentalUuidApi::class)
-        fun from(review : UserReview) : ImmutableReview =
+        fun from(review: UserReview): ImmutableReview =
             ImmutableReview(
                 content = review.review,
                 title = review.reviewTitle,
@@ -167,9 +171,9 @@ data class ImmutableLoadData(
     val related: PersistentList<ImmutableSearchResponse>?,
     val status: ReleaseStatus?,
     val chapters: PersistentList<ImmutableChapterData>?,
-    val views : Int?,
-    val peopleVoted : Int?,
-    val reviews : PersistentList<ImmutableReview>,
+    val views: Int?,
+    val peopleVoted: Int?,
+    val reviews: PersistentList<ImmutableReview>,
 
     // TODO make this better
     var downloadLinks: PersistentList<DownloadLink>?,
@@ -294,7 +298,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
     companion object {
 
         @OptIn(ExperimentalUuidApi::class)
-        fun preview() : ImmutableSearchResponse =ImmutableSearchResponse(
+        fun preview(): ImmutableSearchResponse = ImmutableSearchResponse(
             name = "hello world",
             apiName = "hello world",
             author = "author",
@@ -311,7 +315,19 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 downloadExtractLinks = null,
                 reviews = persistentListOf(),
             ),
-            tags = persistentListOf("tag 1","tag 2","tag 3","tag 4","tag 5","tag 6","tag 7","tag 8","tag 9","Hello World","More tags"),
+            tags = persistentListOf(
+                "tag 1",
+                "tag 2",
+                "tag 3",
+                "tag 4",
+                "tag 5",
+                "tag 6",
+                "tag 7",
+                "tag 8",
+                "tag 9",
+                "Hello World",
+                "More tags"
+            ),
             synopsis = "synopsis",
             id = 0,
             rating = 123,
@@ -400,6 +416,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 }
 
             return ImmutableSearchResponse(
+                id = id,
                 name = response.name,
                 url = response.url,
                 posterUrl = response.posterUrl,
@@ -410,9 +427,9 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 loadData = ImmutableLoadData(
                     related = response.related?.map { from(it) }?.toPersistentList(),
                     status = response.status,
-                    chapters = streamResponse?.data?.map {
+                    chapters = streamResponse?.data?.mapIndexed { index, data ->
                         ImmutableChapterData.from(
-                            it
+                            data, index
                         )
                     }?.toPersistentList(),
                     downloadLinks = epubResponse?.downloadLinks?.toPersistentList(),
@@ -480,7 +497,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
             SearchResponseOperation.Metadata -> {
                 MainActivity.loadPreviewPage(this)
             }
-
+            SearchResponseOperation.NoOp -> {}
             else -> throw NotImplementedError()
         }
     }
@@ -531,6 +548,19 @@ data class ImmutableDownloadState(
             etaMs = state.etaMs
         )
     }
+
+    /** Get the associated action */
+    val operation get() =
+        when (status) {
+            DownloadState.IsDownloading -> SearchResponseOperation.Pause
+            DownloadState.IsPaused -> SearchResponseOperation.Resume
+            DownloadState.IsStopped -> SearchResponseOperation.Download
+            DownloadState.IsFailed -> SearchResponseOperation.Download
+            DownloadState.IsDone -> SearchResponseOperation.Download
+            DownloadState.IsPending -> SearchResponseOperation.NoOp
+            DownloadState.Nothing -> SearchResponseOperation.Download
+        }
+
 }
 
 /**

@@ -77,6 +77,8 @@ import com.lagradost.quicknovel.ui.common.LoadingPoster
 import com.lagradost.quicknovel.ui.common.LoadingWeight
 import com.lagradost.quicknovel.ui.common.LoadingWidth
 import com.lagradost.quicknovel.ui.common.SearchList
+import com.lagradost.quicknovel.ui.common.SearchResponseAction
+import com.lagradost.quicknovel.ui.common.SearchResponseOperation
 import com.lagradost.quicknovel.ui.common.loading
 import com.lagradost.quicknovel.ui.common.loadingLineMargin
 import com.lagradost.quicknovel.util.AppUtils.openInBrowser
@@ -105,15 +107,14 @@ fun ResultScreenImpl(
     modifier: Modifier, state: ResultState, action: (ResultPageAction) -> Unit
 ) {
     val response = state.response ?: return
-   // val scrollState = rememberScrollState()
+    // val scrollState = rememberScrollState()
 
 
     val tabNames = persistentListOf(
         R.string.novel, R.string.reviews, R.string.related, R.string.chapters
     )
     val pagerState = rememberPagerState(
-        initialPage = 0, pageCount = { tabNames.size }
-    )
+        initialPage = 0, pageCount = { tabNames.size })
 
     val outerListState = rememberLazyListState()
 
@@ -235,14 +236,13 @@ fun ResultScreenImpl(
             }
             item {
                 HorizontalTab(
-                    pagerState = pagerState,
-                    names = tabNames,
-                    containerColor = colors.background
+                    pagerState = pagerState, names = tabNames, containerColor = colors.background
                 )
             }
             item {
                 HorizontalPager(
-                    state = pagerState, modifier = Modifier
+                    state = pagerState,
+                    modifier = Modifier
                         .fillParentMaxHeight()
                         .background(colors.background),
                     verticalAlignment = Alignment.Top
@@ -269,6 +269,7 @@ fun ResultScreenImpl(
 
                         3 -> {
                             ChapterPage(
+                                response = response,
                                 chapters = response.loadData?.chapters ?: persistentListOf(),
                                 action = action,
                                 nestedScrollConnection = parentFirstScrollConnection
@@ -287,6 +288,7 @@ fun ResultScreenImpl(
 
 @Composable
 fun ChapterPage(
+    response: ImmutableSearchResponse,
     chapters: PersistentList<ImmutableChapterData>,
     action: (ResultPageAction) -> Unit,
     nestedScrollConnection: NestedScrollConnection
@@ -298,16 +300,16 @@ fun ChapterPage(
             .background(colors.background),
     ) {
         items(chapters, key = { item ->
-            @OptIn(ExperimentalUuidApi::class)
-            item.randomUuid
+            @OptIn(ExperimentalUuidApi::class) item.randomUuid
         }) { review ->
-            ChapterItem(review, action = action, modifier = Modifier.animateItem())
+            ChapterItem(response, review, action = action, modifier = Modifier.animateItem())
         }
     }
 }
 
 @Composable
 fun ChapterItem(
+    response: ImmutableSearchResponse,
     chapter: ImmutableChapterData,
     action: (ResultPageAction) -> Unit,
     modifier: Modifier
@@ -317,14 +319,17 @@ fun ChapterItem(
         modifier = modifier
             .fillMaxWidth()
             .combinedClickable(
-                interactionSource = interactionSource,
-                onClick = {
-                    action(ResultPageAction.ChapterAction(chapter, ChapterOperation.Stream))
-                },
-                onLongClick = {
+                interactionSource = interactionSource, onClick = {
+                    action(
+                        ResultPageAction.ChapterAction(
+                            response,
+                            chapter,
+                            ChapterOperation.Stream
+                        )
+                    )
+                }, onLongClick = {
                     // TODO show 3 dots info
-                },
-                indication = null
+                }, indication = null
             )
             .ripple(interactionSource = interactionSource)
             .padding(10.dp)
@@ -343,8 +348,7 @@ fun ChapterItem(
 
 @Composable
 fun ReviewsPage(
-    reviews: PersistentList<ImmutableReview>,
-    nestedScrollConnection: NestedScrollConnection
+    reviews: PersistentList<ImmutableReview>, nestedScrollConnection: NestedScrollConnection
 ) {
     LazyColumn(
         modifier = Modifier
@@ -353,8 +357,7 @@ fun ReviewsPage(
             .background(colors.background),
     ) {
         items(reviews, key = { item ->
-            @OptIn(ExperimentalUuidApi::class)
-            item.randomUuid
+            @OptIn(ExperimentalUuidApi::class) item.randomUuid
         }) { review ->
             ReviewItem(review, modifier = Modifier.animateItem())
         }
@@ -499,9 +502,14 @@ fun NovelPage(
                     .padding(2.dp)
                     .weight(1.0f),
                 onClick = {
-
+                    action(
+                        ResultPageAction.ResultAction(
+                            SearchResponseAction(
+                                response, SearchResponseOperation.Stream
+                            )
+                        )
+                    )
                 }) { Text(stringResource(R.string.stream_read)) }
-
 
             TextButton(
                 colors = whiteButtonColors,
@@ -509,7 +517,13 @@ fun NovelPage(
                     .padding(2.dp)
                     .weight(1.0f),
                 onClick = {
-
+                    action(
+                        ResultPageAction.ResultAction(
+                            SearchResponseAction(
+                                response, response.downloadState.operation
+                            )
+                        )
+                    )
                 }) { Text(stringResource(R.string.download)) }
 
 
@@ -519,8 +533,16 @@ fun NovelPage(
                     .padding(2.dp)
                     .weight(1.0f),
                 onClick = {
-
-                }) { Text(stringResource(R.string.read_epub)) }
+                    action(
+                        ResultPageAction.ResultAction(
+                            SearchResponseAction(
+                                response, SearchResponseOperation.Read
+                            )
+                        )
+                    )
+                }) {
+                Text(stringResource(R.string.read_epub))
+            }
         }
 
     }
