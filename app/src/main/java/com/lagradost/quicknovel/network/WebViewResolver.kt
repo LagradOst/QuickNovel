@@ -1,7 +1,6 @@
 package com.lagradost.quicknovel.network
 
 import android.annotation.SuppressLint
-import android.net.http.SslError
 import android.webkit.*
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.util.Coroutines.main
@@ -11,6 +10,7 @@ import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.USER_AGENT
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.Interceptor
@@ -18,6 +18,7 @@ import okhttp3.Request
 import okhttp3.Response
 import java.io.ByteArrayInputStream
 import java.net.URI
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * When used as Interceptor additionalUrls cannot be returned, use WebViewResolver(...).resolveUsingWebView(...)
@@ -60,6 +61,7 @@ class WebViewResolver(
 
     companion object {
         var webViewUserAgent: String? = null
+        val capturedHeaders = ConcurrentHashMap<String, Map<String, String>>()
         val CONTENT_TYPE_REGEX = Regex("""(.*);(?:.*charset=(.*)(?:|;)|)""")
 
         @JvmName("getWebViewUserAgent1")
@@ -112,9 +114,11 @@ class WebViewResolver(
         var webView: WebView? = null
         val extraRequestList = mutableListOf<Request>()
         var fixedRequest: Request? = null
+        var stabilityJob: kotlinx.coroutines.Job? = null
 
         fun destroyWebView() {
             main {
+                stabilityJob?.cancel()
                 webView?.stopLoading()
                 webView?.destroy()
                 webView = null
@@ -141,6 +145,8 @@ class WebViewResolver(
                     }
                     // Blocks unnecessary images, remove if captcha fucks.
                     //settings.blockNetworkImage = true
+
+                    CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                 }
 
                 webView?.webViewClient = object : WebViewClient() {
@@ -163,14 +169,21 @@ class WebViewResolver(
                             fixedRequest = request.toRequest().also {
                                 requestCallBack(it)
                             }
-                            println("Web-view request finished: $webViewUrl")
-                            deferredResponse.complete(fixedRequest to extraRequestList)
+                            
+                            if (!webViewUrl.contains("/cdn-cgi/") && !webViewUrl.contains("cloudflare")) {
+                                capturedHeaders[runCatching { URI(webViewUrl).host }.getOrNull() ?: ""] = request.requestHeaders
+                            }
                             return@runBlocking null
                         }
 
                         if (additionalUrls.any { it.containsMatchIn(webViewUrl) }) {
                             val req = request.toRequest()
                             extraRequestList.add(req)
+                            
+                            if (!webViewUrl.contains("/cdn-cgi/") && !webViewUrl.contains("cloudflare")) {
+                                capturedHeaders[runCatching { URI(webViewUrl).host }.getOrNull() ?: ""] = request.requestHeaders
+                            }
+                            
                             if (requestCallBack(req)) {
                                 deferredResponse.complete(fixedRequest to extraRequestList)
                             }
@@ -181,49 +194,36 @@ class WebViewResolver(
 
                         return@runBlocking try {
                             when {
-                                blacklistedExtensions.contains(extension) ||
-                                        webViewUrl.endsWith("/favicon.ico") ||
-                                        webViewUrl.startsWith("wss://") -> WebResourceResponse(
-                                    "image/png",
-                                    null,
-                                    null
-                                )
-                                webViewUrl.contains("recaptcha") || webViewUrl.contains("/cdn-cgi/") -> super.shouldInterceptRequest(
-                                    view,
-                                    request
-                                )
-
-                                useOkhttp && request.method == "GET" -> app.get(
-                                    webViewUrl,
-                                    headers = request.requestHeaders
-                                ).okhttpResponse.toWebResourceResponse()
-
-                                useOkhttp && request.method == "POST" -> app.post(
-                                    webViewUrl,
-                                    headers = request.requestHeaders
-                                ).okhttpResponse.toWebResourceResponse()
-
-                                else -> super.shouldInterceptRequest(
-                                    view,
-                                    request
-                                )
+                                blacklistedExtensions.contains(extension) || webViewUrl.endsWith("/favicon.ico") || webViewUrl.startsWith("wss://") ->
+                                    WebResourceResponse("image/png", null, null)
+                                webViewUrl.contains("recaptcha") || webViewUrl.contains("/cdn-cgi/") -> super.shouldInterceptRequest(view, request)
+                                useOkhttp && request.method == "GET" -> app.get(webViewUrl, headers = request.requestHeaders).okhttpResponse.toWebResourceResponse()
+                                useOkhttp && request.method == "POST" -> app.post(webViewUrl, headers = request.requestHeaders).okhttpResponse.toWebResourceResponse()
+                                else -> super.shouldInterceptRequest(view, request)
                             }
                         } catch (e: Exception) {
                             null
                         }
                     }
 
-                    override fun onReceivedSslError(
-                        view: WebView?,
-                        handler: SslErrorHandler?,
-                        error: SslError?
-                    ) {
-                        handler?.proceed() // Ignore ssl issues
-                    }
+                    override fun onPageFinished(view: WebView?, finishUrl: String?) {
+                        super.onPageFinished(view, finishUrl)
+                        if (finishUrl == null) return
 
-                    override fun onPageFinished(view: WebView?, url: String?) {
-                        super.onPageFinished(view, url)
-                        if (url == null || url.contains("cdn-cgi") || url.contains("recaptcha")) return
+                        val isChallenge = finishUrl.contains("cdn-cgi") ||
+                                finishUrl.contains("recaptcha") ||
+                                finishUrl.contains("challenges.cloudflare.com")
+
+                        if (!isChallenge) {
+                            stabilityJob?.cancel()
+                            stabilityJob = main {
+                                delay(3000L)
+                                CookieManager.getInstance().flush()
+                                if (requestCallBack(requestCreator("GET", finishUrl))) {
+                                    deferredResponse.complete(fixedRequest to extraRequestList)
+                                }
+                            }
+                        }
 
                         val script = """
                             (function() {
@@ -272,10 +272,6 @@ class WebViewResolver(
             deferredResponse.await()
         }
 
-        if (result == null) {
-            println("Web-view timeout after 60s")
-        }
-
         destroyWebView()
         return result ?: (fixedRequest to extraRequestList)
     }
@@ -292,7 +288,7 @@ fun WebResourceRequest.toRequest(): Request {
 fun Response.toWebResourceResponse(): WebResourceResponse {
     val contentTypeValue = this.header("Content-Type")
     return if (contentTypeValue != null) {
-        val found = WebViewResolver.Companion.CONTENT_TYPE_REGEX.find(contentTypeValue)
+        val found = WebViewResolver.CONTENT_TYPE_REGEX.find(contentTypeValue)
         val contentType = found?.groupValues?.getOrNull(1)?.ifBlank { null } ?: contentTypeValue
         val charset = found?.groupValues?.getOrNull(2)?.ifBlank { null }
         WebResourceResponse(contentType, charset, this.body.byteStream())
