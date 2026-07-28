@@ -45,6 +45,7 @@ class WebViewResolver(
         "fundingchoicesmessages.google.com"
     )
 
+    /** Common binary/asset extensions to block in the WebView to save bandwidth and speed up bypass. */
     private val blacklistedExtensions = setOf(
         "jpg", "png", "webp", "mpg", "mpeg", "jpeg", "webm",
         "mp4", "mp3", "gifv", "flv", "asf", "mov", "mng",
@@ -52,6 +53,7 @@ class WebViewResolver(
         "css", "vtt", "srt", "ts", "gif"
     )
 
+    /** Utility to check if a URL belongs to a blocked tracker host. */
     private fun isBlockedTrackerUrl(url: String): Boolean {
         val host = runCatching { URI(url).host?.lowercase() }.getOrNull() ?: return false
         return blockedTrackerHosts.any { blocked ->
@@ -60,10 +62,16 @@ class WebViewResolver(
     }
 
     companion object {
+        /** Cache for the system WebView's default User-Agent. */
         var webViewUserAgent: String? = null
+
+        /** Global map to store high-fidelity headers (like sec-ch-ua) captured from the WebView. */
         val capturedHeaders = ConcurrentHashMap<String, Map<String, String>>()
+
+        /** Regex to parse Content-Type and Charset from HTTP headers. */
         val CONTENT_TYPE_REGEX = Regex("""(.*);(?:.*charset=(.*)(?:|;)|)""")
 
+        /** Lazily retrieves and caches the default User-Agent from a dummy WebView. */
         @JvmName("getWebViewUserAgent1")
         fun getWebViewUserAgent(): String? {
             return webViewUserAgent ?: context?.let { ctx ->
@@ -78,14 +86,20 @@ class WebViewResolver(
         }
     }
 
+    /**
+     * Standard OkHttp Interceptor implementation.
+     * When a request is intercepted, it tries to "resolve" it using the hidden WebView.
+     */
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         return runBlocking {
+            // resolveUsingWebView returns the final request after the bypass
             val fixedRequest = resolveUsingWebView(request).first
             return@runBlocking chain.proceed(fixedRequest ?: request)
         }
     }
 
+    /** Overload for resolveUsingWebView using raw URL parameters. */
     suspend fun resolveUsingWebView(
         url: String,
         referer: String? = null,
@@ -110,12 +124,16 @@ class WebViewResolver(
         val headers = request.headers
         println("Initial web-view request: $url")
 
+        // We use a Deferred to wait for the WebView to signal completion (success or timeout)
         val deferredResponse = CompletableDeferred<Pair<Request?, List<Request>>>()
         var webView: WebView? = null
         val extraRequestList = mutableListOf<Request>()
         var fixedRequest: Request? = null
+
+        /** Reference to a delayed job used to wait for cookie rotation/stability before closing. */
         var stabilityJob: kotlinx.coroutines.Job? = null
 
+        /** Safely tears down the WebView on the Main thread. */
         fun destroyWebView() {
             main {
                 stabilityJob?.cancel()
@@ -126,6 +144,7 @@ class WebViewResolver(
             }
         }
 
+        // WebView must be created and interacted with on the UI (Main) thread
         main {
             // Useful for debugging
             WebView.setWebContentsDebuggingEnabled(true)
@@ -146,10 +165,15 @@ class WebViewResolver(
                     // Blocks unnecessary images, remove if captcha fucks.
                     //settings.blockNetworkImage = true
 
+                    // allow third-party cookies for turnstile/challenges
                     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                 }
 
                 webView?.webViewClient = object : WebViewClient() {
+                    /**
+                     * Called for every sub-resource request (scripts, images, AJAX).
+                     * We use this to block garbage, capture headers, and share the OkHttp state.
+                     */
                     override fun shouldInterceptRequest(
                         view: WebView,
                         request: WebResourceRequest
@@ -165,25 +189,27 @@ class WebViewResolver(
 
                         println("Loading WebView URL: $webViewUrl")
 
+                        // Check if this request matches our target URL
                         if (interceptUrl.containsMatchIn(webViewUrl)) {
                             fixedRequest = request.toRequest().also {
                                 requestCallBack(it)
                             }
-                            
+
                             if (!webViewUrl.contains("/cdn-cgi/") && !webViewUrl.contains("cloudflare")) {
                                 capturedHeaders[runCatching { URI(webViewUrl).host }.getOrNull() ?: ""] = request.requestHeaders
                             }
                             return@runBlocking null
                         }
 
+                        // Track additional interesting URLs
                         if (additionalUrls.any { it.containsMatchIn(webViewUrl) }) {
                             val req = request.toRequest()
                             extraRequestList.add(req)
-                            
+
                             if (!webViewUrl.contains("/cdn-cgi/") && !webViewUrl.contains("cloudflare")) {
                                 capturedHeaders[runCatching { URI(webViewUrl).host }.getOrNull() ?: ""] = request.requestHeaders
                             }
-                            
+                            // If callback returns true (e.g., "I found what I wanted"), signal completion
                             if (requestCallBack(req)) {
                                 deferredResponse.complete(fixedRequest to extraRequestList)
                             }
@@ -192,6 +218,7 @@ class WebViewResolver(
                         val path = runCatching { URI(webViewUrl).path }.getOrNull() ?: ""
                         val extension = path.substringAfterLast('.', "").lowercase()
 
+                        // Optionally route WebView requests through OkHttp to sync cookies/state
                         return@runBlocking try {
                             when {
                                 blacklistedExtensions.contains(extension) || webViewUrl.endsWith("/favicon.ico") || webViewUrl.startsWith("wss://") ->
@@ -206,25 +233,40 @@ class WebViewResolver(
                         }
                     }
 
+                    /**
+                     * Triggered when a page or frame finishes loading.
+                     * We use this to detect bypass success and run auto-click automation scripts.
+                     */
                     override fun onPageFinished(view: WebView?, finishUrl: String?) {
                         super.onPageFinished(view, finishUrl)
                         if (finishUrl == null) return
 
+                        // Detect if we are in a Cloudflare challenge page
                         val isChallenge = finishUrl.contains("cdn-cgi") ||
                                 finishUrl.contains("recaptcha") ||
                                 finishUrl.contains("challenges.cloudflare.com")
 
                         if (!isChallenge) {
+                            // DEBOUNCE logic: Wait for 3 seconds of stability.
+                            // If the page reloads (cookie rotation), we cancel the old job and start over.
                             stabilityJob?.cancel()
                             stabilityJob = main {
                                 delay(3000L)
+                                // Persist cookies to disk before OkHttp reads them
                                 CookieManager.getInstance().flush()
+
+                                // Final check: if callback returns true, we are done
                                 if (requestCallBack(requestCreator("GET", finishUrl))) {
                                     deferredResponse.complete(fixedRequest to extraRequestList)
                                 }
                             }
                         }
 
+                        /**
+                         * AUTO-CLICK SCRIPT:
+                         * Actively looks for the Cloudflare Turnstile widget and clicks the submit button
+                         * once the human verification token is generated.
+                         */
                         val script = """
                             (function() {
                                 if (window.wasClicked) return;
@@ -234,9 +276,7 @@ class WebViewResolver(
                                                            document.querySelector('#challenge-running') ||
                                                            document.querySelector('#cf-challenge-running');
                     
-                                    if (!isCloudflarePage) {
-                                        return; 
-                                    }
+                                    if (!isCloudflarePage) return; 
                     
                                     var cfToken = document.querySelector('[name="cf-turnstile-response"]')?.value 
                                                   || document.querySelector('#cf-chl-widget-multi-token')?.value;
@@ -268,6 +308,7 @@ class WebViewResolver(
             }
         }
 
+        // Wait for the WebView to finish (max 60 seconds)
         val result = withTimeoutOrNull(60000L) {
             deferredResponse.await()
         }
@@ -277,6 +318,7 @@ class WebViewResolver(
     }
 }
 
+/** Extension to convert a WebView request into an OkHttp Request. */
 fun WebResourceRequest.toRequest(): Request {
     return requestCreator(
         this.method,
@@ -285,6 +327,7 @@ fun WebResourceRequest.toRequest(): Request {
     )
 }
 
+/** Extension to convert an OkHttp Response into a WebView-compatible WebResourceResponse. */
 fun Response.toWebResourceResponse(): WebResourceResponse {
     val contentTypeValue = this.header("Content-Type")
     return if (contentTypeValue != null) {

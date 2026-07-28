@@ -129,7 +129,6 @@ class CloudflareKiller : Interceptor {
         val isChallengeBody = bodySample.contains("cf-browser-verification") ||
                 bodySample.contains("checking your browser") ||
                 bodySample.contains("just a moment") ||
-                bodySample.contains("un momento") ||
                 bodySample.contains("/cdn-cgi/")
 
         if (code == 403 || code == 429 || code == 503 || (code == 200 && (bodySample.contains("one moment")))) {
