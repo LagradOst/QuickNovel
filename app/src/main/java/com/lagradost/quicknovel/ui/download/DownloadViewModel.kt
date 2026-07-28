@@ -19,7 +19,6 @@ import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.BookDownloader2.currentDownloads
-import com.lagradost.quicknovel.BookDownloader2.currentDownloadsMutex
 import com.lagradost.quicknovel.BookDownloader2.downloadDataRefreshed
 import com.lagradost.quicknovel.BookDownloader2.downloadInfoMutex
 import com.lagradost.quicknovel.BookDownloader2.downloadProgress
@@ -190,17 +189,16 @@ class DownloadViewModel : ViewModel() {
             cardsData.values
         }
 
-        val values = currentDownloadsMutex.withLock {
+        val values =
             allValues.filter { card ->
                 val notImported = !card.isImported && card.apiName != IMPORT_SOURCE_PDF
                 val canDownload =
                     card.downloadedTotal <= 0 || (card.downloadedCount * 100 / card.downloadedTotal) > 90
-                val notDownloading = !currentDownloads.contains(
+                val notDownloading = !currentDownloads.containsKey(
                     card.id
                 )
                 notImported && canDownload && notDownloading
             }
-        }
 
         downloadInfoMutex.withLock {
             for (card in values) {

@@ -198,7 +198,11 @@ object BookDownloader2Helper {
      * Calculates the largest power-of-two inSampleSize that keeps the image
      * dimensions larger than or equal to the requested dimensions.
      */
-    private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+    private fun calculateInSampleSize(
+        options: BitmapFactory.Options,
+        reqWidth: Int,
+        reqHeight: Int
+    ): Int {
         val (height: Int, width: Int) = options.outHeight to options.outWidth
         var inSampleSize = 1
         if (height > reqHeight || width > reqWidth) {
@@ -221,8 +225,7 @@ object BookDownloader2Helper {
         data: ByteArray? = null,
         maxRes: Int = 1200,
         config: Bitmap.Config = Bitmap.Config.ARGB_8888
-    ): Bitmap?
-    {
+    ): Bitmap? {
         return try {
             val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
 
@@ -231,10 +234,12 @@ object BookDownloader2Helper {
                     BitmapFactory.decodeFile(path, options)
                     null
                 }
+
                 data != null -> {
                     BitmapFactory.decodeByteArray(data, 0, data.size, options)
                     data
                 }
+
                 else -> return null
             }
 
@@ -244,7 +249,13 @@ object BookDownloader2Helper {
 
             when {
                 path != null -> BitmapFactory.decodeFile(path, options)
-                finalData != null -> BitmapFactory.decodeByteArray(finalData, 0, finalData.size, options)
+                finalData != null -> BitmapFactory.decodeByteArray(
+                    finalData,
+                    0,
+                    finalData.size,
+                    options
+                )
+
                 else -> null
             }
         } catch (e: Exception) {
@@ -252,6 +263,7 @@ object BookDownloader2Helper {
             null
         }
     }
+
     /**
      *  Loads a Bitmap from disk for display.
      */
@@ -272,7 +284,8 @@ object BookDownloader2Helper {
         if (options.outWidth <= maxRes && options.outHeight <= maxRes) return data
 
         // Process and re-compress
-        val bitmap = decodeSafeBitmap(data = data, maxRes = maxRes, config = Bitmap.Config.RGB_565) ?: return data
+        val bitmap = decodeSafeBitmap(data = data, maxRes = maxRes, config = Bitmap.Config.RGB_565)
+            ?: return data
         val outputStream = ByteArrayOutputStream()
         bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
         val result = outputStream.toByteArray()
@@ -286,8 +299,17 @@ object BookDownloader2Helper {
      * and caching it in memory for fast access.
      */
     private val cachedBitmaps = hashMapOf<String, Bitmap>()
-    fun getCachedBitmap(activity: Activity?, apiName: String, author: String?, name: String): Bitmap? {
-        val filePath = getFilenameIMG(sanitizeFilename(apiName), sanitizeFilename(author ?: ""), sanitizeFilename(name))
+    fun getCachedBitmap(
+        activity: Activity?,
+        apiName: String,
+        author: String?,
+        name: String
+    ): Bitmap? {
+        val filePath = getFilenameIMG(
+            sanitizeFilename(apiName),
+            sanitizeFilename(author ?: ""),
+            sanitizeFilename(name)
+        )
         cachedBitmaps[filePath]?.let { return it }
 
         val file = File(activity?.filesDir, filePath.trimStart(File.separatorChar))
@@ -297,6 +319,7 @@ object BookDownloader2Helper {
             cachedBitmaps[filePath] = it
         }
     }
+
     fun generateId(apiName: String, author: String?, name: String): Int {
         val sApiname = sanitizeFilename(apiName)
         val sAuthor = if (author == null) "" else sanitizeFilename(author)
@@ -350,12 +373,13 @@ object BookDownloader2Helper {
 
         try {
             val subDir =
-                activity.getBasePath().first ?: getDefaultDir(activity) ?: throw IOException("No file")
+                activity.getBasePath().first ?: getDefaultDir(activity)
+                ?: throw IOException("No file")
             val displayName = "${sanitizeFilename(name)}.epub"
             val foundFile = subDir.findFileOrThrow(displayName)
 
             return foundFile.uri() != null
-        } catch (_ : Throwable) {
+        } catch (_: Throwable) {
             return false
         }
     }
@@ -1098,18 +1122,15 @@ object NotificationHelper {
 }
 
 object ImageDownloader {
-    private val cachedBitmapMutex = Mutex()
-    private val cachedBitmaps = hashMapOf<String, Bitmap>()
+    private val cachedBitmaps = ConcurrentHashMap<String, Bitmap>()
 
     suspend fun Context.getImageBitmapFromUrl(
         url: String,
         headers: Map<String, String>? = null
     ): Bitmap? {
         try {
-            with(cachedBitmapMutex) {
-                if (cachedBitmaps.containsKey(url)) {
-                    return cachedBitmaps[url]
-                }
+            cachedBitmaps[url]?.let {
+                return it
             }
 
             val imageLoader = SingletonImageLoader.get(this)
@@ -1130,9 +1151,7 @@ object ImageDownloader {
             }
 
             bitmap?.let {
-                with(cachedBitmapMutex) {
-                    cachedBitmaps[url] = it
-                }
+                cachedBitmaps[url] = it
             }
 
             return bitmap
@@ -1301,10 +1320,10 @@ object BookDownloader2 {
 
             // wait until download is stopped
             while (true) {
-                if (!currentDownloadsMutex.withLock { currentDownloads.contains(id) }) {
+                if (!currentDownloads.containsKey(id)) {
                     break
                 }
-                delay(100)
+                delay(100.milliseconds)
             }
 
             // delete the novel
@@ -1344,7 +1363,7 @@ object BookDownloader2 {
 
                     val cached = getKey<ResultCached>(id) ?: continue
                     launch {
-                        getNewTotalChapters(cached,currentTabIndex)
+                        getNewTotalChapters(cached, currentTabIndex)
                     }
                 }
             }
@@ -1353,10 +1372,10 @@ object BookDownloader2 {
 
 
     private val getNewTotalChaptersSemaphore = Semaphore(5)
-    suspend fun getNewTotalChapters(cached: ResultCached, page : Int) {
+    suspend fun getNewTotalChapters(cached: ResultCached, page: Int) {
         getNewTotalChaptersSemaphore.withPermit {
             try {
-                refreshingChanged(RefreshQuery(cached.id,true,page))
+                refreshingChanged(RefreshQuery(cached.id, true, page))
                 val api = getApiFromNameOrNull(cached.apiName) ?: return@withPermit
                 val response = api.load(cached.source, true)
 
@@ -1389,7 +1408,7 @@ object BookDownloader2 {
             } catch (e: Throwable) {
                 if (e !is CancellationException) logError(e)
             } finally {
-                refreshingChanged(RefreshQuery(cached.id,false,page))
+                refreshingChanged(RefreshQuery(cached.id, false, page))
             }
         }
     }
@@ -1443,9 +1462,9 @@ object BookDownloader2 {
 
     @Immutable
     data class RefreshQuery(
-        val id : Int,
-        val refreshing : Boolean,
-        val page : Int,
+        val id: Int,
+        val refreshing: Boolean,
+        val page: Int,
     )
 
     private fun initDownloadProgress() = CoroutineScope(Dispatchers.Default).launchSafe {
@@ -1481,26 +1500,20 @@ object BookDownloader2 {
         downloadDataRefreshed.invoke(0)
     }
 
-    val currentDownloadsMutex = Mutex()
-    val currentDownloads: HashSet<Int> = hashSetOf()
+    val currentDownloads: ConcurrentHashMap<Int, Unit> = ConcurrentHashMap()
 
-    private val pendingActionMutex = Mutex()
-    private val pendingAction: HashMap<Int, DownloadActionType> = hashMapOf()
+    private val pendingAction: ConcurrentHashMap<Int, DownloadActionType> = ConcurrentHashMap()
 
-    fun addPendingAction(id: Int, action: DownloadActionType) = ioSafe {
+    fun addPendingAction(id: Int, action: DownloadActionType) {
         addPendingActionAsync(id, action)
     }
 
-    private suspend fun addPendingActionAsync(id: Int, action: DownloadActionType) {
-        currentDownloadsMutex.withLock {
-            if (!currentDownloads.contains(id)) {
-                return
-            }
+    private fun addPendingActionAsync(id: Int, action: DownloadActionType) {
+        if (!currentDownloads.containsKey(id)) {
+            return
         }
 
-        pendingActionMutex.withLock {
-            pendingAction[id] = action
-        }
+        pendingAction[id] = action
     }
 
     private suspend fun createNotification(
@@ -1521,13 +1534,7 @@ object BookDownloader2 {
     }
 
     private suspend fun consumeAction(id: Int): DownloadActionType? {
-        pendingActionMutex.withLock {
-            pendingAction[id]?.let { action ->
-                pendingAction -= id
-                return action
-            }
-        }
-        return null
+        return pendingAction.remove(id)
     }
 
     private suspend fun changeDownload(
@@ -1617,10 +1624,8 @@ object BookDownloader2 {
             return
         }
 
-        currentDownloadsMutex.withLock {
-            if (currentDownloads.contains(card.id)) {
-                return
-            }
+        if (currentDownloads.containsKey(card.id)) {
+            return
         }
 
         // set pending before download
@@ -1697,10 +1702,8 @@ object BookDownloader2 {
         }
         val id = card.id ?: return
 
-        currentDownloadsMutex.withLock {
-            if (currentDownloads.contains(id)) {
-                return
-            }
+        if (currentDownloads.containsKey(id)) {
+            return
         }
 
         // set pending before download
@@ -1821,11 +1824,9 @@ object BookDownloader2 {
         val id = generateId(load, apiName)
 
         // cant download the same thing twice at the same time
-        currentDownloadsMutex.withLock {
-            if (currentDownloads.contains(id)) {
-                return
-            }
-            currentDownloads += id
+        val old = currentDownloads.put(id, Unit)
+        if (old != null) {
+            return
         }
         val prevDownloadData =
             getKey<DownloadFragment.DownloadData>(DOWNLOAD_FOLDER, id.toString())
@@ -2119,7 +2120,7 @@ object BookDownloader2 {
                 //check notification options
                 currentState = handleDownloadActions(id, load, currentState, context)
                 if (currentState == DownloadState.IsPaused) {
-                    delay(200)
+                    delay(200.milliseconds)
                     continue
                 } else if (currentState == DownloadState.IsStopped)
                     break
@@ -2223,7 +2224,7 @@ object BookDownloader2 {
             }?.let { createNotification(context, id, load, it) }
         } finally {
             document.close()
-            currentDownloadsMutex.withLock { currentDownloads -= id }
+            currentDownloads -= id
             //delete temp
             tempFolder.deleteRecursively()
         }
@@ -2421,9 +2422,7 @@ object BookDownloader2 {
                 )
             }
         } finally {
-            currentDownloadsMutex.withLock {
-                currentDownloads -= id
-            }
+            currentDownloads -= id
         }
     }
 
@@ -2570,7 +2569,7 @@ object BookDownloader2 {
                                     if (currentState != DownloadState.IsPaused) {
                                         break
                                     }
-                                    delay(200)
+                                    delay(200.milliseconds)
                                 }
 
                                 if (currentState == DownloadState.IsStopped) {
@@ -2624,9 +2623,7 @@ object BookDownloader2 {
                 )
             }
         } finally {
-            currentDownloadsMutex.withLock {
-                currentDownloads -= id
-            }
+            currentDownloads -= id
         }
     }
 
@@ -2831,9 +2828,7 @@ object BookDownloader2 {
                 setSuffixData(load, api.name)
             }
         } finally {
-            currentDownloadsMutex.withLock {
-                currentDownloads -= id
-            }
+            currentDownloads -= id
         }
     }
 

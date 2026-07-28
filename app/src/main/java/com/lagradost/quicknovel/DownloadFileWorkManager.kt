@@ -22,6 +22,7 @@ import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.download.DownloadViewModel
 import com.lagradost.quicknovel.util.Apis
 import java.lang.ref.WeakReference
+import java.util.concurrent.ConcurrentHashMap
 
 // This is needed to fix downloads, as newer android versions pause network connections in the background
 class DownloadFileWorkManager(val context: Context, private val workerParams: WorkerParameters) :
@@ -47,7 +48,7 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
             }
 
         private var workNumber: Int = 0
-        private val workData: HashMap<Int, Any> = hashMapOf()
+        private val workData: ConcurrentHashMap<Int, Any> = ConcurrentHashMap()
 
         // java.lang.IllegalStateException: Data cannot occupy more than 10240 bytes when serialized
         // This stores the actual data for the WorkManager to use
