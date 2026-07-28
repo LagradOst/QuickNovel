@@ -221,6 +221,7 @@
     <string name="new_update_found_format">New update found!\n %s -> %s</string>
     <string name="download_started">Download started</string>
     <string name="download_failed">Download failed</string>
+    <string name="download_in_progress">Downloading…</string>
     <string name="update">Update</string>
     <string name="dont_show_again">Don\'t show again</string>
     <string name="downloaded">Downloaded</string>

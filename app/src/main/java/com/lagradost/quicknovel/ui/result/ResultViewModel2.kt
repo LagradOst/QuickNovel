@@ -7,8 +7,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.lagradost.quicknovel.APIRepository
+import com.lagradost.quicknovel.BaseApplication
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
+import com.lagradost.quicknovel.DownloadFileWorkManager
 import com.lagradost.quicknovel.BookDownloader2.openQuickStream
 import com.lagradost.quicknovel.BookDownloader2Helper.createQuickStream
 import com.lagradost.quicknovel.ChapterData
@@ -281,9 +283,10 @@ class ResultViewModel2(
             }
 
             SearchResponseOperation.Download -> {
-                viewModelScope.launch {
-                    BookDownloader2.downloadWorkThread(action.response)
-                }
+                DownloadFileWorkManager.download(
+                    action.response,
+                    BaseApplication.context ?: return
+                )
             }
 
             SearchResponseOperation.Pause -> {

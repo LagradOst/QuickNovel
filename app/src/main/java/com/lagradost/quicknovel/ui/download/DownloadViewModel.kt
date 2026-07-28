@@ -212,9 +212,10 @@ class DownloadViewModel : ViewModel() {
             }
         }
 
+        val ctx = context ?: return
         for (card in values) {
             if (card.downloadedTotal <= 0 || (card.downloadedCount * 100 / card.downloadedTotal) > 90) {
-                BookDownloader2.downloadWorkThread(card)
+                BookDownloader2.downloadWorkThread(card, ctx)
             }
         }
     }

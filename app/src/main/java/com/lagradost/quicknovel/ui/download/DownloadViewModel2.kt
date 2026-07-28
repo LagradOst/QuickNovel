@@ -40,7 +40,6 @@ import com.lagradost.quicknovel.ui.common.updateRow
 import com.lagradost.quicknovel.ui.common.updateRows
 import com.lagradost.quicknovel.ui.download.DownloadDialog.*
 import com.lagradost.quicknovel.util.ResultCached
-import com.lagradost.quicknovel.util.cmap
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentListOf
@@ -356,9 +355,10 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             }
 
             SearchResponseOperation.Download -> {
-                viewModelScope.launch {
-                    BookDownloader2.downloadWorkThread(action.response)
-                }
+                DownloadFileWorkManager.download(
+                    action.response,
+                    BaseApplication.context ?: return
+                )
             }
 
             SearchResponseOperation.Pause -> {
@@ -417,10 +417,9 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             }
         }
 
-        withContext(Dispatchers.IO) {
-            values.values.cmap { card ->
-                BookDownloader2.downloadWorkThread(card)
-            }
+        val context = BaseApplication.context ?: return
+        for (card in values.values) {
+            DownloadFileWorkManager.download(card, context)
         }
     }
 
