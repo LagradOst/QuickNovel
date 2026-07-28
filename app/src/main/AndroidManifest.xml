@@ -48,6 +48,12 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <!-- Android 14+ rejects startForeground with a type that is not declared here -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:node="merge" />
+
         <receiver
             android:name="androidx.media.session.MediaButtonReceiver"
             android:exported="true">
