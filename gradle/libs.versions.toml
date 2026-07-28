@@ -13,6 +13,7 @@ kotlinxIoCore = "0.9.1"
 lifecycleViewmodelCompose = "2.11.0"
 preference = "2.2.0"
 navigationCompose = "2.9.8"
+uiText = "1.11.4"
 
 [libraries]
 
@@ -33,6 +34,7 @@ kotlinx-io-core = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.re
 lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
 preference = { module = "me.zhanghai.compose.preference:preference", version.ref = "preference" }
 navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiText" }
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlinGradlePlugin" }

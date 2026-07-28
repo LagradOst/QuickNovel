@@ -354,12 +354,12 @@ class RoyalRoadProvider : MainAPI() {
                     ?.attr("src")
 
             val synoDescript = document.select("div.description > div")
-            val synoParts = synoDescript.select("> p")
-            synopsis = if (synoParts.isEmpty() && synoDescript.hasText()) {
+           // val synoParts = synoDescript.select("> p")
+            synopsis = synoDescript.html() /*if (synoParts.isEmpty() && synoDescript.hasText()) {
                 synoDescript.text().replace("\n", "\n\n") // JUST IN CASE
             } else {
                 synoParts.joinToString(separator = "\n\n") { it.text() }
-            }
+            }*/
             author = document.selectFirst("h4.font-white > span > a")?.text()
             val ratingAttr = document.selectFirst("span.font-red-sunglo")?.attr("data-content")
             tags = document.select("span.tags > a").map { it.text() }
