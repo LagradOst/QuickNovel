@@ -11,6 +11,7 @@ import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrlNull
+import com.lagradost.quicknovel.network.WebViewResolver
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newReview
 import com.lagradost.quicknovel.newSearchResponse
@@ -241,13 +242,14 @@ class WtrLabProvider : MainAPI() {
         } ?: emptyList()
     }
 
-    override suspend fun loadHtml(url: String): String {
-        val doc = app.get(url).document
-        val jsonNode = doc.selectFirst("#__NEXT_DATA__")
-        val json = jsonNode?.data() ?: throw ErrorLoadingException("no chapters")
-        val chaptersJson = parseJson<LoadJsonResponse.Root>(json)
-        val text = StringBuilder()
-        val chapter = chaptersJson.props.pageProps.serie
+    override suspend fun loadHtml(url: String): String? {
+        val urlWithService = if (url.contains("?")) "$url&service=web" else "$url?service=web"
+        try {
+            val doc = app.get(urlWithService).document
+            val jsonNode = doc.selectFirst("#__NEXT_DATA__")
+            val json = jsonNode?.data() ?: throw ErrorLoadingException("No se encontró JSON de capítulos")
+            val chaptersJson = parseJson<LoadJsonResponse.Root>(json)
+            val chapter = chaptersJson.props.pageProps.serie
 
         val root = app.post(
             url = "$mainUrl/api/reader/get", data = mapOf(
@@ -261,15 +263,30 @@ class WtrLabProvider : MainAPI() {
             )
         ).parsed<LoadJsonResponse2.Root>()
 
-        val paragraphs = decryptContent(root.data.data.body)
-
-        for (p in paragraphs) {
-            text.append("<p>")
-            text.append(p)
-            text.append("</p>")
+            val paragraphs = decryptContent(root.data.data.body)
+            val text = StringBuilder()
+            for (p in paragraphs) {
+                text.append("<p>")
+                text.append(p)
+                text.append("</p>")
+            }
+            return text.toString()
+        } catch (e: Exception) {
+            val script = """
+                             (function() {
+                                 var checkInterval = setInterval(function() {
+                                     var element = document.querySelector("div.chapter-body");
+                                     var firstLine = element ? element.querySelector("div[data-line]") : null;
+                                     if (firstLine && firstLine.innerText.trim().length > 0) {
+                                         clearInterval(checkInterval);
+                                         NativeAndroid.onElementFound(element.innerHTML);
+                                     }
+                                 }, 1000);
+                                 setTimeout(function() { clearInterval(checkInterval); }, 30000);
+                             })();
+                         """.trimIndent()
+            return WebViewResolver(scriptToFinish = script, useOkhttp = false).resolveUsingWebView(urlWithService)
         }
-
-        return text.toString()
     }
 
     fun decryptContent(encryptedText: String): List<String> {
