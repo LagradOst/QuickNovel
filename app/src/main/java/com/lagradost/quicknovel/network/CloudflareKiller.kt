@@ -4,6 +4,7 @@ import android.util.Log
 import android.webkit.CookieManager
 import androidx.annotation.AnyThread
 import com.lagradost.nicehttp.Requests.Companion.await
+import com.lagradost.nicehttp.cookies
 import com.lagradost.nicehttp.getHeaders
 import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.USER_AGENT

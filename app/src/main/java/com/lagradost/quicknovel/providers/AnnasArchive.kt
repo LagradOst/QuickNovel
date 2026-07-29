@@ -212,7 +212,6 @@ class AnnasArchive : MainAPI() {
                     val js = """
                         (function() {
                             var checkInterval = setInterval(function() {
-                                // selector específico: el span dentro del párrafo con clase mb-4
                                 var element = document.querySelector("main > div > p.mb-4.text-xs > span > span");
                                 if (element && element.innerText.trim().length > 0) {
                                     clearInterval(checkInterval);
