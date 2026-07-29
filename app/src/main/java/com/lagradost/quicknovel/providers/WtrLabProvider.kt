@@ -1,66 +1,27 @@
 package com.lagradost.quicknovel.providers
 
-import android.annotation.SuppressLint
 import android.util.Base64
-import android.view.ViewGroup
-import android.webkit.CookieManager
-import android.webkit.JavascriptInterface
-import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import android.widget.FrameLayout
-import androidx.appcompat.app.AlertDialog
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.lagradost.nicehttp.requestCreator
-import com.lagradost.quicknovel.BaseApplication
 import com.lagradost.quicknovel.ChapterData
-import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
-
-
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity
-import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
-import com.lagradost.quicknovel.USER_AGENT
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrlNull
-import com.lagradost.quicknovel.mvvm.logError
-import com.lagradost.quicknovel.network.CloudflareKiller
 import com.lagradost.quicknovel.network.WebViewResolver
-import com.lagradost.quicknovel.network.toRequest
-import com.lagradost.quicknovel.network.toWebResourceResponse
-import com.lagradost.quicknovel.network.utils.CookiesUtils
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
-import com.lagradost.quicknovel.providers.NovelFireProvider.PostsResponse
-import com.lagradost.quicknovel.providers.NovelFireProvider.RelatedResponse
 import com.lagradost.quicknovel.setStatus
 import com.lagradost.quicknovel.util.AppUtils.parseJson
-import com.lagradost.quicknovel.util.Coroutines.main
-import com.lagradost.quicknovel.util.Coroutines.mainWork
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
-import okhttp3.HttpUrl.Companion.toHttpUrl
-import okhttp3.Interceptor
-import okhttp3.Request
-import okhttp3.Response
-import org.jsoup.Jsoup
-import java.io.ByteArrayInputStream
-import java.net.URI
 import java.util.concurrent.ConcurrentHashMap
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import kotlin.math.roundToInt
-import kotlin.time.Duration.Companion.seconds
 
 
 class  WtrLabProvider : MainAPI() {
@@ -157,8 +118,8 @@ class  WtrLabProvider : MainAPI() {
         val doc = app.get(url).document
         val returnValue =  doc.select(".series-list>div").mapNotNull { select ->
             val titleHolder = select.selectFirst("a") ?: return@mapNotNull null
-            val href = titleHolder.attr("href") ?: return@mapNotNull null
-            val name = titleHolder.attr("title") ?: return@mapNotNull null
+            val href = titleHolder.attr("href")
+            val name = titleHolder.attr("title")
             newSearchResponse(name, href) {
                 posterUrl = fixUrlNull(select.selectFirst("a img")?.attr("src"))
             }
@@ -171,8 +132,8 @@ class  WtrLabProvider : MainAPI() {
         val doc = app.get(url).document
         return doc.select(".series-list>div").mapNotNull { select ->
             val titleHolder = select.selectFirst("a") ?: return@mapNotNull null
-            val href = titleHolder.attr("href") ?: return@mapNotNull null
-            val name = titleHolder.attr("title") ?: return@mapNotNull null
+            val href = titleHolder.attr("href")
+            val name = titleHolder.attr("title")
             newSearchResponse(name, href) {
                 posterUrl = fixUrlNull(select.selectFirst("a img")?.attr("src"))
             }
@@ -514,16 +475,6 @@ class  WtrLabProvider : MainAPI() {
             val requestedRole: Long,*/
         )
 
-        data class Data(
-            val title: String,
-            val author: String,
-            val description: String,
-            @JsonProperty("from_user")
-            val fromUser: String?,
-            val raw: Raw,
-            val image: String,
-        )
-
         data class Raw(
             val title: String,
             val author: String,
@@ -717,9 +668,6 @@ class  WtrLabProvider : MainAPI() {
             @JsonProperty("glossary_build")
             val glossaryBuild: Long,*/
         )
-        data class Terms(
-            val terms: List<List<String>>,
-        )
     }
 
     object LoadJsonResponse {
@@ -820,14 +768,6 @@ class  WtrLabProvider : MainAPI() {
             val author: String,
             val description: String,
         )
-
-
-
-        data class ActiveService(
-            val id: String,
-            val label: String,
-        )
-
         data class Query(
             val locale: String,
             @JsonProperty("serie_slug")
