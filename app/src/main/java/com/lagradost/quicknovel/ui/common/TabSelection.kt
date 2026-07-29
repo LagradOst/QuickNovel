@@ -45,7 +45,8 @@ fun HorizontalTab(
     val currentPage = pagerState.currentPage
 
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val tabWidth = if (names.isNotEmpty()) maxWidth / names.size else Dp.Unspecified
+        val tabWidth =
+            if (names.isNotEmpty()) (maxWidth - edgePadding * 2.0f) / names.size else Dp.Unspecified
 
         SecondaryScrollableTabRow(
             currentPage,

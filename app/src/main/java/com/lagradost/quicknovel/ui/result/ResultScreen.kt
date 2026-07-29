@@ -1,23 +1,31 @@
 package com.lagradost.quicknovel.ui.result
 
 import android.content.Intent
+import android.util.LayoutDirection
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -34,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -48,6 +57,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -101,14 +111,14 @@ fun ResultScreen(state: ResultState, action: (ResultPageAction) -> Unit) {
         if (state.loading) {
             LoadingScreen(Modifier.padding(innerPadding))
         } else {
-            ResultScreenImpl(Modifier.padding(innerPadding), state, action)
+            ResultScreenImpl(innerPadding, state, action)
         }
     }
 }
 
 @Composable
 fun ResultScreenImpl(
-    modifier: Modifier, state: ResultState, action: (ResultPageAction) -> Unit
+    padding : PaddingValues, state: ResultState, action: (ResultPageAction) -> Unit
 ) {
     val response = state.response ?: return
     // val scrollState = rememberScrollState()
@@ -137,8 +147,12 @@ fun ResultScreenImpl(
 
     Box {
         Box(
-            modifier = modifier
-                .height(height = 190.dp)
+            modifier = Modifier.padding(
+                start = padding.calculateStartPadding(LocalLayoutDirection.current),
+                end = padding.calculateEndPadding(LocalLayoutDirection.current),
+                bottom = padding.calculateBottomPadding()
+            )
+                .height(height = 190.dp + padding.calculateTopPadding())
                 .alpha(1.0f - scrollAlpha.value * 0.5f)
         ) {
             AsyncImage(
@@ -150,6 +164,7 @@ fun ResultScreenImpl(
             )
             Row(
                 modifier = Modifier
+                    .padding(top = padding.calculateTopPadding())
                     .padding(10.dp)
                     .scale(1.0f - scrollAlpha.value * 0.05f)
             ) {
@@ -201,7 +216,7 @@ fun ResultScreenImpl(
 
         LazyColumn(modifier = Modifier.fillMaxSize(), state = outerListState) {
             item {
-                Spacer(Modifier.height(210.dp))
+                Spacer(Modifier.height(170.dp + padding.calculateTopPadding()))
             }
             item {
                 Column(
@@ -449,15 +464,6 @@ fun NovelPage(
 
         val downloadState = response.downloadState ?: return
 
-        val indicatorAmplitude: (progress: Float) -> Float = { progress ->
-            // Sets the amplitude to the max on 10%, and back to zero on 95% of the progress.
-            if (downloadState.status != DownloadState.IsDownloading || progress <= 0.1f || progress >= 0.95f) {
-                0f
-            } else {
-                1f
-            }
-        }
-
         val tagInteractionSource = remember { MutableInteractionSource() }
 
         val expandedTags = rememberSaveable { mutableStateOf(false) }
@@ -537,7 +543,7 @@ fun NovelPage(
                     Text(stringResource(R.string.stream_read))
                 }
             }
-
+            Spacer(Modifier.width(5.dp))
             TextButton(
                 colors = blackButtonColors,
                 modifier = Modifier
@@ -580,6 +586,28 @@ fun NovelPage(
             }*/
         }
 
+        val animatedProgress: Float by animateFloatAsState(
+            downloadState.progressPercentage,
+            label = "alpha",
+            animationSpec = tween(durationMillis = 1000),
+        )
+
+        val animatedWavy: Float by animateFloatAsState(
+            if (downloadState.status != DownloadState.IsDownloading) {
+                0f
+            } else {
+                1f
+            },
+            label = "alpha",
+            animationSpec = tween(durationMillis = 500),
+        )
+
+        LinearWavyProgressIndicator(
+            progress = { animatedProgress },
+            modifier = Modifier.fillMaxWidth().padding(10.dp),
+            amplitude = { animatedWavy },
+            color = colors.onBackground
+        )
     }
 }
 
