@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.providers
 
+import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
@@ -15,6 +16,8 @@ import org.jsoup.Jsoup
 class ScribblehubProvider : MainAPI() {
     override val rateLimitTime: Long = 1000L
     override val name = "Scribblehub"
+    override val iconId = R.drawable.icon_scribblehub
+    override val iconBackgroundId = R.color.white
     override val mainUrl = "https://www.scribblehub.com"
     override val usesCloudFlareKiller = true
     override val hasMainPage = true
@@ -46,7 +49,7 @@ class ScribblehubProvider : MainAPI() {
             val img = item.selectFirst("> div.search_img > img")?.attr("src")
             val body = item.selectFirst("> div.search_body > div.search_title > a")
             val title = body?.text() ?: return@mapNotNull null
-            val href = body.attr("href") ?: return@mapNotNull null
+            val href = body.attr("href")
             SearchResponse(title, href, img, null, null, this.name)
         }
     }

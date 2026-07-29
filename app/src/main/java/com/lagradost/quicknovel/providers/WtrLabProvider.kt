@@ -118,8 +118,8 @@ class WtrLabProvider : MainAPI() {
         val doc = app.get(url).document
         val returnValue = doc.select(".series-list>div").mapNotNull { select ->
             val titleHolder = select.selectFirst("a") ?: return@mapNotNull null
-            val href = titleHolder.attr("href") ?: return@mapNotNull null
-            val name = titleHolder.attr("title") ?: return@mapNotNull null
+            val href = titleHolder.attr("href")
+            val name = titleHolder.attr("title")
             newSearchResponse(name, href) {
                 posterUrl = fixUrlNull(select.selectFirst("a img")?.attr("src"))
             }
@@ -132,8 +132,8 @@ class WtrLabProvider : MainAPI() {
         val doc = app.get(url).document
         return doc.select(".series-list>div").mapNotNull { select ->
             val titleHolder = select.selectFirst("a") ?: return@mapNotNull null
-            val href = titleHolder.attr("href") ?: return@mapNotNull null
-            val name = titleHolder.attr("title") ?: return@mapNotNull null
+            val href = titleHolder.attr("href")
+            val name = titleHolder.attr("title")
             newSearchResponse(name, href) {
                 posterUrl = fixUrlNull(select.selectFirst("a img")?.attr("src"))
             }
@@ -478,22 +478,6 @@ class WtrLabProvider : MainAPI() {
             val requestedRole: Long,*/
         )
 
-        data class Data(
-            val title: String,
-            val author: String,
-            val description: String,
-            @JsonProperty("from_user")
-            val fromUser: String?,
-            val raw: Raw,
-            val image: String,
-        )
-
-        data class Raw(
-            val title: String,
-            val author: String,
-            val description: String,
-        )
-
         /*data class Ranks(
             val week: Any?,
             val month: Any?,
@@ -681,10 +665,6 @@ class WtrLabProvider : MainAPI() {
             @JsonProperty("glossary_build")
             val glossaryBuild: Long,*/
         )
-
-        data class Terms(
-            val terms: List<List<String>>,
-        )
     }
 
     object LoadJsonResponse {
@@ -786,12 +766,6 @@ class WtrLabProvider : MainAPI() {
             val title: String,
             val author: String,
             val description: String,
-        )
-
-
-        data class ActiveService(
-            val id: String,
-            val label: String,
         )
 
         data class Query(
