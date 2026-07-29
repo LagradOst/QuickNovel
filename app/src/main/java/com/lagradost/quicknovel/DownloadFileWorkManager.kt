@@ -21,8 +21,10 @@ import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.download.DownloadViewModel
 import com.lagradost.quicknovel.util.Apis
+import kotlinx.coroutines.delay
 import java.lang.ref.WeakReference
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.time.Duration.Companion.milliseconds
 
 // This is needed to fix downloads, as newer android versions pause network connections in the background
 class DownloadFileWorkManager(val context: Context, private val workerParams: WorkerParameters) :
@@ -82,14 +84,14 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
             )
         }
 
-        fun getWorkerManager(context:Context): WorkManager = try {
-                WorkManager.getInstance(context.applicationContext)
-            } catch (t: Throwable) {
-                logError(t)
-                val config = androidx.work.Configuration.Builder().build()
-                WorkManager.initialize(context.applicationContext, config)
-                WorkManager.getInstance(context.applicationContext)
-            }
+        fun getWorkerManager(context: Context): WorkManager = try {
+            WorkManager.getInstance(context.applicationContext)
+        } catch (t: Throwable) {
+            logError(t)
+            val config = androidx.work.Configuration.Builder().build()
+            WorkManager.initialize(context.applicationContext, config)
+            WorkManager.getInstance(context.applicationContext)
+        }
 
 
         fun refreshAllReadingProgress(from: DownloadViewModel, context: Context, currentTab: Int) {
@@ -164,7 +166,7 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
             load: LoadResponse,
             context: Context
         ) {
-            if(load.apiName == IMPORT_SOURCE || load.apiName == IMPORT_SOURCE_PDF) {
+            if (load.apiName == IMPORT_SOURCE || load.apiName == IMPORT_SOURCE_PDF) {
                 return
             }
             startDownload(load, generateId(load, load.apiName), context)
@@ -243,7 +245,7 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
                     }
 
                     is DownloadFragment.DownloadDataLoaded -> {
-                        if(data.apiName == IMPORT_SOURCE_PDF)
+                        if (data.apiName == IMPORT_SOURCE_PDF)
                             BookDownloader2.downloadPDFWorkThread(data.source.toUri(), context)
                         else
                             BookDownloader2.downloadWorkThread(data, context)
@@ -258,7 +260,7 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
                 viewModel?.refreshInternal()
             }
 
-            ID_REFRESH_READINGPROGRESS ->{
+            ID_REFRESH_READINGPROGRESS -> {
                 val currentTab = this.workerParams.inputData.getInt(CURRENT_TAB, 1)
                 viewModel?.setIsLoading(true, currentTab)
                 BookDownloader2.getOldDataReadingProgress(currentTab)
@@ -267,6 +269,11 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
 
             else -> return Result.failure()
         }
+
+        // no clue why, but returning success instantly freezes the UI for up to 50 frames
+        // might be some GC, but this is stupid. I can not figure out the cause given that the
+        // app cpu is low af, but "background" goes wild
+        delay(500.milliseconds)
         return Result.success()
     }
 }

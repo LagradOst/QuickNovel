@@ -968,7 +968,7 @@ object NotificationHelper {
         )
 
         return NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.rdload)
+            .setSmallIcon(R.drawable.ic_baseline_autorenew_24)
             .setContentTitle(context.getString(R.string.app_name))
             .setContentText(context.getString(R.string.download_in_progress))
             .setOngoing(true)
