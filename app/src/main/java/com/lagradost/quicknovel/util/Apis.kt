@@ -12,7 +12,7 @@ import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.providers.AllNovelProvider
 import com.lagradost.quicknovel.providers.AnnasArchive
 import com.lagradost.quicknovel.providers.ArNoProvider
-import com.lagradost.quicknovel.providers.AsianNovel
+import com.lagradost.quicknovel.providers.AsianNovelProvider
 import com.lagradost.quicknovel.providers.BrightNovelProvider
 import com.lagradost.quicknovel.providers.DevilNovelsProvider
 import com.lagradost.quicknovel.providers.ChrysanthemumGardenProvider
@@ -42,7 +42,6 @@ import com.lagradost.quicknovel.providers.NovelLightProvider
 import com.lagradost.quicknovel.providers.NovelManiaProvider
 import com.lagradost.quicknovel.providers.NovelPhoenixProvider
 import com.lagradost.quicknovel.providers.NovelasLigerasProvider
-import com.lagradost.quicknovel.providers.NovelsOnlineProvider
 import com.lagradost.quicknovel.providers.PawReadProver
 import com.lagradost.quicknovel.providers.PlanetaEpubProvider
 import com.lagradost.quicknovel.providers.RanobesProvider
@@ -72,7 +71,7 @@ class Apis {
             AllNovelProvider(),
             AnnasArchive(),
             ArNoProvider(),
-            AsianNovel(),
+            AsianNovelProvider(),
             //AzynovelProvider(), // dont exist anymore
             //BestLightNovelProvider(), //dont exist anymore
             BrightNovelProvider(),
