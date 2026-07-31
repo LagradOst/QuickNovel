@@ -36,10 +36,21 @@ private suspend fun Bitmap.blur(
     radius: Int
 ): Bitmap? = withContext(Dispatchers.IO) {
     var sentBitmap = this@blur
-    val width = (sentBitmap.width * scale).roundToInt()
-    val height = (sentBitmap.height * scale).roundToInt()
+    
+    // Limit the maximum size for blur processing
+    // Blurring a high-res image is expensive and visually unnecessary
+    val maxBlurSize = 1200
+    val scaleFactor = if (sentBitmap.width > maxBlurSize || sentBitmap.height > maxBlurSize) {
+        val longSide = sentBitmap.width.coerceAtLeast(sentBitmap.height)
+        (maxBlurSize.toFloat() / longSide.toFloat()).coerceAtMost(scale)
+    } else {
+        scale
+    }
+
+    val width = (sentBitmap.width * scaleFactor).roundToInt().coerceAtLeast(1)
+    val height = (sentBitmap.height * scaleFactor).roundToInt().coerceAtLeast(1)
     sentBitmap = sentBitmap.scale(width, height, false)
-    val bitmap = sentBitmap.copy(sentBitmap.config ?: return@withContext null, true)
+    val bitmap = sentBitmap.copy(sentBitmap.config ?: Bitmap.Config.ARGB_8888, true)
     if (radius < 1) {
         return@withContext null
     }
