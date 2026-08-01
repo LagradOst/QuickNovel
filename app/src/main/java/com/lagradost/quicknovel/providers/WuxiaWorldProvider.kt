@@ -2,6 +2,7 @@ package com.lagradost.quicknovel.providers
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.JsonNode
+import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
@@ -9,36 +10,42 @@ import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
+import com.lagradost.quicknovel.fixUrl
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
+import com.lagradost.quicknovel.setStatus
 import com.lagradost.quicknovel.util.AppUtils.parseJson
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import okio.Buffer
 import okio.BufferedSource
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.collections.mutableMapOf
+import kotlin.collections.plus
 
-/**
- * WuxiaWorldProvider implementation for QuickNovel.
- * This provider uses a hybrid approach:
- * 1. HTML Scraping + React Query state extraction for metadata and chapter content.
- * 2. gRPC-Web (Protobuf) for massive data lists like chapters, search, and reviews to prevent high memory usage.
- */
 class WuxiaWorldProvider: MainAPI() {
-
     override val name = "WuxiaWorld"
     override val mainUrl = "https://www.wuxiaworld.com"
+    override val iconId = R.drawable.icon_wuxiaworld
+    override val iconBackgroundId = R.color.white
     val apiUrl = "https://api2.wuxiaworld.com/wuxiaworld.api.v2"
     val searchNovelsUrl = "${apiUrl}.Novels/SearchNovels"
     val getChaptersList = "${apiUrl}.Chapters/GetChapterList"
     val getReviewsList = "${apiUrl}.Reviews/SearchReviews"
-    override val iconId = R.drawable.icon_asianovel
     override val lang = "en"
     override val hasMainPage = true
     override val hasReviews = true
-    private val novelsIdRequired = java.util.concurrent.ConcurrentHashMap<String, Int>()
+    private val novelsIdRequired = ConcurrentHashMap<String, Int>()
 
+    override val mainCategories = listOf(
+        "All" to "-1",
+        "Finished" to "0",
+        "Active" to "1",
+        "Hiatus" to "2",
+
+    )
     override val orderBys = listOf(
         "Popular" to "1",
         "New" to "2",
@@ -47,20 +54,19 @@ class WuxiaWorldProvider: MainAPI() {
         "Rating" to "6",
         "Trending" to "7",
     )
-
     override val tags = listOf(
         "All" to "",
-        "Romance" to "5",
-        "Fantasy" to "6",
-        "Comedy" to "9",
-        "Mystery" to "16",
-        "Thriller" to "22",
-        "Sci-fi" to "23",
-        "Cultivation" to "25",
-        "Cheat Systems" to "27",
-        "LitRPG" to "31",
-        "Sports" to "33",
-        "Slice of Life" to "543",
+        "Romance" to "Romance",
+        "Fantasy" to "Fantasy",
+        "Comedy" to "Comedy",
+        "Mystery" to "Mystery",
+        "Thriller" to "Thriller",
+        "Sci-fi" to "Sci-fi",
+        "Cultivation" to "Cultivation",
+        "Cheat Systems" to "Cheat Systems",
+        "LitRPG" to "LitRPG",
+        "Sports" to "Sports",
+        "Slice of Life" to "Slice of Life",
     )
 
     private fun String.cleanSynopsis(): String {
@@ -68,99 +74,6 @@ class WuxiaWorldProvider: MainAPI() {
             .replace(Regex("""class\s*=\s*["'][^"']*["']""", RegexOption.IGNORE_CASE), "")
     }
 
-    private fun extractReactQuery(html: String): ReactQueryRoot? {
-        val startToken = "__REACT_QUERY_STATE__ ="
-        if (!html.contains(startToken)) return null
-        return try {
-            val raw = html.substringAfter(startToken).trim()
-            // Slicing logic: ends before APP_CONTEXT or the script closing tag.
-            val json = if (raw.contains("window.__APP_CONTEXT__")) {
-                raw.substringBefore("window.__APP_CONTEXT__").trim().removeSuffix(";")
-            } else {
-                raw.substringBeforeLast("</script>").substringBeforeLast("};").trim() + "}"
-            }.trim()
-            parseJson<ReactQueryRoot>(json)
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun ProtoReader.decodeReviewItem(): UserReview? {
-        var text = ""
-        var user = ""
-        var avatar = ""
-        
-        while (!exhausted()) {
-            val tagNum = readVarint().toInt()
-            val field = tagNum shr 3
-            val wire = tagNum and 0x7
-            
-            when (field) {
-                2 -> readMessage { // Review Details Message
-                    while (!exhausted()) {
-                        val rTagNum = readVarint().toInt()
-                        if (rTagNum shr 3 == 1) text = readString() // Field 1: The review text
-                        else skipField(rTagNum and 0x7)
-                    }
-                }
-                5 -> readMessage { // User Info Message
-                    while (!exhausted()) {
-                        val uTagNum = readVarint().toInt()
-                        val uField = uTagNum shr 3
-                        val uWire = uTagNum and 0x7
-                        when (uField) {
-                            2 -> user = readString() // Field 2: Nickname
-                            3 -> readMessage { // Avatar Message
-                                while (!exhausted()) {
-                                    val aTagNum = readVarint().toInt()
-                                    if (aTagNum shr 3 == 1) avatar = readString() // Field 1: Avatar URL path
-                                    else skipField(aTagNum and 0x7)
-                                }
-                            }
-                            else -> skipField(uWire)
-                        }
-                    }
-                }
-                else -> skipField(wire)
-            }
-        }
-        return if (text.isNotEmpty()) UserReview(
-            review = text, 
-            username = user.ifEmpty { "User" },
-            avatarUrl = avatar
-        ) else null
-    }
-
-    private fun ProtoReader.decodeNovelItem(): SearchResponse? {
-        var name = ""
-        var slug = ""
-        var cover = ""
-
-        while (!exhausted()) {
-            val tagNum = readVarint().toInt()
-            val field = tagNum shr 3
-            val wireType = tagNum and 0x7
-            when (field) {
-                2 -> name = readString() // Field 2: Title
-                3 -> slug = readString() // Field 3: Slug
-                10 -> { // Field 10: Nested cover info
-                    readMessage {
-                        while (!exhausted()) {
-                            val innerTagNum = readVarint().toInt()
-                            if (innerTagNum shr 3 == 1) cover = readString() // Field 1: URL
-                            else skipField(innerTagNum and 0x7)
-                        }
-                    }
-                }
-                else -> skipField(wireType)
-            }
-        }
-
-        if (name.isEmpty() || slug.isEmpty()) return null
-        return newSearchResponse(name, "$mainUrl/novel/$slug") {
-            posterUrl = cover
-        }
-    }
 
     override suspend fun loadMainPage(
         page: Int,
@@ -168,32 +81,29 @@ class WuxiaWorldProvider: MainAPI() {
         orderBy: String?,
         tag: String?
     ): HeadMainPageResponse {
-        val navParams = mutableMapOf<Int, Any>(
-            5 to page,
-            7 to 16L
+        if(page > 1) return HeadMainPageResponse("",emptyList())
+        val request = buildARequestBody(
+            status = mainCategory?.toLongOrNull(),
+            sortType = orderBy?.toIntOrNull(),
+            genres = listOf(tag)
         )
 
-        // Add genre filter if selected
-        tag?.toIntOrNull()?.let { index -> 
-            navParams[3] = index.toLong()
-            tags.find { it.second == tag }?.first?.let { name ->
-                navParams[10] = mapOf(1 to name)
-            }
-        }
-
-
         val novels = mutableListOf<SearchResponse>()
-        grpcPost(searchNovelsUrl, navParams, "$mainUrl/").use { source ->
-            source.processGrpcStream { 
-                while (!exhausted()) {
-                    val tagNum = readVarint().toInt()
-                    if (tagNum shr 3 == 1) { // Field 1: List of novel results
-                        readMessage {
-                            decodeNovelItem()?.let { novels.add(it) }
-                        }
-                    } else skipField(tagNum and 0x7)
+        try {
+            grpcPost(searchNovelsUrl, request, "$mainUrl/").use { source ->
+                source.processGrpcStream { 
+                    while (!exhausted()) {
+                        val tagNum = readVarint().toInt()
+                        if (tagNum shr 3 == 1) { // Field 1: List of novel results
+                            readMessage {
+                                decodeNovelItem()?.let { novels.add(it) }
+                            }
+                        } else skipField(tagNum and 0x7)
+                    }
                 }
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
 
         return HeadMainPageResponse("$searchNovelsUrl?page=$page", novels)
@@ -210,22 +120,15 @@ class WuxiaWorldProvider: MainAPI() {
         
         val item = parseJson<ReactNovelResponse>(query.state.data.toString()).item
         novelsIdRequired[url] = item.id
-        
-        // --- Related Novels via gRPC ---
+
         val related = mutableListOf<SearchResponse>()
         item.genres?.let { genres ->
-            val relatedParams = mapOf(
-                1 to item.id,
-                2 to 1,
-                3 to -1L,
-                4 to 5,
-                7 to 6,
-                10 to genres.take(3).map { 1 to it.trim() },
-                16 to 1
+            val requestMap = buildARequestBody(
+                count = 12,
+                genres = genres,
             )
-            val requestPayload = mapOf(2 to relatedParams)
             try {
-                grpcPost(searchNovelsUrl, requestPayload, url).use { source ->
+                grpcPost(searchNovelsUrl, requestMap, url).use { source ->
                     source.processGrpcStream {
                         while (!exhausted()) {
                             val tagNum = readVarint().toInt()
@@ -242,9 +145,22 @@ class WuxiaWorldProvider: MainAPI() {
             }
         }
 
-        val chapters = mutableListOf<com.lagradost.quicknovel.ChapterData>()
+       val chapters = getChapters(item, url)
+
+        return newStreamResponse(item.name, url, chapters) {
+            this.posterUrl = this@WuxiaWorldProvider.fixUrlNull(item.coverUrl?.value)
+            this.synopsis = (item.synopsis?.value ?: item.description?.value)?.cleanSynopsis()
+            this.author = item.authorName?.value
+            this.tags = item.genres
+            this.related = related
+            setStatus(getStatus(item.status))
+        }
+    }
+
+    suspend fun getChapters(item: NovelDetail, url: String): List<ChapterData>{
+        val chapters = mutableListOf<ChapterData>()
         grpcPost(getChaptersList, mapOf(1 to item.id), url).use { source ->
-            source.processGrpcStream { 
+            source.processGrpcStream {
                 while (!exhausted()) {
                     val tagNum = readVarint().toInt()
                     if (tagNum shr 3 == 1) { // Field 1: List of chapter groups
@@ -282,26 +198,19 @@ class WuxiaWorldProvider: MainAPI() {
                 }
             }
         }
-
-        return newStreamResponse(item.name, url, chapters) {
-            this.posterUrl = this@WuxiaWorldProvider.fixUrlNull(item.coverUrl?.value)
-            this.synopsis = (item.synopsis?.value ?: item.description?.value)?.cleanSynopsis()
-            this.author = item.authorName?.value
-            this.tags = item.genres
-            this.related = related
-        }
+        return chapters
     }
 
     override suspend fun loadReviews(url: String, page: Int, showSpoilers: Boolean): List<UserReview> {
         val novelId = novelsIdRequired[url] ?: return emptyList()
-        val requestMap = mapOf(
+        val request = mapOf(
             1 to novelId,
             3 to page,
             4 to mapOf(1 to 2, 2 to 20)
         )
 
         val reviews = mutableListOf<UserReview>()
-        grpcPost(getReviewsList, requestMap, url).use { source ->
+        grpcPost(getReviewsList, request, url).use { source ->
             source.processGrpcStream {
                 while (!exhausted()) {
                     val tagNum = readVarint().toInt()
@@ -317,52 +226,46 @@ class WuxiaWorldProvider: MainAPI() {
     }
 
     override suspend fun loadHtml(url: String): String? {
-        val res = app.get(url).document
-        val content = res.selectFirst("div.chapter-content") ?: return null
-
-        content.select("img").forEach { img ->
+        val document = app.get(url).document
+            .selectFirst("div.chapter-content")
+            ?: return null
+        document.select("img").forEach { img ->
             val src = img.attr("src")
             if (src.isNotEmpty()) {
-                img.attr("src", fixUrlNull(src) ?: "")
+                img.attr("src", fixUrl(src))
             }
         }
         
-        return content.html()
+        return document.html()
     }
 
     /** Performs a novel search using the gRPC API. */
     override suspend fun search(query: String): List<SearchResponse> {
-        val navParams = mutableMapOf<Int, Any>(
-            1 to query,
-            7 to 16L
+        val requestMap = buildARequestBody(
+            title = query,
+            count = 20
         )
 
         val novels = mutableListOf<SearchResponse>()
-        grpcPost(searchNovelsUrl, navParams, "$mainUrl/").use { source ->
-            source.processGrpcStream {
-                while (!exhausted()) {
-                    val tagNum = readVarint().toInt()
-                    if (tagNum shr 3 == 1) { // Field 1: List of novel results
-                        readMessage {
-                            decodeNovelItem()?.let { novels.add(it) }
-                        }
-                    } else skipField(tagNum and 0x7)
+        try {
+            grpcPost(searchNovelsUrl, requestMap, "$mainUrl/").use { source ->
+                source.processGrpcStream { 
+                    while (!exhausted()) {
+                        val tagNum = readVarint().toInt()
+                        if (tagNum shr 3 == 1) { // Field 1: List of novel results
+                            readMessage {
+                                decodeNovelItem()?.let { novels.add(it) }
+                            }
+                        } else skipField(tagNum and 0x7)
+                    }
                 }
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
 
         return novels
     }
-    data class WuxiaWorldSearchResponse(
-        @JsonProperty("items") val items: List<SearchNovelItem>
-    )
-
-    data class SearchNovelItem(
-        @JsonProperty("name") val name: String,
-        @JsonProperty("slug") val slug: String,
-        @JsonProperty("coverUrl") val coverUrl: String?
-    )
-
     data class ReactQueryRoot(
         @JsonProperty("queries") val queries: List<ReactQueryItem>
     )
@@ -383,6 +286,7 @@ class WuxiaWorldProvider: MainAPI() {
     data class NovelDetail(
         @JsonProperty("id") val id: Int,
         @JsonProperty("name") val name: String,
+        @JsonProperty("status") val status: Int,
         @JsonProperty("slug") val slug: String,
         @JsonProperty("authorName") val authorName: ValueWrapper?,
         @JsonProperty("synopsis") val synopsis: ValueWrapper?,
@@ -390,21 +294,38 @@ class WuxiaWorldProvider: MainAPI() {
         @JsonProperty("coverUrl") val coverUrl: ValueWrapper?,
         @JsonProperty("genres") val genres: List<String>?
     )
+    fun getStatus(id: Int): String{
+        return when(id){
+            0 -> "completed"
+            1 -> "ongoing"
+            2 -> "hiatus"
+            else -> "ongoing"
+        }
+    }
 
     data class ValueWrapper(@JsonProperty("value") val value: String?)
 
-    data class ReactChapterResponse(
-        @JsonProperty("chapter") val chapter: ChapterContent
-    )
+    private fun buildARequestBody(
+        title: String? = null,
+        status: Long? = -1L, // status: All
+        sortType: Int? = 1, // sortType
+        sortDirection: Long = 1L, // sortDirection: 1 DESC, 0 ASC
+        count: Int = 500, // count
+        genres: List<String?>? = null,
+        genresFilter: Int = 1, //1 OR, 0 AND
+    ): MutableMap<Int, Any>
+    {
+        val requestMap = mutableMapOf<Int, Any>()
+        if(title != null) requestMap[1] = mapOf(1 to title)
+        requestMap[3] = status ?: -1L
+        requestMap[4] = sortType ?: 1
+        requestMap[5] = sortDirection
+        requestMap[7] = count
+        val genresAux = genres?.filter{ !it.isNullOrEmpty()}
+        if(!genresAux.isNullOrEmpty()) requestMap[10] = genresAux.map { 1 to it } + (2 to genresFilter)
 
-    data class ChapterContent(@JsonProperty("content") val content: String?)
-
-    data class ChapterItem(
-        val name: String,
-        val slug: String
-    )
-
-
+        return requestMap
+    }
     /**
      * Helper class to decode Protobuf messages directly from a network stream (BufferedSource).
      * This prevents OutOfMemory errors by not loading the entire response into a ByteArray.
@@ -527,6 +448,100 @@ class WuxiaWorldProvider: MainAPI() {
         fun build(): ByteArray = buffer.readByteArray()
     }
 
+    private fun extractReactQuery(html: String): ReactQueryRoot? {
+        val startToken = "__REACT_QUERY_STATE__ ="
+        if (!html.contains(startToken)) return null
+        return try {
+            val raw = html.substringAfter(startToken).trim()
+            // Slicing logic: ends before APP_CONTEXT or the script closing tag.
+            val json = if (raw.contains("window.__APP_CONTEXT__")) {
+                raw.substringBefore("window.__APP_CONTEXT__").trim().removeSuffix(";")
+            } else {
+                raw.substringBeforeLast("</script>").substringBeforeLast("};").trim() + "}"
+            }.trim()
+            parseJson<ReactQueryRoot>(json)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun ProtoReader.decodeReviewItem(): UserReview? {
+        var text = ""
+        var user = ""
+        var avatar = ""
+
+        while (!exhausted()) {
+            val tagNum = readVarint().toInt()
+            val field = tagNum shr 3
+            val wire = tagNum and 0x7
+
+            when (field) {
+                2 -> readMessage { // Review Details Message
+                    while (!exhausted()) {
+                        val rTagNum = readVarint().toInt()
+                        if (rTagNum shr 3 == 1) text = readString() // Field 1: The review text
+                        else skipField(rTagNum and 0x7)
+                    }
+                }
+                5 -> readMessage { // User Info Message
+                    while (!exhausted()) {
+                        val uTagNum = readVarint().toInt()
+                        val uField = uTagNum shr 3
+                        val uWire = uTagNum and 0x7
+                        when (uField) {
+                            2 -> user = readString() // Field 2: Nickname
+                            3 -> readMessage { // Avatar Message
+                                while (!exhausted()) {
+                                    val aTagNum = readVarint().toInt()
+                                    if (aTagNum shr 3 == 1) avatar = readString() // Field 1: Avatar URL path
+                                    else skipField(aTagNum and 0x7)
+                                }
+                            }
+                            else -> skipField(uWire)
+                        }
+                    }
+                }
+                else -> skipField(wire)
+            }
+        }
+        return if (text.isNotEmpty()) UserReview(
+            review = text,
+            username = user.ifEmpty { "User" },
+            avatarUrl = avatar
+        ) else null
+    }
+
+    private fun ProtoReader.decodeNovelItem(): SearchResponse? {
+        var name = ""
+        var slug = ""
+        var cover = ""
+
+        while (!exhausted()) {
+            val tagNum = readVarint().toInt()
+            val field = tagNum shr 3
+            val wireType = tagNum and 0x7
+            when (field) {
+                2 -> name = readString() // Field 2: Title
+                3 -> slug = readString() // Field 3: Slug
+                10 -> { // Field 10: Nested cover info
+                    readMessage {
+                        while (!exhausted()) {
+                            val innerTagNum = readVarint().toInt()
+                            if (innerTagNum shr 3 == 1) cover = readString() // Field 1: URL
+                            else skipField(innerTagNum and 0x7)
+                        }
+                    }
+                }
+                else -> skipField(wireType)
+            }
+        }
+
+        if (name.isEmpty() || slug.isEmpty()) return null
+        return newSearchResponse(name, "$mainUrl/novel/$slug") {
+            posterUrl = cover
+        }
+    }
+
     /**
      * Recursively encodes a list of Field-Value pairs into Protobuf binary format.
      * Supports nested messages (as Iterables or Maps).
@@ -567,7 +582,8 @@ class WuxiaWorldProvider: MainAPI() {
         val headers = mutableMapOf(
             "Content-Type" to "application/grpc-web+proto",
             "Accept" to "application/grpc-web+proto",
-            "X-User-Agent" to "grpc-web-javascript/0.1"
+            "X-User-Agent" to "grpc-web-javascript/0.1",
+            "x-grpc-web" to "1"
         )
         referer?.let { headers["Referer"] = it }
 
@@ -579,8 +595,8 @@ class WuxiaWorldProvider: MainAPI() {
     }
 
     /** Convenience overload for Map-based payloads. */
-    private suspend fun grpcPost(url: String, payload: Map<Int, Any>, referer: String? = null): BufferedSource {
-        return grpcPost(url, payload.toList(), referer)
+    private suspend fun grpcPost(url: String, request: Map<Int, Any>, referer: String? = null): BufferedSource {
+        return grpcPost(url, request.toList(), referer)
     }
 
     /**
@@ -599,9 +615,4 @@ class WuxiaWorldProvider: MainAPI() {
             ProtoReader(this, length.toLong()).callback()
         }
     }
-
-    /**
-     * Strips 'style' and 'class' attributes from HTML tags to fix visibility issues
-     * (e.g., hardcoded black text on dark background).
-     */
 }
