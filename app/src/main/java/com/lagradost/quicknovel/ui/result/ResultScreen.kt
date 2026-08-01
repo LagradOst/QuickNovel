@@ -60,9 +60,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -72,10 +70,12 @@ import coil3.compose.AsyncImage
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.compose.BackHandler
 import com.lagradost.quicknovel.compose.BaseStyles.blackButtonColors
 import com.lagradost.quicknovel.compose.BaseStyles.whiteButtonColors
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
+import com.lagradost.quicknovel.compose.RoundedImageShape
 import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
@@ -97,6 +97,7 @@ import com.lagradost.quicknovel.ui.common.loading
 import com.lagradost.quicknovel.ui.common.loadingLineMargin
 import com.lagradost.quicknovel.util.AppUtils.openInBrowser
 import com.lagradost.quicknovel.util.SettingsHelper.getRating
+import com.lagradost.quicknovel.util.SettingsHelper.getRatingReview
 import com.lagradost.quicknovel.util.UIHelper.humanReadableByteCountSI
 import com.lagradost.quicknovel.util.toPx
 import kotlinx.collections.immutable.ImmutableList
@@ -123,7 +124,10 @@ fun ResultScreenImpl(
 ) {
     val response = state.response ?: return
     // val scrollState = rememberScrollState()
+    val posterInteractionSource = remember { MutableInteractionSource() }
+    val posterBigInteractionSource = remember { MutableInteractionSource() }
 
+    val isPosterShown = remember { mutableStateOf(false) }
 
     val tabNames = persistentListOf(
         R.string.novel, R.string.reviews, R.string.related, R.string.chapters
@@ -174,9 +178,10 @@ fun ResultScreenImpl(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(width = 100.dp, height = 150.dp)
+                        .ripple(interactionSource = posterInteractionSource)
                         .rounded(),
                     model = response.imageRequest(),
-                    contentDescription = stringResource(R.string.poster_descript)
+                    contentDescription = stringResource(R.string.poster_descript),
                 )
                 Column(modifier = Modifier.padding(10.dp)) {
                     Text(
@@ -218,7 +223,17 @@ fun ResultScreenImpl(
 
         LazyColumn(modifier = Modifier.fillMaxSize(), state = outerListState) {
             item {
-                Spacer(Modifier.height(170.dp + padding.calculateTopPadding()))
+                Spacer(
+                    Modifier
+                        .height(170.dp + padding.calculateTopPadding())
+                        .fillMaxWidth()
+                        .combinedClickable(
+                            interactionSource = posterInteractionSource,
+                            indication = null,
+                            onClick = {
+                                isPosterShown.value = !isPosterShown.value
+                            })
+                )
             }
             item {
                 Column(
@@ -317,6 +332,39 @@ fun ResultScreenImpl(
                     }
                 }
             }
+        }
+
+        val animatedAlpha: Float by animateFloatAsState(
+            if (isPosterShown.value) {
+                1f
+            } else {
+                0f
+            },
+            label = "alpha",
+            animationSpec = tween(durationMillis = 200),
+        )
+
+        BackHandler(enabled = isPosterShown.value) {
+            isPosterShown.value = false
+        }
+
+        if (animatedAlpha > 0.0f) {
+            AsyncImage(
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color = colors.background.copy(alpha = 0.8f * animatedAlpha))
+                    .combinedClickable(
+                        interactionSource = posterBigInteractionSource,
+                        indication = null,
+                        onClick = {
+                            isPosterShown.value = !isPosterShown.value
+                        })
+                    .ripple(posterBigInteractionSource)
+                    .alpha(animatedAlpha),
+                model = response.imageRequest(),
+                contentDescription = stringResource(R.string.poster_descript),
+            )
         }
     }
 }
@@ -428,25 +476,90 @@ fun ReviewItem(
     val textInteractionSource = remember { MutableInteractionSource() }
     val expanded = rememberSaveable { mutableStateOf(false) }
     Column(
-        modifier = modifier.background(colors.surfaceVariant)
+        modifier = modifier
+            .padding(bottom = 10.dp)
     ) {
-        Row {
-            AsyncImage(
-                contentScale = ContentScale.Crop,
-                model = review.imageRequest,
-                contentDescription = stringResource(R.string.user_image_avatar),
-                modifier = Modifier
-                    .size(40.dp)
-                    .circle()
-                    .border(width = 1.dp, color = colors.onBackground, shape = CircleShape)
-            )
+        Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (review.avatarUrl != null) {
+                AsyncImage(
+                    contentScale = ContentScale.Crop,
+                    model = review.imageRequest(),
+                    contentDescription = stringResource(R.string.user_image_avatar),
+                    modifier = Modifier
+                        .size(40.dp)
+                        .circle()
+                        .border(
+                            width = 1.dp,
+                            color = colors.onBackground.copy(alpha = 0.2f),
+                            shape = CircleShape
+                        )
+                )
+            }
 
-            Text(text = review.title ?: stringResource(R.string.no_data))
+            Column(
+                modifier = Modifier.padding(horizontal = 10.dp),
+            ) {
+                Text(
+                    text = review.title ?: stringResource(R.string.no_data),
+                    fontSize = 14.sp,
+                    lineHeight = 13.sp,
+                )
+
+                Row {
+                    if (review.username != null) {
+                        Text(
+                            text = review.username,
+                            color = colors.onSurfaceVariant,
+                            fontSize = 12.sp,
+                            lineHeight = 11.sp,
+                            modifier = Modifier.padding(end = 5.dp)
+                        )
+                    }
+                    if (review.date != null) {
+                        Text(
+                            text = review.date,
+                            color = colors.onSurfaceVariant,
+                            fontSize = 12.sp,
+                            lineHeight = 11.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        FlowRow(modifier = Modifier.padding(horizontal = 6.dp)) {
+            review.rating?.let {
+                Text(
+                    modifier = Modifier
+                        .padding(4.dp)
+                        .background(color = colors.onBackground, shape = RoundedImageShape())
+                        .padding(horizontal = 6.dp),
+                    color = colors.background,
+                    text = stringResource(R.string.overall) + " " + LocalContext.current.getRatingReview(
+                        it
+                    ),
+                    fontSize = 13.sp
+                )
+            }
+            review.ratings?.forEach { (rating, name) ->
+                Text(
+                    modifier = Modifier
+                        .padding(4.dp)
+                        .background(color = colors.surfaceVariant, shape = RoundedImageShape())
+                        .padding(horizontal = 6.dp),
+                    color = colors.onBackground,
+                    text = "$name " + LocalContext.current.getRatingReview(
+                        rating
+                    ),
+                    fontSize = 13.sp
+                )
+            }
         }
 
         Text(
             modifier = Modifier
                 .padding(5.dp)
+                .fillMaxWidth()
                 .clickable(
                     interactionSource = textInteractionSource, indication = null, onClick = {
                         expanded.value = !expanded.value

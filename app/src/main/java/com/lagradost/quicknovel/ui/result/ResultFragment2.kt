@@ -11,12 +11,12 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.ObserveEffect
 import com.lagradost.quicknovel.compose.loadPrimaryColor
 import com.lagradost.quicknovel.compose.loadThemeMode
-import com.lagradost.quicknovel.ui.mainpage.MainPageScreen
-import com.lagradost.quicknovel.ui.mainpage.MainPageViewModel2
+import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 
 class ResultFragment2 : Fragment() {
     override fun onCreateView(
@@ -41,6 +41,14 @@ class ResultFragment2 : Fragment() {
                 }
                 ResultScreen(state,viewModel::onAction)
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        activity?.apply {
+            window?.navigationBarColor =
+                colorFromAttribute(R.attr.primaryBlackBackground)
         }
     }
 }
