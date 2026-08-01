@@ -62,6 +62,7 @@ import com.lagradost.quicknovel.providers.WattpadProvider
 import com.lagradost.quicknovel.providers.WtrLabProvider
 import com.lagradost.quicknovel.providers.WuxiaBoxProvider
 import com.lagradost.quicknovel.providers.WuxiaClickProvider
+import com.lagradost.quicknovel.providers.WuxiaWorldProvider
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 
 class Apis {
@@ -132,6 +133,7 @@ class Apis {
             WtrLabProvider(),
             WuxiaBoxProvider(),
             WuxiaClickProvider(),
+            WuxiaWorldProvider(),
             //WuxiaWorldOnlineProvider(), // Site does not work
             //WuxiaWorldSiteProvider(),
         ).sortedBy { it.name }

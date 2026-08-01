@@ -17,7 +17,7 @@ import com.lagradost.quicknovel.util.AppUtils.parseJson
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
-class AsianNovelProvider  : MainAPI() {
+class AsianNovelProvider: MainAPI() {
 
     override val name = "Asian Novel"
     override val mainUrl = "https://www.asianovel.net"
@@ -29,8 +29,7 @@ class AsianNovelProvider  : MainAPI() {
     override val rateLimitTime = 3000L
     private val novelsIdRequired = mutableMapOf<String, String>()
 
-    override val orderBys =
-        listOf(
+    override val orderBys = listOf(
             "Updated" to "modified",
             "Published" to "date",
             "Title" to "title",
