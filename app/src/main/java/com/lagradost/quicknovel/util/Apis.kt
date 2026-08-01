@@ -12,6 +12,8 @@ import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.providers.AllNovelProvider
 import com.lagradost.quicknovel.providers.AnnasArchive
 import com.lagradost.quicknovel.providers.ArNoProvider
+import com.lagradost.quicknovel.providers.AsianNovelProvider
+import com.lagradost.quicknovel.providers.BrightNovelProvider
 import com.lagradost.quicknovel.providers.DevilNovelsProvider
 import com.lagradost.quicknovel.providers.ChrysanthemumGardenProvider
 import com.lagradost.quicknovel.providers.FanMtlnProvider
@@ -40,7 +42,6 @@ import com.lagradost.quicknovel.providers.NovelLightProvider
 import com.lagradost.quicknovel.providers.NovelManiaProvider
 import com.lagradost.quicknovel.providers.NovelPhoenixProvider
 import com.lagradost.quicknovel.providers.NovelasLigerasProvider
-import com.lagradost.quicknovel.providers.NovelsOnlineProvider
 import com.lagradost.quicknovel.providers.PawReadProver
 import com.lagradost.quicknovel.providers.PlanetaEpubProvider
 import com.lagradost.quicknovel.providers.RanobesProvider
@@ -61,6 +62,7 @@ import com.lagradost.quicknovel.providers.WattpadProvider
 import com.lagradost.quicknovel.providers.WtrLabProvider
 import com.lagradost.quicknovel.providers.WuxiaBoxProvider
 import com.lagradost.quicknovel.providers.WuxiaClickProvider
+import com.lagradost.quicknovel.providers.WuxiaWorldProvider
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 
 class Apis {
@@ -70,8 +72,10 @@ class Apis {
             AllNovelProvider(),
             AnnasArchive(),
             ArNoProvider(),
+            AsianNovelProvider(),
             //AzynovelProvider(), // dont exist anymore
             //BestLightNovelProvider(), //dont exist anymore
+            BrightNovelProvider(),
             ChrysanthemumGardenProvider(),
             //ComrademaoProvider(), // domain sold/down?
             DevilNovelsProvider(),
@@ -129,6 +133,7 @@ class Apis {
             WtrLabProvider(),
             WuxiaBoxProvider(),
             WuxiaClickProvider(),
+            WuxiaWorldProvider(),
             //WuxiaWorldOnlineProvider(), // Site does not work
             //WuxiaWorldSiteProvider(),
         ).sortedBy { it.name }
