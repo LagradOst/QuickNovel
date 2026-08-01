@@ -19,14 +19,17 @@ import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.safeApiCall
 import com.lagradost.quicknovel.ui.common.ImmutableHeadMainPageResponse
+import com.lagradost.quicknovel.ui.common.ImmutableReview
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.util.Coroutines.threadSafeListOf
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
+import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.jsoup.Jsoup
@@ -230,6 +233,16 @@ class APIRepository(val api: MainAPI) {
     ): Resource<List<UserReview>> {
         return safeApiCall {
             api.loadReviews(url, page, showSpoilers)
+        }
+    }
+
+    suspend fun loadReviewsResult(
+        url: String,
+        page: Int,
+        showSpoilers: Boolean = false
+    ): Result<PersistentList<ImmutableReview>> {
+        return runCatching {
+            api.loadReviews(url, page, showSpoilers).map(ImmutableReview::from).toPersistentList()
         }
     }
 

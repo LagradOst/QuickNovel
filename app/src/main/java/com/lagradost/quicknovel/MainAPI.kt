@@ -27,10 +27,11 @@ abstract class MainAPI {
     open val lang = "en" // ISO_639_1 check SubtitleHelper
 
     open val usesCloudFlareKiller = false
-    val app get() = if(!usesCloudFlareKiller) MainActivity.app else MainActivity.appWithInterceptor
+    val app get() = if (!usesCloudFlareKiller) MainActivity.app else MainActivity.appWithInterceptor
 
     fun fixPosterHeaders(headers: Map<String, String>?): Map<String, String>? {
-        return if (usesCloudFlareKiller) (headers ?: emptyMap()) + DefaultImagesHeaders.useCloudflareKillerHeader else headers
+        return if (usesCloudFlareKiller) (headers
+            ?: emptyMap()) + DefaultImagesHeaders.useCloudflareKillerHeader else headers
     }
 
     open val rateLimitTime: Long = 0
@@ -135,7 +136,7 @@ fun stripHtml(
 ): String {
     val document = Jsoup.parse(txt)
     try {
-        if(stripAuthorNotes) {
+        if (stripAuthorNotes) {
             document.select("div.qnauthornotecontainer").remove()
         }
         if (chapterName != null && chapterIndex != null) {
@@ -180,6 +181,7 @@ data class UserReview(
     val avatarUrl: String? = null,
     val rating: Int? = null,
     val ratings: List<Pair<Int, String>>? = null,
+    val avatarHeaders: Map<String, String>? = null,
 )
 /*
 data class MainPageResponse(
@@ -203,7 +205,6 @@ data class SearchResponse(
 ) {
     val image get() = img(posterUrl, posterHeaders)
 }
-
 
 
 fun MainAPI.newSearchResponse(

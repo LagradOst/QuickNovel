@@ -15,7 +15,6 @@ import com.lagradost.quicknovel.BookDownloader2.openQuickStream
 import com.lagradost.quicknovel.BookDownloader2Helper.createQuickStream
 import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.CommonActivity.activity
-import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DownloadActionType
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
@@ -25,39 +24,43 @@ import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.QuickStreamData
 import com.lagradost.quicknovel.QuickStreamMetaData
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.compose.ActionHandler
 import com.lagradost.quicknovel.compose.DefaultEffectContainer
 import com.lagradost.quicknovel.compose.DefaultStateContainer
 import com.lagradost.quicknovel.compose.EffectContainer
 import com.lagradost.quicknovel.compose.StateContainer
-import com.lagradost.quicknovel.mvvm.Resource
-import com.lagradost.quicknovel.mvvm.launchSafe
 import com.lagradost.quicknovel.ui.common.ImmutableChapterData
 import com.lagradost.quicknovel.ui.common.ImmutableDownloadState
+import com.lagradost.quicknovel.ui.common.ImmutableReview
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseOperation
-import com.lagradost.quicknovel.ui.common.updateRow
 import com.lagradost.quicknovel.ui.download.DownloadFragment
-import com.lagradost.quicknovel.ui.download.DownloadPageAction
-import com.lagradost.quicknovel.ui.download.DownloadPageState
-import com.lagradost.quicknovel.ui.mainpage.FilterQuery
-import com.lagradost.quicknovel.ui.mainpage.MainPageViewModel2
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
 import com.lagradost.quicknovel.util.ResultCached
+import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
+import java.util.concurrent.CancellationException
 import kotlin.uuid.ExperimentalUuidApi
 
 @Immutable
 data class ResultState(
     val response: ImmutableSearchResponse? = null,
+    val responseError: Throwable? = null,
+    val loadingResponse: Boolean = true,
+    val reviews : ResultReviewState = ResultReviewState(),
+)
+
+@Immutable
+data class ResultReviewState(
+    val loading: Boolean = false,
+    val page : Int = 0,
     val error: Throwable? = null,
-    val loading: Boolean = true,
+    val items: PersistentList<ImmutableReview> = persistentListOf(),
 )
 
 enum class ChapterOperation {
@@ -66,6 +69,7 @@ enum class ChapterOperation {
 
 @Immutable
 sealed class ResultPageAction {
+    object ExpandReviews : ResultPageAction()
     data class ResultAction(val action: SearchResponseAction) : ResultPageAction()
     data class ChapterAction(
         val response: ImmutableSearchResponse,
@@ -121,9 +125,9 @@ class ResultViewModel2(
     init {
         viewModelScope.launch {
             api.loadResult(url).onFailure { error ->
-                updateState { copy(error = error, loading = false) }
+                updateState { copy(responseError = error, loadingResponse = false) }
             }.onSuccess { value ->
-                updateState { copy(response = value, loading = false, error = null) }
+                updateState { copy(response = value, loadingResponse = false, responseError = null) }
             }
         }
 
@@ -134,6 +138,7 @@ class ResultViewModel2(
         BookDownloader2.refreshingChanged += this::onRefreshingChanged
         BookDownloader2.chapterReadChanged += this::onChapterChanged
     }
+
     override fun onCleared() {
         BookDownloader2.downloadProgressChanged -= this::onDownloadStateChange
         BookDownloader2.downloadRemoved -= this::onDownloadRemoved
@@ -146,7 +151,7 @@ class ResultViewModel2(
     fun onDownloadStateChange(data: Pair<Int, DownloadProgressState>) = viewModelScope.launch {
         val (id, newState) = data
         updateState {
-            if(id != response?.id) {
+            if (id != response?.id) {
                 this
             } else {
                 @OptIn(ExperimentalUuidApi::class)
@@ -154,30 +159,36 @@ class ResultViewModel2(
             }
         }
     }
+
     fun onDownloadRemoved(id: Int) = viewModelScope.launch {
 
     }
+
     fun onDownloadAdded(item: Pair<Int, DownloadFragment.DownloadData>) = viewModelScope.launch {
         val (id, page) = item
     }
+
     private fun onBookmarkChanged(id: Int) = viewModelScope.launch {
 
     }
+
     private fun onRefreshingChanged(item: BookDownloader2.RefreshQuery) = viewModelScope.launch {
 
     }
 
     fun onChapterChanged(name: String) {
         updateState {
-            if(name != response?.name) {
+            if (name != response?.name) {
                 this
             } else {
                 @OptIn(ExperimentalUuidApi::class)
-                copy(response = response.copy(
-                    chaptersRead = ImmutableSearchResponse.chaptersRead(name),
-                    timeOfPageOpened = System.currentTimeMillis(),
-                    epubSize = response.id?.let { ImmutableSearchResponse.epubSize(it) } ?: response.epubSize
-                ))
+                copy(
+                    response = response.copy(
+                        chaptersRead = ImmutableSearchResponse.chaptersRead(name),
+                        timeOfPageOpened = System.currentTimeMillis(),
+                        epubSize = response.id?.let { ImmutableSearchResponse.epubSize(it) }
+                            ?: response.epubSize
+                    ))
             }
         }
     }
@@ -191,6 +202,66 @@ class ResultViewModel2(
             is ResultPageAction.ChapterAction -> {
                 chapterAction(action)
             }
+
+            ResultPageAction.ExpandReviews -> {
+                if (state.value.reviews.loading) return
+                viewModelScope.launch {
+                    expandReviews()
+                }
+            }
+        }
+    }
+
+    private val expandMutex = Mutex()
+
+    suspend fun expandReviews() = withContext(Dispatchers.IO) {
+        val query = state.value.reviews
+
+        try {
+            expandMutex.lock()
+            if (query != state.value.reviews) return@withContext
+            val loadUrl = state.value.response?.url ?: return@withContext
+
+            updateState {
+                copy(reviews = reviews.copy(loading = true))
+            }
+
+            val nextPage = query.page + 1
+            api.loadReviewsResult(
+                page = nextPage,
+                url = loadUrl
+            ).onFailure { error ->
+                if (error is CancellationException) {
+                    return@withContext
+                }
+                updateState {
+                    copy(reviews = reviews.copy(loading = false, error = error))
+                }
+                postEffect {
+                    ResultPageEffect.Error(error)
+                }
+            }.onSuccess { response ->
+                val newList = query.items.addingAll(response)
+                updateState {
+                    // Outdated query, drop it
+                    if (query.page != state.value.reviews.page) {
+                        return@updateState copy(reviews = reviews.copy(loading = false))
+                    }
+                    copy(
+                        reviews = reviews.copy(
+                            loading = false,
+                            error = null,
+                            items = newList,
+                            page = nextPage
+                        )
+                    )
+                }
+            }
+        } finally {
+            updateState {
+                copy(reviews = reviews.copy(loading = false))
+            }
+            expandMutex.unlock()
         }
     }
 

@@ -313,16 +313,15 @@ fun MainPageSearchBar(
     query: FilterQueryVisual,
     action: (MainPageAction) -> Unit,
     scrollBehavior: TopAppBarScrollBehavior,
-    apiName : String,
+    apiName: String,
 ) {
-
     val context = LocalContext.current
     val store = AndroidPreferenceStore(context)
     val searchIsRow = store.getBoolean(stringResource(R.string.search_list_view_key), false)
     val searchIsRowState by searchIsRow.collectAsState()
 
     BaseSearchBar(
-        placeholder = "${stringResource(R.string.search)} $apiName…" ,
+        placeholder = "${stringResource(R.string.search)} $apiName…",
         onQueryChange = { _ ->
             // action(MainPageAction.Search(query))
         },
@@ -384,25 +383,27 @@ fun MainPageSearchBar(
 
         },
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 5.dp, start = 5.dp, end = 5.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            query.category?.let {
-                SelectButton(it) {
-                    action(MainPageAction.OpenDialog(DialogType.Category))
+        if (!openQuery) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 5.dp, start = 5.dp, end = 5.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                query.category?.let {
+                    SelectButton(it) {
+                        action(MainPageAction.OpenDialog(DialogType.Category))
+                    }
                 }
-            }
-            query.orderBy?.let {
-                SelectButton(it) {
-                    action(MainPageAction.OpenDialog(DialogType.OrderBy))
+                query.orderBy?.let {
+                    SelectButton(it) {
+                        action(MainPageAction.OpenDialog(DialogType.OrderBy))
+                    }
                 }
-            }
-            query.tag?.let {
-                SelectButton(it) {
-                    action(MainPageAction.OpenDialog(DialogType.Tags))
+                query.tag?.let {
+                    SelectButton(it) {
+                        action(MainPageAction.OpenDialog(DialogType.Tags))
+                    }
                 }
             }
         }

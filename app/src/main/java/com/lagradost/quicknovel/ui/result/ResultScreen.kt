@@ -1,13 +1,12 @@
 package com.lagradost.quicknovel.ui.result
 
 import android.content.Intent
-import android.util.LayoutDirection
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,7 +30,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -41,6 +40,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -92,23 +92,24 @@ import com.lagradost.quicknovel.ui.common.LoadingWidth
 import com.lagradost.quicknovel.ui.common.SearchList
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseOperation
+import com.lagradost.quicknovel.ui.common.html
 import com.lagradost.quicknovel.ui.common.loading
 import com.lagradost.quicknovel.ui.common.loadingLineMargin
 import com.lagradost.quicknovel.util.AppUtils.openInBrowser
 import com.lagradost.quicknovel.util.SettingsHelper.getRating
-import com.lagradost.quicknovel.util.UIHelper.html
 import com.lagradost.quicknovel.util.UIHelper.humanReadableByteCountSI
 import com.lagradost.quicknovel.util.toPx
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
 import kotlin.uuid.ExperimentalUuidApi
 
 
 @Composable
 fun ResultScreen(state: ResultState, action: (ResultPageAction) -> Unit) {
     Scaffold { innerPadding ->
-        if (state.loading) {
+        if (state.loadingResponse) {
             LoadingScreen(Modifier.padding(innerPadding))
         } else {
             ResultScreenImpl(innerPadding, state, action)
@@ -118,7 +119,7 @@ fun ResultScreen(state: ResultState, action: (ResultPageAction) -> Unit) {
 
 @Composable
 fun ResultScreenImpl(
-    padding : PaddingValues, state: ResultState, action: (ResultPageAction) -> Unit
+    padding: PaddingValues, state: ResultState, action: (ResultPageAction) -> Unit
 ) {
     val response = state.response ?: return
     // val scrollState = rememberScrollState()
@@ -147,11 +148,12 @@ fun ResultScreenImpl(
 
     Box {
         Box(
-            modifier = Modifier.padding(
-                start = padding.calculateStartPadding(LocalLayoutDirection.current),
-                end = padding.calculateEndPadding(LocalLayoutDirection.current),
-                bottom = padding.calculateBottomPadding()
-            )
+            modifier = Modifier
+                .padding(
+                    start = padding.calculateStartPadding(LocalLayoutDirection.current),
+                    end = padding.calculateEndPadding(LocalLayoutDirection.current),
+                    bottom = padding.calculateBottomPadding()
+                )
                 .height(height = 190.dp + padding.calculateTopPadding())
                 .alpha(1.0f - scrollAlpha.value * 0.5f)
         ) {
@@ -285,8 +287,10 @@ fun ResultScreenImpl(
 
                         1 -> {
                             ReviewsPage(
-                                state.response.loadData?.reviews ?: persistentListOf(),
-                                nestedScrollConnection = parentFirstScrollConnection
+                                loadingReviews = state.reviews.loading,
+                                reviews = state.reviews.items,
+                                nestedScrollConnection = parentFirstScrollConnection,
+                                action = action
                             )
                         }
 
@@ -379,9 +383,14 @@ fun ChapterItem(
 
 @Composable
 fun ReviewsPage(
-    reviews: PersistentList<ImmutableReview>, nestedScrollConnection: NestedScrollConnection
+    loadingReviews: Boolean,
+    reviews: PersistentList<ImmutableReview>,
+    nestedScrollConnection: NestedScrollConnection,
+    action: (ResultPageAction) -> Unit,
 ) {
+    val listState = rememberLazyListState()
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(nestedScrollConnection)
@@ -390,15 +399,68 @@ fun ReviewsPage(
         items(reviews, key = { item ->
             @OptIn(ExperimentalUuidApi::class) item.randomUuid
         }) { review ->
-            ReviewItem(review, modifier = Modifier.animateItem())
+            ReviewItem(review, modifier = Modifier.animateItem(), action = action)
+        }
+    }
+
+    val shouldLoadMore = remember {
+        derivedStateOf {
+            val lastVisibleIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val totalItems = listState.layoutInfo.totalItemsCount
+            lastVisibleIndex >= totalItems - 5
+        }
+    }
+
+    LaunchedEffect(shouldLoadMore.value) {
+        if (shouldLoadMore.value && !loadingReviews) {
+            action(ResultPageAction.ExpandReviews)
         }
     }
 }
 
-@Composable
-fun ReviewItem(review: ImmutableReview, modifier: Modifier) {
-    Box(modifier = modifier.background(colors.surfaceVariant)) {
 
+@Composable
+fun ReviewItem(
+    review: ImmutableReview,
+    modifier: Modifier,
+    action: (ResultPageAction) -> Unit,
+) {
+    val textInteractionSource = remember { MutableInteractionSource() }
+    val expanded = rememberSaveable { mutableStateOf(false) }
+    Column(
+        modifier = modifier.background(colors.surfaceVariant)
+    ) {
+        Row {
+            AsyncImage(
+                contentScale = ContentScale.Crop,
+                model = review.imageRequest,
+                contentDescription = stringResource(R.string.user_image_avatar),
+                modifier = Modifier
+                    .size(40.dp)
+                    .circle()
+                    .border(width = 1.dp, color = colors.onBackground, shape = CircleShape)
+            )
+
+            Text(text = review.title ?: stringResource(R.string.no_data))
+        }
+
+        Text(
+            modifier = Modifier
+                .padding(5.dp)
+                .clickable(
+                    interactionSource = textInteractionSource, indication = null, onClick = {
+                        expanded.value = !expanded.value
+                    })
+                .rounded()
+                .ripple(textInteractionSource)
+                .padding(5.dp),
+            text = review.content.html(),
+            color = colors.onBackground,
+            fontSize = 14.sp,
+            lineHeight = 15.sp,
+            maxLines = if (expanded.value) Int.MAX_VALUE else 8,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -452,8 +514,7 @@ fun NovelPage(
                     .rounded()
                     .ripple(textInteractionSource)
                     .padding(5.dp),
-                // TODO make into a helper
-                text = AnnotatedString.fromHtml(response.synopsis.replace("</p>", "<br/><br/>")),
+                text = response.synopsis.html(),
                 color = colors.onBackground,
                 fontSize = 14.sp,
                 lineHeight = 15.sp,
@@ -488,10 +549,10 @@ fun NovelPage(
                         text = tag,
                         fontSize = 14.sp,
                         modifier = Modifier
-                            .padding(3.dp)
+                            .padding(4.dp)
                             .rounded()
                             .background(color = colors.surfaceVariant)
-                            .padding(horizontal = 10.dp, vertical = 2.dp)
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
                     )
                 }
             }
@@ -536,7 +597,9 @@ fun NovelPage(
                 }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        modifier = Modifier.padding(horizontal = 4.dp).size(24.dp),
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .size(24.dp),
                         painter = painterResource(R.drawable.ic_baseline_play_arrow_24),
                         contentDescription = null
                     )
@@ -560,12 +623,15 @@ fun NovelPage(
                 }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        modifier = Modifier.padding(horizontal = 4.dp).size(24.dp),
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .size(24.dp),
                         painter = painterResource(R.drawable.netflix_download),
                         contentDescription = null
                     )
                     Text(stringResource(R.string.download))
-                } }
+                }
+            }
 
 
             /*TextButton(
@@ -604,7 +670,9 @@ fun NovelPage(
 
         LinearWavyProgressIndicator(
             progress = { animatedProgress },
-            modifier = Modifier.fillMaxWidth().padding(10.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
             amplitude = { animatedWavy },
             color = colors.onBackground
         )
@@ -733,9 +801,35 @@ fun LoadingPreview() {
         Surface {
             @OptIn(ExperimentalUuidApi::class) ResultScreen(
                 state = ResultState(
-                    loading = false, error = null, response = ImmutableSearchResponse.preview()
+                    loadingResponse = false,
+                    responseError = null,
+                    response = ImmutableSearchResponse.preview()
                 )
             ) { }
+        }
+    }
+}
+
+@PreviewLightDark
+@Composable
+fun ReviewPreview() {
+    CloudStreamTheme {
+        Surface {
+            @OptIn(ExperimentalUuidApi::class)
+            ReviewItem(
+                review = ImmutableReview(
+                    content = "hello world",
+                    title = "title",
+                    username = "username",
+                    date = "today",
+                    avatarUrl = "https://www.royalroad.com/dist/img/anon.jpg",
+                    avatarHeaders = persistentMapOf(),
+                    rating = 1337,
+                    ratings = persistentListOf()
+                ),
+                modifier = Modifier.fillMaxSize(),
+                action = {}
+            )
         }
     }
 }
