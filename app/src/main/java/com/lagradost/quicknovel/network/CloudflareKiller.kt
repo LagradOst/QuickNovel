@@ -7,30 +7,34 @@ import com.lagradost.nicehttp.Requests.Companion.await
 import com.lagradost.nicehttp.cookies
 import com.lagradost.nicehttp.getHeaders
 import com.lagradost.quicknovel.MainActivity.Companion.app
-import com.lagradost.quicknovel.mvvm.debugWarning
+import com.lagradost.quicknovel.USER_AGENT
+import com.lagradost.quicknovel.network.utils.CookiesUtils.clearCookiesForHost
+import com.lagradost.quicknovel.network.utils.CookiesUtils.getAllCookiesForUrl
+import com.lagradost.quicknovel.network.utils.CookiesUtils.toCookieString
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.*
-import java.net.URI
 import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * CloudflareKiller is an OkHttp Interceptor designed to bypass Cloudflare and Turnstile protections.
+ * It detects challenges and uses a hidden WebView to solve them and capture the resulting session.
+ */
 @AnyThread
 class CloudflareKiller : Interceptor {
     companion object {
         const val TAG = "CloudflareKiller"
-        private val mutex = Mutex()
-
-        fun parseCookieMap(cookie: String): Map<String, String> {
-            return cookie.split(";").associate {
-                val split = it.split("=")
-                (split.getOrNull(0)?.trim() ?: "") to (split.getOrNull(1)?.trim() ?: "")
-            }.filter { it.key.isNotBlank() && it.value.isNotBlank() }
-        }
+        private val mutex = Mutex() // Ensures only one bypass runs at a time to prevent race conditions
     }
 
+    /*//this is used to testing
+    init {
+        CookieManager.getInstance().removeAllCookies(null)
+    }
+    */
+    /** In-memory cache for cookies associated with each host*/
     val savedCookies = ConcurrentHashMap<String, Map<String, String>>()
-
 
     /**
      * Gets the headers with cookies, webview user agent included!
@@ -40,43 +44,45 @@ class CloudflareKiller : Interceptor {
             mapOf("user-agent" to it)
         } ?: emptyMap()
 
-        return getHeaders(userAgentHeaders, null, savedCookies[URI(url).host] ?: emptyMap())
-    }
-
-    private fun clearCookiesForHost(url: HttpUrl) {
-        val host = url.host
-        savedCookies.remove(host)
-        CookieManager.getInstance().removeAllCookies(null)
+        val cookies = getAllCookiesForUrl(url)
+        return getHeaders(userAgentHeaders, null, cookies)
     }
 
     override fun intercept(chain: Interceptor.Chain): Response = runBlocking {
         val request = chain.request()
+        val url = request.url.toString()
         val host = request.url.host
 
-        savedCookies[host]?.let { cookies ->
-            val response = proceed(request, cookies)
+        // If we already have cookies in CookieManager, use them
+        val initialCookies = savedCookies[host] ?: getAllCookiesForUrl(url)
+        if (initialCookies.containsKey("cf_clearance")) {
+            val response = proceed(request, initialCookies)
             if (!looksLikeCloudflareChallenge(response)) {
                 return@runBlocking response
             }
+            // If the saved cookies still trigger a challenge, they are expired/invalid
             response.close()
             clearCookiesForHost(request.url)
+            savedCookies.remove(host)
         }
 
-        // First try the request normally. Only invoke WebView bypass when
-        // the response actually looks like a Cloudflare challenge.
+        // try the request normally. Only invoke WebView bypass when
+        // the response actually looks like a Cloudflare challenge
         val initialResponse = chain.proceed(request)
         if (!looksLikeCloudflareChallenge(initialResponse)) {
             return@runBlocking initialResponse
         }
         initialResponse.close()
 
+        // Bypass needed. Locked section to prevent multiple WebViews from opening
         mutex.withLock {
-            if(savedCookies[host] != null || trySolveWithSavedCookies(request)){
-                val cookies = savedCookies[host] ?: emptyMap()
-                val response = proceed(request, cookies)
+            val currentCookies = savedCookies[host] ?: getAllCookiesForUrl(url)
+            if (currentCookies.containsKey("cf_clearance")) {
+                val response = proceed(request, currentCookies)
                 if (!looksLikeCloudflareChallenge(response)) return@runBlocking response
                 response.close()
                 clearCookiesForHost(request.url)
+                savedCookies.remove(host)
             }
 
             Log.d(TAG, "Resolving Cloudflare for $host...")
@@ -88,7 +94,6 @@ class CloudflareKiller : Interceptor {
             }
         }
 
-        debugWarning({ true }) { "Failed cloudflare at: ${request.url}" }
         return@runBlocking chain.proceed(request)
     }
 
@@ -98,57 +103,75 @@ class CloudflareKiller : Interceptor {
             response.header("cf-ray") != null ||
                     response.header("server")?.contains("cloudflare", ignoreCase = true) == true
 
+        // Read a small sample of the body to check for challenge scripts.
         val bodySample = runCatching {
             response.peekBody(1024 * 10).string().lowercase()
         }.getOrDefault("")
 
-        if (code == 403 || code == 429 || code == 503 || (code == 200 && bodySample.contains("one moment, please"))) {
-            if (hasCloudflareHeaders) return true
+        val isChallengeBody = bodySample.contains("cf-browser-verification") ||
+                bodySample.contains("checking your browser") ||
+                bodySample.contains("just a moment") ||
+                bodySample.contains("/cdn-cgi/")
 
-
-            return bodySample.contains("cf-browser-verification") ||
-                    bodySample.contains("checking your browser") ||
-                    bodySample.contains("just a moment") ||
-                    bodySample.contains("/cdn-cgi/")
+        if (code == 403 || code == 429 || code == 503 || (code == 200 && (bodySample.contains("one moment")))) {
+            if (hasCloudflareHeaders || isChallengeBody) return true
         }
 
         val location = response.header("location").orEmpty().lowercase()
-        return location.contains("/cdn-cgi/")
-    }
-
-    private fun getWebViewCookie(url: String): String? {
-        return CookieManager.getInstance()?.getCookie(url)
+        return location.contains("/cdn-cgi/") || isChallengeBody
     }
 
     /**
-     * Returns true if the cf cookies were successfully fetched from the CookieManager
-     * Also saves the cookies.
-     * */
-    private fun trySolveWithSavedCookies(request: Request): Boolean {
-        // Not sure if this takes expiration into account
-        return getWebViewCookie(request.url.toString())?.let { cookie ->
-            if (cookie.contains("cf_clearance")) {
-                savedCookies[request.url.host] = parseCookieMap(cookie)
-                true
-            } else false
-        } ?: false
-    }
+     * Reconstructs the request to mirror a real browser's identity
+     * This clones the WebView's header order and Client Hints to bypass bot detection
+     */
+    private suspend fun proceed(request: Request, cookiesMap: Map<String, String>): Response {
+        val host = request.url.host
+        val ua = WebViewResolver.webViewUserAgent ?: WebViewResolver.getWebViewUserAgent() ?: USER_AGENT
+        val captured = WebViewResolver.capturedHeaders[host] ?: emptyMap()
 
-    private suspend fun proceed(request: Request, cookies: Map<String, String>): Response {
-        val ua = WebViewResolver.webViewUserAgent ?: WebViewResolver.getWebViewUserAgent()
-        val userAgentMap = ua?.let { mapOf("user-agent" to it) } ?: emptyMap()
+        val builder = Headers.Builder()
+        builder.add("Host", host)
+        captured.filter { it.key.lowercase().startsWith("sec-ch-ua") }.forEach { (k, v) ->
+            val masked = v.replace(", \"Android WebView\";v=\"150\"", "").replace("Android WebView", "Chromium")
+            builder.add(k, masked)
+        }
+        builder.add("User-Agent", ua)
+        builder.add("Accept", captured["Accept"] ?: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+        builder.add("Origin", "${request.url.scheme}://${request.url.host}")
 
-        val headers = getHeaders(request.headers.toMap() + userAgentMap, null, cookies + request.cookies)
+        captured.filter { it.key.lowercase().startsWith("sec-fetch-") }.forEach { (k, v) ->
+            builder.add(k, v)
+        }
+        val referer = request.header("Referer") ?: captured["Referer"] ?: "${request.url.scheme}://${request.url.host}/"
+        builder.add("Referer", referer)
+        builder.add("Accept-Language", captured["Accept-Language"] ?: "en-US,en;q=0.9")
+        val finalCookies = cookiesMap + request.headers.values("Cookie").associate {
+            val split = it.split("=")
+            (split.getOrNull(0) ?: "") to (split.getOrNull(1) ?: "")
+        }.filter { it.key.isNotBlank() }
+
+        builder.add("Cookie", finalCookies.toCookieString())
+        val usedKeys = builder.build().names()
+        request.headers.forEach { (k, v) ->
+            if (!usedKeys.contains(k) //&&
+            //!k.equals(DefaultImagesHeaders.useCloudflareKillerHeader.first, true) &&
+            /*!k.equals(DefaultImagesHeaders.useIgnore500Header.first, true)*/) {
+                builder.add(k, v)
+            }
+        }
 
         return app.baseClient.newCall(
             request.newBuilder()
-                .headers(headers)
+                .headers(builder.build())
                 .build()
         ).await()
     }
 
+    /** Invokes the WebView to solve the challenge and extract new cookies*/
     private suspend fun bypassCloudflare(request: Request): Response? {
         val url = request.url.toString()
+        val host = request.url.host
 
         // If no cookies then try to get them
         // Remove this if statement if cookies expire
@@ -165,9 +188,18 @@ class CloudflareKiller : Interceptor {
         ).resolveUsingWebView(
             url
         ) {
-            trySolveWithSavedCookies(request)
+            /**
+             * Returns true if the cf cookies were successfully fetched from the CookieManager
+             * */
+            val cookie = CookieManager.getInstance().getCookie(it.url.toString())
+            cookie?.contains("cf_clearance") == true
         }
-        val cookies = savedCookies[request.url.host] ?: return null
-        return proceed(request, cookies)
+
+        val cookies = getAllCookiesForUrl(url)
+        if (cookies.containsKey("cf_clearance")) {
+            savedCookies[host] = cookies
+            return proceed(request, cookies)
+        }
+        return null
     }
 }
