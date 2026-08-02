@@ -860,6 +860,31 @@ object BookDownloader2Helper {
                     fileName.nameWithoutExtension.toIntOrNull() ?: return@mapNotNull null
                 }?.filter { x -> x >= start }?.sorted()
 
+                val cssContent = """
+                    body {
+                      display: block;
+                      font-size: 1em;
+                      padding-left: 0;
+                      padding-right: 0;
+                      margin: 0 5pt;
+                    }
+                    p {
+                      display: block;
+                      margin: 1em 0;
+                    }
+                    @page {
+                      margin-bottom: 5pt;
+                      margin-top: 5pt;
+                    }
+                """.trimIndent()
+                val styleResource = Resource(
+                    "style.css",
+                    cssContent.toByteArray(),
+                    "style.css",
+                    MediaTypes.CSS
+                )
+                book.resources.add(styleResource)
+
                 chapters?.pmap { threadIndex ->
 
                     val filepath =
@@ -1892,7 +1917,9 @@ object BookDownloader2 {
     private fun createHtmlWrapper(title: String, content: String): String {
         return """
         <html xmlns="http://www.w3.org/1999/xhtml">
-            <head><meta charset="utf-8"/><title>$title</title></head>
+            <head>
+                <meta charset="utf-8"/><title>$title</title>
+            </head>
             <body>
                 $content
             </body>
@@ -2114,6 +2141,32 @@ object BookDownloader2 {
                     EpubWriter().write(book, fos)
                 }
             }
+
+                //add style
+                val cssContent = """
+                    body {
+                      display: block;
+                      font-size: 1em;
+                      padding-left: 0;
+                      padding-right: 0;
+                      margin: 0 5pt;
+                    }
+                    p {
+                      display: block;
+                      margin: 1em 0;
+                    }
+                    @page {
+                      margin-bottom: 5pt;
+                      margin-top: 5pt;
+                    }
+                """.trimIndent()
+                val styleResource = Resource(
+                    "style.css",
+                    cssContent.toByteArray(),
+                    "style.css",
+                    MediaTypes.CSS
+                )
+                book.resources.add(styleResource)
 
             //init progress
             while (true) {

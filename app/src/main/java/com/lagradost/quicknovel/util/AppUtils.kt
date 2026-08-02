@@ -54,10 +54,9 @@ object AppUtils {
             .split(Regex("\\n"))
             .joinToString("") { paragraph ->
                 if (paragraph.trim().isNotBlank()) {
-                    paragraph.split(Regex("(?<=(?<!\\.)\\.)(?=\\s+)"))
-                        .joinToString("") { "<p>${it}</p>" } + "</br>"
+                    "<p>${paragraph.trim()}</p>"
                 } else {
-                    "</br>"
+                    "<br />"
                 }
             }
     }

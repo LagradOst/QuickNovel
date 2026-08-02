@@ -16,6 +16,8 @@ import com.lagradost.quicknovel.ui.img
 import com.lagradost.quicknovel.util.DefaultImagesHeaders
 import kotlinx.coroutines.sync.Mutex
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
+import org.jsoup.nodes.Entities
 
 const val USER_AGENT =
     "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
@@ -135,10 +137,29 @@ fun stripHtml(
     stripAuthorNotes: Boolean
 ): String {
     val document = Jsoup.parse(txt)
+    document.outputSettings().syntax(Document.OutputSettings.Syntax.xml)
+    document.outputSettings().escapeMode(Entities.EscapeMode.xhtml)
+
+    // Add external stylesheet link
+    document.head().appendElement("link").apply {
+        attr("rel", "stylesheet")
+        attr("type", "text/css")
+        attr("href", "style.css")
+    }
+
     try {
         if (stripAuthorNotes) {
             document.select("div.qnauthornotecontainer").remove()
         }
+
+        // FUCK THIS, LEGIT IN EVERY CHAPTER
+        document.select("p").forEach { p ->
+            val html = p.text()
+            if (html.startsWith("Translator:") || html.startsWith("Editor:")) {
+                p.remove()
+            }
+        }
+
         if (chapterName != null && chapterIndex != null) {
             for (a in document.allElements) {
                 if (a != null && a.hasText() &&
@@ -154,13 +175,11 @@ fun stripHtml(
         logError(e)
     }
 
-    return document.html()
-        .replace(
-            "<p>.*<strong>Translator:.*?Editor:.*>".toRegex(),
-            ""
-        ) // FUCK THIS, LEGIT IN EVERY CHAPTER
-        .replace("<.*?Translator:.*?Editor:.*?>".toRegex(), "") // FUCK THIS, LEGIT IN EVERY CHAPTER
-
+    return "<?xml version='1.0' encoding='utf-8'?>\n" +
+            "<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\">\n" +
+            document.head().outerHtml() + "\n" +
+            document.body().outerHtml() + "\n" +
+            "</html>"
 }
 
 data class HomePageList(
