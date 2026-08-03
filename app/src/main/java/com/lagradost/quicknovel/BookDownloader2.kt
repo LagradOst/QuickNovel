@@ -97,6 +97,9 @@ import me.ag2s.epublib.domain.Resource
 import me.ag2s.epublib.epub.EpubReader
 import me.ag2s.epublib.epub.EpubWriter
 import me.ag2s.epublib.util.zip.AndroidZipFile
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
+import org.jsoup.nodes.Entities
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -751,10 +754,19 @@ object BookDownloader2Helper {
             if (firstChar == -1) {
                 return null
             } // Invalid File
+
             val title = text.substring(0, firstChar)
             val data = text.substring(firstChar + 1)
-            val html = if (!stripHtml) data else stripHtml(
-                data,
+            val document = Jsoup.parse(data)
+
+            document.outputSettings().apply {
+                //translate <br> to <br />, <img> to <img... /> etc.
+                syntax(Document.OutputSettings.Syntax.xml)
+                //translate special characters to their Unicode equivalent in xhtml
+                escapeMode(Entities.EscapeMode.xhtml)
+            }
+            val html = if (!stripHtml) document.html() else stripHtml(
+                document,
                 title,
                 index,
                 stripAuthorNotes

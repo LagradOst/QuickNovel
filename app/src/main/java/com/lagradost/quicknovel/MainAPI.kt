@@ -15,9 +15,7 @@ import com.lagradost.quicknovel.ui.UiImage
 import com.lagradost.quicknovel.ui.img
 import com.lagradost.quicknovel.util.DefaultImagesHeaders
 import kotlinx.coroutines.sync.Mutex
-import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
-import org.jsoup.nodes.Entities
 
 const val USER_AGENT =
     "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
@@ -146,30 +144,15 @@ fun packageAsXHtml(title: String, bodyHtml: String): String {
 }
 
 fun stripHtml(
-    txt: String,
+    document: Document,
     chapterName: String? = null,
     chapterIndex: Int? = null,
     stripAuthorNotes: Boolean
 ): String {
-    val document = Jsoup.parse(txt)
-    document.outputSettings().apply {
-        syntax(Document.OutputSettings.Syntax.xml)
-        escapeMode(Entities.EscapeMode.xhtml)
-    }
-
     try {
         if (stripAuthorNotes) {
             document.select("div.qnauthornotecontainer").remove()
         }
-
-        // FUCK THIS, LEGIT IN EVERY CHAPTER
-        document.select("p").forEach { p ->
-            val html = p.text()
-            if (html.contains("Translator:") && html.contains("Editor:")) {
-                p.remove()
-            }
-        }
-
         if (chapterName != null && chapterIndex != null) {
             for (a in document.allElements) {
                 if (a != null && a.hasText() &&
@@ -184,7 +167,14 @@ fun stripHtml(
     } catch (e: Exception) {
         logError(e)
     }
-    return document.body().html()
+
+    return document.html()
+        .replace(
+            "<p>.*<strong>Translator:.*?Editor:.*>".toRegex(),
+            ""
+        ) // FUCK THIS, LEGIT IN EVERY CHAPTER
+        .replace("<.*?Translator:.*?Editor:.*?>".toRegex(), "") // FUCK THIS, LEGIT IN EVERY CHAPTER
+
 }
 
 data class HomePageList(
