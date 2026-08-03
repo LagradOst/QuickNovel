@@ -130,6 +130,21 @@ val String?.textClean: String?
         ?.replace("\\+([A-z])".toRegex(), "$1") //\+([^-\s])
             )
 
+fun packageAsXHtml(title: String, bodyHtml: String): String {
+    return """
+        <?xml version='1.0' encoding='utf-8'?>
+        <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+        <head>
+            <title>$title</title>
+            <link rel="stylesheet" type="text/css" href="style.css"/>
+        </head>
+        <body>
+            $bodyHtml
+        </body>
+        </html>
+    """.trimIndent()
+}
+
 fun stripHtml(
     txt: String,
     chapterName: String? = null,
@@ -137,14 +152,9 @@ fun stripHtml(
     stripAuthorNotes: Boolean
 ): String {
     val document = Jsoup.parse(txt)
-    document.outputSettings().syntax(Document.OutputSettings.Syntax.xml)
-    document.outputSettings().escapeMode(Entities.EscapeMode.xhtml)
-
-    // Add external stylesheet link
-    document.head().appendElement("link").apply {
-        attr("rel", "stylesheet")
-        attr("type", "text/css")
-        attr("href", "style.css")
+    document.outputSettings().apply {
+        syntax(Document.OutputSettings.Syntax.xml)
+        escapeMode(Entities.EscapeMode.xhtml)
     }
 
     try {
@@ -155,7 +165,7 @@ fun stripHtml(
         // FUCK THIS, LEGIT IN EVERY CHAPTER
         document.select("p").forEach { p ->
             val html = p.text()
-            if (html.startsWith("Translator:") || html.startsWith("Editor:")) {
+            if (html.contains("Translator:") && html.contains("Editor:")) {
                 p.remove()
             }
         }
@@ -174,12 +184,7 @@ fun stripHtml(
     } catch (e: Exception) {
         logError(e)
     }
-
-    return "<?xml version='1.0' encoding='utf-8'?>\n" +
-            "<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\">\n" +
-            document.head().outerHtml() + "\n" +
-            document.body().outerHtml() + "\n" +
-            "</html>"
+    return document.body().html()
 }
 
 data class HomePageList(
