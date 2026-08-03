@@ -14,7 +14,6 @@ class SyosetuProvider : MainAPI() {
     private val ncodeUrl = "https://ncode.syosetu.com"
 
     override val mainCategories = listOf(
-        "All" to "",
         "Isekai Romance" to "i1",
         "Isekai Fantasy" to "i2",
         "Isekai Lit/SF/Other" to "io",
@@ -54,13 +53,11 @@ class SyosetuProvider : MainAPI() {
         orderBy: String?,
         tag: String?
     ): HeadMainPageResponse {
-        val period = orderBy ?: "total"
         val genre = mainCategory ?: ""
 
-        val url = "$mainUrl/rank" + when {
-            genre.isEmpty() -> "list/type/${period}_total/?p=$page"
-            genre.startsWith("i") -> "/isekailist/type/${period}_${genre.substring(1)}/?p=$page"
-            else -> "/genrelist/type/${period}_$genre/?p=$page"
+        val url = "$mainUrl/rank/" + when {
+            genre.startsWith("i") -> "isekailist/type/${orderBy}_${genre.substring(1)}/?p=$page"
+            else -> "genrelist/type/${orderBy}_$genre/?p=$page"
         }
 
         val document = app.get(url).document
