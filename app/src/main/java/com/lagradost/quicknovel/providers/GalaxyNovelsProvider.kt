@@ -21,7 +21,7 @@ open class GalaxyNovelsProvider : MainAPI() {
     override val name = "Galaxy Novels"
     override val mainUrl = "https://galaxynovels.com"
     override val lang = "ar"
-    override val iconId = R.drawable.fiber_new_24px
+    override val iconId = R.drawable.icon_galaxynovels
     override val hasMainPage = true
     override val rateLimitTime = 500L
 

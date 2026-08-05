@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap
 open class NovelFranceProvider : MainAPI() {
     override val name = "Novel France"
     override val mainUrl = "https://novelfrance.fr"
-    override val iconId = R.drawable.fiber_new_24px // Placeholder as the original icon was not found in res
+    override val iconId = R.drawable.icon_novelfrance
     override val hasMainPage = true
     override val hasReviews = true
     override val rateLimitTime = 500L
