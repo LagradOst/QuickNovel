@@ -17,8 +17,10 @@ import com.lagradost.quicknovel.providers.BrightNovelProvider
 import com.lagradost.quicknovel.providers.DevilNovelsProvider
 import com.lagradost.quicknovel.providers.ChrysanthemumGardenProvider
 import com.lagradost.quicknovel.providers.FanMtlnProvider
+import com.lagradost.quicknovel.providers.FaqWikiProvider
 import com.lagradost.quicknovel.providers.FenrirRealProvider
 import com.lagradost.quicknovel.providers.FreewebnovelProvider
+import com.lagradost.quicknovel.providers.GalaxyNovelsProvider
 import com.lagradost.quicknovel.providers.GraycityProvider
 import com.lagradost.quicknovel.providers.HiraethTranslationProvider
 import com.lagradost.quicknovel.providers.IndoWebNovelProvider
@@ -36,6 +38,7 @@ import com.lagradost.quicknovel.providers.NovLoveProvider
 import com.lagradost.quicknovel.providers.NovelBinProvider
 import com.lagradost.quicknovel.providers.NovelBuddyProvider
 import com.lagradost.quicknovel.providers.NovelFireProvider
+import com.lagradost.quicknovel.providers.NovelFranceProvider
 import com.lagradost.quicknovel.providers.NovelFullNETProvider
 import com.lagradost.quicknovel.providers.NovelFullProvider
 import com.lagradost.quicknovel.providers.NovelLightProvider
@@ -44,6 +47,8 @@ import com.lagradost.quicknovel.providers.NovelPhoenixProvider
 import com.lagradost.quicknovel.providers.NovelasLigerasProvider
 import com.lagradost.quicknovel.providers.PawReadProver
 import com.lagradost.quicknovel.providers.PlanetaEpubProvider
+import com.lagradost.quicknovel.providers.QuanbenProvider
+import com.lagradost.quicknovel.providers.RanobeHubProvider
 import com.lagradost.quicknovel.providers.RanobesProvider
 import com.lagradost.quicknovel.providers.RanovelProvider
 import com.lagradost.quicknovel.providers.ReadNovelFullProvider
@@ -82,9 +87,11 @@ class Apis {
             //EfremnetProvider(), // domain is expired
             //EngNovelProvider(),
             FanMtlnProvider(),
+            FaqWikiProvider(),
             FenrirRealProvider(),
             FreewebnovelProvider(),
             GraycityProvider(),
+            GalaxyNovelsProvider(),
             HiraethTranslationProvider(),
             IndoWebNovelProvider(),
             KolNovelProvider(),
@@ -107,14 +114,17 @@ class Apis {
             NovelFullProvider(),
             NovelLightProvider(),
             NovelManiaProvider(),
+            NovelFranceProvider(),
             //NovelPassionProvider(), // Site gone
             //NovelsOnlineProvider(), // not working
             NovLoveProvider(),
             NovelPhoenixProvider(),
             PawReadProver(),
             PlanetaEpubProvider(),
+            QuanbenProvider(),
             RanobesProvider(),
             RanovelProvider(),
+            RanobeHubProvider(),
             //RanobesProvider(),
             //ReadAnyBookProvider(), // Books locked behind login
             ReadfromnetProvider(),
