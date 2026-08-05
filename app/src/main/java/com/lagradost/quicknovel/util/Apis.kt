@@ -46,6 +46,8 @@ import com.lagradost.quicknovel.providers.NovelPhoenixProvider
 import com.lagradost.quicknovel.providers.NovelasLigerasProvider
 import com.lagradost.quicknovel.providers.PawReadProver
 import com.lagradost.quicknovel.providers.PlanetaEpubProvider
+import com.lagradost.quicknovel.providers.QuanbenProvider
+import com.lagradost.quicknovel.providers.RanobeHubProvider
 import com.lagradost.quicknovel.providers.RanobesProvider
 import com.lagradost.quicknovel.providers.RanovelProvider
 import com.lagradost.quicknovel.providers.ReadNovelFullProvider
@@ -117,8 +119,10 @@ class Apis {
             NovelPhoenixProvider(),
             PawReadProver(),
             PlanetaEpubProvider(),
+            QuanbenProvider(),
             RanobesProvider(),
             RanovelProvider(),
+            RanobeHubProvider(),
             //RanobesProvider(),
             //ReadAnyBookProvider(), // Books locked behind login
             ReadfromnetProvider(),
