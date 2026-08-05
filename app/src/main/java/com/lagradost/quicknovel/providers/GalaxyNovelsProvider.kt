@@ -20,6 +20,7 @@ import android.net.Uri
 open class GalaxyNovelsProvider : MainAPI() {
     override val name = "Galaxy Novels"
     override val mainUrl = "https://galaxynovels.com"
+    override val lang = "ar"
     override val iconId = R.drawable.fiber_new_24px
     override val hasMainPage = true
     override val rateLimitTime = 500L
@@ -42,7 +43,7 @@ open class GalaxyNovelsProvider : MainAPI() {
             val name = titleEl.text().trim()
             val url = titleEl.attr("href")
             val img = el.selectFirst("img.wor-cover-img")
-            val posterUrl = fixUrlNull(img?.attr("src"))
+            val posterUrl = fixUrlNull(img?.attr("data-src"))
 
             newSearchResponse(name, url) {
                 this.posterUrl = posterUrl
@@ -86,7 +87,7 @@ open class GalaxyNovelsProvider : MainAPI() {
                 index.chapters.forEach { ch ->
                     chapters.add(newChapterData(
                         ch.label + (if (ch.title.isNullOrBlank()) "" else ": ${ch.title}"),
-                        "$url/chapter-${ch.id}/"
+                        "${url.removeSuffix("/")}/chapter-${ch.id}/"
                     ) {
                         dateOfRelease = ch.dateIso
                     })
@@ -120,22 +121,17 @@ open class GalaxyNovelsProvider : MainAPI() {
         val chapterId = Regex("chapter-(\\d+)").find(url)?.groupValues?.get(1)
         if (chapterId != null) {
             val apiUrl = "$mainUrl/wp-json/wor-reader-app/v1/chapters/$chapterId"
-            try {
+            runCatching {
                 val response = app.get(apiUrl).parsed<ChapterContentResponseJson>()
                 if (response.data?.contentHtml?.isNotBlank() == true) {
                     return response.data.contentHtml
                 }
-            } catch (e: Exception) {
-                // Fallback to HTML parsing
             }
         }
 
         val document = app.get(url).document
         val content = document.selectFirst("article.wor-chapter-content, .wor-chapter-text, .entry-content")
-
-        // Clean content
         content?.select("script, style, .ads, .adsbygoogle, iframe")?.remove()
-
         return content?.html()
     }
 
