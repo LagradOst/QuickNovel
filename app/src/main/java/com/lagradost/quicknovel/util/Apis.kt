@@ -37,6 +37,7 @@ import com.lagradost.quicknovel.providers.NovLoveProvider
 import com.lagradost.quicknovel.providers.NovelBinProvider
 import com.lagradost.quicknovel.providers.NovelBuddyProvider
 import com.lagradost.quicknovel.providers.NovelFireProvider
+import com.lagradost.quicknovel.providers.NovelFranceProvider
 import com.lagradost.quicknovel.providers.NovelFullNETProvider
 import com.lagradost.quicknovel.providers.NovelFullProvider
 import com.lagradost.quicknovel.providers.NovelLightProvider
@@ -109,6 +110,7 @@ class Apis {
             NovelFullProvider(),
             NovelLightProvider(),
             NovelManiaProvider(),
+            NovelFranceProvider(),
             //NovelPassionProvider(), // Site gone
             //NovelsOnlineProvider(), // not working
             NovLoveProvider(),
