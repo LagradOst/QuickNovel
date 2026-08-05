@@ -17,6 +17,7 @@ import com.lagradost.quicknovel.providers.BrightNovelProvider
 import com.lagradost.quicknovel.providers.DevilNovelsProvider
 import com.lagradost.quicknovel.providers.ChrysanthemumGardenProvider
 import com.lagradost.quicknovel.providers.FanMtlnProvider
+import com.lagradost.quicknovel.providers.FaqWikiProvider
 import com.lagradost.quicknovel.providers.FenrirRealProvider
 import com.lagradost.quicknovel.providers.FreewebnovelProvider
 import com.lagradost.quicknovel.providers.GalaxyNovelsProvider
@@ -86,6 +87,7 @@ class Apis {
             //EfremnetProvider(), // domain is expired
             //EngNovelProvider(),
             FanMtlnProvider(),
+            FaqWikiProvider(),
             FenrirRealProvider(),
             FreewebnovelProvider(),
             GraycityProvider(),
