@@ -15,7 +15,7 @@ import com.lagradost.quicknovel.ui.UiImage
 import com.lagradost.quicknovel.ui.img
 import com.lagradost.quicknovel.util.DefaultImagesHeaders
 import kotlinx.coroutines.sync.Mutex
-import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
 
 const val USER_AGENT =
     "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
@@ -128,13 +128,27 @@ val String?.textClean: String?
         ?.replace("\\+([A-z])".toRegex(), "$1") //\+([^-\s])
             )
 
+fun packageAsXHtml(title: String, bodyHtml: String): String {
+    return """
+        <?xml version='1.0' encoding='utf-8'?>
+        <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+        <head>
+            <title>$title</title>
+            <link rel="stylesheet" type="text/css" href="style.css"/>
+        </head>
+        <body>
+            $bodyHtml
+        </body>
+        </html>
+    """.trimIndent()
+}
+
 fun stripHtml(
-    txt: String,
+    document: Document,
     chapterName: String? = null,
     chapterIndex: Int? = null,
     stripAuthorNotes: Boolean
 ): String {
-    val document = Jsoup.parse(txt)
     try {
         if (stripAuthorNotes) {
             document.select("div.qnauthornotecontainer").remove()

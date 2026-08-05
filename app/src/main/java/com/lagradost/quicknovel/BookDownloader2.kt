@@ -17,7 +17,6 @@ import android.graphics.BitmapFactory
 import android.graphics.RectF
 import android.net.Uri
 import android.os.Build
-import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -50,10 +49,10 @@ import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.BookDownloader2Helper.createQuickStream
 import com.lagradost.quicknovel.BookDownloader2Helper.generateId
 import com.lagradost.quicknovel.BookDownloader2Helper.getDirectory
+import com.lagradost.quicknovel.BookDownloader2Helper.getGeneralCSStyleForEPUBs
 import com.lagradost.quicknovel.BookDownloader2Helper.getSafeByteArray
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
-import com.lagradost.quicknovel.DataStore.getSharedPrefs
 import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.ImageDownloader.getImageBitmapFromUrl
 import com.lagradost.quicknovel.NotificationHelper.etaToString
@@ -73,7 +72,6 @@ import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.Event
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
-import com.lagradost.quicknovel.util.amap
 import com.lagradost.quicknovel.util.pmap
 import com.lagradost.safefile.SafeFile
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
@@ -99,6 +97,9 @@ import me.ag2s.epublib.domain.Resource
 import me.ag2s.epublib.epub.EpubReader
 import me.ag2s.epublib.epub.EpubWriter
 import me.ag2s.epublib.util.zip.AndroidZipFile
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
+import org.jsoup.nodes.Entities
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -191,6 +192,32 @@ object BookDownloader2Helper {
 
     fun getFilenameIMG(apiName: String, author: String, name: String): String {
         return "${getDirectory(apiName, author, name)}${fs}poster.jpg".replace("$fs$fs", "$fs")
+    }
+
+    fun getGeneralCSStyleForEPUBs(): Resource {
+        val cssContent = """
+            body {
+              display: block;
+              font-size: 1em;
+              padding-left: 0;
+              padding-right: 0;
+              margin: 0 5pt;
+            }
+            p {
+              display: block;
+              margin: 1em 0;
+            }
+            @page {
+              margin-bottom: 5pt;
+              margin-top: 5pt;
+            }
+        """.trimIndent()
+        return Resource(
+            "style.css",
+            cssContent.toByteArray(),
+            "style.css",
+            MediaTypes.CSS
+        )
     }
 
 
@@ -727,10 +754,19 @@ object BookDownloader2Helper {
             if (firstChar == -1) {
                 return null
             } // Invalid File
+
             val title = text.substring(0, firstChar)
             val data = text.substring(firstChar + 1)
-            val html = if (!stripHtml) data else stripHtml(
-                data,
+            val document = Jsoup.parse(data)
+
+            document.outputSettings().apply {
+                //translate <br> to <br />, <img> to <img... /> etc.
+                syntax(Document.OutputSettings.Syntax.xml)
+                //translate special characters to their Unicode equivalent in xhtml
+                escapeMode(Entities.EscapeMode.xhtml)
+            }
+            val html = if (!stripHtml) document.html() else stripHtml(
+                document,
                 title,
                 index,
                 stripAuthorNotes
@@ -860,6 +896,8 @@ object BookDownloader2Helper {
                     fileName.nameWithoutExtension.toIntOrNull() ?: return@mapNotNull null
                 }?.filter { x -> x >= start }?.sorted()
 
+                book.resources.add(getGeneralCSStyleForEPUBs())
+
                 chapters?.pmap { threadIndex ->
 
                     val filepath =
@@ -874,8 +912,8 @@ object BookDownloader2Helper {
                     Triple(
                         Resource(
                             "id$threadIndex",
-                            chap.html.toByteArray(),
-                            "chapter$threadIndex.html",
+                            packageAsXHtml(chap.title, chap.html).toByteArray(),
+                            "chapter${threadIndex}.html",
                             MediaTypes.XHTML
                         ),
                         threadIndex,
@@ -1888,19 +1926,6 @@ object BookDownloader2 {
     //to avoid img headers or icons
     val MIN_IMAGE_SIZE = 30 * 1024
 
-
-    private fun createHtmlWrapper(title: String, content: String): String {
-        return """
-        <html xmlns="http://www.w3.org/1999/xhtml">
-            <head><meta charset="utf-8"/><title>$title</title></head>
-            <body>
-                $content
-            </body>
-        </html>
-    """.trimIndent()
-    }
-
-
     //Import pdf area -----------------------------------------------
     private suspend fun handleDownloadActions(
         id: Int,
@@ -2115,6 +2140,8 @@ object BookDownloader2 {
                 }
             }
 
+            book.resources.add(getGeneralCSStyleForEPUBs())
+
             //init progress
             while (true) {
                 //check notification options
@@ -2148,7 +2175,7 @@ object BookDownloader2 {
                 // collect N pages as sections to chapters
                 if (pageIdx % pagesPerChapter == 0 || pageIdx == totalPages) {
                     val sectionTitle = "${context.getString(R.string.chapter)} $chapterCount"
-                    val htmlContent = createHtmlWrapper(sectionTitle, currentChapterText.toString())
+                    val htmlContent = packageAsXHtml(sectionTitle, currentChapterText.toString())
 
                     //add chapter to the book
                     File(tempFolder, "chapter$chapterCount.xhtml").writeText(htmlContent)
