@@ -14,6 +14,6 @@ enum class OrientationType(val prefValue: Int, val flag: Int, @StringRes val str
     LOCKED_LANDSCAPE(5, ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE, R.string.rotation_force_landscape, R.drawable.ic_baseline_screen_lock_landscape_24);
 
     companion object {
-        fun fromSpinner(position: Int?) = values().find { value -> value.prefValue == position } ?: DEFAULT
+        fun fromSpinner(position: Int?) = entries.find { value -> value.prefValue == position } ?: DEFAULT
     }
 }

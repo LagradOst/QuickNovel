@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.ObserveEffect
 import com.lagradost.quicknovel.compose.loadPrimaryColor
@@ -64,8 +65,10 @@ class MainPageFragment : Fragment() {
             ) {
                 val state by viewModel.state.collectAsStateWithLifecycle()
 
-                ObserveEffect(viewModel.effect) { _ ->
-                    // Not yet implemented
+                ObserveEffect(viewModel.effect) { effect ->
+                    when(effect) {
+                        is MainPageEffect.ErrorLoading -> showToast(effect.error.toString())
+                    }
                 }
                 MainPageScreen(state,viewModel::onAction)
             }

@@ -85,6 +85,7 @@ data class MainPageDialog(
     val type: DialogType,
 )
 
+@Immutable
 sealed class MainPageAction {
     data class ResultAction(val action: SearchResponseAction) : MainPageAction()
 
@@ -97,6 +98,7 @@ sealed class MainPageAction {
     data class SelectDialog(val type: DialogType, val selected: Int) : MainPageAction()
 }
 
+@Immutable
 sealed class MainPageEffect {
     data class ErrorLoading(val error: Throwable) : MainPageEffect()
 }
@@ -167,7 +169,7 @@ class MainPageViewModel2(
                     copy(filter = filter.copy(loading = false, error = error))
                 }
                 postEffect {
-                    MainPageEffect.ErrorLoading(error)
+                    MainPageEffect.ErrorLoading(error = error)
                 }
             }.onSuccess { response ->
                 val newList = fromList.addingAll(response.list)

@@ -93,7 +93,7 @@ class DefaultStateContainer<State>(initialState: State) : StateContainer<State> 
 
 class DefaultEffectContainer<Effect> : EffectContainer<Effect> {
     private val _effect = Channel<Effect>() // To ensure events are sent
-    override val effect: Flow<Effect> get() = _effect.receiveAsFlow()
+    override val effect: Flow<Effect> = _effect.receiveAsFlow()
 
     override suspend fun postEffect(builder: () -> Effect) {
         _effect.send(builder())

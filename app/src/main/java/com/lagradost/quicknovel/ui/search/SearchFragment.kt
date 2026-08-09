@@ -64,7 +64,6 @@ class SearchFragment : Fragment() {
                                 MainPageFragment.newInstance(effect.api, effect.filter)
                             )
                         }
-
                     }
                 }
 
