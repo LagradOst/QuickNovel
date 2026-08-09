@@ -14,6 +14,7 @@ import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import com.lagradost.quicknovel.util.AppUtils.parseJson
+import java.util.concurrent.ConcurrentHashMap
 
 class BrightNovelProvider: MainAPI() {
     override val name = "Bright Novel"
@@ -23,7 +24,7 @@ class BrightNovelProvider: MainAPI() {
     override val hasMainPage = true
     override val rateLimitTime = 1000L
     override val hasReviews = true
-    private val novelsIdRequired = mutableMapOf<String, String>()
+    val novelsIdRequired = ConcurrentHashMap<String, String>()
 
     override val mainCategories = listOf(
         "All" to "",
