@@ -219,7 +219,7 @@ class APIRepository(val api: MainAPI) {
      * */
     suspend fun loadHtml(url: String): String? {
         return try {
-            api.loadHtml(api.fixUrl(url))?.removeAds()
+            api.loadHtml(url)?.removeAds()
         } catch (e: Exception) {
             logError(e)
             null
