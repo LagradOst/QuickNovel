@@ -129,10 +129,8 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
 
         private fun startDownload(data: Any, downloadId: Int, context: Context) {
             getWorkerManager(context).enqueueUniqueWork(
-                // The id keeps a batch enqueued in the same millisecond from chaining under APPEND,
-                // where a single failure would cancel every download behind it
-                ID_DOWNLOAD + downloadId + "_" + System.currentTimeMillis(),
-                ExistingWorkPolicy.APPEND,
+                ID_DOWNLOAD + downloadId, // Only 1 download / worker
+                ExistingWorkPolicy.KEEP,
                 OneTimeWorkRequest.Builder(DownloadFileWorkManager::class.java)
                     .setInputData(
                         Data.Builder()

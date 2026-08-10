@@ -444,6 +444,7 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         BookDownloader2.bookmarkChanged += this::onBookmarkChanged
         BookDownloader2.refreshingChanged += this::onRefreshingChanged
         BookDownloader2.chapterReadChanged += this::onChapterChanged
+        BookDownloader2.openChanged += this::onOpen
     }
 
     override fun onCleared() {
@@ -453,6 +454,22 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         BookDownloader2.bookmarkChanged -= this::onBookmarkChanged
         BookDownloader2.refreshingChanged -= this::onRefreshingChanged
         BookDownloader2.chapterReadChanged -= this::onChapterChanged
+        BookDownloader2.openChanged -= this::onOpen
+    }
+
+    fun onOpen(id : Int) {
+        updateState {
+            copy(pages = pages.updateRows {
+                update(id) {
+                    @OptIn(ExperimentalUuidApi::class)
+                    copy(
+                        chaptersRead = ImmutableSearchResponse.chaptersRead(name),
+                        timeOfPageOpened = ImmutableSearchResponse.timeOfPageOpened(id),
+                        epubSize = ImmutableSearchResponse.epubSize(id)
+                    )
+                }
+            })
+        }
     }
 
     fun onChapterChanged(name: String) {
@@ -467,7 +484,7 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                     out = out.update(id) {
                         copy(
                             chaptersRead = ImmutableSearchResponse.chaptersRead(name),
-                            timeOfPageOpened = System.currentTimeMillis(),
+                            timeOfPageOpened = ImmutableSearchResponse.timeOfPageOpened(id),
                             epubSize = ImmutableSearchResponse.epubSize(id)
                         )
                     }

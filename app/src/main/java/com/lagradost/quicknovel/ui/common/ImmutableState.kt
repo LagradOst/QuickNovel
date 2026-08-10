@@ -247,7 +247,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
     val timeOfCached: Long,
     /** The time a "new" chapter got downloaded, also known as "Recently updated" */
     val timeOfChapterDownloaded: Long? = null,
-    /** The time we actually read the item, also known as "Recently opened" */
+    /** The time we actually read the item or opened the view, also known as "Recently opened" */
     val timeOfPageOpened: Long? = null,
     /** The size of the last written epub in chapters, aka how many chapters have we actually might have read */
     val epubSize: Int? = null,

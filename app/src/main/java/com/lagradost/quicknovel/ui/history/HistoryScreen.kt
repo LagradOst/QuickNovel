@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -88,6 +89,13 @@ fun HistoryScreen(
                 },
                 containerColor = colors.surfaceVariant,
                 contentColor = colors.onBackground,
+                // Elevation actually changes the color, because who wanted a sane framework
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 0.dp,
+                    pressedElevation = 0.dp,
+                    focusedElevation = 0.dp,
+                    hoveredElevation = 0.dp
+                ),
                 text = {
                     Text(stringResource(R.string.filter_dialog_sort_by))
                 },
