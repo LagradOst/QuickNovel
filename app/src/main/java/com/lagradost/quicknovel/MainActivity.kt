@@ -687,7 +687,7 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         resultviewPreviewDescription.text =
-                            d.synopsis ?: getString(R.string.no_data)
+                            d.synopsis?.html() ?: getString(R.string.no_data)
 
                         resultviewPreviewDescription.setOnClickListener { view ->
                             view.context?.let { ctx ->
