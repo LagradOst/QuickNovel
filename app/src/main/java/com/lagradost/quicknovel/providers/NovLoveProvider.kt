@@ -1,9 +1,12 @@
 package com.lagradost.quicknovel.providers
 
+import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.fixUrlNull
+import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
+import org.jsoup.nodes.Document
 import java.util.Locale
 
 class NovLoveProvider  : MeioNovelProvider()
@@ -11,7 +14,6 @@ class NovLoveProvider  : MeioNovelProvider()
     override val name = "NovLove"
     override val mainUrl = "https://novelnice.com"
     override val hasMainPage = false
-    override val usesCloudFlareKiller = true
     override val lang = "en"
 
     override suspend fun load(url: String): LoadResponse? {
@@ -22,7 +24,7 @@ class NovLoveProvider  : MeioNovelProvider()
         val document = app.get(finalUrl).document
         val name = document.selectFirst("div.post-title > h1")?.text()?.clean() ?: return null
 
-        return newStreamResponse(name, url, getChapters(url)) {
+        return newStreamResponse(name, url, getChaptersNovLove(document, url)) {
             tags = document.select("div.genres-content > a").map { it.text() }
             author = document.selectFirst("div.author-content > a")?.text()
 
@@ -43,6 +45,25 @@ class NovLoveProvider  : MeioNovelProvider()
             } ?: 0
 
             related = getRelated(document)
+        }
+    }
+
+    suspend fun getChaptersNovLove(document: Document, url:String ): List<ChapterData> {
+        val slug = url.removeSuffix("/").substringAfterLast("/")
+        val range = document.select("div.post-content > div")
+            .first { it.selectFirst("h5")?.text()?.trim() == "Chapters" }
+            .selectFirst("div.summary-content")
+            ?.text()
+            ?.trim()
+            ?.toIntOrNull() ?: return emptyList()
+        return if(range <= 200){//batch of 200 chapters
+            getChapters(url)
+        }
+        else (1..range).mapNotNull { c ->
+            newChapterData(
+                name = "Chapter $c",
+                url = "$mainUrl/read/$slug/chapter-$c",
+            )
         }
     }
 }

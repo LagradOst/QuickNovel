@@ -16,7 +16,7 @@ class LnoriProvider :  MainAPI() {
     override val mainUrl = "https://lnori.com"
     override val iconId = R.drawable.icon_lnori
     override val iconBackgroundId = R.color.white
-
+    override val usesCloudFlareKiller = true
 
     override val hasMainPage = true
 
