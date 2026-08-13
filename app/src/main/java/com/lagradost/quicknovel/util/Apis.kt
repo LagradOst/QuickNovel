@@ -20,6 +20,7 @@ import com.lagradost.quicknovel.providers.FanMtlnProvider
 import com.lagradost.quicknovel.providers.FaqWikiProvider
 import com.lagradost.quicknovel.providers.FenrirRealProvider
 import com.lagradost.quicknovel.providers.FreewebnovelProvider
+import com.lagradost.quicknovel.providers.GadgetizedPandaProvider
 import com.lagradost.quicknovel.providers.GalaxyNovelsProvider
 import com.lagradost.quicknovel.providers.GraycityProvider
 import com.lagradost.quicknovel.providers.HiraethTranslationProvider
@@ -92,6 +93,7 @@ class Apis {
             FenrirRealProvider(),
             FreewebnovelProvider(),
             GraycityProvider(),
+            GadgetizedPandaProvider(),
             GalaxyNovelsProvider(),
             HiraethTranslationProvider(),
             IndoWebNovelProvider(),
