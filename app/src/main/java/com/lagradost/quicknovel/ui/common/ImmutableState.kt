@@ -72,8 +72,6 @@ import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
 import me.xdrop.fuzzywuzzy.FuzzySearch
-import kotlin.collections.component1
-import kotlin.collections.component2
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -110,6 +108,9 @@ enum class SearchResponseOperation {
     /** Resume the download of the item */
     Resume,
 
+    /** Stop the download of this item */
+    Stop,
+
     /** No operation */
     NoOp,
 }
@@ -133,9 +134,7 @@ data class ImmutableChapterData @OptIn(ExperimentalUuidApi::class) constructor(
                 views = chapter.views,
                 index = index,
             )
-
     }
-
 }
 
 @Immutable
@@ -148,6 +147,7 @@ data class ImmutableReview @OptIn(ExperimentalUuidApi::class) constructor(
     val avatarHeaders: PersistentMap<String, String>? = null,
     val rating: Int? = null,
     val ratings: PersistentList<Pair<Int, String>>? = null,
+    val containsSpoilers: Boolean = false,
     val randomUuid: Uuid = Uuid.random()
 ) {
     companion object {
@@ -162,6 +162,7 @@ data class ImmutableReview @OptIn(ExperimentalUuidApi::class) constructor(
                 avatarHeaders = review.avatarHeaders?.toPersistentMap(),
                 rating = review.rating,
                 ratings = review.ratings?.toPersistentList(),
+                containsSpoilers = review.containsSpoilers
             )
     }
 
@@ -254,7 +255,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
     /** How many chapters we have read with the built-in reader */
     val chaptersRead: Int,
     val loadData: ImmutableLoadData? = null,
-    val reviewData : String? = null,
+    val reviewData: String? = null,
 ) {
 
     fun matchesQuery(query: String): Boolean =
@@ -570,10 +571,17 @@ data class ImmutableDownloadState(
     }
 
     /** Get the associated action */
+    val action: DownloadStateAction get() = DownloadStateAction(status)
+}
+
+@Immutable
+data class DownloadStateAction(
+    val status: DownloadState
+) {
     val operation
         get() =
             when (status) {
-                DownloadState.IsDownloading -> SearchResponseOperation.Pause
+                DownloadState.IsDownloading -> SearchResponseOperation.Stop
                 DownloadState.IsPaused -> SearchResponseOperation.Resume
                 DownloadState.IsStopped -> SearchResponseOperation.Download
                 DownloadState.IsFailed -> SearchResponseOperation.Download
@@ -582,6 +590,39 @@ data class ImmutableDownloadState(
                 DownloadState.Nothing -> SearchResponseOperation.Download
             }
 
+    val operationName
+        get() =
+            when (status) {
+                DownloadState.IsDownloading -> R.string.stop
+                DownloadState.IsPaused -> R.string.resume
+                DownloadState.IsStopped -> R.string.stopped
+                DownloadState.IsFailed -> R.string.failed
+                DownloadState.IsDone -> R.string.downloaded
+                DownloadState.IsPending -> R.string.loading
+                DownloadState.Nothing -> R.string.download
+            }
+
+    val icon
+        get() = when (status) {
+            DownloadState.IsDownloading -> R.drawable.stop_circle_24px
+            DownloadState.IsPaused -> R.drawable.netflix_play
+            DownloadState.IsStopped -> R.drawable.arrow_circle_down_24px
+            DownloadState.IsFailed -> R.drawable.arrow_circle_down_24px
+            DownloadState.IsDone -> R.drawable.ic_baseline_check_24
+            DownloadState.IsPending -> R.drawable.nothing
+            DownloadState.Nothing -> R.drawable.arrow_circle_down_24px
+        }
+
+    val iconBig
+        get() = when (status) {
+            DownloadState.IsDownloading -> R.drawable.ic_baseline_stop_24
+            DownloadState.IsPaused -> R.drawable.netflix_play
+            DownloadState.IsStopped -> R.drawable.ic_sharp_clear_24
+            DownloadState.IsFailed -> R.drawable.ic_sharp_clear_24
+            DownloadState.IsDone -> R.drawable.ic_baseline_check_24
+            DownloadState.IsPending -> R.drawable.nothing
+            DownloadState.Nothing -> R.drawable.netflix_download
+        }
 }
 
 /**

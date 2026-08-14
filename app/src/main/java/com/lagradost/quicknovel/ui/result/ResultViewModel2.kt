@@ -29,6 +29,7 @@ import com.lagradost.quicknovel.compose.DefaultEffectContainer
 import com.lagradost.quicknovel.compose.DefaultStateContainer
 import com.lagradost.quicknovel.compose.EffectContainer
 import com.lagradost.quicknovel.compose.StateContainer
+import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.common.ImmutableChapterData
 import com.lagradost.quicknovel.ui.common.ImmutableDownloadState
 import com.lagradost.quicknovel.ui.common.ImmutableReview
@@ -36,6 +37,7 @@ import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseOperation
 import com.lagradost.quicknovel.ui.download.DownloadFragment
+import com.lagradost.quicknovel.ui.result.ResultDialog.*
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.collections.immutable.PersistentList
@@ -53,7 +55,15 @@ data class ResultState(
     val responseError: Throwable? = null,
     val loadingResponse: Boolean = true,
     val reviews: ResultReviewState = ResultReviewState(),
+    val bookmark: ReadType = ReadType.NONE,
+    val dialog: ResultDialog? = null
 )
+
+@Immutable
+sealed class ResultDialog {
+    data class Bookmark(val selected : ReadType) : ResultDialog()
+}
+
 
 @Immutable
 data class ResultReviewState(
@@ -69,6 +79,9 @@ enum class ChapterOperation {
 
 @Immutable
 sealed class ResultPageAction {
+    data class SetBookmark(val type: ReadType) : ResultPageAction()
+    object OpenBookmark : ResultPageAction()
+    object DismissDialog : ResultPageAction()
     object ExpandReviews : ResultPageAction()
     data class ResultAction(val action: SearchResponseAction) : ResultPageAction()
     data class ChapterAction(
@@ -213,6 +226,24 @@ class ResultViewModel2(
                 if (state.value.reviews.loading) return
                 viewModelScope.launch {
                     expandReviews()
+                }
+            }
+
+            ResultPageAction.OpenBookmark -> {
+                updateState {
+                    copy(dialog = Bookmark(bookmark))
+                }
+            }
+
+            ResultPageAction.DismissDialog -> {
+                updateState {
+                    copy(dialog = null)
+                }
+            }
+
+            is ResultPageAction.SetBookmark -> {
+                updateState {
+                    copy(bookmark = action.type)
                 }
             }
         }
@@ -382,15 +413,28 @@ class ResultViewModel2(
                     DownloadActionType.Resume
                 )
             }
+
+            SearchResponseOperation.Stop -> {
+                val id = action.response.id!!
+                BookDownloader2.addPendingAction(
+                    id,
+                    DownloadActionType.Stop
+                )
+            }
         }
     }
 
     private fun readEpub(response: ImmutableSearchResponse) = viewModelScope.launch {
         withContext(Dispatchers.Default) {
+
             val id = response.id!!
             val downloadState = response.downloadState!!
             try {
                 if (response.isImported && downloadState.progress < downloadState.total) {
+                    updateState {
+                        @OptIn(ExperimentalUuidApi::class)
+                        copy(response = this@updateState.response?.copy(generating = true))
+                    }
                     BookDownloader2.preloadPartialImportedPdf(response)
                 }
                 BookDownloader2.readEpub(
@@ -400,11 +444,21 @@ class ResultViewModel2(
                     response.name,
                     response.apiName,
                     response.synopsis
-                )
+                ) {
+                    updateState {
+                        @OptIn(ExperimentalUuidApi::class)
+                        copy(response = this@updateState.response?.copy(generating = true))
+                    }
+                }
             } finally {
                 val newTimeOfPageOpened = System.currentTimeMillis()
                 ImmutableSearchResponse.setTimeOfPageOpened(id, newTimeOfPageOpened)
                 BookDownloader2.chapterReadChanged(response.name)
+
+                updateState {
+                    @OptIn(ExperimentalUuidApi::class)
+                    copy(response = this@updateState.response?.copy(generating = false))
+                }
             }
         }
     }
