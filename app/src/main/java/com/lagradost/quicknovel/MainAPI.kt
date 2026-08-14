@@ -61,7 +61,7 @@ abstract class MainAPI {
     open suspend fun loadReviews(
         url: String,
         page: Int,
-        showSpoilers: Boolean = false
+        data : String?,
     ): List<UserReview> {
         throw NotImplementedError()
     }
@@ -174,14 +174,15 @@ data class HeadMainPageResponse(
 )
 
 data class UserReview(
-    val review: String,
-    val reviewTitle: String? = null,
-    val username: String? = null,
-    val reviewDate: String? = null,
-    val avatarUrl: String? = null,
-    val rating: Int? = null,
-    val ratings: List<Pair<Int, String>>? = null,
-    val avatarHeaders: Map<String, String>? = null,
+    var review: String,
+    var title: String? = null,
+    var username: String? = null,
+    var avatarUrl: String? = null,
+    var rating: Int? = null,
+    var ratings: List<Pair<Int, String>>? = null,
+    var date: String? = null,
+    var avatarHeaders: Map<String, String>? = null,
+    var containsSpoilers : Boolean = false,
 )
 /*
 data class MainPageResponse(
@@ -220,6 +221,22 @@ fun MainAPI.newSearchResponse(
     )
     builder.initializer()
     builder.posterHeaders = fixPosterHeaders(builder.posterHeaders)
+    return builder
+}
+
+fun MainAPI.newReview(
+    content: String,
+    fix: Boolean = true,
+    initializer: UserReview.() -> Unit = { },
+): UserReview {
+    val builder = UserReview(
+        review = content
+    )
+    builder.initializer()
+    if(fix) {
+        builder.avatarUrl = fixUrlNull(builder.avatarUrl)
+    }
+    builder.avatarHeaders = fixPosterHeaders(builder.avatarHeaders)
     return builder
 }
 
@@ -264,7 +281,7 @@ interface LoadResponse {
     val image: UiImage? get() = img(url = posterUrl, headers = posterHeaders)
     val apiName: String
     var related: List<SearchResponse>?
-
+    var reviewData : String?
     fun downloadImage(): UiImage? {
 
         return if ((apiName == IMPORT_SOURCE || apiName == IMPORT_SOURCE_PDF)) {
@@ -297,7 +314,8 @@ data class StreamResponse(
     override var status: ReleaseStatus? = null,
     override var posterHeaders: Map<String, String>? = null,
     var nextChapter: ChapterData? = null,
-    override var related: List<SearchResponse>? = null
+    override var related: List<SearchResponse>? = null,
+    override var reviewData: String? = null
 ) : LoadResponse
 
 suspend fun MainAPI.newStreamResponse(
@@ -373,7 +391,8 @@ data class EpubResponse(
     var downloadLinks: List<DownloadLink>,
     var downloadExtractLinks: List<DownloadExtractLink>,
     override val apiName: String,
-    override var related: List<SearchResponse>? = null
+    override var related: List<SearchResponse>? = null,
+    override var reviewData: String? = null
 ) : LoadResponse
 
 suspend fun MainAPI.newEpubResponse(

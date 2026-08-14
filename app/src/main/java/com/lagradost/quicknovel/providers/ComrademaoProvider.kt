@@ -70,7 +70,7 @@ class ComrademaoProvider : MainAPI() {
         if (genres == null) {
             genres = tags
         } else {
-            genres?.addAll(tags ?: listOf())
+            genres.addAll(tags ?: listOf())
         }
 
         val chapters = document.select("li[data-num]").mapNotNull {

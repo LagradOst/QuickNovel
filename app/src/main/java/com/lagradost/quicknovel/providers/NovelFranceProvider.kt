@@ -10,10 +10,10 @@ import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
+import com.lagradost.quicknovel.newReview
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
-import java.util.concurrent.ConcurrentHashMap
 
 open class NovelFranceProvider : MainAPI() {
     override val name = "Novel France"
@@ -23,7 +23,6 @@ open class NovelFranceProvider : MainAPI() {
     override val hasReviews = true
     override val rateLimitTime = 500L
     override val lang = "fr"
-    val novelsIdRequired = ConcurrentHashMap<String, String>()
     private val pageSize = 24
 
     override val orderBys = listOf(
@@ -119,7 +118,6 @@ open class NovelFranceProvider : MainAPI() {
         val chapters = (1..data.count.chapters).map { chNumber ->
             newChapterData("chapter $chNumber", "$mainUrl/novel/$slug/chapter-$chNumber")
         }
-        novelsIdRequired[url] = data.id
         return newStreamResponse(data.title, url, chapters) {
             author = data.author
             posterUrl = fixUrlNull(data.coverImage)
@@ -127,11 +125,13 @@ open class NovelFranceProvider : MainAPI() {
             tags = data.genres.map { it.name }
             rating = (data.rating * 200).toInt()
             views = data.views
-            related = app.get(url).document.let{ getRelated(it) }
+            reviewData = data.id
+            related = app.get(url).document.let { getRelated(it) }
             setStatus(data.status)
         }
     }
-    fun getRelated(dc: org.jsoup.nodes.Document):List<SearchResponse>{
+
+    fun getRelated(dc: org.jsoup.nodes.Document): List<SearchResponse> {
         return dc.select("div.space-y-6 > div.space-y-4 > a.border.group").mapNotNull { novel ->
             newSearchResponse(
                 name = novel.selectFirst("h4")?.text() ?: return@mapNotNull null,
@@ -141,33 +141,31 @@ open class NovelFranceProvider : MainAPI() {
             }
         }
     }
-    override suspend fun loadReviews(
-        url: String,
-        page: Int,
-        showSpoilers: Boolean
-    ): List<UserReview> {
-        val reviewData = novelsIdRequired[url] ?: return emptyList()
-        val realUrl = "$mainUrl/api/comments?novelId=${reviewData}&type=REVIEW&sortBy=newest&page=$page&limit=15&hasRating=true"
+
+    override suspend fun loadReviews(url: String, page: Int, data: String?): List<UserReview> {
+        val reviewData = data ?: return emptyList()
+        val realUrl =
+            "$mainUrl/api/comments?novelId=${reviewData}&type=REVIEW&sortBy=newest&page=$page&limit=15&hasRating=true"
         val res = app.get(realUrl).parsed<CommentsResponse>()
         return res.comments.map { r ->
-            UserReview(
-                r.content,
-                username = r.author.username,
-                reviewDate = r.createdAt,
-                avatarUrl = fixUrlNull(r.author.avatar),
+            newReview(r.content) {
+                username = r.author.username
+                date = r.createdAt
+                avatarUrl = r.author.avatar
                 rating = r.rating
-            )
+            }
         }
     }
 
     override suspend fun loadHtml(url: String): String? {
-        val data = app.get(url).document.select("main > article").first { it.selectFirst("div.chapter-content") != null }
+        val data = app.get(url).document.select("main > article")
+            .first { it.selectFirst("div.chapter-content") != null }
         data?.select("nav, div.absolute")?.remove()
         return data?.html()
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val encoded = Uri.encode(query.trim()).replace("%20","+")
+        val encoded = Uri.encode(query.trim()).replace("%20", "+")
         val url = "$mainUrl/api/search?q=$encoded&skip=0&take=50"
         val data = app.get(url).parsed<NovelListResponseJson>()
         return data.novels.map { n ->
@@ -199,6 +197,7 @@ open class NovelFranceProvider : MainAPI() {
         @JsonProperty("genres") val genres: List<GenreJson>,
         @JsonProperty("_count") val count: Count,
     )
+
     data class Count(
         @JsonProperty("chapters") val chapters: Int
     )
@@ -217,10 +216,12 @@ open class NovelFranceProvider : MainAPI() {
     data class LatestHomeResponseJson(
         @JsonProperty("data") val data: List<LatestHomeItemJson>
     )
+
     data class CommentsResponse(
         @JsonProperty("comments")
         val comments: List<Comment>
     )
+
     data class Comment(
         @JsonProperty("author") val author: Author,
         @JsonProperty("content") val content: String,
@@ -228,6 +229,7 @@ open class NovelFranceProvider : MainAPI() {
         @JsonProperty("hasSpoiler") val hasSpoiler: Boolean,
         @JsonProperty("rating") val rating: Int,
     )
+
     data class Author(
         @JsonProperty("username") val username: String,
         @JsonProperty("avatar") val avatar: String?,

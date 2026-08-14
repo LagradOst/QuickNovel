@@ -155,9 +155,9 @@ data class ImmutableReview @OptIn(ExperimentalUuidApi::class) constructor(
         fun from(review: UserReview): ImmutableReview =
             ImmutableReview(
                 content = review.review,
-                title = review.reviewTitle,
+                title = review.title,
                 username = review.username,
-                date = review.reviewDate,
+                date = review.date,
                 avatarUrl = review.avatarUrl,
                 avatarHeaders = review.avatarHeaders?.toPersistentMap(),
                 rating = review.rating,
@@ -254,6 +254,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
     /** How many chapters we have read with the built-in reader */
     val chaptersRead: Int,
     val loadData: ImmutableLoadData? = null,
+    val reviewData : String? = null,
 ) {
 
     fun matchesQuery(query: String): Boolean =
@@ -455,6 +456,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                     views = response.views,
                     peopleVoted = response.peopleVoted,
                 ),
+                reviewData = response.reviewData,
                 tags = response.tags?.toPersistentList(),
                 posterHeaders = response.posterHeaders?.toImmutableMap(),
                 timeOfCached = System.currentTimeMillis(),

@@ -7,15 +7,15 @@ import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.newChapterData
+import com.lagradost.quicknovel.newReview
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
-import com.lagradost.quicknovel.UserReview
 import com.lagradost.safefile.logError
 import org.jsoup.Jsoup
 import java.net.URLEncoder
-import java.util.concurrent.ConcurrentHashMap
 
 class ScrollersPubProvider : MainAPI() {
     override val name = "ScrollersPub"
@@ -24,8 +24,6 @@ class ScrollersPubProvider : MainAPI() {
     override val iconBackgroundId = R.color.black
     override val hasMainPage = true
     override val hasReviews = true
-    val novelsIdRequired = ConcurrentHashMap<String, String>()
-
 
     override val mainCategories = listOf(
         "All" to "",
@@ -84,7 +82,8 @@ class ScrollersPubProvider : MainAPI() {
         val limit = 20
         val offset = (page - 1) * limit
 
-        val apiUrl = "$mainUrl/api/novels?search=&offset=$offset&limit=$limit&domain=&tag=$tag&sort_by=$orderBy${ if(mainCategory.isNullOrEmpty()) "" else "&status=$mainCategory" }"
+        val apiUrl =
+            "$mainUrl/api/novels?search=&offset=$offset&limit=$limit&domain=&tag=$tag&sort_by=$orderBy${if (mainCategory.isNullOrEmpty()) "" else "&status=$mainCategory"}"
 
         val response = app.get(apiUrl).parsed<NovelListResponse>()
         val novels = response.items?.map { item ->
@@ -101,7 +100,12 @@ class ScrollersPubProvider : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val url = "$mainUrl/api/novels?search=${URLEncoder.encode(query, "UTF-8")}&offset=0&limit=20&domain="
+        val url = "$mainUrl/api/novels?search=${
+            URLEncoder.encode(
+                query,
+                "UTF-8"
+            )
+        }&offset=0&limit=20&domain="
         val document = app.get(url).parsed<NovelListResponse>()
         return document.items?.map { item ->
             newSearchResponse(
@@ -124,7 +128,7 @@ class ScrollersPubProvider : MainAPI() {
         if (chapterCount > 0) {
             val chaptersApiUrl = "$mainUrl/api/novel/${details.id}/chapters?limit=$chapterCount"
             val chaptersResponse = app.get(chaptersApiUrl).parsed<ChapterListResponse>()
-            
+
             chaptersResponse.items?.mapNotNull { item ->
                 val chTitle = item.title
                 val serial = item.serial ?: 0
@@ -132,12 +136,10 @@ class ScrollersPubProvider : MainAPI() {
                     name = chTitle.ifBlank { "Chapter $serial" },
                     url = "$mainUrl/read/${item.id}"
                 )
-            }?.let { 
+            }?.let {
                 chapters.addAll(it)
             }
         }
-
-        novelsIdRequired[url] = details.id
 
         return newStreamResponse(details.title, url, chapters) {
             posterUrl = fixPoster(details.coverFile)
@@ -145,6 +147,7 @@ class ScrollersPubProvider : MainAPI() {
             synopsis = details.synopsis?.let { Jsoup.parse(it).text() }
             setStatus(details.status)
             related = getRelated(details.id)
+            reviewData = details.id
         }
     }
 
@@ -172,29 +175,27 @@ class ScrollersPubProvider : MainAPI() {
         val content = document.selectFirst("#chapter-content, article, .chapter-content")
             ?: return null
 
-        content.select(".ads, .ads-holder, script, style, #frame, [id*='ads'], [class*='ads'], div[align='center'], nav, .pagination").remove()
+        content.select(".ads, .ads-holder, script, style, #frame, [id*='ads'], [class*='ads'], div[align='center'], nav, .pagination")
+            .remove()
 
-       return content.html()
+        return content.html()
     }
 
-    override suspend fun loadReviews(
-        url: String,
-        page: Int,
-        showSpoilers: Boolean
-    ): List<UserReview> {
-        val novelId = novelsIdRequired[url] ?: return emptyList()
+    override suspend fun loadReviews(url: String, page: Int, data: String?): List<UserReview> {
+        val novelId = data ?: return emptyList()
         val limit = 20
         val offset = (page - 1) * limit
         val apiUrl = "$mainUrl/api/novel/$novelId/comments?offset=$offset&limit=$limit"
 
         val response = app.get(apiUrl).parsed<CommentListResponse>()
-        return response.items?.map { item ->
-            UserReview(
-                review = Jsoup.parse(item.content ?: "").text().trim(),
-                username = item.userName ?: "Anonymous",
-                rating = item.authorScore?.times(200),
-                reviewDate = item.createdAt?.toString()
-            )
+        return response.items?.mapNotNull { item ->
+            newReview(
+                Jsoup.parse(item.content ?: return@mapNotNull null).text().trim()
+            ) {
+                username = item.userName ?: "Anonymous"
+                rating = item.authorScore?.times(200)
+                date = item.createdAt?.toString()
+            }
         } ?: emptyList()
     }
 
@@ -230,7 +231,7 @@ class ScrollersPubProvider : MainAPI() {
     )
 
     data class RelatedResponse(
-        @JsonProperty("cover_file")val coverFile: String?,
+        @JsonProperty("cover_file") val coverFile: String?,
         @JsonProperty("slug") val slug: String?,
         @JsonProperty("title") val title: String,
     )

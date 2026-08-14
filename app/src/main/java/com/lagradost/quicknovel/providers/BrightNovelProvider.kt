@@ -10,11 +10,11 @@ import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
+import com.lagradost.quicknovel.newReview
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import com.lagradost.quicknovel.util.AppUtils.parseJson
-import java.util.concurrent.ConcurrentHashMap
 
 class BrightNovelProvider: MainAPI() {
     override val name = "Bright Novel"
@@ -24,7 +24,6 @@ class BrightNovelProvider: MainAPI() {
     override val hasMainPage = true
     override val rateLimitTime = 1000L
     override val hasReviews = true
-    val novelsIdRequired = ConcurrentHashMap<String, String>()
 
     override val mainCategories = listOf(
         "All" to "",
@@ -114,7 +113,6 @@ class BrightNovelProvider: MainAPI() {
         val pageResponse = parseJson<SeriesPageResponse>(dataPage)
         val series = pageResponse.props.series
         val title = series.title
-        novelsIdRequired[url] = series.id.toString()
 
         val chaptersUrl = "$mainUrl/series/${series.slug}/chapters/free?loaded=0&sort_order=desc"
         val chaptersResponse = app.get(chaptersUrl).parsed<ChaptersApiResponse>()
@@ -131,29 +129,23 @@ class BrightNovelProvider: MainAPI() {
             this.posterUrl = fixUrlNull(series.cover?.url)
             this.tags = series.genres?.map { it.name }
             setStatus(series.storyState)
+            reviewData = series.id.toString()
             related = pageResponse.props.recommended?.map { it.toSearchResponse() }
         }
     }
 
 
-    override suspend fun loadReviews(
-        url: String,
-        page: Int,
-        showSpoilers: Boolean
-    ): List<UserReview> {
-        val libraryId = novelsIdRequired[url] ?: return emptyList()
+    override suspend fun loadReviews(url: String, page: Int, data: String?): List<UserReview> {
+        val libraryId = data ?: return emptyList()
 
         val realUrl = "$mainUrl/comments/series/$libraryId?page=$page"
         val res = app.get(realUrl).parsed<CommentsResponse>()
         return res.data.map { comment ->
-            val date = comment.createdAt.split("T").firstOrNull()
-
-            UserReview(
-                review = comment.content,
-                username = comment.user.username,
-                reviewDate = date,
-                avatarUrl = fixUrlNull(comment.user.avatar)
-            )
+            newReview(comment.content) {
+                username = comment.user.username
+                date = comment.createdAt.split("T").firstOrNull()
+                avatarUrl = comment.user.avatar
+            }
         }
     }
 

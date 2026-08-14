@@ -229,20 +229,20 @@ class APIRepository(val api: MainAPI) {
     suspend fun loadReviews(
         url: String,
         page: Int,
-        showSpoilers: Boolean = false
+        data : String?,
     ): Resource<List<UserReview>> {
         return safeApiCall {
-            api.loadReviews(url, page, showSpoilers)
+            api.loadReviews(url, page, data)
         }
     }
 
     suspend fun loadReviewsResult(
         url: String,
         page: Int,
-        showSpoilers: Boolean = false
+        data : String?,
     ): Result<PersistentList<ImmutableReview>> {
         return runCatching {
-            api.loadReviews(url, page, showSpoilers).map(ImmutableReview::from).toPersistentList()
+            api.loadReviews(url, page, data).map(ImmutableReview::from).toPersistentList()
         }
     }
 

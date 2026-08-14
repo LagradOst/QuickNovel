@@ -52,13 +52,13 @@ data class ResultState(
     val response: ImmutableSearchResponse? = null,
     val responseError: Throwable? = null,
     val loadingResponse: Boolean = true,
-    val reviews : ResultReviewState = ResultReviewState(),
+    val reviews: ResultReviewState = ResultReviewState(),
 )
 
 @Immutable
 data class ResultReviewState(
     val loading: Boolean = false,
-    val page : Int = 0,
+    val page: Int = 0,
     val error: Throwable? = null,
     val items: PersistentList<ImmutableReview> = persistentListOf(),
 )
@@ -127,7 +127,13 @@ class ResultViewModel2(
             api.loadResult(url).onFailure { error ->
                 updateState { copy(responseError = error, loadingResponse = false) }
             }.onSuccess { value ->
-                updateState { copy(response = value, loadingResponse = false, responseError = null) }
+                updateState {
+                    copy(
+                        response = value,
+                        loadingResponse = false,
+                        responseError = null
+                    )
+                }
             }
         }
 
@@ -220,7 +226,7 @@ class ResultViewModel2(
         try {
             expandMutex.lock()
             if (query != state.value.reviews) return@withContext
-            val loadUrl = state.value.response?.url ?: return@withContext
+            val response = state.value.response ?: return@withContext
 
             updateState {
                 copy(reviews = reviews.copy(loading = true))
@@ -229,7 +235,8 @@ class ResultViewModel2(
             val nextPage = query.page + 1
             api.loadReviewsResult(
                 page = nextPage,
-                url = loadUrl
+                url = response.url,
+                data = response.reviewData
             ).onFailure { error ->
                 if (error is CancellationException) {
                     return@withContext
