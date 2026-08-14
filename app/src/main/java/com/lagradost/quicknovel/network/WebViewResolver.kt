@@ -170,7 +170,6 @@ class WebViewResolver(
             }
         }
 
-        // WebView must be created and interacted with on the UI (Main) thread
         main {
             // Useful for debugging
             WebView.setWebContentsDebuggingEnabled(true)
@@ -228,27 +227,23 @@ class WebViewResolver(
                         }
 
                         println("Loading WebView URL: $webViewUrl")
+                        val req = request.toRequest()
+
+                        if (!webViewUrl.contains("/cdn-cgi/") && !webViewUrl.contains("cloudflare")) {
+                            capturedHeaders[runCatching { URI(webViewUrl).host }.getOrNull() ?: ""] = request.requestHeaders
+                        }
 
                         // Check if this request matches our target URL
                         if (interceptUrl?.containsMatchIn(webViewUrl) == true) {
-                            fixedRequest = request.toRequest().also {
-                                requestCallBack(it)
-                            }
-
-                            if (!webViewUrl.contains("/cdn-cgi/") && !webViewUrl.contains("cloudflare")) {
-                                capturedHeaders[runCatching { URI(webViewUrl).host }.getOrNull() ?: ""] = request.requestHeaders
-                            }
+                            fixedRequest = req
+                            deferredResponse.complete(req to extraRequestList)
                             return@runBlocking null
                         }
 
                         // Track additional interesting URLs
                         if (additionalUrls.any { it.containsMatchIn(webViewUrl) }) {
-                            val req = request.toRequest()
                             extraRequestList.add(req)
 
-                            if (!webViewUrl.contains("/cdn-cgi/") && !webViewUrl.contains("cloudflare")) {
-                                capturedHeaders[runCatching { URI(webViewUrl).host }.getOrNull() ?: ""] = request.requestHeaders
-                            }
                             // If callback returns true (e.g., "I found what I wanted"), signal completion
                             if (requestCallBack(req)) {
                                 deferredResponse.complete(fixedRequest to extraRequestList)
@@ -281,20 +276,12 @@ class WebViewResolver(
                         super.onPageFinished(view, finishUrl)
                         if (finishUrl == null) return
 
-                        val isChallengeSolved = CookiesUtils
-                            .getAllCookiesForUrl(finishUrl)
-                            .containsKey("cf_clearance")
-
-                        if (isChallengeSolved) {
-                            CookieManager.getInstance().flush()
-
+                        if (requestCallBack(requestCreator("GET", finishUrl))) {
                             if (scriptToFinish == null) {
                                 stabilityJob?.cancel()
                                 stabilityJob = main {
-                                    delay(2000L)
-                                    if (requestCallBack(requestCreator("GET", finishUrl))) {
-                                        deferredResponse.complete(fixedRequest to extraRequestList)
-                                    }
+                                    delay(5.seconds)
+                                    deferredResponse.complete(fixedRequest to extraRequestList)
                                 }
                             }
                         }
