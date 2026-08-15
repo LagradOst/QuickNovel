@@ -1,4 +1,5 @@
 package com.lagradost.quicknovel.providers
+
 import android.net.Uri
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.HeadMainPageResponse
@@ -7,15 +8,12 @@ import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
-import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
+import com.lagradost.quicknovel.newReview
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
-import com.lagradost.quicknovel.providers.NovelFireProvider.PostsResponse
 import com.lagradost.quicknovel.setStatus
 import com.lagradost.quicknovel.util.AppUtils.parseJson
-import org.jsoup.Jsoup
-import java.util.concurrent.ConcurrentHashMap
 
 class NovelBuddyProvider : MainAPI() {
     override val name = "Novel Buddy"
@@ -26,7 +24,6 @@ class NovelBuddyProvider : MainAPI() {
     override val lang = "en"
     override val hasMainPage = true
     override val hasReviews = true
-    val novelsIdRequired = ConcurrentHashMap<String, String>()
 
     /*
     override val mainCategories = listOf(
@@ -134,7 +131,8 @@ class NovelBuddyProvider : MainAPI() {
         val queryPath = params.joinToString("") { "${it.first}=${it.second}&" }
         val url = "$apiUrl/search?${queryPath}page=$page&limit=24"
         val response = app.get(url).parsed<Root>()
-        return HeadMainPageResponse(url,
+        return HeadMainPageResponse(
+            url,
             response.data.items.map { element ->
                 val title = element.name
                 val href = element.url
@@ -145,14 +143,13 @@ class NovelBuddyProvider : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url.replaceFirst("y.com","y.me")).document
+        val document = app.get(url.replaceFirst("y.com", "y.me")).document
 
         val jsonData = document.selectFirst("script#__NEXT_DATA__")?.data()
             ?: throw Exception("Invalid data")
 
         val nextData = parseJson<NextData>(jsonData)
         val bookId = nextData.props.pageProps.initialManga.id
-        novelsIdRequired[url] = bookId
         val title = nextData.props.pageProps.initialManga.name
 
         val api = "$apiUrl/$bookId/chapters"
@@ -169,33 +166,33 @@ class NovelBuddyProvider : MainAPI() {
             this.posterUrl = nextData.props.pageProps.initialManga.cover
             this.synopsis = nextData.props.pageProps.initialManga.summary
 
-            this.author = nextData.props.pageProps.initialManga.authors.joinToString(", ") { it.name }
+            this.author =
+                nextData.props.pageProps.initialManga.authors.joinToString(", ") { it.name }
             this.tags = nextData.props.pageProps.initialManga.genres.map { it.name }
             setStatus(nextData.props.pageProps.initialManga.status)
+            reviewData = bookId
         }
     }
 
     //https://api.novelbuddy.com/comments/title/WAY3xDyr?page=1&limit=10&sort=newest&skip_reactions=1
-    override suspend fun loadReviews(
-        url: String,
-        page: Int,
-        showSpoilers: Boolean
-    ): List<UserReview> {
-
-        val realUrl = "${apiUrl.replace("/titles", "")}/comments/title/${novelsIdRequired[url]}?page=$page&limit=10&sort=newest&skip_reactions=1"
+    override suspend fun loadReviews(url: String, page: Int, data: String?): List<UserReview> {
+        val id = data ?: return emptyList()
+        val realUrl = "${
+            apiUrl.replace(
+                "/titles",
+                ""
+            )
+        }/comments/title/$id?page=$page&limit=10&sort=newest&skip_reactions=1"
         val res = app.get(realUrl).parsedSafe<CommentResponse>()
         val data = res?.data ?: return emptyList()
-        return data.items?.map { item ->
-            val reviewTxt = item.content ?: ""
+        return data.items?.mapNotNull { item ->
+            val reviewTxt = item.content ?: return@mapNotNull null
 
-            val date = item.createdAt?.replace("T", " ")
-
-            UserReview(
-                review = reviewTxt,
-                username = item.user?.name ?: "Guest",
-                reviewDate = date,
-                avatarUrl = fixUrlNull(item.user?.avatar),
-            )
+            newReview(reviewTxt) {
+                username = item.user?.name ?: "Guest"
+                date = item.createdAt?.replace("T", " ")
+                avatarUrl = item.user?.avatar
+            }
         } ?: emptyList()
     }
 
@@ -266,7 +263,6 @@ class NovelBuddyProvider : MainAPI() {
         @JsonProperty("status") val status: String,
         @JsonProperty("rating") val rating: Double,
     )
-
 
 
     data class ChaptersApiResponse(

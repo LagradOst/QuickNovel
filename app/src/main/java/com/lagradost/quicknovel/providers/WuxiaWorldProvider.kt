@@ -13,6 +13,7 @@ import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrl
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
+import com.lagradost.quicknovel.newReview
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
@@ -21,11 +22,8 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import okio.Buffer
 import okio.BufferedSource
-import java.util.concurrent.ConcurrentHashMap
-import kotlin.collections.mutableMapOf
-import kotlin.collections.plus
 
-class WuxiaWorldProvider: MainAPI() {
+class WuxiaWorldProvider : MainAPI() {
     override val name = "WuxiaWorld"
     override val mainUrl = "https://www.wuxiaworld.com"
     override val iconId = R.drawable.icon_wuxiaworld
@@ -37,15 +35,13 @@ class WuxiaWorldProvider: MainAPI() {
     override val lang = "en"
     override val hasMainPage = true
     override val hasReviews = true
-    private val novelsIdRequired = ConcurrentHashMap<String, Int>()
-
     override val mainCategories = listOf(
         "All" to "-1",
         "Finished" to "0",
         "Active" to "1",
         "Hiatus" to "2",
 
-    )
+        )
     override val orderBys = listOf(
         "Popular" to "1",
         "New" to "2",
@@ -81,7 +77,7 @@ class WuxiaWorldProvider: MainAPI() {
         orderBy: String?,
         tag: String?
     ): HeadMainPageResponse {
-        if(page > 1) return HeadMainPageResponse("",emptyList())
+        if (page > 1) return HeadMainPageResponse("", emptyList())
         val request = buildARequestBody(
             status = mainCategory?.toLongOrNull(),
             sortType = orderBy?.toIntOrNull(),
@@ -91,7 +87,7 @@ class WuxiaWorldProvider: MainAPI() {
         val novels = mutableListOf<SearchResponse>()
         try {
             grpcPost(searchNovelsUrl, request, "$mainUrl/").use { source ->
-                source.processGrpcStream { 
+                source.processGrpcStream {
                     while (!exhausted()) {
                         val tagNum = readVarint().toInt()
                         if (tagNum shr 3 == 1) { // Field 1: List of novel results
@@ -111,15 +107,15 @@ class WuxiaWorldProvider: MainAPI() {
 
     override suspend fun load(url: String): LoadResponse {
         val res = app.get(url).text
-        val reactRoot = extractReactQuery(res) ?: throw ErrorLoadingException("Failed to extract state")
-        
+        val reactRoot =
+            extractReactQuery(res) ?: throw ErrorLoadingException("Failed to extract state")
+
         // Find the 'novel' data entry in the React Query state
-        val query = reactRoot.queries.find { 
-            it.queryKey.firstOrNull() == "novel" 
+        val query = reactRoot.queries.find {
+            it.queryKey.firstOrNull() == "novel"
         } ?: throw ErrorLoadingException("Novel data not found")
-        
+
         val item = parseJson<ReactNovelResponse>(query.state.data.toString()).item
-        novelsIdRequired[url] = item.id
 
         val related = mutableListOf<SearchResponse>()
         item.genres?.let { genres ->
@@ -145,7 +141,7 @@ class WuxiaWorldProvider: MainAPI() {
             }
         }
 
-       val chapters = getChapters(item, url)
+        val chapters = getChapters(item, url)
 
         return newStreamResponse(item.name, url, chapters) {
             this.posterUrl = this@WuxiaWorldProvider.fixUrlNull(item.coverUrl?.value)
@@ -153,11 +149,12 @@ class WuxiaWorldProvider: MainAPI() {
             this.author = item.authorName?.value
             this.tags = item.genres
             this.related = related
+            reviewData = item.id.toString()
             setStatus(getStatus(item.status))
         }
     }
 
-    suspend fun getChapters(item: NovelDetail, url: String): List<ChapterData>{
+    suspend fun getChapters(item: NovelDetail, url: String): List<ChapterData> {
         val chapters = mutableListOf<ChapterData>()
         grpcPost(getChaptersList, mapOf(1 to item.id), url).use { source ->
             source.processGrpcStream {
@@ -180,15 +177,22 @@ class WuxiaWorldProvider: MainAPI() {
                                                 20 -> readMessage { // Field 20: Access Info
                                                     while (!exhausted()) {
                                                         val accTagNum = readVarint().toInt()
-                                                        if (accTagNum shr 3 == 1) isFree = readVarint() == 1L // Sub-field 1: Is Accessible/Free
+                                                        if (accTagNum shr 3 == 1) isFree =
+                                                            readVarint() == 1L // Sub-field 1: Is Accessible/Free
                                                         else skipField(accTagNum and 0x7)
                                                     }
                                                 }
+
                                                 else -> skipField(chTagNum and 0x7)
                                             }
                                         }
                                         if (name.isNotEmpty() && isFree) {
-                                            chapters.add(newChapterData(name, "$mainUrl/novel/${item.slug}/$chSlug"))
+                                            chapters.add(
+                                                newChapterData(
+                                                    name,
+                                                    "$mainUrl/novel/${item.slug}/$chSlug"
+                                                )
+                                            )
                                         }
                                     }
                                 } else skipField(groupTagNum and 0x7)
@@ -201,8 +205,8 @@ class WuxiaWorldProvider: MainAPI() {
         return chapters
     }
 
-    override suspend fun loadReviews(url: String, page: Int, showSpoilers: Boolean): List<UserReview> {
-        val novelId = novelsIdRequired[url] ?: return emptyList()
+    override suspend fun loadReviews(url: String, page: Int, data: String?): List<UserReview> {
+        val novelId = data ?: return emptyList()
         val request = mapOf(
             1 to novelId,
             3 to page,
@@ -235,7 +239,7 @@ class WuxiaWorldProvider: MainAPI() {
                 img.attr("src", fixUrl(src))
             }
         }
-        
+
         return document.html()
     }
 
@@ -249,7 +253,7 @@ class WuxiaWorldProvider: MainAPI() {
         val novels = mutableListOf<SearchResponse>()
         try {
             grpcPost(searchNovelsUrl, requestMap, "$mainUrl/").use { source ->
-                source.processGrpcStream { 
+                source.processGrpcStream {
                     while (!exhausted()) {
                         val tagNum = readVarint().toInt()
                         if (tagNum shr 3 == 1) { // Field 1: List of novel results
@@ -266,6 +270,7 @@ class WuxiaWorldProvider: MainAPI() {
 
         return novels
     }
+
     data class ReactQueryRoot(
         @JsonProperty("queries") val queries: List<ReactQueryItem>
     )
@@ -294,8 +299,9 @@ class WuxiaWorldProvider: MainAPI() {
         @JsonProperty("coverUrl") val coverUrl: ValueWrapper?,
         @JsonProperty("genres") val genres: List<String>?
     )
-    fun getStatus(id: Int): String{
-        return when(id){
+
+    fun getStatus(id: Int): String {
+        return when (id) {
             0 -> "completed"
             1 -> "ongoing"
             2 -> "hiatus"
@@ -313,24 +319,28 @@ class WuxiaWorldProvider: MainAPI() {
         count: Int = 500, // count
         genres: List<String?>? = null,
         genresFilter: Int = 1, //1 OR, 0 AND
-    ): MutableMap<Int, Any>
-    {
+    ): MutableMap<Int, Any> {
         val requestMap = mutableMapOf<Int, Any>()
-        if(title != null) requestMap[1] = mapOf(1 to title)
+        if (title != null) requestMap[1] = mapOf(1 to title)
         requestMap[3] = status ?: -1L
         requestMap[4] = sortType ?: 1
         requestMap[5] = sortDirection
         requestMap[7] = count
-        val genresAux = genres?.filter{ !it.isNullOrEmpty()}
-        if(!genresAux.isNullOrEmpty()) requestMap[10] = genresAux.map { 1 to it } + (2 to genresFilter)
+        val genresAux = genres?.filter { !it.isNullOrEmpty() }
+        if (!genresAux.isNullOrEmpty()) requestMap[10] =
+            genresAux.map { 1 to it } + (2 to genresFilter)
 
         return requestMap
     }
+
     /**
      * Helper class to decode Protobuf messages directly from a network stream (BufferedSource).
      * This prevents OutOfMemory errors by not loading the entire response into a ByteArray.
      */
-    private class ProtoReader(private val source: BufferedSource, var limit: Long = Long.MAX_VALUE) {
+    private class ProtoReader(
+        private val source: BufferedSource,
+        var limit: Long = Long.MAX_VALUE
+    ) {
         /** Returns true if the current message scope or the source is exhausted. */
         fun exhausted() = source.exhausted() || limit <= 0
 
@@ -359,9 +369,15 @@ class WuxiaWorldProvider: MainAPI() {
         fun skipField(wireType: Int) {
             when (wireType) {
                 0 -> readVarint() // Varint
-                1 -> { source.skip(8); consume(8) } // 64-bit
-                2 -> { val len = readVarint(); source.skip(len); consume(len) } // Length-delimited
-                5 -> { source.skip(4); consume(4) } // 32-bit
+                1 -> {
+                    source.skip(8); consume(8)
+                } // 64-bit
+                2 -> {
+                    val len = readVarint(); source.skip(len); consume(len)
+                } // Length-delimited
+                5 -> {
+                    source.skip(4); consume(4)
+                } // 32-bit
                 else -> throw Exception("Unknown wire type $wireType")
             }
         }
@@ -483,6 +499,7 @@ class WuxiaWorldProvider: MainAPI() {
                         else skipField(rTagNum and 0x7)
                     }
                 }
+
                 5 -> readMessage { // User Info Message
                     while (!exhausted()) {
                         val uTagNum = readVarint().toInt()
@@ -493,22 +510,24 @@ class WuxiaWorldProvider: MainAPI() {
                             3 -> readMessage { // Avatar Message
                                 while (!exhausted()) {
                                     val aTagNum = readVarint().toInt()
-                                    if (aTagNum shr 3 == 1) avatar = readString() // Field 1: Avatar URL path
+                                    if (aTagNum shr 3 == 1) avatar =
+                                        readString() // Field 1: Avatar URL path
                                     else skipField(aTagNum and 0x7)
                                 }
                             }
+
                             else -> skipField(uWire)
                         }
                     }
                 }
+
                 else -> skipField(wire)
             }
         }
-        return if (text.isNotEmpty()) UserReview(
-            review = text,
-            username = user.ifEmpty { "User" },
+        return if (text.isNotEmpty()) newReview(text) {
+            username = user
             avatarUrl = avatar
-        ) else null
+        } else null
     }
 
     private fun ProtoReader.decodeNovelItem(): SearchResponse? {
@@ -532,6 +551,7 @@ class WuxiaWorldProvider: MainAPI() {
                         }
                     }
                 }
+
                 else -> skipField(wireType)
             }
         }
@@ -558,6 +578,7 @@ class WuxiaWorldProvider: MainAPI() {
                     @Suppress("UNCHECKED_CAST")
                     writer.writeBytes(field, (value as Iterable<Pair<Int, Any>>).encodeProto())
                 }
+
                 is Map<*, *> -> {
                     @Suppress("UNCHECKED_CAST")
                     writer.writeBytes(field, (value as Map<Int, Any>).toList().encodeProto())
@@ -577,7 +598,11 @@ class WuxiaWorldProvider: MainAPI() {
     }
 
     /** Sends a gRPC-Web POST request and returns a streamable Source. */
-    private suspend fun grpcPost(url: String, payload: Iterable<Pair<Int, Any>>, referer: String? = null): BufferedSource {
+    private suspend fun grpcPost(
+        url: String,
+        payload: Iterable<Pair<Int, Any>>,
+        referer: String? = null
+    ): BufferedSource {
         val body = payload.encodeProto().toGrpcWeb()
         val headers = mutableMapOf(
             "Content-Type" to "application/grpc-web+proto",
@@ -587,7 +612,8 @@ class WuxiaWorldProvider: MainAPI() {
         )
         referer?.let { headers["Referer"] = it }
 
-        val res = app.post(url,
+        val res = app.post(
+            url,
             headers = headers,
             requestBody = body.toRequestBody("application/grpc-web+proto".toMediaTypeOrNull())
         )
@@ -595,7 +621,11 @@ class WuxiaWorldProvider: MainAPI() {
     }
 
     /** Convenience overload for Map-based payloads. */
-    private suspend fun grpcPost(url: String, request: Map<Int, Any>, referer: String? = null): BufferedSource {
+    private suspend fun grpcPost(
+        url: String,
+        request: Map<Int, Any>,
+        referer: String? = null
+    ): BufferedSource {
         return grpcPost(url, request.toList(), referer)
     }
 

@@ -1273,7 +1273,10 @@ object BookDownloader2 {
         openEpub(name)
     }
 
-    private fun readEpub(author: String?, name: String, apiName: String, synopsis: String?) {
+    private fun readEpub(
+        author: String?, name: String, apiName: String, synopsis: String?,
+        generating: () -> Unit = {}
+    ) {
         if (hasEpub(name)) {
             openEpub(name)
         } else {
@@ -1290,16 +1293,18 @@ object BookDownloader2 {
         author: String?,
         name: String,
         apiName: String,
-        synopsis: String?
+        synopsis: String?,
+        generating: () -> Unit = {}
     ) {
         if (readEpubMutex.isLocked) return
         readEpubMutex.withLock {
             val downloaded = getKey(DOWNLOAD_EPUB_SIZE, id.toString(), 0)!!
             val shouldUpdate = downloadedCount - downloaded != 0
             if (shouldUpdate) {
+                generating.invoke()
                 generateAndReadEpub(author, name, apiName, synopsis)
             } else {
-                readEpub(author, name, apiName, synopsis)
+                readEpub(author, name, apiName, synopsis, generating)
             }
         }
     }

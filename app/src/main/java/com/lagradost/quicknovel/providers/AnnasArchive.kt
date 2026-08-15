@@ -1,12 +1,10 @@
 package com.lagradost.quicknovel.providers
 
 import android.annotation.SuppressLint
-import android.webkit.*
+import android.webkit.JavascriptInterface
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import com.lagradost.quicknovel.BaseApplication.Companion.context
-import com.lagradost.quicknovel.util.Coroutines.main
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.withTimeoutOrNull
-import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.DownloadExtractLink
 import com.lagradost.quicknovel.DownloadLink
 import com.lagradost.quicknovel.DownloadLinkType
@@ -19,7 +17,11 @@ import com.lagradost.quicknovel.USER_AGENT
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newEpubResponse
 import com.lagradost.quicknovel.newSearchResponse
+import com.lagradost.quicknovel.util.Coroutines.main
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.withTimeoutOrNull
 import org.jsoup.Jsoup
+import kotlin.time.Duration.Companion.milliseconds
 
 class AnnasArchive : MainAPI() {
     override val lang = "en"
@@ -60,6 +62,7 @@ class AnnasArchive : MainAPI() {
         "Sci-Hub" to "scihub",
         "MagzDB" to "magzdb"
     )
+
     override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
@@ -81,12 +84,13 @@ class AnnasArchive : MainAPI() {
             ) {
                 posterUrl = fixUrlNull(node.selectFirst("img")?.attr("src"))
             }
-
         }
         return HeadMainPageResponse(url, returnValue)
     }
+
     override suspend fun search(query: String): List<SearchResponse> {
-        val url = "$mainUrl/search?index=&page=1&sort=&ext=epub&display=&q=${query.replace(" ", "+")}"
+        val url =
+            "$mainUrl/search?index=&page=1&sort=&ext=epub&display=&q=${query.replace(" ", "+")}"
         val text = app.get(url).text.replace(
             Regex("<!--([\\W\\w]*?)-->")
         ) { it.groupValues[1] }
@@ -96,13 +100,14 @@ class AnnasArchive : MainAPI() {
         val results = document.select("div.js-aarecord-list-outer div.flex.pt-3.pb-3.border-b")
 
         return results.mapNotNull { element ->
-            val link = element.selectFirst("a")?.attr("href")?:""
+            val link = element.selectFirst("a")?.attr("href") ?: ""
             if (!link.startsWith("/md5/")) {
                 println("Skipping non-md5 link: $link")
                 return@mapNotNull null
             }
             val title = element
-                .selectFirst("div.max-w-full.overflow-hidden.flex.flex-col.justify-around a")?.text()
+                .selectFirst("div.max-w-full.overflow-hidden.flex.flex-col.justify-around a")
+                ?.text()
             if (title == null) {
                 return@mapNotNull null
             }
@@ -116,7 +121,7 @@ class AnnasArchive : MainAPI() {
     }
 
 
-    private fun extract(url: String, name: String, force:Boolean = false): DownloadLinkType {
+    private fun extract(url: String, name: String, force: Boolean = false): DownloadLinkType {
         return if (url.contains(".epub") || force) {
             DownloadLink(
                 url = url,
@@ -139,7 +144,8 @@ class AnnasArchive : MainAPI() {
             name = document.selectFirst("div.text-2xl")?.ownText()!!,
             url = url,
             links = document.select("ul.mb-4 > li").mapNotNull { element ->
-                val link = fixUrlNull(element.selectFirst("a.js-download-link")?.attr("href")) ?: return@mapNotNull null
+                val link = fixUrlNull(element.selectFirst("a.js-download-link")?.attr("href"))
+                    ?: return@mapNotNull null
 
                 if (link.contains("fast_download")) return@mapNotNull null
 
@@ -150,13 +156,18 @@ class AnnasArchive : MainAPI() {
                         slowLink = getSlowLinkWithWebView(link)
                         println("consiguio el link?: $slowLink")
                     }
-                    return@mapNotNull if (slowLink != null) extract(slowLink!!, element.text(), true) else null
+                    return@mapNotNull if (slowLink != null) extract(
+                        slowLink!!,
+                        element.text(),
+                        true
+                    ) else null
                 }
 
                 if (link.endsWith("/datasets")) return@mapNotNull null
                 extract(link, element.text())
             }) {
-            posterUrl = document.selectFirst("main > div > div > div > div > div > img")?.attr("src")
+            posterUrl =
+                document.selectFirst("main > div > div > div > div > div > img")?.attr("src")
             author = document.selectFirst("main > div > div > a")?.ownText()
             synopsis = document.selectFirst("main > div > div > div > div.mb-1")?.text()
         }
@@ -175,12 +186,11 @@ class AnnasArchive : MainAPI() {
         val deferred = CompletableDeferred<String?>()
 
         main {
-            val ctx = context.let { ctx->
-                if(ctx == null){
+            val ctx = context.let { ctx ->
+                if (ctx == null) {
                     deferred.complete(null)
                     return@main
-                }
-                else ctx
+                } else ctx
             }
             val webView = WebView(ctx)
             webView.settings.javaScriptEnabled = true
@@ -218,7 +228,7 @@ class AnnasArchive : MainAPI() {
             //start loading the page
             webView.loadUrl(url)
 
-            withTimeoutOrNull(45000) {
+            withTimeoutOrNull(45000.milliseconds) {
                 deferred.await()
                 main {
                     webView.stopLoading()
@@ -227,6 +237,6 @@ class AnnasArchive : MainAPI() {
             }
         }
 
-        return withTimeoutOrNull(46000) { deferred.await() }
+        return withTimeoutOrNull(46000.milliseconds) { deferred.await() }
     }
 }

@@ -375,24 +375,16 @@ fun RefreshButton(
     }
     val refreshInteractionSource = remember { MutableInteractionSource() }
 
-    val icon = when (response.downloadState.status) {
-        DownloadState.IsDownloading -> R.drawable.ic_baseline_pause_24
-        DownloadState.IsPaused -> R.drawable.netflix_play
-        DownloadState.IsStopped -> R.drawable.arrow_circle_down_24px
-        DownloadState.IsFailed -> R.drawable.arrow_circle_down_24px
-        DownloadState.IsDone -> R.drawable.ic_baseline_check_24
-        DownloadState.IsPending -> {
-            Spacer(Modifier.width(54.dp))
-            return
-        }
 
-        DownloadState.Nothing -> R.drawable.arrow_circle_down_24px
+    if (response.downloadState.status == DownloadState.IsPending) {
+        Spacer(Modifier.width(54.dp))
+        return
     }
 
-    val operation = response.downloadState.operation
+    val action = response.downloadState.action
 
     Icon(
-        painter = painterResource(icon),
+        painter = painterResource(action.icon),
         contentDescription = stringResource(R.string.download),
         modifier = Modifier
             .size(54.dp)
@@ -400,7 +392,7 @@ fun RefreshButton(
                 interactionSource = refreshInteractionSource, indication = null, onClick = {
                     action(
                         SearchResponseAction(
-                            response, operation
+                            response, action.operation
                         )
                     )
                 })

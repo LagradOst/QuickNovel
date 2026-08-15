@@ -11,13 +11,14 @@ import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
+import com.lagradost.quicknovel.newReview
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.util.AppUtils.parseJson
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
-class AsianNovelProvider: MainAPI() {
+class AsianNovelProvider : MainAPI() {
 
     override val name = "Asian Novel"
     override val mainUrl = "https://www.asianovel.net"
@@ -25,17 +26,17 @@ class AsianNovelProvider: MainAPI() {
     override val lang = "en"
     override val hasMainPage = true
     override val hasReviews = true
+
     //idk, this solves out of memory
     override val rateLimitTime = 3000L
-    private val novelsIdRequired = mutableMapOf<String, String>()
 
     override val orderBys = listOf(
-            "Updated" to "modified",
-            "Published" to "date",
-            "Title" to "title",
-            "Comments" to "comment",
-            "Words" to "words",
-        )
+        "Updated" to "modified",
+        "Published" to "date",
+        "Title" to "title",
+        "Comments" to "comment",
+        "Words" to "words",
+    )
     override val tags = listOf(
         "All" to "",
         "Action" to "action",
@@ -115,7 +116,6 @@ class AsianNovelProvider: MainAPI() {
                     posterUrl = card.selectFirst("img")?.attr("src")
                 }
             })
-            document.empty()
         }
 
         return HeadMainPageResponse(url, novels)
@@ -142,8 +142,6 @@ class AsianNovelProvider: MainAPI() {
             ?: document.selectFirst("div#fictioneer-story-data")?.attr("data-post-id")
             ?: ""
 
-        novelsIdRequired[url] = postId
-
         val title = document.selectFirst("h1.story__identity-title")?.text()
             ?: throw ErrorLoadingException("Title not found")
 
@@ -159,14 +157,17 @@ class AsianNovelProvider: MainAPI() {
             this.author = document.selectFirst("div.story__identity-meta > a.author")?.text()
             this.tags = document.select("div#edit-genre > a").map { it.text() }
             this.related = getRelated(document)
-            document.empty()
+            this.reviewData = postId
         }
     }
 
     override suspend fun loadHtml(url: String): String? {
         val res = app.get(url).text
         // Extract content div before parsing to save memory
-        val contentRegex = Regex("<section id=\"chapter-content\"[^>]*>([\\s\\S]*?)</section>", RegexOption.IGNORE_CASE)
+        val contentRegex = Regex(
+            "<section id=\"chapter-content\"[^>]*>([\\s\\S]*?)</section>",
+            RegexOption.IGNORE_CASE
+        )
         val match = contentRegex.find(res)
         val htmlToParse = (match?.groupValues?.get(0) ?: res).cleanRawHtml()
 
@@ -174,46 +175,45 @@ class AsianNovelProvider: MainAPI() {
         val html = document.selectFirst("section#chapter-content > div")?.html()
             ?: document.selectFirst("section#chapter-content")?.html()
 
-        document.empty()
         return html
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val url = "$mainUrl/?s=${Uri.encode(query.trim()).replace("%20", "+")}&post_type=any&sentence=0&orderby=modified&order=desc&age_rating=Any&story_status=Any&miw=0&maw=0&genres=&tags=&author_name=&ex_genres=&ex_tags="
+        val url = "$mainUrl/?s=${
+            Uri.encode(query.trim()).replace("%20", "+")
+        }&post_type=any&sentence=0&orderby=modified&order=desc&age_rating=Any&story_status=Any&miw=0&maw=0&genres=&tags=&author_name=&ex_genres=&ex_tags="
         val res = app.get(url).text.cleanRawHtml()
         val document = Jsoup.parseBodyFragment(res)
 
-        val result = document.select("section.search-results__content > ul > li.card").mapNotNull { card ->
-            val href = card.selectFirst("a")?.attr("href") ?: return@mapNotNull null
-            val title = card.selectFirst("h3")?.text() ?: return@mapNotNull null
+        val result =
+            document.select("section.search-results__content > ul > li.card").mapNotNull { card ->
+                val href = card.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+                val title = card.selectFirst("h3")?.text() ?: return@mapNotNull null
 
-            newSearchResponse(title, href) {
-                posterUrl = card.selectFirst("img")?.attr("src")
+                newSearchResponse(title, href) {
+                    posterUrl = card.selectFirst("img")?.attr("src")
+                }
             }
-        }
-        document.empty()
         return result
     }
 
-    override suspend fun loadReviews(url: String, page: Int, showSpoilers: Boolean): List<UserReview> {
-        val postId = novelsIdRequired[url] ?: return emptyList()
-        val apiUrl = "$mainUrl/wp-json/fictioneer/v1/get_story_comments?nonce=50aeb0e8c2&post_id=$postId&page=$page"
+    override suspend fun loadReviews(url: String, page: Int, data: String?): List<UserReview> {
+        val postId = data ?: return emptyList()
+        val apiUrl =
+            "$mainUrl/wp-json/fictioneer/v1/get_story_comments?nonce=50aeb0e8c2&post_id=$postId&page=$page"
         val res = app.get(apiUrl).text.cleanRawHtml()
         val cleanHtml = parseJson<CommentResponse>(res).data.html ?: return emptyList()
         val document = Jsoup.parseBodyFragment(cleanHtml)
 
         val reviews = document.select("li.fictioneer-comment").mapNotNull { element ->
-            val author = element.selectFirst(".fictioneer-comment__author")?.text() ?: return@mapNotNull null
-            val date = element.selectFirst(".fictioneer-comment__date")?.text()
-            val body = element.selectFirst(".fictioneer-comment__body")?.html() ?: return@mapNotNull null
+            val body =
+                element.selectFirst(".fictioneer-comment__body")?.html() ?: return@mapNotNull null
 
-            UserReview(
-                review = body,
-                username = author,
-                reviewDate = date
-            )
+            newReview(body) {
+                username = element.selectFirst(".fictioneer-comment__author")?.text()
+                date = element.selectFirst(".fictioneer-comment__date")?.text()
+            }
         }
-        document.empty()
         return reviews
     }
 

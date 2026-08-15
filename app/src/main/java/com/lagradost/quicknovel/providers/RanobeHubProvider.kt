@@ -17,8 +17,6 @@ open class RanobeHubProvider : MainAPI() {
     override val hasMainPage = true
     override val lang = "ru"
     override val rateLimitTime = 1000L
-    val novelsIdRequired = ConcurrentHashMap<String, String>()
-
     override val orderBys = listOf(
         "By Rating" to "computed_rating",
         "By Update Date" to "last_chapter_at",
@@ -80,9 +78,6 @@ open class RanobeHubProvider : MainAPI() {
         val id = url.removeSuffix("/").substringAfterLast("/").substringBefore("-")
 
         val document = app.get("$mainUrl/ranobe/$id").document
-        document.selectFirst("comments-section")?.attr("model-encrypted-key")?.let {
-            novelsIdRequired[url] = it
-        }
 
         val detailsUrl = "$mainUrl/api/ranobe/$id"
         val response = app.get(detailsUrl).parsed<NovelDetailsResponse>().data
@@ -104,7 +99,10 @@ open class RanobeHubProvider : MainAPI() {
                 val timestamp = chapter.changedAt
 
                 val dateStr = if (timestamp > 0) {
-                    SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(timestamp * 1000))
+                    SimpleDateFormat(
+                        "dd.MM.yyyy",
+                        Locale.getDefault()
+                    ).format(Date(timestamp * 1000))
                 } else null
 
                 chapters.add(
@@ -132,6 +130,7 @@ open class RanobeHubProvider : MainAPI() {
                     else -> null
                 }
             })
+            reviewData = document.selectFirst("comments-section")?.attr("model-encrypted-key")
             related = getRelated(id)
         }
     }
@@ -153,9 +152,11 @@ open class RanobeHubProvider : MainAPI() {
             emptyList()
         }
     }
+
     override suspend fun loadHtml(url: String): String? {
         val body = app.get("$mainUrl/ranobe/$url").document
-        val content = body.select("div.ui.text.container").first{ it.selectFirst("div.title-wrapper") != null}
+        val content = body.select("div.ui.text.container")
+            .first { it.selectFirst("div.title-wrapper") != null }
         content.select("div.chapter-hoticons").remove()
         content.select("img[data-media-id]").forEach { img ->
             val mediaId = img.attr("data-media-id")
@@ -205,28 +206,25 @@ open class RanobeHubProvider : MainAPI() {
         return novelsMap.values.toList()
     }
 
-    override suspend fun loadReviews(
-        url: String,
-        page: Int,
-        showSpoilers: Boolean
-    ): List<UserReview> {
-        val key = novelsIdRequired[url] ?: return emptyList()
-        val apiUrl = "$mainUrl/api/comments?commentable_encrypted_key=$key&order_by=rating&order_direction=desc"
+    override suspend fun loadReviews(url: String, page: Int, data: String?): List<UserReview> {
+        val key = data ?: return emptyList()
+        val apiUrl =
+            "$mainUrl/api/comments?commentable_encrypted_key=$key&order_by=rating&order_direction=desc"
         val response = app.get(apiUrl).parsed<CommentsResponse>()
 
         val commentersMap = response.commenters?.associateBy { it.id } ?: emptyMap()
 
-        return response.comments?.map { comment ->
+        return response.comments?.mapNotNull { comment ->
             val user = commentersMap[comment.commenterId]
-            UserReview(
-                review = comment.comment?.let { Jsoup.parse(it).text() } ?: "",
-                username = user?.name ?: "User",
-                reviewDate = comment.createdAt?.let {
+
+            newReview(comment.comment?.let { Jsoup.parse(it).text() } ?: return@mapNotNull null) {
+                username = user?.name ?: "User"
+                date = comment.createdAt?.let {
                     SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(it * 1000L))
-                },
-                avatarUrl = user?.avatar?.thumb?.let { fixUrlNull(it) },
+                }
+                avatarUrl = user?.avatar?.thumb?.let { fixUrlNull(it) }
                 rating = comment.rating?.times(10)
-            )
+            }
         } ?: emptyList()
     }
 

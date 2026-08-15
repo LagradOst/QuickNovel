@@ -32,7 +32,10 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.Scaffold
@@ -76,10 +79,12 @@ import com.lagradost.quicknovel.compose.BaseStyles.whiteButtonColors
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.RoundedImageShape
+import com.lagradost.quicknovel.compose.SingleSelectDialog
 import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.mvvm.safe
+import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.common.HorizontalTab
 import com.lagradost.quicknovel.ui.common.ImmutableChapterData
 import com.lagradost.quicknovel.ui.common.ImmutableReview
@@ -109,7 +114,42 @@ import kotlin.uuid.ExperimentalUuidApi
 
 @Composable
 fun ResultScreen(state: ResultState, action: (ResultPageAction) -> Unit) {
-    Scaffold { innerPadding ->
+    Scaffold(
+        floatingActionButton = {
+            if (state.response != null) {
+                ExtendedFloatingActionButton(
+                    modifier = Modifier.padding(bottom = 40.dp),
+                    onClick = {
+                        action(
+                            ResultPageAction.ResultAction(
+                                SearchResponseAction(state.response, SearchResponseOperation.Stream)
+                            )
+                        )
+                    },
+                    // Elevation actually changes the color, because who wanted a sane framework
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 0.dp,
+                        pressedElevation = 0.dp,
+                        focusedElevation = 0.dp,
+                        hoveredElevation = 0.dp
+                    ),
+                    containerColor = colors.onBackground,
+                    contentColor = colors.surfaceVariant,
+                    text = {
+                        Text(stringResource(R.string.stream_read))
+                    },
+                    icon = {
+                        Icon(
+                            modifier = Modifier.size(24.dp),
+                            painter = painterResource(R.drawable.netflix_play),
+                            contentDescription = stringResource(R.string.stream_read)
+                        )
+                    },
+                    expanded = false
+                )
+            }
+        }
+    ) { innerPadding ->
         if (state.loadingResponse) {
             LoadingScreen(Modifier.padding(innerPadding))
         } else {
@@ -119,9 +159,32 @@ fun ResultScreen(state: ResultState, action: (ResultPageAction) -> Unit) {
 }
 
 @Composable
+fun ResultScreenDialog(dialog: ResultDialog, action: (ResultPageAction) -> Unit) {
+    when (dialog) {
+        is ResultDialog.Bookmark -> {
+            SingleSelectDialog(
+                entries = ReadType.entries.associateWith { item -> stringResource(item.stringRes) },
+                dismiss = {
+                    action(ResultPageAction.DismissDialog)
+                },
+                title = stringResource(R.string.bookmark),
+                selectedKey = dialog.selected,
+                confirm = { selected ->
+                    action(ResultPageAction.SetBookmark(selected))
+                    action(ResultPageAction.DismissDialog)
+                })
+        }
+    }
+}
+
+@Composable
 fun ResultScreenImpl(
     padding: PaddingValues, state: ResultState, action: (ResultPageAction) -> Unit
 ) {
+    if (state.dialog != null) {
+        ResultScreenDialog(state.dialog, action)
+    }
+
     val response = state.response ?: return
     // val scrollState = rememberScrollState()
     val posterInteractionSource = remember { MutableInteractionSource() }
@@ -133,7 +196,9 @@ fun ResultScreenImpl(
         R.string.novel, R.string.reviews, R.string.related, R.string.chapters
     )
     val pagerState = rememberPagerState(
-        initialPage = 0, pageCount = { tabNames.size })
+        initialPage = 0,
+        pageCount = { tabNames.size }
+    )
 
     val outerListState = rememberLazyListState()
 
@@ -251,21 +316,19 @@ fun ResultScreenImpl(
                             .background(colors.surfaceContainer)
                     ) {
                         TextIcon(
-                            R.string.bookmark,
-                            R.drawable.ic_baseline_add_24,
+                            stringResource(if (state.bookmark == ReadType.NONE) R.string.bookmark else state.bookmark.stringRes),
+                            icon = if (state.bookmark == ReadType.NONE) R.drawable.ic_baseline_add_24 else R.drawable.ic_baseline_bookmark_24,
                         ) {
-
+                            action(ResultPageAction.OpenBookmark)
                         }
                         TextIcon(
-                            R.string.open_in_browser,
+                            stringResource(R.string.download_open_action),
                             R.drawable.ic_baseline_public_24,
                         ) {
-                            safe {
-                                openInBrowser(response.url)
-                            }
+                            openInBrowser(response.url)
                         }
                         TextIcon(
-                            R.string.result_share,
+                            stringResource(R.string.result_share),
                             R.drawable.ic_outline_share_24,
                         ) {
                             safe {
@@ -661,11 +724,12 @@ fun NovelPage(
                     Text(
                         text = tag,
                         fontSize = 14.sp,
+                        lineHeight = 14.sp,
                         modifier = Modifier
                             .padding(4.dp)
                             .rounded()
                             .background(color = colors.surfaceVariant)
-                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                            .padding(7.dp)
                     )
                 }
             }
@@ -695,7 +759,9 @@ fun NovelPage(
 
         Row(Modifier.padding(horizontal = 10.dp)) {
             TextButton(
+                shape = RoundedImageShape(),
                 colors = whiteButtonColors,
+                enabled = downloadState.downloaded > 0,
                 modifier = Modifier
                     .padding(2.dp)
                     .weight(1.0f),
@@ -703,24 +769,35 @@ fun NovelPage(
                     action(
                         ResultPageAction.ResultAction(
                             SearchResponseAction(
-                                response, SearchResponseOperation.Stream
+                                response, SearchResponseOperation.Read
                             )
                         )
                     )
                 }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        modifier = Modifier
-                            .padding(horizontal = 4.dp)
-                            .size(24.dp),
-                        painter = painterResource(R.drawable.ic_baseline_play_arrow_24),
-                        contentDescription = null
-                    )
-                    Text(stringResource(R.string.stream_read))
+                    if (response.generating) {
+                        CircularProgressIndicator(
+                            color = colors.surfaceVariant,
+                            modifier = Modifier
+                                .padding(horizontal = 4.dp)
+                                .size(24.dp), strokeWidth = 3.0.dp
+                        )
+                    } else {
+                        Icon(
+                            modifier = Modifier
+                                .padding(horizontal = 4.dp)
+                                .size(24.dp),
+                            painter = painterResource(R.drawable.book_2_24px),
+                            contentDescription = null
+                        )
+                        Text(stringResource(R.string.read_epub))
+                    }
                 }
             }
             Spacer(Modifier.width(5.dp))
+            val action = response.downloadState.action
             TextButton(
+                shape = RoundedImageShape(),
                 colors = blackButtonColors,
                 modifier = Modifier
                     .padding(2.dp)
@@ -729,20 +806,30 @@ fun NovelPage(
                     action(
                         ResultPageAction.ResultAction(
                             SearchResponseAction(
-                                response, response.downloadState.operation
+                                response, action.operation
                             )
                         )
                     )
                 }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        modifier = Modifier
-                            .padding(horizontal = 4.dp)
-                            .size(24.dp),
-                        painter = painterResource(R.drawable.netflix_download),
-                        contentDescription = null
-                    )
-                    Text(stringResource(R.string.download))
+                    if (downloadState.status == DownloadState.IsPending) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .padding(horizontal = 4.dp)
+                                .size(24.dp),
+                            color = colors.onBackground,
+                            strokeWidth = 3.0.dp
+                        )
+                    } else {
+                        Icon(
+                            modifier = Modifier
+                                .padding(horizontal = 4.dp)
+                                .size(24.dp),
+                            contentDescription = null,
+                            painter = painterResource(action.iconBig)
+                        )
+                        Text(stringResource(action.operationName))
+                    }
                 }
             }
 
@@ -834,7 +921,7 @@ fun RowScope.TextInfo(
 }
 
 @Composable
-fun RowScope.TextIcon(text: Int, icon: Int, onClick: () -> Unit) {
+fun RowScope.TextIcon(text: String, icon: Int, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     Column(
         verticalArrangement = Arrangement.Center,
@@ -846,13 +933,13 @@ fun RowScope.TextIcon(text: Int, icon: Int, onClick: () -> Unit) {
             .circle()
     ) {
         Text(
-            stringResource(text),
+            text,
             fontSize = 16.sp,
             modifier = Modifier.padding(2.dp),
             textAlign = TextAlign.Center
         )
         Icon(
-            painter = painterResource(icon), contentDescription = stringResource(text)
+            painter = painterResource(icon), contentDescription = text
         )
     }
 }

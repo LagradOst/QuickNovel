@@ -377,6 +377,13 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                     DownloadActionType.Resume
                 )
             }
+            SearchResponseOperation.Stop -> {
+                val id = action.response.id!!
+                BookDownloader2.addPendingAction(
+                    id,
+                    DownloadActionType.Stop
+                )
+            }
         }
     }
 
