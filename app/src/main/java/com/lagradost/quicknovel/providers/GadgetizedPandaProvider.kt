@@ -1,14 +1,9 @@
 package com.lagradost.quicknovel.providers
 
-import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.quicknovel.*
-import com.lagradost.quicknovel.util.Coroutines.ioSafe
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import java.net.URLEncoder
-import java.util.concurrent.ConcurrentHashMap
 
 class GadgetizedPandaProvider : MainAPI() {
     override val name = "GadgetizedPanda"
@@ -18,249 +13,179 @@ class GadgetizedPandaProvider : MainAPI() {
     override val iconBackgroundId = R.color.colorPrimaryWhite
     override val lang = "en"
 
-    data class ArchiveEntry(val timestamp: String, val originalUrl: String, val archiveUrl: String)
-
     companion object {
-        @Volatile private var cachedSlugMap: Map<String, ArchiveEntry>? = null
-        @Volatile private var lastCacheFetchTime: Long = 0L
-        private const val CACHE_DURATION_MS = 24 * 60 * 60 * 1000L
-        private val cacheMutex = Mutex()
-        private val VOLUME_REGEX = Regex("Volume[\\s\\u00A0]+(\\d+)", RegexOption.IGNORE_CASE)
-        private val CHAPTER_NUM_REGEX = Regex("(?i)^Chapter\\s+(\\d+(?:\\.\\d+)?)")
-        private val PART_NUM_REGEX = Regex("(?i)^Part\\s+(\\d+)")
         private val KOFI_PATH_REGEX = Regex("(?i)^(?:(.*?)-)?(?:Volume|Vol)?-?(\\d+)?-?Chapter-(\\d+)(?:-(\\d+))?-(?:[A-Z0-9]+)$")
         private val CHAPTER_RANGE_REGEX = Regex("(?i)(?:Chapter\\s*)?(\\d+)\\s*[-–—]\\s*(\\d+)")
-        private val CHAPTER_PART_REGEX = Regex("(?i)Chapter\\s+(\\d+(?:\\.\\d+)?)\\s+Part\\s+(\\d+)")
-        private val DIGITS_REGEX = Regex("""\d+""")
+
+        private val PROMO_KEYWORDS = listOf(
+            "amazon link", "green button above", "source material", "english translations",
+            "support the author", "page translated", "green bar", "ln translations",
+            "localizermeerkat", "also check out", "join the membership"
+        )
     }
 
-    init { ioSafe { ensureWaybackCache() } }
-
-    // WAYBACK CDX CACHE — Downloads and caches Wayback Machine snapshot indices once per 24h for both .net and .com domains.
-    private suspend fun ensureWaybackCache(forceRefresh: Boolean = false) {
-        val now = System.currentTimeMillis()
-        if (cachedSlugMap != null && (now - lastCacheFetchTime) <= CACHE_DURATION_MS && !forceRefresh) return
-        cacheMutex.withLock {
-            val checkNow = System.currentTimeMillis()
-            if (cachedSlugMap != null && (checkNow - lastCacheFetchTime) <= CACHE_DURATION_MS && !forceRefresh) return@withLock
-            try {
-                val tempMap = mutableMapOf<String, ArchiveEntry>()
-                for (domain in listOf("gadgetizedpanda.net", "gadgetizedpanda.com")) {
-                    try {
-                        val listUrl = "https://web.archive.org/cdx/search/cdx?url=$domain/&matchType=prefix&fl=original,timestamp&filter=statuscode:200&output=json"
-                        val jsonText = app.get(listUrl).text
-                        if (jsonText.isNotEmpty() && jsonText.trim() != "[]") {
-                            DataStore.mapper.readValue<Array<Array<String>>>(jsonText).drop(1).forEach { row ->
-                                if (row.size >= 2 && row[0].isNotBlank() && row[1].isNotBlank()) {
-                                    val (orig, ts) = row[0] to row[1]
-                                    val slug = orig.trimEnd('/').substringAfterLast('/').lowercase()
-                                    if (slug.isNotEmpty() && (tempMap[slug] == null || ts > tempMap[slug]!!.timestamp)) {
-                                        tempMap[slug] = ArchiveEntry(ts, orig, "https://web.archive.org/web/$ts/$orig")
-                                    }
-                                }
-                            }
-                        }
-                    } catch (_: Exception) {}
-                }
-                if (tempMap.isNotEmpty()) {
-                    cachedSlugMap = tempMap
-                    lastCacheFetchTime = checkNow
-                }
-            } catch (_: Exception) {}
-        }
+    // Extracts a trailing integer or decimal number after a specific keyword in a string.
+    private fun String.extractTrailingNum(keyword: String, isDecimal: Boolean = false): Double? {
+        val s = this.replace('\u00A0', ' ')
+        val i = s.indexOf(keyword, ignoreCase = true)
+        if (i < 0) return null
+        return s.substring(i + keyword.length).trimStart(' ', '-', ':', '_')
+            .takeWhile { it.isDigit() || (isDecimal && it == '.') }.toDoubleOrNull()
     }
 
-    // MAIN PAGE CATALOG — Defines category mappings and loads main page novel lists.
+    // Extracts the volume number following 'Volume' in the string.
+    private fun String.extractVolumeNumber(): Int? = extractTrailingNum("Volume")?.toInt()
+
+    // Extracts the chapter number (including decimals) following 'Chapter' in the string.
+    private fun String.extractChapterNumber(): Double? = extractTrailingNum("Chapter", true)
+
+    // Extracts the sub-part number following 'Part' in the string.
+    private fun String.extractPartNumber(): Int? = extractTrailingNum("Part")?.toInt()
+
+    // Formats a number to an integer string if whole (e.g. 5.0 -> '5'), or keeps decimal notation (e.g. 5.5 -> '5.5').
+    private fun Double.formatNum(): String = if (this % 1.0 == 0.0) toInt().toString() else toString()
+
     override val mainCategories = listOf(
-        "All Projects" to mainUrl, "Translation Projects" to "$mainUrl/",
-        "Personal Projects" to "$mainUrl/page/2/", "Caught up projects" to "$mainUrl/page/3/"
-    )
-    var promoKeywords = mutableListOf(
-        "Amazon link", "green button above", "source material", "English translations", "SOURCE MATERIAL",
-        "SUPPORT THE AUTHOR", "page translated", "green bar", "LN translations", "Localizermeerkat", "Also check out",
-        "Join the membership"
+        "All Projects" to "",
+        "Translation Projects" to "1",
+        "Personal Projects" to "2",
+        "Caught up projects" to "3"
     )
 
+    private val projectPages = listOf(
+        mainUrl to "Translation Projects",
+        "$mainUrl/page/2/" to "Personal Projects",
+        "$mainUrl/page/3/" to "Caught up projects"
+    )
+
+    // Loads novel directory pages based on selected project category or pagination index.
     override suspend fun loadMainPage(page: Int, mainCategory: String?, orderBy: String?, tag: String?): HeadMainPageResponse {
-        if (page > 1) return HeadMainPageResponse("", emptyList())
-        val doc = app.get(mainUrl).document
-        ioSafe {
-            listOf("$mainUrl/page/2/", "$mainUrl/page/3/").forEach { p ->
-                try {
-                    app.get(p).document.selectFirst("div.entry-content")?.select("a[href]")?.forEach { a ->
-                        val href = fixUrl(a.attr("href").trim())
-                        val src = extractImgSrc(a.selectFirst("img"))
-                        if (href.isNotEmpty() && !src.isNullOrEmpty()) coverCache[href] = src
-                    }
-                } catch (_: Exception) {}
-            }
-        }
-        return HeadMainPageResponse(mainUrl, parseNovels(doc, mainCategory))
+        val targetIdx = mainCategory?.toIntOrNull()?.minus(1) ?: (page - 1)
+        val (pageUrl, catName) = projectPages.getOrNull(targetIdx) ?: return HeadMainPageResponse(mainUrl, emptyList())
+        val novels = if (!mainCategory.isNullOrEmpty() && page > 1) emptyList() else parseNovels(app.get(pageUrl).document, catName)
+        return HeadMainPageResponse(pageUrl, novels)
     }
 
-    // NOVEL CATALOG & SEARCH — Parses project listings, extracts covers, and searches across all Gadgetized Panda pages.
-    private val coverCache = ConcurrentHashMap<String, String>()
-
-    private suspend fun getCoverForUrl(url: String): String? = coverCache[url] ?: try {
-        app.get(url).document.let { doc -> fetchNovelCover(doc)?.also { coverCache[url] = it } }
-    } catch (_: Exception) { null }
-
-    private fun extractImgSrc(img: Element?): String? {
-        if (img == null) return null
+    // Extracts the first valid image URL from common lazy-loading and responsive image attributes.
+    private fun Element?.extractImgSrc(): String? {
+        if (this == null) return null
         val attrs = listOf("data-src", "data-lazy-src", "src", "data-full-url", "srcset", "data-srcset")
-        return fixUrlNull(attrs.map { img.attr(it).trim().substringBefore(" ") }.firstOrNull { it.isNotEmpty() })
+        return fixUrlNull(attrs.firstNotNullOfOrNull { attr ->
+            attr(attr).trim().takeIf { it.isNotEmpty() }?.substringBefore(" ")
+        })
     }
 
-    private fun createNovelResponse(name: String, url: String, cover: String? = null): SearchResponse =
-        newSearchResponse(name, fixUrl(url)) { if (!cover.isNullOrEmpty()) posterUrl = fixUrl(cover) }
+    // Parses novel cards and covers from WordPress page content and navigation menus.
+    private fun parseNovels(doc: Document, category: String? = null): List<SearchResponse> {
+        val coverMap = doc.select("div.entry-content a[href]").mapNotNull { a ->
+            a.selectFirst("img").extractImgSrc()?.let { fixUrl(a.attr("href").trim()) to it }
+        }.toMap()
 
-    private fun parseNovels(doc: Document, mainCategory: String? = null): List<SearchResponse> {
-        val novels = mutableListOf<SearchResponse>()
-        val coverMap = mutableMapOf<String, String>()
+        val menu = doc.selectFirst("ul#main-menu, nav#site-navigation ul, div.menu-menu-container ul")
+        val menuLinks = menu?.children()?.filter { topLi ->
+            val catText = topLi.selectFirst("a")?.text()?.trim().orEmpty()
+            category.isNullOrEmpty() || category == "All Projects" || catText.contains(category, ignoreCase = true)
+        }?.flatMap { it.select("ul.sub-menu a[href]") } ?: emptyList()
 
-        doc.selectFirst("div.entry-content")?.select("a[href]")?.forEach { a ->
+        return menuLinks.mapNotNull { a ->
+            val name = a.text().trim()
             val href = fixUrl(a.attr("href").trim())
-            val src = extractImgSrc(a.selectFirst("img"))
-            if (href.isNotEmpty() && !src.isNullOrEmpty()) {
-                coverMap[href] = src
-                coverCache[href] = src
-            }
-        }
-
-        val targetCatName = when {
-            mainCategory.isNullOrEmpty() || mainCategory == mainUrl || mainCategory == "All Projects" -> "All Projects"
-            mainCategory.contains("/page/2", ignoreCase = true) || mainCategory.contains("personal", ignoreCase = true) || mainCategory == "Personal Projects" -> "Personal Projects"
-            mainCategory.contains("/page/3", ignoreCase = true) || mainCategory.contains("caught", ignoreCase = true) || mainCategory == "Caught up projects" -> "Caught up projects"
-            mainCategory == "$mainUrl/" || mainCategory.contains("translation", ignoreCase = true) || mainCategory == "Translation Projects" -> "Translation Projects"
-            else -> mainCategory
-        }
-
-        doc.selectFirst("ul#main-menu, nav#site-navigation ul, div.menu-menu-container ul")?.children()?.forEach { topLi ->
-            val catText = topLi.selectFirst("a")?.text()?.trim() ?: ""
-            if (targetCatName == "All Projects" || catText.contains(targetCatName, ignoreCase = true) || targetCatName.contains(catText, ignoreCase = true)) {
-                topLi.select("ul.sub-menu a[href]").forEach { a ->
-                    val name = a.text().trim()
-                    val href = fixUrl(a.attr("href").trim())
-                    val rawHref = a.attr("href").trim()
-                    if (name.isNotEmpty() && name != "A-G" && name != "H-Z" && href != "#" && href.isNotEmpty() &&
-                        !href.contains("announcement", ignoreCase = true) && href != mainUrl && href != "$mainUrl/" &&
-                        !href.contains("/page/", ignoreCase = true) && !href.contains("post_type=post", ignoreCase = true)) {
-                        val coverUrl = coverMap[href] ?: coverMap[rawHref] ?: coverCache[href] ?: coverCache[rawHref]
-                        novels.add(createNovelResponse(name, href, coverUrl))
-                    }
+            val rawHref = a.attr("href").trim()
+            if (name.isNotEmpty() && name != "A-G" && name != "H-Z" && href != "#" && href.isNotEmpty() &&
+                !href.contains("announcement", ignoreCase = true) && href != mainUrl && href != "$mainUrl/" &&
+                !href.contains("/page/", ignoreCase = true) && !href.contains("post_type=post", ignoreCase = true)) {
+                val coverUrl = coverMap[href] ?: coverMap[rawHref]
+                newSearchResponse(name, href) {
+                    if (!coverUrl.isNullOrEmpty()) posterUrl = fixUrl(coverUrl)
                 }
-            }
-        }
-        return novels.distinctBy { it.url }
+            } else null
+        }.distinctBy { it.url }
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
-        val allNovels = mutableListOf<SearchResponse>()
-        listOf(mainUrl, "$mainUrl/page/2/", "$mainUrl/page/3/").forEach { pageUrl ->
-            try { allNovels.addAll(parseNovels(app.get(pageUrl).document)) } catch (_: Exception) {}
-        }
-        val novelMap = LinkedHashMap<String, SearchResponse>()
-        for (novel in allNovels) {
-            val existing = novelMap[novel.url]
-            if (existing == null || (existing.posterUrl.isNullOrEmpty() && !novel.posterUrl.isNullOrEmpty())) {
-                novelMap[novel.url] = novel
-            }
-        }
-        return novelMap.values.filter { it.name.contains(query, ignoreCase = true) }.onEach { novel ->
-            if (novel.posterUrl.isNullOrEmpty()) getCoverForUrl(novel.url)?.let { novel.posterUrl = it }
-            else coverCache[novel.url] = novel.posterUrl!!
-        }
+    // Searches across project category listings using client-side query matching.
+    override suspend fun search(query: String): List<SearchResponse> = projectPages.flatMap { (pageUrl, catName) ->
+        runCatching { parseNovels(app.get(pageUrl).document, catName) }.getOrDefault(emptyList())
+    }.distinctBy { it.url }.filter { it.name.contains(query, ignoreCase = true) }
+
+    // Checks if an element is a standard HTML heading tag (h1-h6).
+    private fun Element.isHeading(): Boolean = tagName().lowercase() in listOf("h1", "h2", "h3", "h4", "h5", "h6")
+
+    // Selects the main WordPress entry-content element across desktop and mobile layouts.
+    private fun Document.entryContent(): Element? =
+        selectFirst("div#page div#content div#primary main#main article div.entry-content, div.entry-content")
+
+    // Filters out promo banners, affiliate links, and separator elements from chapter content.
+    private fun Element.isUnwanted(): Boolean {
+        val tag = tagName().lowercase()
+        if (tag == "hr" && (hasClass("wp-block-separator") || hasClass("has-alpha-channel-opacity") || hasClass("is-style-wide"))) return true
+        if (tag == "p" && hasClass("has-black-color") && hasClass("has-text-color")) return true
+        if (tag != "p" && tag != "div" && !isHeading()) return false
+        val clean = text().filter { it.isLetterOrDigit() || it.isWhitespace() }
+        return PROMO_KEYWORDS.any { clean.contains(it, ignoreCase = true) }
     }
 
-    // CONTENT & PROMOTION FILTERING — Filters out unwanted HTML dividers, promotional text, and non-chapter link anchors.
-    fun removeUnwantedHtml(element: Element): Boolean =
-        (element.tagName() == "hr" && (element.hasClass("wp-block-separator") || element.hasClass("has-alpha-channel-opacity") || element.hasClass("is-style-wide"))) ||
-        (element.tagName() == "p" && element.hasClass("has-black-color") && element.hasClass("has-text-color"))
-
-    fun isPromotionParagraph(element: Element): Boolean {
-        val tag = element.tagName()
-        if (tag != "p" && !tag.matches(Regex("h[1-6]")) && tag != "div") return false
-        val cleanText = element.text().replace(Regex("[^a-zA-Z0-9_\\s]"), " ")
-        return promoKeywords.any { cleanText.contains(it.replace(Regex("[^a-zA-Z0-9_\\s]"), " "), ignoreCase = true) }
-    }
-
+    // Validates if an anchor link points to a valid novel chapter.
     fun isChapterLink(href: String, rawTitle: String): Boolean {
         if (href.isEmpty() || href.startsWith("#") || href.contains("#comment", ignoreCase = true) || href.contains("web.archive.org/web/", ignoreCase = true)) return false
-        val isAllowed = href.contains(mainUrl, ignoreCase = true) || href.contains("gadgetizedpanda", ignoreCase = true) || href.contains("ko-fi.com/Post/", ignoreCase = true) || href.contains("ko-fi.com/post/", ignoreCase = true)
-        return isAllowed && (rawTitle.contains("Chapter", ignoreCase = true) || rawTitle.contains("Illustrations", ignoreCase = true) || rawTitle.contains("Prologue", ignoreCase = true) || rawTitle.contains("Part", ignoreCase = true) || href.contains("chapter", ignoreCase = true) || href.contains("illustrations", ignoreCase = true))
+        val isAllowed = listOf(mainUrl, "gadgetizedpanda", "ko-fi.com/post/", "preview=true").any { href.contains(it, ignoreCase = true) }
+        val keywords = listOf("chapter", "illustrations", "prologue", "part")
+        return isAllowed && keywords.any { rawTitle.contains(it, ignoreCase = true) || href.contains(it, ignoreCase = true) }
     }
 
-    // KO-FI & RANGE EXPANSION — Expands multi-chapter Ko-fi links and numeric chapter ranges into individual entries.
+    // Expands structured Ko-fi multi-chapter post links into individual chapter entries.
     fun expandKofiLink(href: String, currentVolume: String): List<ChapterData>? {
-        if (!href.contains("ko-fi.com/Post/", ignoreCase = true) && !href.contains("ko-fi.com/post/", ignoreCase = true)) return null
-        val postPath = href.substringAfter("Post/").substringAfter("post/").trim('/').ifEmpty { return null }
+        if (!href.contains("ko-fi.com/post/", ignoreCase = true)) return null
+        val postPath = href.substringAfterLast("post/", href.substringAfterLast("Post/")).trim('/').ifEmpty { return null }
         val match = KOFI_PATH_REGEX.find(postPath) ?: return null
-        val rawSlug = match.groupValues[1].ifEmpty { "" }
-        val volNum = match.groupValues[2].ifEmpty { DIGITS_REGEX.find(currentVolume)?.value ?: "1" }
+        val rawSlug = match.groupValues[1]
+        val volNum = match.groupValues[2].ifEmpty { currentVolume.filter(Char::isDigit).ifEmpty { "1" } }
         val startCh = match.groupValues[3].toIntOrNull() ?: return null
         val endCh = match.groupValues[4].toIntOrNull() ?: startCh
         if (startCh > endCh || (endCh - startCh) > 100) return null
-        val slugPart = if (rawSlug.isNotEmpty()) "${rawSlug.lowercase()}-" else ""
+        val slug = if (rawSlug.isNotEmpty()) "${rawSlug.lowercase()}-" else ""
         return (startCh..endCh).map { ch ->
-            newChapterData(standardizeChapterTitle("Chapter $ch", "Volume $volNum"), "$mainUrl/${slugPart}volume-$volNum-chapter-$ch")
+            newChapterData(standardizeChapterTitle("Chapter $ch", "Volume $volNum"), "$mainUrl/${slug}volume-$volNum-chapter-$ch")
         }
     }
 
-    fun convertKofiUrl(href: String): String = href
-
+    // Extracts start and end chapter numbers from range strings (e.g. 'Chapter 21-30').
     fun extractChapterRange(title: String, href: String): IntRange? {
-        val match = CHAPTER_RANGE_REGEX.find(title) ?: CHAPTER_RANGE_REGEX.find(href) ?: return null
-        val start = match.groupValues[1].toIntOrNull() ?: return null
-        val end = match.groupValues[2].toIntOrNull() ?: return null
+        val (_, s, e) = (CHAPTER_RANGE_REGEX.find(title) ?: CHAPTER_RANGE_REGEX.find(href))?.groupValues ?: return null
+        val start = s.toIntOrNull() ?: return null
+        val end = e.toIntOrNull() ?: return null
         return if (end > start && (end - start) <= 100) start..end else null
     }
 
-    // WAYBACK CHAPTER RESOLUTION — Resolves chapter slugs to Wayback Machine archive URLs and handles 404 snapshot fallbacks.
-    suspend fun resolveWaybackChapterUrl(chapterUrlOrSlug: String): String? {
-        val cleanInput = chapterUrlOrSlug.trim().ifEmpty { return null }
-        ensureWaybackCache()
-        val slug = cleanInput.trimEnd('/').substringAfterLast('/').lowercase()
-        return (cachedSlugMap ?: emptyMap())[slug]?.archiveUrl ?: resolveSnapshotUrl(cleanInput.takeIf { it.startsWith("http") } ?: return null)
-    }
-
-    suspend fun findNextChapterUrl(currentUrlOrSlug: String): String? {
-        val currentSlug = currentUrlOrSlug.trim().ifEmpty { return null }.trimEnd('/').substringAfterLast('/').lowercase()
-        val currentChNum = (Regex("""chapter-(\d+)""").find(currentSlug) ?: return null).groupValues[1].toIntOrNull() ?: return null
-        return resolveWaybackChapterUrl(currentSlug.replace("chapter-$currentChNum", "chapter-${currentChNum + 1}"))
-    }
-
+    // Queries the Wayback Machine CDX API to find the latest valid snapshot for a chapter URL.
     suspend fun resolveSnapshotUrl(exactUrl: String): String? = try {
         val cleanUrl = exactUrl.trim().ifEmpty { return null }
-        val cdxUrl = "https://web.archive.org/cdx/search/cdx?url=${URLEncoder.encode(cleanUrl, "UTF-8")}&fl=original,timestamp&filter=statuscode:200&output=json"
-        val jsonText = app.get(cdxUrl).text
-        if (jsonText.isEmpty() || jsonText.trim() == "[]") null
-        else DataStore.mapper.readValue<Array<Array<String>>>(jsonText).drop(1).filter { it.size >= 2 }
-            .maxByOrNull { it[1] }?.let { newest -> "https://web.archive.org/web/${newest[1]}/${newest[0]}" }
-    } catch (_: Exception) { null }
-
-    suspend fun handleWaybackFallback(doc: Document): Document {
-        val pageContent = doc.selectFirst("div#page div#content div#primary main#main section.error-404.not-found div.page-content")
-            ?: doc.selectFirst("section.error-404 div.page-content") ?: doc.selectFirst("div.page-content")
-        val is404 = doc.selectFirst("section.error-404") != null || doc.selectFirst("section.not-found") != null || doc.title().contains("404", ignoreCase = true)
-        if (!is404 || pageContent == null) return doc
-
-        val archiveLink = pageContent.select("a[href]").firstOrNull { it.attr("href").contains("web.archive.org", ignoreCase = true) } ?: return doc
-        val rawArchiveUrl = archiveLink.attr("href").trim().ifEmpty { return doc }
-        val exactTarget = if (rawArchiveUrl.contains("web.archive.org/web/*/")) rawArchiveUrl.substringAfter("web/*/") else rawArchiveUrl
-        return app.get(resolveSnapshotUrl(exactTarget) ?: rawArchiveUrl).document
+        val slug = cleanUrl.trimEnd('/').substringAfterLast('/')
+        val queries = listOf(
+            "https://web.archive.org/cdx/search/cdx?url=${URLEncoder.encode(cleanUrl, "UTF-8")}&fl=original,timestamp&filter=statuscode:200&output=json",
+            "https://web.archive.org/cdx/search/cdx?url=gadgetizedpanda.com&matchType=prefix&fl=original,timestamp&filter=statuscode:200&filter=original:.*$slug.*&limit=10&output=json"
+        )
+        queries.firstNotNullOfOrNull { queryUrl ->
+            app.get(queryUrl).parsedSafe<List<List<String>>>()
+                ?.drop(1)?.filter { it.size >= 2 }?.maxByOrNull { it[1] }
+                ?.let { "https://web.archive.org/web/${it[1]}/${it[0]}" }
+        }
+    } catch (_: Exception) {
+        null
     }
 
-    // CHAPTER CONTENT & METADATA PARSING — Extracts chapter body content and formats chapter titles and priority sorting.
+    // Cleans and extracts HTML text paragraphs from a chapter post.
     fun fetchChapterContent(doc: Document): String {
-        val entryContent = doc.selectFirst("div#page div#content div#primary main#main article div.entry-content")
-            ?: doc.selectFirst("div.entry-content") ?: return ""
+        val entryContent = doc.entryContent() ?: return ""
+        entryContent.select("script, style, iframe, svg, noscript, .sharedaddy, .jp-relatedposts, .wpcnt, #jp-post-flair").remove()
+
         val builder = StringBuilder()
-        var contentStarted = false
+        var started = false
         for (element in entryContent.children()) {
-            if (element.tagName() == "div" && element.hasClass("wp-block-columns")) break
-            if (removeUnwantedHtml(element) || isPromotionParagraph(element)) continue
-            if (!contentStarted && (element.tagName() == "p" || element.tagName().matches(Regex("h[1-6]")))) contentStarted = true
-            if (contentStarted) {
+            val tag = element.tagName().lowercase()
+            if (tag == "div" && element.hasClass("wp-block-columns")) break
+            if (element.isUnwanted()) continue
+            if (!started && (tag == "p" || element.isHeading())) started = true
+            if (started) {
                 element.select("a").unwrap()
                 builder.append(element.outerHtml()).append("\n")
             }
@@ -268,154 +193,191 @@ class GadgetizedPandaProvider : MainAPI() {
         return builder.toString().trim()
     }
 
-    fun fetchCategories(doc: Document): List<Pair<String, String>> =
-        listOf("All Projects" to mainUrl) + doc.select("div#page nav#site-navigation div.menu-menu-container ul#main-menu > li > a")
-            .map { it.text().trim() to it.attr("href").trim() }
-            .filter { (name, _) -> name.contains("Projects", ignoreCase = true) }
-            .distinctBy { it.first }
-
+    // Formats and standardizes chapter names with consistent volume, chapter, and part prefixes.
     fun standardizeChapterTitle(rawTitle: String, volume: String?): String {
-        var title = rawTitle.trim().replace(CHAPTER_PART_REGEX, "Chapter $1 - Part $2")
-        if (volume != null) title = title.replace(Regex("^${Regex.escape(volume)}\\s*[-:]?\\s*", RegexOption.IGNORE_CASE), "")
-        return if (volume != null) "$volume - $title" else title
+        var title = rawTitle.trim()
+        val chNum = title.extractChapterNumber()
+        val partNum = title.extractPartNumber()
+        if (chNum != null && partNum != null && title.contains("Chapter", ignoreCase = true) && title.contains("Part", ignoreCase = true)) {
+            title = "Chapter ${chNum.formatNum()} - Part $partNum"
+        }
+        if (volume != null) {
+            if (title.startsWith(volume, ignoreCase = true)) title = title.substring(volume.length).trimStart(' ', '-', ':')
+            return "$volume - $title"
+        }
+        return title
     }
 
-    fun getChapterPriority(title: String): Int = when {
-        title.contains("Illustrations", ignoreCase = true) -> 1
-        title.contains("Prologue", ignoreCase = true) -> 2
-        title.contains("Chapter", ignoreCase = true) -> 3
-        else -> 4
-    }
-
-    // CHAPTER NORMALIZATION & TOC BUILDING — Aggregates and normalizes chapter listings into volumes and builds table of contents.
+    // Parses raw DOM elements into structured chapters, handling multiple WordPress TOC patterns:
     fun normalizeChaptersAndParts(rawElements: List<Element>, currentVolDefault: String = "Volume 1"): List<ChapterData> {
         val chapterList = mutableListOf<ChapterData>()
         var currentVolume = currentVolDefault
         var lastUnlinkedChapter: String? = null
         var lastLinkedChapter: String? = null
+
         for (element in rawElements) {
             val text = element.text().trim()
-            val volMatch = VOLUME_REGEX.find(text)
-            if (volMatch != null && (element.tagName().matches(Regex("h[1-6]|p")) || element.hasClass("wp-block-heading"))) {
-                currentVolume = "Volume ${volMatch.groupValues[1]}"
+            val volNum = text.extractVolumeNumber()
+
+            // 1. Detect Volume headers (<h*>, <p>, or .wp-block-heading) to update volume context
+            if (volNum != null && (element.isHeading() || element.tagName().equals("p", ignoreCase = true) || element.hasClass("wp-block-heading"))) {
+                currentVolume = "Volume $volNum"
                 lastUnlinkedChapter = null
                 lastLinkedChapter = null
                 continue
             }
             val links = element.select("a[href]")
+
+            // 2. Track unlinked chapter headings (e.g. "Chapter 1") that precede linked sub-parts ("Part 1", "Part 2")
             if (links.isEmpty()) {
-                if (CHAPTER_NUM_REGEX.containsMatchIn(text)) lastUnlinkedChapter = text
+                if (text.extractChapterNumber() != null) lastUnlinkedChapter = text
                 continue
             }
             for (link in links) {
-                var href = link.attr("href").trim()
+                val href = link.attr("href").trim()
                 val rawTitle = link.text().trim()
+
+                // 3. Skip non-chapter links (navigation anchors, comments, archive pages)
                 if (!isChapterLink(href, rawTitle)) continue
 
+                // 4. Expand structured Ko-fi multi-chapter posts (e.g. /post/Novel-Volume-3-Chapter-21-30-ID)
                 val kofiChapters = expandKofiLink(href, currentVolume)
                 if (!kofiChapters.isNullOrEmpty()) {
                     chapterList.addAll(kofiChapters)
+                    kofiChapters.last().name.extractChapterNumber()?.let { num ->
+                        lastUnlinkedChapter = "Chapter ${num.formatNum()}"
+                        lastLinkedChapter = lastUnlinkedChapter
+                    }
                     continue
                 }
-                val isKofi = href.contains("ko-fi.com", ignoreCase = true)
-                if (isKofi) href = convertKofiUrl(href)
 
+                // 5. Expand batch Ko-fi posts matching range regex in title/URL (e.g. "Chapter 21 - 30")
+                val isKofi = href.contains("ko-fi.com", ignoreCase = true)
                 val chapterRange = extractChapterRange(rawTitle, href)
                 if (isKofi && chapterRange != null) {
-                    chapterRange.forEach { chNum -> chapterList.add(newChapterData(standardizeChapterTitle("Chapter $chNum", currentVolume), href)) }
+                    chapterRange.forEach { chNum ->
+                        chapterList.add(newChapterData(standardizeChapterTitle("Chapter $chNum", currentVolume), href))
+                    }
                     continue
                 }
+
                 var title = rawTitle
-                if (CHAPTER_NUM_REGEX.containsMatchIn(rawTitle)) {
-                    lastUnlinkedChapter = CHAPTER_NUM_REGEX.find(rawTitle)?.value ?: rawTitle
-                    lastLinkedChapter = lastUnlinkedChapter
-                } else if (PART_NUM_REGEX.containsMatchIn(rawTitle) && lastUnlinkedChapter != null && !rawTitle.contains("Chapter", ignoreCase = true)) {
-                    title = "$lastUnlinkedChapter - ${PART_NUM_REGEX.find(rawTitle)?.value ?: rawTitle}"
-                } else if (PART_NUM_REGEX.containsMatchIn(rawTitle) && lastLinkedChapter != null && !rawTitle.contains("Chapter", ignoreCase = true)) {
-                    title = "$lastLinkedChapter - ${PART_NUM_REGEX.find(rawTitle)?.value ?: rawTitle}"
-                    if (chapterList.isNotEmpty() && chapterList.last().name.contains(lastLinkedChapter, ignoreCase = true)) {
-                        chapterList.removeAt(chapterList.size - 1)
+                val chNum = rawTitle.extractChapterNumber() ?: href.extractChapterNumber()
+                val partNum = rawTitle.extractPartNumber() ?: href.extractPartNumber()
+
+                // 6. Format chapter title if chapter number is present
+                if (chNum != null) {
+                    val chStr = "Chapter ${chNum.formatNum()}"
+                    lastUnlinkedChapter = chStr
+                    lastLinkedChapter = chStr
+                    // Format as "Chapter X - Part Y" if sub-part is present
+                    if (partNum != null && (rawTitle.contains("Part", ignoreCase = true) || href.contains("part", ignoreCase = true))) {
+                        title = "$chStr - Part $partNum"
+                    }
+                } else if (partNum != null && !rawTitle.contains("Chapter", ignoreCase = true)) {
+                    // 7. Associate orphaned sub-parts ("Part 1") with the preceding parent chapter
+                    (lastUnlinkedChapter ?: lastLinkedChapter)?.let { title = "$it - Part $partNum" }
+                }
+
+                // 8. Remove duplicate parent placeholder when sub-parts exist (e.g. remove "Chapter 1" if "Chapter 1 - Part 1" is added)
+                if (partNum != null) {
+                    (lastUnlinkedChapter ?: lastLinkedChapter)?.let { baseCh ->
+                        val parentName = standardizeChapterTitle(baseCh, currentVolume)
+                        if (chapterList.lastOrNull()?.name == parentName) chapterList.removeAt(chapterList.size - 1)
                     }
                 }
+
+                // 9. Add formatted chapter entry to list
                 chapterList.add(newChapterData(standardizeChapterTitle(title, currentVolume), href))
             }
         }
-        return chapterList.distinctBy { it.name }.distinctBy { it.url }
+        return chapterList
     }
 
+    // Deterministic chapter sorting: Volume -> Chapter -> Part -> Special entries
+    fun sortChapters(chapters: List<ChapterData>): List<ChapterData> =
+        chapters.mapIndexed { idx, ch -> ch to idx }.sortedWith(compareBy(
+            { (ch, _) -> ch.name.extractVolumeNumber() ?: 1 },
+            { (ch, idx) ->
+                ch.name.extractChapterNumber() ?: when {
+                    ch.name.contains("illustrations", ignoreCase = true) -> -2.0
+                    ch.name.contains("prologue", ignoreCase = true) -> -1.0
+                    ch.name.contains("extra", ignoreCase = true) -> 9980.0
+                    ch.name.contains("epilogue", ignoreCase = true) -> 9990.0
+                    ch.name.contains("afterword", ignoreCase = true) -> 9995.0
+                    else -> 5000.0 + idx
+                }
+            },
+            { (ch, _) -> ch.name.extractPartNumber() ?: 0 },
+            { (_, idx) -> idx }
+        )).map { it.first }
+
+    // Collect all TOC pages; sortChapters() determines logical order.
     suspend fun buildTableOfContents(doc: Document, baseUrl: String): List<ChapterData> {
         val cleanBaseUrl = baseUrl.trimEnd('/')
         val pageRegex = Regex("""${Regex.escape(cleanBaseUrl)}/(\d+)/?""")
-        val pageNumbers = mutableSetOf(1)
-        doc.select("a[href]").forEach { a ->
-            pageRegex.find(a.attr("href").trim())?.groupValues?.get(1)?.toIntOrNull()?.let { pageNumbers.add(it) }
+        val maxPage = doc.select("a[href]").mapNotNull { a ->
+            pageRegex.find(a.attr("href").trim())?.groupValues?.get(1)?.toIntOrNull()
+        }.maxOrNull() ?: 1
+        val allRawElements = (maxPage downTo 1).flatMap { p ->
+            val pageDoc = if (p == 1) doc else try { app.get("$cleanBaseUrl/$p/").document } catch (_: Exception) { null }
+            pageDoc?.entryContent()?.children() ?: emptyList()
         }
-        val maxPage = pageNumbers.maxOrNull() ?: 1
-        val allRawElements = mutableListOf<Element>()
-        for (p in maxPage downTo 1) {
-            val pageDoc = if (p == 1) doc else try { app.get("$cleanBaseUrl/$p/").document } catch (_: Exception) { continue }
-            val entryContent = pageDoc.selectFirst("div#page div#content div#primary main#main article div.entry-content")
-                ?: pageDoc.selectFirst("div.entry-content") ?: continue
-            allRawElements.addAll(entryContent.children())
-        }
-        val chaptersByVolume = normalizeChaptersAndParts(allRawElements).groupBy { chapter ->
-            Regex("^(Volume\\s+\\d+)").find(chapter.name)?.groupValues?.get(1) ?: "Volume 1"
-        }
-        return chaptersByVolume.flatMap { (_, volChapters) -> volChapters.sortedWith(compareBy { getChapterPriority(it.name) }) }.distinctBy { it.name }.distinctBy { it.url }
+        val rawChapters = normalizeChaptersAndParts(allRawElements)
+        return sortChapters(rawChapters).distinctBy { it.name }
     }
 
-    // NOVEL DETAILS & READER API — Loads novel details, covers, synopses, and chapter HTML for QuickNovel reader.
-    fun fetchNovelCover(doc: Document): String? = extractImgSrc(
-        doc.selectFirst("figure.wp-block-image.size-large img")
-            ?: doc.selectFirst("figure.wp-block-image img")
-            ?: doc.selectFirst("div.entry-content figure img")
-            ?: doc.selectFirst("div.entry-content img")
-    )
-
+    // Extracts the novel synopsis from the main novel details page.
     fun fetchSynopsis(doc: Document): String {
-        val entryContent = doc.selectFirst("div#page div#content div#primary main#main article div.entry-content")
-            ?: doc.selectFirst("div.entry-content") ?: return ""
-        val synopsisBuilder = StringBuilder()
-        var synopsisStarted = false
-        for (element in entryContent.children()) {
-            val text = element.text().trim()
-            if (!synopsisStarted && (text.startsWith("Synopsis", ignoreCase = true) || text.contains("Synopsis :", ignoreCase = true))) {
-                synopsisStarted = true
-                val afterColon = text.substringAfter("Synopsis :", "").substringAfter("Synopsis:", "").trim()
-                if (afterColon.isNotEmpty()) synopsisBuilder.append(afterColon).append("\n\n")
+        val entryContent = doc.entryContent() ?: return ""
+        val builder = StringBuilder()
+        var started = false
+        for (el in entryContent.children()) {
+            val text = el.text().trim()
+            if (!started && text.contains("Synopsis", ignoreCase = true)) {
+                started = true
+                val after = text.substringAfter("Synopsis", "").trimStart(':', ' ')
+                if (after.isNotEmpty()) builder.append(after).append("\n\n")
                 continue
             }
-            if (synopsisStarted) {
-                val isFigure = element.tagName() == "figure" || element.hasClass("wp-block-image") || element.selectFirst("figure.wp-block-image") != null
-                val isIndex = text.equals("Index", ignoreCase = true) || text.startsWith("Index", ignoreCase = true)
-                if (isFigure || isIndex) break
-                if (text.isNotEmpty()) synopsisBuilder.append(text).append("\n\n")
+            if (started) {
+                if (el.tagName().equals("figure", ignoreCase = true) || el.hasClass("wp-block-image") || text.startsWith("Index", ignoreCase = true)) break
+                if (text.isNotEmpty()) builder.append(text).append("\n\n")
             }
         }
-        return synopsisBuilder.toString().trim()
+        return builder.toString().trim()
     }
 
+    // Loads novel metadata, cover image, synopsis, and full chapter list for details view.
     override suspend fun load(url: String): LoadResponse? {
         val doc = app.get(url).document
         val title = doc.selectFirst("h1.entry-title")?.text()?.trim()
             ?: doc.selectFirst("title")?.text()?.substringBefore("–")?.substringBefore("-")?.trim() ?: return null
-        val posterUrl = coverCache[url] ?: fetchNovelCover(doc)?.also { coverCache[url] = it }
-        val synopsis = fetchSynopsis(doc)
-        val chapters = buildTableOfContents(doc, url)
-        return newStreamResponse(title, url, chapters) {
-            if (!posterUrl.isNullOrEmpty()) this.posterUrl = posterUrl
-            this.synopsis = synopsis
+        val poster = doc.selectFirst("figure.wp-block-image img, div.entry-content figure img, div.entry-content img").extractImgSrc()
+        return newStreamResponse(title, url, buildTableOfContents(doc, url)) {
+            if (!poster.isNullOrEmpty()) posterUrl = poster
+            this.synopsis = fetchSynopsis(doc)
         }
     }
 
+    // Loads chapter content from the live site, falling back to archived Wayback Machine snapshots.
     override suspend fun loadHtml(url: String): String? {
-        if (url.contains("web.archive.org/web/", ignoreCase = true)) {
-            try { fetchChapterContent(app.get(url).document).takeIf { it.isNotEmpty() }?.let { return it } } catch (_: Exception) {}
+        // 1. Fetch live page or direct archive snapshot
+        if (!url.contains("web.archive.org/web/*/")) {
+            val doc = try { app.get(url).document } catch (_: Exception) { null }
+            if (doc != null && doc.selectFirst("section.error-404") == null) {
+                val content = fetchChapterContent(doc)
+                if (content.isNotEmpty()) return content
+            }
+            // If 404 or empty, check if author embedded an archive link inside the post
+            val embedded = doc?.select("div.page-content a[href], div.entry-content a[href]")
+                ?.firstOrNull { it.attr("href").contains("web.archive.org", ignoreCase = true) }?.attr("href")?.trim()
+            if (!embedded.isNullOrEmpty()) return loadHtml(embedded)
         }
-        if (url.startsWith("http")) {
-            try { fetchChapterContent(handleWaybackFallback(app.get(url).document)).takeIf { it.isNotEmpty() }?.let { return it } } catch (_: Exception) {}
-        }
-        val snapshotUrl = resolveWaybackChapterUrl(url) ?: resolveSnapshotUrl(url) ?: return null
-        return fetchChapterContent(handleWaybackFallback(app.get(snapshotUrl).document)).ifEmpty { null }
+
+        // 2. Fallback: resolve latest Wayback snapshot via CDX
+        val target = if (url.contains("web.archive.org/web/*/")) url.substringAfter("web/*/") else url
+        val snapshot = if (target.contains("web.archive.org/web/")) target else resolveSnapshotUrl(target) ?: return null
+        return try { fetchChapterContent(app.get(snapshot).document).takeIf { it.isNotEmpty() } } catch (_: Exception) { null }
     }
 }
