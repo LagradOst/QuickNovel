@@ -67,7 +67,7 @@ class FreewebnovelProvider : LibReadProvider() {
                 e.remove()
             }
         }*/
-        return document.selectFirst("div.txt>div.article")?.html()
+        return document.selectFirst("div.txt")?.html()
             ?.replace("New novel chapters are published on Freewebnovel.com.", "")
             ?.replace("The source of this content is Freewebnᴏvel.com.", "")
             ?.replace(
