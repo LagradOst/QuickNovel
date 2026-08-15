@@ -7,7 +7,6 @@ import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.USER_AGENT
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newSearchResponse
-import org.jsoup.Jsoup
 
 class FreewebnovelProvider : LibReadProvider() {
     override val name = "FreeWebNovel"
@@ -61,13 +60,14 @@ class FreewebnovelProvider : LibReadProvider() {
         val document = app.get(url).document
         document.selectFirst("div.txt>.notice-text")?.remove()
         document.select(".slot-frame").remove()
+        document.select("div.reader-ad-skip").remove()
 
         /*for (e in document.select("p")) {
             if (e.text().contains("The source of this ") || e.selectFirst("a")?.hasAttr("href") == true) {
                 e.remove()
             }
         }*/
-        return document.selectFirst("div.txt")?.html()
+        return document.selectFirst("div.txt>div.article")?.html()
             ?.replace("New novel chapters are published on Freewebnovel.com.", "")
             ?.replace("The source of this content is Freewebnᴏvel.com.", "")
             ?.replace(
