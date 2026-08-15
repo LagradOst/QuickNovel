@@ -61,12 +61,19 @@ class TTSNotificationService : Service() {
 
         val viewModel : ReadActivityViewModel? = viewModel
         if (viewModel == null) {
-            startForeground(
-                TTSNotifications.TTS_NOTIFICATION_ID, TTSNotifications.createNotification(
-                    "Unknown", txt(""), null,
-                    TTSHelper.TTSStatus.IsRunning, this
-                )
-            )
+            TTSNotifications.createNotification(
+                "Unknown", txt(""), null,
+                TTSHelper.TTSStatus.IsRunning, this
+            )?.let { notification ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    startForeground(
+                        TTSNotifications.TTS_NOTIFICATION_ID, notification,
+                        android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                    )
+                } else {
+                    startForeground(TTSNotifications.TTS_NOTIFICATION_ID, notification)
+                }
+            }
             stopSelf()
             return
         }
@@ -79,10 +86,20 @@ class TTSNotificationService : Service() {
             viewModel.book.poster(),
             TTSHelper.TTSStatus.IsRunning,
             this
-        )
+        ) ?: run {
+            stopSelf()
+            return
+        }
 
         try {
-            startForeground(TTSNotifications.TTS_NOTIFICATION_ID, notification)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    TTSNotifications.TTS_NOTIFICATION_ID, notification,
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                )
+            } else {
+                startForeground(TTSNotifications.TTS_NOTIFICATION_ID, notification)
+            }
         } catch (t: Throwable) {
             logError(t)
             showToast(t.toString())

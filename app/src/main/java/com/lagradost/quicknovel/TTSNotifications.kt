@@ -116,7 +116,7 @@ object TTSNotifications {
                 .build()
             setMetadata(mediaMetadata)
             //setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS)
-            //isActive = true
+            isActive = true
         }
     }
 
