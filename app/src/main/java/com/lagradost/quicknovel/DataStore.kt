@@ -3,12 +3,17 @@ package com.lagradost.quicknovel
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
+import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.lagradost.quicknovel.mvvm.logError
 import androidx.core.content.edit
+import com.lagradost.quicknovel.DataStore.getSharedPrefs
+import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
+import com.lagradost.quicknovel.tachiyomi.PreferenceData
+import com.lagradost.quicknovel.tachiyomi.PreferenceStore
 import com.lagradost.quicknovel.util.AppUtils.parseJson
 import com.lagradost.quicknovel.util.AppUtils.toBookmarkKey
 import kotlinx.collections.immutable.PersistentList
@@ -296,12 +301,12 @@ fun Context.saveBookmarks(bookmarks: List<DefaultBookmark>) {
 }
 
 /**
- * Adds [newLib] to the persisted list.
+ * Adds [title] to the persisted list.
  * Throws an exception if a bookmark with the same ID already exists.
  */
-fun Context.addBookmark(title:String) {
+fun Context.addBookmark(title: String) {
     val newKey = title.toBookmarkKey()
-    require(title.isNotEmpty() && newKey.isNotEmpty()){getString(R.string.library_error_invalid_name)}
+    require(title.isNotEmpty() && newKey.isNotEmpty()){ this.getString(R.string.library_error_invalid_name) }
 
     val current = getBookmarks().toMutableList()
     val nextId = (current.maxOfOrNull { it.id } ?: 0) + 1
@@ -309,7 +314,7 @@ fun Context.addBookmark(title:String) {
 
     val newBookmark = DefaultBookmark(nextId, newKey, title, position = nextPos)
     require(current.none { it.id == newBookmark.id || it.title == newBookmark.title }) {
-        getString(R.string.library_error_exists)
+        this.getString(R.string.library_error_exists)
     }
 
     current.add(newBookmark)
@@ -317,15 +322,14 @@ fun Context.addBookmark(title:String) {
 }
 
 /**
- * Replaces the bookmark whose ID matches [updated].
+ * Replaces the bookmark whose ID matches [bookmark].
  * Respects [DefaultBookmark.editable]: throws an exception if the bookmark is not editable.
  */
-//rename
 fun Context.updateBookmark(bookmark: DefaultBookmark) {
     val current = getBookmarks().toMutableList()
     val index = current.indexOfFirst { it.id == bookmark.id }
 
-    require(index >= 0) { getString(R.string.library_error_not_found) }
+    require(index >= 0) { this.getString(R.string.library_error_not_found) }
 
     val oldBookmark = current[index]
 
@@ -334,10 +338,10 @@ fun Context.updateBookmark(bookmark: DefaultBookmark) {
     val updated = if (oldBookmark.title != bookmark.title) {
         val newKey = bookmark.title.toBookmarkKey()
         require(bookmark.title.isNotEmpty() && newKey.isNotEmpty()) {
-            getString(R.string.library_error_invalid_name)
+            this.getString(R.string.library_error_invalid_name)
         }
         require(current.none { it.id != bookmark.id && it.key == newKey }) {
-            getString(R.string.library_error_exists)
+            this.getString(R.string.library_error_exists)
         }
         bookmark.copy(key = newKey)
     } else {
@@ -356,9 +360,9 @@ fun Context.deleteBookmark(id: Int) {
     val current = getBookmarks().toMutableList()
     val target = current.find { it.id == id }
     val inUse = getLibraryBookmarkCount(id)
-    require(inUse == 0) { getString(R.string.library_delete_empty_only_message) }
-    require(target != null) { R.string.library_error_not_found }
-    require(target.editable) { R.string.library_error_not_editable }
+    require(inUse == 0) { this.getString(R.string.library_delete_empty_only_message) }
+    require(target != null) { this.getString(R.string.library_error_not_found) }
+    require(target.editable) { this.getString(R.string.library_error_not_editable) }
     current.removeAll { it.id == id }
     saveBookmarks(current)
 }
@@ -378,9 +382,9 @@ fun Context.getLibraryBookmarkCount(id: Int): Int {
  * Useful when moving books before deleting a category.
  */
 fun Context.reassignBookmark(sourceId: Int, targetId: Int = 0) {
-    require(sourceId != targetId) { getString(R.string.library_error_same_ids) }
+    require(sourceId != targetId) { this.getString(R.string.library_error_same_ids) }
     if (targetId != 0) {
-        require(getBookmarks().any { it.id == targetId }) { R.string.library_error_target_not_found }
+        require(getBookmarks().any { it.id == targetId }) { this.getString(R.string.library_error_target_not_found) }
     }
 
     val stateKeys = with(DataStore) { this@reassignBookmark.getKeys(RESULT_BOOKMARK_STATE) }
@@ -391,6 +395,7 @@ fun Context.reassignBookmark(sourceId: Int, targetId: Int = 0) {
         }
     }
 }
+
 /**
  * Merge books from a backup.
  * **/
@@ -412,7 +417,7 @@ fun Context.mergeBookmarks(backupJson: String) {
                 if (existing.id != backupLib.id) {
                     reassignBookmark(sourceId = backupLib.id, targetId = existing.id)
                 }
-            } else {//bookmark don't exist
+            } else {
                 lastId++
                 lastPos++
                 val newBookmark = backupLib.copy(id = lastId, position = lastPos)
@@ -433,10 +438,10 @@ fun Context.mergeBookmarks(backupJson: String) {
  * All books are moved to the target bookmark and the source bookmark is deleted.
  */
 fun Context.mergeBookmarks(sourceId: Int, targetId: Int) {
-    require(sourceId != targetId) { R.string.library_error_same_ids }
+    require(sourceId != targetId) { this.getString(R.string.library_error_same_ids) }
     val source = getBookmarks().firstOrNull { it.id == sourceId }
-    require(source != null) { R.string.library_error_not_found }
-    require(source.editable) { R.string.library_error_not_editable }
+    require(source != null) { this.getString(R.string.library_error_not_found) }
+    require(source.editable) { this.getString(R.string.library_error_not_editable) }
 
     reassignBookmark(sourceId, targetId)
     deleteBookmark(sourceId)
