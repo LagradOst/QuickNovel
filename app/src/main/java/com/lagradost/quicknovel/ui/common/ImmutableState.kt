@@ -191,6 +191,7 @@ data class ImmutableReview @OptIn(ExperimentalUuidApi::class) constructor(
 data class ImmutableLoadData(
     val related: PersistentList<ImmutableSearchResponse>?,
     val status: ReleaseStatus?,
+    /** TODO add RoaringBitmap for immutable download status, bookmark status and read status */
     val chapters: PersistentList<ImmutableChapterData>?,
     val views: Int?,
     val peopleVoted: Int?,
