@@ -8,14 +8,14 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.lagradost.quicknovel.CommonActivity.showToast
-import com.lagradost.quicknovel.DefaultLibrary
+import com.lagradost.quicknovel.DefaultBookmark
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.addLibrary
+import com.lagradost.quicknovel.addBookmark
 import com.lagradost.quicknovel.databinding.BottomSelectionLibrariesBinding
-import com.lagradost.quicknovel.deleteLibrary
-import com.lagradost.quicknovel.getLibraries
-import com.lagradost.quicknovel.mergeLibraries
-import com.lagradost.quicknovel.updateLibrary
+import com.lagradost.quicknovel.deleteBookmark
+import com.lagradost.quicknovel.getBookmarks
+import com.lagradost.quicknovel.mergeBookmarks
+import com.lagradost.quicknovel.updateBookmark
 import com.lagradost.quicknovel.util.Event
 import com.lagradost.quicknovel.util.SingleSelectionHelper.showBottomDialog
 
@@ -24,7 +24,7 @@ object LibraryManager {
     //show recyclerview with libraries
     fun showLibraryBottomDialog(
         context: Context,
-        list: List<DefaultLibrary>,
+        list: List<DefaultBookmark>,
         selectedIndex: Int = -1,
         refreshVisual: Event<Boolean>,
         title: String,
@@ -43,7 +43,7 @@ object LibraryManager {
             //Update the position of all libraries
             onDragFinished = { newList ->
                 newList.forEachIndexed { index, lib ->
-                    context.updateLibrary(lib.copy(position = index + 1))
+                    context.updateBookmark(lib.copy(position = index + 1))
                 }
                 refreshVisual.invoke(true)
             },
@@ -54,20 +54,20 @@ object LibraryManager {
             },
             //Rename library
             onRename = { item, adapter -> showInputDialog(context, item.title, R.string.library_rename) { newName ->
-                context.updateLibrary(item.copy(title = newName))
+                context.updateBookmark(item.copy(title = newName))
                 refreshInternal(context, adapter, refreshVisual)
             }},
             //Delete library
             onDelete = { item, adapter ->
                 showSimpleDialog(context, R.string.library_delete, context.getString(R.string.permanently_delete_format).format(item.title)){
-                    context.deleteLibrary(item.id)
+                    context.deleteBookmark(item.id)
                     refreshInternal(context, adapter, refreshVisual)
                 }
             },
             //Merge libraries
             onMerge = { item, adapter ->
                 //get all libraries except the one selected
-                val targetCandidates = context.getLibraries().filter { it.id != item.id }
+                val targetCandidates = context.getBookmarks().filter { it.id != item.id }
                 if (targetCandidates.isNotEmpty()) {
                     context.showBottomDialog(
                         items = targetCandidates.map { it.title },
@@ -77,7 +77,7 @@ object LibraryManager {
                         dismissCallback = {},
                         callback = { which ->
                             val target = targetCandidates.getOrNull(which) ?: return@showBottomDialog
-                            context.mergeLibraries(item.id, target.id)
+                            context.mergeBookmarks(item.id, target.id)
                             refreshInternal(context, adapter, refreshVisual)
                         }
                     )
@@ -94,7 +94,7 @@ object LibraryManager {
         //Add a new Library
         binding.actionAdd.setOnClickListener {
             showInputDialog(context, "", R.string.library_create) { name ->
-                context.addLibrary(name)
+                context.addBookmark(name)
                 refreshInternal(context, libraryAdapter, refreshVisual)
             }
         }
@@ -116,7 +116,7 @@ object LibraryManager {
 
     //this will update ui
     private fun refreshInternal(context: Context, adapter: LibrarySectionAdapter, refreshVisual: Event<Boolean>) {
-        val updatedList = context.getLibraries().sortedBy { it.position }
+        val updatedList = context.getBookmarks().sortedBy { it.position }
         adapter.submitList(updatedList)
         refreshVisual.invoke(true)
     }

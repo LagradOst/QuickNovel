@@ -10,7 +10,7 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.lagradost.quicknovel.mvvm.logError
 import androidx.core.content.edit
 import com.lagradost.quicknovel.util.AppUtils.parseJson
-import com.lagradost.quicknovel.util.AppUtils.toLibraryKey
+import com.lagradost.quicknovel.util.AppUtils.toBookmarkKey
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
@@ -239,8 +239,8 @@ object DataStore {
     }
 }
 
-const val LIBRARIES_KEY: String = "default_libraries"
-data class DefaultLibrary(
+const val BOOKMARK_KEY: String = "default_libraries"
+data class DefaultBookmark(
     val id: Int,
     val key: String,
     val title: String,
@@ -248,19 +248,19 @@ data class DefaultLibrary(
     val position: Int = 0
 )
 
-val DEFAULT_LIBRARIES: PersistentList<DefaultLibrary> = persistentListOf(
-    DefaultLibrary(1, "READING",       R.string.type_reading.toString(),      editable = false, position = 1),
-    DefaultLibrary(2, "PLAN_TO_READ",  R.string.type_plan_to_read.toString(), editable = false, position = 2),
-    DefaultLibrary(3, "ON_HOLD",       R.string.type_on_hold.toString(),      editable = false, position = 3),
-    DefaultLibrary(4, "COMPLETED",     R.string.type_completed.toString(),    editable = false, position = 4),
-    DefaultLibrary(5, "DROPPED",       R.string.type_dropped.toString(),      editable = false, position = 5),
+val DEFAULT_BOOKMARKS: PersistentList<DefaultBookmark> = persistentListOf(
+    DefaultBookmark(1, "READING",       R.string.type_reading.toString(),      editable = false, position = 1),
+    DefaultBookmark(2, "PLAN_TO_READ",  R.string.type_plan_to_read.toString(), editable = false, position = 2),
+    DefaultBookmark(3, "ON_HOLD",       R.string.type_on_hold.toString(),      editable = false, position = 3),
+    DefaultBookmark(4, "COMPLETED",     R.string.type_completed.toString(),    editable = false, position = 4),
+    DefaultBookmark(5, "DROPPED",       R.string.type_dropped.toString(),      editable = false, position = 5),
 )
 /**
- * Returns the list of persisted libraries, sorted by [DefaultLibrary.position].
- * If no list is saved, returns [DEFAULT_LIBRARIES].
+ * Returns the list of persisted libraries, sorted by [DefaultBookmark.position].
+ * If no list is saved, returns [DEFAULT_BOOKMARKS].
  */
-fun Context.getLibraries(): PersistentList<DefaultLibrary> {
-    val stored = with(DataStore) { this@getLibraries.getKey<Array<DefaultLibrary>>(LIBRARIES_KEY) }
+fun Context.getBookmarks(): PersistentList<DefaultBookmark> {
+    val stored = with(DataStore) { this@getBookmarks.getKey<Array<DefaultBookmark>>(BOOKMARK_KEY) }
 
     if (stored != null) {
         return stored.sortedBy { it.position }.toPersistentList()
@@ -270,101 +270,101 @@ fun Context.getLibraries(): PersistentList<DefaultLibrary> {
     * the app, so the default libraries are translated into the user's language.
     * This only happens once
     * */
-    val defaultLibs = DEFAULT_LIBRARIES.map { translateLibrary(it) }
-    saveLibraries(defaultLibs)
+    val defaultBookmarks = DEFAULT_BOOKMARKS.map { translateBookmark(it) }
+    saveBookmarks(defaultBookmarks)
 
-    return defaultLibs.toPersistentList()
+    return defaultBookmarks.toPersistentList()
 }
 
-private fun Context.translateLibrary(lib: DefaultLibrary): DefaultLibrary {
-    val resId = lib.title.toIntOrNull() ?: return lib
+private fun Context.translateBookmark(bookmark: DefaultBookmark): DefaultBookmark {
+    val resId = bookmark.title.toIntOrNull() ?: return bookmark
     return try {
-        lib.copy(title = getString(resId))
+        bookmark.copy(title = getString(resId))
     } catch (e: Exception) {
-        lib
+        bookmark
     }
 }
 
 /**
- * Overwrites the persisted library list with [libs] (sorted by position).
+ * Overwrites the persisted bookmark list with [bookmarks] (sorted by position).
  * Throws an exception if there are duplicate IDs.
  */
-fun Context.saveLibraries(libs: List<DefaultLibrary>) {
-    require(libs.map { it.id }.distinct().size == libs.size) { R.string.library_error_duplicate_ids }
-    val sorted = libs.sortedBy { it.position }
-    with(DataStore) { this@saveLibraries.setKey(LIBRARIES_KEY, sorted.toTypedArray()) }
+fun Context.saveBookmarks(bookmarks: List<DefaultBookmark>) {
+    require(bookmarks.map { it.id }.distinct().size == bookmarks.size) { R.string.library_error_duplicate_ids }
+    val sorted = bookmarks.sortedBy { it.position }
+    with(DataStore) { this@saveBookmarks.setKey(BOOKMARK_KEY, sorted.toTypedArray()) }
 }
 
 /**
  * Adds [newLib] to the persisted list.
- * Throws an exception if a library with the same ID already exists.
+ * Throws an exception if a bookmark with the same ID already exists.
  */
-fun Context.addLibrary(title:String) {
-    val newKey = title.toLibraryKey()
+fun Context.addBookmark(title:String) {
+    val newKey = title.toBookmarkKey()
     require(title.isNotEmpty() && newKey.isNotEmpty()){getString(R.string.library_error_invalid_name)}
 
-    val current = getLibraries().toMutableList()
+    val current = getBookmarks().toMutableList()
     val nextId = (current.maxOfOrNull { it.id } ?: 0) + 1
     val nextPos = (current.maxOfOrNull { it.position } ?: 0) + 1
 
-    val newLib = DefaultLibrary(nextId, newKey, title, position = nextPos)
-    require(current.none { it.id == newLib.id || it.title == newLib.title }) {
+    val newBookmark = DefaultBookmark(nextId, newKey, title, position = nextPos)
+    require(current.none { it.id == newBookmark.id || it.title == newBookmark.title }) {
         getString(R.string.library_error_exists)
     }
 
-    current.add(newLib)
-    saveLibraries(current)
+    current.add(newBookmark)
+    saveBookmarks(current)
 }
 
 /**
- * Replaces the library whose ID matches [updated].
- * Respects [DefaultLibrary.editable]: throws an exception if the library is not editable.
+ * Replaces the bookmark whose ID matches [updated].
+ * Respects [DefaultBookmark.editable]: throws an exception if the bookmark is not editable.
  */
 //rename
-fun Context.updateLibrary(library: DefaultLibrary) {
-    val current = getLibraries().toMutableList()
-    val index = current.indexOfFirst { it.id == library.id }
+fun Context.updateBookmark(bookmark: DefaultBookmark) {
+    val current = getBookmarks().toMutableList()
+    val index = current.indexOfFirst { it.id == bookmark.id }
 
     require(index >= 0) { getString(R.string.library_error_not_found) }
 
-    val oldLibrary = current[index]
+    val oldBookmark = current[index]
 
     /*Updating the name is special because it also requires updating the key.
     Updating the position, on the other hand, doesn't require any additional checks*/
-    val updated = if (oldLibrary.title != library.title) {
-        val newKey = library.title.toLibraryKey()
-        require(library.title.isNotEmpty() && newKey.isNotEmpty()) {
+    val updated = if (oldBookmark.title != bookmark.title) {
+        val newKey = bookmark.title.toBookmarkKey()
+        require(bookmark.title.isNotEmpty() && newKey.isNotEmpty()) {
             getString(R.string.library_error_invalid_name)
         }
-        require(current.none { it.id != library.id && it.key == newKey }) {
+        require(current.none { it.id != bookmark.id && it.key == newKey }) {
             getString(R.string.library_error_exists)
         }
-        library.copy(key = newKey)
+        bookmark.copy(key = newKey)
     } else {
-        library
+        bookmark
     }
 
     current[index] = updated
-    saveLibraries(current)
+    saveBookmarks(current)
 }
 
 /**
- * Deletes the library with the given [id].
+ * Deletes the bookmark with the given [id].
  * Throws an exception if it is not editable (e.g., "Plan to read").
  */
-fun Context.deleteLibrary(id: Int) {
-    val current = getLibraries().toMutableList()
+fun Context.deleteBookmark(id: Int) {
+    val current = getBookmarks().toMutableList()
     val target = current.find { it.id == id }
     val inUse = getLibraryBookmarkCount(id)
     require(inUse == 0) { getString(R.string.library_delete_empty_only_message) }
     require(target != null) { R.string.library_error_not_found }
     require(target.editable) { R.string.library_error_not_editable }
     current.removeAll { it.id == id }
-    saveLibraries(current)
+    saveBookmarks(current)
 }
 
 /**
- * Returns the number of bookmarks associated with a specific library [id].
+ * Returns the number of bookmarks associated with a specific bookmark [id].
  */
 fun Context.getLibraryBookmarkCount(id: Int): Int {
     return with(DataStore) {
@@ -377,67 +377,67 @@ fun Context.getLibraryBookmarkCount(id: Int): Int {
  * Reassigns all bookmarks from [sourceId] to [targetId].
  * Useful when moving books before deleting a category.
  */
-fun Context.reassignLibraryBookmarks(sourceId: Int, targetId: Int = 0) {
+fun Context.reassignBookmark(sourceId: Int, targetId: Int = 0) {
     require(sourceId != targetId) { getString(R.string.library_error_same_ids) }
     if (targetId != 0) {
-        require(getLibraries().any { it.id == targetId }) { R.string.library_error_target_not_found }
+        require(getBookmarks().any { it.id == targetId }) { R.string.library_error_target_not_found }
     }
 
-    val stateKeys = with(DataStore) { this@reassignLibraryBookmarks.getKeys(RESULT_BOOKMARK_STATE) }
+    val stateKeys = with(DataStore) { this@reassignBookmark.getKeys(RESULT_BOOKMARK_STATE) }
     stateKeys.forEach { key ->
-        val current = with(DataStore) { this@reassignLibraryBookmarks.getKey<Int>(key) } ?: return@forEach
+        val current = with(DataStore) { this@reassignBookmark.getKey<Int>(key) } ?: return@forEach
         if (current == sourceId) {
-            with(DataStore) { this@reassignLibraryBookmarks.setKey(key, targetId) }
+            with(DataStore) { this@reassignBookmark.setKey(key, targetId) }
         }
     }
 }
 /**
  * Merge books from a backup.
  * **/
-fun Context.mergeLibraries(backupJson: String) {
+fun Context.mergeBookmarks(backupJson: String) {
     try {
-        val currentLibs = getLibraries().toMutableList()
-        val backupLibs = parseJson<List<DefaultLibrary>>(backupJson)
+        val currentLibs = getBookmarks().toMutableList()
+        val backupBookmarks = parseJson<List<DefaultBookmark>>(backupJson)
 
         var lastId = currentLibs.maxOfOrNull { it.id } ?: 0
         var lastPos = currentLibs.maxOfOrNull { it.position } ?: 0
 
-        backupLibs.forEach { backupLib ->
+        backupBookmarks.forEach { backupLib ->
             val existing = currentLibs.find { it.key == backupLib.key }
 
-            //library already exists
+            //bookmark already exists
             if (existing != null) {
-                // If they have the same ID, the novels inside will already be in the library.
+                // If they have the same ID, the novels inside will already be in the bookmark.
                 // However, if they have different IDs, the novels will also have different IDs, so they need to be moved
                 if (existing.id != backupLib.id) {
-                    reassignLibraryBookmarks(sourceId = backupLib.id, targetId = existing.id)
+                    reassignBookmark(sourceId = backupLib.id, targetId = existing.id)
                 }
-            } else {//library don't exist
+            } else {//bookmark don't exist
                 lastId++
                 lastPos++
-                val newLib = backupLib.copy(id = lastId, position = lastPos)
-                currentLibs.add(newLib)
+                val newBookmark = backupLib.copy(id = lastId, position = lastPos)
+                currentLibs.add(newBookmark)
 
-                //If the library contained novels, I have to update their position and ID data
-                reassignLibraryBookmarks(sourceId = backupLib.id, targetId = newLib.id)
+                //If the bookmark contained novels, I have to update their position and ID data
+                reassignBookmark(sourceId = backupLib.id, targetId = newBookmark.id)
             }
         }
-        saveLibraries(currentLibs)
+        saveBookmarks(currentLibs)
     } catch (e: Exception) {
         logError(e)
     }
 }
 
 /**
- * Merges [sourceId] library into [targetId].
- * All books are moved to the target library and the source library is deleted.
+ * Merges [sourceId] bookmark into [targetId].
+ * All books are moved to the target bookmark and the source bookmark is deleted.
  */
-fun Context.mergeLibraries(sourceId: Int, targetId: Int) {
+fun Context.mergeBookmarks(sourceId: Int, targetId: Int) {
     require(sourceId != targetId) { R.string.library_error_same_ids }
-    val source = getLibraries().firstOrNull { it.id == sourceId }
+    val source = getBookmarks().firstOrNull { it.id == sourceId }
     require(source != null) { R.string.library_error_not_found }
     require(source.editable) { R.string.library_error_not_editable }
 
-    reassignLibraryBookmarks(sourceId, targetId)
-    deleteLibrary(sourceId)
+    reassignBookmark(sourceId, targetId)
+    deleteBookmark(sourceId)
 }

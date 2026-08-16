@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,11 +21,10 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SecondaryScrollableTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -38,15 +39,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.ActionDialog
@@ -55,12 +55,12 @@ import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.IsScrolling
 import com.lagradost.quicknovel.compose.SinglePairSelectDialog
-import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
-import com.lagradost.quicknovel.getLibraries
+import com.lagradost.quicknovel.getBookmarks
 import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
 import com.lagradost.quicknovel.tachiyomi.collectAsState
+import com.lagradost.quicknovel.ui.common.HorizontalTab
 import com.lagradost.quicknovel.ui.common.ImmutableSearchList
 import com.lagradost.quicknovel.ui.common.SearchList
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
@@ -70,9 +70,9 @@ import com.lagradost.quicknovel.ui.common.SortingMethodType
 import com.lagradost.quicknovel.ui.common.normalSortingMethods
 import com.lagradost.quicknovel.ui.common.sortingMethods
 import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.collections.getOrNull
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
@@ -89,7 +89,7 @@ fun DownloadScreen(
 
     val context = LocalContext.current
 
-    val pagesNames = listOf(stringResource(R.string.tab_downloads)) + context.getLibraries().map{it.title}
+    val pagesNames = (listOf(stringResource(R.string.tab_downloads)) + context.getBookmarks().map{it.title}).toPersistentList()
     val store = AndroidPreferenceStore(context)
 
     val downloadIsRow = store.getBoolean(stringResource(R.string.download_list_view_key), true)
@@ -104,6 +104,13 @@ fun DownloadScreen(
                 onClick = {
                     action(DownloadPageAction.ShowSorting)
                 },
+                // Elevation actually changes the color, because who wanted a sane framework
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 0.dp,
+                    pressedElevation = 0.dp,
+                    focusedElevation = 0.dp,
+                    hoveredElevation = 0.dp
+                ),
                 containerColor = colors.surfaceVariant,
                 contentColor = colors.onBackground,
                 text = {
@@ -172,7 +179,12 @@ fun DownloadScreen(
                 state = pagerState,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(innerPadding)
+                    // This fixes the double padding from the bottom nav bar
+                    .padding(
+                        start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
+                        end = innerPadding.calculateEndPadding(LocalLayoutDirection.current),
+                        top = innerPadding.calculateTopPadding()
+                    )
                     .weight(1.0f)
             ) { page ->
                 DownloadRow(
@@ -185,49 +197,7 @@ fun DownloadScreen(
                     })
             }
 
-            SecondaryScrollableTabRow(
-                currentPage,
-                edgePadding = 0.dp,
-                containerColor = colors.surfaceVariant,
-                indicator = {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(40.dp)
-                            .zIndex(-1.0f)
-                            .tabIndicatorOffset(currentPage, matchContentSize = false)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(5.dp)
-                                .circle()
-                                .background(colors.onBackground)
-                        )
-                    }
-                }, divider = {}
-            ) {
-                pagesNames.forEachIndexed { index, row ->
-                    val selected = index == currentPage
-                    Tab(
-                        modifier = Modifier
-                            .height(40.dp)
-                            .circle(),
-                        selected = selected, onClick = {
-                            pagerState.requestScrollToPage(index)
-                        }, text = {
-                            Text(
-                                text = row,
-                                color = if (selected) {
-                                    colors.background
-                                } else {
-                                    colors.onBackground
-                                }
-                            )
-                        })
-                }
-            }
+            HorizontalTab(pagerState, pagesNames, containerColor = colors.surfaceVariant)
         }
     }
 }
@@ -455,11 +425,12 @@ fun RowFooter() {
         Text(
             modifier = Modifier.padding(start = 15.dp),
             text = stringResource(R.string.import_epub),
-            style = TextStyle(
-                color = colors.onBackground,
-                fontSize = 13.sp,
-                lineHeight = 14.sp,
-            ), maxLines = 2, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis
+            color = colors.onBackground,
+            fontSize = 13.sp,
+            lineHeight = 14.sp,
+            maxLines = 2,
+            textAlign = TextAlign.Center,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -501,11 +472,12 @@ fun BoxFooter() {
         ) {
             Text(
                 text = stringResource(R.string.import_epub),
-                style = TextStyle(
-                    color = colors.onBackground,
-                    fontSize = 13.sp,
-                    lineHeight = 14.sp,
-                ), maxLines = 2, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis
+                color = colors.onBackground,
+                fontSize = 13.sp,
+                lineHeight = 14.sp,
+                maxLines = 2,
+                textAlign = TextAlign.Center,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

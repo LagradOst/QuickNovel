@@ -1,7 +1,5 @@
 package com.lagradost.quicknovel.ui
 
-import android.content.pm.ActivityInfo
-import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import com.lagradost.quicknovel.R
 
@@ -12,6 +10,6 @@ enum class ReadingType(val prefValue: Int, @StringRes val stringRes: Int) {
     OVERSCROLL_SCROLL(3, R.string.overscroll_scroll);
 
     companion object {
-        fun fromSpinner(position: Int?) = values().find { value -> value.prefValue == position } ?: DEFAULT
+        fun fromSpinner(position: Int?) = entries.find { value -> value.prefValue == position } ?: DEFAULT
     }
 }

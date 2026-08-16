@@ -15,9 +15,8 @@ import com.lagradost.quicknovel.DataStore.getDefaultSharedPrefs
 import com.lagradost.quicknovel.DataStore.getSharedPrefs
 import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.ErrorLoadingException
-import com.lagradost.quicknovel.LIBRARIES_KEY
-import com.lagradost.quicknovel.mergeLibraries
-import com.lagradost.quicknovel.mergeLibraries
+import com.lagradost.quicknovel.BOOKMARK_KEY
+import com.lagradost.quicknovel.mergeBookmarks
 import com.lagradost.quicknovel.ui.settings.SettingsFragment
 import com.lagradost.safefile.SafeFile
 import kotlinx.coroutines.Dispatchers
@@ -90,8 +89,8 @@ object BackupUtils {
     ) {
         val editor = DataStore.editor(this, isEditingAppSettings)
         map?.forEach { (key, value)->
-            if(key == LIBRARIES_KEY && value is String){
-                mergeLibraries(value)
+            if(key == BOOKMARK_KEY && value is String){
+                mergeBookmarks(value)
             }
             else{
                 editor.setKeyRaw(key, value)

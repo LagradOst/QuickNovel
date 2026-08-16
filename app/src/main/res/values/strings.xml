@@ -53,6 +53,7 @@
     <string name="search_providers">Search Providers</string>
     <string name="search">Search</string>
     <string name="general">General</string>
+    <string name="overall">Overall</string>
     <string name="info">Info</string>
     <string name="app_settings">App settings</string>
 
@@ -221,6 +222,7 @@
     <string name="new_update_found_format">New update found!\n %s -> %s</string>
     <string name="download_started">Download started</string>
     <string name="download_failed">Download failed</string>
+    <string name="download_in_progress">Downloading…</string>
     <string name="update">Update</string>
     <string name="dont_show_again">Don\'t show again</string>
     <string name="downloaded">Downloaded</string>
@@ -282,6 +284,7 @@
     <string name="clipboard_permission_error">Error accessing Clipboard, Please try again.</string>
     <string name="clipboard_unknown_error">Error copying, Please copy logcat and contact app support.</string>
     <string name="show_log_cat">Show Logcat 🐈</string>
+    <string name="log_cat">Logcat 🐈</string>
     <string name="unread">Unread</string>
     <string name="bookmarks">Bookmarks</string>
     <string name="bookmark">Bookmark</string>

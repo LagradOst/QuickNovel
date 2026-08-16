@@ -11,7 +11,6 @@ import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.BookDownloader2.currentDownloads
-import com.lagradost.quicknovel.BookDownloader2.currentDownloadsMutex
 import com.lagradost.quicknovel.BookDownloader2.downloadInfoMutex
 import com.lagradost.quicknovel.BookDownloader2.downloadProgress
 import com.lagradost.quicknovel.BookDownloader2.downloadProgressChanged
@@ -20,7 +19,7 @@ import com.lagradost.quicknovel.CURRENT_TAB
 import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
-import com.lagradost.quicknovel.DefaultLibrary
+import com.lagradost.quicknovel.DefaultBookmark
 import com.lagradost.quicknovel.DownloadActionType
 import com.lagradost.quicknovel.DownloadFileWorkManager
 import com.lagradost.quicknovel.DownloadProgressState
@@ -39,10 +38,9 @@ import com.lagradost.quicknovel.ui.common.SearchResponseOperation
 import com.lagradost.quicknovel.ui.common.SortingMethodType
 import com.lagradost.quicknovel.ui.common.updateRow
 import com.lagradost.quicknovel.ui.common.updateRows
-import com.lagradost.quicknovel.getLibraries
+import com.lagradost.quicknovel.getBookmarks
 import com.lagradost.quicknovel.ui.download.DownloadDialog.*
 import com.lagradost.quicknovel.util.ResultCached
-import com.lagradost.quicknovel.util.cmap
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentHashMap
@@ -92,7 +90,7 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
     ActionHandler<DownloadPageAction>,
     StateContainer<DownloadPageState> by DefaultStateContainer(DownloadPageState()) {
 
-    val readList: PersistentList<DefaultLibrary> get() = getApplication<Application>().getLibraries()
+    val readList: PersistentList<DefaultBookmark> get() = getApplication<Application>().getBookmarks()
 
     private val searchPipe = DebounceQuery()
     override fun onAction(action: DownloadPageAction) {
@@ -280,12 +278,12 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
 
     private fun resultAction(action: SearchResponseAction) {
         when (action.operation) {
-            SearchResponseOperation.Open -> {
-                if (action.response.downloadState != null) {
-                    readEpub(action.response)
-                } else {
-                    action.doAction()
-                }
+            SearchResponseOperation.Read -> {
+                readEpub(action.response)
+            }
+
+            SearchResponseOperation.Open, SearchResponseOperation.NoOp -> {
+                action.doAction()
             }
 
             SearchResponseOperation.Stream -> {
@@ -356,9 +354,10 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
             }
 
             SearchResponseOperation.Download -> {
-                viewModelScope.launch {
-                    BookDownloader2.downloadWorkThread(action.response)
-                }
+                DownloadFileWorkManager.download(
+                    action.response,
+                    BaseApplication.context ?: return
+                )
             }
 
             SearchResponseOperation.Pause -> {
@@ -374,6 +373,13 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
                 BookDownloader2.addPendingAction(
                     id,
                     DownloadActionType.Resume
+                )
+            }
+            SearchResponseOperation.Stop -> {
+                val id = action.response.id!!
+                BookDownloader2.addPendingAction(
+                    id,
+                    DownloadActionType.Stop
                 )
             }
         }
@@ -392,19 +398,17 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
         val downloadPage = progressState.pages.getOrNull(0) ?: return
 
         val values =
-            currentDownloadsMutex.withLock {
-                downloadPage.data.filter { (id, card) ->
-                    val notImported = !card.isImported && card.apiName != IMPORT_SOURCE_PDF
-                    val downloadState = card.downloadState ?: return@filter false
+            downloadPage.data.filter { (id, card) ->
+                val notImported = !card.isImported && card.apiName != IMPORT_SOURCE_PDF
+                val downloadState = card.downloadState ?: return@filter false
 
-                    val canDownload =
-                        downloadState.total > 0 && downloadState.progressPercentage > 0.9f
+                val canDownload =
+                    downloadState.total > 0 && downloadState.progressPercentage > 0.9f
 
-                    val notDownloading = !currentDownloads.contains(
-                        id
-                    )
-                    notImported && canDownload && notDownloading
-                }
+                val notDownloading = !currentDownloads.containsKey(
+                    id
+                )
+                notImported && canDownload && notDownloading
             }
 
         downloadInfoMutex.withLock {
@@ -417,10 +421,9 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
             }
         }
 
-        withContext(Dispatchers.IO) {
-            values.values.cmap { card ->
-                BookDownloader2.downloadWorkThread(card)
-            }
+        val context = BaseApplication.context ?: return
+        for (card in values.values) {
+            DownloadFileWorkManager.download(card, context)
         }
     }
 
@@ -446,6 +449,7 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
         BookDownloader2.bookmarkChanged += this::onBookmarkChanged
         BookDownloader2.refreshingChanged += this::onRefreshingChanged
         BookDownloader2.chapterReadChanged += this::onChapterChanged
+        BookDownloader2.openChanged += this::onOpen
         BookDownloader2.refreshingChanged += this::onRefreshingChanged
         BookDownloader2.updatePagesDetails += this::onPagesChanged
     }
@@ -459,6 +463,22 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
         BookDownloader2.updatePagesDetails -= this::onPagesChanged
         BookDownloader2.refreshingChanged -= this::onRefreshingChanged
         BookDownloader2.chapterReadChanged -= this::onChapterChanged
+        BookDownloader2.openChanged -= this::onOpen
+    }
+
+    fun onOpen(id : Int) {
+        updateState {
+            copy(pages = pages.updateRows {
+                update(id) {
+                    @OptIn(ExperimentalUuidApi::class)
+                    copy(
+                        chaptersRead = ImmutableSearchResponse.chaptersRead(name),
+                        timeOfPageOpened = ImmutableSearchResponse.timeOfPageOpened(id),
+                        epubSize = ImmutableSearchResponse.epubSize(id)
+                    )
+                }
+            })
+        }
     }
 
     fun onChapterChanged(name: String) {
@@ -473,7 +493,7 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
                     out = out.update(id) {
                         copy(
                             chaptersRead = ImmutableSearchResponse.chaptersRead(name),
-                            timeOfPageOpened = System.currentTimeMillis(),
+                            timeOfPageOpened = ImmutableSearchResponse.timeOfPageOpened(id),
                             epubSize = ImmutableSearchResponse.epubSize(id)
                         )
                     }

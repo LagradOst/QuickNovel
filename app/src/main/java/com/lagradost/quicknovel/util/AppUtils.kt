@@ -62,7 +62,7 @@ object AppUtils {
             }
     }
 
-    fun String.toLibraryKey(): String {
+    fun String.toBookmarkKey(): String {
         val sanitized = this.uppercase()
             .replace(" ", "_")
             .replace(Regex("[^A-Z0-9_]"), "")

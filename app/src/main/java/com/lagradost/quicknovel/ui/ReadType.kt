@@ -12,6 +12,6 @@ enum class ReadType(val prefValue: Int, @StringRes val stringRes: Int) {
     READING(5, R.string.type_reading);
 
     companion object {
-        fun fromSpinner(position: Int?) = values().find { value -> value.prefValue == position } ?: NONE
+        fun fromSpinner(position: Int?) = entries.find { value -> value.prefValue == position } ?: NONE
     }
 }

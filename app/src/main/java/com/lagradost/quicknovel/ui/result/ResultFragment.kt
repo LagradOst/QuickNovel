@@ -23,7 +23,7 @@ import com.google.android.material.chip.ChipDrawable
 import com.google.android.material.tabs.TabLayout
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.CommonActivity
-import com.lagradost.quicknovel.DefaultLibrary
+import com.lagradost.quicknovel.DefaultBookmark
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainActivity.Companion.navigate
@@ -53,7 +53,7 @@ import com.lagradost.quicknovel.util.UIHelper.humanReadableByteCountSI
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.util.toPx
-import com.lagradost.quicknovel.getLibraries
+import com.lagradost.quicknovel.getBookmarks
 import com.lagradost.quicknovel.ui.library.LibraryManager
 
 const val MAX_SYNO_LENGH = 300
@@ -582,8 +582,8 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
             //show bottom dialog with libraries
             resultBookmark.setOnClickListener { view ->
                 val context = view.context ?: return@setOnClickListener
-                val libraries = context.getLibraries()
-                val allOptions = mutableListOf(DefaultLibrary(-1, "", context.getString(R.string.type_none), false, -1))
+                val libraries = context.getBookmarks()
+                val allOptions = mutableListOf(DefaultBookmark(-1, "", context.getString(R.string.type_none), false, -1))
                 allOptions.addAll(libraries)
 
                 val currentLibraryId = viewModel.libraryId.value ?: 0
@@ -663,7 +663,7 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
 
         observe(viewModel.libraryId) { libraryId ->
             val context = binding.root.context
-            binding.resultBookmark.text = context.getLibraries().firstOrNull { it.id == libraryId }?.title ?: context.getString(R.string.bookmark)
+            binding.resultBookmark.text = context.getBookmarks().firstOrNull { it.id == libraryId }?.title ?: context.getString(R.string.bookmark)
             binding.resultBookmark.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0,
                 if (libraryId == 0) R.drawable.ic_baseline_bookmark_border_24 else R.drawable.ic_baseline_bookmark_24)
         }

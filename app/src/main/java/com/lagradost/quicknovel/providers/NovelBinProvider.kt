@@ -2,7 +2,6 @@ package com.lagradost.quicknovel.providers
 
 import android.net.Uri
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
@@ -13,6 +12,7 @@ import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
+import com.lagradost.quicknovel.newReview
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
@@ -172,25 +172,19 @@ open class NovelBinProvider : MainAPI() {
         }
     }
 
-    override suspend fun loadReviews(
-        url: String,
-        page: Int,
-        showSpoilers: Boolean
-    ): List<UserReview> {
+    override suspend fun loadReviews(url: String, page: Int, data: String?): List<UserReview> {
         val slug = url.removeSuffix("/").substringAfter("/novel/")
         val realUrl = "$mainUrl/api-web/novels/$slug/comments?page=$page&limit=10&sort=most-liked&scope=novel"
 
         val response = app.get(realUrl).parsedSafe<ReviewResponse>()
 
         return response?.items?.mapNotNull { item ->
-            if (!showSpoilers && item.isSpoiler == true) return@mapNotNull null
-
-            UserReview(
-                review = org.jsoup.Jsoup.parse(item.content ?: "").text(),
-                username = item.disqusUser?.name ?: "User",
-                reviewDate = item.createdDate,
-                avatarUrl = fixUrlNull(item.disqusUser?.avatarUrl),
-            )
+            newReview(org.jsoup.Jsoup.parse(item.content ?: return@mapNotNull null).text()) {
+                username = item.disqusUser?.name
+                date = item.createdDate
+                avatarUrl = item.disqusUser?.avatarUrl
+                containsSpoilers = item.isSpoiler == true
+            }
         } ?: emptyList()
     }
 

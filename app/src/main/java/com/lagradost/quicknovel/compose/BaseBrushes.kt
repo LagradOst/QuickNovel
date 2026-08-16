@@ -70,9 +70,73 @@ fun Modifier.animatedOutline( width: Dp = 2.dp,  defaultPalette: List<Color>): M
         )
     }
 }
-
-
 /*
+@Composable
+fun Modifier.shimmer(): Modifier {
+    val shimmer = LocalSharedInfiniteTransition.current.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            tween(3000, easing = LinearEasing),
+            RepeatMode.Restart
+        ),
+        label = "scale"
+    )
+    return drawWithContent {
+        drawContent()
+        val shader = SweepGradientShader(
+            center = center,
+            colors = listOf(Color.Transparent,Color.White,Color.Transparent),
+        )
+        val rotatingBrush = object : ShaderBrush() {
+            override fun createShader(size: Size): Shader = shader
+        }
+        drawOutline(
+            outline = imageShape.createOutline(size, layoutDirection, this),
+            brush = rotatingBrush,
+            style = Stroke(width = width.toPx())
+        )
+    }
+}*/
+
+
+@Composable
+fun Modifier.gradientEffect(
+    gradientColor: Color,
+    animationSpec: InfiniteRepeatableSpec<Float> = infiniteRepeatable(
+        animation = tween(
+            durationMillis = 2000,
+            easing = LinearEasing,
+        ),
+        repeatMode = RepeatMode.Restart,
+    ),
+): Modifier {
+    val progress by LocalSharedInfiniteTransition.current.animateFloat(
+        initialValue = -1f,
+        targetValue = 1f,
+        animationSpec = animationSpec,
+        label = "GradientProgress",
+    )
+
+    val gradientBrush = rememberTransformableBrush {
+        Brush.horizontalGradient(
+            0.0f to Color.Transparent, 0.5f to gradientColor, 1.0f to Color.Transparent,
+            startX = 0f,
+            endX = 1.0f,
+        )
+    }
+
+    return drawWithContent {
+        drawContent()
+        gradientBrush.transform {
+            val x = progress * 1000.toDp().toPx() * 5.0f
+            setScale(1000.toDp().toPx(), 1f)
+            postTranslate(x, 0f)
+        }
+        drawRect(gradientBrush)
+        // drawOutline(brush = gradientBrush, outline = Outline.Rounded(RoundRect(rect = this.size.toRect())))
+    }
+}
 @Stable
 class TransformableBrush(
     private val brush: ShaderBrush
@@ -124,6 +188,9 @@ inline fun rememberTransformableBrush(
         TransformableBrush(brush = brush)
     }
 }
+
+/*
+
 
 @Composable
 fun Modifier.gradientEffect(

@@ -1,16 +1,21 @@
 package com.lagradost.quicknovel.providers
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.lagradost.quicknovel.*
+import com.lagradost.quicknovel.HeadMainPageResponse
+import com.lagradost.quicknovel.LoadResponse
+import com.lagradost.quicknovel.MainAPI
+import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.UserReview
+import com.lagradost.quicknovel.fixUrlNull
+import com.lagradost.quicknovel.newChapterData
+import com.lagradost.quicknovel.newReview
+import com.lagradost.quicknovel.newSearchResponse
+import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.providers.WtrLabProvider.ReviewResponse
 import com.lagradost.quicknovel.util.AppUtils.parseJson
-import com.lagradost.quicknovel.util.AppUtils.toJson
 import org.json.JSONObject
-import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
-import org.jsoup.parser.Parser
-import java.util.concurrent.ConcurrentHashMap
-import kotlin.collections.mapNotNull
 
 class WattpadProvider : MainAPI() {
     override val mainUrl = "https://www.wattpad.com"
@@ -19,7 +24,6 @@ class WattpadProvider : MainAPI() {
     override val iconId = R.drawable.icon_wattpad
     override val iconBackgroundId = R.color.wattpadColor
     override val rateLimitTime = 500L
-    val novelsIdRequired = ConcurrentHashMap<String, String>()
 
     private val langHeaders = mapOf(
         "" to "en-US,en;q=0.9", // English default
@@ -75,16 +79,18 @@ class WattpadProvider : MainAPI() {
         orderBy: String?,
         tag: String?
     ): HeadMainPageResponse {
-
         val languageId = mainCategory ?: ""
         currentLang = langHeaders[languageId] ?: "en-US,en;q=0.9"
         val nextUrl =
-            "https://api.wattpad.com/v5/hotlist?tags=romance&${if(mainCategory.isNullOrBlank()) "" else "language=$mainCategory&"}offset=${(page * 20) - 20}&limit=20"
+            "https://api.wattpad.com/v5/hotlist?tags=romance&${if (mainCategory.isNullOrBlank()) "" else "language=$mainCategory&"}offset=${(page * 20) - 20}&limit=20"
 
         val document = app.get(nextUrl).parsed<Root>()
 
         val results = document.stories?.mapNotNull {
-            newSearchResponse(it.title ?: return@mapNotNull null, it.url ?: return@mapNotNull null) {
+            newSearchResponse(
+                it.title ?: return@mapNotNull null,
+                it.url ?: return@mapNotNull null
+            ) {
                 posterUrl = it.cover
             }
         } ?: emptyList()
@@ -132,7 +138,7 @@ class WattpadProvider : MainAPI() {
 
         val novel = parseJson<LoadPageResponse>(route)
         val story = novel.story
-        val ch =  story.parts?.map{ chap ->
+        val ch = story.parts?.map { chap ->
             val href = chap.url
             val name = chap.title
             val date = chap.formattedCreateDate
@@ -149,42 +155,39 @@ class WattpadProvider : MainAPI() {
             views = story.voteCount
             synopsis = story.description
             tags = story.tags?.mapNotNull {
-                it.trim().takeIf { text ->  text.isNotEmpty() }
+                it.trim().takeIf { text -> text.isNotEmpty() }
             }
             related = getRelated(response.document)
         }
     }
 
 
-    private fun getRelated(dc: Document): List<SearchResponse>{
-        return dc.select("div[data-testid=similar-stories-slide-column] > a").mapNotNull { element ->
-            val href = element.attr("href") ?: return@mapNotNull null
-            val title = element.selectFirst("h5")?.text() ?: return@mapNotNull null
-            newSearchResponse(
-                name = title,
-                url = href
-            ) {
-                posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
+    private fun getRelated(dc: Document): List<SearchResponse> {
+        return dc.select("div[data-testid=similar-stories-slide-column] > a")
+            .mapNotNull { element ->
+                val href = element.attr("href") ?: return@mapNotNull null
+                val title = element.selectFirst("h5")?.text() ?: return@mapNotNull null
+                newSearchResponse(
+                    name = title,
+                    url = href
+                ) {
+                    posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
+                }
             }
-        }
     }
 
-    override suspend fun loadReviews(
-        url: String,
-        page: Int,
-        showSpoilers: Boolean
-    ): List<UserReview> {
-        val realUrl = "$mainUrl/api/review/get?serie_id=${novelsIdRequired[url]}&page=${page - 1}&sort=most_liked"
+    override suspend fun loadReviews(url: String, page: Int, data: String?): List<UserReview> {
+        val id = data ?: return emptyList()
+        val realUrl = "$mainUrl/api/review/get?serie_id=$id&page=${page - 1}&sort=most_liked"
         val res = app.get(realUrl).parsedSafe<ReviewResponse>()
 
         return res?.data?.mapNotNull { item ->
             val reviewTxt = item.comment ?: return@mapNotNull null
-            UserReview(
-                review = reviewTxt,
-                username = item.username ?: "User",
-                reviewDate = item.createdAt,
+            newReview(reviewTxt) {
+                username = item.username
+                date = item.createdAt
                 rating = item.rate?.times(200)
-            )
+            }
         } ?: emptyList()
     }
 
@@ -216,11 +219,13 @@ class WattpadProvider : MainAPI() {
         val story: Story,
         val title: String
     )
+
     data class Part(
-        val url:String,
+        val url: String,
         val title: String,
         val formattedCreateDate: String
     )
+
     data class Author(
         val username: String
     )

@@ -59,10 +59,10 @@ class ReviewAdapter :
             }
 
             reviewBody.text = reviewText.html()
-            reviewTitle.text = item.reviewTitle.html()
-            reviewTitle.isGone = item.reviewTitle.isNullOrBlank()
+            reviewTitle.text = item.title.html()
+            reviewTitle.isGone = item.title.isNullOrBlank()
 
-            reviewTime.text = item.reviewDate
+            reviewTime.text = item.date
             reviewAuthor.text = item.username
 
             reviewImage.setImage(item.avatarUrl)

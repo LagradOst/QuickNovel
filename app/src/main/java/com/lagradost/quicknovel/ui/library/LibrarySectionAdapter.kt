@@ -7,8 +7,8 @@ import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
-import com.lagradost.quicknovel.DEFAULT_LIBRARIES
-import com.lagradost.quicknovel.DefaultLibrary
+import com.lagradost.quicknovel.DEFAULT_BOOKMARKS
+import com.lagradost.quicknovel.DefaultBookmark
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.ItemLibrarySectionBinding
 import com.lagradost.quicknovel.ui.BaseDiffCallback
@@ -19,12 +19,12 @@ import java.util.Collections
 
 class LibrarySectionAdapter(
     private var selectedIndex: Int,
-    private val onDragFinished: (List<DefaultLibrary>) -> Unit,
+    private val onDragFinished: (List<DefaultBookmark>) -> Unit,
     private val onItemClick: (Int) -> Unit,
-    private val onRename: (DefaultLibrary, LibrarySectionAdapter) -> Unit,
-    private val onDelete: (DefaultLibrary, LibrarySectionAdapter) -> Any,
-    private val onMerge: (DefaultLibrary, LibrarySectionAdapter) -> Any,
-) : NoStateAdapter<DefaultLibrary>(
+    private val onRename: (DefaultBookmark, LibrarySectionAdapter) -> Unit,
+    private val onDelete: (DefaultBookmark, LibrarySectionAdapter) -> Any,
+    private val onMerge: (DefaultBookmark, LibrarySectionAdapter) -> Any,
+) : NoStateAdapter<DefaultBookmark>(
     diffCallback = BaseDiffCallback(
         itemSame = { a, b -> a.id == b.id },
         contentSame = { a, b -> a == b }
@@ -34,7 +34,7 @@ class LibrarySectionAdapter(
     private var isEditing = false
 
     //Prevent the delete buttons from being displayed for the default libraries.
-    private val builtInKeys = DEFAULT_LIBRARIES.map { it.key }.toSet()
+    private val builtInKeys = DEFAULT_BOOKMARKS.map { it.key }.toSet()
 
     //This handles dragging the titles and updating their positions
     val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.Callback() {
@@ -90,7 +90,7 @@ class LibrarySectionAdapter(
     }
 
     @SuppressLint("ClickableViewAccessibility")
-    override fun onBindContent(holder: ViewHolderState<Any>, item: DefaultLibrary, position: Int) {
+    override fun onBindContent(holder: ViewHolderState<Any>, item: DefaultBookmark, position: Int) {
         val binding = holder.view as? ItemLibrarySectionBinding ?: return
 
         //is a default library?

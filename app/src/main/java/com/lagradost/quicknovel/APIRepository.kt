@@ -19,14 +19,17 @@ import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.safeApiCall
 import com.lagradost.quicknovel.ui.common.ImmutableHeadMainPageResponse
+import com.lagradost.quicknovel.ui.common.ImmutableReview
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.util.Coroutines.threadSafeListOf
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
+import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.jsoup.Jsoup
@@ -72,7 +75,6 @@ class APIRepository(val api: MainAPI) {
             val response: LoadResponse,
             val hash: Pair<String, String>
         )
-
         private val cache = threadSafeListOf<SavedLoadResponse>()
         private var cacheIndex: Int = 0
         const val cacheSize = 20
@@ -136,6 +138,62 @@ class APIRepository(val api: MainAPI) {
         }
     }
 
+    suspend fun loadResult(url: String, allowCache: Boolean = true): Result<ImmutableSearchResponse> {
+        return runCatching {
+            try {
+                if (api.hasRateLimit) {
+                    api.rateLimitMutex.lock()
+                }
+                val fixedUrl = api.fixUrl(url)
+                val lookingForHash = api.name to fixedUrl
+
+                if (allowCache) {
+                    synchronized(cache) {
+                        for (item in cache) {
+                            // 10 min save
+                            if (item.hash == lookingForHash && (unixTime - item.unixTime) < cacheTimeSec) {
+                                return@runCatching ImmutableSearchResponse.from(item.response)
+                            }
+                        }
+                    }
+                }
+
+                val response = api.load(fixedUrl) ?: throw ErrorLoadingException("No data")
+                val add = SavedLoadResponse(unixTime, response, lookingForHash)
+                if (allowCache) {
+                    synchronized(cache) {
+                        if (cache.size > cacheSize) {
+                            cache[cacheIndex] = add // rolling cache
+                            cacheIndex = (cacheIndex + 1) % cacheSize
+                        } else {
+                            cache.add(add)
+                        }
+                    }
+                }
+                ImmutableSearchResponse.from(response)
+                /*?.also { response ->
+                    // Remove all blank tags as early as possible
+                    val add = SavedLoadResponse(unixTime, response, lookingForHash)
+                    if (allowCache) {
+                        synchronized(cache) {
+                            if (cache.size > cacheSize) {
+                                cache[cacheIndex] = add // rolling cache
+                                cacheIndex = (cacheIndex + 1) % cacheSize
+                            } else {
+                                cache.add(add)
+                            }
+                        }
+                    }
+                }*/
+
+            } finally {
+                if (api.hasRateLimit) {
+                    api.rateLimitMutex.unlock()
+                }
+            }
+        }
+    }
+
     suspend fun search(query: String): Resource<List<SearchResponse>> {
         return safeApiCall {
             api.search(query) ?: throw ErrorLoadingException("No data")
@@ -161,7 +219,7 @@ class APIRepository(val api: MainAPI) {
      * */
     suspend fun loadHtml(url: String): String? {
         return try {
-            api.loadHtml(api.fixUrl(url))?.removeAds()
+            api.loadHtml(url)?.removeAds()
         } catch (e: Exception) {
             logError(e)
             null
@@ -171,10 +229,20 @@ class APIRepository(val api: MainAPI) {
     suspend fun loadReviews(
         url: String,
         page: Int,
-        showSpoilers: Boolean = false
+        data : String?,
     ): Resource<List<UserReview>> {
         return safeApiCall {
-            api.loadReviews(url, page, showSpoilers)
+            api.loadReviews(url, page, data)
+        }
+    }
+
+    suspend fun loadReviewsResult(
+        url: String,
+        page: Int,
+        data : String?,
+    ): Result<PersistentList<ImmutableReview>> {
+        return runCatching {
+            api.loadReviews(url, page, data).map(ImmutableReview::from).toPersistentList()
         }
     }
 

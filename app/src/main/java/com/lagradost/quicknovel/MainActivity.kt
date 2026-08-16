@@ -14,6 +14,7 @@ import androidx.activity.viewModels
 import androidx.annotation.IdRes
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.material3.Text
 import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavController
@@ -619,7 +620,7 @@ class MainActivity : AppCompatActivity() {
 
         observe(viewModel.libraryId) { libraryId ->
             bottomPreviewBinding?.bookmark?.setIconResource(if ( libraryId == 0) R.drawable.ic_baseline_bookmark_border_24 else R.drawable.ic_baseline_bookmark_24)
-            val selectedLibrary = this@MainActivity.getLibraries().firstOrNull { it.id == libraryId }
+            val selectedLibrary = this@MainActivity.getBookmarks().firstOrNull { it.id == libraryId }
             bottomPreviewBinding?.bookmark?.text = selectedLibrary?.title ?: getString(R.string.type_none)
         }
 
@@ -650,8 +651,8 @@ class MainActivity : AppCompatActivity() {
                             //show bottom dialog with libraries
                             bookmark.setOnClickListener { view ->
                                 val context = view.context ?: return@setOnClickListener
-                                val libraries = context.getLibraries()
-                                val allOptions = mutableListOf(DefaultLibrary(-1, "", context.getString(R.string.type_none), false, -1))
+                                val libraries = context.getBookmarks()
+                                val allOptions = mutableListOf(DefaultBookmark(-1, "", context.getString(R.string.type_none), false, -1))
                                 allOptions.addAll(libraries)
 
                                 val currentLibraryId = viewModel.libraryId.value ?: 0
@@ -701,7 +702,7 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         resultviewPreviewDescription.text =
-                            d.synopsis ?: getString(R.string.no_data)
+                            d.synopsis?.html() ?: getString(R.string.no_data)
 
                         resultviewPreviewDescription.setOnClickListener { view ->
                             view.context?.let { ctx ->

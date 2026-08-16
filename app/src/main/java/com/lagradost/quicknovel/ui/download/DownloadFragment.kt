@@ -154,7 +154,7 @@ class DownloadFragment : BaseFragment<FragmentDownloadsBinding>(
     lateinit var searchMagIcon: ImageView
     private var mediator: TabLayoutMediator? = null
     //This function is called every time pages.submitList is invoked to update a tab's name or state
-    private fun updateTabs(libraries: List<DefaultLibrary>) {
+    private fun updateTabs(libraries: List<DefaultBookmark>) {
         val binding = binding ?: return
         val context = context ?: return
 

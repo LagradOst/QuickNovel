@@ -11,12 +11,12 @@ import com.lagradost.quicknovel.USER_AGENT
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
+import com.lagradost.quicknovel.newReview
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
-import java.util.concurrent.ConcurrentHashMap
 
 open class LibReadProvider : MainAPI() {
     override val name = "LibRead"
@@ -32,7 +32,6 @@ open class LibReadProvider : MainAPI() {
 
     override val iconBackgroundId = R.color.libread_header_color
     override val hasReviews = true
-    val novelsIdRequired = ConcurrentHashMap<String, String>()
 
     override val tags = listOf(
         "All" to "",
@@ -183,7 +182,6 @@ open class LibReadProvider : MainAPI() {
         val document = response.document
         val name = document.selectFirst("h1.tit")?.text() ?: return null
         val chaptersDataphp = getChapterList(document, url)
-        novelsIdRequired[url] = document.selectFirst("a.set-case.add")?.attr("data-articleid") ?: ""
         return newStreamResponse(url = url, name = name, data = chaptersDataphp) {
             author =
                 document.selectFirst("span.glyphicon.glyphicon-user")?.nextElementSibling()?.text()
@@ -192,7 +190,14 @@ open class LibReadProvider : MainAPI() {
                     ?.get(0)
                     ?.text()
                     ?.splitToSequence(", ")?.toList()
-            posterUrl = fixUrlNull(document.select(" div.pic > img").attr("src"))
+            posterUrl = fixUrlNull(
+                document.selectFirst("picture source")
+                    ?.attr("srcset")
+                    ?.split(",")
+                    ?.lastOrNull()
+                    ?.trim()
+                    ?.substringBefore(" ")
+            ) ?: fixUrlNull(document.selectFirst("div.pic img")?.attr("src"))
             synopsis = document.selectFirst("div.inner")?.text()
             val votes = document.selectFirst("div.m-desc > div.score > p:nth-child(2)")
             if (votes != null) {
@@ -202,6 +207,8 @@ open class LibReadProvider : MainAPI() {
             val statusHeader0 = document.selectFirst("span.s1.s2")
             val statusHeader = document.selectFirst("span.s1.s3")
 
+            reviewData = document.selectFirst("a.set-case.add")?.attr("data-articleid")
+
             setStatus(
                 statusHeader?.selectFirst("a")?.text() ?: statusHeader0?.selectFirst("a")?.text()
             )
@@ -209,20 +216,16 @@ open class LibReadProvider : MainAPI() {
         }
     }
 
-    override suspend fun loadReviews(
-        url: String,
-        page: Int,
-        showSpoilers: Boolean
-    ): List<UserReview> {
-
+    override suspend fun loadReviews(url: String, page: Int, data: String?): List<UserReview> {
         val realUrl = "$mainUrl/api/comments.php"
+        val id = data ?: return emptyList()
 
         val responses: List<LibReadCommentsResponse> = if (page == 1) {
             (1..4).mapNotNull { i ->
                 app.post(
                     realUrl, data = mapOf(
                         "action" to "list",
-                        "articleid" to novelsIdRequired[url].toString(),
+                        "articleid" to id,
                         "chapterid" to "0",
                         "page" to i.toString()
                     )
@@ -233,7 +236,7 @@ open class LibReadProvider : MainAPI() {
                 app.post(
                     realUrl, data = mapOf(
                         "action" to "list",
-                        "articleid" to novelsIdRequired[url].toString(),
+                        "articleid" to id,
                         "chapterid" to "0",
                         "page" to (page + 3).toString()
                     )
@@ -241,13 +244,12 @@ open class LibReadProvider : MainAPI() {
             )
         }
 
-        return responses.flatMap { it.data?.dataList ?: emptyList() }.map { item ->
-            UserReview(
-                review = item.content ?: "",
-                username = item.userInfo?.nickname ?: "User",
-                reviewDate = item.createdAt,
-                avatarUrl = fixUrlNull(item.userInfo?.picture),
-            )
+        return responses.flatMap { it.data?.dataList ?: emptyList() }.mapNotNull { item ->
+            newReview(item.content ?: return@mapNotNull null) {
+                username = item.userInfo?.nickname ?: "User"
+                date = item.createdAt
+                avatarUrl = item.userInfo?.picture
+            }
         }
     }
     data class LibReadCommentsResponse(

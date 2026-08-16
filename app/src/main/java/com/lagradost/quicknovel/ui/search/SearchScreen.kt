@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -147,7 +150,12 @@ fun SearchScreen(state: HomeViewModelState, action: (HomeAction) -> Unit) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding),
+                    // This fixes the double padding from the bottom nav bar
+                    .padding(
+                        start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
+                        end = innerPadding.calculateEndPadding(LocalLayoutDirection.current),
+                        top = innerPadding.calculateTopPadding()
+                    ),
             ) {
                 items(state.searchRows, key = { item -> item.name }) { row ->
                     SearchRow(row, action)
@@ -159,7 +167,12 @@ fun SearchScreen(state: HomeViewModelState, action: (HomeAction) -> Unit) {
                 state = listState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding),
+                    // This fixes the double padding from the bottom nav bar
+                    .padding(
+                        start = innerPadding.calculateStartPadding(LocalLayoutDirection.current),
+                        end = innerPadding.calculateEndPadding(LocalLayoutDirection.current),
+                        top = innerPadding.calculateTopPadding()
+                    ),
                 contentPadding = PaddingValues(4.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -236,7 +249,11 @@ fun MainAPIItem(
                 .background(colorResource(api.iconBackgroundId))
         )
         Text(
-            text = api.name, style = BaseStyles.textStyle, textAlign = TextAlign.Center
+            text = api.name,
+            color = colors.onBackground,
+            fontSize = 14.sp,
+            lineHeight = 15.sp,
+            textAlign = TextAlign.Center
         )
     }
 }
