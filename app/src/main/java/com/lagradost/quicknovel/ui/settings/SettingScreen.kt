@@ -65,6 +65,7 @@ import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
 import com.lagradost.quicknovel.tachiyomi.Preference
 import com.lagradost.quicknovel.tachiyomi.SearchableSettings
 import com.lagradost.quicknovel.tachiyomi.TextPreferenceWidget
+import com.lagradost.quicknovel.tachiyomi.collectAsState
 import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getBasePath
 import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getDefaultDir
 import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getDownloadDirs
@@ -104,6 +105,8 @@ class SettingScreen : SearchableSettings {
             stringResource(R.string.download_path_visual),
             safe { getDefaultDir(context)?.filePath() } ?: stringResource(R.string.unknown)
         )
+
+        val downloadVisualStoreListener = downloadVisualStore.collectAsState()
 
         val pathPicker =
             rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -281,6 +284,7 @@ class SettingScreen : SearchableSettings {
                     Preference.PreferenceItem.TextPreference(
                         icon = painterResource(R.drawable.baseline_save_as_24),
                         title = stringResource(R.string.backup_settings),
+                        subtitle = downloadVisualStoreListener.value,
                         onClick = {
                             scope.launch {
                                 BackupUtils.createBackupFile(context, activity)
@@ -290,7 +294,7 @@ class SettingScreen : SearchableSettings {
                                             showToast(
                                                 txt(
                                                     R.string.backup_failed_error_format,
-                                                    error.toString()
+                                                    error.message
                                                 ),
                                                 Toast.LENGTH_LONG
                                             )
@@ -301,9 +305,9 @@ class SettingScreen : SearchableSettings {
                                             )
                                         }
                                     }
-                                    .onSuccess {
+                                    .onSuccess { location ->
                                         showToast(
-                                            R.string.backup_success,
+                                            txt(R.string.backup_success, location) ,
                                             Toast.LENGTH_LONG
                                         )
                                     }

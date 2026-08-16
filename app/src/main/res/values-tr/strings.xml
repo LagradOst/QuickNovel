@@ -145,7 +145,7 @@
     <string name="backup_settings">Verileri yedekle</string>
     <string name="restore_success">Yedek dosyası yüklendi</string>
     <string name="restore_failed_format" formatted="true">%s dosyasından veri geri yüklenemedi</string>
-    <string name="backup_success">Veriler başarıyla kaydedildi</string>
+    <string name="backup_success">Veriler başarıyla kaydedildi %s</string>
     <string name="backup_failed">Depolama izinleri eksik, lütfen tekrar deneyin</string>
     <string name="backup_failed_error_format">%s yedeklenirken hata oluştu</string>
     <string name="tts_locale">Dil</string>
