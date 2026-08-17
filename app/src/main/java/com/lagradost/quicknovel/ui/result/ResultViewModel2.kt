@@ -47,7 +47,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import java.util.concurrent.CancellationException
-import kotlin.uuid.ExperimentalUuidApi
 
 @Immutable
 data class ResultState(
@@ -173,7 +172,6 @@ class ResultViewModel2(
             if (id != response?.id) {
                 this
             } else {
-                @OptIn(ExperimentalUuidApi::class)
                 copy(response = response.copy(downloadState = ImmutableDownloadState.from(newState)))
             }
         }
@@ -200,7 +198,6 @@ class ResultViewModel2(
             if (name != response?.name) {
                 this
             } else {
-                @OptIn(ExperimentalUuidApi::class)
                 copy(
                     response = response.copy(
                         chaptersRead = ImmutableSearchResponse.chaptersRead(name),
@@ -432,7 +429,6 @@ class ResultViewModel2(
             try {
                 if (response.isImported && downloadState.progress < downloadState.total) {
                     updateState {
-                        @OptIn(ExperimentalUuidApi::class)
                         copy(response = this@updateState.response?.copy(generating = true))
                     }
                     BookDownloader2.preloadPartialImportedPdf(response)
@@ -446,7 +442,6 @@ class ResultViewModel2(
                     response.synopsis
                 ) {
                     updateState {
-                        @OptIn(ExperimentalUuidApi::class)
                         copy(response = this@updateState.response?.copy(generating = true))
                     }
                 }
@@ -456,7 +451,6 @@ class ResultViewModel2(
                 BookDownloader2.chapterReadChanged(response.name)
 
                 updateState {
-                    @OptIn(ExperimentalUuidApi::class)
                     copy(response = this@updateState.response?.copy(generating = false))
                 }
             }

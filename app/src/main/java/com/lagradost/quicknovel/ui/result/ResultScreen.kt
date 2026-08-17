@@ -109,13 +109,9 @@ import com.lagradost.quicknovel.util.SettingsHelper.getRatingReview
 import com.lagradost.quicknovel.util.UIHelper.humanReadableByteCountSI
 import com.lagradost.quicknovel.util.toPx
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
-import java.math.BigInteger
-import java.util.BitSet
-import kotlin.uuid.ExperimentalUuidApi
 
 
 @Composable
@@ -452,7 +448,7 @@ fun ChapterPage(
             .background(colors.background),
     ) {
         items(chapters, key = { item ->
-            @OptIn(ExperimentalUuidApi::class) item.randomUuid
+            item.randomUuid
         }) { review ->
             ChapterItem(response, review, action = action, modifier = Modifier.animateItem())
         }
@@ -514,7 +510,7 @@ fun ReviewsPage(
             .background(colors.background),
     ) {
         items(reviews, key = { item ->
-            @OptIn(ExperimentalUuidApi::class) item.randomUuid
+            item.randomUuid
         }) { review ->
             ReviewItem(review, modifier = Modifier.animateItem(), action = action)
         }
@@ -1040,7 +1036,7 @@ fun LoadingScreen(modifier: Modifier) {
 fun LoadingPreview() {
     CloudStreamTheme {
         Surface {
-            @OptIn(ExperimentalUuidApi::class) ResultScreen(
+            ResultScreen(
                 state = ResultState(
                     loadingResponse = false,
                     responseError = null,
@@ -1056,7 +1052,6 @@ fun LoadingPreview() {
 fun ReviewPreview() {
     CloudStreamTheme {
         Surface {
-            @OptIn(ExperimentalUuidApi::class)
             ReviewItem(
                 review = ImmutableReview(
                     content = "hello world",

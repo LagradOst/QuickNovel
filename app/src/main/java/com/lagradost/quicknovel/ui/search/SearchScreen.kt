@@ -49,7 +49,6 @@ import androidx.compose.ui.window.DialogProperties
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.BaseSearchBar
-import com.lagradost.quicknovel.compose.BaseStyles
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.MultiSelectDialog
@@ -59,14 +58,12 @@ import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseItem
-import com.lagradost.quicknovel.ui.download.DownloadPageAction
 import com.lagradost.quicknovel.ui.mainpage.SearchResponseDialog
 import com.lagradost.quicknovel.ui.settings.searchProvidersList
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
-import kotlin.uuid.ExperimentalUuidApi
 
 @Composable
 fun SearchScreen(state: HomeViewModelState, action: (HomeAction) -> Unit) {
@@ -266,7 +263,6 @@ private fun SettingsScreenPreview() {
     }
 }
 
-@OptIn(ExperimentalUuidApi::class)
 @Composable
 private fun SearchRow(
     row: SearchRow,

@@ -37,10 +37,10 @@ import com.lagradost.quicknovel.ui.common.SearchResponseOperation
 import com.lagradost.quicknovel.ui.common.SortingMethodType
 import com.lagradost.quicknovel.ui.common.updateRow
 import com.lagradost.quicknovel.ui.common.updateRows
-import com.lagradost.quicknovel.ui.download.DownloadDialog.*
+import com.lagradost.quicknovel.ui.download.DownloadDialog.DeleteBookmark
+import com.lagradost.quicknovel.ui.download.DownloadDialog.DeleteItem
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.collections.immutable.PersistentList
-import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentHashMap
 import kotlinx.collections.immutable.toPersistentList
@@ -48,7 +48,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlin.uuid.ExperimentalUuidApi
 
 @Immutable
 data class DownloadPageState(
@@ -189,7 +188,6 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             copy(
                 pages = pages.updateRow(item.page) {
                     update(item.id) {
-                        @OptIn(ExperimentalUuidApi::class)
                         copy(generating = item.refreshing)
                     }
                 },
@@ -239,7 +237,6 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                 updateState {
                     copy(pages = pages.updateRow(0) {
                         update(id) {
-                            @OptIn(ExperimentalUuidApi::class)
                             copy(generating = true)
                         }
                     })
@@ -265,7 +262,6 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                 updateState {
                     copy(pages = pages.updateRow(0) {
                         update(id) {
-                            @OptIn(ExperimentalUuidApi::class)
                             copy(
                                 generating = false,
                                 timeOfPageOpened = newTimeOfPageOpened,
@@ -294,7 +290,6 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                     updateState {
                         copy(pages = pages.updateRows {
                             update(id) {
-                                @OptIn(ExperimentalUuidApi::class)
                                 copy(generating = true)
                             }
                         })
@@ -306,7 +301,6 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                     updateState {
                         copy(pages = pages.updateRows {
                             update(id) {
-                                @OptIn(ExperimentalUuidApi::class)
                                 copy(
                                     generating = false,
                                     timeOfPageOpened = opened
@@ -468,7 +462,6 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         updateState {
             copy(pages = pages.updateRows {
                 update(id) {
-                    @OptIn(ExperimentalUuidApi::class)
                     copy(
                         chaptersRead = ImmutableSearchResponse.chaptersRead(name),
                         timeOfPageOpened = ImmutableSearchResponse.timeOfPageOpened(id),
@@ -487,7 +480,6 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
 
                 var out = this
                 for (id in ids.keys) {
-                    @OptIn(ExperimentalUuidApi::class)
                     out = out.update(id) {
                         copy(
                             chaptersRead = ImmutableSearchResponse.chaptersRead(name),
@@ -531,7 +523,6 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         }
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     fun onDownloadStateChange(data: Pair<Int, DownloadProgressState>) = viewModelScope.launch {
         val (id, downloadState) = data
         val newDownloadState = ImmutableDownloadState.from(downloadState)
