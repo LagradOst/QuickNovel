@@ -46,6 +46,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.anggrayudi.storage.StorageFile
 import com.anggrayudi.storage.file.CreateMode
 import com.anggrayudi.storage.file.MimeType
+import com.anggrayudi.storage.file.PublicDirectory
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.ErrorLoadingException
@@ -369,7 +370,25 @@ class SettingScreen : SearchableSettings {
                         subtitleProvider = { v, e ->
                             e[v] ?: v
                         },
-                        entries = (emptySet<String>() + "Custom").associateWith { it }
+                        entries = (
+                                listOfNotNull(
+                                    StorageFile.fromPublicDirectory(
+                                        context,
+                                        PublicDirectory.DOWNLOADS,
+                                        "/Epub/"
+                                    ),
+                                    StorageFile.fromPublicDirectory(
+                                        context,
+                                        PublicDirectory.DOCUMENTS,
+                                        "/Epub/"
+                                    ),
+                                    StorageFile.from(
+                                        context,
+                                        context.filesDir
+                                    ),
+                                ).mapNotNull { file ->
+                                    file.absolutePath
+                                }.associateWith { it } + ("Custom" to "Custom"))
                             .toPersistentMap(),
                         onValueChanged = { value ->
                             if (value != "Custom") {

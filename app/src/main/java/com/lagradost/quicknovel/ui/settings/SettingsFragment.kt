@@ -105,8 +105,10 @@ class SettingsFragment : Fragment(), SearchableSettings by SettingScreen() {
             return when {
                 path.isNullOrBlank() -> StorageFile.fromPublicDirectory(
                     context,
-                    PublicDirectory.DOWNLOADS
-                )?.createFolder("Epub", CreateMode.SKIP_IF_EXISTS)
+                    PublicDirectory.DOWNLOADS,
+                    "/Epub/",
+                    requiresWriteAccess = true
+                )
 
                 path.startsWith("content://") || path.startsWith("file://") || path.startsWith("media/") -> StorageFile.from(
                     context,
