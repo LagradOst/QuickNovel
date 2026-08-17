@@ -24,7 +24,7 @@ android {
 
     defaultConfig {
         applicationId "com.lagradost.quicknovel"
-        minSdkVersion 26
+        minSdkVersion 23
         targetSdkVersion 37
         versionCode 56
         versionName "3.7.4"
@@ -109,7 +109,7 @@ dependencies {
     implementation 'com.github.LagradOst:SafeFile:a926e7615a' // To Prevent the URI File Fu*kery
     implementation 'com.jaredrummler:colorpicker:1.1.0'
 
-    implementation "com.anggrayudi:storage:3.0.1"
+    implementation "com.github.lagradost:simplestorage:3ed3a412b701106b4ee11ac230d21bda365f4833"
 
     implementation 'com.github.Blatzar:NiceHttp:0.4.18'
     implementation "io.coil-kt.coil3:coil:3.5.0"
