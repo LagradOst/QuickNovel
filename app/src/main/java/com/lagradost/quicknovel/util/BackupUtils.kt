@@ -11,6 +11,9 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.FragmentActivity
+import com.anggrayudi.storage.StorageFile
+import com.anggrayudi.storage.file.CreateMode
+import com.anggrayudi.storage.file.MimeType
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.quicknovel.BookDownloader2Helper.checkWrite
@@ -25,9 +28,7 @@ import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.settings.SettingsFragment
-import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getBasePath
-import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getDefaultDir
-import com.lagradost.safefile.SafeFile
+import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.downloadDirectory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -53,45 +54,6 @@ object BackupUtils {
         @JsonProperty("datastore") val datastore: BackupVars,
         @JsonProperty("settings") val settings: BackupVars
     )
-
-    fun setupStream(
-        context: Context,
-        displayName: String,
-        ext: String,
-        subDir: SafeFile?
-    ): OutputStream? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { // && subDir?.isDownloadDir() == true
-            val cr = context.contentResolver
-            val contentUri =
-                MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY) // USE INSTEAD OF MediaStore.Downloads.EXTERNAL_CONTENT_URI
-            //val currentMimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
-
-            val newFile = ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
-                put(MediaStore.MediaColumns.TITLE, displayName)
-                put(MediaStore.MediaColumns.MIME_TYPE, "application/json")
-                //put(MediaStore.MediaColumns.RELATIVE_PATH, folder)
-            }
-
-            val newFileUri = cr.insert(
-                contentUri,
-                newFile
-            ) ?: throw IOException("Error creating file uri")
-            cr.openOutputStream(newFileUri, "w")
-                ?: throw IOException("Error opening stream")
-        } else {
-            val fileName = "$displayName.$ext"
-            val rFile = subDir?.findFile(fileName)
-            if (rFile?.exists() == true) {
-                rFile.delete()
-            }
-            val file =
-                subDir?.createFile(fileName)
-                    ?: throw IOException("Error creating file")
-            if (file.exists() != true) throw IOException("File does not exist")
-            file.openOutputStream()
-        }
-    }
 
     private fun <T> Context.restoreMap(
         map: Map<String, T>?,
@@ -127,7 +89,7 @@ object BackupUtils {
                     activity?.requestRW()
                     throw ErrorLoadingException()
                 }
-                val subDir = context.getBasePath().first ?: getDefaultDir(context)
+                val subDir = context.downloadDirectory()
                 ?: throw ErrorLoadingException("Invalid file directory")
                 val date = SimpleDateFormat("yyyy_MM_dd_HH_mm").format(Date(currentTimeMillis()))
                 val displayName = "QN_Backup_${date}"
@@ -166,7 +128,7 @@ object BackupUtils {
                 mapper.writeValue(stream, backupFile)
                 stream.close()
 
-                file.filePath() ?: "Unknown"
+                file.absolutePath ?: "Unknown"
             }
         }
 

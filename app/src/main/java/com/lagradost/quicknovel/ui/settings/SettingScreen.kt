@@ -43,6 +43,9 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
+import com.anggrayudi.storage.StorageFile
+import com.anggrayudi.storage.file.CreateMode
+import com.anggrayudi.storage.file.MimeType
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.ErrorLoadingException
@@ -66,18 +69,14 @@ import com.lagradost.quicknovel.tachiyomi.Preference
 import com.lagradost.quicknovel.tachiyomi.SearchableSettings
 import com.lagradost.quicknovel.tachiyomi.TextPreferenceWidget
 import com.lagradost.quicknovel.tachiyomi.collectAsState
-import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getBasePath
-import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getDefaultDir
-import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getDownloadDirs
+import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.downloadDirectory
 import com.lagradost.quicknovel.ui.txt
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.AppUtils.openInBrowser
 import com.lagradost.quicknovel.util.BackupUtils
-import com.lagradost.quicknovel.util.BackupUtils.setupStream
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.util.SubtitleHelper
 import com.lagradost.quicknovel.util.UIHelper.clipboardHelper
-import com.lagradost.safefile.SafeFile
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
@@ -103,7 +102,7 @@ class SettingScreen : SearchableSettings {
 
         val downloadVisualStore = store.getString(
             stringResource(R.string.download_path_visual),
-            safe { getDefaultDir(context)?.filePath() } ?: stringResource(R.string.unknown)
+            safe { context.downloadDirectory()?.absolutePath } ?: stringResource(R.string.unknown)
         )
 
         val downloadVisualStoreListener = downloadVisualStore.collectAsState()
@@ -113,14 +112,19 @@ class SettingScreen : SearchableSettings {
                 // It lies, it can be null if file manager quits.
                 if (uri == null) return@rememberLauncherForActivityResult
                 val context = context
-                // RW perms for the path
-                val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 
-                context.contentResolver.takePersistableUriPermission(uri, flags)
+                try {
+                    context.contentResolver.takePersistableUriPermission(
+                        uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                                Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    )
+                } catch (t: Throwable) {
+                    // remote shit can throw
+                    logError(t)
+                }
 
-                val file = SafeFile.fromUri(context, uri)
-                val filePath = file?.filePath()
+                val file = StorageFile.from(context, uri)
+                val filePath = file?.absolutePath
                 println("Selected URI path: $uri - Full path: $filePath")
 
                 // Stores the real URI using download_path_key
@@ -307,7 +311,7 @@ class SettingScreen : SearchableSettings {
                                     }
                                     .onSuccess { location ->
                                         showToast(
-                                            txt(R.string.backup_success, location) ,
+                                            txt(R.string.backup_success, location),
                                             Toast.LENGTH_LONG
                                         )
                                     }
@@ -365,7 +369,7 @@ class SettingScreen : SearchableSettings {
                         subtitleProvider = { v, e ->
                             e[v] ?: v
                         },
-                        entries = (getDownloadDirs(context) + "Custom").associateWith { it }
+                        entries = (emptySet<String>() + "Custom").associateWith { it }
                             .toPersistentMap(),
                         onValueChanged = { value ->
                             if (value != "Custom") {
@@ -460,6 +464,7 @@ fun LogcatDialog(dismiss: () -> Unit) {
     }
 
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     AlertDialog(
         containerColor = colors.background,
         onDismissRequest = dismiss,
@@ -476,30 +481,37 @@ fun LogcatDialog(dismiss: () -> Unit) {
         confirmButton = {
             Button(
                 onClick = {
-                    val date = SimpleDateFormat("yyyy_MM_dd_HH_mm", Locale.getDefault()).format(
-                        Date(System.currentTimeMillis())
-                    )
-                    var fileStream: OutputStream?
-                    try {
-                        fileStream = setupStream(
-                            context,
-                            "logcat_${date}",
-                            "txt",
-                            context.getBasePath().first ?: getDefaultDir(context)
-                            ?: throw IOException("No file")
-                        ) ?: throw ErrorLoadingException("No stream")
+                    scope.launch {
+                        withContext(Dispatchers.IO) {
+                            try {
+                                val date = SimpleDateFormat(
+                                    "yyyy_MM_dd_HH_mm",
+                                    Locale.getDefault()
+                                ).format(
+                                    Date(System.currentTimeMillis())
+                                )
 
-                        fileStream.writer().use { writer ->
-                            list.value.forEach {
-                                writer.write(it.toString())
-                                writer.write("\n\n")
+                                val fileName = "logcat_${date}.txt"
+                                val file =
+                                    context.downloadDirectory()
+                                        ?.createFile(fileName, MimeType.TEXT, CreateMode.REPLACE)
+                                        ?: throw IOException("Error creating file")
+                                val stream = file.openOutputStream()
+                                    ?: throw IOException("Error creating file")
+
+                                stream.bufferedWriter().use { writer ->
+                                    list.value.forEach {
+                                        writer.write(it.toString())
+                                        writer.write("\n\n")
+                                    }
+                                }
+                                dismiss()
+                                showToast(R.string.downloaded)
+                            } catch (t: Throwable) {
+                                logError(t)
+                                showToast(t.message)
                             }
                         }
-                        dismiss()
-                        showToast(R.string.downloaded)
-                    } catch (t: Throwable) {
-                        logError(t)
-                        showToast(t.message)
                     }
                 }, colors = whiteButtonColors
             ) { Text(text = stringResource(R.string.save)) }

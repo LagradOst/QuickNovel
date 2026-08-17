@@ -38,6 +38,8 @@ import coil3.SingletonImageLoader
 import coil3.asDrawable
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
+import com.anggrayudi.storage.StorageFile
+import com.anggrayudi.storage.file.CreateMode
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
@@ -63,8 +65,7 @@ import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.download.DownloadFragment
-import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getBasePath
-import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getDefaultDir
+import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.downloadDirectory
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromNameOrNull
 import com.lagradost.quicknovel.util.AppUtils.textToHtmlChapter
@@ -73,7 +74,6 @@ import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.Event
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
-import com.lagradost.quicknovel.util.amap
 import com.lagradost.quicknovel.util.pmap
 import com.lagradost.safefile.SafeFile
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
@@ -103,6 +103,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.nio.file.Files
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.io.readBytes
@@ -373,12 +374,11 @@ object BookDownloader2Helper {
 
         try {
             val subDir =
-                activity.getBasePath().first ?: getDefaultDir(activity)
-                ?: throw IOException("No file")
+                activity.downloadDirectory()
+                    ?: throw IOException("No file")
             val displayName = "${sanitizeFilename(name)}.epub"
-            val foundFile = subDir.findFileOrThrow(displayName)
 
-            return foundFile.uri() != null
+            return subDir.child(displayName)?.exists != null
         } catch (_: Throwable) {
             return false
         }
@@ -662,10 +662,10 @@ object BookDownloader2Helper {
         }
 
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(activity)
-        val subDir =
-            activity.getBasePath().first ?: getDefaultDir(activity) ?: throw IOException("No file")
+        val subDir = context?.downloadDirectory() ?: throw IOException("No file")
         val displayName = "${sanitizeFilename(name)}.epub"
-        val foundFile = subDir.findFileOrThrow(displayName)
+        val foundFile = subDir.child(displayName) ?: throw IOException("No file")
+        val uri = foundFile.uri
 
         val externalReader = settingsManager.getBoolean(
             activity.getString(R.string.external_reader_key),
@@ -673,7 +673,7 @@ object BookDownloader2Helper {
         )
         if (openInApp ?: !externalReader) {
             val myIntent = Intent(activity, ReadActivity2::class.java)
-            myIntent.setDataAndType(foundFile.uriOrThrow(), "application/epub+zip")
+            myIntent.setDataAndType(uri, "application/epub+zip")
             activity.startActivity(myIntent)
             return
         }
@@ -689,9 +689,7 @@ object BookDownloader2Helper {
         }
 
         val type = "application/epub+zip"
-        intent.setDataAndType(
-            foundFile.uriOrThrow(), type
-        )
+        intent.setDataAndType(uri, type)
         activity.startActivity(intent)
         //this.startActivityForResult(intent,1337) // SEE @moonreader
     }
@@ -807,15 +805,11 @@ object BookDownloader2Helper {
             val sName = sanitizeFilename(name)
             val id = "$sApiName$sAuthor$sName".hashCode()
 
-            val subDir = activity.getBasePath().first ?: getDefaultDir(activity)
-            ?: throw IOException("No file")
+            val subDir = activity.downloadDirectory() ?: throw IOException("No download directory")
 
-            //val subDir = baseFile.gotoDirectoryOrThrow("Epub", createMissingDirectories = true)
             val displayName = "${sanitizeFilename(name)}.epub"
 
-            //val relativePath = (Environment.DIRECTORY_DOWNLOADS + "${fs}Epub${fs}")
-            subDir.findFile(displayName)?.delete()
-            val file = subDir.createFileOrThrow(displayName)
+            val file = subDir.createFile(displayName, mode = CreateMode.REPLACE) ?: throw IOException("Unable to create file")
 
             val fileStream =
                 file.openOutputStream(append = false) ?: throw IOException("No outputfile")
@@ -2044,8 +2038,7 @@ object BookDownloader2 {
         val info = document.documentInformation
         val author =
             if (info.author.isNullOrBlank()) context.getString(R.string.unknown) else info.author
-        val fileName =
-            SafeFile.fromUri(context, data)?.name() ?: context.getString(R.string.unknown)
+        val fileName = StorageFile.from(context, data)?.name ?: context.getString(R.string.unknown)
         val name = fileName.removeSuffix(".pdf").removeSuffix(".PDF")
         val apiName = IMPORT_SOURCE_PDF
 
