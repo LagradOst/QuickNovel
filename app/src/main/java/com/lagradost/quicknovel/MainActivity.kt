@@ -23,6 +23,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import androidx.preference.PreferenceManager
+import com.anggrayudi.storage.StorageFile
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -74,7 +75,6 @@ import com.lagradost.quicknovel.util.UIHelper.getResourceColor
 import com.lagradost.quicknovel.util.UIHelper.html
 import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.setImage
-import com.lagradost.safefile.SafeFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -378,16 +378,19 @@ class MainActivity : AppCompatActivity() {
                 val ctx = this
 
                 // RW perms for the path
-                ctx.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                )
+                try {
+                    ctx.contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    )
+                } catch (t: Throwable) {
+                    logError(t)
+                }
 
-                val file = SafeFile.fromUri(ctx, uri)
-                val fileName = file?.name()
-
-                val mimeType = ctx.contentResolver.getType(uri)
-                println("Loaded epub file. Selected URI path: $uri - Name: $fileName")
+                val file = StorageFile.from(ctx, uri)
+                val fileName = file?.name
+                val mimeType = file?.mimeType //ctx.contentResolver.getType(uri)
+                println("Loaded epub file. Selected URI path: $uri - Name: $fileName with type $mimeType")
 
                 ioSafe {
                     try {

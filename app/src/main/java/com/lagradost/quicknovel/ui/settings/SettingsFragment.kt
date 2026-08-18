@@ -36,10 +36,9 @@ import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.SingleSelectionHelper.showMultiDialog
 import com.lagradost.quicknovel.util.SubtitleHelper
-import com.lagradost.safefile.MediaFileContentType
-import com.lagradost.safefile.SafeFile
-import kotlinx.coroutines.CoroutineScope
-import java.io.File
+import com.anggrayudi.storage.*
+import com.anggrayudi.storage.file.CreateMode
+import com.anggrayudi.storage.file.PublicDirectory
 
 // TODO logcat! and reorganize
 class SettingsFragment : Fragment(), SearchableSettings by SettingScreen() {
@@ -95,58 +94,59 @@ class SettingsFragment : Fragment(), SearchableSettings by SettingScreen() {
 
 
     companion object {
-        fun getDefaultDir(context: Context): SafeFile? {
-            // See https://www.py4u.net/discuss/614761
-            return SafeFile.fromMedia(
-                context, MediaFileContentType.Downloads
-            )?.gotoDirectory("Epub")
-        }
-
-        /**
-         * Turns a string to an UniFile. Used for stored string paths such as settings.
-         * Should only be used to get a download path.
-         * */
-        private fun basePathToFile(context: Context, path: String?): SafeFile? {
-            return when {
-                path.isNullOrBlank() -> getDefaultDir(context)
-                path.startsWith("content://") -> SafeFile.fromUri(context, path.toUri())
-                else -> SafeFile.fromFilePath(
-                    context,
-                    path.removePrefix(Environment.getExternalStorageDirectory().path).removePrefix(
-                        File.separator
-                    ).removeSuffix(File.separator) + File.separator
-                )
-            }
-        }
-
-        /**
-         * Base path where downloaded things should be stored, changes depending on settings.
-         * Returns the file and a string to be stored for future file retrieval.
-         * UniFile.filePath is not sufficient for storage.
-         * */
-        fun Context.getBasePath(): Pair<SafeFile?, String?> {
-            val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
-            val basePathSetting =
-                settingsManager.getString(getString(R.string.download_path_key), null)
-            return basePathToFile(this, basePathSetting) to basePathSetting
-        }
-
-        fun getDownloadDirs(context: Context?): List<String> {
-            return safe {
-                context?.let { ctx ->
-                    val defaultDir = getDefaultDir(ctx)?.filePath()
-
-                    val first = listOf(defaultDir)
-                    (try {
-                        //val currentDir = ctx.getBasePath().let { it.first?.filePath() ?: it.second }
-
-                        (first + ctx.getExternalFilesDirs("").mapNotNull { it.path })
-                    } catch (e: Exception) {
-                        first
-                    }).filterNotNull().distinct()
+        /*
+                fun getDefaultDir(context: Context): SafeFile? {
+                    // See https://www.py4u.net/discuss/614761
+                    return SafeFile.fromMedia(
+                        context, MediaFileContentType.Downloads
+                    )?.gotoDirectory("Epub")
                 }
-            } ?: emptyList()
-        }
+
+                /**
+                 * Turns a string to an UniFile. Used for stored string paths such as settings.
+                 * Should only be used to get a download path.
+                 * */
+                private fun basePathToFile(context: Context, path: String?): SafeFile? {
+                    return when {
+                        path.isNullOrBlank() -> getDefaultDir(context)
+                        path.startsWith("content://") -> SafeFile.fromUri(context, path.toUri())
+                        else -> SafeFile.fromFilePath(
+                            context,
+                            path.removePrefix(Environment.getExternalStorageDirectory().path).removePrefix(
+                                File.separator
+                            ).removeSuffix(File.separator) + File.separator
+                        )
+                    }
+                }
+
+                /**
+                 * Base path where downloaded things should be stored, changes depending on settings.
+                 * Returns the file and a string to be stored for future file retrieval.
+                 * UniFile.filePath is not sufficient for storage.
+                 * */
+                fun Context.getBasePath(): Pair<SafeFile?, String?> {
+                    val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
+                    val basePathSetting =
+                        settingsManager.getString(getString(R.string.download_path_key), null)
+                    return basePathToFile(this, basePathSetting) to basePathSetting
+                }
+
+                fun getDownloadDirs(context: Context?): List<String> {
+                    return safe {
+                        context?.let { ctx ->
+                            val defaultDir = getDefaultDir(ctx)?.filePath()
+
+                            val first = listOf(defaultDir)
+                            (try {
+                                //val currentDir = ctx.getBasePath().let { it.first?.filePath() ?: it.second }
+
+                                (first + ctx.getExternalFilesDirs("").mapNotNull { it.path })
+                            } catch (e: Exception) {
+                                first
+                            }).filterNotNull().distinct()
+                        }
+                    } ?: emptyList()
+                }*/
 
         fun showSearchProviders(context: Context?) {
             if (context == null) return
