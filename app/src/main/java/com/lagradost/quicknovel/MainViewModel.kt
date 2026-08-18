@@ -341,7 +341,7 @@ class MainViewModel : ViewModel(),
         apiRepo.loadResult(url).onSuccess { fullResponse ->
             val freshShowMoreInfo = true
             val freshBookmarkId =
-                with(DataStore) { context.getKey<Int>(RESULT_BOOKMARK_STATE, fullResponse.id.toString()) } ?: 0
+                with(DataStore) { context.getKey<Int>(RESULT_BOOKMARK_STATE, bookId.toString()) } ?: 0
 
             val freshBookmarkText = getBookmarkText(freshBookmarkId, bookmarks, context)
             val freshIsInDownloadCategory = isOnlyInDownload(freshBookmarkId, bookmarks)
@@ -376,11 +376,36 @@ class MainViewModel : ViewModel(),
                 )
             }
         }.onFailure { error ->
-            if (state.value.previewData == null) {
+            if(name == null)
                 updateState { copy(isLoadingPreview = false, previewError = error) }
-            } else {
-                updateState { copy(isLoadingPreview = false) }
-            }
+            else
+                updateState {
+                    copy(
+                        isPreviewOpen = true,
+                        isBookmarkSelectionOpen = false,
+                        isLoadingPreview = false,
+                        previewData = NovelPreviewData(
+                            title = name,
+                            id = bookId,
+                            author = finalAuthor,
+                            poster = resolvedPoster,
+                            posterHeaders = posterHeaders,
+                            rating = finalRating,
+                            status = finalStatus,
+                            chapters = finalChapters,
+                            description = finalSynopsis,
+                            url = url,
+                            apiName = apiName,
+                            isBookmarked = bookmarkId != 0,
+                            bookmarkText = bookmarkText,
+                            showBookmark = showBookmark,
+                            showMoreInfo = showMoreInfo
+                        ),
+                        previewError = null,
+                        currentLibraryId = bookmarkId,
+                        libraries = bookmarks.toPersistentList()
+                    )
+                }
         }
     }
 
