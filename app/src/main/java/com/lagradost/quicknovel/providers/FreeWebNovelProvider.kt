@@ -1,21 +1,35 @@
 package com.lagradost.quicknovel.providers
 
 import android.net.Uri
+import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.HeadMainPageResponse
+import com.lagradost.quicknovel.LoadResponse
+import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.USER_AGENT
+import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrlNull
+import com.lagradost.quicknovel.newChapterData
+import com.lagradost.quicknovel.newReview
 import com.lagradost.quicknovel.newSearchResponse
+import com.lagradost.quicknovel.newStreamResponse
+import com.lagradost.quicknovel.providers.LibReadProvider.ChaptersResponse
+import com.lagradost.quicknovel.providers.LibReadProvider.LibReadCommentsResponse
+import com.lagradost.quicknovel.setStatus
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
 
-class FreewebnovelProvider : LibReadProvider() {
+open class FreewebnovelProvider : MainAPI() {
     override val name = "FreeWebNovel"
     override val mainUrl = "https://freewebnovel.com"
-    override val hasMainPage = true
     override val iconId = R.drawable.icon_freewebnovel
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
-    override val removeHtml = true
-    override val rateLimitTime = 800L
+    open val secondUrl = mainUrl
+    override val hasMainPage = true
+    open val removeHtml = true // because the two sites use .html or not for no reason
+    override val hasReviews = true
+    override val usesCloudFlareKiller = true
     override val mainCategories = listOf(
         "All" to "",
         "Completed" to "completed"
@@ -56,6 +70,121 @@ class FreewebnovelProvider : LibReadProvider() {
         return HeadMainPageResponse(url, returnValue)
     }
 
+    //used to getChapterList. It's necesary because LibRead and Freewebnovel requires different things.
+    open fun getAcode(url: String): String = url.substringAfterLast("/")
+    suspend fun getChapterList(doc: Document, url: String): List<ChapterData> {
+        val novelId = doc.selectFirst("a.set-case.add")?.attr("data-articleid")
+            ?: doc.selectFirst("meta[name=image]")?.attr("content")?.substringAfterLast("/")?.substringBefore("s.jpg")
+            ?: return emptyList()
+        val baseUrl = url.removeSuffix("/").removeSuffix(".html")
+        val acode = getAcode(baseUrl)
+        val res = app.post(
+            "$secondUrl/api/chapterlist.php", data = mapOf(
+                "aid" to novelId,
+                "acode" to acode,
+                "cid" to "1"
+            )
+        ).parsed<ChaptersResponse>()
+        val document = Jsoup.parse(res.html)
+        return document.select("option").mapNotNull { i ->
+            newChapterData(
+                name = i.text(),//libread chapters doesn't exist anymore
+                url = "$secondUrl/novel/$acode/${i.attr("value").substringAfterLast("/")}"
+            )
+        }
+    }
+
+    override suspend fun load(url: String): LoadResponse? {
+        val response = app.get(url)
+        val document = response.document
+        val name = document.selectFirst("h1.tit")?.text() ?: return null
+        val chaptersDataphp = getChapterList(document, response.url)
+        return newStreamResponse(url = response.url, name = name, data = chaptersDataphp) {
+            author =
+                document.selectFirst("span.glyphicon.glyphicon-user")?.nextElementSibling()?.text()
+            tags =
+                document.selectFirst("span.glyphicon.glyphicon-th-list")?.nextElementSiblings()
+                    ?.get(0)
+                    ?.text()
+                    ?.splitToSequence(", ")?.toList()
+            posterUrl = fixUrlNull(
+                document.selectFirst("picture source")
+                    ?.attr("srcset")
+                    ?.split(",")
+                    ?.lastOrNull()
+                    ?.trim()
+                    ?.substringBefore(" ")
+            ) ?: fixUrlNull(document.selectFirst("div.pic img")?.attr("src"))
+            synopsis = document.selectFirst("div.inner")?.text()
+            val votes = document.selectFirst("div.m-desc > div.score > p:nth-child(2)")
+            if (votes != null) {
+                rating = votes.text().substringBefore('/').toFloat().times(200).toInt()
+                peopleVoted = votes.text().substringAfter('(').filter { it.isDigit() }.toInt()
+            }
+            val statusHeader0 = document.selectFirst("span.s1.s2")
+            val statusHeader = document.selectFirst("span.s1.s3")
+
+            reviewData = document.selectFirst("a.set-case.add")?.attr("data-articleid")
+
+            setStatus(
+                statusHeader?.selectFirst("a")?.text() ?: statusHeader0?.selectFirst("a")?.text()
+            )
+            related = getRelated(document)
+        }
+    }
+
+    fun getRelated(dc: Document): List<SearchResponse> {
+        return dc.select("div.col-l > ul.ul-list6 > li").mapNotNull { element ->
+            val href = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+            val title = element.selectFirst("h3")?.text() ?: return@mapNotNull null
+            newSearchResponse(
+                name = title,
+                url = href
+            ) {
+                posterUrl = fixUrlNull(
+                    element.selectFirst("img")?.attr("src")
+                )
+            }
+        }
+    }
+
+    override suspend fun loadReviews(url: String, page: Int, data: String?): List<UserReview> {
+        val realUrl = "$mainUrl/api/comments.php"
+        val id = data ?: return emptyList()
+
+        val responses: List<LibReadCommentsResponse> = if (page == 1) {
+            (1..4).mapNotNull { i ->
+                app.post(
+                    realUrl, data = mapOf(
+                        "action" to "list",
+                        "articleid" to id,
+                        "chapterid" to "0",
+                        "page" to i.toString()
+                    )
+                ).parsedSafe<LibReadCommentsResponse>()
+            }
+        } else {
+            listOfNotNull(
+                app.post(
+                    realUrl, data = mapOf(
+                        "action" to "list",
+                        "articleid" to id,
+                        "chapterid" to "0",
+                        "page" to (page + 3).toString()
+                    )
+                ).parsedSafe<LibReadCommentsResponse>()
+            )
+        }
+
+        return responses.flatMap { it.data?.dataList ?: emptyList() }.mapNotNull { item ->
+            newReview(item.content ?: return@mapNotNull null) {
+                username = item.userInfo?.nickname ?: "User"
+                date = item.createdAt
+                avatarUrl = item.userInfo?.picture
+            }
+        }
+    }
+
     override suspend fun loadHtml(url: String): String? {
         val document = app.get(url).document
         document.selectFirst("div.txt>.notice-text")?.remove()
@@ -75,7 +204,6 @@ class FreewebnovelProvider : LibReadProvider() {
                 ""
             )
     }
-
      override suspend fun search(query: String): List<SearchResponse> {
         val document = app.get(
             "$mainUrl/search?keyword=${Uri.encode(query.trim()).replace("%20","+")}",
