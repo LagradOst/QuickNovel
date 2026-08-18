@@ -13,7 +13,7 @@
     <string name="tags">Etiquetas</string>
     <string name="views">Vistas</string>
     <string name="no_author">Autor desconocido</string>
-    <string name="no_data">Sin información</string>
+    <string name="no_data">No se encuentra ninguna informacion</string>
     <string name="info">Información</string>
     <string name="home_more_info">Más información</string>
     <string name="battery_format">%d%%</string>

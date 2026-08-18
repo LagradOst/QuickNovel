@@ -5,8 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity
-import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.compose.ActionHandler
 import com.lagradost.quicknovel.compose.DefaultEffectContainer
 import com.lagradost.quicknovel.compose.DefaultStateContainer
@@ -31,6 +29,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Immutable
+sealed class HomeDialog {
+    object ConfigureApis : HomeDialog()
+    data class SearchRowDialog(val row: SearchRow) : HomeDialog()
+}
+
+@Immutable
 data class HomeViewModelState(
     val allApis: ImmutableList<MainAPI> = Apis.apis.toImmutableList(),
     val mainPageApis: ImmutableList<MainAPI> = allApis.filter { api -> api.hasMainPage }
@@ -38,11 +42,10 @@ data class HomeViewModelState(
     val shownMainPageApis: ImmutableList<MainAPI> = mainPageApis,
     val filterNames: ImmutableSet<String> = persistentSetOf(),
     val filterLanguages: ImmutableSet<String> = persistentSetOf(),
-    val isConfigureShow: Boolean = false,
     val searchRows: PersistentList<SearchRow> = persistentListOf(),
     val isLoading: Boolean = false,
     val isQueryOpen: Boolean = false,
-    val openRow: SearchRow? = null,
+    val activeDialog: HomeDialog? = null,
 )
 
 @Immutable
@@ -56,15 +59,15 @@ data class SearchRow(
 sealed class HomeAction {
     data class Search(val query: String) : HomeAction()
     object ConfigureApis : HomeAction()
-    object DismissConfigureApis : HomeAction()
+    object DismissDialog : HomeAction()
     data class Open(val item: MainAPI) : HomeAction()
     data class ConfigureApisNames(val names: ImmutableSet<String>) : HomeAction()
     data class ConfigureApisLanguages(val languages: ImmutableSet<String>) : HomeAction()
     object CloseQuery : HomeAction()
     data class ResultAction(val action: SearchResponseAction) : HomeAction()
     data class OpenRow(val row: SearchRow) : HomeAction()
-    object CloseRow : HomeAction()
 }
+
 @Immutable
 sealed class HomeEffect {
     data class NavigateToMainPage(val api: String, val filter: FilterQuery) : HomeEffect()
@@ -110,7 +113,7 @@ class HomeViewModel2 : ViewModel(),
         when (action) {
             HomeAction.ConfigureApis -> {
                 updateState {
-                    copy(isConfigureShow = true)
+                    copy(activeDialog = HomeDialog.ConfigureApis)
                 }
             }
 
@@ -126,9 +129,9 @@ class HomeViewModel2 : ViewModel(),
                 search(action.query)
             }
 
-            HomeAction.DismissConfigureApis -> {
+            HomeAction.DismissDialog -> {
                 updateState {
-                    copy(isConfigureShow = false)
+                    copy(activeDialog = null)
                 }
             }
 
@@ -166,15 +169,9 @@ class HomeViewModel2 : ViewModel(),
                 resultAction(action.action)
             }
 
-            HomeAction.CloseRow -> {
-                updateState {
-                    copy(openRow = null)
-                }
-            }
-
             is HomeAction.OpenRow -> {
                 updateState {
-                    copy(openRow = action.row)
+                    copy(activeDialog = HomeDialog.SearchRowDialog(action.row))
                 }
             }
         }

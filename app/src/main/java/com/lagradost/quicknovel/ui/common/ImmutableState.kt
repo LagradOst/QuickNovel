@@ -258,6 +258,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
     val chaptersRead: Int,
     val loadData: ImmutableLoadData? = null,
     val reviewData: String? = null,
+    val statusRes: Int? = null,
 ) {
 
     fun matchesQuery(query: String): Boolean =
@@ -464,6 +465,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 posterHeaders = response.posterHeaders?.toImmutableMap(),
                 timeOfCached = System.currentTimeMillis(),
                 chaptersRead = chaptersRead(response.name),
+                statusRes = response.status?.resource,
                 downloadState = ImmutableDownloadState.from(currentDownloadProgress)
             )
         }
@@ -483,6 +485,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 totalChapters = cache.totalChapters.toLong(),
                 author = cache.author,
                 synopsis = cache.synopsis,
+                statusRes = cache.status,
                 timeOfPageOpened = timeOfPageOpened(cache.id),
                 chaptersRead = chaptersRead(cache.name)
             )
@@ -507,6 +510,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 downloadState = downloadState,
                 synopsis = cache.synopsis,
                 tags = cache.tags?.toImmutableList(),
+                statusRes = cache.status,
                 timeOfPageOpened = timeOfPageOpened(id),
                 epubSize = epubSize(id),
                 chaptersRead = chaptersRead(cache.name)

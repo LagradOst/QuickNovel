@@ -2,12 +2,16 @@ package com.lagradost.quicknovel.compose
 
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Button
@@ -22,16 +26,70 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
+import com.lagradost.quicknovel.ui.common.html
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.BaseStyles.blackButtonColors
 import com.lagradost.quicknovel.compose.BaseStyles.whiteButtonColors
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
-import kotlinx.collections.immutable.ImmutableMap
+
+@Composable
+fun InputDialog(
+    title: String,
+    initialValue: String,
+    label: String,
+    confirmText: String,
+    dismissText: String,
+    dismiss: () -> Unit,
+    confirm: (String) -> Unit
+) {
+    var text by remember { mutableStateOf(initialValue) }
+    AlertDialog(
+        containerColor = colors.background,
+        onDismissRequest = dismiss,
+        title = { Text(text = title) },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                label = { Text(label) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                colors = TextFieldDefaults.colors(
+                    focusedTextColor = colors.onBackground,
+                    unfocusedTextColor = colors.onBackground,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    cursorColor = colors.primary,
+                    focusedLabelColor = colors.primary,
+                    unfocusedLabelColor = colors.onSurfaceVariant
+                )
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = { confirm(text) },
+                colors = whiteButtonColors
+            ) { Text(text = confirmText) }
+        },
+        dismissButton = {
+            Button(
+                onClick = dismiss, colors = blackButtonColors
+            ) { Text(text = dismissText) }
+        }
+    )
+}
 
 @Composable
 fun ActionDialog(
@@ -378,6 +436,40 @@ fun <T> MultiSelectDialog(
                 Button(
                     onClick = dismiss, colors = blackButtonColors
                 ) { Text(text = dismissText) }
+            }
+        }
+    )
+}
+
+@Composable
+fun SimpleTextDialog(
+    title: String,
+    text: String,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = colors.background,
+        title = {
+            Text(
+                text = title,
+                color = colors.onBackground,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Box(modifier = Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
+                Text(
+                    text = text.html(),
+                    color = colors.onBackground,
+                    fontSize = 14.sp
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.ok), color = colors.primary)
             }
         }
     )

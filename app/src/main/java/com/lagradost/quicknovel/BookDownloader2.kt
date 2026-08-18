@@ -1842,7 +1842,8 @@ object BookDownloader2 {
             apiName,
             System.currentTimeMillis(),
             prevDownloadData?.lastDownloaded,
-            posterHeaders = load.posterHeaders
+            posterHeaders = load.posterHeaders,
+            status = load.status?.resource
         )
         setKey(DOWNLOAD_FOLDER, id.toString(), currentDownloadData)
         setKey(DOWNLOAD_TOTAL, id.toString(), total)

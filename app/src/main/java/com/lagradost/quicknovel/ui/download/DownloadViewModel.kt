@@ -584,6 +584,7 @@ class DownloadViewModel : ViewModel() {
                         generating = false,
                         lastUpdated = value.lastUpdated,
                         lastDownloaded = value.lastDownloaded,
+                        status = value.status
                     )
                 }
             }
@@ -614,6 +615,7 @@ class DownloadViewModel : ViewModel() {
                         generating = false,
                         lastUpdated = value.lastUpdated,
                         lastDownloaded = value.lastDownloaded,
+                        status = value.status
                     )
                 }
             }

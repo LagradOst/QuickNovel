@@ -83,6 +83,8 @@ class DownloadFragment : Fragment() {
         val lastDownloaded: Long?,
         @JsonProperty("posterHeaders")
         val posterHeaders : Map<String,String>? = null,
+        @JsonProperty("status")
+        val status : Int? = null,
     )
 
     data class DownloadDataLoaded(
@@ -105,6 +107,7 @@ class DownloadFragment : Fragment() {
         val generating: Boolean,
         val lastUpdated: Long?,
         val lastDownloaded: Long?,
+        val status: Int? = null,
     ) {
         val isImported: Boolean get() = (apiName == IMPORT_SOURCE || apiName == IMPORT_SOURCE_PDF)}
         /*val image by lazy {

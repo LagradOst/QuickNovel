@@ -14,7 +14,12 @@ import androidx.activity.viewModels
 import androidx.annotation.IdRes
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.res.stringResource
 import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavController
@@ -45,6 +50,10 @@ import com.lagradost.quicknovel.CommonActivity.updateLocale
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
 import com.lagradost.quicknovel.NotificationHelper.requestNotifications
+import com.lagradost.quicknovel.compose.ActionDialog
+import com.lagradost.quicknovel.compose.CloudStreamTheme
+import com.lagradost.quicknovel.compose.loadPrimaryColor
+import com.lagradost.quicknovel.compose.loadThemeMode
 import com.lagradost.quicknovel.databinding.ActivityMainBinding
 import com.lagradost.quicknovel.databinding.BottomPreviewBinding
 import com.lagradost.quicknovel.mvvm.Resource
@@ -54,9 +63,10 @@ import com.lagradost.quicknovel.mvvm.observeNullable
 import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.network.CloudflareKiller
 import com.lagradost.quicknovel.providers.RedditProvider
+import com.lagradost.quicknovel.ui.common.BookmarkSelectionDialog
+import com.lagradost.quicknovel.ui.common.BottomPreviewDialog
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.download.DownloadFragment
-import com.lagradost.quicknovel.ui.library.LibraryManager
 import com.lagradost.quicknovel.ui.result.ResultFragment
 import com.lagradost.quicknovel.ui.result.ResultViewModel
 import com.lagradost.quicknovel.util.Apis.Companion.apis
@@ -92,28 +102,26 @@ class MainActivity : AppCompatActivity() {
                 _mainActivity = WeakReference(value)
             }
 
+        fun importEpub() {
+            mainActivity?.openEpubPicker()
+        }
+
         fun loadPreviewPage(searchResponse: SearchResponse) {
-            mainActivity?.loadPopup(searchResponse.url, searchResponse.apiName)
+            mainActivity?.mainViewModel?.onAction(
+                MainAction.LoadPreview(searchResponse)
+            )
         }
 
         fun loadPreviewPage(searchResponse: ImmutableSearchResponse) {
-            if (searchResponse.id == null) {
-                mainActivity?.loadPopup(searchResponse.url, searchResponse.apiName)
-            } else {
-                mainActivity?.loadPopup(searchResponse)
-            }
+            mainActivity?.mainViewModel?.onAction(MainAction.LoadPreviewResponse(searchResponse))
         }
 
         fun loadPreviewPage(card: DownloadFragment.DownloadDataLoaded) {
-            mainActivity?.loadPopup(card)
+            mainActivity?.mainViewModel?.onAction(MainAction.LoadPreviewDownload(card))
         }
 
         fun loadPreviewPage(cached: ResultCached) {
-            mainActivity?.loadPopup(cached)
-        }
-
-        fun importEpub() {
-            mainActivity?.openEpubPicker()
+            mainActivity?.mainViewModel?.onAction(MainAction.LoadPreviewCached(cached))
         }
 
         var app = Requests(
@@ -339,6 +347,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val viewModel: ResultViewModel by viewModels()
+    private val mainViewModel: MainViewModel by viewModels()
 
     private fun hidePreviewPopupDialog() {
         viewModel.clear()
@@ -528,6 +537,88 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding!!.root)
 
+        findViewById<ComposeView>(R.id.main_compose_view).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                val state by mainViewModel.state.collectAsState()
+                val context = LocalContext.current
+                CloudStreamTheme(
+                    mode = context.loadThemeMode(),
+                    primaryColor = context.loadPrimaryColor(),
+                ) {
+                    if (state.isPreviewOpen) {
+                        BottomPreviewDialog(
+                            data = state.previewData,
+                            isLoading = state.isLoadingPreview,
+                            onDismiss = { mainViewModel.onAction(MainAction.DismissDialog) },
+                            onBookmarkClick = { mainViewModel.onAction(MainAction.ShowBookmarkDialog(context)) },
+                            onDeleteClick = {
+                                mainViewModel.onAction(MainAction.ShowDeleteConfirmation)
+                            },
+                            onMoreInfoClick = {
+                                state.previewData?.let {
+                                    mainViewModel.onAction(MainAction.DismissDialog)
+                                    loadResult(it.url, it.apiName)
+                                }
+                            },
+                            onPosterClick = {
+                                state.previewData?.let { data ->
+                                    val isImported = (data.apiName == IMPORT_SOURCE || data.apiName == IMPORT_SOURCE_PDF)
+                                    if (isImported) {
+                                        mainViewModel.onAction(MainAction.ReadNovel)
+                                    } else {
+                                        loadResult(data.url, data.apiName)
+                                    }
+                                }
+                            }
+                        )
+                    }
+
+                    if (state.isDeleteConfirmationOpen) {
+                        state.previewData?.let { data ->
+                            ActionDialog(
+                                title = stringResource(R.string.delete),
+                                text = stringResource(R.string.permanently_delete_format).format(data.title),
+                                confirmText = stringResource(R.string.delete),
+                                dismissText = stringResource(R.string.cancel),
+                                dismiss = { mainViewModel.onAction(MainAction.DismissDialog) },
+                                confirm = {
+                                    mainViewModel.onAction(MainAction.DeleteNovel)
+                                    mainViewModel.onAction(MainAction.DismissDialog)
+                                }
+                            )
+                        }
+                    }
+
+                    if (state.isBookmarkSelectionOpen) {
+                        BookmarkSelectionDialog(
+                            bookmarks = state.libraries,
+                            currentBookmarkId = state.currentLibraryId,
+                            onDismiss = { mainViewModel.onAction(MainAction.DismissDialog) },
+                            onBookmarkSelected = { libraryId ->
+                                mainViewModel.onAction(MainAction.UpdateBookmark(libraryId))
+                            },
+                            onAddBookmark = { title ->
+                                mainViewModel.onAction(MainAction.AddBookmark(title))
+                            },
+                            onRenameBookmark = { library, newTitle ->
+                                mainViewModel.onAction(MainAction.RenameBookmark(library, newTitle))
+                            },
+                            onDeleteBookmark = { libraryId ->
+                                mainViewModel.onAction(MainAction.DeleteBookmark(libraryId))
+                            },
+                            onMergeBookmark = { sourceId, targetId ->
+                                mainViewModel.onAction(MainAction.MergeBookmarks(sourceId, targetId))
+                            },
+                            onReorder = { newList ->
+                                mainViewModel.onAction(MainAction.ReorderBookmarks(newList))
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
         val navController = navHostFragment.navController
@@ -658,6 +749,7 @@ class MainActivity : AppCompatActivity() {
                                 val currentLibraryId = viewModel.libraryId.value ?: 0
                                 val selectedIndex = if (currentLibraryId == 0) 0 else libraries.indexOfFirst { it.id == currentLibraryId } + 1
 
+                                /*
                                 LibraryManager.showLibraryBottomDialog(
                                     context,
                                     allOptions,
@@ -671,7 +763,7 @@ class MainActivity : AppCompatActivity() {
                                         val selectedLibrary = libraries.getOrNull(selected - 1) ?: return@showLibraryBottomDialog
                                         viewModel.bookmark(selectedLibrary.id)
                                     }
-                                }
+                                }*/
                             }
                             readMore.setOnClickListener {
                             loadResult(d.url, viewModel.apiName)

@@ -54,7 +54,6 @@ import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.util.toPx
 import com.lagradost.quicknovel.getBookmarks
-import com.lagradost.quicknovel.ui.library.LibraryManager
 
 const val MAX_SYNO_LENGH = 300
 
@@ -589,6 +588,7 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
                 val currentLibraryId = viewModel.libraryId.value ?: 0
                 val selectedIndex = if (currentLibraryId == 0) 0 else libraries.indexOfFirst { it.id == currentLibraryId } + 1
 
+                /*
                 LibraryManager.showLibraryBottomDialog(
                     context,
                     allOptions,
@@ -602,7 +602,7 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
                         val selectedLibrary = libraries.getOrNull(selected - 1) ?: return@showLibraryBottomDialog
                         viewModel.bookmark(selectedLibrary.id)
                     }
-                }
+                }*/
             }
 
             resultDownloadGenerateEpub.setOnClickListener {

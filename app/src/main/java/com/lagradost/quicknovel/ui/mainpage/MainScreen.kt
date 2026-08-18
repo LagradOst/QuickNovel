@@ -62,39 +62,31 @@ import kotlin.uuid.ExperimentalUuidApi
 
 @Composable
 fun MainScreenDialog(
-    dialog: MainPageDialog,
+    state: MainPageState,
     action: (MainPageAction) -> Unit
 ) {
-    val title = when (dialog.type) {
-        DialogType.Tags -> stringResource(R.string.filter_dialog_genre)
-        DialogType.Category -> stringResource(R.string.filter_dialog_general)
-        DialogType.OrderBy -> stringResource(R.string.filter_dialog_order_by)
+    when (val dialog = state.dialog) {
+        null -> {}
+        is MainPageDialog -> {
+            val title = when (dialog.type) {
+                DialogType.Tags -> stringResource(R.string.filter_dialog_genre)
+                DialogType.Category -> stringResource(R.string.filter_dialog_general)
+                DialogType.OrderBy -> stringResource(R.string.filter_dialog_order_by)
+            }
+
+            SingleSelectDialog(
+                entries = dialog.options,
+                dismiss = {
+                    action(MainPageAction.Dismiss)
+                },
+                title = title,
+                selectedIndex = dialog.selected,
+                confirm = { selected ->
+                    action(MainPageAction.SelectDialog(dialog.type, selected))
+                })
+        }
     }
-
-    SingleSelectDialog(
-        entries = dialog.options,
-        dismiss = {
-            action(MainPageAction.Dismiss)
-        },
-        title = title,
-        selectedIndex = dialog.selected,
-        confirm = { selected ->
-            action(MainPageAction.SelectDialog(dialog.type, selected))
-        })
-
-
-    /*BaseDialog(
-        dismiss = {
-            action(MainPageAction.Dismiss)
-        },
-        title = { Text(text = title) },
-        items = dialog.options,
-        selected = dialog.selected,
-        onSelect = { selected ->
-            action(MainPageAction.SelectDialog(dialog.type, selected))
-        })*/
 }
-
 @OptIn(ExperimentalUuidApi::class)
 @Composable
 fun MainPageScreen(state: MainPageState, action: (MainPageAction) -> Unit) {
@@ -104,9 +96,7 @@ fun MainPageScreen(state: MainPageState, action: (MainPageAction) -> Unit) {
         }
     }
 
-    if (state.dialog != null) {
-        MainScreenDialog(state.dialog, action)
-    }
+    MainScreenDialog(state, action)
 
     val listState = rememberLazyGridState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(snapAnimationSpec = null)

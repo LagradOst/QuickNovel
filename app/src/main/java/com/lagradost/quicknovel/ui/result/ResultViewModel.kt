@@ -491,7 +491,8 @@ class ResultViewModel : ViewModel() {
                     (load as? StreamResponse)?.data?.size ?: 1,
                     System.currentTimeMillis(),
                     synopsis = load.synopsis,
-                    posterHeaders = load.posterHeaders
+                    posterHeaders = load.posterHeaders,
+                    status = load.status?.resource
                 )
             )
         }
@@ -553,7 +554,8 @@ class ResultViewModel : ViewModel() {
                 totalChapters,
                 System.currentTimeMillis(),
                 synopsis = load.synopsis,
-                posterHeaders = load.posterHeaders
+                posterHeaders = load.posterHeaders,
+                status = load.status?.resource
             )
         )
     }

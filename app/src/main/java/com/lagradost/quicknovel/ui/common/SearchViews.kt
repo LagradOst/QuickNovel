@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -171,7 +172,7 @@ fun SearchListRow(
             )
         }
         if (footer != null) {
-            item(key = "footer") {
+            item(key = "footer", span = { GridItemSpan(maxLineSpan) }) {
                 footer()
             }
         }

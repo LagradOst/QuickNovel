@@ -44,5 +44,10 @@
                     app:layout_constraintEnd_toEndOf="parent" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.compose.ui.platform.ComposeView
+                android:id="@+id/main_compose_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
     </FrameLayout>
 </FrameLayout>

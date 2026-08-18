@@ -1,8 +1,7 @@
 package com.lagradost.quicknovel.ui.download
 
-import android.app.Application
 import androidx.compose.runtime.Immutable
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lagradost.quicknovel.BaseApplication
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
@@ -16,20 +15,22 @@ import com.lagradost.quicknovel.BookDownloader2.downloadProgress
 import com.lagradost.quicknovel.BookDownloader2.downloadProgressChanged
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.CURRENT_TAB
+import com.lagradost.quicknovel.DEFAULT_BOOKMARKS
 import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
-import com.lagradost.quicknovel.DefaultBookmark
 import com.lagradost.quicknovel.DownloadActionType
 import com.lagradost.quicknovel.DownloadFileWorkManager
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
+import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
 import com.lagradost.quicknovel.compose.ActionHandler
 import com.lagradost.quicknovel.compose.DebounceQuery
 import com.lagradost.quicknovel.compose.DefaultStateContainer
 import com.lagradost.quicknovel.compose.StateContainer
+import com.lagradost.quicknovel.getBookmarks
 import com.lagradost.quicknovel.ui.common.ImmutableDownloadState
 import com.lagradost.quicknovel.ui.common.ImmutableSearchList
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
@@ -38,7 +39,6 @@ import com.lagradost.quicknovel.ui.common.SearchResponseOperation
 import com.lagradost.quicknovel.ui.common.SortingMethodType
 import com.lagradost.quicknovel.ui.common.updateRow
 import com.lagradost.quicknovel.ui.common.updateRows
-import com.lagradost.quicknovel.getBookmarks
 import com.lagradost.quicknovel.ui.download.DownloadDialog.*
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.collections.immutable.PersistentList
@@ -56,6 +56,7 @@ import kotlin.uuid.ExperimentalUuidApi
 data class DownloadPageState(
     val query: String = "",
     val pages: PersistentList<ImmutableSearchList> = persistentListOf(),
+    val tabNames: PersistentList<String> = persistentListOf(),
     val downloadSortingMethod: SortingMethodType = SortingMethodType.Default,
     val regularSortingMethod: SortingMethodType = SortingMethodType.Default,
     val activePage: Int = 0,
@@ -74,6 +75,7 @@ sealed class DownloadDialog {
 @Immutable
 sealed class DownloadPageAction {
     object Refresh : DownloadPageAction()
+    object Import : DownloadPageAction()
     data class Search(val query: String) : DownloadPageAction()
     data class ResultAction(val action: SearchResponseAction) : DownloadPageAction()
     object ShowSorting : DownloadPageAction()
@@ -86,12 +88,10 @@ sealed class DownloadPageAction {
     data class SelectPage(val page: Int) : DownloadPageAction()
 }
 
-class DownloadViewModel2(application: Application) : AndroidViewModel(application),
+class DownloadViewModel2 : ViewModel(),
     ActionHandler<DownloadPageAction>,
     StateContainer<DownloadPageState> by DefaultStateContainer(DownloadPageState()) {
-
-    val readList: PersistentList<DefaultBookmark> get() = getApplication<Application>().getBookmarks()
-
+    val readList get() = BaseApplication.context?.getBookmarks()?: DEFAULT_BOOKMARKS
     private val searchPipe = DebounceQuery()
     override fun onAction(action: DownloadPageAction) {
         when (action) {
@@ -104,6 +104,10 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
                         refreshPage(page)
                     }
                 }
+            }
+
+            DownloadPageAction.Import -> {
+                com.lagradost.quicknovel.MainActivity.importEpub()
             }
 
             is DownloadPageAction.Search -> {
@@ -231,25 +235,29 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
 
     private fun readEpub(response: ImmutableSearchResponse) = viewModelScope.launch {
         withContext(Dispatchers.Default) {
-            val id = response.id!!
-            val downloadState = response.downloadState!!
+            val id = response.id ?: return@withContext
+            val isImported = response.isImported
+            val downloadedCount = response.downloadState?.progress?.toInt() ?: response.epubSize ?: 0
+
             try {
-                updateState {
-                    copy(pages = pages.updateRow(0) {
-                        update(id) {
-                            @OptIn(ExperimentalUuidApi::class)
-                            copy(generating = true)
-                        }
-                    })
+                if (!isImported) {
+                    updateState {
+                        copy(pages = pages.updateRow(0) {
+                            update(id) {
+                                @OptIn(ExperimentalUuidApi::class)
+                                copy(generating = true)
+                            }
+                        })
+                    }
                 }
 
-                if (response.isImported && downloadState.progress < downloadState.total) {
+                if (isImported && response.downloadState != null && response.downloadState.progress < response.downloadState.total) {
                     BookDownloader2.preloadPartialImportedPdf(response)
                 }
 
                 BookDownloader2.readEpub(
                     id,
-                    downloadState.progress.toInt(),
+                    downloadedCount,
                     response.author,
                     response.name,
                     response.apiName,
@@ -283,7 +291,11 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
             }
 
             SearchResponseOperation.Open, SearchResponseOperation.NoOp -> {
-                action.doAction()
+                if (action.response.isImported) {
+                    readEpub(action.response)
+                } else {
+                    action.doAction()
+                }
             }
 
             SearchResponseOperation.Stream -> {
@@ -551,6 +563,7 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
 
     suspend fun loadAll(preserveState: Boolean = false) = withContext(Dispatchers.Default) {
         val currentState = state.value
+        val bookmarkList = readList
         run {
             val downloadSortingMethod =
                 getKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD) ?: DEFAULT_SORT
@@ -571,7 +584,7 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
         }
 
         val mapping = LinkedHashMap<Int,  ArrayList<Pair<Int, ImmutableSearchResponse>>>().apply {
-            readList.forEach { lib -> put(lib.id, arrayListOf()) }
+            bookmarkList.forEach { bookmark -> put(bookmark.id, arrayListOf()) }
         }
         val keys = getKeys(RESULT_BOOKMARK_STATE)
         for (key in keys ?: emptyList()) {
@@ -608,10 +621,10 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
                     stateValue.downloadSortingMethod
                 )
             )
-            for (x in readList) {
+            for (bookmark in bookmarkList) {
                 add(
                     ImmutableSearchList.new(
-                        mapping[x.id]!!.toMap().toPersistentHashMap(),
+                        mapping[bookmark.id]!!.toMap().toPersistentHashMap(),
                         stateValue.query,
                         stateValue.downloadSortingMethod
                     )
@@ -620,9 +633,13 @@ class DownloadViewModel2(application: Application) : AndroidViewModel(applicatio
         }
 
         val pages = concat.toPersistentList()
+        val tabNames = buildList {
+            add(BaseApplication.context?.getString(R.string.tab_downloads) ?: "Downloads")
+            bookmarkList.forEach { add(it.title) }
+        }.toPersistentList()
 
         updateState {
-            copy(pages = pages)
+            copy(pages = pages, tabNames = tabNames)
         }
     }
 }

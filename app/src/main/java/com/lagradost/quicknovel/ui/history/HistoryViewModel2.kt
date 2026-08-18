@@ -10,7 +10,6 @@ import com.lagradost.quicknovel.BaseApplication.Companion.removeKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
-import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
 import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.HISTORY_SORTING_METHOD
 import com.lagradost.quicknovel.compose.ActionHandler
@@ -22,7 +21,6 @@ import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseOperation
 import com.lagradost.quicknovel.ui.common.SortingMethodType
-import com.lagradost.quicknovel.ui.download.DownloadPageAction
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.collections.immutable.toPersistentHashMap
 import kotlinx.coroutines.CoroutineScope
