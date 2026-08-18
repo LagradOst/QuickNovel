@@ -1,43 +1,23 @@
 package com.lagradost.quicknovel.util
 
 import android.app.Activity
-import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
-import android.os.Build
-import android.os.Environment
-import android.provider.MediaStore
-import android.widget.Toast
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.fragment.app.FragmentActivity
-import com.anggrayudi.storage.StorageFile
-import com.anggrayudi.storage.file.CreateMode
-import com.anggrayudi.storage.file.MimeType
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.quicknovel.BookDownloader2Helper.checkWrite
 import com.lagradost.quicknovel.BookDownloader2Helper.requestRW
-import com.lagradost.quicknovel.CommonActivity.activity
-import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore
 import com.lagradost.quicknovel.DataStore.getDefaultSharedPrefs
 import com.lagradost.quicknovel.DataStore.getSharedPrefs
 import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.ErrorLoadingException
-import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.mvvm.logError
-import com.lagradost.quicknovel.ui.settings.SettingsFragment
-import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.downloadDirectory
+import com.lagradost.quicknovel.FileHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.IOException
-import java.io.OutputStream
-import java.io.PrintWriter
 import java.lang.System.currentTimeMillis
 import java.text.SimpleDateFormat
-import java.util.*
-import kotlin.concurrent.thread
+import java.util.Date
 
 object BackupUtils {
     // Kinda hack, but I couldn't think of a better way
@@ -89,8 +69,6 @@ object BackupUtils {
                     activity?.requestRW()
                     throw ErrorLoadingException()
                 }
-                val subDir = context.downloadDirectory()
-                ?: throw ErrorLoadingException("Invalid file directory")
                 val date = SimpleDateFormat("yyyy_MM_dd_HH_mm").format(Date(currentTimeMillis()))
                 val displayName = "QN_Backup_${date}"
 
@@ -120,15 +98,15 @@ object BackupUtils {
                     allSettingsSorted
                 )
 
-                val file = subDir.createFile("$displayName.json")
-                    ?: throw ErrorLoadingException("Unable to create file, try changing download path to custom")
+                val file = FileHelper.backup.createFile(context, displayName)
+                    ?: throw ErrorLoadingException("Unable to create file")
                 val stream = file.openOutputStream(append = false)
-                    ?: throw ErrorLoadingException("Unable to create stream, try changing download path to custom")
+                    ?: throw ErrorLoadingException("Unable to create stream")
 
-                mapper.writeValue(stream, backupFile)
-                stream.close()
-
-                file.absolutePath ?: "Unknown"
+                stream.use { stream ->
+                    mapper.writeValue(stream, backupFile)
+                }
+                file.absolutePath ?: file.uri.toString()
             }
         }
 

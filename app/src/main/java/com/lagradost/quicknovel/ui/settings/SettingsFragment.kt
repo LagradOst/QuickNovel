@@ -94,30 +94,6 @@ class SettingsFragment : Fragment(), SearchableSettings by SettingScreen() {
 
 
     companion object {
-        fun Context.downloadDirectory(): StorageFile? {
-            val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
-            val basePathSetting =
-                settingsManager.getString(this.getString(R.string.download_path_key), null)
-            return basePathToStorageFile(this, basePathSetting)
-        }
-
-        private fun basePathToStorageFile(context: Context, path: String?): StorageFile? {
-            return when {
-                path.isNullOrBlank() -> StorageFile.fromPublicDirectory(
-                    context,
-                    PublicDirectory.DOWNLOADS,
-                    "/Epub/",
-                    requiresWriteAccess = true
-                )
-
-                path.startsWith("content://") || path.startsWith("file://") || path.startsWith("media/") -> StorageFile.from(
-                    context,
-                    path.toUri()
-                )
-
-                else -> StorageFile.fromPath(context, path, requiresWriteAccess = true)
-            }
-        }
         /*
                 fun getDefaultDir(context: Context): SafeFile? {
                     // See https://www.py4u.net/discuss/614761
