@@ -12,7 +12,6 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.IdRes
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -33,7 +32,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.lagradost.nicehttp.Requests
 import com.lagradost.nicehttp.ResponseParser
 import com.lagradost.nicehttp.ignoreAllSSLErrors
@@ -55,11 +53,7 @@ import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.loadPrimaryColor
 import com.lagradost.quicknovel.compose.loadThemeMode
 import com.lagradost.quicknovel.databinding.ActivityMainBinding
-import com.lagradost.quicknovel.databinding.BottomPreviewBinding
-import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.logError
-import com.lagradost.quicknovel.mvvm.observe
-import com.lagradost.quicknovel.mvvm.observeNullable
 import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.network.CloudflareKiller
 import com.lagradost.quicknovel.providers.RedditProvider
@@ -68,7 +62,7 @@ import com.lagradost.quicknovel.ui.common.BottomPreviewDialog
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.result.ResultFragment
-import com.lagradost.quicknovel.ui.result.ResultViewModel
+/*import com.lagradost.quicknovel.ui.result.ResultViewModel*/
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.Apis.Companion.printProviders
@@ -77,13 +71,9 @@ import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.util.ResultCached
-import com.lagradost.quicknovel.util.SettingsHelper.getRating
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
-import com.lagradost.quicknovel.util.UIHelper.dismissSafe
 import com.lagradost.quicknovel.util.UIHelper.fixSystemBarsPadding
 import com.lagradost.quicknovel.util.UIHelper.getResourceColor
-import com.lagradost.quicknovel.util.UIHelper.html
-import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.safefile.SafeFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -346,14 +336,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val viewModel: ResultViewModel by viewModels()
+    /*private val viewModel: ResultViewModel by viewModels()*/
     private val mainViewModel: MainViewModel by viewModels()
-
+/*
     private fun hidePreviewPopupDialog() {
         viewModel.clear()
         bottomPreviewPopup.dismissSafe(this)
     }
-
+*/
+/*
     fun loadPopup(
         result: ImmutableSearchResponse,
     ) {
@@ -376,6 +367,7 @@ class MainActivity : AppCompatActivity() {
     ) {
         viewModel.initState(apiName, url)
     }
+*/
 
 
     //imports area -------------------------------
@@ -428,7 +420,7 @@ class MainActivity : AppCompatActivity() {
             logError(e)
         }
     }
-
+/*
     var bottomPreviewBinding: BottomPreviewBinding? = null
     var bottomPreviewPopup: BottomSheetDialog? = null
     private fun showPreviewPopupDialog(): BottomPreviewBinding {
@@ -451,7 +443,7 @@ class MainActivity : AppCompatActivity() {
         bottomPreviewBinding = ret
         return ret
     }
-
+*/
     /* // MOON READER WONT RETURN THE DURATION, BUT THIS CAN BE USED FOR SOME USER FEEDBACK IN THE FUTURE??? SEE @moonreader
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
@@ -698,6 +690,7 @@ class MainActivity : AppCompatActivity() {
             true
         }*/
 
+        /*
 
         observe(viewModel.downloadState) { progressState ->
             val hasDownload = progressState != null && progressState.progress > 0
@@ -831,7 +824,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-
+*/
         //navView.itemRippleColor =
         //    ColorStateList.valueOf(getResourceColor(R.attr.colorPrimary, 0.1f))
 
