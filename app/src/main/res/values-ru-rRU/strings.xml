@@ -165,7 +165,7 @@
     <string name="backup_settings">Резервное копирование</string>
     <string name="restore_success">Загружен файл резервной копии</string>
     <string name="restore_failed_format" formatted="true">Не удалось восстановить данные из файла %s</string>
-    <string name="backup_success">Данные успешно сохранены</string>
+    <string name="backup_success">Данные успешно сохранены %s</string>
     <string name="backup_failed">Нет прав на хранение, попробуйте снова</string>
     <string name="backup_failed_error_format">Ошибка резервного копирования %s</string>
     <string name="tts_locale">Язык</string>

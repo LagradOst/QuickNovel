@@ -73,7 +73,6 @@ import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
 import me.xdrop.fuzzywuzzy.FuzzySearch
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 
@@ -117,7 +116,7 @@ enum class SearchResponseOperation {
 }
 
 @Immutable
-data class ImmutableChapterData @OptIn(ExperimentalUuidApi::class) constructor(
+data class ImmutableChapterData constructor(
     val name: String,
     val url: String,
     val dateOfRelease: String? = null,
@@ -126,7 +125,6 @@ data class ImmutableChapterData @OptIn(ExperimentalUuidApi::class) constructor(
     val index: Int,
 ) {
     companion object {
-        @OptIn(ExperimentalUuidApi::class)
         fun from(chapter: ChapterData, index: Int): ImmutableChapterData =
             ImmutableChapterData(
                 name = chapter.name,
@@ -139,7 +137,7 @@ data class ImmutableChapterData @OptIn(ExperimentalUuidApi::class) constructor(
 }
 
 @Immutable
-data class ImmutableReview @OptIn(ExperimentalUuidApi::class) constructor(
+data class ImmutableReview constructor(
     val content: String,
     val title: String? = null,
     val username: String? = null,
@@ -152,7 +150,6 @@ data class ImmutableReview @OptIn(ExperimentalUuidApi::class) constructor(
     val randomUuid: Uuid = Uuid.random()
 ) {
     companion object {
-        @OptIn(ExperimentalUuidApi::class)
         fun from(review: UserReview): ImmutableReview =
             ImmutableReview(
                 content = review.review,
@@ -215,7 +212,7 @@ data class ImmutableLoadData(
  * The other main field is downloadState which is only non-null on the downloaded "page".
  * */
 @Immutable
-data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
+data class ImmutableSearchResponse(
     /** Name of the item */
     val name: String,
     /** API used for accessing the item */
@@ -320,8 +317,6 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
 
 
     companion object {
-
-        @OptIn(ExperimentalUuidApi::class)
         fun preview(): ImmutableSearchResponse = ImmutableSearchResponse(
             name = "hello world",
             apiName = "hello world",
@@ -392,7 +387,6 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
             )
         }
 
-        @OptIn(ExperimentalUuidApi::class)
         fun from(response: SearchResponse): ImmutableSearchResponse =
             ImmutableSearchResponse(
                 name = response.name,
@@ -406,7 +400,6 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 chaptersRead = chaptersRead(response.name)
             )
 
-        @OptIn(ExperimentalUuidApi::class)
         fun from(response: LoadResponse): ImmutableSearchResponse {
             val id = generateId(response, response.apiName)
             val epubResponse = (response as? EpubResponse)
@@ -471,7 +464,6 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
         }
 
 
-        @OptIn(ExperimentalUuidApi::class)
         fun from(cache: ResultCached): ImmutableSearchResponse =
             ImmutableSearchResponse(
                 name = cache.name,
@@ -490,7 +482,6 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 chaptersRead = chaptersRead(cache.name)
             )
 
-        @OptIn(ExperimentalUuidApi::class)
         fun from(
             id: Int,
             cache: DownloadFragment.DownloadData,

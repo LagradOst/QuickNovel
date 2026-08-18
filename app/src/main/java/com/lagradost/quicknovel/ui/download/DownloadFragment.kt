@@ -82,7 +82,7 @@ class DownloadFragment : Fragment() {
         @JsonProperty("lastDownloaded")
         val lastDownloaded: Long?,
         @JsonProperty("posterHeaders")
-        val posterHeaders : Map<String,String>? = null,
+        val posterHeaders: Map<String, String>? = null,
         @JsonProperty("status")
         val status : Int? = null,
     )
@@ -109,17 +109,18 @@ class DownloadFragment : Fragment() {
         val lastDownloaded: Long?,
         val status: Int? = null,
     ) {
-        val isImported: Boolean get() = (apiName == IMPORT_SOURCE || apiName == IMPORT_SOURCE_PDF)}
-        /*val image by lazy {
-            if (isImported) {
-                val bitmap = BookDownloader2Helper.getCachedBitmap(activity, apiName, author, name)
-                if (bitmap != null) {
-                    return@lazy UiImage.Bitmap(bitmap)
-                }
-            }
-            img(posterUrl)
-        }*/
+        val isImported: Boolean get() = (apiName == IMPORT_SOURCE || apiName == IMPORT_SOURCE_PDF)
     }
+    /*val image by lazy {
+        if (isImported) {
+            val bitmap = BookDownloader2Helper.getCachedBitmap(activity, apiName, author, name)
+            if (bitmap != null) {
+                return@lazy UiImage.Bitmap(bitmap)
+            }
+        }
+        img(posterUrl)
+    }*/
+}
 /*
 class DownloadFragment : BaseFragment<FragmentDownloadsBinding>(
     BindingCreator.Inflate(FragmentDownloadsBinding::inflate)

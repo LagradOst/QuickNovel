@@ -181,9 +181,9 @@
     <string name="backup_settings">Backup data</string>
     <string name="restore_success">Loaded backup file</string>
     <string name="restore_failed_format" formatted="true">Failed to restore data from file %s</string>
-    <string name="backup_success">Successfully stored data</string>
+    <string name="backup_success">Successfully stored data at %s</string>
     <string name="backup_failed">Storage permissions missing, please try again</string>
-    <string name="backup_failed_error_format">Error backing up %s</string>
+    <string name="backup_failed_error_format">Error backing up: %s</string>
     <string name="tts_locale">Language</string>
     <string name="tts_voice">Voice</string>
     <string name="tts_voice_title">TTS Voice</string>

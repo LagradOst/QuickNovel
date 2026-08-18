@@ -6,8 +6,6 @@ import kotlinx.coroutines.withContext
 import java.io.Closeable
 import java.io.InputStream
 import kotlin.time.Instant
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 import kotlinx.io.Buffer
 import kotlinx.io.asSource
 import kotlinx.io.readByteArray

@@ -28,7 +28,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.uuid.ExperimentalUuidApi
 
 @Immutable
 data class HistoryState(
@@ -143,14 +142,12 @@ class HistoryViewModel2 : ViewModel(),
                     val id = action.response.id!!
                     updateState {
                         copy(history = history.update(id) {
-                            @OptIn(ExperimentalUuidApi::class)
                             copy(generating = true)
                         })
                     }
                     BookDownloader2.stream(action.response)
                     updateState {
                         copy(history = history.update(id) {
-                            @OptIn(ExperimentalUuidApi::class)
                             copy(generating = false)
                         })
                     }

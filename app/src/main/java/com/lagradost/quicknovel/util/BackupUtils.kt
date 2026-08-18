@@ -18,6 +18,8 @@ import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.BOOKMARK_KEY
 import com.lagradost.quicknovel.mergeBookmarks
 import com.lagradost.quicknovel.ui.settings.SettingsFragment
+import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getBasePath
+import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getDefaultDir
 import com.lagradost.safefile.SafeFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -115,48 +117,55 @@ object BackupUtils {
             }
         }
 
-    suspend fun createBackupFile(context: Context, activity: Activity?) : Result<Unit> = withContext(Dispatchers.Default) {
-        runCatching {
-            if (!context.checkWrite()) {
-                activity?.requestRW()
-                throw ErrorLoadingException()
+    suspend fun createBackupFile(context: Context, activity: Activity?): Result<String> =
+        withContext(Dispatchers.Default) {
+            runCatching {
+                if (!context.checkWrite()) {
+                    activity?.requestRW()
+                    throw ErrorLoadingException()
+                }
+                val subDir = context.getBasePath().first ?: getDefaultDir(context)
+                ?: throw ErrorLoadingException("Invalid file directory")
+                val date = SimpleDateFormat("yyyy_MM_dd_HH_mm").format(Date(currentTimeMillis()))
+                val displayName = "QN_Backup_${date}"
+
+                val allData = context.getSharedPrefs().all
+                val allSettings = context.getDefaultSharedPrefs().all
+
+                val allDataSorted = BackupVars(
+                    allData.filter { it.value is Boolean } as? Map<String, Boolean>,
+                    allData.filter { it.value is Int } as? Map<String, Int>,
+                    allData.filter { it.value is String } as? Map<String, String>,
+                    allData.filter { it.value is Float } as? Map<String, Float>,
+                    allData.filter { it.value is Long } as? Map<String, Long>,
+                    allData.filter { it.value as? Set<String> != null } as? Map<String, Set<String>>
+                )
+
+                val allSettingsSorted = BackupVars(
+                    allSettings.filter { it.value is Boolean } as? Map<String, Boolean>,
+                    allSettings.filter { it.value is Int } as? Map<String, Int>,
+                    allSettings.filter { it.value is String } as? Map<String, String>,
+                    allSettings.filter { it.value is Float } as? Map<String, Float>,
+                    allSettings.filter { it.value is Long } as? Map<String, Long>,
+                    allSettings.filter { it.value as? Set<String> != null } as? Map<String, Set<String>>
+                )
+
+                val backupFile = BackupFile(
+                    allDataSorted,
+                    allSettingsSorted
+                )
+
+                val file = subDir.createFile("$displayName.json")
+                    ?: throw ErrorLoadingException("Unable to create file, try changing download path to custom")
+                val stream = file.openOutputStream(append = false)
+                    ?: throw ErrorLoadingException("Unable to create stream, try changing download path to custom")
+
+                mapper.writeValue(stream, backupFile)
+                stream.close()
+
+                file.filePath() ?: "Unknown"
             }
-            val subDir = SettingsFragment.getDefaultDir(context = context)
-            val date = SimpleDateFormat("yyyy_MM_dd_HH_mm").format(Date(currentTimeMillis()))
-            val displayName = "QN_Backup_${date}"
-
-            val allData = context.getSharedPrefs().all
-            val allSettings = context.getDefaultSharedPrefs().all
-
-            val allDataSorted = BackupVars(
-                allData.filter { it.value is Boolean } as? Map<String, Boolean>,
-                allData.filter { it.value is Int } as? Map<String, Int>,
-                allData.filter { it.value is String } as? Map<String, String>,
-                allData.filter { it.value is Float } as? Map<String, Float>,
-                allData.filter { it.value is Long } as? Map<String, Long>,
-                allData.filter { it.value as? Set<String> != null } as? Map<String, Set<String>>
-            )
-
-            val allSettingsSorted = BackupVars(
-                allSettings.filter { it.value is Boolean } as? Map<String, Boolean>,
-                allSettings.filter { it.value is Int } as? Map<String, Int>,
-                allSettings.filter { it.value is String } as? Map<String, String>,
-                allSettings.filter { it.value is Float } as? Map<String, Float>,
-                allSettings.filter { it.value is Long } as? Map<String, Long>,
-                allSettings.filter { it.value as? Set<String> != null } as? Map<String, Set<String>>
-            )
-
-            val backupFile = BackupFile(
-                allDataSorted,
-                allSettingsSorted
-            )
-            val steam = setupStream(context, displayName, "json", subDir)
-
-            val printStream = PrintWriter(steam)
-            printStream.print(mapper.writeValueAsString(backupFile))
-            printStream.close()
         }
-    }
 
     fun restore(
         context: Context,

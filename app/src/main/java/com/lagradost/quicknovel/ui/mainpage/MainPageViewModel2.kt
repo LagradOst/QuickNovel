@@ -27,8 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
-import kotlin.coroutines.cancellation.CancellationException
-import kotlin.uuid.ExperimentalUuidApi
+import java.util.concurrent.CancellationException
 
 @Immutable
 data class MainPageState(
@@ -302,9 +301,9 @@ class MainPageViewModel2(
                 viewModelScope.launch {
                     updateState {
                         copy(query = query.copy(items = query.items.updateItem(action.response) {
-                            @OptIn(ExperimentalUuidApi::class) copy(generating = true)
+                            copy(generating = true)
                         }), filter = filter.copy(items = filter.items.updateItem(action.response) {
-                            @OptIn(ExperimentalUuidApi::class) copy(generating = true)
+                            copy(generating = true)
                         }))
                     }
 
@@ -312,9 +311,9 @@ class MainPageViewModel2(
 
                     updateState {
                         copy(query = query.copy(items = query.items.updateItem(action.response) {
-                            @OptIn(ExperimentalUuidApi::class) copy(generating = false)
+                            copy(generating = false)
                         }), filter = filter.copy(items = filter.items.updateItem(action.response) {
-                            @OptIn(ExperimentalUuidApi::class) copy(generating = false)
+                            copy(generating = false)
                         }))
                     }
                 }
