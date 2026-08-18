@@ -603,7 +603,7 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                     ImmutableSearchList.new(
                         mapping[x.prefValue]!!.toMap().toPersistentHashMap(),
                         stateValue.query,
-                        stateValue.downloadSortingMethod
+                        stateValue.regularSortingMethod
                     )
                 )
             }
