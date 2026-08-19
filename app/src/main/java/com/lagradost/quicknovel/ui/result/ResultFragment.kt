@@ -579,14 +579,16 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
 
             //show bottom dialog with libraries
             resultBookmark.setOnClickListener { view ->
+                /*
                 val context = view.context ?: return@setOnClickListener
                 val libraries = context.getBookmarks()
                 val allOptions = mutableListOf(DefaultBookmark(-1, "", context.getString(R.string.type_none), false, -1))
                 allOptions.addAll(libraries)
 
-                val currentLibraryId = viewModel.libraryId.value ?: 0
-                val selectedIndex = if (currentLibraryId == 0) 0 else libraries.indexOfFirst { it.id == currentLibraryId } + 1
 
+                val currentBookmarkId = viewModel.libraryId.value ?: 0
+                val selectedIndex = if (currentBookmarkId == 0) 0 else libraries.indexOfFirst { it.id == currentBookmarkId } + 1
+*/
                 /*
                 LibraryManager.showLibraryBottomDialog(
                     context,

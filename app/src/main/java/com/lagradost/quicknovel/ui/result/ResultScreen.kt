@@ -647,6 +647,7 @@ fun NovelPage(
     val expanded = rememberSaveable { mutableStateOf(false) }
     val textInteractionSource = remember { MutableInteractionSource() }
     val response = state.response ?: return
+    val isDataLoading = response.loadData == null && !response.isImported
 
     LazyColumn {
         item(key = "infobar") {
@@ -658,7 +659,8 @@ fun NovelPage(
             ) {
                 TextInfo(
                     response.loadData?.views?.let(::humanReadableByteCountSI)
-                        ?: stringResource(R.string.no_data), stringResource(R.string.views)
+                        ?: stringResource(R.string.no_data), stringResource(R.string.views),
+                    isLoading = isDataLoading
                 )
                 TextInfo(response.rating?.let {
                     LocalContext.current.getRating(it)
@@ -669,11 +671,13 @@ fun NovelPage(
                             it
                         )
                     }
-                        ?: stringResource(R.string.no_data))
+                        ?: stringResource(R.string.no_data),
+                    isLoading = isDataLoading)
                 TextInfo(
                     response.loadData?.chapters?.size?.toString()
                         ?: stringResource(R.string.no_data),
-                    stringResource(R.string.chapters)
+                    stringResource(R.string.chapters),
+                    isLoading = isDataLoading
                 )
             }
         }
@@ -722,6 +726,13 @@ fun NovelPage(
         if (response.downloadState != null) {
             item(key = "downloads") {
                 DownloadButtons(response, response.downloadState, action)
+            }
+        } else if (isDataLoading) {
+            item(key = "downloads_loading") {
+                Row(Modifier.padding(horizontal = 10.dp)) {
+                    LoadingButton()
+                    LoadingButton()
+                }
             }
         }
     }
@@ -915,8 +926,12 @@ fun RelatedPage(
 
 @Composable
 fun RowScope.TextInfo(
-    text: String, subText: String
+    text: String, subText: String, isLoading: Boolean = false
 ) {
+    if (isLoading) {
+        LoadingWeight()
+        return
+    }
     Column(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,

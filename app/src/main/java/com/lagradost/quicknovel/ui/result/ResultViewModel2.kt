@@ -104,19 +104,13 @@ sealed class ResultPageAction {
     data class SetBookmark(val libraryId: Int) : ResultPageAction()
 
     data class LoadResult(
-        val url: String,
-        val apiName: String,
-        val name: String? = null,
-        val author: String? = null,
-        val posterUrl: String? = null,
-        val rating: Int? = null,
-        val synopsis: String? = null,
-        val status: Int? = null,
-        val chapters: Long? = null,
+        val response: ImmutableSearchResponse? = null,
+        val isPreview: Boolean = true,
         val id: Int? = null,
+        val url: String? = null,
+        val apiName: String? = null,
     ) : ResultPageAction()
 
-    data class LoadResultResponse(val response: ImmutableSearchResponse) : ResultPageAction()
     data class ShowBookmarkDialog(val context: Context) : ResultPageAction()
     object ShowDeleteConfirmation : ResultPageAction()
     data class AskDeleteNovel(val response: ImmutableSearchResponse) : ResultPageAction()
@@ -151,45 +145,52 @@ class ResultViewModel2(
     StateContainer<ResultState> by DefaultStateContainer(ResultState()),
     EffectContainer<ResultPageEffect> by DefaultEffectContainer() {
 
-
     //avoid opening multiple previews at the same time
     private var loadJob: Job? = null
 
 
     companion object {
+        fun toResultCached(response: ImmutableSearchResponse): ResultCached {
+            return ResultCached(
+                source = response.url,
+                name = response.name,
+                apiName = response.apiName,
+                id = response.id ?: 0,
+                author = response.author,
+                poster = response.posterUrl,
+                tags = response.tags,
+                rating = response.rating,
+                totalChapters = response.chapters?.toInt() ?: 1,
+                cachedTime = System.currentTimeMillis(),
+                synopsis = response.synopsis,
+                posterHeaders = response.posterHeaders,
+                status = response.statusRes
+            )
+        }
+
+        fun updateCache(response: ImmutableSearchResponse, bookmarkId: Int? = null) {
+            val id = response.id ?: return
+            val context = BaseApplication.context ?: return
+
+            with(DataStore) {
+                val finalBookmarkId =
+                    bookmarkId ?: context.getKey<Int>(RESULT_BOOKMARK_STATE, id.toString()) ?: 0
+
+                val cached = toResultCached(response)
+                // Only save to cache if it has a bookmark
+                if (finalBookmarkId > 0) {
+                    context.setKey(RESULT_BOOKMARK, id.toString(), cached)
+                }
+            }
+        }
+
         fun addToHistory(response: ImmutableSearchResponse) {
             val id = response.id ?: return
-            // we won't add it to history from cache
-
-            setKey(
-                HISTORY_FOLDER, id.toString(), ResultCached(
-                    source = response.url,
-                    name = response.name,
-                    apiName = response.apiName,
-                    id = id,
-                    author = response.author,
-                    poster = response.posterUrl,
-                    tags = response.tags,
-                    rating = response.rating,
-                    totalChapters = response.loadData?.chapters?.size ?: 1,
-                    cachedTime = System.currentTimeMillis(),
-                    synopsis = response.synopsis,
-                    posterHeaders = response.posterHeaders,
-                    status = response.statusRes
-                )
-            )
+            setKey(HISTORY_FOLDER, id.toString(), toResultCached(response))
         }
     }
 
     init {
-        viewModelScope.launch {
-            val currentUrl = url
-            val currentApi = api
-            if (currentUrl != null && currentApi != null && currentUrl.isNotBlank()) {
-                loadResult(url = currentUrl, apiName = currentApi.name, id = id)
-            }
-        }
-
         BookDownloader2.downloadProgressChanged += this::onDownloadStateChange
         BookDownloader2.downloadRemoved += this::onDownloadRemoved
         BookDownloader2.downloadDataChanged += this::onDownloadAdded
@@ -232,23 +233,22 @@ class ResultViewModel2(
             }
 
             is ResultPageAction.DeleteNovel -> deleteNovel()
-            is ResultPageAction.LoadResultResponse -> {
-                loadJob?.cancel()
-                loadJob = loadResult(action.response)
-            }
+
             is ResultPageAction.LoadResult -> {
                 loadJob?.cancel()
-                loadJob = loadResult(
-                    url = action.url,
-                    apiName = action.apiName,
-                    id = action.id,
-                    name = action.name,
-                    author = action.author,
-                    posterUrl = action.posterUrl,
-                    rating = action.rating,
-                    synopsis = action.synopsis,
-                    isPreview = false
-                )
+                val apiName = action.apiName ?: action.response?.apiName
+                api = if (!apiName.isNullOrBlank()) Apis.getApiFromNameOrNull(apiName) else null
+                id = action.id
+                url = action.url
+                updateState {
+                    copy(
+                        response = action.response,
+                        reviews = ResultReviewState(),
+                        responseError = null
+                    )
+                }
+
+                loadJob = loadResult(action.response, action.isPreview)
             }
             ResultPageAction.ShowDeleteConfirmation -> updateState {
                 copy(dialogState = dialogState?.copy(isDeleteConfirmationOpen = true) ?: ResultDialogState(isDeleteConfirmationOpen = true))
@@ -281,108 +281,86 @@ class ResultViewModel2(
         }
     }
 
-
-    private fun loadResult(novelInfo: ImmutableSearchResponse) = viewModelScope.launch {
-        loadResult(
-            url = novelInfo.url,
-            apiName = novelInfo.apiName,
-            name = novelInfo.name,
-            author = novelInfo.author,
-            posterUrl = novelInfo.posterUrl,
-            rating = novelInfo.rating,
-            synopsis = novelInfo.synopsis,
-            id = novelInfo.id,
-            status = novelInfo.statusRes,
-            chapters = novelInfo.chapters,
-            isPreview = true
-        )
-    }
-
     private fun loadResult(
-        url: String,
-        apiName: String,
-        name: String? = null,
-        author: String? = null,
-        posterUrl: String? = null,
-        rating: Int? = null,
-        synopsis: String? = null,
-        id: Int? = null,
-        status: Int? = null,
-        chapters:Long? = null,
-        isPreview: Boolean = true,
+        result: ImmutableSearchResponse?,
+        isPreview: Boolean
     ) = viewModelScope.launch {
         val context = BaseApplication.context ?: return@launch
-        val isImported = (apiName == IMPORT_SOURCE || apiName == IMPORT_SOURCE_PDF)
-        val bookId = id ?: BookDownloader2Helper.generateId(apiName, author, name ?: "")
+        val finalApiName = api?.name ?: result?.apiName ?: return@launch
+        val finalUrl = url ?: result?.url ?: return@launch
+        val isImported = (finalApiName == IMPORT_SOURCE || finalApiName == IMPORT_SOURCE_PDF)
+        val bookId = id ?: result?.id ?: BookDownloader2Helper.generateId(
+            finalApiName,
+            result?.author,
+            result?.name ?: ""
+        )
 
-        // Recover from cache if data is missing
-        var finalSynopsis = synopsis
-        var finalStatus = status
-        var finalRating = rating
-        var finalChapters = chapters
-        var finalAuthor = author
-
-        if (!isImported && (finalSynopsis == null || finalStatus == null)) {
-            val cached = with(DataStore) { context.getKey<ResultCached>(RESULT_BOOKMARK, bookId.toString()) }
-                ?: with(DataStore) { context.getKey<ResultCached>(HISTORY_FOLDER, bookId.toString()) }
-
-            if (cached != null) {
-                finalSynopsis = finalSynopsis ?: cached.synopsis
-                finalStatus = finalStatus ?: cached.status
-                finalRating = finalRating ?: cached.rating
-                finalChapters = finalChapters ?: cached.totalChapters.toLong()
-                finalAuthor = finalAuthor ?: cached.author
-            }
+        // Handle dialog state
+        if (!isPreview) {
+            updateState { copy(dialogState = null) }
         }
 
-        val bookmarkId = with(DataStore) { context.getKey<Int>(RESULT_BOOKMARK_STATE, bookId.toString()) } ?: 0
         val bookmarks = context.getBookmarks()
-        val showMoreInfo = !isImported
+        val bookmarkId = with(DataStore) {
+            context.getKey<Int>(RESULT_BOOKMARK_STATE, bookId.toString())
+        } ?: 0
 
-        // Start with loading if we don't have Synopsis
-        val hasRequiredData = !finalSynopsis.isNullOrBlank()
-        val shouldShowInitialData = name != null && (hasRequiredData || isImported)
+        // Recover from cache
+        val cached = if (!isImported) {
+            with(DataStore) {
+                context.getKey<ResultCached>(RESULT_BOOKMARK, bookId.toString())
+                    ?: context.getKey<ResultCached>(HISTORY_FOLDER, bookId.toString())
+            }
+        } else null
 
-        if (shouldShowInitialData) {
+        val responseFromCache = cached?.let { ImmutableSearchResponse.from(it) }
+        val initialResponse = result.takeIf { !it?.synopsis.isNullOrBlank() || isImported } ?: responseFromCache
+        if (initialResponse != null) {
+            val finalSynopsis = initialResponse.synopsis ?: cached?.synopsis
+            val finalStatus = initialResponse.statusRes ?: cached?.status
+            val finalRating = initialResponse.rating ?: cached?.rating
+            val finalChapters = initialResponse.chapters ?: cached?.totalChapters?.toLong()
+            val finalAuthor = initialResponse.author ?: cached?.author
+
+            val updatedResponse = initialResponse.copy(
+                author = finalAuthor,
+                rating = finalRating,
+                synopsis = finalSynopsis,
+                id = bookId,
+                timeOfCached = initialResponse.timeOfCached,
+                chaptersRead = ImmutableSearchResponse.chaptersRead(initialResponse.name),
+                statusRes = finalStatus,
+                totalChapters = finalChapters
+            )
+
             updateState {
                 copy(
-                    dialogState = if (isPreview) (dialogState?.copy(isPreviewOpen = true) ?: ResultDialogState(isPreviewOpen = true)) else null,
-                    loadingResponse = !isImported,
+                    dialogState = if (isPreview) (dialogState?.copy(isPreviewOpen = true)
+                        ?: ResultDialogState(isPreviewOpen = true)) else dialogState,
+                    loadingResponse = if (isImported) false else finalSynopsis.isNullOrBlank(),
                     currentBookmark = bookmarkId,
-                    bookmarks = bookmarks.toPersistentList(),
-                    showMoreInfo = showMoreInfo,
-                    response = ImmutableSearchResponse(
-                        name = name,
-                        apiName = apiName,
-                        url = url,
-                        author = finalAuthor,
-                        posterUrl = posterUrl,
-                        rating = finalRating,
-                        synopsis = finalSynopsis,
-                        id = bookId,
-                        timeOfCached = System.currentTimeMillis(),
-                        chaptersRead = ImmutableSearchResponse.chaptersRead(name),
-                        statusRes = finalStatus,
-                        totalChapters = finalChapters
-                    )
+                    bookmarks = bookmarks,
+                    showMoreInfo = !isImported,
+                    response = updatedResponse
                 )
             }
         } else {
             updateState {
                 copy(
                     response = null,
-                    dialogState = if (isPreview) (dialogState?.copy(isPreviewOpen = true) ?: ResultDialogState(isPreviewOpen = true)) else null,
-                    loadingResponse = true,
+                    dialogState = if (isPreview) (dialogState?.copy(isPreviewOpen = true)
+                        ?: ResultDialogState(isPreviewOpen = true)) else dialogState,
+                    loadingResponse = !isImported,
                     currentBookmark = bookmarkId,
                     bookmarks = bookmarks,
-                    showMoreInfo = showMoreInfo
+                    showMoreInfo = !isImported
                 )
             }
         }
 
         if (isImported) return@launch
 
-        val apiRepo = Apis.getApiFromNameOrNull(apiName)
+        val apiRepo = api ?: Apis.getApiFromNameOrNull(finalApiName)
 
         //if provider doesn't exist anymore
         if (apiRepo == null) {
@@ -390,23 +368,29 @@ class ResultViewModel2(
             return@launch
         }
 
-        apiRepo.loadResult(url).onSuccess { fullResponse ->
-            val freshBookmarkId = with(DataStore) { context.getKey<Int>(RESULT_BOOKMARK_STATE, bookId.toString()) } ?: 0
-            val freshShowMoreInfo = true // Since isImported is false here
-
+        apiRepo.loadResult(finalUrl).onSuccess { fullResponse ->
+            val freshBookmarkId = with(DataStore) {
+                context.getKey<Int>(
+                    RESULT_BOOKMARK_STATE,
+                    bookId.toString()
+                )
+            } ?: 0
             updateState {
                 copy(
                     loadingResponse = false,
                     currentBookmark = freshBookmarkId,
                     response = fullResponse,
-                    showMoreInfo = freshShowMoreInfo
+                    showMoreInfo = true,
+                    responseError = null
                 )
             }
+            updateCache(fullResponse, freshBookmarkId)
         }.onFailure { error ->
-            if (state.value.response == null) {
-                updateState { copy(loadingResponse = false, responseError = error) }
-            } else {
-                updateState { copy(loadingResponse = false) }
+            updateState {
+                copy(
+                    loadingResponse = false,
+                    responseError = if (response == null) error else null
+                )
             }
         }
     }
@@ -415,22 +399,24 @@ class ResultViewModel2(
         val context = BaseApplication.context ?: return
         val data = state.value.response ?: return
         val id = data.id ?: BookDownloader2Helper.generateId(data.apiName, data.author, data.name)
-        with(DataStore) {
-            if (bookmarkId == 0) {
-                context.removeKey(RESULT_BOOKMARK_STATE, id.toString())
-            } else {
-                context.setKey(RESULT_BOOKMARK_STATE, id.toString(), bookmarkId)
-            }
 
-            updateState {
-                copy(
-                    currentBookmark = bookmarkId,
-                    bookmarks = context.getBookmarks()
-                )
+        viewModelScope.launch(Dispatchers.IO) {
+            with(DataStore) {
+                if (bookmarkId == 0) {
+                    context.removeKey(RESULT_BOOKMARK_STATE, id.toString())
+                    context.removeKey(RESULT_BOOKMARK, id.toString())
+                } else {
+                    context.setKey(RESULT_BOOKMARK_STATE, id.toString(), bookmarkId)
+                }
+                updateState {
+                    copy(
+                        currentBookmark = bookmarkId,
+                        bookmarks = context.getBookmarks()
+                    )
+                }
             }
+            BookDownloader2.bookmarkChanged(id)
         }
-        BookDownloader2.bookmarkChanged(id)
-
     }
 
     private fun deleteNovel() = viewModelScope.launch {

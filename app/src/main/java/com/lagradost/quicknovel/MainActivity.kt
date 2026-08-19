@@ -98,48 +98,32 @@ class MainActivity : AppCompatActivity() {
         fun loadPreviewPage(searchResponse: SearchResponse) {
             mainActivity?.mainViewModel?.onAction(
                 ResultPageAction.LoadResult(
-                    url = searchResponse.url,
-                    apiName = searchResponse.apiName,
+                    response = ImmutableSearchResponse.from(searchResponse),
                 )
             )
         }
 
         fun loadPreviewPage(searchResponse: ImmutableSearchResponse) {
-            mainActivity?.mainViewModel?.onAction(ResultPageAction.LoadResultResponse(searchResponse))
+            mainActivity?.mainViewModel?.onAction(ResultPageAction.LoadResult(response = searchResponse,))
         }
 
         fun loadPreviewPage(card: DownloadFragment.DownloadDataLoaded) {
+            //only called from AnyAdapter
+            /*
             mainActivity?.mainViewModel?.onAction(
-                ResultPageAction.LoadResult(
-                    url = card.source,
-                    apiName = card.apiName,
-                    name = card.name,
-                    author = card.author,
-                    posterUrl = card.posterUrl,
-                    rating = card.rating,
-                    synopsis = card.synopsis,
-                    status = card.status,
-                    chapters = card.downloadedTotal,
-                    id = card.id
-                )
-            )
+                ResultPageAction.LoadResult(response = ImmutableSearchResponse.from(card))
+            )*/
         }
 
         fun loadPreviewPage(cached: ResultCached) {
-            mainActivity?.mainViewModel?.onAction(
-                ResultPageAction.LoadResult(
-                    url = cached.source,
-                    apiName = cached.apiName,
-                    name = cached.name,
-                    author = cached.author,
-                    posterUrl = cached.poster,
-                    rating = cached.rating,
-                    synopsis = cached.synopsis,
-                    status = cached.status,
-                    chapters = cached.totalChapters.toLong(),
-                    id = cached.id
+            /* Not used anymore
+                mainActivity?.mainViewModel?.onAction(
+                    ResultPageAction.LoadResult(
+                        response = ImmutableSearchResponse.from(cached),
+                    )
                 )
-            )
+
+            */
         }
 
         var app = Requests(

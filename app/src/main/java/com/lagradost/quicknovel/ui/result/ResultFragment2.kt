@@ -43,6 +43,7 @@ class ResultFragment2 : Fragment() {
                     if (url != null && apiName != null) {
                         viewModel.onAction(
                             ResultPageAction.LoadResult(
+                                isPreview = false,
                                 url = url,
                                 apiName = apiName,
                                 id = id
