@@ -1,11 +1,8 @@
 package com.lagradost.quicknovel.util
 
 import android.app.Activity
-import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
-import android.os.Build
-import android.provider.MediaStore
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.quicknovel.BookDownloader2Helper.checkWrite
@@ -15,20 +12,14 @@ import com.lagradost.quicknovel.DataStore.getDefaultSharedPrefs
 import com.lagradost.quicknovel.DataStore.getSharedPrefs
 import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.ErrorLoadingException
+import com.lagradost.quicknovel.FileHelper
 import com.lagradost.quicknovel.BOOKMARK_KEY
 import com.lagradost.quicknovel.mergeBookmarks
-import com.lagradost.quicknovel.ui.settings.SettingsFragment
-import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getBasePath
-import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getDefaultDir
-import com.lagradost.safefile.SafeFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.IOException
-import java.io.OutputStream
-import java.io.PrintWriter
 import java.lang.System.currentTimeMillis
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
 
 object BackupUtils {
     // Kinda hack, but I couldn't think of a better way
@@ -45,45 +36,6 @@ object BackupUtils {
         @JsonProperty("datastore") val datastore: BackupVars,
         @JsonProperty("settings") val settings: BackupVars
     )
-
-    fun setupStream(
-        context: Context,
-        displayName: String,
-        ext: String,
-        subDir: SafeFile?
-    ): OutputStream? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { // && subDir?.isDownloadDir() == true
-            val cr = context.contentResolver
-            val contentUri =
-                MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY) // USE INSTEAD OF MediaStore.Downloads.EXTERNAL_CONTENT_URI
-            //val currentMimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
-
-            val newFile = ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
-                put(MediaStore.MediaColumns.TITLE, displayName)
-                put(MediaStore.MediaColumns.MIME_TYPE, "application/json")
-                //put(MediaStore.MediaColumns.RELATIVE_PATH, folder)
-            }
-
-            val newFileUri = cr.insert(
-                contentUri,
-                newFile
-            ) ?: throw IOException("Error creating file uri")
-            cr.openOutputStream(newFileUri, "w")
-                ?: throw IOException("Error opening stream")
-        } else {
-            val fileName = "$displayName.$ext"
-            val rFile = subDir?.findFile(fileName)
-            if (rFile?.exists() == true) {
-                rFile.delete()
-            }
-            val file =
-                subDir?.createFile(fileName)
-                    ?: throw IOException("Error creating file")
-            if (file.exists() != true) throw IOException("File does not exist")
-            file.openOutputStream()
-        }
-    }
 
     private fun <T> Context.restoreMap(
         map: Map<String, T>?,
@@ -124,8 +76,6 @@ object BackupUtils {
                     activity?.requestRW()
                     throw ErrorLoadingException()
                 }
-                val subDir = context.getBasePath().first ?: getDefaultDir(context)
-                ?: throw ErrorLoadingException("Invalid file directory")
                 val date = SimpleDateFormat("yyyy_MM_dd_HH_mm").format(Date(currentTimeMillis()))
                 val displayName = "QN_Backup_${date}"
 
@@ -155,15 +105,15 @@ object BackupUtils {
                     allSettingsSorted
                 )
 
-                val file = subDir.createFile("$displayName.json")
-                    ?: throw ErrorLoadingException("Unable to create file, try changing download path to custom")
+                val file = FileHelper.backup.createFile(context, displayName)
+                    ?: throw ErrorLoadingException("Unable to create file")
                 val stream = file.openOutputStream(append = false)
-                    ?: throw ErrorLoadingException("Unable to create stream, try changing download path to custom")
+                    ?: throw ErrorLoadingException("Unable to create stream")
 
-                mapper.writeValue(stream, backupFile)
-                stream.close()
-
-                file.filePath() ?: "Unknown"
+                stream.use { stream ->
+                    mapper.writeValue(stream, backupFile)
+                }
+                file.absolutePath ?: file.uri.toString()
             }
         }
 

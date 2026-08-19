@@ -48,16 +48,17 @@ object AppUtils {
         } catch (t: Throwable) {
             false
         }
+
+    //Reminder: this is used to convert PDF text into HTML
     fun String.textToHtmlChapter(): String {
         return this
             .replace(Regex("((?<=\\p{Ll}(\\.{2,5})?),?) \\n(?=\\p{Ll})"), " ")
             .split(Regex("\\n"))
             .joinToString("") { paragraph ->
                 if (paragraph.trim().isNotBlank()) {
-                    paragraph.split(Regex("(?<=(?<!\\.)\\.)(?=\\s+)"))
-                        .joinToString("") { "<p>${it}</p>" } + "</br>"
+                    "<p>${paragraph.trim()}</p>"
                 } else {
-                    "</br>"
+                    "<br />"
                 }
             }
     }

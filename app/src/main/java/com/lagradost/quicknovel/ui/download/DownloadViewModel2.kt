@@ -620,7 +620,7 @@ class DownloadViewModel2 : ViewModel(),
                     ImmutableSearchList.new(
                         mapping[bookmark.id]!!.toMap().toPersistentHashMap(),
                         stateValue.query,
-                        stateValue.downloadSortingMethod
+                        stateValue.regularSortingMethod
                     )
                 )
             }
