@@ -37,8 +37,6 @@ import com.lagradost.nicehttp.ResponseParser
 import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
 import com.lagradost.quicknovel.BookDownloader2.openQuickStream
-import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
-import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.BookDownloader2Helper.checkWrite
 import com.lagradost.quicknovel.BookDownloader2Helper.createQuickStream
 import com.lagradost.quicknovel.BookDownloader2Helper.requestRW
@@ -57,12 +55,13 @@ import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.network.CloudflareKiller
 import com.lagradost.quicknovel.providers.RedditProvider
-import com.lagradost.quicknovel.ui.common.BookmarkSelectionDialog
-import com.lagradost.quicknovel.ui.common.BottomPreviewDialog
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.result.ResultFragment
-/*import com.lagradost.quicknovel.ui.result.ResultViewModel*/
+import com.lagradost.quicknovel.ui.result.ResultPageAction
+import com.lagradost.quicknovel.ui.result.ResultViewModel2
+import com.lagradost.quicknovel.ui.result.preview.BookmarkSelectionDialog
+import com.lagradost.quicknovel.ui.result.preview.BottomPreviewDialog
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.Apis.Companion.printProviders
@@ -98,20 +97,49 @@ class MainActivity : AppCompatActivity() {
 
         fun loadPreviewPage(searchResponse: SearchResponse) {
             mainActivity?.mainViewModel?.onAction(
-                MainAction.LoadPreview(searchResponse)
+                ResultPageAction.LoadResult(
+                    url = searchResponse.url,
+                    apiName = searchResponse.apiName,
+                )
             )
         }
 
         fun loadPreviewPage(searchResponse: ImmutableSearchResponse) {
-            mainActivity?.mainViewModel?.onAction(MainAction.LoadPreviewResponse(searchResponse))
+            mainActivity?.mainViewModel?.onAction(ResultPageAction.LoadResultResponse(searchResponse))
         }
 
         fun loadPreviewPage(card: DownloadFragment.DownloadDataLoaded) {
-            mainActivity?.mainViewModel?.onAction(MainAction.LoadPreviewDownload(card))
+            mainActivity?.mainViewModel?.onAction(
+                ResultPageAction.LoadResult(
+                    url = card.source,
+                    apiName = card.apiName,
+                    name = card.name,
+                    author = card.author,
+                    posterUrl = card.posterUrl,
+                    rating = card.rating,
+                    synopsis = card.synopsis,
+                    status = card.status,
+                    chapters = card.downloadedTotal,
+                    id = card.id
+                )
+            )
         }
 
         fun loadPreviewPage(cached: ResultCached) {
-            mainActivity?.mainViewModel?.onAction(MainAction.LoadPreviewCached(cached))
+            mainActivity?.mainViewModel?.onAction(
+                ResultPageAction.LoadResult(
+                    url = cached.source,
+                    apiName = cached.apiName,
+                    name = cached.name,
+                    author = cached.author,
+                    posterUrl = cached.poster,
+                    rating = cached.rating,
+                    synopsis = cached.synopsis,
+                    status = cached.status,
+                    chapters = cached.totalChapters.toLong(),
+                    id = cached.id
+                )
+            )
         }
 
         var app = Requests(
@@ -160,8 +188,12 @@ class MainActivity : AppCompatActivity() {
         // === API ===
         lateinit var navOptions: NavOptions
 
-        fun loadResult(url: String, apiName: String, startAction: Int = 0) {
-            (activity as? AppCompatActivity)?.loadResult(url, apiName, startAction)
+        fun loadResult(
+            url: String,
+            apiName: String,
+            id: Int? = null,
+        ) {
+            (activity as? AppCompatActivity)?.loadResult(url, apiName, id)
         }
 
         fun Activity?.navigate(@IdRes navigation: Int, arguments: Bundle? = null) {
@@ -176,22 +208,20 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        fun FragmentActivity.loadResult(url: String, apiName: String, startAction: Int = 0) {
-            // SearchFragment.currentDialog?.dismiss()
+        fun FragmentActivity.loadResult(
+            url: String,
+            apiName: String,
+            id: Int? = null,
+        ) {
             runOnUiThread {
                 this.navigate(
                     R.id.global_to_navigation_results,
-                    ResultFragment.newInstance(url, apiName, startAction)
+                    ResultFragment.newInstance(
+                        url,
+                        apiName,
+                        id
+                    )
                 )
-                /*supportFragmentManager.beginTransaction()
-                        .setCustomAnimations(
-                            R.anim.enter_anim,
-                            R.anim.exit_anim,
-                            R.anim.pop_enter,
-                            R.anim.pop_exit
-                        )
-                        .add(R.id.homeRoot, ResultFragment().newInstance(url, apiName, startAction))
-                        .commit()*/
             }
         }
 
@@ -335,41 +365,7 @@ class MainActivity : AppCompatActivity() {
             false
         }
     }
-
-    /*private val viewModel: ResultViewModel by viewModels()*/
-    private val mainViewModel: MainViewModel by viewModels()
-/*
-    private fun hidePreviewPopupDialog() {
-        viewModel.clear()
-        bottomPreviewPopup.dismissSafe(this)
-    }
-*/
-/*
-    fun loadPopup(
-        result: ImmutableSearchResponse,
-    ) {
-        viewModel.initState(result)
-    }
-
-    fun loadPopup(
-        resultCached: ResultCached,
-    ) {
-        viewModel.initState(resultCached)
-    }
-
-    fun loadPopup(card: DownloadFragment.DownloadDataLoaded) {
-        viewModel.initState(card)
-    }
-
-    fun loadPopup(
-        url: String,
-        apiName: String,
-    ) {
-        viewModel.initState(apiName, url)
-    }
-*/
-
-
+    private val mainViewModel: ResultViewModel2 by viewModels()
     //imports area -------------------------------
     private val epubPathPicker =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -420,30 +416,7 @@ class MainActivity : AppCompatActivity() {
             logError(e)
         }
     }
-/*
-    var bottomPreviewBinding: BottomPreviewBinding? = null
-    var bottomPreviewPopup: BottomSheetDialog? = null
-    private fun showPreviewPopupDialog(): BottomPreviewBinding {
-        val ret = (bottomPreviewBinding ?: run {
-            val builder =
-                BottomSheetDialog(this)
 
-            val bottom = BottomPreviewBinding.inflate(layoutInflater, null, false)
-            builder.setContentView(bottom.root)
-            builder.setOnDismissListener {
-                bottomPreviewBinding = null
-                bottomPreviewPopup = null
-                viewModel.clear()
-            }
-            builder.setCanceledOnTouchOutside(true)
-            builder.show()
-            bottomPreviewPopup = builder
-            bottom
-        })
-        bottomPreviewBinding = ret
-        return ret
-    }
-*/
     /* // MOON READER WONT RETURN THE DURATION, BUT THIS CAN BE USED FOR SOME USER FEEDBACK IN THE FUTURE??? SEE @moonreader
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
@@ -538,73 +511,40 @@ class MainActivity : AppCompatActivity() {
                     mode = context.loadThemeMode(),
                     primaryColor = context.loadPrimaryColor(),
                 ) {
-                    if (state.isPreviewOpen) {
+                    if (state.dialogState?.isPreviewOpen == true) {
                         BottomPreviewDialog(
-                            data = state.previewData,
-                            isLoading = state.isLoadingPreview,
-                            onDismiss = { mainViewModel.onAction(MainAction.DismissDialog) },
-                            onBookmarkClick = { mainViewModel.onAction(MainAction.ShowBookmarkDialog(context)) },
-                            onDeleteClick = {
-                                mainViewModel.onAction(MainAction.ShowDeleteConfirmation)
-                            },
-                            onMoreInfoClick = {
-                                state.previewData?.let {
-                                    mainViewModel.onAction(MainAction.DismissDialog)
-                                    loadResult(it.url, it.apiName)
-                                }
-                            },
-                            onPosterClick = {
-                                state.previewData?.let { data ->
-                                    val isImported = (data.apiName == IMPORT_SOURCE || data.apiName == IMPORT_SOURCE_PDF)
-                                    if (isImported) {
-                                        mainViewModel.onAction(MainAction.ReadNovel)
-                                    } else {
-                                        loadResult(data.url, data.apiName)
-                                    }
-                                }
-                            }
+                            response = state.response,
+                            isLoading = state.loadingResponse,
+                            bookmarks = state.bookmarks,
+                            currentBookmarkId = state.currentBookmark,
+                            showMoreInfo = state.showMoreInfo,
+                            onDismiss = { mainViewModel.onAction(ResultPageAction.DismissDialog) },
+                            onAction = { mainViewModel.onAction(it) }
                         )
                     }
 
-                    if (state.isDeleteConfirmationOpen) {
-                        state.previewData?.let { data ->
+                    if (state.dialogState?.isDeleteConfirmationOpen == true) {
+                        val title = state.deleteTarget?.name ?: state.response?.name
+                        if (title != null) {
                             ActionDialog(
                                 title = stringResource(R.string.delete),
-                                text = stringResource(R.string.permanently_delete_format).format(data.title),
+                                text = stringResource(R.string.permanently_delete_format).format(title),
                                 confirmText = stringResource(R.string.delete),
                                 dismissText = stringResource(R.string.cancel),
-                                dismiss = { mainViewModel.onAction(MainAction.DismissDialog) },
+                                dismiss = { mainViewModel.onAction(ResultPageAction.DismissDeleteConfirmation) },
                                 confirm = {
-                                    mainViewModel.onAction(MainAction.DeleteNovel)
-                                    mainViewModel.onAction(MainAction.DismissDialog)
+                                    mainViewModel.onAction(ResultPageAction.DeleteNovel(0)) // ID handled by VM
                                 }
                             )
                         }
                     }
 
-                    if (state.isBookmarkSelectionOpen) {
+                    if (state.dialogState?.isBookmarkSelectionOpen == true) {
                         BookmarkSelectionDialog(
-                            bookmarks = state.libraries,
-                            currentBookmarkId = state.currentLibraryId,
-                            onDismiss = { mainViewModel.onAction(MainAction.DismissDialog) },
-                            onBookmarkSelected = { libraryId ->
-                                mainViewModel.onAction(MainAction.UpdateBookmark(libraryId))
-                            },
-                            onAddBookmark = { title ->
-                                mainViewModel.onAction(MainAction.AddBookmark(title))
-                            },
-                            onRenameBookmark = { library, newTitle ->
-                                mainViewModel.onAction(MainAction.RenameBookmark(library, newTitle))
-                            },
-                            onDeleteBookmark = { libraryId ->
-                                mainViewModel.onAction(MainAction.DeleteBookmark(libraryId))
-                            },
-                            onMergeBookmark = { sourceId, targetId ->
-                                mainViewModel.onAction(MainAction.MergeBookmarks(sourceId, targetId))
-                            },
-                            onReorder = { newList ->
-                                mainViewModel.onAction(MainAction.ReorderBookmarks(newList))
-                            }
+                            bookmarks = state.bookmarks,
+                            currentBookmarkId = state.currentBookmark,
+                            onDismiss = { mainViewModel.onAction(ResultPageAction.DismissDialog) },
+                            onAction = { mainViewModel.onAction(it) }
                         )
                     }
                 }

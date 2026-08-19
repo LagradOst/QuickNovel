@@ -510,7 +510,7 @@ data class ImmutableSearchResponse(
 
     fun doAction(operation: SearchResponseOperation) {
         when (operation) {
-            SearchResponseOperation.Open -> loadResult(url, apiName)
+            SearchResponseOperation.Open -> loadResult(url, apiName, id)
             SearchResponseOperation.Metadata -> {
                 MainActivity.loadPreviewPage(this)
             }

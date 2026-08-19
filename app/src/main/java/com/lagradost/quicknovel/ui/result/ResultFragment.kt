@@ -21,7 +21,6 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipDrawable
 import com.google.android.material.tabs.TabLayout
-import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.DefaultBookmark
 import com.lagradost.quicknovel.DownloadState
@@ -63,12 +62,12 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
     private val viewModel: ResultViewModel by viewModels()
 
     companion object {
-        fun newInstance(url: String, apiName: String, startAction: Int = 0): Bundle =
+        fun newInstance(url: String, apiName: String, id: Int? = null): Bundle =
             Bundle().apply {
                 //println(data)
                 putString("url", url)
                 putString("apiName", apiName)
-                putInt("startAction", startAction)
+                putInt("id", id ?: -1)
             }
 
     }

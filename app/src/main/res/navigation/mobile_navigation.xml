@@ -46,7 +46,7 @@
 
     <fragment
             android:id="@+id/navigation_results"
-            android:name="com.lagradost.quicknovel.ui.result.ResultFragment"
+            android:name="com.lagradost.quicknovel.ui.result.ResultFragment2"
             android:layout_height="match_parent">
     </fragment>
 
@@ -65,8 +65,8 @@
                 android:name="apiName"
                 app:argType="string" />
         <argument
-                android:name="startAction"
-                android:defaultValue="0"
+                android:name="id"
+                android:defaultValue="-1"
                 app:argType="integer" />
     </action>
 

@@ -58,10 +58,10 @@ import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.getBookmarks
 import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
-import com.lagradost.quicknovel.ui.common.BookmarkSelectionDialog
-import com.lagradost.quicknovel.ui.common.BottomPreviewDialog
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseItem
+import com.lagradost.quicknovel.ui.result.preview.BookmarkSelectionDialog
+import com.lagradost.quicknovel.ui.result.preview.BottomPreviewDialog
 import com.lagradost.quicknovel.ui.mainpage.SearchResponseDialog
 import com.lagradost.quicknovel.ui.settings.searchProvidersList
 import com.lagradost.quicknovel.util.Apis.Companion.apis

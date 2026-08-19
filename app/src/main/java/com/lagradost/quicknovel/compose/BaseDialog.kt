@@ -51,6 +51,7 @@ fun InputDialog(
     label: String,
     confirmText: String,
     dismissText: String,
+    maxCharacters: Int? = null,
     dismiss: () -> Unit,
     confirm: (String) -> Unit
 ) {
@@ -62,7 +63,10 @@ fun InputDialog(
         text = {
             OutlinedTextField(
                 value = text,
-                onValueChange = { text = it },
+                onValueChange = { newValue ->
+                    if (maxCharacters == null || newValue.length <= maxCharacters) {
+                        text = newValue
+                    } },
                 label = { Text(label) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),

@@ -80,12 +80,10 @@ import com.lagradost.quicknovel.compose.BaseStyles.whiteButtonColors
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.RoundedImageShape
-import com.lagradost.quicknovel.compose.SingleSelectDialog
 import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.mvvm.safe
-import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.common.DownloadStateAction
 import com.lagradost.quicknovel.ui.common.HorizontalTab
 import com.lagradost.quicknovel.ui.common.ImmutableChapterData
@@ -161,31 +159,10 @@ fun ResultScreen(state: ResultState, action: (ResultPageAction) -> Unit) {
 }
 
 @Composable
-fun ResultScreenDialog(dialog: ResultDialog, action: (ResultPageAction) -> Unit) {
-    when (dialog) {
-        is ResultDialog.Bookmark -> {
-            SingleSelectDialog(
-                entries = ReadType.entries.associateWith { item -> stringResource(item.stringRes) },
-                dismiss = {
-                    action(ResultPageAction.DismissDialog)
-                },
-                title = stringResource(R.string.bookmark),
-                selectedKey = dialog.selected,
-                confirm = { selected ->
-                    action(ResultPageAction.SetBookmark(selected))
-                    action(ResultPageAction.DismissDialog)
-                })
-        }
-    }
-}
-
-@Composable
 fun ResultScreenImpl(
     padding: PaddingValues, state: ResultState, action: (ResultPageAction) -> Unit
 ) {
-    if (state.dialog != null) {
-        ResultScreenDialog(state.dialog, action)
-    }
+    val context = LocalContext.current
 
     val response = state.response ?: return
     // val scrollState = rememberScrollState()
@@ -260,9 +237,9 @@ fun ResultScreenImpl(
                     if (response.author != null) {
                         Text(response.author, color = colors.primary, fontSize = 14.sp)
                     }
-                    response.loadData?.status?.let { status ->
+                    response.statusRes?.let { status ->
                         Text(
-                            stringResource(status.resource),
+                            stringResource(status),
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp
                         )
@@ -317,11 +294,12 @@ fun ResultScreenImpl(
                             .clip(RoundedCornerShape(15.dp))
                             .background(colors.surfaceContainer)
                     ) {
+                        val currentBookmark = state.bookmarks.find { it.id == state.currentBookmark }
                         TextIcon(
-                            stringResource(if (state.bookmark == ReadType.NONE) R.string.bookmark else state.bookmark.stringRes),
-                            icon = if (state.bookmark == ReadType.NONE) R.drawable.ic_baseline_add_24 else R.drawable.ic_baseline_bookmark_24,
+                            currentBookmark?.title ?: stringResource(R.string.bookmark),
+                            icon = if (state.currentBookmark == 0) R.drawable.ic_baseline_add_24 else R.drawable.ic_baseline_bookmark_24,
                         ) {
-                            action(ResultPageAction.OpenBookmark)
+                            action(ResultPageAction.ShowBookmarkDialog(context))
                         }
                         TextIcon(
                             stringResource(R.string.download_open_action),
