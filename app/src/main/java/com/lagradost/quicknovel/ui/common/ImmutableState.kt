@@ -457,6 +457,7 @@ data class ImmutableSearchResponse(
                 tags = response.tags?.toPersistentList(),
                 posterHeaders = response.posterHeaders?.toImmutableMap(),
                 timeOfCached = System.currentTimeMillis(),
+                timeOfPageOpened = timeOfPageOpened(id),
                 chaptersRead = chaptersRead(response.name),
                 statusRes = response.status?.resource,
                 downloadState = ImmutableDownloadState.from(currentDownloadProgress)

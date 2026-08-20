@@ -300,6 +300,8 @@ class ResultViewModel2(
 
         // Handle dialog state
         if (!isPreview) {
+            ImmutableSearchResponse.setTimeOfPageOpened(bookId, System.currentTimeMillis())
+            BookDownloader2.openChanged(bookId)
             updateState { copy(dialogState = null) }
         }
         val bookmarks = context.getBookmarks()
