@@ -242,7 +242,7 @@ fun ResultScreenImpl(
                         overflow = TextOverflow.Ellipsis
                     )
                     val isActuallyLoading = state.loadingResponse && !response.isImported
-                    LoadingPlaceholder(response.author, isActuallyLoading, {LoadingWidth(20.dp)}) { author ->
+                    LoadingPlaceholder(response.author, isActuallyLoading, {LoadingWidth(100.dp)}) { author ->
                         Text(author, color = colors.primary, fontSize = 14.sp)
                     }
 
@@ -439,6 +439,7 @@ fun ChapterPage(
         if (isLoading && chapters.isEmpty()) {
             items(10) {
                 LoadingLine()
+                LoadingWidth(130.dp)
             }
         } else {
             items(chapters, key = { item ->
