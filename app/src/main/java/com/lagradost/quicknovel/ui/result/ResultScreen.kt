@@ -90,8 +90,13 @@ import com.lagradost.quicknovel.ui.common.ImmutableChapterData
 import com.lagradost.quicknovel.ui.common.ImmutableDownloadState
 import com.lagradost.quicknovel.ui.common.ImmutableReview
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import com.lagradost.quicknovel.compose.isLandscape
 import com.lagradost.quicknovel.ui.common.LoadingButton
+import com.lagradost.quicknovel.ui.common.LoadingGridPoster
 import com.lagradost.quicknovel.ui.common.LoadingLine
+import com.lagradost.quicknovel.ui.common.LoadingPlaceholder
 import com.lagradost.quicknovel.ui.common.LoadingPoster
 import com.lagradost.quicknovel.ui.common.LoadingWeight
 import com.lagradost.quicknovel.ui.common.LoadingWidth
@@ -236,27 +241,19 @@ fun ResultScreenImpl(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
-                    if(response.author == null && !response.isImported && state.loadingResponse){
-                        LoadingWidth(80.dp)
-                    }
-                    else if (response.author != null) {
-                        Text(response.author, color = colors.primary, fontSize = 14.sp)
+                    val isActuallyLoading = state.loadingResponse && !response.isImported
+                    LoadingPlaceholder(response.author, isActuallyLoading) { author ->
+                        Text(author, color = colors.primary, fontSize = 14.sp)
                     }
 
-                    if(response.statusRes == null && !response.isImported && state.loadingResponse){
-                        LoadingWidth(80.dp)
-                    }
-                    else if (response.statusRes != null) {
-                        Text(stringResource(response.statusRes),
+                    LoadingPlaceholder(response.statusRes, isActuallyLoading) { statusRes ->
+                        Text(stringResource(statusRes),
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp)
                     }
 
-                    if(lastChapter == null && !response.isImported && state.loadingResponse){
-                        LoadingWidth(80.dp)
-                    }
-                    else if (lastChapter != null) {
-                        Text(stringResource(R.string.latest_format,lastChapter.name), fontSize = 14.sp)
+                    LoadingPlaceholder(lastChapter, isActuallyLoading) { chapter ->
+                        Text(stringResource(R.string.latest_format, chapter.name), fontSize = 14.sp)
                     }
                 }
             }
@@ -971,21 +968,18 @@ fun RelatedPage(
     action: (ResultPageAction) -> Unit
 ) {
     if (isLoading && related.isEmpty()) {
-        Column(
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(if (isLandscape) 6 else 3),
             modifier = Modifier
                 .fillMaxSize()
                 .nestedScroll(nestedScrollConnection)
-                .background(colors.background)
+                .background(colors.background),
+            contentPadding = PaddingValues(4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Row {
-                LoadingPoster()
-                LoadingPoster()
-                LoadingPoster()
-            }
-            Row {
-                LoadingPoster()
-                LoadingPoster()
-                LoadingPoster()
+            items(6) {
+                LoadingGridPoster()
             }
         }
     } else {

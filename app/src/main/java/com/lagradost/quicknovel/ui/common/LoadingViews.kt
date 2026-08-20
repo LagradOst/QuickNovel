@@ -3,6 +3,8 @@ package com.lagradost.quicknovel.ui.common
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -83,4 +86,34 @@ fun LoadingPoster() {
             .loading()
         //.gradientEffect(listOf(Color.White, Color.Transparent))
     )
+}
+
+//this si for related novels loading
+@Composable
+fun LoadingGridPoster() {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.68f)
+                .padding(loadingLineMargin.dp)
+                .loading()
+        )
+        LoadingLine()
+    }
+}
+
+//this is for author, status and last chapter from ResultScreen
+@Composable
+fun <T> LoadingPlaceholder(
+    data: T?,
+    isLoading: Boolean,
+    placeholder: @Composable () -> Unit = { LoadingWidth(80.dp) },
+    content: @Composable (T) -> Unit
+) {
+    if (data == null && isLoading) {
+        placeholder()
+    } else if (data != null) {
+        content(data)
+    }
 }
