@@ -242,7 +242,7 @@ fun ResultScreenImpl(
                         overflow = TextOverflow.Ellipsis
                     )
                     val isActuallyLoading = state.loadingResponse && !response.isImported
-                    LoadingPlaceholder(response.author, isActuallyLoading) { author ->
+                    LoadingPlaceholder(response.author, isActuallyLoading, {LoadingWidth(20.dp)}) { author ->
                         Text(author, color = colors.primary, fontSize = 14.sp)
                     }
 
@@ -252,7 +252,7 @@ fun ResultScreenImpl(
                             fontSize = 14.sp)
                     }
 
-                    LoadingPlaceholder(lastChapter, isActuallyLoading) { chapter ->
+                    LoadingPlaceholder(lastChapter, isActuallyLoading, {LoadingWidth(160.dp)}) { chapter ->
                         Text(stringResource(R.string.latest_format, chapter.name), fontSize = 14.sp)
                     }
                 }
@@ -1001,17 +1001,17 @@ fun RelatedPage(
 fun RowScope.TextInfo(
     text: String, subText: String, isLoading: Boolean = false
 ) {
-    if (isLoading) {
-        LoadingWeight()
-        LoadingWeight()
-    } else{
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .weight(1.0f)
-                .fillMaxHeight()
-        ) {
+    Column(
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .weight(1.0f)
+            .fillMaxHeight()
+    ) {
+        if (isLoading) {
+            LoadingLine(0.8f)
+            LoadingLine(0.5f)
+        }else{
             Text(text, fontSize = 17.sp, lineHeight = 16.sp)
             Text(
                 subText,
