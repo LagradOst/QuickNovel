@@ -28,6 +28,8 @@ open class NovelFireProvider : MainAPI() {
     override val rateLimitTime = 500L
     override val hasMainPage = true
     override val hasReviews = true
+    //novel phoenix uses novel instead of book
+    open val sectionUrl = "book"
     override val mainCategories = listOf(
         "All" to "status-all",
         "Completed" to "status-completed",
@@ -209,7 +211,7 @@ open class NovelFireProvider : MainAPI() {
             val nSort = item.nSort ?: return@mapNotNull null
 
             val rawTitle = item.title ?: "Chapter $nSort"
-            val chapterUrl = "$mainUrl/book/$bookSlug/chapter-$nSort"
+            val chapterUrl = "$mainUrl/$sectionUrl/$bookSlug/chapter-$nSort"
             newChapterData(rawTitle, chapterUrl) {
                 this.dateOfRelease = item.createdAt
             }
