@@ -255,6 +255,7 @@ class ResultViewModel2(
             ResultPageAction.ShowDeleteConfirmation -> updateState {
                 copy(dialogState = dialogState?.copy(isDeleteConfirmationOpen = true) ?: ResultDialogState(isDeleteConfirmationOpen = true))
             }
+
             is ResultPageAction.AskDeleteNovel -> updateState {
                 copy(
                     deleteTarget = action.response,
@@ -316,60 +317,7 @@ class ResultViewModel2(
                 showMoreInfo = !isImported
             )
         }
-/*
-        // Recover from cache
-        val cached = if (!isImported) {
-            with(DataStore) {
-                context.getKey<ResultCached>(RESULT_BOOKMARK, bookId.toString())
-                    ?: context.getKey<ResultCached>(HISTORY_FOLDER, bookId.toString())
-            }
-        } else null
 
-        val responseFromCache = cached?.let { ImmutableSearchResponse.from(it) }
-        val initialResponse = result.takeIf { !it?.synopsis.isNullOrBlank() || isImported } ?: responseFromCache
-        if (initialResponse != null) {
-            val finalSynopsis = initialResponse.synopsis ?: cached?.synopsis
-            val finalStatus = initialResponse.statusRes ?: cached?.status
-            val finalRating = initialResponse.rating ?: cached?.rating
-            val finalChapters = initialResponse.chapters ?: cached?.totalChapters?.toLong()
-            val finalAuthor = initialResponse.author ?: cached?.author
-
-            val updatedResponse = initialResponse.copy(
-                author = finalAuthor,
-                rating = finalRating,
-                synopsis = finalSynopsis,
-                id = bookId,
-                timeOfCached = initialResponse.timeOfCached,
-                chaptersRead = ImmutableSearchResponse.chaptersRead(initialResponse.name),
-                statusRes = finalStatus,
-                totalChapters = finalChapters
-            )
-
-            updateState {
-                copy(
-                    dialogState = if (isPreview) (dialogState?.copy(isPreviewOpen = true)
-                        ?: ResultDialogState(isPreviewOpen = true)) else dialogState,
-                    loadingResponse = !isImported,
-                    currentBookmark = bookmarkId,
-                    bookmarks = bookmarks,
-                    showMoreInfo = !isImported,
-                    response = updatedResponse
-                )
-            }
-        } else {
-            updateState {
-                copy(
-                    response = null,
-                    dialogState = if (isPreview) (dialogState?.copy(isPreviewOpen = true)
-                        ?: ResultDialogState(isPreviewOpen = true)) else dialogState,
-                    loadingResponse = !isImported,
-                    currentBookmark = bookmarkId,
-                    bookmarks = bookmarks,
-                    showMoreInfo = !isImported
-                )
-            }
-        }
-*/
         if (isImported) return@launch
 
         val apiRepo = api ?: Apis.getApiFromNameOrNull(finalApiName)
@@ -398,7 +346,6 @@ class ResultViewModel2(
             }
             updateCache(fullResponse, freshBookmarkId)
         }.onFailure { error ->
-            println("hay un error: $error")
             updateState {
                 copy(
                     loadingResponse = false,
