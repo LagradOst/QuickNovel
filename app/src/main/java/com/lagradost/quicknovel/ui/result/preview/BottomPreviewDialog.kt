@@ -27,7 +27,7 @@ fun BottomPreview(
             .fillMaxWidth()
             .background(colors.background)
     ) {
-        if (response != null) {
+        if (!isLoading && response !=null) {
             BottomPreviewContent(
                 response = response,
                 bookmarks = bookmarks,
@@ -35,7 +35,7 @@ fun BottomPreview(
                 showMoreInfo = showMoreInfo,
                 onAction = onAction
             )
-        } else if (isLoading) {
+        } else {
             BottomPreviewLoading()
         }
     }

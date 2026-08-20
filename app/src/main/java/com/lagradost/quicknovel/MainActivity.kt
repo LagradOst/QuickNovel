@@ -108,7 +108,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         fun loadPreviewPage(card: DownloadFragment.DownloadDataLoaded) {
-            //only called from AnyAdapter
+            //only called from AnyAdapter. this can be deleted.
             /*
             mainActivity?.mainViewModel?.onAction(
                 ResultPageAction.LoadResult(response = ImmutableSearchResponse.from(card))
@@ -180,6 +180,10 @@ class MainActivity : AppCompatActivity() {
             (activity as? AppCompatActivity)?.loadResult(url, apiName, id)
         }
 
+        fun loadResult(response: ImmutableSearchResponse) {
+            (activity as? AppCompatActivity)?.loadResult(response)
+        }
+
         fun Activity?.navigate(@IdRes navigation: Int, arguments: Bundle? = null) {
             try {
                 if (this is FragmentActivity) {
@@ -201,11 +205,25 @@ class MainActivity : AppCompatActivity() {
                 this.navigate(
                     R.id.global_to_navigation_results,
                     ResultFragment.newInstance(
-                        url,
-                        apiName,
-                        id
+                        url = url,
+                        apiName = apiName,
+                        id = id
                     )
                 )
+            }
+        }
+
+        fun FragmentActivity.loadResult(response: ImmutableSearchResponse) {
+            runOnUiThread {
+                if (this is MainActivity) {
+                    this.mainViewModel.onAction(
+                        ResultPageAction.LoadResult(
+                            response = response,
+                            isPreview = false
+                        )
+                    )
+                }
+                this.navigate(R.id.global_to_navigation_results)
             }
         }
 

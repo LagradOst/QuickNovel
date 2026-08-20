@@ -35,12 +35,12 @@ class ResultFragment2 : Fragment() {
             ) {
                 val state by viewModel.state.collectAsStateWithLifecycle()
 
-                LaunchedEffect(Unit) {
+                LaunchedEffect(arguments) {
                     val url = arguments?.getString("url")
                     val apiName = arguments?.getString("apiName")
                     val id = arguments?.getInt("id", -1)?.takeIf { it != -1 }
 
-                    if (url != null && apiName != null) {
+                    if (url != null && apiName != null && state.response?.url != url) {
                         viewModel.onAction(
                             ResultPageAction.LoadResult(
                                 isPreview = false,

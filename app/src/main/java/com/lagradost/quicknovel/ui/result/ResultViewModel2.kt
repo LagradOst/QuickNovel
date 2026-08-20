@@ -240,9 +240,11 @@ class ResultViewModel2(
                 api = if (!apiName.isNullOrBlank()) Apis.getApiFromNameOrNull(apiName) else null
                 id = action.id
                 url = action.url
+
                 updateState {
                     copy(
                         response = action.response,
+                        loadingResponse = true,
                         reviews = ResultReviewState(),
                         responseError = null
                     )
@@ -284,7 +286,7 @@ class ResultViewModel2(
     private fun loadResult(
         result: ImmutableSearchResponse?,
         isPreview: Boolean
-    ) = viewModelScope.launch {
+    ) = viewModelScope.launch(Dispatchers.IO) {
         val context = BaseApplication.context ?: return@launch
         val finalApiName = api?.name ?: result?.apiName ?: return@launch
         val finalUrl = url ?: result?.url ?: return@launch
@@ -299,12 +301,22 @@ class ResultViewModel2(
         if (!isPreview) {
             updateState { copy(dialogState = null) }
         }
-
         val bookmarks = context.getBookmarks()
         val bookmarkId = with(DataStore) {
             context.getKey<Int>(RESULT_BOOKMARK_STATE, bookId.toString())
         } ?: 0
-
+        
+        updateState {
+            copy(
+                dialogState = if (isPreview) (dialogState?.copy(isPreviewOpen = true)
+                    ?: ResultDialogState(isPreviewOpen = true)) else dialogState,
+                loadingResponse = !isImported,
+                currentBookmark = bookmarkId,
+                bookmarks = bookmarks,
+                showMoreInfo = !isImported
+            )
+        }
+/*
         // Recover from cache
         val cached = if (!isImported) {
             with(DataStore) {
@@ -337,7 +349,7 @@ class ResultViewModel2(
                 copy(
                     dialogState = if (isPreview) (dialogState?.copy(isPreviewOpen = true)
                         ?: ResultDialogState(isPreviewOpen = true)) else dialogState,
-                    loadingResponse = if (isImported) false else finalSynopsis.isNullOrBlank(),
+                    loadingResponse = !isImported,
                     currentBookmark = bookmarkId,
                     bookmarks = bookmarks,
                     showMoreInfo = !isImported,
@@ -357,7 +369,7 @@ class ResultViewModel2(
                 )
             }
         }
-
+*/
         if (isImported) return@launch
 
         val apiRepo = api ?: Apis.getApiFromNameOrNull(finalApiName)
@@ -377,15 +389,16 @@ class ResultViewModel2(
             } ?: 0
             updateState {
                 copy(
+                    response = fullResponse,
                     loadingResponse = false,
                     currentBookmark = freshBookmarkId,
-                    response = fullResponse,
                     showMoreInfo = true,
                     responseError = null
                 )
             }
             updateCache(fullResponse, freshBookmarkId)
         }.onFailure { error ->
+            println("hay un error: $error")
             updateState {
                 copy(
                     loadingResponse = false,

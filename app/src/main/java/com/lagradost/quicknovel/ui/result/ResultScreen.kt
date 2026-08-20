@@ -150,7 +150,8 @@ fun ResultScreen(state: ResultState, action: (ResultPageAction) -> Unit) {
             }
         }
     ) { innerPadding ->
-        if (state.loadingResponse) {
+        val showFullLoading = state.loadingResponse && state.response?.synopsis.isNullOrBlank()
+        if (showFullLoading) {
             LoadingScreen(Modifier.padding(innerPadding))
         } else {
             ResultScreenImpl(innerPadding, state, action)
@@ -168,6 +169,7 @@ fun ResultScreenImpl(
     // val scrollState = rememberScrollState()
     val posterInteractionSource = remember { MutableInteractionSource() }
     val posterBigInteractionSource = remember { MutableInteractionSource() }
+    val lastChapter = response.loadData?.chapters?.lastOrNull()
 
     val isPosterShown = remember { mutableStateOf(false) }
 
@@ -234,18 +236,27 @@ fun ResultScreenImpl(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
-                    if (response.author != null) {
+                    if(response.author == null && !response.isImported && state.loadingResponse){
+                        LoadingWidth(80.dp)
+                    }
+                    else if (response.author != null) {
                         Text(response.author, color = colors.primary, fontSize = 14.sp)
                     }
-                    response.statusRes?.let { status ->
-                        Text(
-                            stringResource(status),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
+
+                    if(response.statusRes == null && !response.isImported && state.loadingResponse){
+                        LoadingWidth(80.dp)
                     }
-                    response.loadData?.chapters?.lastOrNull()?.let { chapter ->
-                        Text(stringResource(R.string.latest_format, chapter.name), fontSize = 14.sp)
+                    else if (response.statusRes != null) {
+                        Text(stringResource(response.statusRes),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp)
+                    }
+
+                    if(lastChapter == null && !response.isImported && state.loadingResponse){
+                        LoadingWidth(80.dp)
+                    }
+                    else if (lastChapter != null) {
+                        Text(stringResource(R.string.latest_format,lastChapter.name), fontSize = 14.sp)
                     }
                 }
             }
@@ -356,6 +367,7 @@ fun ResultScreenImpl(
                             RelatedPage(
                                 nestedScrollConnection = parentFirstScrollConnection,
                                 related = response.loadData?.related ?: persistentListOf(),
+                                isLoading = state.loadingResponse,
                                 action = action
                             )
                         }
@@ -364,6 +376,7 @@ fun ResultScreenImpl(
                             ChapterPage(
                                 response = response,
                                 chapters = response.loadData?.chapters ?: persistentListOf(),
+                                isLoading = state.loadingResponse,
                                 action = action,
                                 nestedScrollConnection = parentFirstScrollConnection
                             )
@@ -416,6 +429,7 @@ fun ResultScreenImpl(
 fun ChapterPage(
     response: ImmutableSearchResponse,
     chapters: PersistentList<ImmutableChapterData>,
+    isLoading: Boolean,
     action: (ResultPageAction) -> Unit,
     nestedScrollConnection: NestedScrollConnection
 ) {
@@ -425,10 +439,16 @@ fun ChapterPage(
             .nestedScroll(nestedScrollConnection)
             .background(colors.background),
     ) {
-        items(chapters, key = { item ->
-            item.randomUuid
-        }) { review ->
-            ChapterItem(response, review, action = action, modifier = Modifier.animateItem())
+        if (isLoading && chapters.isEmpty()) {
+            items(10) {
+                LoadingLine()
+            }
+        } else {
+            items(chapters, key = { item ->
+                item.randomUuid
+            }) { review ->
+                ChapterItem(response, review, action = action, modifier = Modifier.animateItem())
+            }
         }
     }
 }
@@ -487,10 +507,30 @@ fun ReviewsPage(
             .nestedScroll(nestedScrollConnection)
             .background(colors.background),
     ) {
-        items(reviews, key = { item ->
-            item.randomUuid
-        }) { review ->
-            ReviewItem(review, modifier = Modifier.animateItem(), action = action)
+        if (loadingReviews && reviews.isEmpty()) {
+            items(10) {
+                Column(Modifier.padding(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            Modifier
+                                .size(40.dp)
+                                .loading()
+                        )
+                        Column(Modifier.padding(horizontal = 10.dp)) {
+                            LoadingLine(0.3f)
+                            LoadingLine(0.2f)
+                        }
+                    }
+                    LoadingLine()
+                    LoadingLine(0.7f)
+                }
+            }
+        } else {
+            items(reviews, key = { item ->
+                item.randomUuid
+            }) { review ->
+                ReviewItem(review, modifier = Modifier.animateItem(), action = action)
+            }
         }
     }
 
@@ -642,13 +682,12 @@ fun ReviewItem(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun NovelPage(
-    state: ResultState, action: (ResultPageAction) -> Unit
+    state: ResultState,
+    action: (ResultPageAction) -> Unit,
 ) {
     val expanded = rememberSaveable { mutableStateOf(false) }
     val textInteractionSource = remember { MutableInteractionSource() }
     val response = state.response ?: return
-    val isDataLoading = response.loadData == null && !response.isImported
-
     LazyColumn {
         item(key = "infobar") {
             Row(
@@ -657,27 +696,29 @@ fun NovelPage(
                     .fillMaxWidth()
                     .height(60.dp)
             ) {
+                val views = response.loadData?.views
                 TextInfo(
-                    response.loadData?.views?.let(::humanReadableByteCountSI)
-                        ?: stringResource(R.string.no_data), stringResource(R.string.views),
-                    isLoading = isDataLoading
+                    text = views?.let(::humanReadableByteCountSI)
+                        ?: stringResource(R.string.no_data),
+                    subText = stringResource(R.string.views),
+                    isLoading = views == null && !response.isImported && state.loadingResponse
                 )
-                TextInfo(response.rating?.let {
-                    LocalContext.current.getRating(it)
-                } ?: stringResource(R.string.no_data),
-                    response.loadData?.peopleVoted?.let {
-                        stringResource(
-                            R.string.votes_format,
-                            it
-                        )
-                    }
-                        ?: stringResource(R.string.no_data),
-                    isLoading = isDataLoading)
+
+                val rating = response.rating
+                val votes = response.loadData?.peopleVoted
                 TextInfo(
-                    response.loadData?.chapters?.size?.toString()
+                    text = rating?.let { LocalContext.current.getRating(it) }
                         ?: stringResource(R.string.no_data),
-                    stringResource(R.string.chapters),
-                    isLoading = isDataLoading
+                    subText = votes?.let { stringResource(R.string.votes_format, it) }
+                        ?: stringResource(R.string.no_data),
+                    isLoading = rating == null && votes == null && !response.isImported && state.loadingResponse
+                )
+
+                val chapters = response.chapters
+                TextInfo(
+                    text = chapters?.toString() ?: stringResource(R.string.no_data),
+                    subText = stringResource(R.string.chapters),
+                    isLoading = chapters == null && !response.isImported && state.loadingResponse
                 )
             }
         }
@@ -721,17 +762,34 @@ fun NovelPage(
             item(key = "tags") {
                 Tags(tags)
             }
+        } else if (state.loadingResponse && !response.isImported) {
+            item(key = "tags_loading") {
+                FlowRow(Modifier.padding(horizontal = 10.dp)) {
+                    LoadingWidth(60.dp)
+                    LoadingWidth(80.dp)
+                    LoadingWidth(70.dp)
+                    LoadingWidth(60.dp)
+                    LoadingWidth(80.dp)
+                    LoadingWidth(70.dp)
+                    LoadingWidth(60.dp)
+                    LoadingWidth(80.dp)
+                    LoadingWidth(70.dp)
+                }
+            }
         }
 
         if (response.downloadState != null) {
             item(key = "downloads") {
                 DownloadButtons(response, response.downloadState, action)
             }
-        } else if (isDataLoading) {
+        } else if (!response.isImported && state.loadingResponse) {
             item(key = "downloads_loading") {
-                Row(Modifier.padding(horizontal = 10.dp)) {
-                    LoadingButton()
-                    LoadingButton()
+                Column {
+                    Row(Modifier.padding(horizontal = 10.dp)) {
+                        LoadingButton()
+                        LoadingButton()
+                    }
+                    LoadingLine()
                 }
             }
         }
@@ -909,18 +967,39 @@ fun Tags(tags: ImmutableList<String>) {
 fun RelatedPage(
     nestedScrollConnection: NestedScrollConnection,
     related: ImmutableList<ImmutableSearchResponse>,
+    isLoading: Boolean,
     action: (ResultPageAction) -> Unit
 ) {
-    SearchList(
-        isRow = false,
-        items = related,
-        modifier = Modifier
-            .fillMaxSize()
-            .nestedScroll(nestedScrollConnection)
-            .background(colors.background),
-        searchAction = { value ->
-            action(ResultPageAction.ResultAction(value))
-        })
+    if (isLoading && related.isEmpty()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .nestedScroll(nestedScrollConnection)
+                .background(colors.background)
+        ) {
+            Row {
+                LoadingPoster()
+                LoadingPoster()
+                LoadingPoster()
+            }
+            Row {
+                LoadingPoster()
+                LoadingPoster()
+                LoadingPoster()
+            }
+        }
+    } else {
+        SearchList(
+            isRow = false,
+            items = related,
+            modifier = Modifier
+                .fillMaxSize()
+                .nestedScroll(nestedScrollConnection)
+                .background(colors.background),
+            searchAction = { value ->
+                action(ResultPageAction.ResultAction(value))
+            })
+    }
 }
 
 
@@ -930,23 +1009,24 @@ fun RowScope.TextInfo(
 ) {
     if (isLoading) {
         LoadingWeight()
-        return
-    }
-    Column(
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .weight(1.0f)
-            .fillMaxHeight()
-    ) {
-        Text(text, fontSize = 17.sp, lineHeight = 16.sp)
-        Text(
-            subText,
-            fontSize = 12.sp,
-            lineHeight = 11.sp,
-            modifier = Modifier.padding(2.dp),
-            color = colors.onSurfaceVariant
-        )
+        LoadingWeight()
+    } else{
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .weight(1.0f)
+                .fillMaxHeight()
+        ) {
+            Text(text, fontSize = 17.sp, lineHeight = 16.sp)
+            Text(
+                subText,
+                fontSize = 12.sp,
+                lineHeight = 11.sp,
+                modifier = Modifier.padding(2.dp),
+                color = colors.onSurfaceVariant
+            )
+        }
     }
 }
 
