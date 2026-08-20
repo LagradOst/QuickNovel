@@ -337,16 +337,27 @@ class ResultViewModel2(
                     bookId.toString()
                 )
             } ?: 0
+
+            val mergedResponse = if (fullResponse.posterUrl.isNullOrBlank() && result?.posterUrl?.isBlank() == true) {
+                fullResponse.copy(
+                    posterUrl = result.posterUrl,
+                    posterHeaders = result.posterHeaders
+                )
+            } else {
+                fullResponse
+            }
+
             updateState {
                 copy(
-                    response = fullResponse,
+                    response = mergedResponse,
                     loadingResponse = false,
                     currentBookmark = freshBookmarkId,
                     showMoreInfo = true,
                     responseError = null
                 )
             }
-            updateCache(fullResponse, freshBookmarkId)
+            updateCache(mergedResponse, freshBookmarkId)
+            addToHistory(mergedResponse)
         }.onFailure { error ->
             updateState {
                 copy(
