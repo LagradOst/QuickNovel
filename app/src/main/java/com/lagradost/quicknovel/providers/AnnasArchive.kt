@@ -8,6 +8,7 @@ import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.DownloadExtractLink
 import com.lagradost.quicknovel.DownloadLink
 import com.lagradost.quicknovel.DownloadLinkType
+import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
@@ -15,6 +16,8 @@ import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.USER_AGENT
 import com.lagradost.quicknovel.fixUrlNull
+import com.lagradost.quicknovel.network.WebViewResolver
+import com.lagradost.quicknovel.network.utils.CookiesUtils
 import com.lagradost.quicknovel.newEpubResponse
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.util.Coroutines.main
@@ -73,7 +76,25 @@ class AnnasArchive : MainAPI() {
         val contentParam = if (!tag.isNullOrBlank()) "&content=$tag" else ""
         val srcParam = if (!orderBy.isNullOrBlank()) "&src=$orderBy" else ""
         val url = "$mainUrl/search?index=&page=$page&sort=$langParam$contentParam$srcParam&ext=epub"
-        val document = app.get(url).document
+        var document = app.get(url, cookies = CookiesUtils.getAllCookiesForUrl(mainUrl)).document
+        if(document.selectFirst("div.js-aarecord-list-outer") == null){
+            val script = """
+                                 (function() {
+                                     var checkInterval = setInterval(function() {
+                                         var element = document.querySelector("div.js-aarecord-list-outer");
+                                         if (element.innerText.trim().length > 0) {
+                                             clearInterval(checkInterval);
+                                             NativeAndroid.onElementFound(element.outerHTML);
+                                         }
+                                     }, 1000);
+                                     setTimeout(function() { clearInterval(checkInterval); }, 30000);
+                                 })();
+                             """.trimIndent()
+            val docString = WebViewResolver(scriptToFinish = script, useOkhttp = false).resolveUsingWebView(url)
+            document = Jsoup.parse(docString ?: "")
+        }
+
+
         val returnValue = document.select("div.js-aarecord-list-outer > div").mapNotNull { node ->
             val a = node.selectFirst("a.line-clamp-\\[3\\]")
             val href = fixUrlNull(a?.attr("href")) ?: return@mapNotNull null
@@ -91,7 +112,7 @@ class AnnasArchive : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val url =
             "$mainUrl/search?index=&page=1&sort=&ext=epub&display=&q=${query.replace(" ", "+")}"
-        val text = app.get(url).text.replace(
+        val text = app.get(url, cookies = CookiesUtils.getAllCookiesForUrl(mainUrl)).text.replace(
             Regex("<!--([\\W\\w]*?)-->")
         ) { it.groupValues[1] }
 
@@ -136,12 +157,12 @@ class AnnasArchive : MainAPI() {
         }
     }
 
-    override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document
+    override suspend fun load(url: String): LoadResponse? {
+        val document = app.get(url, cookies = CookiesUtils.getAllCookiesForUrl(mainUrl)).document
         var slowLink: String? = null
 
         return newEpubResponse(
-            name = document.selectFirst("div.text-2xl")?.ownText()!!,
+            name = document.selectFirst("div.text-2xl")?.ownText() ?: throw ErrorLoadingException("No title found"),
             url = url,
             links = document.select("ul.mb-4 > li").mapNotNull { element ->
                 val link = fixUrlNull(element.selectFirst("a.js-download-link")?.attr("href"))
@@ -149,10 +170,8 @@ class AnnasArchive : MainAPI() {
 
                 if (link.contains("fast_download")) return@mapNotNull null
 
-                // Cambio aquí: Usamos el WebView para el link de espera
                 if (element.text().contains("no waitlist")) {
                     if (slowLink == null) {
-                        // Llamamos a nuestra nueva función
                         slowLink = getSlowLinkWithWebView(link)
                         println("consiguio el link?: $slowLink")
                     }
