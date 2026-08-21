@@ -31,46 +31,6 @@ open class LibReadProvider : FreewebnovelProvider() {
 
     override val iconBackgroundId = R.color.libread_header_color
     override val rateLimitTime = 1000L
-    override val tags = listOf(
-        "All" to "",
-        "Action" to "Action",
-        "Adult" to "Adult",
-        "Adventure" to "Adventure",
-        "Comedy" to "Comedy",
-        "Drama" to "Drama",
-        "Eastern" to "Eastern",
-        "Ecchi" to "Ecchi",
-        "Fantasy" to "Fantasy",
-        "Game" to "Game",
-        "Gender Bender" to "Gender Bender",
-        "Harem" to "Harem",
-        "Historical" to "Historical",
-        "Horror" to "Horror",
-        "Josei" to "Josei",
-        "Martial Arts" to "Martial Arts",
-        "Mature" to "Mature",
-        "Mecha" to "Mecha",
-        "Mystery" to "Mystery",
-        "Psychological" to "Psychological",
-        "Reincarnation" to "Reincarnation",
-        "Romance" to "Romance",
-        "School Life" to "School Life",
-        "Sci-fi" to "Sci-fi",
-        "Seinen" to "Seinen",
-        "Shoujo" to "Shoujo",
-        "Shounen Ai" to "Shounen Ai",
-        "Shounen" to "Shounen",
-        "Slice of Life" to "Slice of Life",
-        "Smut" to "Smut",
-        "Sports" to "Sports",
-        "Supernatural" to "Supernatural",
-        "Tragedy" to "Tragedy",
-        "Wuxia" to "Wuxia",
-        "Xianxia" to "Xianxia",
-        "Xuanhuan" to "Xuanhuan",
-        "Yaoi" to "Yaoi"
-    )
-
     override val orderBys = listOf(
         "Latest Release" to "latest-release",
         "Latest Novels" to "latest-novel",
