@@ -1122,6 +1122,7 @@ object BookDownloader2 {
 
     private val streamMutex = Mutex()
 
+    // TODO refactor to use immutable
     @WorkerThread
     suspend fun stream(res: LoadResponse, apiName: String) {
         when (res) {
@@ -1198,6 +1199,13 @@ object BookDownloader2 {
             val data = api.load(card.url)
 
             if (data is com.lagradost.quicknovel.mvvm.Resource.Success) {
+                val response = ImmutableSearchResponse.from(data.value)
+                ImmutableSearchResponse.addToHistory(response)
+                response.id?.let {
+                    ImmutableSearchResponse.setTimeOfPageOpened(it, System.currentTimeMillis())
+                    openChanged.invoke(it)
+                }
+
                 stream(data.value, card.apiName)
             } else {
                 showToast(R.string.error_loading_novel, Toast.LENGTH_SHORT)
@@ -1306,6 +1314,27 @@ object BookDownloader2 {
     }
 
     private val readEpubMutex = Mutex()
+
+    suspend fun readEpub(response: ImmutableSearchResponse, generating: () -> Unit = {}) {
+        val id = response.id ?: return
+        val downloadedCount = response.downloadState?.progress?.toInt() ?: return
+        ImmutableSearchResponse.addToHistory(response)
+        ImmutableSearchResponse.setTimeOfPageOpened(id, System.currentTimeMillis())
+        openChanged.invoke(id)
+
+        readEpub(
+            id,
+            downloadedCount,
+            response.author,
+            response.name,
+            response.apiName,
+            response.synopsis,
+            generating
+        )
+
+        // Update epub size
+        chapterReadChanged(response.name)
+    }
 
     @WorkerThread
     suspend fun readEpub(

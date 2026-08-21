@@ -46,6 +46,7 @@ import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
 import com.lagradost.quicknovel.EpubResponse
+import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainActivity
@@ -246,7 +247,7 @@ data class ImmutableSearchResponse(
     val timeOfCached: Long,
     /** The time a "new" chapter got downloaded, also known as "Recently updated" */
     val timeOfChapterDownloaded: Long? = null,
-    /** The time we actually read the item or opened the view, also known as "Recently opened" */
+    /** The time we opened the item in the full results view or read it, also known as "Recently opened" */
     val timeOfPageOpened: Long? = null,
     /** The size of the last written epub in chapters, aka how many chapters have we actually might have read */
     val epubSize: Int? = null,
@@ -313,6 +314,24 @@ data class ImmutableSearchResponse(
         }
     }
 
+    fun toResultCached(
+        id: Int,
+    ): ResultCached {
+        return ResultCached(
+            source = url,
+            name = name,
+            apiName = apiName,
+            id = id,
+            author = author,
+            poster = posterUrl,
+            tags = tags,
+            rating = rating,
+            totalChapters = loadData?.chapters?.size ?: 1,
+            cachedTime = System.currentTimeMillis(),
+            synopsis = synopsis,
+            posterHeaders = posterHeaders
+        )
+    }
 
     companion object {
         fun preview(): ImmutableSearchResponse = ImmutableSearchResponse(
@@ -363,6 +382,14 @@ data class ImmutableSearchResponse(
 
         fun chaptersRead(name: String): Int =
             getKey<Int>(EPUB_CURRENT_POSITION, name)?.let { it + 1 } ?: 0
+
+        fun addToHistory(response: ImmutableSearchResponse) {
+            val id = response.id ?: return
+            // we won't add it to history from cache
+            setKey(
+                HISTORY_FOLDER, id.toString(), response.toResultCached(id)
+            )
+        }
 
         fun timeOfPageOpened(id: Int): Long = getKey<Long>(
             DOWNLOAD_EPUB_LAST_ACCESS,
@@ -749,6 +776,11 @@ val normalSortingMethods = persistentListOf(
         SortingMethodType.LastOpened,
         SortingMethodType.RevLastOpened
     ),
+    /*SortingMethodPair(
+        R.string.recently_visisted_sort,
+        SortingMethodType.LastCached,
+        SortingMethodType.RevLastCached
+    ),*/
     SortingMethodPair(
         R.string.alpha_sort,
         SortingMethodType.Alphabetical,
@@ -758,6 +790,7 @@ val normalSortingMethods = persistentListOf(
         R.string.chapters, SortingMethodType.ChapterCount,
         SortingMethodType.RevChapterCount
     ),
+
 )
 
 /**

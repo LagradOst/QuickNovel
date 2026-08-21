@@ -246,26 +246,13 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                     BookDownloader2.preloadPartialImportedPdf(response)
                 }
 
-                BookDownloader2.readEpub(
-                    id,
-                    downloadState.progress.toInt(),
-                    response.author,
-                    response.name,
-                    response.apiName,
-                    response.synopsis
-                )
+                BookDownloader2.readEpub(response)
             } finally {
-                val newTimeOfPageOpened = System.currentTimeMillis()
-                ImmutableSearchResponse.setTimeOfPageOpened(id, newTimeOfPageOpened)
-                val newEpubSize = ImmutableSearchResponse.epubSize(id)
-
                 updateState {
                     copy(pages = pages.updateRow(0) {
                         update(id) {
                             copy(
                                 generating = false,
-                                timeOfPageOpened = newTimeOfPageOpened,
-                                epubSize = newEpubSize
                             )
                         }
                     })
@@ -295,15 +282,12 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                         })
                     }
 
-                    val opened = System.currentTimeMillis()
-                    ImmutableSearchResponse.setTimeOfPageOpened(id, opened)
                     BookDownloader2.stream(action.response)
                     updateState {
                         copy(pages = pages.updateRows {
                             update(id) {
                                 copy(
                                     generating = false,
-                                    timeOfPageOpened = opened
                                 )
                             }
                         })
@@ -371,6 +355,7 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                     DownloadActionType.Resume
                 )
             }
+
             SearchResponseOperation.Stop -> {
                 val id = action.response.id!!
                 BookDownloader2.addPendingAction(
@@ -458,7 +443,7 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         BookDownloader2.openChanged -= this::onOpen
     }
 
-    fun onOpen(id : Int) {
+    fun onOpen(id: Int) {
         updateState {
             copy(pages = pages.updateRows {
                 update(id) {

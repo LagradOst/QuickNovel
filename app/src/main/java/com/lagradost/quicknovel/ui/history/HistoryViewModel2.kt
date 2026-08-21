@@ -41,7 +41,7 @@ data class HistoryState(
 sealed class HistoryDialog {
     data class DeleteItem(val about: ImmutableSearchResponse) : HistoryDialog()
     object DeleteAll : HistoryDialog()
-    data class Sort(val method : SortingMethodType) : HistoryDialog()
+    data class Sort(val method: SortingMethodType) : HistoryDialog()
 }
 
 
@@ -137,6 +137,7 @@ class HistoryViewModel2 : ViewModel(),
                     )
                 }
             }
+
             SearchResponseOperation.Stream -> {
                 viewModelScope.launch {
                     val id = action.response.id!!
@@ -148,7 +149,7 @@ class HistoryViewModel2 : ViewModel(),
                     BookDownloader2.stream(action.response)
                     updateState {
                         copy(history = history.update(id) {
-                            copy(generating = false)
+                            copy(generating = false, timeOfPageOpened = ImmutableSearchResponse.timeOfPageOpened(id))
                         })
                     }
                 }
@@ -189,7 +190,11 @@ class HistoryViewModel2 : ViewModel(),
             updateState {
                 copy(
                     loading = false,
-                    history = ImmutableSearchList.new(data, query = history.query, sortingMethod = SortingMethodType.from(method))
+                    history = ImmutableSearchList.new(
+                        data,
+                        query = history.query,
+                        sortingMethod = SortingMethodType.from(method)
+                    )
                 )
             }
         }
