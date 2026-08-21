@@ -23,6 +23,7 @@ import com.anggrayudi.storage.media.FileDescription
 import com.anggrayudi.storage.media.MediaStoreCompat
 import com.anggrayudi.storage.media.MediaType
 import com.anggrayudi.storage.toStorageFile
+import com.lagradost.quicknovel.BookDownloader2Helper.sanitizeFilename
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
 import com.lagradost.quicknovel.tachiyomi.PreferenceData
@@ -60,7 +61,7 @@ data class FileStorage(
             context,
             getLocation(context),
             defaultSubFolder,
-            name,
+            sanitizeFilename(name),
             mimeType,
             requiresWriteAccess
         )
@@ -68,7 +69,7 @@ data class FileStorage(
 
     fun createFile(context: Context, name: String): StorageFile? {
         FileHelper.requestStorage(context)
-        return FileHelper.createFile(context, getLocation(context), defaultSubFolder, name, mimeType)
+        return FileHelper.createFile(context, getLocation(context), defaultSubFolder, sanitizeFilename(name), mimeType)
     }
 
     fun toPreference(context: Context, store : AndroidPreferenceStore) : PreferenceData<String> {
