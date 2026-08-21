@@ -246,13 +246,19 @@ fun SearchResponseRow(
 
             val text =
                 if (response.downloadState != null && response.downloadState.progress != response.downloadState.total) {
-                    "${response.downloadState.progress}/${response.downloadState.total}${
+                    "${response.downloadState.progress}/${response.downloadState.total} ${
                         if (response.downloadState.etaMs != null && response.downloadState.status == DownloadState.IsDownloading) {
-                            " • " + etaToString(
+                            "• " + etaToString(
                                 response.downloadState.etaMs
                             )
                         } else {
-                            ""
+                            stringResource(
+                                if (response.chapters == 1L) {
+                                    R.string.chapter
+                                } else {
+                                    R.string.chapters
+                                }
+                            )
                         }
                     }"
                 } else if (response.chapters != null) {
