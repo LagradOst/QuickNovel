@@ -10,7 +10,6 @@ import com.lagradost.quicknovel.BaseApplication.Companion.removeKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
-import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
 import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.HISTORY_SORTING_METHOD
 import com.lagradost.quicknovel.compose.ActionHandler
@@ -22,7 +21,6 @@ import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseOperation
 import com.lagradost.quicknovel.ui.common.SortingMethodType
-import com.lagradost.quicknovel.ui.download.DownloadPageAction
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.collections.immutable.toPersistentHashMap
 import kotlinx.coroutines.CoroutineScope
@@ -30,7 +28,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.uuid.ExperimentalUuidApi
 
 @Immutable
 data class HistoryState(
@@ -44,7 +41,7 @@ data class HistoryState(
 sealed class HistoryDialog {
     data class DeleteItem(val about: ImmutableSearchResponse) : HistoryDialog()
     object DeleteAll : HistoryDialog()
-    data class Sort(val method : SortingMethodType) : HistoryDialog()
+    data class Sort(val method: SortingMethodType) : HistoryDialog()
 }
 
 
@@ -140,20 +137,19 @@ class HistoryViewModel2 : ViewModel(),
                     )
                 }
             }
+
             SearchResponseOperation.Stream -> {
                 viewModelScope.launch {
                     val id = action.response.id!!
                     updateState {
                         copy(history = history.update(id) {
-                            @OptIn(ExperimentalUuidApi::class)
                             copy(generating = true)
                         })
                     }
                     BookDownloader2.stream(action.response)
                     updateState {
                         copy(history = history.update(id) {
-                            @OptIn(ExperimentalUuidApi::class)
-                            copy(generating = false)
+                            copy(generating = false, timeOfPageOpened = ImmutableSearchResponse.timeOfPageOpened(id))
                         })
                     }
                 }
@@ -194,7 +190,11 @@ class HistoryViewModel2 : ViewModel(),
             updateState {
                 copy(
                     loading = false,
-                    history = ImmutableSearchList.new(data, query = history.query, sortingMethod = SortingMethodType.from(method))
+                    history = ImmutableSearchList.new(
+                        data,
+                        query = history.query,
+                        sortingMethod = SortingMethodType.from(method)
+                    )
                 )
             }
         }

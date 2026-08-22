@@ -1,40 +1,15 @@
 package com.lagradost.quicknovel
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
-import androidx.core.net.toUri
-import coil3.network.NetworkHeaders
-import coil3.network.httpHeaders
-import coil3.request.ImageRequest
-import coil3.request.crossfade
-import com.lagradost.quicknovel.BaseApplication.Companion.getKey
-import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
-import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
-import com.lagradost.quicknovel.BookDownloader2Helper.getFilenameIMG
-import com.lagradost.quicknovel.BookDownloader2Helper.sanitizeFilename
-import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.safeApiCall
 import com.lagradost.quicknovel.ui.common.ImmutableHeadMainPageResponse
 import com.lagradost.quicknovel.ui.common.ImmutableReview
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
-import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.util.Coroutines.threadSafeListOf
-import com.lagradost.quicknovel.util.ResultCached
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.PersistentList
-import kotlinx.collections.immutable.toImmutableList
-import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.collections.immutable.toPersistentList
-import kotlinx.collections.immutable.toPersistentMap
-import me.xdrop.fuzzywuzzy.FuzzySearch
 import org.jsoup.Jsoup
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 data class OnGoingSearch(
     val apiName: String,

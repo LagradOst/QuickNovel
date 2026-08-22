@@ -1,40 +1,23 @@
 package com.lagradost.quicknovel.util
 
 import android.app.Activity
-import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
-import android.os.Build
-import android.os.Environment
-import android.provider.MediaStore
-import android.widget.Toast
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.fragment.app.FragmentActivity
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.lagradost.quicknovel.BookDownloader2Helper.checkWrite
 import com.lagradost.quicknovel.BookDownloader2Helper.requestRW
-import com.lagradost.quicknovel.CommonActivity.activity
-import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DataStore
 import com.lagradost.quicknovel.DataStore.getDefaultSharedPrefs
 import com.lagradost.quicknovel.DataStore.getSharedPrefs
 import com.lagradost.quicknovel.DataStore.mapper
 import com.lagradost.quicknovel.ErrorLoadingException
-import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.mvvm.logError
-import com.lagradost.quicknovel.ui.settings.SettingsFragment
-import com.lagradost.safefile.SafeFile
+import com.lagradost.quicknovel.FileHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.IOException
-import java.io.OutputStream
-import java.io.PrintWriter
 import java.lang.System.currentTimeMillis
 import java.text.SimpleDateFormat
-import java.util.*
-import kotlin.concurrent.thread
+import java.util.Date
 
 object BackupUtils {
     // Kinda hack, but I couldn't think of a better way
@@ -51,45 +34,6 @@ object BackupUtils {
         @JsonProperty("datastore") val datastore: BackupVars,
         @JsonProperty("settings") val settings: BackupVars
     )
-
-    fun setupStream(
-        context: Context,
-        displayName: String,
-        ext: String,
-        subDir: SafeFile?
-    ): OutputStream? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { // && subDir?.isDownloadDir() == true
-            val cr = context.contentResolver
-            val contentUri =
-                MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY) // USE INSTEAD OF MediaStore.Downloads.EXTERNAL_CONTENT_URI
-            //val currentMimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
-
-            val newFile = ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
-                put(MediaStore.MediaColumns.TITLE, displayName)
-                put(MediaStore.MediaColumns.MIME_TYPE, "application/json")
-                //put(MediaStore.MediaColumns.RELATIVE_PATH, folder)
-            }
-
-            val newFileUri = cr.insert(
-                contentUri,
-                newFile
-            ) ?: throw IOException("Error creating file uri")
-            cr.openOutputStream(newFileUri, "w")
-                ?: throw IOException("Error opening stream")
-        } else {
-            val fileName = "$displayName.$ext"
-            val rFile = subDir?.findFile(fileName)
-            if (rFile?.exists() == true) {
-                rFile.delete()
-            }
-            val file =
-                subDir?.createFile(fileName)
-                    ?: throw IOException("Error creating file")
-            if (file.exists() != true) throw IOException("File does not exist")
-            file.openOutputStream()
-        }
-    }
 
     private fun <T> Context.restoreMap(
         map: Map<String, T>?,
@@ -118,48 +62,53 @@ object BackupUtils {
             }
         }
 
-    suspend fun createBackupFile(context: Context, activity: Activity?) : Result<Unit> = withContext(Dispatchers.Default) {
-        runCatching {
-            if (!context.checkWrite()) {
-                activity?.requestRW()
-                throw ErrorLoadingException()
+    suspend fun createBackupFile(context: Context, activity: Activity?): Result<String> =
+        withContext(Dispatchers.Default) {
+            runCatching {
+                if (!context.checkWrite()) {
+                    activity?.requestRW()
+                    throw ErrorLoadingException()
+                }
+                val date = SimpleDateFormat("yyyy_MM_dd_HH_mm").format(Date(currentTimeMillis()))
+                val displayName = "QN_Backup_${date}"
+
+                val allData = context.getSharedPrefs().all
+                val allSettings = context.getDefaultSharedPrefs().all
+
+                val allDataSorted = BackupVars(
+                    allData.filter { it.value is Boolean } as? Map<String, Boolean>,
+                    allData.filter { it.value is Int } as? Map<String, Int>,
+                    allData.filter { it.value is String } as? Map<String, String>,
+                    allData.filter { it.value is Float } as? Map<String, Float>,
+                    allData.filter { it.value is Long } as? Map<String, Long>,
+                    allData.filter { it.value as? Set<String> != null } as? Map<String, Set<String>>
+                )
+
+                val allSettingsSorted = BackupVars(
+                    allSettings.filter { it.value is Boolean } as? Map<String, Boolean>,
+                    allSettings.filter { it.value is Int } as? Map<String, Int>,
+                    allSettings.filter { it.value is String } as? Map<String, String>,
+                    allSettings.filter { it.value is Float } as? Map<String, Float>,
+                    allSettings.filter { it.value is Long } as? Map<String, Long>,
+                    allSettings.filter { it.value as? Set<String> != null } as? Map<String, Set<String>>
+                )
+
+                val backupFile = BackupFile(
+                    allDataSorted,
+                    allSettingsSorted
+                )
+
+                val file = FileHelper.backup.createFile(context, displayName)
+                    ?: throw ErrorLoadingException("Unable to create file")
+                val stream = file.openOutputStream(append = false)
+                    ?: throw ErrorLoadingException("Unable to create stream")
+
+                stream.use { stream ->
+                    mapper.writeValue(stream, backupFile)
+                }
+                file.absolutePath ?: file.uri.toString()
             }
-            val subDir = SettingsFragment.getDefaultDir(context = context)
-            val date = SimpleDateFormat("yyyy_MM_dd_HH_mm").format(Date(currentTimeMillis()))
-            val displayName = "QN_Backup_${date}"
-
-            val allData = context.getSharedPrefs().all
-            val allSettings = context.getDefaultSharedPrefs().all
-
-            val allDataSorted = BackupVars(
-                allData.filter { it.value is Boolean } as? Map<String, Boolean>,
-                allData.filter { it.value is Int } as? Map<String, Int>,
-                allData.filter { it.value is String } as? Map<String, String>,
-                allData.filter { it.value is Float } as? Map<String, Float>,
-                allData.filter { it.value is Long } as? Map<String, Long>,
-                allData.filter { it.value as? Set<String> != null } as? Map<String, Set<String>>
-            )
-
-            val allSettingsSorted = BackupVars(
-                allSettings.filter { it.value is Boolean } as? Map<String, Boolean>,
-                allSettings.filter { it.value is Int } as? Map<String, Int>,
-                allSettings.filter { it.value is String } as? Map<String, String>,
-                allSettings.filter { it.value is Float } as? Map<String, Float>,
-                allSettings.filter { it.value is Long } as? Map<String, Long>,
-                allSettings.filter { it.value as? Set<String> != null } as? Map<String, Set<String>>
-            )
-
-            val backupFile = BackupFile(
-                allDataSorted,
-                allSettingsSorted
-            )
-            val steam = setupStream(context, displayName, "json", subDir)
-
-            val printStream = PrintWriter(steam)
-            printStream.print(mapper.writeValueAsString(backupFile))
-            printStream.close()
         }
-    }
 
     fun restore(
         context: Context,

@@ -197,6 +197,7 @@ class RoyalRoadProvider : MainAPI() {
 
             val reviewContent = textContent?.selectFirst("> div.review-content")
             //if (!showSpoilers) reviewContent?.removeClass("spoiler")
+            reviewContent?.removeClass("spoiler")
             val reviewTxt = reviewContent?.html()
 
             newReview(reviewTxt ?: return@mapNotNull null) {

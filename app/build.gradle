@@ -27,7 +27,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 37
         versionCode 56
-        versionName "3.7.4"
+        versionName "3.7.6"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -106,8 +106,11 @@ dependencies {
     implementation("com.google.android.material:material:1.13.0")
 
     implementation 'androidx.media:media:1.7.1' // Media session aka notification
-    implementation 'com.github.LagradOst:SafeFile:a926e7615a' // To Prevent the URI File Fu*kery
+    //implementation 'com.github.LagradOst:SafeFile:a926e7615a' // To Prevent the URI File Fu*kery
     implementation 'com.jaredrummler:colorpicker:1.1.0'
+
+    // Custom fork for storage with android 23
+    implementation "com.github.lagradost:simplestorage:3ed3a412b701106b4ee11ac230d21bda365f4833"
 
     implementation 'com.github.Blatzar:NiceHttp:0.4.18'
     implementation "io.coil-kt.coil3:coil:3.5.0"

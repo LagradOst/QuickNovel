@@ -58,7 +58,6 @@ import com.lagradost.quicknovel.ui.common.SearchList
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.search.SearchRow
 import kotlinx.coroutines.launch
-import kotlin.uuid.ExperimentalUuidApi
 
 @Composable
 fun MainScreenDialog(
@@ -95,7 +94,6 @@ fun MainScreenDialog(
         })*/
 }
 
-@OptIn(ExperimentalUuidApi::class)
 @Composable
 fun MainPageScreen(state: MainPageState, action: (MainPageAction) -> Unit) {
     if (state.openQuery) {

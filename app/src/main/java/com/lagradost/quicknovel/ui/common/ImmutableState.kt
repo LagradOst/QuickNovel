@@ -46,6 +46,7 @@ import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
 import com.lagradost.quicknovel.EpubResponse
+import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainActivity
@@ -72,7 +73,6 @@ import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
 import me.xdrop.fuzzywuzzy.FuzzySearch
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 
@@ -116,7 +116,7 @@ enum class SearchResponseOperation {
 }
 
 @Immutable
-data class ImmutableChapterData @OptIn(ExperimentalUuidApi::class) constructor(
+data class ImmutableChapterData constructor(
     val name: String,
     val url: String,
     val dateOfRelease: String? = null,
@@ -125,7 +125,6 @@ data class ImmutableChapterData @OptIn(ExperimentalUuidApi::class) constructor(
     val index: Int,
 ) {
     companion object {
-        @OptIn(ExperimentalUuidApi::class)
         fun from(chapter: ChapterData, index: Int): ImmutableChapterData =
             ImmutableChapterData(
                 name = chapter.name,
@@ -138,7 +137,7 @@ data class ImmutableChapterData @OptIn(ExperimentalUuidApi::class) constructor(
 }
 
 @Immutable
-data class ImmutableReview @OptIn(ExperimentalUuidApi::class) constructor(
+data class ImmutableReview constructor(
     val content: String,
     val title: String? = null,
     val username: String? = null,
@@ -151,7 +150,6 @@ data class ImmutableReview @OptIn(ExperimentalUuidApi::class) constructor(
     val randomUuid: Uuid = Uuid.random()
 ) {
     companion object {
-        @OptIn(ExperimentalUuidApi::class)
         fun from(review: UserReview): ImmutableReview =
             ImmutableReview(
                 content = review.review,
@@ -191,6 +189,7 @@ data class ImmutableReview @OptIn(ExperimentalUuidApi::class) constructor(
 data class ImmutableLoadData(
     val related: PersistentList<ImmutableSearchResponse>?,
     val status: ReleaseStatus?,
+    /** TODO add RoaringBitmap for immutable download status, bookmark status and read status */
     val chapters: PersistentList<ImmutableChapterData>?,
     val views: Int?,
     val peopleVoted: Int?,
@@ -213,7 +212,7 @@ data class ImmutableLoadData(
  * The other main field is downloadState which is only non-null on the downloaded "page".
  * */
 @Immutable
-data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
+data class ImmutableSearchResponse(
     /** Name of the item */
     val name: String,
     /** API used for accessing the item */
@@ -248,7 +247,7 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
     val timeOfCached: Long,
     /** The time a "new" chapter got downloaded, also known as "Recently updated" */
     val timeOfChapterDownloaded: Long? = null,
-    /** The time we actually read the item or opened the view, also known as "Recently opened" */
+    /** The time we opened the item in the full results view or read it, also known as "Recently opened" */
     val timeOfPageOpened: Long? = null,
     /** The size of the last written epub in chapters, aka how many chapters have we actually might have read */
     val epubSize: Int? = null,
@@ -315,10 +314,26 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
         }
     }
 
+    fun toResultCached(
+        id: Int,
+    ): ResultCached {
+        return ResultCached(
+            source = url,
+            name = name,
+            apiName = apiName,
+            id = id,
+            author = author,
+            poster = posterUrl,
+            tags = tags,
+            rating = rating,
+            totalChapters = loadData?.chapters?.size ?: 1,
+            cachedTime = System.currentTimeMillis(),
+            synopsis = synopsis,
+            posterHeaders = posterHeaders
+        )
+    }
 
     companion object {
-
-        @OptIn(ExperimentalUuidApi::class)
         fun preview(): ImmutableSearchResponse = ImmutableSearchResponse(
             name = "hello world",
             apiName = "hello world",
@@ -368,6 +383,14 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
         fun chaptersRead(name: String): Int =
             getKey<Int>(EPUB_CURRENT_POSITION, name)?.let { it + 1 } ?: 0
 
+        fun addToHistory(response: ImmutableSearchResponse) {
+            val id = response.id ?: return
+            // we won't add it to history from cache
+            setKey(
+                HISTORY_FOLDER, id.toString(), response.toResultCached(id)
+            )
+        }
+
         fun timeOfPageOpened(id: Int): Long = getKey<Long>(
             DOWNLOAD_EPUB_LAST_ACCESS,
             id.toString(),
@@ -389,7 +412,6 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
             )
         }
 
-        @OptIn(ExperimentalUuidApi::class)
         fun from(response: SearchResponse): ImmutableSearchResponse =
             ImmutableSearchResponse(
                 name = response.name,
@@ -403,7 +425,6 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 chaptersRead = chaptersRead(response.name)
             )
 
-        @OptIn(ExperimentalUuidApi::class)
         fun from(response: LoadResponse): ImmutableSearchResponse {
             val id = generateId(response, response.apiName)
             val epubResponse = (response as? EpubResponse)
@@ -467,7 +488,6 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
         }
 
 
-        @OptIn(ExperimentalUuidApi::class)
         fun from(cache: ResultCached): ImmutableSearchResponse =
             ImmutableSearchResponse(
                 name = cache.name,
@@ -485,7 +505,6 @@ data class ImmutableSearchResponse @ExperimentalUuidApi constructor(
                 chaptersRead = chaptersRead(cache.name)
             )
 
-        @OptIn(ExperimentalUuidApi::class)
         fun from(
             id: Int,
             cache: DownloadFragment.DownloadData,
@@ -757,6 +776,11 @@ val normalSortingMethods = persistentListOf(
         SortingMethodType.LastOpened,
         SortingMethodType.RevLastOpened
     ),
+    /*SortingMethodPair(
+        R.string.recently_visisted_sort,
+        SortingMethodType.LastCached,
+        SortingMethodType.RevLastCached
+    ),*/
     SortingMethodPair(
         R.string.alpha_sort,
         SortingMethodType.Alphabetical,
@@ -766,6 +790,7 @@ val normalSortingMethods = persistentListOf(
         R.string.chapters, SortingMethodType.ChapterCount,
         SortingMethodType.RevChapterCount
     ),
+
 )
 
 /**

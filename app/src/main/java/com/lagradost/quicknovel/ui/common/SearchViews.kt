@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalGridApi
-import androidx.compose.foundation.layout.Grid
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -40,11 +39,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -54,7 +51,6 @@ import coil3.compose.AsyncImage
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.NotificationHelper.etaToString
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.BaseStyles
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.RoundedImageShape
@@ -63,11 +59,9 @@ import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.isLandscape
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
-import com.lagradost.quicknovel.tachiyomi.InfoWidget
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.uuid.ExperimentalUuidApi
 
 @Composable
 fun SearchList(
@@ -137,8 +131,7 @@ fun SearchListRow(
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         items(
-            items = items, key = { item ->
-                @OptIn(ExperimentalUuidApi::class) item.randomUuid
+            items = items, key = { item -> item.randomUuid
             }) { item ->
             SearchResponseRow(
                 response = item, action = searchAction, modifier = Modifier.animateItem()
@@ -253,13 +246,19 @@ fun SearchResponseRow(
 
             val text =
                 if (response.downloadState != null && response.downloadState.progress != response.downloadState.total) {
-                    "${response.downloadState.progress}/${response.downloadState.total}${
+                    "${response.downloadState.progress}/${response.downloadState.total} ${
                         if (response.downloadState.etaMs != null && response.downloadState.status == DownloadState.IsDownloading) {
-                            " • " + etaToString(
+                            "• " + etaToString(
                                 response.downloadState.etaMs
                             )
                         } else {
-                            ""
+                            stringResource(
+                                if (response.chapters == 1L) {
+                                    R.string.chapter
+                                } else {
+                                    R.string.chapters
+                                }
+                            )
                         }
                     }"
                 } else if (response.chapters != null) {
@@ -557,7 +556,6 @@ fun SearchResponseItem(
 }
 
 
-@OptIn(ExperimentalUuidApi::class)
 @Composable
 fun SearchResponseGrid(
     listState: LazyGridState = rememberLazyGridState(),
@@ -613,7 +611,7 @@ fun SearchResponseGrid(
     ) {
         items(
             items = items, key = { item ->
-                @OptIn(ExperimentalUuidApi::class) item.randomUuid
+                item.randomUuid
             }) { response ->
             SearchResponseItem(
                 response = response,

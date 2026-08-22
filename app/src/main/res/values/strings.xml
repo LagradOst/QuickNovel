@@ -48,6 +48,7 @@
     <string name="delete">Delete</string>
     <string name="open_in_browser">Open In Browser</string>
     <string name="select_chapter">Select Chapter</string>
+    <string name="select_location">Select location</string>
     <string name="poster_descript">Poster</string>
     <string name="sort_downloads_descript">Sort Downloads</string>
     <string name="search_providers">Search Providers</string>
@@ -178,12 +179,14 @@
     <string name="twelve_hour_time">12 Hour time</string>
 
 
+    <string name="backup_location">Backup location</string>
     <string name="backup_settings">Backup data</string>
     <string name="restore_success">Loaded backup file</string>
     <string name="restore_failed_format" formatted="true">Failed to restore data from file %s</string>
-    <string name="backup_success">Successfully stored data</string>
+    <string name="backup_success">Successfully stored data at %s</string>
+    <string name="logcat_success">Successfully stored logcat at %s</string>
     <string name="backup_failed">Storage permissions missing, please try again</string>
-    <string name="backup_failed_error_format">Error backing up %s</string>
+    <string name="backup_failed_error_format">Error backing up: %s</string>
     <string name="tts_locale">Language</string>
     <string name="tts_voice">Voice</string>
     <string name="tts_voice_title">TTS Voice</string>
@@ -237,6 +240,7 @@
     <string name="default_sort">Default</string>
     <string name="recently_sort">Recently opened</string>
     <string name="recently_checked_sort">Recently refreshed</string>
+    <string name="recently_visisted_sort">Recently read</string>
     <string name="alpha_sort">Alphabetical</string>
     <string name="download_sort">Download count</string>
     <string name="download_perc">Download percentage</string>
@@ -254,8 +258,12 @@
     <string name="ok">OK</string>
     <string name="more_info">More Info</string>
     <string name="download_path_key">download_path_key</string>
-    <string name="download_path_visual">Download path</string>
-    <string name="download_path_pref">Download path</string>
+
+    <string name="logcat_path_key">logcat_path_key</string>
+    <string name="epub_path_key">epub_path_key</string>
+    <string name="backup_path_key">backup_path_key</string>
+
+    <string name="download_path_pref">Download location</string>
     <string name="bionic_reading">Bionic Reading</string>
     <string name="selectable_text">Selectable text</string>
     <string name="sleep_timer">Sleep</string>
@@ -285,6 +293,7 @@
     <string name="clipboard_unknown_error">Error copying, Please copy logcat and contact app support.</string>
     <string name="show_log_cat">Show Logcat 🐈</string>
     <string name="log_cat">Logcat 🐈</string>
+    <string name="log_cat_location">Logcat location</string>
     <string name="unread">Unread</string>
     <string name="bookmarks">Bookmarks</string>
     <string name="bookmark">Bookmark</string>

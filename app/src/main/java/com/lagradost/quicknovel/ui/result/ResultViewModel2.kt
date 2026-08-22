@@ -8,22 +8,24 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.BaseApplication
+import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
-import com.lagradost.quicknovel.DownloadFileWorkManager
 import com.lagradost.quicknovel.BookDownloader2.openQuickStream
 import com.lagradost.quicknovel.BookDownloader2Helper.createQuickStream
 import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DownloadActionType
+import com.lagradost.quicknovel.DownloadFileWorkManager
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_CHAPTER
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_SCROLL_CHAR
-import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.QuickStreamData
 import com.lagradost.quicknovel.QuickStreamMetaData
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.RESULT_BOOKMARK
+import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
 import com.lagradost.quicknovel.compose.ActionHandler
 import com.lagradost.quicknovel.compose.DefaultEffectContainer
 import com.lagradost.quicknovel.compose.DefaultStateContainer
@@ -37,9 +39,8 @@ import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseOperation
 import com.lagradost.quicknovel.ui.download.DownloadFragment
-import com.lagradost.quicknovel.ui.result.ResultDialog.*
+import com.lagradost.quicknovel.ui.result.ResultDialog.Bookmark
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
-import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.Dispatchers
@@ -47,7 +48,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import java.util.concurrent.CancellationException
-import kotlin.uuid.ExperimentalUuidApi
 
 @Immutable
 data class ResultState(
@@ -61,7 +61,7 @@ data class ResultState(
 
 @Immutable
 sealed class ResultDialog {
-    data class Bookmark(val selected : ReadType) : ResultDialog()
+    data class Bookmark(val selected: ReadType) : ResultDialog()
 }
 
 
@@ -100,37 +100,49 @@ sealed class ResultPageEffect {
 class ResultViewModel2(
     val api: APIRepository,
     val url: String,
+    initializer: ImmutableSearchResponse?,
 ) : ViewModel(), ActionHandler<ResultPageAction>,
-    StateContainer<ResultState> by DefaultStateContainer(ResultState()),
+    StateContainer<ResultState> by DefaultStateContainer(
+        ResultState(
+            response = initializer,
+            bookmark = initializer?.id?.let { getBookmarkState(it) } ?: ReadType.NONE)
+    ),
     EffectContainer<ResultPageEffect> by DefaultEffectContainer() {
     companion object {
         fun provideFactory(bundle: Bundle) = viewModelFactory {
             initializer {
                 val url = bundle.getString("url")!!
                 val apiName = bundle.getString("apiName")!!
-                ResultViewModel2(api = getApiFromName(apiName), url = url)
+                ResultViewModel2(api = getApiFromName(apiName), url = url, initializer = null)
             }
         }
 
-        fun addToHistory(response: ImmutableSearchResponse) {
-            val id = response.id ?: return
-            // we won't add it to history from cache
-
-            setKey(
-                HISTORY_FOLDER, id.toString(), ResultCached(
-                    source = response.url,
-                    name = response.name,
-                    apiName = response.apiName,
-                    id = id,
-                    author = response.author,
-                    poster = response.posterUrl,
-                    tags = response.tags,
-                    rating = response.rating,
-                    totalChapters = response.loadData?.chapters?.size ?: 1,
-                    cachedTime = System.currentTimeMillis(),
-                    synopsis = response.synopsis,
-                    posterHeaders = response.posterHeaders
+        fun provideFactory(response: ImmutableSearchResponse) = viewModelFactory {
+            initializer {
+                ResultViewModel2(
+                    api = getApiFromName(response.apiName),
+                    url = response.url,
+                    initializer = response
                 )
+            }
+        }
+
+        fun setBookmarkState(id: Int, state: ReadType) {
+            setKey(
+                RESULT_BOOKMARK_STATE, id.toString(), state.prefValue
+            )
+        }
+
+        fun getBookmarkState(id: Int): ReadType = ReadType.fromSpinner(
+            getKey<Int>(
+                RESULT_BOOKMARK_STATE, id.toString()
+            )
+        )
+
+
+        fun setBookmarkData(id: Int, response: ImmutableSearchResponse) {
+            setKey(
+                RESULT_BOOKMARK, id.toString(), response.toResultCached(id)
             )
         }
     }
@@ -140,12 +152,25 @@ class ResultViewModel2(
             api.loadResult(url).onFailure { error ->
                 updateState { copy(responseError = error, loadingResponse = false) }
             }.onSuccess { value ->
+                val id = value.id ?: throw IllegalStateException("loadResult must give an id")
+                val bookmarkState = getBookmarkState(id)
                 updateState {
                     copy(
                         response = value,
                         loadingResponse = false,
-                        responseError = null
+                        responseError = null,
+                        bookmark = bookmarkState
                     )
+                }
+
+                // Mark as opened
+                ImmutableSearchResponse.setTimeOfPageOpened(id, System.currentTimeMillis())
+                BookDownloader2.openChanged(id)
+
+                // When we open this we can update the cached data in downloads
+                if(bookmarkState != ReadType.NONE) {
+                    setBookmarkData(id, value)
+                    BookDownloader2.bookmarkChanged(id)
                 }
             }
         }
@@ -173,7 +198,6 @@ class ResultViewModel2(
             if (id != response?.id) {
                 this
             } else {
-                @OptIn(ExperimentalUuidApi::class)
                 copy(response = response.copy(downloadState = ImmutableDownloadState.from(newState)))
             }
         }
@@ -188,7 +212,18 @@ class ResultViewModel2(
     }
 
     private fun onBookmarkChanged(id: Int) = viewModelScope.launch {
-
+        if (id != state.value.response?.id) {
+            return@launch
+        }
+        updateState {
+            val id = response?.id
+            if (id == null) {
+                // how?
+                this
+            } else {
+                copy(bookmark = getBookmarkState(id))
+            }
+        }
     }
 
     private fun onRefreshingChanged(item: BookDownloader2.RefreshQuery) = viewModelScope.launch {
@@ -200,7 +235,6 @@ class ResultViewModel2(
             if (name != response?.name) {
                 this
             } else {
-                @OptIn(ExperimentalUuidApi::class)
                 copy(
                     response = response.copy(
                         chaptersRead = ImmutableSearchResponse.chaptersRead(name),
@@ -242,8 +276,13 @@ class ResultViewModel2(
             }
 
             is ResultPageAction.SetBookmark -> {
-                updateState {
-                    copy(bookmark = action.type)
+                val response = state.value.response
+                val id = response?.id
+                if (id != null) {
+                    // Do note that bookmarkChanged invoked the UI change, so this does not have to change state
+                    setBookmarkState(id, action.type)
+                    setBookmarkData(id, response)
+                    BookDownloader2.bookmarkChanged(id)
                 }
             }
         }
@@ -306,7 +345,6 @@ class ResultViewModel2(
     private fun chapterAction(action: ResultPageAction.ChapterAction) {
         when (action.operation) {
             ChapterOperation.Stream -> {
-                addToHistory(response = action.response)
                 val chapters = action.response.loadData?.chapters ?: persistentListOf()
                 if (chapters.isEmpty()) {
                     viewModelScope.launch {
@@ -318,6 +356,7 @@ class ResultViewModel2(
                 }
 
                 try {
+                    // TODO refactor this to use bookdownloader when we deprecate reviewviewmodel1
                     val uri =
                         activity?.createQuickStream(
                             QuickStreamData(
@@ -338,6 +377,7 @@ class ResultViewModel2(
                             )
                         )
 
+                    ImmutableSearchResponse.addToHistory(response = action.response)
                     setKey(EPUB_CURRENT_POSITION, action.response.name, action.chapter.index)
                     setKey(
                         EPUB_CURRENT_POSITION_CHAPTER,
@@ -373,7 +413,6 @@ class ResultViewModel2(
             }
 
             SearchResponseOperation.Read -> {
-                addToHistory(action.response)
                 readEpub(action.response)
             }
 
@@ -426,37 +465,21 @@ class ResultViewModel2(
 
     private fun readEpub(response: ImmutableSearchResponse) = viewModelScope.launch {
         withContext(Dispatchers.Default) {
-
-            val id = response.id!!
             val downloadState = response.downloadState!!
             try {
                 if (response.isImported && downloadState.progress < downloadState.total) {
                     updateState {
-                        @OptIn(ExperimentalUuidApi::class)
                         copy(response = this@updateState.response?.copy(generating = true))
                     }
                     BookDownloader2.preloadPartialImportedPdf(response)
                 }
-                BookDownloader2.readEpub(
-                    id,
-                    downloadState.progress.toInt(),
-                    response.author,
-                    response.name,
-                    response.apiName,
-                    response.synopsis
-                ) {
+                BookDownloader2.readEpub(response) {
                     updateState {
-                        @OptIn(ExperimentalUuidApi::class)
                         copy(response = this@updateState.response?.copy(generating = true))
                     }
                 }
             } finally {
-                val newTimeOfPageOpened = System.currentTimeMillis()
-                ImmutableSearchResponse.setTimeOfPageOpened(id, newTimeOfPageOpened)
-                BookDownloader2.chapterReadChanged(response.name)
-
                 updateState {
-                    @OptIn(ExperimentalUuidApi::class)
                     copy(response = this@updateState.response?.copy(generating = false))
                 }
             }

@@ -199,7 +199,7 @@
     <!-- Copias de Seguridad (Backup) -->
     <string name="backup_settings">Copia de seguridad</string>
     <string name="restore_settings">Restaurar datos desde copia de seguridad</string>
-    <string name="backup_success">Copia de seguridad realizada con éxito</string>
+    <string name="backup_success">Copia de seguridad realizada con éxito %s</string>
     <string name="backup_failed">Fallo al respaldar, verifique permisos de almacenamiento</string>
     <string name="restore_success">Copia de seguridad cargada con éxito</string>
     <string name="restore_failed_format" formatted="true">Error al restaurar desde %s</string>

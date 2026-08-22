@@ -46,8 +46,9 @@ import androidx.compose.ui.window.DialogProperties
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.ErrorLoadingException
+import com.lagradost.quicknovel.FileHelper
+import com.lagradost.quicknovel.FileStorage
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.BaseStyles
 import com.lagradost.quicknovel.compose.BaseStyles.blackButtonColors
 import com.lagradost.quicknovel.compose.BaseStyles.whiteButtonColors
 import com.lagradost.quicknovel.compose.CloudStreamPrimaryColor
@@ -60,31 +61,24 @@ import com.lagradost.quicknovel.compose.perfToMode
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.mvvm.logError
-import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
 import com.lagradost.quicknovel.tachiyomi.Preference
 import com.lagradost.quicknovel.tachiyomi.SearchableSettings
 import com.lagradost.quicknovel.tachiyomi.TextPreferenceWidget
-import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getBasePath
-import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getDefaultDir
-import com.lagradost.quicknovel.ui.settings.SettingsFragment.Companion.getDownloadDirs
 import com.lagradost.quicknovel.ui.txt
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.AppUtils.openInBrowser
 import com.lagradost.quicknovel.util.BackupUtils
-import com.lagradost.quicknovel.util.BackupUtils.setupStream
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.util.SubtitleHelper
 import com.lagradost.quicknovel.util.UIHelper.clipboardHelper
-import com.lagradost.safefile.SafeFile
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.IOException
-import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -94,40 +88,72 @@ class SettingScreen : SearchableSettings {
     override fun getTitleRes(): String = stringResource(R.string.title_settings)
 
     @Composable
-    override fun getPreferences(): List<Preference> {
+    fun getFilePreference(
+        storage : FileStorage,
+        store : AndroidPreferenceStore,
+        name : String,
+    ) : Preference.PreferenceItem<String> {
         val context = LocalContext.current
-        val store = AndroidPreferenceStore(context)
-        val scope = rememberCoroutineScope()
-        val downloadKeyStore = store.getString(stringResource(R.string.download_path_key))
-
-        val downloadVisualStore = store.getString(
-            stringResource(R.string.download_path_visual),
-            safe { getDefaultDir(context)?.filePath() } ?: stringResource(R.string.unknown)
-        )
+        val epubPathStore = storage.toPreference(context, store)
 
         val pathPicker =
             rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
                 // It lies, it can be null if file manager quits.
                 if (uri == null) return@rememberLauncherForActivityResult
-                val context = context
-                // RW perms for the path
-                val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-
-                context.contentResolver.takePersistableUriPermission(uri, flags)
-
-                val file = SafeFile.fromUri(context, uri)
-                val filePath = file?.filePath()
-                println("Selected URI path: $uri - Full path: $filePath")
-
-                // Stores the real URI using download_path_key
-                // Important that the URI is stored instead of filepath due to permissions.
-                downloadKeyStore.set(uri.toString())
-
-                // From URI -> File path
-                // File path here is purely for cosmetic purposes in settings
-                downloadVisualStore.set(filePath ?: uri.toString())
+                try {
+                    context.contentResolver.takePersistableUriPermission(
+                        uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                                Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    )
+                } catch (t: Throwable) {
+                    // remote shit can throw
+                    logError(t)
+                }
+                storage.setLocation(context, uri)
             }
+        return Preference.PreferenceItem.ListPreference(
+            title = name,
+            icon = painterResource(R.drawable.netflix_download),
+            pref = epubPathStore,
+            subtitleProvider = { _, _ ->
+                storage.getVisualLocation(context)
+            },
+            entries =
+                persistentMapOf(
+                    storage.defaultLocation to storage.defaultLocation,
+                    "Custom" to stringResource(R.string.select_location)
+                ).toPersistentMap(),
+            onValueChanged = { value ->
+                when (value) {
+                    "Custom" -> {
+                        try {
+                            pathPicker.launch(Uri.EMPTY)
+                        } catch (t : Throwable) {
+                            logError(t)
+                            showToast(t.toString())
+                        }
+                    }
+                    else -> storage.setLocation(context, null)
+                }
+                return@ListPreference false
+            }
+        )
+    }
+
+    @Composable
+    override fun getPreferences(): List<Preference> {
+        val context = LocalContext.current
+        val store = AndroidPreferenceStore(context)
+        val scope = rememberCoroutineScope()
+
+        /*val backupPathStore = FileHelper.backup.toPreference(context, store)
+        val backupPath = backupPathStore.collectAsState()
+        val logcatPathStore = FileHelper.logcat.toPreference(context, store)
+        val logcatPath = backupPathStore.collectAsState()*/
+
+        val logcat = getFilePreference(FileHelper.logcat, store, stringResource(R.string.log_cat_location))
+        val backup = getFilePreference(FileHelper.backup, store, stringResource(R.string.backup_location))
+        val downloads = getFilePreference(FileHelper.epub, store, stringResource(R.string.download_path_pref))
 
         val restoreFileSelector =
             rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -281,6 +307,7 @@ class SettingScreen : SearchableSettings {
                     Preference.PreferenceItem.TextPreference(
                         icon = painterResource(R.drawable.baseline_save_as_24),
                         title = stringResource(R.string.backup_settings),
+                        subtitle = null,
                         onClick = {
                             scope.launch {
                                 BackupUtils.createBackupFile(context, activity)
@@ -290,7 +317,7 @@ class SettingScreen : SearchableSettings {
                                             showToast(
                                                 txt(
                                                     R.string.backup_failed_error_format,
-                                                    error.toString()
+                                                    error.message
                                                 ),
                                                 Toast.LENGTH_LONG
                                             )
@@ -301,15 +328,16 @@ class SettingScreen : SearchableSettings {
                                             )
                                         }
                                     }
-                                    .onSuccess {
+                                    .onSuccess { location ->
                                         showToast(
-                                            R.string.backup_success,
+                                            txt(R.string.backup_success, location),
                                             Toast.LENGTH_LONG
                                         )
                                     }
                             }
                         }
                     ),
+                    backup,
                     Preference.PreferenceItem.TextPreference(
                         icon = painterResource(R.drawable.baseline_restore_page_24),
                         title = stringResource(R.string.restore_settings),
@@ -354,29 +382,7 @@ class SettingScreen : SearchableSettings {
                             true,
                         ),
                     ),
-                    Preference.PreferenceItem.ListPreference(
-                        title = stringResource(R.string.download_path_pref),
-                        icon = painterResource(R.drawable.netflix_download),
-                        pref = downloadVisualStore,
-                        subtitleProvider = { v, e ->
-                            e[v] ?: v
-                        },
-                        entries = (getDownloadDirs(context) + "Custom").associateWith { it }
-                            .toPersistentMap(),
-                        onValueChanged = { value ->
-                            if (value != "Custom") {
-                                downloadKeyStore.set(value)
-                                true
-                            } else {
-                                try {
-                                    pathPicker.launch(Uri.EMPTY)
-                                } catch (t: Throwable) {
-                                    logError(t)
-                                }
-                                false
-                            }
-                        }
-                    ),
+                    downloads,
                 )
             ),
             Preference.PreferenceGroup(
@@ -399,9 +405,9 @@ class SettingScreen : SearchableSettings {
                                     showDialog = false
                                 }
                             }
-
                         }
                     ),
+                    logcat,
 
                     Preference.PreferenceItem.TextPreference(
                         icon = painterResource(R.drawable.ic_github_logo),
@@ -456,6 +462,7 @@ fun LogcatDialog(dismiss: () -> Unit) {
     }
 
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     AlertDialog(
         containerColor = colors.background,
         onDismissRequest = dismiss,
@@ -472,30 +479,41 @@ fun LogcatDialog(dismiss: () -> Unit) {
         confirmButton = {
             Button(
                 onClick = {
-                    val date = SimpleDateFormat("yyyy_MM_dd_HH_mm", Locale.getDefault()).format(
-                        Date(System.currentTimeMillis())
-                    )
-                    var fileStream: OutputStream?
-                    try {
-                        fileStream = setupStream(
-                            context,
-                            "logcat_${date}",
-                            "txt",
-                            context.getBasePath().first ?: getDefaultDir(context)
-                            ?: throw IOException("No file")
-                        ) ?: throw ErrorLoadingException("No stream")
+                    scope.launch {
+                        withContext(Dispatchers.IO) {
+                            try {
+                                val date = SimpleDateFormat(
+                                    "yyyy_MM_dd_HH_mm",
+                                    Locale.getDefault()
+                                ).format(
+                                    Date(System.currentTimeMillis())
+                                )
 
-                        fileStream.writer().use { writer ->
-                            list.value.forEach {
-                                writer.write(it.toString())
-                                writer.write("\n\n")
+                                val file = FileHelper.logcat.createFile(context, "logcat_${date}")
+                                    ?: throw ErrorLoadingException("Unable to create file")
+                                val stream = file.openOutputStream(append = false)
+                                    ?: throw ErrorLoadingException("Unable to create stream")
+
+                                stream.bufferedWriter()
+                                    .use { writer ->
+                                        list.value.forEach {
+                                            writer.write(it.toString())
+                                            writer.write("\n\n")
+                                        }
+                                    }
+                                dismiss()
+                                showToast(
+                                    txt(
+                                        R.string.logcat_success,
+                                        file.absolutePath ?: file.uri.toString()
+                                    ),
+                                    Toast.LENGTH_LONG
+                                )
+                            } catch (t: Throwable) {
+                                logError(t)
+                                showToast(t.message)
                             }
                         }
-                        dismiss()
-                        showToast(R.string.downloaded)
-                    } catch (t: Throwable) {
-                        logError(t)
-                        showToast(t.message)
                     }
                 }, colors = whiteButtonColors
             ) { Text(text = stringResource(R.string.save)) }
