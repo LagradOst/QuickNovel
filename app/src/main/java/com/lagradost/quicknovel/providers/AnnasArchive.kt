@@ -8,6 +8,7 @@ import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.DownloadExtractLink
 import com.lagradost.quicknovel.DownloadLink
 import com.lagradost.quicknovel.DownloadLinkType
+import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
@@ -15,6 +16,8 @@ import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.USER_AGENT
 import com.lagradost.quicknovel.fixUrlNull
+import com.lagradost.quicknovel.network.WebViewResolver
+import com.lagradost.quicknovel.network.utils.CookiesUtils
 import com.lagradost.quicknovel.newEpubResponse
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.util.Coroutines.main
@@ -73,7 +76,25 @@ class AnnasArchive : MainAPI() {
         val contentParam = if (!tag.isNullOrBlank()) "&content=$tag" else ""
         val srcParam = if (!orderBy.isNullOrBlank()) "&src=$orderBy" else ""
         val url = "$mainUrl/search?index=&page=$page&sort=$langParam$contentParam$srcParam&ext=epub"
-        val document = app.get(url).document
+        var document = app.get(url, cookies = CookiesUtils.getAllCookiesForUrl(mainUrl)).document
+        if(document.selectFirst("div.js-aarecord-list-outer") == null){
+            val script = """
+                                 (function() {
+                                     var checkInterval = setInterval(function() {
+                                         var element = document.querySelector("div.js-aarecord-list-outer");
+                                         if (element.innerText.trim().length > 0) {
+                                             clearInterval(checkInterval);
+                                             NativeAndroid.onElementFound(element.outerHTML);
+                                         }
+                                     }, 1000);
+                                     setTimeout(function() { clearInterval(checkInterval); }, 30000);
+                                 })();
+                             """.trimIndent()
+            val docString = WebViewResolver(scriptToFinish = script, useOkhttp = false).resolveUsingWebView(url)
+            document = Jsoup.parse(docString ?: "")
+        }
+
+
         val returnValue = document.select("div.js-aarecord-list-outer > div").mapNotNull { node ->
             val a = node.selectFirst("a.line-clamp-\\[3\\]")
             val href = fixUrlNull(a?.attr("href")) ?: return@mapNotNull null
@@ -91,7 +112,7 @@ class AnnasArchive : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val url =
             "$mainUrl/search?index=&page=1&sort=&ext=epub&display=&q=${query.replace(" ", "+")}"
-        val text = app.get(url).text.replace(
+        val text = app.get(url, cookies = CookiesUtils.getAllCookiesForUrl(mainUrl)).text.replace(
             Regex("<!--([\\W\\w]*?)-->")
         ) { it.groupValues[1] }
 
@@ -137,11 +158,11 @@ class AnnasArchive : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document
+        val document = app.get(url, cookies = CookiesUtils.getAllCookiesForUrl(mainUrl)).document
         var slowLink: String? = null
 
         return newEpubResponse(
-            name = document.selectFirst("div.text-2xl")?.ownText()!!,
+            name = document.selectFirst("div.text-2xl")?.ownText() ?: throw ErrorLoadingException("No title found"),
             url = url,
             links = document.select("ul.mb-4 > li").mapNotNull { element ->
                 val link = fixUrlNull(element.selectFirst("a.js-download-link")?.attr("href"))
@@ -149,15 +170,12 @@ class AnnasArchive : MainAPI() {
 
                 if (link.contains("fast_download")) return@mapNotNull null
 
-                // Cambio aquí: Usamos el WebView para el link de espera
                 if (element.text().contains("no waitlist")) {
                     if (slowLink == null) {
-                        // Llamamos a nuestra nueva función
                         slowLink = getSlowLinkWithWebView(link)
-                        println("consiguio el link?: $slowLink")
                     }
                     return@mapNotNull if (slowLink != null) extract(
-                        slowLink!!,
+                        slowLink,
                         element.text(),
                         true
                     ) else null
@@ -173,70 +191,19 @@ class AnnasArchive : MainAPI() {
         }
     }
 
-    @SuppressLint("SetJavaScriptEnabled")
-    /*
-        Before you guys kill me, I really, really tried every other way.
-        I heavily modified CloudflareKiller and DDoS-Guard still beat me—they have impressive
-        security for a pirate site! As a last resort, I mimicked the CloudflareKiller logic
-        and used a WebView directly to get the link I needed. This was the only solution that
-        actually worked. I think Anna’s Archive is too important to lose, so I felt using a heavy
-        measure like a WebView was worth it to keep all those books available.
-    * */
     private suspend fun getSlowLinkWithWebView(url: String): String? {
-        val deferred = CompletableDeferred<String?>()
-
-        main {
-            val ctx = context.let { ctx ->
-                if (ctx == null) {
-                    deferred.complete(null)
-                    return@main
-                } else ctx
-            }
-            val webView = WebView(ctx)
-            webView.settings.javaScriptEnabled = true
-            webView.settings.domStorageEnabled = true
-            webView.settings.userAgentString = USER_AGENT
-
-            //bridge between JavaScript and kotlin. very important.
-            webView.addJavascriptInterface(object {
-                @JavascriptInterface
-                //this will be called in JavaScript text bellow
-                fun onElementFound(html: String) {
-                    deferred.complete(html)
-                }
-            }, "NativeAndroid")
-
-            //this will check and look for the book url
-            webView.webViewClient = object : WebViewClient() {
-                override fun onPageFinished(view: WebView?, url: String?) {
-                    val js = """
-                        (function() {
-                            var checkInterval = setInterval(function() {
-                                // selector específico: el span dentro del párrafo con clase mb-4
+        val script = """
+                         (function() {
+                             var checkInterval = setInterval(function() {
                                 var element = document.querySelector("main > div > p.mb-4.text-xs > span > span");
                                 if (element && element.innerText.trim().length > 0) {
                                     clearInterval(checkInterval);
                                     NativeAndroid.onElementFound(element.innerText.trim());
                                 }
-                            }, 1000);
-                        })();
-                    """.trimIndent()
-                    view?.evaluateJavascript(js, null)
-                }
-            }
-
-            //start loading the page
-            webView.loadUrl(url)
-
-            withTimeoutOrNull(45000.milliseconds) {
-                deferred.await()
-                main {
-                    webView.stopLoading()
-                    webView.destroy()
-                }
-            }
-        }
-
-        return withTimeoutOrNull(46000.milliseconds) { deferred.await() }
+                             }, 1000);
+                             setTimeout(function() { clearInterval(checkInterval); }, 30000);
+                         })();
+                     """.trimIndent()
+        return WebViewResolver(scriptToFinish = script, useOkhttp = false).resolveUsingWebView(url)
     }
 }
