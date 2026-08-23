@@ -326,7 +326,7 @@ data class ImmutableSearchResponse(
             poster = posterUrl,
             tags = tags,
             rating = rating,
-            totalChapters = loadData?.chapters?.size ?: 1,
+            totalChapters = loadData?.chapters?.size ?: downloadState?.total?.toInt() ?: 1,
             cachedTime = System.currentTimeMillis(),
             synopsis = synopsis,
             posterHeaders = posterHeaders
