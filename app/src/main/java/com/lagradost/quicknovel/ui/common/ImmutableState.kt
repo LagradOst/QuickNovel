@@ -533,7 +533,11 @@ data class ImmutableSearchResponse(
 
     fun doAction(operation: SearchResponseOperation) {
         when (operation) {
-            SearchResponseOperation.Open -> loadResult(url, apiName)
+            SearchResponseOperation.Open ->{
+                if(!isImported) {
+                    loadResult(url, apiName)
+                }
+            }
             SearchResponseOperation.Metadata -> {
                 MainActivity.loadPreviewPage(this)
             }

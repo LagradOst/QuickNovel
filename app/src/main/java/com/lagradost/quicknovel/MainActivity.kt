@@ -684,8 +684,10 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         readMore.setOnClickListener {
-                            loadResult(d.url, viewModel.apiName)
-                            hidePreviewPopupDialog()
+                            if(!d.isImported) {
+                                loadResult(d.url, viewModel.apiName)
+                                hidePreviewPopupDialog()
+                            }
                         }
 
                         readMore.isVisible =
@@ -699,16 +701,20 @@ class MainActivity : AppCompatActivity() {
                         resultviewPreviewPoster.apply {
                             setImage(d.downloadImage())
                             setOnClickListener {
-                                loadResult(d.url, viewModel.apiName)
-                                hidePreviewPopupDialog()
+                                if(!d.isImported) {
+                                    loadResult(d.url, viewModel.apiName)
+                                    hidePreviewPopupDialog()
+                                }
                             }
                         }
 
                         resultviewPreviewTitle.text = d.name
 
                         resultviewPreviewMoreInfo.setOnClickListener {
-                            loadResult(d.url, viewModel.apiName)
-                            hidePreviewPopupDialog()
+                            if(!d.isImported) {
+                                loadResult(d.url, viewModel.apiName)
+                                hidePreviewPopupDialog()
+                            }
                         }
 
                         resultviewPreviewDescription.text =

@@ -16,6 +16,7 @@ import com.lagradost.quicknovel.ui.img
 import com.lagradost.quicknovel.util.DefaultImagesHeaders
 import kotlinx.coroutines.sync.Mutex
 import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
 
 const val USER_AGENT =
     "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
@@ -131,6 +132,7 @@ val String?.textClean: String?
 fun packageAsXHtml(title: String, bodyHtml: String): String {
     return """
         <?xml version='1.0' encoding='utf-8'?>
+        <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd"> 
         <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
         <head>
             <title>$title</title>
@@ -144,15 +146,11 @@ fun packageAsXHtml(title: String, bodyHtml: String): String {
 }
 
 fun stripHtml(
-    document: Document,
+    document: Element,
     chapterName: String? = null,
     chapterIndex: Int? = null,
-    stripAuthorNotes: Boolean
 ): String {
     try {
-        if (stripAuthorNotes) {
-            document.select("div.qnauthornotecontainer").remove()
-        }
         if (chapterName != null && chapterIndex != null) {
             for (a in document.allElements) {
                 if (a != null && a.hasText() &&
@@ -296,6 +294,9 @@ interface LoadResponse {
     val apiName: String
     var related: List<SearchResponse>?
     var reviewData : String?
+
+    val isImported: Boolean get() = (apiName == IMPORT_SOURCE || apiName == IMPORT_SOURCE_PDF)
+
     fun downloadImage(): UiImage? {
 
         return if ((apiName == IMPORT_SOURCE || apiName == IMPORT_SOURCE_PDF)) {
