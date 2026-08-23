@@ -299,6 +299,7 @@
     <string name="bookmark">Bookmark</string>
     <string name="read">Read</string>
     <string name="import_epub">Import a book</string>
+    <string name="import_epubs">Import books</string>
     <string name="show_authors_notes">Show authors notes</string>
 
     <!-- Some errors -->
