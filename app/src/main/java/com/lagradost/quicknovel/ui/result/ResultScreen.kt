@@ -71,6 +71,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.R
@@ -85,10 +86,12 @@ import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.mvvm.safe
+import com.lagradost.quicknovel.providers.RoyalRoadProvider
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.common.DownloadStateAction
 import com.lagradost.quicknovel.ui.common.HorizontalTab
 import com.lagradost.quicknovel.ui.common.ImmutableChapterData
+import com.lagradost.quicknovel.ui.common.ImmutableChapterList
 import com.lagradost.quicknovel.ui.common.ImmutableDownloadState
 import com.lagradost.quicknovel.ui.common.ImmutableReview
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
@@ -103,6 +106,7 @@ import com.lagradost.quicknovel.ui.common.SearchResponseOperation
 import com.lagradost.quicknovel.ui.common.html
 import com.lagradost.quicknovel.ui.common.loading
 import com.lagradost.quicknovel.ui.common.loadingLineMargin
+import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.AppUtils.openInBrowser
 import com.lagradost.quicknovel.util.SettingsHelper.getRating
 import com.lagradost.quicknovel.util.SettingsHelper.getRatingReview
@@ -110,6 +114,7 @@ import com.lagradost.quicknovel.util.UIHelper.humanReadableByteCountSI
 import com.lagradost.quicknovel.util.toPx
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 
@@ -195,8 +200,18 @@ fun ResultScreenImpl(
     val isPosterShown = remember { mutableStateOf(false) }
 
     val tabNames = persistentListOf(
-        R.string.novel, R.string.reviews, R.string.related, R.string.chapters
-    )
+        R.string.novel
+    ).mutate { list ->
+        if (!state.loadingResponse && state.api.hasReviews) {
+            list.add(R.string.reviews)
+        }
+        if (!response.loadData?.related.isNullOrEmpty()) {
+            list.add(R.string.related)
+        }
+        if (state.chapters != null) {
+            list.add(R.string.chapters)
+        }
+    }
     val pagerState = rememberPagerState(
         initialPage = 0,
         pageCount = { tabNames.size }
@@ -289,7 +304,7 @@ fun ResultScreenImpl(
         }
 
         LazyColumn(modifier = Modifier.fillMaxSize(), state = outerListState) {
-            item {
+            item(key = "top spacer") {
                 Spacer(
                     Modifier
                         .height(170.dp + padding.calculateTopPadding())
@@ -302,7 +317,7 @@ fun ResultScreenImpl(
                             })
                 )
             }
-            item {
+            item(key = "bookmark holder") {
                 Column(
                     modifier = Modifier
                         .clip(RoundedCornerShape(15.dp, 15.dp))
@@ -344,15 +359,18 @@ fun ResultScreenImpl(
                     }
                 }
             }
-            item {
-                HorizontalTab(
-                    edgePadding = 15.dp,
-                    pagerState = pagerState,
-                    names = tabNames,
-                    containerColor = colors.background
-                )
+            if (tabNames.size > 1) {
+                item(key = "tab layout") {
+                    HorizontalTab(
+                        edgePadding = 15.dp,
+                        pagerState = pagerState,
+                        names = tabNames,
+                        containerColor = colors.background
+                    )
+                }
             }
-            item {
+
+            item(key = "content") {
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier
@@ -360,12 +378,12 @@ fun ResultScreenImpl(
                         .background(colors.background),
                     verticalAlignment = Alignment.Top
                 ) { page ->
-                    when (page) {
-                        0 -> {
+                    when (tabNames[page]) {
+                        R.string.novel -> {
                             NovelPage(state, action)
                         }
 
-                        1 -> {
+                        R.string.reviews -> {
                             ReviewsPage(
                                 loadingReviews = state.reviews.loading,
                                 reviews = state.reviews.items,
@@ -374,7 +392,7 @@ fun ResultScreenImpl(
                             )
                         }
 
-                        2 -> {
+                        R.string.related -> {
                             RelatedPage(
                                 nestedScrollConnection = parentFirstScrollConnection,
                                 related = response.loadData?.related ?: persistentListOf(),
@@ -382,13 +400,16 @@ fun ResultScreenImpl(
                             )
                         }
 
-                        3 -> {
-                            ChapterPage(
-                                response = response,
-                                chapters = response.loadData?.chapters ?: persistentListOf(),
-                                action = action,
-                                nestedScrollConnection = parentFirstScrollConnection
-                            )
+                        R.string.chapters -> {
+                            val chapters = state.chapters
+                            if (chapters != null) {
+                                ChapterPage(
+                                    response = response,
+                                    chapters = chapters,
+                                    action = action,
+                                    nestedScrollConnection = parentFirstScrollConnection
+                                )
+                            }
                         }
 
                         else -> {
@@ -437,7 +458,7 @@ fun ResultScreenImpl(
 @Composable
 fun ChapterPage(
     response: ImmutableSearchResponse,
-    chapters: PersistentList<ImmutableChapterData>,
+    chapters: ImmutableChapterList,
     action: (ResultPageAction) -> Unit,
     nestedScrollConnection: NestedScrollConnection
 ) {
@@ -447,10 +468,10 @@ fun ChapterPage(
             .nestedScroll(nestedScrollConnection)
             .background(colors.background),
     ) {
-        items(chapters, key = { item ->
+        items(chapters.sorted, key = { item ->
             item.randomUuid
-        }) { review ->
-            ChapterItem(response, review, action = action, modifier = Modifier.animateItem())
+        }) { chapter ->
+            ChapterItem(response, chapter, action = action, modifier = Modifier.animateItem())
         }
     }
 }
@@ -1040,7 +1061,8 @@ fun LoadingPreview() {
                 state = ResultState(
                     loadingResponse = false,
                     responseError = null,
-                    response = ImmutableSearchResponse.preview()
+                    response = ImmutableSearchResponse.preview(),
+                    api = APIRepository(RoyalRoadProvider())
                 )
             ) { }
         }

@@ -20,6 +20,8 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
@@ -151,15 +153,50 @@ fun DownloadScreen(
                     )
                 },
                 trailingIcon = {
-                    IconButton(onClick = {
-                        downloadIsRow.set(!downloadIsRowState)
-                    }) {
-                        Icon(
-                            painter = painterResource(if (downloadIsRowState) R.drawable.ic_baseline_grid_view_24 else R.drawable.ic_baseline_list_24),
-                            contentDescription = stringResource(if (downloadIsRowState) R.string.grid_view else R.string.list_view),
-                            modifier = Modifier.size(24.dp),
-                            tint = colors.onBackground
-                        )
+                    Row {
+                        var expanded by remember { mutableStateOf(false) }
+
+                        IconButton(onClick = {
+                            expanded = true
+                        }) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_baseline_add_24),
+                                contentDescription = stringResource(R.string.import_epub),
+                                modifier = Modifier.size(24.dp),
+                                tint = colors.onBackground
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.import_epub)) },
+                                onClick = {
+                                    expanded = false
+                                    MainActivity.importEpub()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.import_epubs)) },
+                                onClick = {
+                                    expanded = false
+                                    MainActivity.importEpubs()
+                                }
+                            )
+                        }
+
+                        IconButton(onClick = {
+                            downloadIsRow.set(!downloadIsRowState)
+                        }) {
+                            Icon(
+                                painter = painterResource(if (downloadIsRowState) R.drawable.ic_baseline_grid_view_24 else R.drawable.ic_baseline_list_24),
+                                contentDescription = stringResource(if (downloadIsRowState) R.string.grid_view else R.string.list_view),
+                                modifier = Modifier.size(24.dp),
+                                tint = colors.onBackground
+                            )
+                        }
                     }
                 },
                 placeholder = stringResource(R.string.search_downloads)

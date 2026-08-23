@@ -26,18 +26,22 @@ import com.lagradost.quicknovel.QuickStreamMetaData
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
+import com.lagradost.quicknovel.RESULT_SORTING_METHOD
 import com.lagradost.quicknovel.compose.ActionHandler
 import com.lagradost.quicknovel.compose.DefaultEffectContainer
 import com.lagradost.quicknovel.compose.DefaultStateContainer
 import com.lagradost.quicknovel.compose.EffectContainer
 import com.lagradost.quicknovel.compose.StateContainer
 import com.lagradost.quicknovel.ui.ReadType
+import com.lagradost.quicknovel.ui.common.ChapterSortingMethodType
 import com.lagradost.quicknovel.ui.common.ImmutableChapterData
+import com.lagradost.quicknovel.ui.common.ImmutableChapterList
 import com.lagradost.quicknovel.ui.common.ImmutableDownloadState
 import com.lagradost.quicknovel.ui.common.ImmutableReview
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseOperation
+import com.lagradost.quicknovel.ui.download.DEFAULT_SORT
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.result.ResultDialog.Bookmark
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
@@ -52,11 +56,13 @@ import java.util.concurrent.CancellationException
 @Immutable
 data class ResultState(
     val response: ImmutableSearchResponse? = null,
+    val chapters: ImmutableChapterList? = null,
     val responseError: Throwable? = null,
     val loadingResponse: Boolean = true,
     val reviews: ResultReviewState = ResultReviewState(),
     val bookmark: ReadType = ReadType.NONE,
-    val dialog: ResultDialog? = null
+    val dialog: ResultDialog? = null,
+    val api: APIRepository,
 )
 
 @Immutable
@@ -105,10 +111,23 @@ class ResultViewModel2(
     StateContainer<ResultState> by DefaultStateContainer(
         ResultState(
             response = initializer,
-            bookmark = initializer?.id?.let { getBookmarkState(it) } ?: ReadType.NONE)
+            bookmark = initializer?.id?.let { getBookmarkState(it) } ?: ReadType.NONE,
+            chapters = newChaptersList(initializer),
+            api = api)
     ),
     EffectContainer<ResultPageEffect> by DefaultEffectContainer() {
     companion object {
+        fun newChaptersList(initializer: ImmutableSearchResponse?): ImmutableChapterList? {
+            val chapters = initializer?.loadData?.chapters ?: return null
+            val id = initializer.id ?: return null
+
+            val method = ChapterSortingMethodType.from(
+                getKey<Int>(RESULT_SORTING_METHOD, id.toString()) ?: DEFAULT_SORT
+            )
+
+            return ImmutableChapterList.new(chapters, query = "", sortingMethod = method)
+        }
+
         fun provideFactory(bundle: Bundle) = viewModelFactory {
             initializer {
                 val url = bundle.getString("url")!!
@@ -159,7 +178,8 @@ class ResultViewModel2(
                         response = value,
                         loadingResponse = false,
                         responseError = null,
-                        bookmark = bookmarkState
+                        bookmark = bookmarkState,
+                        chapters = newChaptersList(value)
                     )
                 }
 
@@ -168,7 +188,7 @@ class ResultViewModel2(
                 BookDownloader2.openChanged(id)
 
                 // When we open this we can update the cached data in downloads
-                if(bookmarkState != ReadType.NONE) {
+                if (bookmarkState != ReadType.NONE) {
                     setBookmarkData(id, value)
                     BookDownloader2.bookmarkChanged(id)
                 }
