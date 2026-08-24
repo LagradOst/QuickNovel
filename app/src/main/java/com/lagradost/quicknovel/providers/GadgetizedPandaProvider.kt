@@ -23,9 +23,10 @@ class GadgetizedPandaProvider : MainAPI() {
         private val NON_ALPHANUM_REGEX = Regex("[^a-z0-9]+")
 
         private val PROMO_KEYWORDS = listOf(
-            "amazon link", "green button above", "source material", "english translations",
-            "support the author", "page translated", "green bar", "ln translations",
-            "localizermeerkat", "also check out", "join the membership"
+            "amazon link", "green button above", "source material", "english translations", "support the author", "page translated", "green bar", "ln translations",
+            "localizermeerkat", "galaxianarwhal", "check out", "join the membership", "gadgetizedpanda", "always read at", "table of contents", "support me", "ko-fi link",
+            "buy the official release", "donation for faster release", "translation requests", "consider to donate", "faster translations", "donate for faster",
+            "translators note", "translator note", "tlnote", "tl note", "scene transition", "picked up for english translation", "picked up for translation"
         )
     }
 
@@ -126,21 +127,26 @@ class GadgetizedPandaProvider : MainAPI() {
     private fun Document.entryContent(): Element? =
         selectFirst("div#page div#content div#primary main#main article div.entry-content, div.entry-content")
 
-    // Filters out promo banners, affiliate links, pagination numbers, and separator elements from chapter content.
+    // Filters out promo banners, affiliate links, pagination numbers, separator elements, and donation buttons from chapter content.
     private fun Element.isUnwanted(): Boolean {
         val tag = tagName().lowercase()
         if (hasClass("page-links") || hasClass("post-nav-links") || selectFirst(".page-links, .post-page-numbers") != null) return true
         if (tag == "hr" && (hasClass("wp-block-separator") || hasClass("has-alpha-channel-opacity") || hasClass("is-style-wide"))) return true
         if (tag == "p" && hasClass("has-black-color") && hasClass("has-text-color")) return true
-        return (tag == "p" || tag == "div" || isHeading()) && PROMO_KEYWORDS.any { text().filter { c -> c.isLetterOrDigit() || c.isWhitespace() }.contains(it, true) }
+        if (selectFirst("a[href*='ko-fi.com'], img[src*='image.png'], img[src*='kofi']") != null) return true
+        if ((tag == "p" || tag == "div") && selectFirst("img, svg, picture, video") == null && text().none { it.isLetterOrDigit() }) return true
+
+        val cleanText = text().lowercase().filter { c -> c.isLetterOrDigit() || c.isWhitespace() }
+        if (cleanText.contains("table of contents") || cleanText == "index" || cleanText == "toc") return true
+        return (tag == "p" || tag == "div" || tag == "figure" || isHeading()) && PROMO_KEYWORDS.any { cleanText.contains(it) }
     }
 
     // Validates whether a link is a legitimate chapter or special content link.
     fun isChapterLink(href: String, rawTitle: String): Boolean {
-        if (href.isBlank() || href.startsWith("#") || href.contains("#comment", ignoreCase = true) || href.contains("web.archive.org/web/", ignoreCase = true)) return false
-        val isAllowed = listOf("https://gadgetizedpanda.net", "gadgetizedpanda", "ko-fi.com/post/", "preview=true", "?p=").any { href.contains(it, ignoreCase = true) }
+        if (href.isBlank() || href.startsWith("#") || href.contains("#comment", true) || href.contains("web.archive.org/web/", true)) return false
+        val isAllowed = listOf("https://gadgetizedpanda.net", "gadgetizedpanda", "ko-fi.com/post/", "preview=true", "?p=").any { href.contains(it, true) }
         val keywords = listOf("chapter", "illustrations", "prologue", "part", "epilogue", "afterword", "extra", "interlude", "side story", "ss")
-        val hasKeyword = keywords.any { rawTitle.contains(it, ignoreCase = true) || href.contains(it, ignoreCase = true) } || href.contains("?p=", ignoreCase = true)
+        val hasKeyword = keywords.any { rawTitle.contains(it, true) || href.contains(it, true) } || href.contains("?p=", true)
         return isAllowed && hasKeyword
     }
 
@@ -197,7 +203,7 @@ class GadgetizedPandaProvider : MainAPI() {
     // Cleans and extracts HTML text paragraphs from a chapter post.
     fun fetchChapterContent(doc: Document): String {
         val entryContent = doc.entryContent() ?: return ""
-        entryContent.select("script, style, iframe, svg, noscript, .sharedaddy, .jp-relatedposts, .wpcnt, #jp-post-flair").remove()
+        entryContent.select("script, style, iframe, svg, noscript, .sharedaddy, .jp-relatedposts, .wpcnt, #jp-post-flair, .wp-block-spacer").remove()
 
         val builder = StringBuilder()
         var started = false
@@ -205,7 +211,7 @@ class GadgetizedPandaProvider : MainAPI() {
             val tag = element.tagName().lowercase()
             if (started && tag == "div" && element.hasClass("wp-block-columns")) break
             if (element.isUnwanted()) continue
-            if (!started && (tag == "p" || element.isHeading())) started = true
+            if (!started && (tag == "p" || tag == "figure" || element.isHeading())) started = true
             if (started) builder.appendLine(element.apply { select("a").unwrap() }.outerHtml())
         }
         return builder.toString().trim()
@@ -216,10 +222,10 @@ class GadgetizedPandaProvider : MainAPI() {
         var title = rawTitle.trim()
         val chNum = title.extractChapterNumber()
         val partNum = title.extractPartNumber()
-        if (chNum != null && partNum != null && title.contains("Chapter", ignoreCase = true) && title.contains("Part", ignoreCase = true)) {
-            title = "Chapter ${chNum.formatNum()} - Part $partNum"
-        }
-        return volume?.let { "$it - ${if (title.startsWith(it, true)) title.substring(it.length).trimStart(' ', '-', ':') else title}" } ?: title
+        val formatted = if (chNum != null && partNum != null && title.contains("Chapter", true) && title.contains("Part", true)) {
+            "Chapter ${chNum.formatNum()} - Part $partNum"
+        } else title
+        return volume?.let { "$it - ${formatted.removePrefix(it).trimStart(' ', '-', ':')}" } ?: formatted
     }
 
     // Normalizes, numbers, and associates chapters and parts under their respective volumes.
@@ -313,11 +319,11 @@ class GadgetizedPandaProvider : MainAPI() {
         return filtered.mapIndexed { idx, ch -> ch to idx }.sortedWith(compareBy(
             { (ch, _) -> ch.name.extractVolumeNumber() ?: 1 },
             { (ch, idx) -> ch.name.extractChapterNumber() ?: when {
-                ch.name.contains("illustrations", ignoreCase = true) -> -2.0
-                ch.name.contains("prologue", ignoreCase = true) -> -1.0
-                ch.name.contains("extra", ignoreCase = true) -> 9980.0
-                ch.name.contains("epilogue", ignoreCase = true) -> 9990.0
-                ch.name.contains("afterword", ignoreCase = true) -> 9995.0
+                ch.name.contains("illustrations", true) -> -2.0
+                ch.name.contains("prologue", true) -> -1.0
+                ch.name.contains("extra", true) -> 9980.0
+                ch.name.contains("epilogue", true) -> 9990.0
+                ch.name.contains("afterword", true) -> 9995.0
                 else -> 5000.0 + idx
             }},
             { (ch, _) -> ch.name.extractPartNumber() ?: 0 }, { (_, idx) -> idx }
@@ -360,7 +366,8 @@ class GadgetizedPandaProvider : MainAPI() {
     override suspend fun load(url: String): LoadResponse? {
         val doc = app.get(url).document
         val title = doc.selectFirst("h1.entry-title")?.text()?.trim()
-            ?: doc.selectFirst("title")?.text()?.substringBefore("–")?.substringBefore("-")?.trim() ?: return null
+            ?: doc.selectFirst("title")?.text()?.substringBefore("–")?.substringBefore("-")?.trim()
+            ?: throw ErrorLoadingException("Failed to find novel title for $url")
         val poster = doc.selectFirst("figure.wp-block-image img, div.entry-content figure img, div.entry-content img").extractImgSrc()
         return newStreamResponse(title, url, buildTableOfContents(doc, url)) {
             if (!poster.isNullOrEmpty()) posterUrl = poster
