@@ -3,7 +3,6 @@ package com.lagradost.quicknovel.providers
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrl
@@ -17,7 +16,6 @@ class LnoriProvider :  MainAPI() {
     override val iconId = R.drawable.icon_lnori
     override val iconBackgroundId = R.color.white
     override val usesCloudFlareKiller = true
-
     override val hasMainPage = true
 
     override val orderBys = listOf(

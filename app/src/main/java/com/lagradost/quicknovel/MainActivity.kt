@@ -1,9 +1,11 @@
 package com.lagradost.quicknovel
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.content.res.Configuration
+import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -114,6 +116,10 @@ class MainActivity : AppCompatActivity() {
 
         fun importEpub() {
             mainActivity?.openEpubPicker()
+        }
+
+        fun importEpubs() {
+            mainActivity?.openEpubPickers()
         }
 
         var app = Requests(
@@ -368,47 +374,52 @@ class MainActivity : AppCompatActivity() {
         viewModel.initState(apiName, url)
     }
 
+    fun importUri(uri: Uri) = safe {
+        val ctx: Context = this
+
+        safe {
+            ctx.contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
+        }
+
+        val file = StorageFile.from(ctx, uri)
+        val fileName = file?.name
+        val mimeType = file?.mimeType //ctx.contentResolver.getType(uri)
+        println("Loaded epub file. Selected URI path: $uri - Name: $fileName with type $mimeType")
+
+        ioSafe {
+            try {
+                if (mimeType == "application/pdf" || fileName?.endsWith(".pdf") == true) {
+                    BookDownloader2.downloadPDFWorkThread(uri, ctx)
+                } else {
+                    BookDownloader2.downloadWorkThread(uri, ctx)
+                }
+            } catch (t: Throwable) {
+                logError(t)
+                showToast(t.message)
+            }
+        }
+    }
+
+    private val epubPathsPicker =
+        registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+            uris.forEach { uri ->
+                importUri(uri)
+            }
+        }
 
     //imports area -------------------------------
     private val epubPathPicker =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            safe {
-                // It lies, it can be null if file manager quits.
-                if (uri == null) return@safe
-                val ctx = this
-
-                // RW perms for the path
-                try {
-                    ctx.contentResolver.takePersistableUriPermission(
-                        uri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                    )
-                } catch (t: Throwable) {
-                    logError(t)
-                }
-
-                val file = StorageFile.from(ctx, uri)
-                val fileName = file?.name
-                val mimeType = file?.mimeType //ctx.contentResolver.getType(uri)
-                println("Loaded epub file. Selected URI path: $uri - Name: $fileName with type $mimeType")
-
-                ioSafe {
-                    try {
-                        if (mimeType == "application/pdf" || fileName?.endsWith(".pdf") == true) {
-                            BookDownloader2.downloadPDFWorkThread(uri, ctx)
-                        } else {
-                            BookDownloader2.downloadWorkThread(uri, ctx)
-                        }
-                    } catch (t: Throwable) {
-                        logError(t)
-                        showToast(t.message)
-                    }
-                }
-            }
+            // It lies, it can be null if file manager quits.
+            if (uri == null) return@registerForActivityResult
+            importUri(uri)
         }
 
     private fun openEpubPicker() {
-        try {
+        safe {
             epubPathPicker.launch(
                 arrayOf(
                     //"text/plain",
@@ -418,8 +429,19 @@ class MainActivity : AppCompatActivity() {
                     "application/epub+zip",
                 )
             )
-        } catch (e: Exception) {
-            logError(e)
+        }
+    }
+    private fun openEpubPickers() {
+        safe {
+            epubPathsPicker.launch(
+                arrayOf(
+                    //"text/plain",
+                    //"text/str",
+                    //"application/octet-stream",
+                    "application/pdf",
+                    "application/epub+zip",
+                )
+            )
         }
     }
 
@@ -662,8 +684,10 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         readMore.setOnClickListener {
-                            loadResult(d.url, viewModel.apiName)
-                            hidePreviewPopupDialog()
+                            if(!d.isImported) {
+                                loadResult(d.url, viewModel.apiName)
+                                hidePreviewPopupDialog()
+                            }
                         }
 
                         readMore.isVisible =
@@ -677,16 +701,20 @@ class MainActivity : AppCompatActivity() {
                         resultviewPreviewPoster.apply {
                             setImage(d.downloadImage())
                             setOnClickListener {
-                                loadResult(d.url, viewModel.apiName)
-                                hidePreviewPopupDialog()
+                                if(!d.isImported) {
+                                    loadResult(d.url, viewModel.apiName)
+                                    hidePreviewPopupDialog()
+                                }
                             }
                         }
 
                         resultviewPreviewTitle.text = d.name
 
                         resultviewPreviewMoreInfo.setOnClickListener {
-                            loadResult(d.url, viewModel.apiName)
-                            hidePreviewPopupDialog()
+                            if(!d.isImported) {
+                                loadResult(d.url, viewModel.apiName)
+                                hidePreviewPopupDialog()
+                            }
                         }
 
                         resultviewPreviewDescription.text =

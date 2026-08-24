@@ -2,6 +2,8 @@ package com.lagradost.quicknovel.util
 
 import androidx.compose.runtime.Immutable
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.ui.UiImage
@@ -22,6 +24,8 @@ data class ResultCached(
     val synopsis : String? = null,
     val posterHeaders : Map<String,String>? = null,
 ) {
+    val isImported: Boolean get() = (apiName == IMPORT_SOURCE || apiName == IMPORT_SOURCE_PDF)
+
     val image : UiImage? get() = img(poster)
 
     override fun hashCode(): Int {

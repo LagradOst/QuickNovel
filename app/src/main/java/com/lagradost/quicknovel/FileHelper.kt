@@ -85,7 +85,7 @@ object FileHelper {
     const val EPUB_MIME = "application/epub+zip"
     const val TEXT_MIME = "text/plain"
     val epub = FileStorage(EPUB_MIME, "Epub", R.string.epub_path_key)
-    val backup = FileStorage(TEXT_MIME, "Backup", R.string.epub_path_key)
+    val backup = FileStorage(TEXT_MIME, "Backup", R.string.backup_path_key)
     val logcat = FileStorage(TEXT_MIME, "Logcat", R.string.logcat_path_key)
 
     fun requestStorage(context: Context) {
