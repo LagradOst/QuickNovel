@@ -1342,11 +1342,9 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
 
             binding.readOnlineTranslationSwitch.isChecked = viewModel.currentAgent != TranslatorAgents.OFFLINE
             binding.readOnlineTranslationSwitch.setOnCheckedChangeListener { _, isChecked ->
-                viewModel.mlTranslationAgent = if (isChecked) {
-                    TranslatorAgents.ONLINE.name
-                } else {
-                    TranslatorAgents.OFFLINE.name
-                }
+                viewModel.mlTranslationAgent = if (isChecked) TranslatorAgents.ONLINE.name
+                 else TranslatorAgents.OFFLINE.name
+
                 //Do not allow automatic detection of the target language; the user should know that themselves (they should know the name of their own language).
                 //It could probably be automated, but I have no idea.
                 if (isChecked == false && viewModel.mlFromLanguage == AUTO_LANG) {

@@ -28,7 +28,7 @@ class TranslationManager {
     private var currentAgent: TranslatorAgents = TranslatorAgents.OFFLINE
 
     /**
-     * Configura los idiomas y el agente activo.
+     * Config languages and current agent
      */
     fun setSettings(from: String, to: String, agent: TranslatorAgents) {
         if (currentFrom == from && currentTo == to && currentAgent == agent) return
