@@ -10,6 +10,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -26,6 +27,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
@@ -44,11 +48,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.currentRecomposeScope
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -117,45 +124,12 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.coroutines.launch
 
 
 @Composable
 fun ResultScreen(state: ResultState, action: (ResultPageAction) -> Unit) {
     Scaffold(
-        floatingActionButton = {
-            if (state.response != null) {
-                ExtendedFloatingActionButton(
-                    modifier = Modifier,
-                    onClick = {
-                        action(
-                            ResultPageAction.ResultAction(
-                                SearchResponseAction(state.response, SearchResponseOperation.Stream)
-                            )
-                        )
-                    },
-                    // Elevation actually changes the color, because who wanted a sane framework
-                    elevation = FloatingActionButtonDefaults.elevation(
-                        defaultElevation = 0.dp,
-                        pressedElevation = 0.dp,
-                        focusedElevation = 0.dp,
-                        hoveredElevation = 0.dp
-                    ),
-                    containerColor = colors.onBackground,
-                    contentColor = colors.surfaceVariant,
-                    text = {
-                        Text(stringResource(R.string.stream_read))
-                    },
-                    icon = {
-                        Icon(
-                            modifier = Modifier.size(24.dp),
-                            painter = painterResource(R.drawable.netflix_play),
-                            contentDescription = stringResource(R.string.stream_read)
-                        )
-                    },
-                    expanded = false
-                )
-            }
-        }
     ) { innerPadding ->
         if (state.loadingResponse) {
             LoadingScreen(Modifier.padding(innerPadding))
@@ -218,6 +192,48 @@ fun ResultScreenImpl(
     )
 
     val outerListState = rememberLazyListState()
+    val novelScroll = rememberLazyListState()
+    val reviewScroll = rememberLazyListState()
+    val relatedScroll = rememberLazyGridState()
+    val chapterScroll = rememberLazyListState()
+
+    val scope = rememberCoroutineScope()
+
+    // The back button is overridden to scroll up, or scroll to novel
+    val backEnabled = remember {
+        derivedStateOf(policy = structuralEqualityPolicy()) {
+            pagerState.currentPage != 0 || outerListState.firstVisibleItemIndex > 0
+        }
+    }
+    BackHandler(enabled = backEnabled.value) {
+        scope.launch {
+            // If we are on the wrong page, but full scrolled up, then scroll to the first page
+            if (outerListState.firstVisibleItemIndex <= 0) {
+                pagerState.animateScrollToPage(0)
+                return@launch
+            }
+            // Otherwise scroll up
+            outerListState.animateScrollToItem(0)
+            // This is needed as otherwise you get weird nested scroll behavior
+            when (tabNames.getOrNull(pagerState.currentPage)) {
+                R.string.novel -> {
+                    novelScroll.animateScrollToItem(0)
+                }
+
+                R.string.reviews -> {
+                    reviewScroll.animateScrollToItem(0)
+                }
+
+                R.string.related -> {
+                    relatedScroll.animateScrollToItem(0)
+                }
+
+                R.string.chapters -> {
+                    chapterScroll.animateScrollToItem(0)
+                }
+            }
+        }
+    }
 
     val scrollAlpha = remember {
         derivedStateOf {
@@ -380,7 +396,7 @@ fun ResultScreenImpl(
                 ) { page ->
                     when (tabNames[page]) {
                         R.string.novel -> {
-                            NovelPage(state, action)
+                            NovelPage(state, action, novelScroll)
                         }
 
                         R.string.reviews -> {
@@ -388,7 +404,8 @@ fun ResultScreenImpl(
                                 loadingReviews = state.reviews.loading,
                                 reviews = state.reviews.items,
                                 nestedScrollConnection = parentFirstScrollConnection,
-                                action = action
+                                action = action,
+                                innerListState = reviewScroll,
                             )
                         }
 
@@ -396,7 +413,8 @@ fun ResultScreenImpl(
                             RelatedPage(
                                 nestedScrollConnection = parentFirstScrollConnection,
                                 related = response.loadData?.related ?: persistentListOf(),
-                                action = action
+                                action = action,
+                                innerListState = relatedScroll
                             )
                         }
 
@@ -407,7 +425,8 @@ fun ResultScreenImpl(
                                     response = response,
                                     chapters = chapters,
                                     action = action,
-                                    nestedScrollConnection = parentFirstScrollConnection
+                                    nestedScrollConnection = parentFirstScrollConnection,
+                                    innerListState = chapterScroll
                                 )
                             }
                         }
@@ -456,13 +475,54 @@ fun ResultScreenImpl(
 }
 
 @Composable
+fun BoxScope.FloatingStreamRead(
+    response: ImmutableSearchResponse,
+    action: (ResultPageAction) -> Unit
+) {
+    ExtendedFloatingActionButton(
+        modifier = Modifier
+            .align(Alignment.BottomEnd)
+            .padding(16.dp),
+        onClick = {
+            action(
+                ResultPageAction.ResultAction(
+                    SearchResponseAction(response, SearchResponseOperation.Stream)
+                )
+            )
+        },
+        // Elevation actually changes the color, because who wanted a sane framework
+        elevation = FloatingActionButtonDefaults.elevation(
+            defaultElevation = 0.dp,
+            pressedElevation = 0.dp,
+            focusedElevation = 0.dp,
+            hoveredElevation = 0.dp
+        ),
+        containerColor = colors.onBackground,
+        contentColor = colors.surfaceVariant,
+        text = {
+            Text(stringResource(R.string.stream_read))
+        },
+        icon = {
+            Icon(
+                modifier = Modifier.size(24.dp),
+                painter = painterResource(R.drawable.netflix_play),
+                contentDescription = stringResource(R.string.stream_read)
+            )
+        },
+        expanded = false
+    )
+}
+
+@Composable
 fun ChapterPage(
     response: ImmutableSearchResponse,
     chapters: ImmutableChapterList,
     action: (ResultPageAction) -> Unit,
-    nestedScrollConnection: NestedScrollConnection
+    nestedScrollConnection: NestedScrollConnection,
+    innerListState: LazyListState,
 ) {
     LazyColumn(
+        state = innerListState,
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(nestedScrollConnection)
@@ -521,10 +581,10 @@ fun ReviewsPage(
     reviews: PersistentList<ImmutableReview>,
     nestedScrollConnection: NestedScrollConnection,
     action: (ResultPageAction) -> Unit,
+    innerListState: LazyListState,
 ) {
-    val listState = rememberLazyListState()
     LazyColumn(
-        state = listState,
+        state = innerListState,
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(nestedScrollConnection)
@@ -539,8 +599,9 @@ fun ReviewsPage(
 
     val shouldLoadMore = remember {
         derivedStateOf {
-            val lastVisibleIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            val totalItems = listState.layoutInfo.totalItemsCount
+            val lastVisibleIndex =
+                innerListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val totalItems = innerListState.layoutInfo.totalItemsCount
             lastVisibleIndex >= totalItems - 5
         }
     }
@@ -685,13 +746,15 @@ fun ReviewItem(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun NovelPage(
-    state: ResultState, action: (ResultPageAction) -> Unit
+    state: ResultState,
+    action: (ResultPageAction) -> Unit,
+    innerListState: LazyListState,
 ) {
     val expanded = rememberSaveable { mutableStateOf(false) }
     val textInteractionSource = remember { MutableInteractionSource() }
     val response = state.response ?: return
 
-    LazyColumn {
+    LazyColumn(state = innerListState) {
         item(key = "infobar") {
             Row(
                 modifier = Modifier
@@ -941,16 +1004,18 @@ fun Tags(tags: ImmutableList<String>) {
 fun RelatedPage(
     nestedScrollConnection: NestedScrollConnection,
     related: ImmutableList<ImmutableSearchResponse>,
-    action: (ResultPageAction) -> Unit
+    action: (ResultPageAction) -> Unit,
+    innerListState: LazyGridState
 ) {
     SearchList(
+        lazyGridState = innerListState,
         isRow = false,
         items = related,
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(nestedScrollConnection)
             .background(colors.background),
-        searchAction = { value ->
+        searchAction = { value: SearchResponseAction ->
             action(ResultPageAction.ResultAction(value))
         })
 }
