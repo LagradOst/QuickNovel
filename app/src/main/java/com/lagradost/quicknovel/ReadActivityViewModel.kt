@@ -70,6 +70,7 @@ import com.lagradost.quicknovel.util.CoilImagesPlugin.CoilStore
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.runOnMainThread
 import com.lagradost.quicknovel.util.GoogleTranslateOnline
+import com.lagradost.quicknovel.util.SubtitleHelper
 import io.noties.markwon.AbstractMarkwonPlugin
 import io.noties.markwon.Markwon
 import io.noties.markwon.MarkwonConfiguration
@@ -1945,7 +1946,7 @@ class ReadActivityViewModel : ViewModel() {
     ) {
         companion object {
             const val AUTO_LANG = "auto"
-            val map = mapOf(
+            val map = listOf(
                 "af" to "Afrikaans",
                 "ar" to "Arabic",
                 "be" to "Belarusian",
@@ -2005,7 +2006,8 @@ class ReadActivityViewModel : ViewModel() {
                 "ur" to "Urdu",
                 "vi" to "Vietnamese",
                 "zh" to "Chinese",
-            )
+            ).sortedBy { (key, value) -> value }.toMap()
+
             val mapOnline = mapOf(AUTO_LANG to "Auto") + map
             val mapList = map.toList()
             val mapOnlineList = mapOnline.toList()

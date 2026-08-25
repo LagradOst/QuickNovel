@@ -61,6 +61,7 @@ import com.lagradost.quicknovel.ui.common.SearchResponseItem
 import com.lagradost.quicknovel.ui.mainpage.SearchResponseDialog
 import com.lagradost.quicknovel.ui.settings.searchProvidersList
 import com.lagradost.quicknovel.util.Apis.Companion.apis
+import com.lagradost.quicknovel.util.SubtitleHelper
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
@@ -189,8 +190,14 @@ fun ShowDialog(
     if (!isDialogShown) return
 
     val entries = remember(filterLanguages) {
-        apis.filter { api -> filterLanguages.contains(api.lang) }.associate { it.name to it.name }
-            .toPersistentMap()
+        apis.filter { api -> filterLanguages.contains(api.lang) }.associate {
+            it.name to
+                    if (filterLanguages.size > 1) {
+                        "${SubtitleHelper.getFlagFromIso(it.lang) ?: "🌐"} ${it.name}"
+                    } else {
+                        it.name
+                    }
+        }.toPersistentMap()
     }
     val context = LocalContext.current
     val store = AndroidPreferenceStore(context)
