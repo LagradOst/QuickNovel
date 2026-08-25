@@ -18,7 +18,9 @@ import androidx.preference.PreferenceManager
 import com.anggrayudi.storage.StorageFile
 import com.anggrayudi.storage.extension.isRawFile
 import com.anggrayudi.storage.file.CreateMode
+import com.anggrayudi.storage.file.DocumentFileCompat
 import com.anggrayudi.storage.file.MimeType
+import com.anggrayudi.storage.file.PublicDirectory
 import com.anggrayudi.storage.media.FileDescription
 import com.anggrayudi.storage.media.MediaStoreCompat
 import com.anggrayudi.storage.media.MediaType
@@ -69,10 +71,16 @@ data class FileStorage(
 
     fun createFile(context: Context, name: String): StorageFile? {
         FileHelper.requestStorage(context)
-        return FileHelper.createFile(context, getLocation(context), defaultSubFolder, sanitizeFilename(name), mimeType)
+        return FileHelper.createFile(
+            context,
+            getLocation(context),
+            defaultSubFolder,
+            sanitizeFilename(name),
+            mimeType
+        )
     }
 
-    fun toPreference(context: Context, store : AndroidPreferenceStore) : PreferenceData<String> {
+    fun toPreference(context: Context, store: AndroidPreferenceStore): PreferenceData<String> {
         return store.getString(
             context.getString(key),
             defaultLocation
@@ -93,7 +101,7 @@ object FileHelper {
             ((context as? Activity) ?: CommonActivity.activity)?.let {
                 requestStorage(activity = it)
             }
-        } catch (t : Throwable) {
+        } catch (t: Throwable) {
             logError(t)
         }
     }
@@ -103,9 +111,10 @@ object FileHelper {
             return
         }
         if (ContextCompat.checkSelfPermission(
-            activity,
-            WRITE_EXTERNAL_STORAGE
-        ) != PackageManager.PERMISSION_GRANTED) {
+                activity,
+                WRITE_EXTERNAL_STORAGE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
             ActivityCompat.requestPermissions(
                 activity,
                 arrayOf(
@@ -117,8 +126,8 @@ object FileHelper {
         }
     }
 
-    fun exportUri(context: Context, uri: Uri) : Uri {
-        return if(uri.isRawFile) {
+    fun exportUri(context: Context, uri: Uri): Uri {
+        return if (uri.isRawFile) {
             FileProvider.getUriForFile(
                 context,
                 BuildConfig.APPLICATION_ID + ".provider",
@@ -140,6 +149,21 @@ object FileHelper {
             StorageFile.from(context, storageLocation)
                 ?.createFile(name = name, mimeType = mimeType, CreateMode.REPLACE)
         } else {
+            // Try DocumentFileCompat first, as the user might have granted perms that MediaStoreCompat cant find
+            val directory = DocumentFileCompat.fromPublicFolder(
+                context = context,
+                type = PublicDirectory.DOWNLOADS,
+                subFile = defaultSubFolder,
+                requiresWriteAccess = true
+            )
+            val created = directory?.toStorageFile(context)
+                ?.createFile(name = name, mimeType = mimeType, CreateMode.REPLACE)
+
+            if (created != null) {
+                return created
+            }
+
+            // If DocumentFileCompat fails, then try MediaStoreCompat as it always works but is wonky
             MediaStoreCompat.createDownload(
                 context = context,
                 file = FileDescription(
@@ -161,14 +185,29 @@ object FileHelper {
         requiresWriteAccess: Boolean
     ): StorageFile? {
         val mimeExt = MimeType.getExtensionFromMimeType(mimeType)
+        val path = "$name.$mimeExt"
+
         return if (storageLocation != null) {
             StorageFile.from(context, storageLocation)
-                ?.child(path = "$name.$mimeExt", requiresWriteAccess = requiresWriteAccess)
+                ?.child(path = path, requiresWriteAccess = requiresWriteAccess)
         } else {
+            // Try DocumentFileCompat first, as the user might have granted perms that MediaStoreCompat cant find
+            val directory = DocumentFileCompat.fromPublicFolder(
+                context = context,
+                type = PublicDirectory.DOWNLOADS,
+                subFile = defaultSubFolder,
+                requiresWriteAccess = false
+            )
+            val found = directory?.toStorageFile(context)?.child(path = path, requiresWriteAccess = requiresWriteAccess)
+            if (found != null) {
+                return found
+            }
+
+            // If DocumentFileCompat fails, then try MediaStoreCompat as it always works but is wonky
             MediaStoreCompat.fromBasePath(
                 context = context,
                 mediaType = MediaType.DOWNLOADS,
-                basePath = "${Environment.DIRECTORY_DOWNLOADS}/$defaultSubFolder/$name.$mimeExt"
+                basePath = "${Environment.DIRECTORY_DOWNLOADS}/$defaultSubFolder/$path"
             )?.toStorageFile(context)
         }
     }
