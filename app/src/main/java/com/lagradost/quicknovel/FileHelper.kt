@@ -145,35 +145,49 @@ object FileHelper {
         name: String,
         mimeType: String,
     ): StorageFile? {
-        return if (storageLocation != null) {
-            StorageFile.from(context, storageLocation)
+        // Use uri directly if set, always works
+        if (storageLocation != null) {
+            return StorageFile.from(context, storageLocation)
                 ?.createFile(name = name, mimeType = mimeType, CreateMode.REPLACE)
-        } else {
-            // Try DocumentFileCompat first, as the user might have granted perms that MediaStoreCompat cant find
-            val directory = DocumentFileCompat.fromPublicFolder(
+        }
+
+        // Try DocumentFileCompat first, as the user might have granted perms that MediaStoreCompat cant find
+        val directory = DocumentFileCompat.fromPublicFolder(
+            context = context,
+            type = PublicDirectory.DOWNLOADS,
+            subFile = defaultSubFolder,
+            requiresWriteAccess = true
+        )
+        val created = directory?.toStorageFile(context)
+            ?.createFile(name = name, mimeType = mimeType, CreateMode.REPLACE)
+        if (created != null) {
+            return created
+        }
+
+        // If we do not have requiresWriteAccess to the folder directly,
+        // we might have writeAccess to the file at least then try to delete it?
+        /*safe {
+            val mimeExt = MimeType.getExtensionFromMimeType(mimeType)
+            val path = "$name.$mimeExt"
+            val file = DocumentFileCompat.fromPublicFolder(
                 context = context,
                 type = PublicDirectory.DOWNLOADS,
-                subFile = defaultSubFolder,
+                subFile = "$defaultSubFolder/$path",
                 requiresWriteAccess = true
-            )
-            val created = directory?.toStorageFile(context)
-                ?.createFile(name = name, mimeType = mimeType, CreateMode.REPLACE)
-
-            if (created != null) {
-                return created
-            }
-
-            // If DocumentFileCompat fails, then try MediaStoreCompat as it always works but is wonky
-            MediaStoreCompat.createDownload(
-                context = context,
-                file = FileDescription(
-                    name = name,
-                    defaultSubFolder,
-                    mimeType = mimeType
-                ),
-                mode = CreateMode.REPLACE
             )?.toStorageFile(context)
-        }
+            file?.delete() // This *might* throw, even if it is undocumented
+        }*/
+
+        // If DocumentFileCompat fails, then try MediaStoreCompat as it always works but is wonky
+        return MediaStoreCompat.createDownload(
+            context = context,
+            file = FileDescription(
+                name = name,
+                defaultSubFolder,
+                mimeType = mimeType
+            ),
+            mode = CreateMode.REPLACE
+        )?.toStorageFile(context)
     }
 
     fun openFile(
@@ -187,28 +201,28 @@ object FileHelper {
         val mimeExt = MimeType.getExtensionFromMimeType(mimeType)
         val path = "$name.$mimeExt"
 
-        return if (storageLocation != null) {
-            StorageFile.from(context, storageLocation)
+        // Use uri directly if set, always works
+        if (storageLocation != null) {
+            return StorageFile.from(context, storageLocation)
                 ?.child(path = path, requiresWriteAccess = requiresWriteAccess)
-        } else {
-            // Try DocumentFileCompat first, as the user might have granted perms that MediaStoreCompat cant find
-            val directory = DocumentFileCompat.fromPublicFolder(
-                context = context,
-                type = PublicDirectory.DOWNLOADS,
-                subFile = defaultSubFolder,
-                requiresWriteAccess = false
-            )
-            val found = directory?.toStorageFile(context)?.child(path = path, requiresWriteAccess = requiresWriteAccess)
-            if (found != null) {
-                return found
-            }
-
-            // If DocumentFileCompat fails, then try MediaStoreCompat as it always works but is wonky
-            MediaStoreCompat.fromBasePath(
-                context = context,
-                mediaType = MediaType.DOWNLOADS,
-                basePath = "${Environment.DIRECTORY_DOWNLOADS}/$defaultSubFolder/$path"
-            )?.toStorageFile(context)
         }
+
+        // Try DocumentFileCompat first, as the user might have granted perms that MediaStoreCompat cant find
+        val found = DocumentFileCompat.fromPublicFolder(
+            context = context,
+            type = PublicDirectory.DOWNLOADS,
+            subFile = "$defaultSubFolder/$path",
+            requiresWriteAccess = requiresWriteAccess
+        )?.toStorageFile(context)
+        if (found != null) {
+            return found
+        }
+
+        // If DocumentFileCompat fails, then try MediaStoreCompat as it always works but is wonky
+        return MediaStoreCompat.fromBasePath(
+            context = context,
+            mediaType = MediaType.DOWNLOADS,
+            basePath = "${Environment.DIRECTORY_DOWNLOADS}/$defaultSubFolder/$path"
+        )?.toStorageFile(context)
     }
 }
