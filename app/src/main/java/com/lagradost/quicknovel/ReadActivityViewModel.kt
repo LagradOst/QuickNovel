@@ -71,6 +71,8 @@ import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.runOnMainThread
 import com.lagradost.quicknovel.util.GoogleTranslateOnline
 import com.lagradost.quicknovel.util.SubtitleHelper
+import com.lagradost.quicknovel.util.translation.TranslationManager
+import com.lagradost.quicknovel.util.translation.models.TranslatorAgents
 import io.noties.markwon.AbstractMarkwonPlugin
 import io.noties.markwon.Markwon
 import io.noties.markwon.MarkwonConfiguration
@@ -461,8 +463,6 @@ class ReadActivityViewModel : ViewModel() {
     private lateinit var markwon: Markwon
     private var isInApp: Boolean = true
     private var leftAppAt: ScrollIndex? = null
-    private var mlTranslator: Translator? = null
-
     fun leftApp() {
         lastChangeIndex?.let { setScrollKeys(it) }
         isInApp = false
@@ -491,8 +491,9 @@ class ReadActivityViewModel : ViewModel() {
 
 
     var mlSettings
-        get() = getKey<MLSettings>(EPUB_CURRENT_ML, book.title()) ?: MLSettings("en", "en", false)
+        get() = getKey<MLSettings>(EPUB_CURRENT_ML, book.title()) ?: MLSettings("en", "en",  TranslatorAgents.OFFLINE)
         set(value) = setKey(EPUB_CURRENT_ML, book.title(), value)
+    val translationManager = TranslationManager()
 
     private val _chapterData: MutableLiveData<ChapterUpdate> =
         MutableLiveData<ChapterUpdate>(null)
@@ -866,33 +867,10 @@ class ReadActivityViewModel : ViewModel() {
                 // val renderedBuilder = SpannableStringBuilder()
                 // val lengths : IntArray
                 // val nodes : Array<Node>
-                val parsed: Node
-                var rendered: Spanned
-                val originalRendered: Spanned
-                val originalSpans: ArrayList<TextSpan>
-                var spans: ArrayList<TextSpan>
-
-                markwonMutex.withLock {
-                    parsed = markwon.parse(rawText)
-                    rendered = markwon.render(parsed)
-
-                    spans = parseTextToSpans(rendered, index)
-                    originalSpans = spans
-                    originalRendered = rendered
-
-                    val asyncDrawables = rendered.getSpans<AsyncDrawableSpan>()
-                    for (async in asyncDrawables) {
-                        async.drawable.result =
-                            book.loadImageBitmap(async.drawable.destination)?.toDrawable(
-                                Resources.getSystem()
-                            )
-                    }
-
-                    // translation may strip stuff, idk how to solve that in a clean way atm
-                    translate(
-                        rendered,
-                        spans
-                    ) { (progressChapter, progressInnerIndex, progressInnerTotal) ->
+                // done on raw HTML to preserve styles
+                val translatedHtml =
+                    translate(rawText, index)
+                    { (progressChapter, progressInnerIndex, progressInnerTotal) ->
                         val progressText =
                             "${context?.getString(R.string.translating)} ${
                                 book.getChapterTitle(
@@ -908,9 +886,24 @@ class ReadActivityViewModel : ViewModel() {
                                 if (notify) notifyChapterUpdate(index)
                             }
                         }
-                    }.let { (mlRender, mlSpans) ->
-                        rendered = mlRender
-                        spans = mlSpans
+                    }
+
+                val parsed: Node
+                val rendered: Spanned
+                val spans: ArrayList<TextSpan>
+
+                markwonMutex.withLock {
+                    parsed = markwon.parse(translatedHtml)
+                    rendered = markwon.render(parsed)
+
+                    spans = parseTextToSpans(rendered, index)
+
+                    val asyncDrawables = rendered.getSpans<AsyncDrawableSpan>()
+                    for (async in asyncDrawables) {
+                        async.drawable.result =
+                            book.loadImageBitmap(async.drawable.destination)?.toDrawable(
+                                Resources.getSystem()
+                            )
                     }
                 }
 
@@ -918,8 +911,8 @@ class ReadActivityViewModel : ViewModel() {
                     index = index,
                     rendered = rendered,
                     spans = spans,
-                    originalRendered = originalRendered,
-                    originalSpans = originalSpans,
+                    originalRendered = rendered,
+                    originalSpans = spans,
                     rawText = rawText,
                     title = book.getChapterTitle(index),
                 )
@@ -951,45 +944,23 @@ class ReadActivityViewModel : ViewModel() {
         return sb.toString()
     }
 
-    private fun getFinalTranslatedText(spans: ArrayList<TextSpan>, translatedLines: List<String>):Pair<SpannableStringBuilder, ArrayList<TextSpan>>{
-        val builder = SpannableStringBuilder()
-        val out = ArrayList<TextSpan>()
-        spans.forEachIndexed { i, originalSpan ->
-            val hasImage = originalSpan.text.getSpans<AsyncDrawableSpan>().isNotEmpty()
-            val finalText =
-                if (hasImage)
-                    originalSpan.text
-                else
-                    (translatedLines.getOrNull(i)?: return@forEachIndexed).toSpanned()
-            val start = builder.length
-            builder.append(finalText)
-            val end = builder.length
-            builder.append('\n')
-            out.add(TextSpan(finalText, start, end, originalSpan.index, originalSpan.innerIndex))
-        }
-        return builder to out
-    }
-
-
     @Throws(MLException::class)
     private suspend fun translate(
-        text: Spanned,
-        spans: ArrayList<TextSpan>,
+        rawHtml: String,
+        chapterIndex: Int,
         loading: suspend (Triple<Int, Int, Int>) -> Unit
-    ): Pair<Spanned, ArrayList<TextSpan>> {
+    ): String {
         try {
             val currentSettings = mlSettings
-            if (spans.isEmpty() || currentSettings.isInvalid()) return text to spans
-            val textHash = hashString(
-                text.trim().toString().toByteArray()
-            )
+            if (rawHtml.isBlank() || currentSettings.isInvalid()) return rawHtml
 
+
+            val textHash = hashString(rawHtml.trim().toByteArray())
+            val agentSuffix = currentSettings.agent.title.ifEmpty { "" }
             //the file
-            val filePrefix =
-                "ml_${textHash}.${currentSettings.from}_to_${currentSettings.to}.${
-                if (currentSettings.useOnlineTranslation) "online" 
-                else "offline"
-            }"
+            val filePrefix = "ml_${textHash}.${currentSettings.from}_to_${currentSettings.to}.$agentSuffix"
+
+            translationManager.setSettings(currentSettings.from, currentSettings.to, currentSettings.agent)
 
             // read from cache if it exists
             // we assume that parseTextToSpans is equivalent from restoring from the builder
@@ -999,56 +970,34 @@ class ReadActivityViewModel : ViewModel() {
                     val cache = File(dir, "$filePrefix.txt")
                     if (cache.exists()) {
                         Log.i(TAG, "Cache exists for $filePrefix")
-                        val lines = cache.readLines()
-                        val (builder, out) = getFinalTranslatedText(spans, lines)
-                        return@safe builder to out
+                        return@safe cache.readText()
                     }
                 }
                 return@safe null
             }
-            if(cachedData != null) return cachedData
+            if (cachedData != null) return cachedData
 
-
-            var translatedList: List<String>
-
-            // --- Online mode ---
-            if (currentSettings.useOnlineTranslation) {
-                translatedList = GoogleTranslateOnline.onlineTranslate(
-                        spans.map { it.text.toString() },
-                        currentSettings.from,
-                        currentSettings.to
-                    ){ progress, total ->
-                        loading.invoke(Triple(spans[0].index, progress, total))
-                    }
-
+            // Now TranslationManager handles the splitting and batching!
+            val translatedHtml = translationManager.translate(
+                text = rawHtml,
+                isHtml = true
+            ) { progress, total ->
+                loading.invoke(Triple(chapterIndex, progress, total))
             }
 
-            // --- Offline mode ---
-            else {
-                val translator = mlTranslator ?: return text to spans
-                translatedList = spans.mapIndexed { i,  span ->
-                    loading.invoke(Triple(span.index, i, spans.size))
-                    try {
-                        Tasks.await(translator.translate(span.text.toString()))
-                    } catch (t: ExecutionException) {
-                        throw t.cause ?: t
-                    }
-                }
-            }
 
-            val (builder, out) = getFinalTranslatedText(spans, translatedList)
 
-            // atomically write the file by rename
+            // Write to cache
             safe {
                 context?.cacheDir?.let {
                     val cache = File(it, "$filePrefix.tmp")
-                    cache.writeText(builder.toString())
-                    safe { File(it, "$filePrefix.txt").delete() } // just in case
+                    cache.writeText(translatedHtml)
+                    safe { File(it, "$filePrefix.txt").delete() }
                     cache.renameTo(File(it, "$filePrefix.txt"))
                 }
             }
 
-            return builder to out
+            return translatedHtml
         } catch (t: Throwable) {
             throw MLException(t)
         }
@@ -1056,34 +1005,17 @@ class ReadActivityViewModel : ViewModel() {
 
     @Throws
     suspend fun requireMLDownload(): Boolean {
-        val settings = MLSettings(from = mlFromLanguage, to = mlToLanguage, mlUseOnlineTransaltion)
-        if (settings.isInvalid() || mlUseOnlineTransaltion) {
-            return false
-        }
-        val modelManager = RemoteModelManager.getInstance()
-
-        for (model in arrayOf(settings.from, settings.to)) {
-            if (model == "en") continue
-
-            if (!Tasks.await(
-                    modelManager.isModelDownloaded(
-                        TranslateRemoteModel.Builder(model).build()
-                    )
-                )
-            ) {
-                return true
-            }
-        }
-
-        return false
+        val settings = MLSettings(from = mlFromLanguage, to = mlToLanguage, agent = currentAgent)
+        if (settings.isInvalid() || settings.agent != TranslatorAgents.OFFLINE) return false
+        return !translationManager.isModelDownloaded(settings.from, settings.to)
     }
 
-    fun applyMLSettings(allowDownload: Boolean) = ioSafe {
-        val settings = MLSettings(from = mlFromLanguage, to = mlToLanguage, mlUseOnlineTransaltion)
-        if (settings.isValid() && allowDownload && safeAsync { requireMLDownload() } == true) {
-            _loadingStatus.postValue(Resource.Loading("Downloading language"))
+    fun applyMLSettings() = ioSafe {
+        val settings = MLSettings(from = mlFromLanguage, to = mlToLanguage, agent = currentAgent)
+        if (settings.isValid() && requireMLDownload()) {
+            _loadingStatus.postValue(Resource.Loading(context?.getString(R.string.downloading_language)))
         }
-        initMLFromSettings(settings, allowDownload)
+        initMLFromSettings(settings)
         reloadMLForAllChapters()
     }
 
@@ -1111,9 +1043,9 @@ class ReadActivityViewModel : ViewModel() {
                 val success = value.value
 
                 try {
-                    translate(
-                        success.originalRendered,
-                        success.originalSpans
+                    val translatedHtml = translate(
+                        success.rawText,
+                        success.index
                     ) { (progressChapter, progressInnerIndex, progressInnerTotal) ->
                         _loadingStatus.postValue(
                             Resource.Loading(
@@ -1124,16 +1056,33 @@ class ReadActivityViewModel : ViewModel() {
                                 } ($progressInnerIndex/$progressInnerTotal)"
                             )
                         )
-                    }.let { (mlRender, mlSpans) ->
-                        entry.setValue(
-                            Resource.Success(
-                                success.copy(
-                                    rendered = mlRender,
-                                    spans = mlSpans,
+                    }
+
+                    val rendered: Spanned
+                    val spans: ArrayList<TextSpan>
+
+                    markwonMutex.withLock {
+                        val parsed = markwon.parse(translatedHtml)
+                        rendered = markwon.render(parsed)
+                        spans = parseTextToSpans(rendered, success.index)
+
+                        val asyncDrawables = rendered.getSpans<AsyncDrawableSpan>()
+                        for (async in asyncDrawables) {
+                            async.drawable.result =
+                                book.loadImageBitmap(async.drawable.destination)?.toDrawable(
+                                    Resources.getSystem()
                                 )
+                        }
+                    }
+
+                    entry.setValue(
+                        Resource.Success(
+                            success.copy(
+                                rendered = rendered,
+                                spans = spans,
                             )
                         )
-                    }
+                    )
                 } catch (t: Throwable) {
                     entry.setValue(
                         throwableToResource(t)
@@ -1144,42 +1093,22 @@ class ReadActivityViewModel : ViewModel() {
 
         // update what we have read
         updateReadArea()
-        //refreshChapters()
+        //_loadingStatus.postValue(Resource.Success(true))
     }
 
-    private suspend fun initMLFromSettings(settings: MLSettings, allowDownload: Boolean) {
+    private suspend fun initMLFromSettings(settings: MLSettings) {
         try {
-            mlTranslator?.close()
-        } catch (_ : Throwable) {}
-        mlTranslator = null
+            translationManager.release()
 
-        try {
-            if (settings.isInvalid() || settings.useOnlineTranslation) {
-                mlSettings = settings
-                return
+            translationManager.setSettings(settings.from, settings.to, settings.agent)
+
+            if (settings.isValid() && settings.agent == TranslatorAgents.OFFLINE) {
+                translationManager.prepareModel(settings.from, settings.to)
             }
-
-            val options = TranslatorOptions.Builder()
-                .setSourceLanguage(settings.from)
-                .setTargetLanguage(settings.to)
-                .build()
-
-            val translator = Translation.getClient(options)
-            mlTranslator = translator
-
-            if (allowDownload) {
-                Tasks.await(
-                    translator.downloadModelIfNeeded(), 120L, TimeUnit.SECONDS
-                )//for bad wifi, like my 2mb/s one TT
-            }
-
             mlSettings = settings
         } catch (_: TimeoutException) {
             showToast(R.string.unable_to_download_language)
-            try {
-                mlTranslator?.close()
-            } catch (_ : Throwable) {}
-            mlTranslator = null
+            translationManager.release()
         } catch (t: Throwable) {
             logError(t)
         }
@@ -1217,7 +1146,7 @@ class ReadActivityViewModel : ViewModel() {
             is Resource.Success -> {
                 init(loadedBook.value, context)
 
-                initMLFromSettings(mlSettings, false)
+                initMLFromSettings(mlSettings)
 
                 // cant assume we know a chapter max as it can expand
 
@@ -1773,8 +1702,7 @@ class ReadActivityViewModel : ViewModel() {
         lastChangeIndex?.let { setScrollKeys(it) }
         ttsSession?.release()
         ttsSession = null
-        mlTranslator?.close()
-        mlTranslator = null
+        translationManager.release()
         if(::book.isInitialized) {
             BookDownloader2.chapterReadChanged(book.title())
         }
@@ -1920,29 +1848,22 @@ class ReadActivityViewModel : ViewModel() {
         mlToLanguageLive
     )
 
-    val mlUseOnlineTransaltionLive: MutableLiveData<Boolean> = MutableLiveData(false)
-    var mlUseOnlineTransaltion by PreferenceDelegateLiveView(
-        EPUB_ML_USEONLINETRANSLATION,
-        false,
-        Boolean::class,
-        mlUseOnlineTransaltionLive
+    val mlTranslationAgentLive: MutableLiveData<String> = MutableLiveData(TranslatorAgents.OFFLINE.name)
+    var mlTranslationAgent by PreferenceDelegateLiveView(
+        "ml_translation_agent",
+        TranslatorAgents.OFFLINE.name,
+        String::class,
+        mlTranslationAgentLive
     )
-
-    /*
-   // Moved up to ensure correct initialization order. Having it lower caused a race condition  // where the default 'false' value was loaded before the actual saved preference.
-    var mlSettings
-        get() = getKey<MLSettings>(EPUB_CURRENT_ML, book.title()) ?: MLSettings("en", "en", false)
-        set(value) = setKey(EPUB_CURRENT_ML, book.title(), value)
-
-        */
-
+    val currentAgent get() = try { TranslatorAgents.valueOf(mlTranslationAgent) } catch (e: Exception) { TranslatorAgents.OFFLINE }
+    // private var activeSequenceJob: Job? = null
     data class MLSettings(
         @JsonProperty("from")
         val from: String,
         @JsonProperty("to")
         val to: String,
-        @JsonProperty("useOnlineTranslation")
-        val useOnlineTranslation: Boolean = false
+        @JsonProperty("agent")
+        val agent: TranslatorAgents = TranslatorAgents.OFFLINE
     ) {
         companion object {
             const val AUTO_LANG = "auto"
@@ -2039,7 +1960,7 @@ class ReadActivityViewModel : ViewModel() {
             // no support for auto yet (for offlineTranslations), see https://developers.google.com/ml-kit/language/identification/android
             //If the source language does not exist
             //and the user did not select auto-detect language, do not allow it.
-            if (!all.contains(from) && !(useOnlineTranslation && from == AUTO_LANG)) {
+            if (!all.contains(from) && !(agent != TranslatorAgents.OFFLINE && from == AUTO_LANG)) {
                 return false
             }
 

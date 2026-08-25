@@ -273,6 +273,7 @@
     <string name="online_translate">Online translation</string>
     <string name="translate_from">Translate from language</string>
     <string name="translate_to">Translate to language</string>
+    <string name="downloading_language">Downloading language</string>
     <string name="toWhatLanguague">-></string>
     <string name="start_chapter">Skipped chapters</string>
     <string name="tts_speed">TTS Speed</string>
