@@ -10,6 +10,7 @@ import com.lagradost.quicknovel.util.translation.models.TranslationResult
 import kotlinx.coroutines.delay
 import java.net.UnknownHostException
 import kotlin.math.pow
+import kotlin.time.Duration.Companion.milliseconds
 
 class GoogleTranslateOnline(
     private val client: Requests
@@ -162,14 +163,14 @@ class GoogleTranslateOnline(
                 val response = callGoogleTranslateApi(text, from, to)
                 val sentences = response.sentences
                 if (sentences.isEmpty()) return text
-                
+                delay(500.milliseconds)
                 return sentences.joinToString("") { it.trans }
             } catch (t: Throwable) {
                 logError(t)
                 if (t is UnknownHostException) throw t
                 retryNumber++
                 if (retryNumber >= maxRetry) throw t
-                delay(500L * (2.0.pow(retryNumber).toLong()))
+                delay(1000L * (2.0.pow(retryNumber).toLong()))
             }
         }
         return text
