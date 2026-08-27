@@ -8,6 +8,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -67,7 +69,7 @@ import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
 
 @Composable
-fun SearchScreen(state: HomeViewModelState, action: (HomeAction) -> Unit) {
+fun SearchScreen(state: HomeViewModelState, action: (HomeAction) -> Unit, pendingQuery: String? = null) {
     ShowDialog(state.filterLanguages, state.isConfigureShow, action)
     BackHandler(state.isQueryOpen) {
         action(HomeAction.CloseQuery)
@@ -75,6 +77,14 @@ fun SearchScreen(state: HomeViewModelState, action: (HomeAction) -> Unit) {
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(snapAnimationSpec = null)
     val listState = rememberLazyGridState()
+    val textFieldState = rememberTextFieldState()
+
+    LaunchedEffect(pendingQuery) {
+        if (!pendingQuery.isNullOrBlank()) {
+            textFieldState.edit { replace(0, length, pendingQuery) }
+            action(HomeAction.Search(pendingQuery))
+        }
+    }
 
 
     val searchAction = remember<(SearchResponseAction) -> Unit>(action) {
@@ -103,6 +113,7 @@ fun SearchScreen(state: HomeViewModelState, action: (HomeAction) -> Unit) {
                 onSearch = { query ->
                     action(HomeAction.Search(query))
                 },
+                textFieldState = textFieldState,
                 trailingIcon = {
                     if (state.isLoading && state.isQueryOpen) {
                         CircularProgressIndicator(
