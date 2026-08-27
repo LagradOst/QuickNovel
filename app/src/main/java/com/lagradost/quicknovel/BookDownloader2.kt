@@ -675,6 +675,9 @@ object BookDownloader2Helper {
         return externalReader && !authorsNotes
     }
 
+    val chapterRegex = Regex("Chapter \\d+", RegexOption.IGNORE_CASE)
+    val translatorRegex = Regex("Translator:.*?Editor:.*", RegexOption.IGNORE_CASE)
+
     private fun getChapter(
         filepath: String,
         index: Int,
@@ -708,11 +711,27 @@ object BookDownloader2Helper {
         // We do not want to create a nested <body> will cause some readers to fail
         val body: Element = document.selectFirst("body") ?: document
 
-        /*val html = if (!stripHtml) body.html() else stripHtml(
-            document,
-            title,
-            index,
-        )*/
+        // Strip the first line if it is useless
+        val trimTitle = title.trim()
+        for (first in arrayOf("p", "h1", "h2", "h3", "h4", "h5")) {
+            val firstText = body.selectFirst(first) ?: continue
+            val text = firstText.text().trim()
+
+            // Do not apply filtering on multiline text as that might contain other info
+            if (text.contains('\n')) {
+                continue
+            }
+
+            if (
+                text.equals(trimTitle, true)
+                || text.matches(chapterRegex)
+                || text.matches(translatorRegex)
+            ) {
+                firstText.remove()
+                break
+            }
+        }
+
         return LoadedChapter(title, body.html())
     }
 
@@ -2121,7 +2140,7 @@ object BookDownloader2 {
             val book = EpubBook().apply {
                 metadata.addTitle(sName)
                 metadata.addAuthor(Author(sAuthor))
-               // TODO add apiname in metadata.otherProperties = ?
+                // TODO add apiname in metadata.otherProperties = ?
             }
 
             //Necessary so the system recognizes the existing book
@@ -2376,7 +2395,8 @@ object BookDownloader2 {
             downloadExtractLinks = emptyList(),
         ).apply {
             this.author = author
-            this.synopsis = book.metadata.descriptions?.firstOrNull { description -> description != null && description.isNotBlank() }
+            this.synopsis =
+                book.metadata.descriptions?.firstOrNull { description -> description != null && description.isNotBlank() }
         }
 
         try {
