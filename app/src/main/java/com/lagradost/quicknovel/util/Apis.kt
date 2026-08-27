@@ -14,6 +14,7 @@ import com.lagradost.quicknovel.providers.AnnasArchive
 import com.lagradost.quicknovel.providers.ArNoProvider
 import com.lagradost.quicknovel.providers.AsianNovelProvider
 import com.lagradost.quicknovel.providers.BrightNovelProvider
+import com.lagradost.quicknovel.providers.ChikariProvider
 import com.lagradost.quicknovel.providers.DevilNovelsProvider
 import com.lagradost.quicknovel.providers.ChrysanthemumGardenProvider
 import com.lagradost.quicknovel.providers.FanMtlnProvider
@@ -82,6 +83,7 @@ class Apis {
             //BestLightNovelProvider(), //dont exist anymore
             BrightNovelProvider(),
             ChrysanthemumGardenProvider(),
+            ChikariProvider(),
             //ComrademaoProvider(), // domain sold/down?
             DevilNovelsProvider(),
             //EfremnetProvider(), // domain is expired
