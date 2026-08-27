@@ -43,14 +43,16 @@ class ScribblehubProvider : MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
     override suspend fun search(query: String): List<SearchResponse> {
-        val url = "$mainUrl/?s=$query&post_type=fictionposts"
+        val url = "$mainUrl/series-finder/?sf=1&sh=$query"
         val document = app.get(url).document
         return document.select("div.search_main_box").mapNotNull { item ->
-            val img = item.selectFirst("> div.search_img > img")?.attr("src")
-            val body = item.selectFirst("> div.search_body > div.search_title > a")
-            val title = body?.text() ?: return@mapNotNull null
-            val href = body.attr("href")
-            SearchResponse(title, href, img, null, null, this.name)
+            val a = item.selectFirst("div.search_title > a") ?: return@mapNotNull null
+
+            newSearchResponse(a.text(), a.attr("href")) {
+                posterUrl = fixUrlNull(item.selectFirst("div.search_img img")?.attr("src"))
+                rating = item.selectFirst("span.search_ratings")?.text()?.trim('(', ')')?.toFloatOrNull()?.times(200)?.toInt()
+                latestChapter = item.select("span.nl_stat").firstOrNull { it.text().contains("Chapters:") }?.text()
+            }
         }
     }
 
