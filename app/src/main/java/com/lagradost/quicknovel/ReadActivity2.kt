@@ -83,6 +83,7 @@ import com.lagradost.quicknovel.ReadActivityViewModel.MLSettings.Companion.AUTO_
 import com.lagradost.quicknovel.util.SubtitleHelper
 import com.lagradost.quicknovel.util.UIHelper.fixSystemBarsPadding
 import kotlin.collections.map
+import com.lagradost.quicknovel.util.translation.models.TranslatorAgents
 
 class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     companion object {
@@ -1339,9 +1340,11 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 }
             }
 
-            binding.readOnlineTranslationSwitch.isChecked = viewModel.mlUseOnlineTransaltion
+            binding.readOnlineTranslationSwitch.isChecked = viewModel.currentAgent != TranslatorAgents.OFFLINE
             binding.readOnlineTranslationSwitch.setOnCheckedChangeListener { _, isChecked ->
-                viewModel.mlUseOnlineTransaltion = isChecked
+                viewModel.mlTranslationAgent = if (isChecked) TranslatorAgents.ONLINE.name
+                else TranslatorAgents.OFFLINE.name
+
                 //Do not allow automatic detection of the target language; the user should know that themselves (they should know the name of their own language).
                 //It could probably be automated, but I have no idea.
                 if (isChecked == false && viewModel.mlFromLanguage == AUTO_LANG) {
@@ -1354,14 +1357,16 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 if (view == null) return@setOnClickListener
                 val context = view.context
 
-                val items = (
-                    if (!viewModel.mlUseOnlineTransaltion) ReadActivityViewModel.MLSettings.mapList
-                    else ReadActivityViewModel.MLSettings.mapOnlineList
-                )
+                val items = if (viewModel.currentAgent != TranslatorAgents.OFFLINE) {
+                    ReadActivityViewModel.MLSettings.mapOnlineList
+                } else {
+                    ReadActivityViewModel.MLSettings.mapList
+                }
+
 
                 context.showDialog(
                     items.map { (key,value) ->
-                       "${SubtitleHelper.getFlagFromIso(key)} $value"
+                        "${SubtitleHelper.getFlagFromIso(key)} $value"
                     },
                     items.map { item -> item.first }.indexOf(viewModel.mlFromLanguage),
                     context.getString(R.string.translate_from), false, {}
@@ -1377,23 +1382,20 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 ioSafe {
                     try {
                         if (!viewModel.requireMLDownload()) {
-                            viewModel.applyMLSettings(true)
+                            viewModel.applyMLSettings(false)
                             runOnUiThread { bottomSheetDialog.dismiss() }
-
-                            return@ioSafe
-                        }
-                        runOnUiThread {
-                            val builder: AlertDialog.Builder =
+                        } else {
+                            runOnUiThread {
                                 AlertDialog.Builder(view.context, R.style.AlertDialogCustom)
-                            builder.setTitle(R.string.download_ml)
-                            builder.setMessage(R.string.download_ml_long)
-                            builder.setPositiveButton(R.string.download) { _, _ ->
-                                viewModel.applyMLSettings(true)
-                                bottomSheetDialog.dismiss()
+                                    .setTitle(R.string.download_ml)
+                                    .setMessage(R.string.download_ml_long)
+                                    .setPositiveButton(R.string.download) { _, _ ->
+                                        viewModel.applyMLSettings(true)
+                                        bottomSheetDialog.dismiss()
+                                    }
+                                    .setNegativeButton(R.string.cancel, null)
+                                    .show()
                             }
-                            builder.setCancelable(true)
-                            builder.setNegativeButton(R.string.cancel) { _, _ -> }
-                            builder.show()
                         }
                     } catch (t: Throwable) {
                         showToast(t.message ?: t.toString())
