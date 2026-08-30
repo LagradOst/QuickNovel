@@ -1,10 +1,5 @@
 package com.lagradost.quicknovel.providers
 
-import android.annotation.SuppressLint
-import android.webkit.JavascriptInterface
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.DownloadExtractLink
 import com.lagradost.quicknovel.DownloadLink
 import com.lagradost.quicknovel.DownloadLinkType
@@ -14,17 +9,13 @@ import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
-import com.lagradost.quicknovel.USER_AGENT
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.network.WebViewResolver
 import com.lagradost.quicknovel.network.utils.CookiesUtils
 import com.lagradost.quicknovel.newEpubResponse
 import com.lagradost.quicknovel.newSearchResponse
-import com.lagradost.quicknovel.util.Coroutines.main
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.withTimeoutOrNull
 import org.jsoup.Jsoup
-import kotlin.time.Duration.Companion.milliseconds
+import org.jsoup.nodes.Element
 
 class AnnasArchive : MainAPI() {
     override val lang = "en"
@@ -76,7 +67,12 @@ class AnnasArchive : MainAPI() {
         val contentParam = if (!tag.isNullOrBlank()) "&content=$tag" else ""
         val srcParam = if (!orderBy.isNullOrBlank()) "&src=$orderBy" else ""
         val url = "$mainUrl/search?index=&page=$page&sort=$langParam$contentParam$srcParam&ext=epub"
-        var document = app.get(url, cookies = CookiesUtils.getAllCookiesForUrl(mainUrl)).document
+        var document = try{
+            app.get(url, cookies = CookiesUtils.getAllCookiesForUrl(url)).document
+        }
+        catch (e: Throwable){
+            Element("")
+        }
         if(document.selectFirst("div.js-aarecord-list-outer") == null){
             val script = """
                                  (function() {
