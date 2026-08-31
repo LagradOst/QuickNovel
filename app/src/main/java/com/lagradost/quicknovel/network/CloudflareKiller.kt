@@ -98,7 +98,8 @@ class CloudflareKiller : Interceptor {
                 bodySample.contains("checking your browser") ||
                 bodySample.contains("just a moment") ||
                 bodySample.contains("/cdn-cgi/") ||
-                bodySample.contains("one moment...")
+                bodySample.contains("one moment...") ||
+                bodySample.contains("un momento…")
 
         if (response.code in listOf(403, 429, 503)) {
             if (hasCloudflareHeaders || isChallengeBody) return true
@@ -145,9 +146,9 @@ class CloudflareKiller : Interceptor {
         builder.add("Accept-Language", captured["Accept-Language"] ?: "en-US,en;q=0.9")
 
         val finalCookies = cookiesMap + request.headers.values("Cookie").associate {
-            val split = it.split("=")
-            (split.getOrNull(0) ?: "") to (split.getOrNull(1) ?: "")
-        }.filter { it.key.isNotBlank() }
+            val split = it.split("=", limit = 2)
+            (split.getOrNull(0)?.trim() ?: "") to (split.getOrNull(1)?.trim() ?: "")
+        }.filter { it.key.isNotBlank() && it.value.isNotBlank() }
 
         builder.add("Cookie", finalCookies.toCookieString())
 

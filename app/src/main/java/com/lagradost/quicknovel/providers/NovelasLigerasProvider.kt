@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import android.net.Uri
+import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
@@ -8,10 +9,13 @@ import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrl
 import com.lagradost.quicknovel.fixUrlNull
+import com.lagradost.quicknovel.network.WebViewResolver
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
+import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import org.jsoup.select.Elements
 
 class NovelasLigerasProvider : MainAPI() {
     override val name = "Nova"
@@ -35,6 +39,8 @@ class NovelasLigerasProvider : MainAPI() {
         "En Proceso" to "16",
         "Pausado" to "17"
     )
+
+
     override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
@@ -60,9 +66,9 @@ class NovelasLigerasProvider : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document
-        val infoDiv = document.select("div.summary.entry-summary")
-        val title = infoDiv.selectFirst("h1")?.text() ?: ""
+        val document: Document = app.get(url).document
+        val infoDiv: Elements = document.select("div.summary.entry-summary")
+        val title: String = infoDiv.selectFirst("h1")?.text() ?: throw ErrorLoadingException("No title found")
 
         val synopsis = infoDiv.select("div.woocommerce-product-details__short-description > p")
             .joinToString("\n\n") { it.text() }
@@ -113,8 +119,7 @@ class NovelasLigerasProvider : MainAPI() {
 
     override suspend fun loadHtml(url: String): String? {
         val document = app.get(url).document
-        val reader =
-            document.selectFirst("div.wpb_text_column.wpb_content_element > div") ?: return null
+        val reader = document.selectFirst( "div.wpb_text_column.wpb_content_element > div") ?: return null
         reader.select("h1, h2, a.track-ad").remove()
         return reader.html()
     }
