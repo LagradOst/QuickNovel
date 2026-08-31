@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.providers
 
 import android.net.Uri
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
@@ -138,34 +139,55 @@ class DevilNovelsProvider : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val url = "$mainUrl/?post_type=page&s=${Uri.encode(query)}"
-        val document = app.get(url).document
+        val url = "$mainUrl/wp-admin/admin-ajax.php"
+        val document = app.post(url = url, data = mapOf(
+            "action" to "pvc_live_search",
+            "s" to "a will etern"
+        )).parsed<DevilNovelSearchResponse>()
 
-        return document.select("main#main > div > article").mapNotNull { card ->
-            val href = card.selectFirst("a")?.attr("href") ?: return@mapNotNull null
-            val title = card.selectFirst("h2")?.text() ?: return@mapNotNull null
-
-            newSearchResponse(title, href) {
-                posterUrl = card.selectFirst("img")?.attr("src")
+        return document.data.map { card ->
+            newSearchResponse(card.title, card.link) {
+                posterUrl = card.thumbnail
             }
         }
     }
 
     data class GetFirstPageChaptersResponse(
+        @JsonProperty("success")
         val success: Boolean,
+        @JsonProperty("data")
         val data: ChaptersPage
     )
 
     data class ChaptersPage(
+        @JsonProperty("chapters")
         val chapters: List<Chapters>,
+        @JsonProperty("page")
         val page: Int,
+        @JsonProperty("pages")
         val pages: Int,
+        @JsonProperty("total")
         val total: Int,
     )
 
     data class Chapters(
+        @JsonProperty("id")
         val id: Int,
+        @JsonProperty("link")
         val link: String,
+        @JsonProperty("title")
         val title: String,
+    )
+    data class DevilNovelSearchResponse(
+        @JsonProperty("data")
+        val data: List<SearchedNovel>
+    )
+    data class SearchedNovel(
+        @JsonProperty("title")
+        val title: String,
+        @JsonProperty("link")
+        val link: String,
+        @JsonProperty("thumbnail")
+        val thumbnail: String?,
     )
 }

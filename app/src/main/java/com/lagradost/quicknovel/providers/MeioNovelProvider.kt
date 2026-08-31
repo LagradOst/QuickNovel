@@ -147,7 +147,7 @@ open class MeioNovelProvider : MainAPI() {
     override suspend fun loadHtml(url: String): String? {
         val res = app.get(url).document.selectFirst("div.text-left")
         if (res == null || res.html().isBlank()) return null
-
+        res.select("a[target=_blank]").remove()
         return res.html()
             .replace(Regex("\\(If you have problems with this website.*?THANKS!\\)", RegexOption.IGNORE_CASE), "")
             .replace("Read latest Chapters at BoxNovel.Com Only", "")
