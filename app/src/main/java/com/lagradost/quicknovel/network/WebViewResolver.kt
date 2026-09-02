@@ -299,7 +299,7 @@ class WebViewResolver(
                                         if (!isCloudflarePage) return; 
                                         var cfToken = document.querySelector('[name="cf-turnstile-response"]')?.value 
                                                       || document.querySelector('#cf-chl-widget-multi-token')?.value;
-                                        var submitButton = document.querySelector('#challenge-form button[type="submit"]') 
+                                        var submitButton = document.querySelector('#challenge-form button[type="submit"], .antibot-btn-success') 
                                                            || document.querySelector('#challenge-form input[type="submit"]');
                                         if (cfToken && submitButton) {
                                             window.wasClicked = true;

@@ -5,12 +5,10 @@ import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
-import com.lagradost.quicknovel.fixUrl
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
-import com.lagradost.quicknovel.providers.LightNovelWorldProvider.RelatedResponse
 
 class MtlNovelProvider : MainAPI() {
     override val name = "MtlNovel"
