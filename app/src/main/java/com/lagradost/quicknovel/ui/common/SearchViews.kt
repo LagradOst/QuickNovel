@@ -152,7 +152,7 @@ fun SearchListRow(
         columns = GridCells.Fixed(if (isLandscape) 2 else 1),
         state = lazyState,
         modifier = modifier,
-        contentPadding = PaddingValues(10.dp),
+        contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 80.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         items(
@@ -568,7 +568,7 @@ fun SearchResponseGrid(
         columns = GridCells.Fixed(if (isLandscape) 6 else 3),
         state = listState,
         modifier = modifier,
-        contentPadding = PaddingValues(4.dp),
+        contentPadding = PaddingValues(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 80.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
