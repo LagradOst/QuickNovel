@@ -44,8 +44,6 @@ import com.lagradost.quicknovel.compose.loadThemeMode
 import com.lagradost.quicknovel.databinding.FragmentDownloadsBinding
 import com.lagradost.quicknovel.databinding.SortBottomSheetBinding
 import com.lagradost.quicknovel.mvvm.observe
-import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
-import com.lagradost.quicknovel.tachiyomi.collectAsState
 import com.lagradost.quicknovel.ui.BaseFragment
 import com.lagradost.quicknovel.ui.SortingMethodAdapter
 import com.lagradost.quicknovel.ui.UiImage

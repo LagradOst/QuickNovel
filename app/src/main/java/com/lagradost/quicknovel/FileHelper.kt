@@ -27,8 +27,8 @@ import com.anggrayudi.storage.media.MediaType
 import com.anggrayudi.storage.toStorageFile
 import com.lagradost.quicknovel.BookDownloader2Helper.sanitizeFilename
 import com.lagradost.quicknovel.mvvm.logError
-import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
-import com.lagradost.quicknovel.tachiyomi.PreferenceData
+import com.mihon.common.preference.AndroidPreferenceStore
+import com.mihon.common.preference.PreferenceData
 
 data class FileStorage(
     val mimeType: String,

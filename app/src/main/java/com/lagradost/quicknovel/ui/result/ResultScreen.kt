@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,6 +47,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.currentRecomposeScope
@@ -83,14 +85,12 @@ import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.BackHandler
-import com.lagradost.quicknovel.compose.BaseStyles.blackButtonColors
-import com.lagradost.quicknovel.compose.BaseStyles.whiteButtonColors
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
-import com.lagradost.quicknovel.compose.RoundedImageShape
+import com.lagradost.quicknovel.compose.Colors
+import com.lagradost.quicknovel.compose.RoundedShape
 import com.lagradost.quicknovel.compose.SingleSelectDialog
 import com.lagradost.quicknovel.compose.circle
-import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.providers.RoyalRoadProvider
@@ -276,7 +276,10 @@ fun ResultScreenImpl(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(width = 100.dp, height = 150.dp)
-                        .ripple(interactionSource = posterInteractionSource)
+                        .indication(
+                            interactionSource = posterInteractionSource,
+                            indication = ripple()
+                        )
                         .rounded(),
                     model = response.imageRequest(),
                     contentDescription = stringResource(R.string.poster_descript),
@@ -325,7 +328,7 @@ fun ResultScreenImpl(
                     Modifier
                         .height(170.dp + padding.calculateTopPadding())
                         .fillMaxWidth()
-                        .combinedClickable(
+                        .clickable(
                             interactionSource = posterInteractionSource,
                             indication = null,
                             onClick = {
@@ -459,13 +462,10 @@ fun ResultScreenImpl(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(color = colors.background.copy(alpha = 0.8f * animatedAlpha))
-                    .combinedClickable(
-                        interactionSource = posterBigInteractionSource,
-                        indication = null,
+                    .clickable(
                         onClick = {
                             isPosterShown.value = !isPosterShown.value
                         })
-                    .ripple(posterBigInteractionSource)
                     .alpha(animatedAlpha),
                 model = response.imageRequest(),
                 contentDescription = stringResource(R.string.poster_descript),
@@ -543,24 +543,19 @@ fun ChapterItem(
     action: (ResultPageAction) -> Unit,
     modifier: Modifier
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .combinedClickable(
-                interactionSource = interactionSource, onClick = {
-                    action(
-                        ResultPageAction.ChapterAction(
-                            response,
-                            chapter,
-                            ChapterOperation.Stream
-                        )
+            .clickable(onClick = {
+                action(
+                    ResultPageAction.ChapterAction(
+                        response,
+                        chapter,
+                        ChapterOperation.Stream
                     )
-                }, onLongClick = {
-                    // TODO show 3 dots info
-                }, indication = null
+                )
+            }
             )
-            .ripple(interactionSource = interactionSource)
             .padding(10.dp)
     ) {
         Text(chapter.name, fontSize = 14.sp, lineHeight = 13.sp)
@@ -620,7 +615,6 @@ fun ReviewItem(
     modifier: Modifier,
     action: (ResultPageAction) -> Unit,
 ) {
-    val textInteractionSource = remember { MutableInteractionSource() }
     val expanded = rememberSaveable { mutableStateOf(false) }
     val showSpoiler = rememberSaveable { mutableStateOf(false) }
 
@@ -681,7 +675,7 @@ fun ReviewItem(
                 Text(
                     modifier = Modifier
                         .padding(4.dp)
-                        .background(color = colors.onBackground, shape = RoundedImageShape())
+                        .background(color = colors.onBackground, shape = RoundedShape())
                         .padding(horizontal = 6.dp),
                     color = colors.background,
                     text = stringResource(R.string.overall) + " " + LocalContext.current.getRatingReview(
@@ -694,7 +688,7 @@ fun ReviewItem(
                 Text(
                     modifier = Modifier
                         .padding(4.dp)
-                        .background(color = colors.surfaceVariant, shape = RoundedImageShape())
+                        .background(color = colors.surfaceVariant, shape = RoundedShape())
                         .padding(horizontal = 6.dp),
                     color = colors.onBackground,
                     text = "$name " + LocalContext.current.getRatingReview(
@@ -711,23 +705,21 @@ fun ReviewItem(
             modifier = Modifier
                 .padding(5.dp)
                 .fillMaxWidth()
-                .clickable(
-                    interactionSource = textInteractionSource, indication = null, onClick = {
-                        if (isSpoilerActive) {
-                            showSpoiler.value = true
-                        } else {
-                            expanded.value = !expanded.value
-                        }
-                    })
+                .clickable(onClick = {
+                    if (isSpoilerActive) {
+                        showSpoiler.value = true
+                    } else {
+                        expanded.value = !expanded.value
+                    }
+                })
                 .rounded()
-                .ripple(textInteractionSource)
                 .padding(5.dp)
                 .background(
                     if (isSpoilerActive) {
                         colors.onBackground
                     } else {
                         Color.Transparent
-                    }, shape = RoundedImageShape()
+                    }, shape = RoundedShape()
                 ),
             text = review.content.html(),
             color = if (isSpoilerActive) {
@@ -751,7 +743,6 @@ fun NovelPage(
     innerListState: LazyListState,
 ) {
     val expanded = rememberSaveable { mutableStateOf(false) }
-    val textInteractionSource = remember { MutableInteractionSource() }
     val response = state.response ?: return
 
     LazyColumn(state = innerListState) {
@@ -800,13 +791,10 @@ fun NovelPage(
                     modifier = Modifier
                         .padding(5.dp)
                         .clickable(
-                            interactionSource = textInteractionSource,
-                            indication = null,
                             onClick = {
                                 expanded.value = !expanded.value
                             })
                         .rounded()
-                        .ripple(textInteractionSource)
                         .padding(5.dp),
                     text = response.synopsis.html(),
                     color = colors.onBackground,
@@ -842,8 +830,8 @@ fun DownloadButtons(
 ) {
     Row(Modifier.padding(horizontal = 10.dp)) {
         TextButton(
-            shape = RoundedImageShape(),
-            colors = whiteButtonColors,
+            shape = RoundedShape(),
+            colors = Colors.whiteButton,
             enabled = downloadState.downloaded > 0,
             modifier = Modifier
                 .padding(2.dp)
@@ -883,8 +871,8 @@ fun DownloadButtons(
         val action =
             DownloadStateAction(if (downloadState.downloaded >= downloadState.total && downloadState.status == DownloadState.Nothing) DownloadState.IsDone else downloadState.status)
         TextButton(
-            shape = RoundedImageShape(),
-            colors = blackButtonColors,
+            shape = RoundedShape(),
+            colors = Colors.blackButton,
             modifier = Modifier
                 .padding(2.dp)
                 .weight(1.0f),

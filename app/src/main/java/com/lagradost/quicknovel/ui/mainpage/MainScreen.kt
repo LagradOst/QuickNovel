@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.ui.mainpage
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -47,16 +48,15 @@ import androidx.compose.ui.unit.sp
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.BackHandler
 import com.lagradost.quicknovel.compose.BaseSearchBar
-import com.lagradost.quicknovel.compose.BaseStyles.blackButtonColors
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
+import com.lagradost.quicknovel.compose.Colors
 import com.lagradost.quicknovel.compose.SingleSelectDialog
-import com.lagradost.quicknovel.compose.ripple
-import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
-import com.lagradost.quicknovel.tachiyomi.collectAsState
 import com.lagradost.quicknovel.ui.common.SearchList
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.search.SearchRow
+import com.mihon.common.preference.AndroidPreferenceStore
+import com.mihon.presentation.settings.collectAsState
 import kotlinx.coroutines.launch
 
 @Composable
@@ -178,7 +178,6 @@ fun SearchResponseDialog(
     action: (SearchResponseAction) -> Unit,
     dismiss: () -> Unit,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
     ModalBottomSheet(
@@ -195,8 +194,7 @@ fun SearchResponseDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp)
-                .combinedClickable(
-                    interactionSource = interactionSource,
+                .clickable(
                     onClick = {
                         scope.launch {
                             sheetState.hide()
@@ -205,7 +203,6 @@ fun SearchResponseDialog(
                         }
                     }
                 )
-                .ripple(interactionSource)
                 .padding(horizontal = 10.dp)
         ) {
             Text(
@@ -363,7 +360,7 @@ fun RowScope.SelectButton(text: String, onClick: () -> Unit) {
         Modifier
             .weight(1.0f)
             .padding(horizontal = 5.dp),
-        colors = blackButtonColors,
+        colors = Colors.blackButton,
     ) {
         Text(text)
         Spacer(Modifier.width(10.dp))

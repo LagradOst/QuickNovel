@@ -49,22 +49,17 @@ import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.FileHelper
 import com.lagradost.quicknovel.FileStorage
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.BaseStyles.blackButtonColors
-import com.lagradost.quicknovel.compose.BaseStyles.whiteButtonColors
+import com.lagradost.quicknovel.compose.BlackButton
 import com.lagradost.quicknovel.compose.CloudStreamPrimaryColor
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
+import com.lagradost.quicknovel.compose.WhiteButton
 import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.modeToTheme
 import com.lagradost.quicknovel.compose.perfToColor
 import com.lagradost.quicknovel.compose.perfToMode
-import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.mvvm.logError
-import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
-import com.lagradost.quicknovel.tachiyomi.Preference
-import com.lagradost.quicknovel.tachiyomi.SearchableSettings
-import com.lagradost.quicknovel.tachiyomi.TextPreferenceWidget
 import com.lagradost.quicknovel.ui.txt
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.AppUtils.openInBrowser
@@ -72,6 +67,10 @@ import com.lagradost.quicknovel.util.BackupUtils
 import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.util.SubtitleHelper
 import com.lagradost.quicknovel.util.UIHelper.clipboardHelper
+import com.mihon.common.preference.AndroidPreferenceStore
+import com.mihon.presentation.settings.Preference
+import com.mihon.presentation.settings.SearchableSettings
+import com.mihon.presentation.settings.widget.TextPreferenceWidget
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toPersistentList
@@ -83,7 +82,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class SettingScreen : SearchableSettings {
+object SettingScreen : SearchableSettings {
     @Composable
     override fun getTitleRes(): String = stringResource(R.string.title_settings)
 
@@ -92,7 +91,7 @@ class SettingScreen : SearchableSettings {
         storage : FileStorage,
         store : AndroidPreferenceStore,
         name : String,
-    ) : Preference.PreferenceItem<String> {
+    ) : Preference.PreferenceItem.ListPreference<String> {
         val context = LocalContext.current
         val epubPathStore = storage.toPreference(context, store)
 
@@ -114,7 +113,7 @@ class SettingScreen : SearchableSettings {
         return Preference.PreferenceItem.ListPreference(
             title = name,
             icon = painterResource(R.drawable.netflix_download),
-            pref = epubPathStore,
+            preference = epubPathStore,
             subtitleProvider = { _, _ ->
                 storage.getVisualLocation(context)
             },
@@ -181,7 +180,7 @@ class SettingScreen : SearchableSettings {
                     Preference.PreferenceItem.MultiSelectListPreference(
                         icon = painterResource(R.drawable.ic_baseline_cloud_24),
                         title = stringResource(R.string.search_providers),
-                        pref = store.searchProvidersList(),
+                        preference = store.searchProvidersList(),
                         entries = apis.associate { it.name to "${SubtitleHelper.getFlagFromIso(it.lang) ?: "🌐"} ${it.name}" }.toPersistentMap(),
                         subtitleProvider = { v, _ ->
                             stringResource(R.string.active_providers, v.size)
@@ -189,7 +188,7 @@ class SettingScreen : SearchableSettings {
                     Preference.PreferenceItem.ListPreference(
                         icon = painterResource(R.drawable.ic_baseline_language_24),
                         title = stringResource(R.string.locale_settings),
-                        pref = store.getString(
+                        preference = store.getString(
                             stringResource(R.string.locale_key),
                             "en",
                         ),
@@ -208,7 +207,7 @@ class SettingScreen : SearchableSettings {
                     Preference.PreferenceItem.MultiSelectListPreference(
                         icon = painterResource(R.drawable.ic_baseline_language_24),
                         title = stringResource(R.string.provider_lang_settings),
-                        pref = store.searchLangList(),
+                        preference = store.searchLangList(),
                         entries = apis.map { api ->
                             val lang = api.lang
                             val langName = SubtitleHelper.fromTwoLettersToLanguage(lang)!!
@@ -226,7 +225,7 @@ class SettingScreen : SearchableSettings {
                     Preference.PreferenceItem.ListPreference(
                         icon = painterResource(R.drawable.ic_baseline_color_lens_24),
                         title = stringResource(R.string.theme),
-                        pref = store.getString(
+                        preference = store.getString(
                             stringResource(R.string.theme_key),
                             "AmoledLight",
                         ),
@@ -247,7 +246,7 @@ class SettingScreen : SearchableSettings {
                     Preference.PreferenceItem.ListPreference(
                         icon = painterResource(R.drawable.ic_baseline_color_lens_24),
                         title = stringResource(R.string.primary_color_settings),
-                        pref = store.getString(
+                        preference = store.getString(
                             stringResource(R.string.primary_color_key),
                             "Normal",
                         ),
@@ -268,7 +267,7 @@ class SettingScreen : SearchableSettings {
                     Preference.PreferenceItem.ListPreference(
                         icon = painterResource(R.drawable.ic_baseline_star_24),
                         title = stringResource(R.string.rating_format),
-                        pref = store.getString(
+                        preference = store.getString(
                             stringResource(R.string.rating_format_key),
                             "star",
                         ),
@@ -299,7 +298,7 @@ class SettingScreen : SearchableSettings {
                         icon = painterResource(R.drawable.ic_baseline_notifications_active_24),
                         title = stringResource(R.string.show_app_updates),
                         subtitle = stringResource(R.string.show_app_updates_desc),
-                        pref = store.getBoolean(
+                        preference = store.getBoolean(
                             stringResource(R.string.auto_update_key),
                             true,
                         ),
@@ -368,7 +367,7 @@ class SettingScreen : SearchableSettings {
                         icon = painterResource(R.drawable.ic_baseline_menu_book_24),
                         title = stringResource(R.string.external_reader),
                         subtitle = stringResource(R.string.external_reader_desc),
-                        pref = store.getBoolean(
+                        preference = store.getBoolean(
                             stringResource(R.string.external_reader_key),
                             true,
                         ),
@@ -479,7 +478,7 @@ fun LogcatDialog(dismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            Button(
+            WhiteButton(text = stringResource(R.string.save),
                 onClick = {
                     scope.launch {
                         withContext(Dispatchers.IO) {
@@ -517,17 +516,17 @@ fun LogcatDialog(dismiss: () -> Unit) {
                             }
                         }
                     }
-                }, colors = whiteButtonColors
-            ) { Text(text = stringResource(R.string.save)) }
-            Button(
+                }
+            )
+            WhiteButton(text = stringResource(R.string.copylog),
                 onClick = {
                     clipboardHelper(
                         txt("Logcat"),
                         list.value.joinToString(separator = "\n\n") { it.toString() }
                     )
-                }, colors = whiteButtonColors
-            ) { Text(text = stringResource(R.string.copylog)) }
-            Button(
+                }
+            )
+            WhiteButton(text = stringResource(R.string.clear),
                 onClick = {
                     try {
                         Runtime.getRuntime().exec("logcat -c")
@@ -535,13 +534,13 @@ fun LogcatDialog(dismiss: () -> Unit) {
                         logError(t)
                     }
                     dismiss()
-                }, colors = whiteButtonColors
-            ) { Text(text = stringResource(R.string.clear)) }
+                }
+            )
         },
         dismissButton = {
-            Button(
-                onClick = dismiss, colors = blackButtonColors
-            ) { Text(text = stringResource(R.string.close)) }
+            BlackButton(text = stringResource(R.string.close),
+                onClick = dismiss,
+            )
         },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     )
@@ -598,13 +597,10 @@ fun LogcatItem(item: LogcatItem) {
             .height(IntrinsicSize.Min)
             .fillMaxWidth()
             .clickable(
-                interactionSource = interactionSource,
-                indication = null,
                 onClick = {
                     clipboardHelper(txt("Logcat"), item.toString())
                 })
             .rounded()
-            .ripple(interactionSource)
             .padding(5.dp)
     ) {
         Box(
@@ -638,8 +634,7 @@ fun RoundColor(color: Color) {
 @PreviewLightDark
 @Composable
 private fun SettingScreenPreview() {
-    val screen = SettingScreen()
     CloudStreamTheme {
-        screen.Content()
+        SettingScreen.Content()
     }
 }

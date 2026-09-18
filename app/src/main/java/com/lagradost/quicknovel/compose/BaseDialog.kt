@@ -1,7 +1,8 @@
 package com.lagradost.quicknovel.compose
 
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,15 +12,25 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.FocusRequester.Companion.FocusRequesterFactory.component1
+import androidx.compose.ui.focus.FocusRequester.Companion.FocusRequesterFactory.component2
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.painter.Painter
@@ -28,15 +39,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.BaseStyles.blackButtonColors
-import com.lagradost.quicknovel.compose.BaseStyles.whiteButtonColors
-import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
-import kotlinx.collections.immutable.ImmutableMap
+import com.mihon.material.padding
 
 @Composable
 fun ActionDialog(
     title: String,
     text: String,
+    icon: Painter? = null,
+
     confirmText: String,
     dismissText: String,
 
@@ -44,22 +54,81 @@ fun ActionDialog(
     confirm: () -> Unit
 ) {
     AlertDialog(
-        containerColor = colors.background,
+        containerColor = MaterialTheme.colorScheme.background,
         onDismissRequest = dismiss,
-        title = { Text(text = title) },
+        title = {
+            if (icon == null) {
+                Text(text = title)
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(painter = icon, modifier = Modifier.size(36.dp), contentDescription = null)
+                    Spacer(modifier = Modifier.size(MaterialTheme.padding.medium))
+                    Text(text = title)
+                }
+            }
+        },
         text = { Text(text = text) },
         confirmButton = {
-            Button(
-                onClick = confirm,
-                colors = whiteButtonColors
-            ) { Text(text = confirmText) }
+            WhiteButton(text = confirmText, onClick = confirm)
         },
         dismissButton = {
-            Button(
-                onClick = dismiss, colors = blackButtonColors
-            ) { Text(text = dismissText) }
+            BlackButton(text = dismissText, onClick = dismiss)
         }
     )
+}
+
+@Composable
+fun WhiteButton(
+    text: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    BaseButton(
+        text = text,
+        onClick = onClick,
+        buttonColors = Colors.whiteButton,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun BlackButton(
+    text: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    BaseButton(
+        text = text,
+        onClick = onClick,
+        buttonColors = Colors.blackButton,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun BaseButton(
+    text: String, onClick: () -> Unit, buttonColors: ButtonColors,
+    modifier: Modifier = Modifier,
+) {
+    var hasFocus by remember { mutableStateOf(false) }
+    val canHaveFocus = LocalFocusOutlineDefault.current
+    Button(
+        onClick = onClick,
+        colors = buttonColors,
+        modifier = modifier.onFocusChanged { newFocus ->
+            hasFocus = canHaveFocus && newFocus.hasFocus
+        },
+        border = if (hasFocus) BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground) else null
+    ) {
+        AnimatedVisibility(hasFocus) {
+            Icon(
+                painter = painterResource(R.drawable.check_24px),
+                modifier = Modifier.padding(end = 5.dp),
+                contentDescription = null
+            )
+        }
+        Text(text = text)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,7 +136,7 @@ fun ActionDialog(
 fun SingleSelectDialog(
     modifier: Modifier = Modifier,
     shape: Shape = AlertDialogDefaults.shape,
-    containerColor: Color = colors.background,
+    containerColor: Color = MaterialTheme.colorScheme.background,
     iconContentColor: Color = AlertDialogDefaults.iconContentColor,
     tonalElevation: Dp = AlertDialogDefaults.TonalElevation,
     icon: @Composable (() -> Unit)? = null,
@@ -105,7 +174,7 @@ fun SingleSelectDialog(
 fun <T> SingleSelectDialog(
     modifier: Modifier = Modifier,
     shape: Shape = AlertDialogDefaults.shape,
-    containerColor: Color = colors.background,
+    containerColor: Color = MaterialTheme.colorScheme.background,
     iconContentColor: Color = AlertDialogDefaults.iconContentColor,
     tonalElevation: Dp = AlertDialogDefaults.TonalElevation,
     icon: @Composable (() -> Unit)? = null,
@@ -121,7 +190,9 @@ fun <T> SingleSelectDialog(
     confirm: (T) -> Unit,
     iconProvider: (@Composable (key: T, value: String) -> Unit)? = null
 ) {
-    val selected = remember { mutableStateOf(selectedKey) }
+    var selected by remember { mutableStateOf(selectedKey) }
+    val selectedPainter = painterResource(R.drawable.check_24px)
+    val (dismissFocus, confirmFocus) = remember { FocusRequester.createRefs() }
 
     AlertDialog(
         properties = properties,
@@ -137,12 +208,21 @@ fun <T> SingleSelectDialog(
             LazyColumn {
                 entries.forEach { (key, value) ->
                     item(key = key) {
-                        val isSelected = selected.value == key
-                        SingleSelectionItem(isSelected, key, value, iconProvider) {
+                        val isSelected = selected == key
+                        SingleSelectionItem(
+                            isSelected = isSelected,
+                            key = key,
+                            text = value,
+                            iconProvider = iconProvider,
+                            selectedPainter = selectedPainter,
+                            modifier = Modifier.focusProperties {
+                                start = dismissFocus
+                                end = confirmFocus
+                            }) {
                             if (confirmText == null) {
                                 confirm(key)
                             } else {
-                                selected.value = key
+                                selected = key
                             }
                         }
                     }
@@ -151,30 +231,32 @@ fun <T> SingleSelectDialog(
         },
         confirmButton = {
             if (confirmText != null) {
-                Button(
-                    onClick = {
-                        confirm(selected.value)
-                    },
-                    colors = whiteButtonColors
-                ) { Text(text = confirmText) }
+                WhiteButton(
+                    text = confirmText,
+                    onClick = { confirm(selected) },
+                    modifier = Modifier.focusRequester(confirmFocus)
+                )
             }
         },
         dismissButton = {
             if (dismissText != null) {
-                Button(
-                    onClick = dismiss, colors = blackButtonColors
-                ) { Text(text = dismissText) }
+                BlackButton(
+                    text = dismissText,
+                    onClick = dismiss,
+                    modifier = Modifier.focusRequester(dismissFocus)
+                )
             }
         }
     )
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun <T> SinglePairSelectDialog(
     modifier: Modifier = Modifier,
     shape: Shape = AlertDialogDefaults.shape,
-    containerColor: Color = colors.background,
+    containerColor: Color = MaterialTheme.colorScheme.background,
     iconContentColor: Color = AlertDialogDefaults.iconContentColor,
     tonalElevation: Dp = AlertDialogDefaults.TonalElevation,
     icon: @Composable (() -> Unit)? = null,
@@ -209,9 +291,9 @@ fun <T> SinglePairSelectDialog(
                         val (a, b) = keyPair
                         val isSelected = selected.value == a || selected.value == b
 
-                        val painter = if (a == b)  {
+                        val painter = if (a == b) {
                             R.drawable.ic_baseline_check_24_listview
-                        } else if(selected.value == a) {
+                        } else if (selected.value == a) {
                             R.drawable.ic_baseline_arrow_downward_24
                         } else {
                             R.drawable.ic_baseline_arrow_upward_24
@@ -223,7 +305,7 @@ fun <T> SinglePairSelectDialog(
                             key = nextKey,
                             text = value,
                             iconProvider = iconProvider,
-                            selectIcon = painter
+                            selectedPainter = painterResource(painter),
                         ) {
                             if (confirmText == null) {
                                 confirm(nextKey)
@@ -241,14 +323,14 @@ fun <T> SinglePairSelectDialog(
                     onClick = {
                         confirm(selected.value)
                     },
-                    colors = whiteButtonColors
+                    colors = Colors.whiteButton
                 ) { Text(text = confirmText) }
             }
         },
         dismissButton = {
             if (dismissText != null) {
                 Button(
-                    onClick = dismiss, colors = blackButtonColors
+                    onClick = dismiss, colors = Colors.blackButton
                 ) { Text(text = dismissText) }
             }
         }
@@ -260,44 +342,41 @@ fun <T> SingleSelectionItem(
     isSelected: Boolean,
     key: T,
     text: String,
+    modifier: Modifier = Modifier,
     iconProvider: (@Composable (key: T, value: String) -> Unit)? = null,
-    selectIcon: Int = R.drawable.ic_baseline_check_24_listview,
+    selectedPainter: Painter,
     onClick: () -> Unit,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .combinedClickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick,
-                onLongClick = {
-                }
-            )
             .rounded()
-            .ripple(interactionSource),
+            .clickable(
+                onClick = onClick,
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (isSelected) {
             Icon(
-                painter = painterResource(selectIcon),
+                painter = selectedPainter,
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
-                tint = colors.onBackground
+                tint = MaterialTheme.colorScheme.onBackground
             )
             iconProvider?.invoke(key, text)
             Text(
-                text,
-                color = colors.onBackground,
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(15.dp)
             )
         } else {
             Spacer(modifier = Modifier.size(24.dp))
             iconProvider?.invoke(key, text)
             Text(
-                text,
-                color = colors.onSurfaceVariant,
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(15.dp)
             )
         }
@@ -309,7 +388,7 @@ fun <T> SingleSelectionItem(
 fun <T> MultiSelectDialog(
     modifier: Modifier = Modifier,
     shape: Shape = AlertDialogDefaults.shape,
-    containerColor: Color = colors.background,
+    containerColor: Color = MaterialTheme.colorScheme.background,
     iconContentColor: Color = AlertDialogDefaults.iconContentColor,
     tonalElevation: Dp = AlertDialogDefaults.TonalElevation,
     icon: @Composable (() -> Unit)? = null,
@@ -330,6 +409,9 @@ fun <T> MultiSelectDialog(
             .filter { selectedKeys.contains(it) }
             .toMutableStateList()
     }
+
+    val selectedPainter = painterResource(R.drawable.check_24px)
+    val (dismissFocus, confirmFocus) = remember { FocusRequester.createRefs() }
 
     AlertDialog(
         properties = properties,
@@ -352,7 +434,17 @@ fun <T> MultiSelectDialog(
                 entries.forEach { (key, value) ->
                     item(key = key) {
                         val isSelected = selected.contains(key)
-                        SingleSelectionItem(isSelected, key, value, iconProvider) {
+                        SingleSelectionItem(
+                            isSelected = isSelected,
+                            key = key,
+                            text = value,
+                            iconProvider = iconProvider,
+                            selectedPainter = selectedPainter,
+                            modifier = Modifier.focusProperties {
+                                start = dismissFocus
+                                end = confirmFocus
+                            }
+                        ) {
                             if (isSelected) {
                                 selected.remove(key)
                             } else {
@@ -365,19 +457,22 @@ fun <T> MultiSelectDialog(
         },
         confirmButton = {
             if (confirmText != null) {
-                Button(
+                WhiteButton(
                     onClick = {
                         confirm(selected.toSet())
                     },
-                    colors = whiteButtonColors
-                ) { Text(text = confirmText) }
+                    text = confirmText,
+                    modifier = Modifier.focusRequester(confirmFocus)
+                )
             }
         },
         dismissButton = {
             if (dismissText != null) {
-                Button(
-                    onClick = dismiss, colors = blackButtonColors
-                ) { Text(text = dismissText) }
+                BlackButton(
+                    onClick = dismiss,
+                    text = dismissText,
+                    modifier = Modifier.focusRequester(dismissFocus)
+                )
             }
         }
     )

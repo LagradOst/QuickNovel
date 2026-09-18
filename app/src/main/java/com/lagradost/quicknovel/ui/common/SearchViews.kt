@@ -4,7 +4,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,8 +30,10 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -53,11 +57,10 @@ import com.lagradost.quicknovel.NotificationHelper.etaToString
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
-import com.lagradost.quicknovel.compose.RoundedImageShape
+import com.lagradost.quicknovel.compose.RoundedShape
 import com.lagradost.quicknovel.compose.animatedOutline
 import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.isLandscape
-import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.delay
@@ -131,7 +134,8 @@ fun SearchListRow(
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         items(
-            items = items, key = { item -> item.randomUuid
+            items = items, key = { item ->
+                item.randomUuid
             }) { item ->
             SearchResponseRow(
                 response = item, action = searchAction, modifier = Modifier.animateItem()
@@ -177,11 +181,6 @@ fun SearchResponseRow(
     action: (SearchResponseAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val streamInteractionSource = remember { MutableInteractionSource() }
-    val deleteInteractionSource = remember { MutableInteractionSource() }
-    val openInteractionSource = remember { MutableInteractionSource() }
-
     val imageRequest = response.imageRequest()
 
     Row(
@@ -192,7 +191,7 @@ fun SearchResponseRow(
             .height(100.dp)
             .rounded()
             .background(colors.surfaceContainer)
-            .combinedClickable(interactionSource = interactionSource, indication = null, onClick = {
+            .combinedClickable(onClick = {
                 action(
                     SearchResponseAction(
                         response, if (response.downloadState != null) {
@@ -206,7 +205,6 @@ fun SearchResponseRow(
                 action(SearchResponseAction(response, SearchResponseOperation.Metadata))
             })
             .downloadOutline(if (response.generating) DownloadState.IsDownloading else response.downloadState?.status)
-            .ripple(interactionSource)
     ) {
         AsyncImage(
             contentScale = ContentScale.Crop,
@@ -217,15 +215,12 @@ fun SearchResponseRow(
                 .fillMaxHeight()
                 .rounded()
                 .combinedClickable(
-                    interactionSource = openInteractionSource,
-                    indication = null,
                     onClick = {
                         action(SearchResponseAction(response, SearchResponseOperation.Open))
                     },
                     onLongClick = {
                         action(SearchResponseAction(response, SearchResponseOperation.Metadata))
                     })
-                .ripple(openInteractionSource)
         )
 
         Column(
@@ -323,40 +318,34 @@ fun SearchResponseRow(
             RefreshButton(response, action)
         } else {
             if (response.id != null) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_baseline_delete_outline_24),
-                    contentDescription = stringResource(R.string.remove_history),
-                    modifier = Modifier
-                        .size(54.dp)
-                        .combinedClickable(
-                            interactionSource = deleteInteractionSource,
-                            indication = null,
-                            onClick = {
-                                action(
-                                    SearchResponseAction(
-                                        response, SearchResponseOperation.AskDelete
-                                    )
-                                )
-                            })
-                        .circle()
-                        .ripple(deleteInteractionSource)
-                        .padding(15.dp)
-                )
+                IconButton(
+                    onClick = {
+                        action(
+                            SearchResponseAction(
+                                response, SearchResponseOperation.AskDelete
+                            )
+                        )
+                    },
+                    modifier = Modifier.size(54.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.delete_24px),
+                        contentDescription = stringResource(R.string.remove_history),
+                    )
+                }
             }
 
-            Icon(
-                painter = painterResource(R.drawable.netflix_play),
-                contentDescription = stringResource(R.string.stream_read),
-                modifier = Modifier
-                    .size(54.dp)
-                    .combinedClickable(
-                        interactionSource = streamInteractionSource, indication = null, onClick = {
-                            action(SearchResponseAction(response, SearchResponseOperation.Stream))
-                        })
-                    .circle()
-                    .ripple(streamInteractionSource)
-                    .padding(15.dp)
-            )
+            IconButton(
+                onClick = {
+                    action(SearchResponseAction(response, SearchResponseOperation.Stream))
+                },
+                modifier = Modifier.size(54.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.play_arrow_24px),
+                    contentDescription = stringResource(R.string.stream_read),
+                )
+            }
         }
 
         Spacer(Modifier.width(10.dp))
@@ -372,8 +361,6 @@ fun RefreshButton(
     if (response.isImported) {
         return
     }
-    val refreshInteractionSource = remember { MutableInteractionSource() }
-
 
     if (response.downloadState.status == DownloadState.IsPending) {
         Spacer(Modifier.width(54.dp))
@@ -382,23 +369,21 @@ fun RefreshButton(
 
     val action = response.downloadState.action
 
-    Icon(
-        painter = painterResource(action.icon),
-        contentDescription = stringResource(R.string.download),
-        modifier = Modifier
-            .size(54.dp)
-            .combinedClickable(
-                interactionSource = refreshInteractionSource, indication = null, onClick = {
-                    action(
-                        SearchResponseAction(
-                            response, action.operation
-                        )
-                    )
-                })
-            .circle()
-            .ripple(refreshInteractionSource)
-            .padding(15.dp)
-    )
+    IconButton(
+        onClick = {
+            action(
+                SearchResponseAction(
+                    response, action.operation
+                )
+            )
+        },
+        modifier = Modifier.size(54.dp)
+    ) {
+        Icon(
+            painter = painterResource(action.icon),
+            contentDescription = stringResource(R.string.download),
+        )
+    }
 }
 
 
@@ -428,7 +413,7 @@ fun Modifier.downloadOutline(downloadState: DownloadState?): Modifier {
 
         DownloadState.IsPaused -> {
             border(
-                width = 1.5.dp, color = colors.onBackground, shape = RoundedImageShape()
+                width = 1.5.dp, color = colors.onBackground, shape = RoundedShape()
             )
         }
 
@@ -441,7 +426,7 @@ fun Modifier.downloadOutline(downloadState: DownloadState?): Modifier {
                 border(
                     width = 1.5.dp,
                     color = colors.primary.copy(alpha = alpha),
-                    shape = RoundedImageShape()
+                    shape = RoundedShape()
                 )
             } else {
                 this
@@ -450,7 +435,7 @@ fun Modifier.downloadOutline(downloadState: DownloadState?): Modifier {
 
         DownloadState.IsFailed -> {
             border(
-                width = 1.5.dp, color = Color.Red, shape = RoundedImageShape()
+                width = 1.5.dp, color = Color.Red, shape = RoundedShape()
             )
         }
 
@@ -492,7 +477,7 @@ fun SearchResponseItem(
                 .rounded()
                 // We do the funny and assign generating = downloading
                 .downloadOutline(if (response.generating) DownloadState.IsDownloading else response.downloadState?.status)
-                .ripple(interactionSource),
+                .indication(interactionSource = interactionSource, indication = ripple()),
             contentAlignment = Alignment.BottomStart
         ) {
             AsyncImage(

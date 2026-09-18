@@ -41,8 +41,6 @@ import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.IsScrolling
 import com.lagradost.quicknovel.compose.SinglePairSelectDialog
-import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
-import com.lagradost.quicknovel.tachiyomi.collectAsState
 import com.lagradost.quicknovel.ui.common.SearchList
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseOperation
@@ -55,6 +53,8 @@ import com.lagradost.quicknovel.ui.history.HistoryAction.ResultAction
 import com.lagradost.quicknovel.ui.history.HistoryAction.Search
 import com.lagradost.quicknovel.ui.history.HistoryAction.SelectSortingMethod
 import com.lagradost.quicknovel.ui.history.HistoryAction.ShowSorting
+import com.mihon.common.preference.AndroidPreferenceStore
+import com.mihon.presentation.settings.collectAsState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

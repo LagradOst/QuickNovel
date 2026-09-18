@@ -526,6 +526,12 @@ fun modeToTheme(mode : CloudStreamThemeMode, primaryColor: CloudStreamPrimaryCol
 }
 
 val LocalSharedInfiniteTransition = staticCompositionLocalOf<InfiniteTransition> { throw NotImplementedError() }
+
+@Composable
+fun CloudStreamPreviewTheme(content: @Composable () -> Unit) {
+    CloudStreamTheme(content = content)
+}
+
 @Composable
 fun CloudStreamTheme(
     mode: CloudStreamThemeMode = CloudStreamThemeMode.FollowSystem,

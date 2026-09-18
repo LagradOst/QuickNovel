@@ -7,7 +7,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 
-object BaseStyles {
+object Colors {
     /*val textStyle : TextStyle  @Composable @ReadOnlyComposable get() = TextStyle(
         color = colors.onBackground,
         fontSize = 14.sp,
@@ -22,14 +22,14 @@ object BaseStyles {
         fontFamily = AppFont.googleSans,
     )*/
 
-    val blackButtonColors  @Composable @ReadOnlyComposable get() = ButtonColors(
+    val blackButton  @Composable @ReadOnlyComposable get() = ButtonColors(
         containerColor = colors.surfaceVariant,
         contentColor = colors.onBackground,
         disabledContainerColor = colors.surface.copy(alpha = 0.9f),
         disabledContentColor = colors.onBackground.copy(alpha = 0.9f)
     )
 
-    val whiteButtonColors @Composable @ReadOnlyComposable get() =  ButtonColors(
+    val whiteButton @Composable @ReadOnlyComposable get() =  ButtonColors(
         containerColor = colors.onBackground,
         contentColor = colors.surfaceVariant,
         disabledContainerColor = colors.onBackground.copy(alpha = 0.9f),

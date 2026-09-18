@@ -3,6 +3,7 @@ package com.lagradost.quicknovel.ui.search
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -53,15 +54,14 @@ import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.MultiSelectDialog
 import com.lagradost.quicknovel.compose.isLandscape
-import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
-import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseItem
 import com.lagradost.quicknovel.ui.mainpage.SearchResponseDialog
 import com.lagradost.quicknovel.ui.settings.searchProvidersList
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.SubtitleHelper
+import com.mihon.common.preference.AndroidPreferenceStore
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
@@ -229,7 +229,6 @@ fun MainAPIItem(
     modifier: Modifier = Modifier,
     action: (HomeAction) -> Unit,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -238,10 +237,9 @@ fun MainAPIItem(
             .height(100.dp)
             .rounded()
             .background(colors.surfaceContainer)
-            .combinedClickable(interactionSource = interactionSource, indication = null, onClick = {
+            .clickable(onClick = {
                 action(HomeAction.Open(api))
-            }, onLongClick = {})
-            .ripple(interactionSource)
+            })
     ) {
         Image(
             painter = painterResource(api.iconId ?: R.drawable.fiber_new_24px),
@@ -281,7 +279,6 @@ private fun SearchRow(
         }
     }
 
-    val interactionSource = remember { MutableInteractionSource() }
     Column {
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -289,8 +286,7 @@ private fun SearchRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp)
-                .ripple(interactionSource)
-                .combinedClickable(interactionSource = interactionSource, onClick = {
+                .clickable(onClick = {
                     action(HomeAction.OpenRow(row))
                 })
         ) {

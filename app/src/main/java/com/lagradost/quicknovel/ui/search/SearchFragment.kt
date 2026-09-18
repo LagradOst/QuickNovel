@@ -19,11 +19,11 @@ import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.ObserveEffect
 import com.lagradost.quicknovel.compose.loadPrimaryColor
 import com.lagradost.quicknovel.compose.loadThemeMode
-import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
-import com.lagradost.quicknovel.tachiyomi.collectAsState
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.ui.settings.searchLangList
 import com.lagradost.quicknovel.ui.settings.searchProvidersList
+import com.mihon.common.preference.AndroidPreferenceStore
+import com.mihon.presentation.settings.collectAsState
 import kotlinx.collections.immutable.toPersistentSet
 
 

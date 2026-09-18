@@ -4,8 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
 import com.lagradost.quicknovel.util.Apis.Companion.apis
+import com.mihon.common.preference.AndroidPreferenceStore
 import kotlinx.collections.immutable.toPersistentHashSet
 
 @Composable

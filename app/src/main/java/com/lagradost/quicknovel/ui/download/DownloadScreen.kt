@@ -1,7 +1,9 @@
 package com.lagradost.quicknovel.ui.download
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,6 +32,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,10 +60,7 @@ import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.IsScrolling
 import com.lagradost.quicknovel.compose.SinglePairSelectDialog
-import com.lagradost.quicknovel.compose.ripple
 import com.lagradost.quicknovel.compose.rounded
-import com.lagradost.quicknovel.tachiyomi.AndroidPreferenceStore
-import com.lagradost.quicknovel.tachiyomi.collectAsState
 import com.lagradost.quicknovel.ui.common.HorizontalTab
 import com.lagradost.quicknovel.ui.common.ImmutableSearchList
 import com.lagradost.quicknovel.ui.common.SearchList
@@ -70,6 +70,8 @@ import com.lagradost.quicknovel.ui.common.SortingMethodPair
 import com.lagradost.quicknovel.ui.common.SortingMethodType
 import com.lagradost.quicknovel.ui.common.normalSortingMethods
 import com.lagradost.quicknovel.ui.common.sortingMethods
+import com.mihon.common.preference.AndroidPreferenceStore
+import com.mihon.presentation.settings.collectAsState
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.delay
@@ -438,7 +440,6 @@ fun DownloadRow(
 
 @Composable
 fun RowFooter() {
-    val interactionSource = remember { MutableInteractionSource() }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
@@ -447,16 +448,11 @@ fun RowFooter() {
             .height(100.dp)
             .rounded()
             .background(colors.surfaceContainer)
-            .combinedClickable(
-                interactionSource = interactionSource,
-                indication = null,
+            .clickable(
                 onClick = {
                     MainActivity.importEpub()
                 },
-                onLongClick = {
-                }
             )
-            .ripple(interactionSource)
     ) {
         Icon(
             modifier = Modifier.size(30.dp),
@@ -495,7 +491,7 @@ fun BoxFooter() {
                 .fillMaxWidth()
                 .aspectRatio(0.68f)
                 .rounded()
-                .ripple(interactionSource),
+                .indication(interactionSource = interactionSource, indication = ripple()),
             contentAlignment = Alignment.Center
         ) {
             Icon(
