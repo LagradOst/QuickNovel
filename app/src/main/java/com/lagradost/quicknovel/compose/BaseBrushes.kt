@@ -40,7 +40,7 @@ import kotlin.math.max
 
 @Composable
 fun Modifier.animatedOutline( width: Dp = 2.dp,  defaultPalette: List<Color>): Modifier {
-    val imageShape = RoundedCornerShape(dimensionResource(R.dimen.roundedImageRadius))
+    val imageShape = RoundedShape()
 
     val rotation = LocalSharedInfiniteTransition.current.animateFloat(
         initialValue = 0f,

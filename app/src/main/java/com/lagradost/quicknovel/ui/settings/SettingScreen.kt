@@ -88,10 +88,10 @@ object SettingScreen : SearchableSettings {
 
     @Composable
     fun getFilePreference(
-        storage : FileStorage,
-        store : AndroidPreferenceStore,
-        name : String,
-    ) : Preference.PreferenceItem.ListPreference<String> {
+        storage: FileStorage,
+        store: AndroidPreferenceStore,
+        name: String,
+    ): Preference.PreferenceItem.ListPreference<String> {
         val context = LocalContext.current
         val epubPathStore = storage.toPreference(context, store)
 
@@ -112,7 +112,7 @@ object SettingScreen : SearchableSettings {
             }
         return Preference.PreferenceItem.ListPreference(
             title = name,
-            icon = painterResource(R.drawable.netflix_download),
+            icon = painterResource(R.drawable.folder_24px),
             preference = epubPathStore,
             subtitleProvider = { _, _ ->
                 storage.getVisualLocation(context)
@@ -127,11 +127,12 @@ object SettingScreen : SearchableSettings {
                     "Custom" -> {
                         try {
                             pathPicker.launch(Uri.EMPTY)
-                        } catch (t : Throwable) {
+                        } catch (t: Throwable) {
                             logError(t)
                             showToast(t.toString())
                         }
                     }
+
                     else -> storage.setLocation(context, null)
                 }
                 return@ListPreference false
@@ -150,9 +151,12 @@ object SettingScreen : SearchableSettings {
         val logcatPathStore = FileHelper.logcat.toPreference(context, store)
         val logcatPath = backupPathStore.collectAsState()*/
 
-        val logcat = getFilePreference(FileHelper.logcat, store, stringResource(R.string.log_cat_location))
-        val backup = getFilePreference(FileHelper.backup, store, stringResource(R.string.backup_location))
-        val downloads = getFilePreference(FileHelper.epub, store, stringResource(R.string.download_path_pref))
+        val logcat =
+            getFilePreference(FileHelper.logcat, store, stringResource(R.string.log_cat_location))
+        val backup =
+            getFilePreference(FileHelper.backup, store, stringResource(R.string.backup_location))
+        val downloads =
+            getFilePreference(FileHelper.epub, store, stringResource(R.string.download_path_pref))
 
         val restoreFileSelector =
             rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -177,16 +181,8 @@ object SettingScreen : SearchableSettings {
             Preference.PreferenceGroup(
                 title = stringResource(R.string.general_settings),
                 preferenceItems = persistentListOf(
-                    Preference.PreferenceItem.MultiSelectListPreference(
-                        icon = painterResource(R.drawable.ic_baseline_cloud_24),
-                        title = stringResource(R.string.search_providers),
-                        preference = store.searchProvidersList(),
-                        entries = apis.associate { it.name to "${SubtitleHelper.getFlagFromIso(it.lang) ?: "🌐"} ${it.name}" }.toPersistentMap(),
-                        subtitleProvider = { v, _ ->
-                            stringResource(R.string.active_providers, v.size)
-                        }),
                     Preference.PreferenceItem.ListPreference(
-                        icon = painterResource(R.drawable.ic_baseline_language_24),
+                        icon = painterResource(R.drawable.language_korean_latin_24px),
                         title = stringResource(R.string.locale_settings),
                         preference = store.getString(
                             stringResource(R.string.locale_key),
@@ -205,7 +201,7 @@ object SettingScreen : SearchableSettings {
                         }.associate { it }.toPersistentMap(),
                     ),
                     Preference.PreferenceItem.MultiSelectListPreference(
-                        icon = painterResource(R.drawable.ic_baseline_language_24),
+                        icon = painterResource(R.drawable.plugin_lang),
                         title = stringResource(R.string.provider_lang_settings),
                         preference = store.searchLangList(),
                         entries = apis.map { api ->
@@ -217,13 +213,22 @@ object SettingScreen : SearchableSettings {
                             code to "$flag $name"
                         }.associate { it }.toPersistentMap(),
                     ),
+                    Preference.PreferenceItem.MultiSelectListPreference(
+                        icon = painterResource(R.drawable.extension_24px),
+                        title = stringResource(R.string.search_providers),
+                        preference = store.searchProvidersList(),
+                        entries = apis.associate { it.name to "${SubtitleHelper.getFlagFromIso(it.lang) ?: "🌐"} ${it.name}" }
+                            .toPersistentMap(),
+                        subtitleProvider = { v, _ ->
+                            stringResource(R.string.active_providers, v.size)
+                        }),
                 )
             ),
             Preference.PreferenceGroup(
                 title = stringResource(R.string.theme),
                 preferenceItems = persistentListOf(
                     Preference.PreferenceItem.ListPreference(
-                        icon = painterResource(R.drawable.ic_baseline_color_lens_24),
+                        icon = painterResource(R.drawable.palette_24px),
                         title = stringResource(R.string.theme),
                         preference = store.getString(
                             stringResource(R.string.theme_key),
@@ -244,7 +249,7 @@ object SettingScreen : SearchableSettings {
                         }
                     ),
                     Preference.PreferenceItem.ListPreference(
-                        icon = painterResource(R.drawable.ic_baseline_color_lens_24),
+                        icon = painterResource(R.drawable.colors_24px),
                         title = stringResource(R.string.primary_color_settings),
                         preference = store.getString(
                             stringResource(R.string.primary_color_key),
@@ -265,7 +270,7 @@ object SettingScreen : SearchableSettings {
                         }
                     ),
                     Preference.PreferenceItem.ListPreference(
-                        icon = painterResource(R.drawable.ic_baseline_star_24),
+                        icon = painterResource(R.drawable.star_24px),
                         title = stringResource(R.string.rating_format),
                         preference = store.getString(
                             stringResource(R.string.rating_format_key),
@@ -281,7 +286,7 @@ object SettingScreen : SearchableSettings {
                 title = stringResource(R.string.app_settings),
                 preferenceItems = persistentListOf(
                     Preference.PreferenceItem.TextPreference(
-                        icon = painterResource(R.drawable.ic_baseline_system_update_24),
+                        icon = painterResource(R.drawable.mobile_arrow_down_24px),
                         title = stringResource(R.string.check_for_update),
                         onClick = {
                             // Todo refactor
@@ -295,7 +300,7 @@ object SettingScreen : SearchableSettings {
                         }
                     ),
                     Preference.PreferenceItem.SwitchPreference(
-                        icon = painterResource(R.drawable.ic_baseline_notifications_active_24),
+                        icon = painterResource(R.drawable.notifications_active_24px),
                         title = stringResource(R.string.show_app_updates),
                         subtitle = stringResource(R.string.show_app_updates_desc),
                         preference = store.getBoolean(
@@ -304,7 +309,7 @@ object SettingScreen : SearchableSettings {
                         ),
                     ),
                     Preference.PreferenceItem.TextPreference(
-                        icon = painterResource(R.drawable.baseline_save_as_24),
+                        icon = painterResource(R.drawable.save_as_24px),
                         title = stringResource(R.string.backup_settings),
                         subtitle = null,
                         onClick = {
@@ -338,7 +343,7 @@ object SettingScreen : SearchableSettings {
                     ),
                     backup,
                     Preference.PreferenceItem.TextPreference(
-                        icon = painterResource(R.drawable.baseline_restore_page_24),
+                        icon = painterResource(R.drawable.restore_page_24px),
                         title = stringResource(R.string.restore_settings),
                         onClick = {
                             try {
@@ -396,7 +401,7 @@ object SettingScreen : SearchableSettings {
                             TextPreferenceWidget(
                                 title = stringResource(R.string.show_log_cat),
                                 subtitle = null,
-                                icon = painterResource(R.drawable.baseline_description_24),
+                                icon = painterResource(R.drawable.article_24px),
                                 onPreferenceClick = {
                                     showDialog = true
                                 },
@@ -478,7 +483,8 @@ fun LogcatDialog(dismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            WhiteButton(text = stringResource(R.string.save),
+            WhiteButton(
+                text = stringResource(R.string.save),
                 onClick = {
                     scope.launch {
                         withContext(Dispatchers.IO) {
@@ -518,7 +524,8 @@ fun LogcatDialog(dismiss: () -> Unit) {
                     }
                 }
             )
-            WhiteButton(text = stringResource(R.string.copylog),
+            WhiteButton(
+                text = stringResource(R.string.copylog),
                 onClick = {
                     clipboardHelper(
                         txt("Logcat"),
@@ -526,7 +533,8 @@ fun LogcatDialog(dismiss: () -> Unit) {
                     )
                 }
             )
-            WhiteButton(text = stringResource(R.string.clear),
+            WhiteButton(
+                text = stringResource(R.string.clear),
                 onClick = {
                     try {
                         Runtime.getRuntime().exec("logcat -c")
@@ -538,7 +546,8 @@ fun LogcatDialog(dismiss: () -> Unit) {
             )
         },
         dismissButton = {
-            BlackButton(text = stringResource(R.string.close),
+            BlackButton(
+                text = stringResource(R.string.close),
                 onClick = dismiss,
             )
         },
@@ -549,8 +558,6 @@ fun LogcatDialog(dismiss: () -> Unit) {
 
 @Composable
 fun LogcatItem(item: LogcatItem) {
-    val interactionSource = remember { MutableInteractionSource() }
-
     val color = when (item.level) {
         LogcatLevel.Fatal -> Color.Magenta
         LogcatLevel.Error -> Color.Red

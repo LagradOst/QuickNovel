@@ -28,7 +28,6 @@ import com.mihon.common.preference.AndroidPreferenceStore
 import com.mihon.presentation.settings.SearchableSettings
 import com.mihon.presentation.settings.collectAsState
 
-// TODO logcat! and reorganize
 class SettingsFragment : Fragment(), SearchableSettings by SettingScreen {
     override fun onCreateView(
         inflater: LayoutInflater,

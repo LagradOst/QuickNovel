@@ -30,7 +30,7 @@ fun Modifier.ripple(
 )*/
 
 // no dimens.xml allowed in compose :/
-fun RoundedShape() = RoundedCornerShape(10.dp)
+fun RoundedShape() = RoundedCornerShape(7.dp)
 
 @Composable
 fun Modifier.rounded(): Modifier =

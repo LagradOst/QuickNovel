@@ -292,11 +292,11 @@ fun <T> SinglePairSelectDialog(
                         val isSelected = selected.value == a || selected.value == b
 
                         val painter = if (a == b) {
-                            R.drawable.ic_baseline_check_24_listview
+                            R.drawable.check_24px
                         } else if (selected.value == a) {
-                            R.drawable.ic_baseline_arrow_downward_24
+                            R.drawable.arrow_downward_24px
                         } else {
-                            R.drawable.ic_baseline_arrow_upward_24
+                            R.drawable.arrow_upward_24px
                         }
 
                         val nextKey = if (selected.value != a) a else b
