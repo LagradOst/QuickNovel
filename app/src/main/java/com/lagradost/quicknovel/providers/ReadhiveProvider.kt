@@ -19,7 +19,9 @@ class ReadhiveProvider  :  MainAPI() {
     override val iconId = R.drawable.icon_readhive
     override val hasMainPage = true
     override val rateLimitTime = 500L
+    override val usesCloudFlareKiller = true
 
+    /*
     override val tags = listOf(
         "Action" to "action",
         "Adult" to "adult",
@@ -53,32 +55,17 @@ class ReadhiveProvider  :  MainAPI() {
         "Xuanhuan" to "xuanhuan",
         "Yaoi" to "yaoi"
     )
-
+     */
     override suspend fun loadMainPage(
         page: Int,
         mainCategory: String?,
         orderBy: String?,
         tag: String?
     ): HeadMainPageResponse {
-        val hasTag = !tag.isNullOrBlank()
-        val tagPath = if (hasTag) "genre/$tag/" else ""
 
-        val url = "$mainUrl/${tagPath}page/$page/"
+        val url = "$mainUrl/page/$page"
         val document = app.get(url).document
-        val returnValue = parsePageCards(document).toMutableList()
-
-        if (hasTag && page == 1) {
-            val nextUrl = "$mainUrl/${tagPath}page/2/"
-            val nextDocument = app.get(nextUrl).document
-            val secondPageCards = parsePageCards(nextDocument)
-            returnValue.addAll(secondPageCards)
-        }
-
-        return HeadMainPageResponse(url, returnValue)
-    }
-
-    private fun parsePageCards(document: Document): List<SearchResponse> {
-        return document.select("a.peer, a.col-span-2").mapNotNull { card ->
+        val returnValue = document.select("a.peer, a.col-span-2").mapNotNull { card ->
             val href = card?.attr("href") ?: return@mapNotNull null
             val title = card.selectFirst("img")?.attr("alt") ?: return@mapNotNull null
             newSearchResponse(
@@ -88,8 +75,10 @@ class ReadhiveProvider  :  MainAPI() {
                 posterUrl = fixUrlNull(card.selectFirst("img")?.attr("src"))
             }
         }
-    }
 
+
+        return HeadMainPageResponse(url, returnValue)
+    }
 
     override suspend fun load(url: String): LoadResponse
     {

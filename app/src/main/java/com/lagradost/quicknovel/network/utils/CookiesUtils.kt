@@ -7,11 +7,17 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 object CookiesUtils {
     /** Parses a raw cookie string into a key-value Map */
     fun parseCookieMap(cookie: String?): Map<String, String> {
-        if (cookie == null) return emptyMap()
-        return cookie.split(";").associate {
-            val split = it.split("=")
-            (split.getOrNull(0)?.trim() ?: "") to (split.getOrNull(1)?.trim() ?: "")
-        }.filter { it.key.isNotBlank() && it.value.isNotBlank() }
+        if (cookie.isNullOrBlank()) return emptyMap()
+        return cookie.split(";").mapNotNull { pair ->
+            val split = pair.split("=", limit = 2)
+            val key = split.getOrNull(0)?.trim() ?: ""
+            val value = split.getOrNull(1)?.trim() ?: ""
+            if (key.isNotBlank() && value.isNotBlank()) {
+                key to value
+            } else {
+                null
+            }
+        }.toMap()
     }
 
     /** Converts a cookie Map back into a single string for HTTP headers */
@@ -31,16 +37,33 @@ object CookiesUtils {
         val rootCookies = parseCookieMap(manager.getCookie("${uri.scheme}://$rootDomain"))
         val subCookies = parseCookieMap(manager.getCookie(url))
 
-        return rootCookies + subCookies
+        return (rootCookies + subCookies).filter { it.value.isNotBlank() }
     }
 
 
     /** Removes Cloudflare clearance cookies for a host to force a clean bypass. */
     fun clearCookiesForHost(url: HttpUrl) {
         val manager = CookieManager.getInstance()
-        val rootDomain = url.topPrivateDomain() ?: url.host
-        manager.setCookie(url.toString(), "cf_clearance=; Max-Age=0")
-        manager.setCookie("${url.scheme}://$rootDomain", "cf_clearance=; Max-Age=0")
+        val uri = url.toString()
+        val host = url.host
+        val rootDomain = url.topPrivateDomain() ?: host
+
+        val keys = mutableSetOf<String>()
+        val rawCookies = (manager.getCookie(uri) ?: "") + "; " + (manager.getCookie("${url.scheme}://$rootDomain") ?: "")
+
+        rawCookies.split(";").forEach {
+            val name = it.split("=").firstOrNull()?.trim()
+            if (!name.isNullOrBlank()) keys.add(name)
+        }
+
+        keys.forEach { name ->
+            val deleteSuffix = "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/"
+
+            manager.setCookie(uri, "$name$deleteSuffix")
+            manager.setCookie(host, "$name$deleteSuffix")
+            manager.setCookie(rootDomain, "$name$deleteSuffix")
+            manager.setCookie(".$rootDomain", "$name$deleteSuffix")
+        }
         manager.flush()
     }
 }

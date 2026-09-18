@@ -214,7 +214,8 @@ open class WuxiaBoxProvider : MainAPI() {
                 "tempid" to "1",
                 "tbname" to "news",
                 "keyboard" to encodedQuery // your search keyword
-            )
+            ),
+            allowRedirects = true
         )
 
         // The server redirects with url result/?searchid=XXXXX
