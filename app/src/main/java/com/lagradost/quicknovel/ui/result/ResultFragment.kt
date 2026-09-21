@@ -40,6 +40,7 @@ import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.SortingMethodAdapter
 import com.lagradost.quicknovel.ui.mainpage.MainAdapter
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
+import com.lagradost.quicknovel.ui.search.SearchFragmentExtras
 import com.lagradost.quicknovel.ui.setRecycledViewPool
 import com.lagradost.quicknovel.util.SettingsHelper.getRating
 import com.lagradost.quicknovel.util.SingleSelectionHelper.showBottomDialog
@@ -188,6 +189,28 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
 
                     resultTitle.text = res.name
                     resultAuthor.text = res.author ?: getString(R.string.no_author)
+
+                    // Click title to copy to clipboard, long-press to search across providers
+                    resultTitle.setOnClickListener {
+                        val ctx = it.context
+                        val clipboard = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                            as android.content.ClipboardManager
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("novel_title", res.name))
+                        android.widget.Toast.makeText(ctx, ctx.getString(R.string.toast_copied), android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                    resultTitle.setOnLongClickListener {
+                        val act = activity as? androidx.fragment.app.FragmentActivity ?: return@setOnLongClickListener true
+                        SearchFragmentExtras.pendingSearchQuery = res.name
+                        val navHostFragment = act.supportFragmentManager
+                            .findFragmentById(com.lagradost.quicknovel.R.id.nav_host_fragment) as? androidx.navigation.fragment.NavHostFragment
+                        val navController = navHostFragment?.navController ?: return@setOnLongClickListener true
+                        val navOptions = androidx.navigation.NavOptions.Builder()
+                            .setLaunchSingleTop(true)
+                            .setPopUpTo(navController.graph.startDestinationId, false)
+                            .build()
+                        navController.navigate(com.lagradost.quicknovel.R.id.navigation_search, null, navOptions)
+                        true
+                    }
 
                     resultRatingVotedCount.text = getString(R.string.no_data)
                     res.rating?.let { rating ->
