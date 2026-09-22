@@ -246,8 +246,8 @@
     <string name="sleep_timer">Сон</string>
     <string name="sleep_format">%d мин</string>
     <string name="sleep_format_stop">TTS остановится через %d мин</string>
-    <string name="google_translate">Google перевод</string>
-    <string name="online_translate">Онлайн перевод</string>
+    <string name="mlkit_translate">Google перевод</string>
+    <string name="google_translate">Онлайн перевод</string>
     <string name="start_chapter">Пропущенные главы</string>
     <string name="tts_speed">Темп TTS</string>
     <string name="tts_pitch">Тембр TTS</string>
