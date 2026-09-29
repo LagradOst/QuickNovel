@@ -963,7 +963,7 @@ class ReadActivityViewModel : ViewModel() {
                 }
                 return@safe null
             }
-            //if (cachedHtml != null) return cachedHtml
+            if (cachedHtml != null) return cachedHtml
 
             val translatedHtml = translationManager.translate(
                     text = rawHtml,
