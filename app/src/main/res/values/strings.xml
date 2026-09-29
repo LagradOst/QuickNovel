@@ -274,8 +274,8 @@
     <string name="sleep_timer">Sleep</string>
     <string name="sleep_format">%d min</string>
     <string name="sleep_format_stop">TTS will stop in %d min</string>
+    <string name="mlkit_translate">MLKit translate</string>
     <string name="google_translate">Google translate</string>
-    <string name="online_translate">Online translation</string>
     <string name="translate_from">Translate from language</string>
     <string name="translate_to">Translate to language</string>
     <string name="toWhatLanguague">-></string>

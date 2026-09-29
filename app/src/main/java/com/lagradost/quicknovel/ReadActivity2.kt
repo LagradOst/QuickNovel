@@ -1409,13 +1409,13 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                 ReadActivityViewModel.MLSettings.fromShortToDisplay(viewModel.mlFromLanguage)
 
             val mlSettings = viewModel.mlSettings
-
-            if (mlSettings.isInvalid()) {
-                binding.readMlTitle.setText(R.string.google_translate)
-            } else {
-                binding.readMlTitle.text =
-                    "${binding.readMlTitle.context.getString(R.string.google_translate)} (${mlSettings.fromDisplay} -> ${mlSettings.toDisplay})"
-            }
+            binding.readMlTitle.text =
+                "${
+                    when(mlSettings.agent){
+                        TranslatorAgents.OFFLINE -> getString(R.string.mlkit_translate)
+                        TranslatorAgents.ONLINE -> getString(R.string.google_translate)
+                    }
+                } (${mlSettings.fromDisplay} -> ${mlSettings.toDisplay})"
 
             binding.readLanguage.setOnClickListener { _ ->
                 ioSafe {

@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.util.translation
 
+import androidx.core.text.HtmlCompat
 import com.google.android.gms.tasks.Tasks
 import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.common.model.RemoteModelManager
@@ -9,11 +10,14 @@ import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
 import com.lagradost.quicknovel.ErrorLoadingException
+import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.util.translation.models.TranslatorAgents
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
-import java.util.concurrent.ExecutionException
+import org.jsoup.Jsoup
 
 fun Translator?.closeQuietly() {
     try {
@@ -24,9 +28,10 @@ fun Translator?.closeQuietly() {
 }
 
 class TranslationManager {
+    private val onlineTranslator by lazy { GoogleTranslateOnline() }
     private var translator: Translator? = null // MLKit Offline
-    private var currentFrom: String? = null
-    private var currentTo: String? = null
+    private var cachedFrom: String? = null
+    private var cachedTo: String? = null
 
     suspend fun isModelDownloaded(source: String, target: String): Boolean = withContext(Dispatchers.IO) {
         try {
@@ -48,7 +53,7 @@ class TranslationManager {
 
     suspend fun prepareModel(from: String, to: String, downloadIfNeeded: Boolean = true): Translator? {
         try {
-            if (translator != null && currentFrom == from && currentTo == to) {
+            if (translator != null && cachedFrom == from && cachedTo == to) {
                 return translator
             }
 
@@ -69,8 +74,8 @@ class TranslationManager {
             }
 
             translator = client
-            currentFrom = from
-            currentTo = to
+            cachedFrom = from
+            cachedTo = to
             return translator
         } catch (e: Exception) {
             logError(e)
@@ -78,22 +83,69 @@ class TranslationManager {
         }
     }
 
+    /**
+     * Translates a single string. If isHtml is true, it will split, translate fragments, and join.
+     */
+    suspend fun translate(
+        text: String,
+        from: String,
+        to: String,
+        agent: TranslatorAgents,
+        isHtml: Boolean = false,
+        progress: suspend (Int, Int) -> Unit = { _, _ -> }
+    ): String {
+        if (text.isBlank()) return text
+
+        return if (isHtml) {
+            val doc = Jsoup.parse(text)
+            val fragments = mutableListOf<String>()
+            TranslationsUtils.htmlToTranslatableList(doc.body(), fragments)
+
+            if (fragments.isEmpty()) return text
+
+            val translatedList = translate(
+                textList = fragments,
+                from = from,
+                to = to,
+                agent = agent,
+                isHtml = true,
+                progress = progress
+            )
+            translatedList.joinToString("<br>\n")
+        } else {
+            val result = translate(
+                textList = listOf(text),
+                from = from,
+                to = to,
+                agent = agent,
+                isHtml = false,
+                progress = progress
+            )
+            result.firstOrNull() ?: text
+        }
+    }
+
+    /**
+     * Translates a list of strings.
+     */
     suspend fun translate(
         textList: List<String>,
         from: String,
         to: String,
         agent: TranslatorAgents,
+        isHtml: Boolean = false,
         progress: suspend (Int, Int) -> Unit = { _, _ -> },
     ): List<String> {
         if (textList.isEmpty()) return emptyList()
 
         return when (agent) {
             TranslatorAgents.ONLINE -> {
-                GoogleTranslateOnline.onlineTranslate(textList, from, to, progress)
+                val result = onlineTranslator.translate(textList, from, to, isHtml, progress)
+                onlineTranslator.fixFailures(result, from, to, isHtml = isHtml)
             }
 
             TranslatorAgents.OFFLINE -> {
-                offlineTranslate(textList, from, to, progress)
+                offlineTranslate(textList, from, to, isHtml, progress)
             }
         }
     }
@@ -102,26 +154,24 @@ class TranslationManager {
         textList: List<String>,
         from: String,
         to: String,
+        isHtml: Boolean = false,
         progress: suspend (Int, Int) -> Unit
     ): List<String> {
         val client = prepareModel(from, to) ?: throw Exception("Offline model not available")
         return textList.mapIndexed { index, text ->
-            if (!TranslationsUtils.isTranslatable(text, false)) return@mapIndexed text
-            
+            val textToTranslate = TranslationsUtils.isTranslatable(text, isHtml) ?: return@mapIndexed text
+            val decodedText = HtmlCompat.fromHtml(textToTranslate, HtmlCompat.FROM_HTML_MODE_LEGACY).toString()
+            val translatedText = Tasks.await(client.translate(decodedText))
             progress(index + 1, textList.size)
-            try {
-                Tasks.await(client.translate(TranslationsUtils.sanitize(text)))
-            } catch (t: ExecutionException) {
-                throw t.cause ?: t
-            }
+            translatedText.replace("<", "&lt;").replace(">", "&gt;")
         }
     }
 
-    fun releaseOffline() {
+    private fun releaseOffline() {
         translator?.closeQuietly()
         translator = null
-        currentFrom = null
-        currentTo = null
+        cachedFrom = null
+        cachedTo = null
     }
 
     fun release() {

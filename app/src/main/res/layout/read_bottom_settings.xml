@@ -129,7 +129,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="15dp"
-                    android:text="@string/google_translate"
+                    android:text="@string/mlkit_translate"
                     android:textSize="16sp" />
 
                 <LinearLayout
@@ -179,7 +179,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:text="@string/online_translate" />
+                    android:text="@string/google_translate" />
             </LinearLayout>
 
             <!-- Tab 2: Voice -->
