@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
@@ -203,8 +204,24 @@ fun SearchResponseRow(
                 )
             }, onLongClick = {
                 action(SearchResponseAction(response, SearchResponseOperation.Metadata))
-            })
-            .downloadOutline(if (response.generating) DownloadState.IsDownloading else response.downloadState?.status)
+            }).let { modifier ->
+                /** For stub, we always show an outline */
+                if (
+                    !response.generating
+                    && response.downloadState != null
+                    && response.downloadState.progress > response.downloadState.total
+                    && (response.downloadState.status == DownloadState.Nothing || response.downloadState.status == DownloadState.IsDone)
+                ) {
+                    modifier.border(
+                        width = 1.5.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = RoundedShape()
+                    )
+                } else {
+                    modifier.downloadOutline(if (response.generating) DownloadState.IsDownloading else response.downloadState?.status)
+                }
+            }
+
     ) {
         AsyncImage(
             contentScale = ContentScale.Crop,

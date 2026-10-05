@@ -760,18 +760,18 @@ object BookDownloader2Helper {
                     rFile.createNewFile() // only create the file when actually needed
                     rFile.writeText("${data.name}\n${page}")
                     if (api.rateLimitTime > 0) {
-                        delay(api.rateLimitTime)
+                        delay(api.rateLimitTime.milliseconds)
                     }
                     return@withContext true
                 } else {
-                    delay(5000L * (i + 1)) // ERROR
+                    delay((1000L * (i + 1)).milliseconds) // ERROR
                     if (api.rateLimitTime > 0) {
-                        delay(api.rateLimitTime)
+                        delay(api.rateLimitTime.milliseconds)
                     }
                 }
             } catch (e: Exception) {
                 logError(e)
-                delay(5000L * (i + 1))
+                delay((1000L * (i + 1)).milliseconds)
             } finally {
                 if (rateLimit) {
                     api.api.rateLimitMutex.unlock()
@@ -2772,9 +2772,8 @@ object BookDownloader2 {
                     if (currentState != DownloadState.IsPaused) {
                         break
                     }
-                    delay(200)
+                    delay(200.milliseconds)
                 }
-
                 val filepath =
                     filesDir.toString() + BookDownloader2Helper.getFilename(
                         sApiName,
@@ -2847,7 +2846,10 @@ object BookDownloader2 {
             }
 
             changeDownload(id) {
-                this.progress = totalItems.toLong()
+                /** Only modify progress if we have made any, as this fixes stubs */
+                if (downloadedTotal > 0) {
+                    this.progress = totalItems.toLong()
+                }
                 this.downloaded = range.endInclusive + 1 - range.start + alreadyDownloaded
                 state = DownloadState.IsDone
             }?.let { progressState ->
