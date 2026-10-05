@@ -13,6 +13,7 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
+import com.lagradost.quicknovel.BookDownloader2.doWorkWithCancel
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.BookDownloader2Helper.generateId
@@ -208,9 +209,12 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
         if (data !is com.lagradost.quicknovel.mvvm.Resource.Success)
             return if (runAttemptCount < 3) Result.retry() else Result.failure()
 
-        when (val res = data.value) {
-            is EpubResponse -> BookDownloader2.downloadWorkThread(res, api, context)
-            is StreamResponse -> BookDownloader2.downloadWorkThread(res, api, context)
+        val id = generateId(data.value, api.name)
+        doWorkWithCancel(id) { worker ->
+            when (val res = data.value) {
+                is EpubResponse -> BookDownloader2.downloadWorkThread(res, api, context, worker=worker)
+                is StreamResponse -> BookDownloader2.downloadWorkThread(res, api, context, worker=worker)
+            }
         }
         return Result.success()
     }
@@ -223,19 +227,28 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
                 runInForeground()
                 when (val data = popWork(this.workerParams.inputData.getInt(DATA, -1))) {
                     is StreamResponse -> {
-                        BookDownloader2.downloadWorkThread(
-                            data,
-                            Apis.getApiFromName(data.apiName),
-                            context
-                        )
+                        val id = generateId(data, data.apiName)
+                        doWorkWithCancel(id) { worker ->
+                            BookDownloader2.downloadWorkThread(
+                                data,
+                                Apis.getApiFromName(data.apiName),
+                                context,
+                                worker
+                            )
+                        }
+
                     }
 
                     is EpubResponse -> {
-                        BookDownloader2.downloadWorkThread(
-                            data,
-                            Apis.getApiFromName(data.apiName),
-                            context
-                        )
+                        val id = generateId(data, data.apiName)
+                        doWorkWithCancel(id) { worker ->
+                            BookDownloader2.downloadWorkThread(
+                                data,
+                                Apis.getApiFromName(data.apiName),
+                                context,
+                                worker
+                            )
+                        }
                     }
 
                     is ImmutableSearchResponse -> {
