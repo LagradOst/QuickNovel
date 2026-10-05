@@ -27,6 +27,12 @@ import coil3.network.httpHeaders
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import coil3.request.transformations
+import com.lagradost.cloudstream4.state.FilterByQuery
+import com.lagradost.cloudstream4.state.SearchableData
+import com.lagradost.cloudstream4.state.SortByName
+import com.lagradost.cloudstream4.state.rev
+import com.lagradost.cloudstream4.state.sortByFloat
+import com.lagradost.cloudstream4.state.sortByLong
 import com.lagradost.quicknovel.BaseApplication
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
@@ -134,6 +140,7 @@ data class ImmutableChapterData(
                 index = index,
             )
     }
+
     fun matchesQuery(query: String): Boolean =
         FuzzySearch.partialRatio(name.lowercase(), query) > 50
 }
@@ -533,11 +540,12 @@ data class ImmutableSearchResponse(
 
     fun doAction(operation: SearchResponseOperation) {
         when (operation) {
-            SearchResponseOperation.Open ->{
-                if(!isImported) {
+            SearchResponseOperation.Open -> {
+                if (!isImported) {
                     loadResult(url, apiName)
                 }
             }
+
             SearchResponseOperation.Metadata -> {
                 MainActivity.loadPreviewPage(this)
             }
@@ -629,10 +637,10 @@ data class DownloadStateAction(
     val icon
         get() = when (status) {
             DownloadState.IsDownloading -> R.drawable.stop_circle_24px
-            DownloadState.IsPaused -> R.drawable.netflix_play
+            DownloadState.IsPaused -> R.drawable.play_arrow_24px
             DownloadState.IsStopped -> R.drawable.arrow_circle_down_24px
             DownloadState.IsFailed -> R.drawable.arrow_circle_down_24px
-            DownloadState.IsDone -> R.drawable.ic_baseline_check_24
+            DownloadState.IsDone -> R.drawable.check
             DownloadState.IsPending -> R.drawable.nothing
             DownloadState.Nothing -> R.drawable.arrow_circle_down_24px
         }
@@ -835,8 +843,7 @@ val normalSortingMethods = persistentListOf(
     SortingMethodPair(
         R.string.chapters, SortingMethodType.ChapterCount,
         SortingMethodType.RevChapterCount
-    ),
-
+    )
 )
 
 /**
@@ -947,8 +954,11 @@ data class ImmutableChapterList(
             val sorted = when (method) {
                 ChapterSortingMethodType.Default, ChapterSortingMethodType.Ascending -> list
                 ChapterSortingMethodType.RevAscending -> list.asReversed().toPersistentList()
-                ChapterSortingMethodType.Alphabetical -> list.sortedBy { it.name }.toPersistentList()
-                ChapterSortingMethodType.RevAlphabetical -> list.sortedByDescending { it.name }.toPersistentList()
+                ChapterSortingMethodType.Alphabetical -> list.sortedBy { it.name }
+                    .toPersistentList()
+
+                ChapterSortingMethodType.RevAlphabetical -> list.sortedByDescending { it.name }
+                    .toPersistentList()
             }
 
             return sorted
@@ -972,6 +982,7 @@ data class ImmutableChapterList(
         }
     }
 }
+
 /**
  * Viewmodel -> UI
  *
@@ -981,23 +992,23 @@ data class ImmutableChapterList(
  * */
 @Immutable
 data class ImmutableSearchList(
-    val data: PersistentMap<Int, ImmutableSearchResponse> = persistentMapOf(),
-    private val filtered: PersistentSet<Int> = persistentSetOf(),
-    val sorted: PersistentList<Int> = persistentListOf(),
+    private val internalData: SearchableData<Int, ImmutableSearchResponse> = SearchableData(
+        data = persistentMapOf(),
+        filtered = persistentSetOf(),
+        sorted = persistentListOf(),
+        filteredBy = null,
+        sortedBy = SortByName { it.name }
+    ),
     val query: String = "",
     val sortingMethod: SortingMethodType = SortingMethodType.Default,
 ) {
+    val data = internalData.data
+    //val filtered = internalData.filtered
+    val sorted = internalData.sorted
+
     @CheckResult
     fun delete(id: Int): ImmutableSearchList {
-        if (!data.contains(id)) {
-            return this
-        }
-
-        return copy(
-            data = data.removing(id),
-            filtered = filtered.removing(id),
-            sorted = if (filtered.contains(id)) sorted.removing(id) else sorted
-        )
+        return copy(internalData = internalData.removing(id))
     }
 
     @CheckResult
@@ -1005,27 +1016,7 @@ data class ImmutableSearchList(
         id: Int,
         newItem: ImmutableSearchResponse
     ): ImmutableSearchList {
-        val item = data[id]
-
-        val passesFilter = (skipQuery(query) || newItem.matchesQuery(query))
-        val newData = data.putting(id, newItem)
-        val newFiltered = if (passesFilter) {
-            filtered.adding(id)
-        } else {
-            filtered
-        }
-        val newSorted =
-            if (passesFilter && (item == null || shouldUpdateItem(sortingMethod, item, newItem))) {
-                sortList(newData, newFiltered, sortingMethod)
-            } else {
-                sorted
-            }
-
-        return copy(
-            data = newData,
-            filtered = newFiltered,
-            sorted = newSorted
-        )
+        return copy(internalData = internalData.adding(id, newItem))
     }
 
     @CheckResult
@@ -1033,21 +1024,7 @@ data class ImmutableSearchList(
         id: Int,
         updater: ImmutableSearchResponse.() -> ImmutableSearchResponse
     ): ImmutableSearchList {
-        val item = this.data[id] ?: return this
-        val newItem = updater(item)
-        val newData = data.putting(id, newItem)
-
-        val newSorted =
-            if (filtered.contains(id) && shouldUpdateItem(sortingMethod, item, newItem)) {
-                sortList(newData, filtered, sortingMethod)
-            } else {
-                sorted
-            }
-
-        return copy(
-            data = newData,
-            sorted = newSorted
-        )
+        return copy(internalData = internalData.updating(id, updater))
     }
 
     @CheckResult
@@ -1057,139 +1034,84 @@ data class ImmutableSearchList(
     ): ImmutableSearchList {
         val sameQuery = this.query == query
         val sameSorting = this.sortingMethod == sortingMethod
-
-        val filtered = if (sameQuery) {
-            filtered
-        } else {
-            filterList(data, query)
-        }
-        val sorted = if (sameSorting && sameQuery) {
-            sorted
-        } else {
-            sortList(data, filtered, sortingMethod)
+        if (sameQuery && sameSorting) {
+            return this
         }
 
-        return this.copy(
-            filtered = filtered,
-            sorted = sorted,
-            query = query,
+        return copy(
+            internalData = internalData.searchBy(
+                newSorting = getSortingMethod(sortingMethod),
+                newFilter = getQuery(query),
+            ),
             sortingMethod = sortingMethod,
+            query = query
         )
     }
 
     companion object {
-        @CheckResult
-        fun shouldUpdateItem(
-            sortingMethod: SortingMethodType,
-            item: ImmutableSearchResponse,
-            newItem: ImmutableSearchResponse
-        ) = when (sortingMethod) {
-            SortingMethodType.RevAlphabetical, SortingMethodType.Alphabetical -> newItem.name != item.name
-            SortingMethodType.DownloadCount, SortingMethodType.RevDownloadCount -> {
-                newItem.downloadState?.downloaded != item.downloadState?.downloaded
-                        // Do not spam with update notifications for downloading items, as that is frequent
-                        && newItem.downloadState?.status != DownloadState.IsDownloading
-            }
+        private val Alphabetical = SortByName<ImmutableSearchResponse> { it.name }
+        private val RevAlphabetical = SortByName<ImmutableSearchResponse> { it.name }.rev()
+        private val DownloadCount =
+            sortByLong<ImmutableSearchResponse> { it.downloadState?.downloaded ?: 0L }.rev()
+        private val RevDownloadCount =
+            sortByLong<ImmutableSearchResponse> { it.downloadState?.downloaded ?: 0L }
+        private val DownloadPercentage = sortByFloat<ImmutableSearchResponse> {
+            it.downloadState?.downloadPercentage ?: 0.0f
+        }.rev()
+        private val RevDownloadPercentage =
+            sortByFloat<ImmutableSearchResponse> { it.downloadState?.downloadPercentage ?: 0.0f }
+        private val LastOpened =
+            sortByLong<ImmutableSearchResponse> { it.timeOfPageOpened ?: 0L }.rev()
+        private val RevLastOpened =
+            sortByLong<ImmutableSearchResponse> { it.timeOfPageOpened ?: 0L }
+        private val LastNewChapterDownloaded =
+            sortByLong<ImmutableSearchResponse> { it.timeOfChapterDownloaded ?: 0L }.rev()
+        private val RevLastNewChapterDownloaded =
+            sortByLong<ImmutableSearchResponse> { it.timeOfChapterDownloaded ?: 0L }
+        private val LastCached = sortByLong<ImmutableSearchResponse> { it.timeOfCached }.rev()
+        private val RevLastCached = sortByLong<ImmutableSearchResponse> { it.timeOfCached }
+        private val ChapterCount = sortByLong<ImmutableSearchResponse> { it.chapters ?: 0L }.rev()
+        private val RevChapterCount = sortByLong<ImmutableSearchResponse> { it.chapters ?: 0L }
+        private val DefaultQuery = FilterByQuery<ImmutableSearchResponse>("") { it.name }
 
-            SortingMethodType.DownloadPercentage, SortingMethodType.RevDownloadPercentage -> {
-                newItem.downloadState?.downloadPercentage != item.downloadState?.downloadPercentage
-                        // Do not spam with update notifications for downloading items, as that is frequent
-                        && newItem.downloadState?.status != DownloadState.IsDownloading
+        private fun getQuery(query: String): FilterByQuery<ImmutableSearchResponse>? {
+            return if (query.length < 2) {
+                null
+            } else {
+                DefaultQuery.update(query)
             }
-
-            SortingMethodType.Default, SortingMethodType.LastOpened, SortingMethodType.RevLastOpened -> {
-                newItem.timeOfPageOpened != item.timeOfPageOpened
-            }
-
-            SortingMethodType.LastNewChapterDownloaded, SortingMethodType.RevLastNewChapterDownloaded -> {
-                newItem.timeOfChapterDownloaded != item.timeOfChapterDownloaded
-            }
-
-            SortingMethodType.LastCached, SortingMethodType.RevLastCached -> {
-                newItem.timeOfCached != item.timeOfCached
-            }
-
-            SortingMethodType.ChapterCount, SortingMethodType.RevChapterCount -> item.chapters != newItem.chapters
         }
 
-        @CheckResult
-        fun skipQuery(query: String) = query.trim().length < 2
+        private fun getSortingMethod(method: SortingMethodType): Comparator<ImmutableSearchResponse> {
+            return when (method) {
+                SortingMethodType.Alphabetical -> Alphabetical
 
-        @CheckResult
-        fun filterList(
-            data: PersistentMap<Int, ImmutableSearchResponse>,
-            query: String
-        ): PersistentSet<Int> {
-            val set = data.keys.toPersistentSet()
-            if (query.trim().length < 2) return set
-            return set.removingAll { data[it]?.matchesQuery(query) != true }
-        }
+                SortingMethodType.RevAlphabetical -> RevAlphabetical
 
-        @CheckResult
-        fun sortList(
-            data: PersistentMap<Int, ImmutableSearchResponse>,
-            list: PersistentSet<Int>,
-            method: SortingMethodType
-        ): PersistentList<Int> {
-            val sorted = when (method) {
-                SortingMethodType.Alphabetical -> {
-                    list.sortedBy { data[it]?.name ?: "" }
-                }
+                SortingMethodType.DownloadCount -> DownloadCount
 
-                SortingMethodType.RevAlphabetical -> {
-                    list.sortedByDescending { data[it]?.name ?: "" }
-                }
+                SortingMethodType.RevDownloadCount -> RevDownloadCount
 
-                SortingMethodType.DownloadCount -> {
-                    list.sortedByDescending { data[it]?.downloadState?.downloaded ?: 0 }
-                }
+                SortingMethodType.DownloadPercentage -> DownloadPercentage
 
-                SortingMethodType.RevDownloadCount -> {
-                    list.sortedBy { data[it]?.downloadState?.downloaded ?: 0 }
-                }
+                SortingMethodType.RevDownloadPercentage -> RevDownloadPercentage
 
-                SortingMethodType.DownloadPercentage -> {
-                    list.sortedByDescending { data[it]?.downloadState?.downloadPercentage ?: 0.0f }
-                }
+                SortingMethodType.Default, SortingMethodType.LastOpened -> LastOpened
 
-                SortingMethodType.RevDownloadPercentage -> {
-                    list.sortedBy { data[it]?.downloadState?.downloadPercentage ?: 0.0f }
-                }
+                SortingMethodType.RevLastOpened -> RevLastOpened
 
-                SortingMethodType.Default, SortingMethodType.LastOpened -> {
-                    list.sortedByDescending { data[it]?.timeOfPageOpened ?: 0L }
-                }
+                SortingMethodType.LastNewChapterDownloaded -> LastNewChapterDownloaded
 
-                SortingMethodType.RevLastOpened -> {
-                    list.sortedBy { data[it]?.timeOfPageOpened ?: 0L }
-                }
+                SortingMethodType.RevLastNewChapterDownloaded -> RevLastNewChapterDownloaded
 
-                SortingMethodType.LastNewChapterDownloaded -> {
-                    list.sortedByDescending { data[it]?.timeOfChapterDownloaded ?: 0L }
-                }
+                SortingMethodType.LastCached -> LastCached
 
-                SortingMethodType.RevLastNewChapterDownloaded -> {
-                    list.sortedBy { data[it]?.timeOfChapterDownloaded ?: 0L }
-                }
+                SortingMethodType.RevLastCached -> RevLastCached
 
-                SortingMethodType.LastCached -> {
-                    list.sortedByDescending { data[it]?.timeOfCached ?: 0L }
-                }
+                SortingMethodType.ChapterCount -> ChapterCount
 
-                SortingMethodType.RevLastCached -> {
-                    list.sortedBy { data[it]?.timeOfCached ?: 0L }
-                }
-
-                SortingMethodType.ChapterCount -> {
-                    list.sortedByDescending { data[it]?.chapters ?: 0L }
-                }
-
-                SortingMethodType.RevChapterCount -> {
-                    list.sortedBy { data[it]?.chapters ?: 0L }
-                }
+                SortingMethodType.RevChapterCount -> RevChapterCount
             }
-
-            return sorted.toPersistentList()
         }
 
         @CheckResult
@@ -1198,14 +1120,14 @@ data class ImmutableSearchList(
             query: String,
             sortingMethod: SortingMethodType
         ): ImmutableSearchList {
-            val filtered = filterList(items, query)
-            val sorted = sortList(items, filtered, sortingMethod)
             return ImmutableSearchList(
-                data = items,
-                filtered = filtered,
-                sorted = sorted,
                 query = query,
-                sortingMethod = sortingMethod
+                sortingMethod = sortingMethod,
+                internalData = SearchableData.from(
+                    data = items,
+                    sortedBy = getSortingMethod(sortingMethod),
+                    filteredBy = getQuery(query)
+                )
             )
         }
     }

@@ -134,15 +134,7 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             is DownloadPageAction.SelectPage -> {
                 setKey(DOWNLOAD_SETTINGS, CURRENT_TAB, action.page)
                 updateState {
-                    val activeQuery = query
-                    copy(
-                        activePage = action.page,
-                        pages = pages.updateRows { index ->
-                            search(
-                                query = activeQuery,
-                                sortingMethod = if (index == 0) downloadSortingMethod else sortingMethod
-                            )
-                        })
+                    copy(activePage = action.page)
                 }
             }
 

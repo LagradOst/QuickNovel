@@ -22,6 +22,14 @@ import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentSet
 import me.xdrop.fuzzywuzzy.FuzzySearch
+import kotlin.Any
+import kotlin.Boolean
+import kotlin.Comparator
+import kotlin.Function1
+import kotlin.Int
+import kotlin.String
+import kotlin.require
+import kotlin.requireNotNull
 
 /** Default filter function by matching the name, useful for local search */
 @Immutable
@@ -35,7 +43,7 @@ data class FilterByQuery<Value>(
     override fun invoke(value: Value): Boolean {
         if (query.isEmpty()) return onEmpty
         val transformed = transform(value)
-        return FuzzySearch.ratio(
+        return FuzzySearch.partialRatio(
             query,
             if (ignoreCase) transformed.lowercase() else transformed
         ) > ratio
@@ -79,6 +87,30 @@ data class SortByName<Value>(
         if (p0 == null) return -1
         if (p1 == null) return 1
         return transform(p0).compareTo(transform(p1), ignoreCase)
+    }
+}
+
+fun <T> sortByLong(keyExtractor: ((T) -> Long)): Comparator<T> {
+    return Comparator { c1: T, c2: T ->
+        keyExtractor(c1).compareTo(keyExtractor(c2))
+    }
+}
+
+fun <T> sortByFloat(keyExtractor: ((T) -> Float)): Comparator<T> {
+    return Comparator { c1: T, c2: T ->
+        keyExtractor(c1).compareTo(keyExtractor(c2))
+    }
+}
+
+fun <T> sortByInt(keyExtractor: ((T) -> Int)): Comparator<T> {
+    return Comparator { c1: T, c2: T ->
+        keyExtractor(c1).compareTo(keyExtractor(c2))
+    }
+}
+
+fun <T> Comparator<T>.rev(): Comparator<T> {
+    return Comparator { c1: T, c2: T ->
+        this@rev.compare(c2, c1)
     }
 }
 
@@ -271,6 +303,28 @@ data class SearchableData<Key, Value>(
     }
 
     @CheckResult
+    fun searchBy(
+        newSorting: Comparator<Value>,
+        newFilter: ((Value) -> Boolean)?
+    ): SearchableData<Key, Value> {
+        if (newFilter == filteredBy && newSorting == sortedBy) {
+            return this
+        }
+        val newFiltered = if(newFilter == filteredBy) {
+            filtered
+        } else {
+            filter(data = data, filteredBy = newFilter)
+        }
+        val newSorted = sort(data = data, filtered = newFiltered, sortedBy = newSorting)
+        return copy(
+            filteredBy = newFilter,
+            sortedBy = newSorting,
+            filtered = newFiltered,
+            sorted = newSorted
+        )
+    }
+
+    @CheckResult
     fun updating(
         key: Key,
         /** Does not guarantee that updater is called if key does not exist */
@@ -317,8 +371,7 @@ data class SearchableData<Key, Value>(
         } else if (newFiltered.size < filtered.size) {
             /** Shown -> Hidden, If the update filtered out the item then just remove it from the list */
             return copy(data = newData, filtered = newFiltered, sorted = sorted.removing(key))
-        } else
-        {
+        } else {
             /** Hidden -> Shown, we only need to insert it to the sorted list */
             return copy(
                 data = newData, filtered = newFiltered, sorted = addItemAt(
