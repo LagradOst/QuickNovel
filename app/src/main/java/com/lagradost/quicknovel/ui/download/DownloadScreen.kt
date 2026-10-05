@@ -28,6 +28,7 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -57,7 +58,6 @@ import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.ActionDialog
 import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.CloudStreamTheme
-import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.IsScrolling
 import com.lagradost.quicknovel.compose.SinglePairSelectDialog
 import com.lagradost.quicknovel.compose.rounded
@@ -121,8 +121,8 @@ fun DownloadScreen(
                     focusedElevation = 0.dp,
                     hoveredElevation = 0.dp
                 ),
-                containerColor = colors.surfaceVariant,
-                contentColor = colors.onBackground,
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = MaterialTheme.colorScheme.onBackground,
                 text = {
                     Text(stringResource(R.string.filter_dialog_sort_by))
                 },
@@ -165,7 +165,7 @@ fun DownloadScreen(
                                 painter = painterResource(R.drawable.ic_baseline_add_24),
                                 contentDescription = stringResource(R.string.import_epub),
                                 modifier = Modifier.size(24.dp),
-                                tint = colors.onBackground
+                                tint = MaterialTheme.colorScheme.onBackground
                             )
                         }
 
@@ -196,7 +196,7 @@ fun DownloadScreen(
                                 painter = painterResource(if (downloadIsRowState) R.drawable.ic_baseline_grid_view_24 else R.drawable.ic_baseline_list_24),
                                 contentDescription = stringResource(if (downloadIsRowState) R.string.grid_view else R.string.list_view),
                                 modifier = Modifier.size(24.dp),
-                                tint = colors.onBackground
+                                tint = MaterialTheme.colorScheme.onBackground
                             )
                         }
                     }
@@ -242,7 +242,7 @@ fun DownloadScreen(
                     })
             }
 
-            HorizontalTab(pagerState, pagesNames, containerColor = colors.surfaceVariant)
+            HorizontalTab(pagerState, pagesNames, containerColor = MaterialTheme.colorScheme.surfaceVariant)
         }
     }
 }
@@ -447,7 +447,7 @@ fun RowFooter() {
             .fillMaxWidth()
             .height(100.dp)
             .rounded()
-            .background(colors.surfaceContainer)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .clickable(
                 onClick = {
                     MainActivity.importEpub()
@@ -458,13 +458,13 @@ fun RowFooter() {
             modifier = Modifier.size(30.dp),
             painter = painterResource(R.drawable.ic_baseline_add_24),
             contentDescription = stringResource(R.string.import_epub),
-            tint = colors.onBackground
+            tint = MaterialTheme.colorScheme.onBackground
         )
 
         Text(
             modifier = Modifier.padding(start = 15.dp),
             text = stringResource(R.string.import_epub),
-            color = colors.onBackground,
+            color = MaterialTheme.colorScheme.onBackground,
             fontSize = 13.sp,
             lineHeight = 14.sp,
             maxLines = 2,
@@ -498,7 +498,7 @@ fun BoxFooter() {
                 modifier = Modifier.size(40.dp),
                 painter = painterResource(R.drawable.ic_baseline_add_24),
                 contentDescription = stringResource(R.string.import_epub),
-                tint = colors.onBackground
+                tint = MaterialTheme.colorScheme.onBackground
             )
         }
 
@@ -511,7 +511,7 @@ fun BoxFooter() {
         ) {
             Text(
                 text = stringResource(R.string.import_epub),
-                color = colors.onBackground,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 13.sp,
                 lineHeight = 14.sp,
                 maxLines = 2,

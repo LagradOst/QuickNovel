@@ -17,6 +17,7 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -38,7 +39,6 @@ import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.ActionDialog
 import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.CloudStreamTheme
-import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.IsScrolling
 import com.lagradost.quicknovel.compose.SinglePairSelectDialog
 import com.lagradost.quicknovel.ui.common.SearchList
@@ -87,8 +87,8 @@ fun HistoryScreen(
                 onClick = {
                     action(ShowSorting)
                 },
-                containerColor = colors.surfaceVariant,
-                contentColor = colors.onBackground,
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = MaterialTheme.colorScheme.onBackground,
                 // Elevation actually changes the color, because who wanted a sane framework
                 elevation = FloatingActionButtonDefaults.elevation(
                     defaultElevation = 0.dp,
@@ -125,7 +125,7 @@ fun HistoryScreen(
                             Icon(
                                 painter = painterResource(R.drawable.clear_all_24px),
                                 contentDescription = stringResource(R.string.history_more_options),
-                                tint = colors.onBackground
+                                tint = MaterialTheme.colorScheme.onBackground
                             )
                         }
                         IconButton(onClick = {
@@ -135,7 +135,7 @@ fun HistoryScreen(
                                 painter = painterResource(if (historyIsRowState) R.drawable.ic_baseline_grid_view_24 else R.drawable.ic_baseline_list_24),
                                 contentDescription = stringResource(if (historyIsRowState) R.string.grid_view else R.string.list_view),
                                 modifier = Modifier.size(24.dp),
-                                tint = colors.onBackground
+                                tint = MaterialTheme.colorScheme.onBackground
                             )
                         }
                     }

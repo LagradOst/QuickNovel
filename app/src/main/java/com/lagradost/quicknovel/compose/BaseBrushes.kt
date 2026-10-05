@@ -35,7 +35,6 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import kotlin.math.max
 
 @Composable

@@ -29,6 +29,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -51,7 +52,6 @@ import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.CloudStreamTheme
-import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.MultiSelectDialog
 import com.lagradost.quicknovel.compose.isLandscape
 import com.lagradost.quicknovel.compose.rounded
@@ -107,14 +107,14 @@ fun SearchScreen(state: HomeViewModelState, action: (HomeAction) -> Unit) {
                     if (state.isLoading && state.isQueryOpen) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
-                            color = colors.onBackground
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                     } else {
                         IconButton(onClick = { action(HomeAction.ConfigureApis) }) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_baseline_tune_24),
                                 contentDescription = stringResource(R.string.search_providers),
-                                tint = colors.onBackground
+                                tint = MaterialTheme.colorScheme.onBackground
                             )
                         }
                     }
@@ -236,7 +236,7 @@ fun MainAPIItem(
             .fillMaxWidth()
             .height(100.dp)
             .rounded()
-            .background(colors.surfaceContainer)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .clickable(onClick = {
                 action(HomeAction.Open(api))
             })
@@ -252,7 +252,7 @@ fun MainAPIItem(
         )
         Text(
             text = api.name,
-            color = colors.onBackground,
+            color = MaterialTheme.colorScheme.onBackground,
             fontSize = 14.sp,
             lineHeight = 15.sp,
             textAlign = TextAlign.Center
@@ -293,14 +293,14 @@ private fun SearchRow(
             Text(
                 row.name,
                 modifier = Modifier.padding(10.dp),
-                color = colors.onBackground,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 20.sp
             )
             Icon(
                 modifier = Modifier.padding(10.dp),
                 painter = painterResource(R.drawable.ic_baseline_arrow_forward_24),
                 contentDescription = null,
-                tint = colors.onBackground
+                tint = MaterialTheme.colorScheme.onBackground
             )
         }
         LazyRow(

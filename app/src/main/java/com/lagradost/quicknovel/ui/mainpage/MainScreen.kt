@@ -21,6 +21,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -49,7 +50,6 @@ import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.BackHandler
 import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.CloudStreamTheme
-import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.Colors
 import com.lagradost.quicknovel.compose.SingleSelectDialog
 import com.lagradost.quicknovel.ui.common.SearchList
@@ -182,7 +182,7 @@ fun SearchResponseDialog(
     val scope = rememberCoroutineScope()
     ModalBottomSheet(
         sheetState = sheetState,
-        containerColor = colors.background,
+        containerColor = MaterialTheme.colorScheme.background,
         onDismissRequest = dismiss,
         modifier = Modifier.fillMaxSize(),
         dragHandle = { },
@@ -207,19 +207,19 @@ fun SearchResponseDialog(
         ) {
             Text(
                 text = dialog.name,
-                color = colors.onBackground,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 20.sp,
             )
             Icon(
                 painter = painterResource(R.drawable.arrow_drop_down_24px),
-                tint = colors.onBackground,
+                tint = MaterialTheme.colorScheme.onBackground,
                 contentDescription = null,
             )
         }
 
         if (dialog.error != null) {
             Text(
-                color = colors.onBackground,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 14.sp,
                 lineHeight = 15.sp,
                 text = dialog.error.toString(),
@@ -228,7 +228,7 @@ fun SearchResponseDialog(
             )
         } else if (dialog.items.isEmpty()) {
             Text(
-                color = colors.onBackground,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 14.sp,
                 lineHeight = 15.sp,
                 text = stringResource(R.string.no_data),
@@ -298,7 +298,7 @@ fun MainPageSearchBar(
                         modifier = Modifier
                             .size(34.dp)
                             .padding(5.dp),
-                        color = colors.onBackground, strokeWidth = 3.0.dp
+                        color = MaterialTheme.colorScheme.onBackground, strokeWidth = 3.0.dp
                     )
                 } else if (!openQuery) {
                     IconButton(onClick = {
@@ -307,7 +307,7 @@ fun MainPageSearchBar(
                         Icon(
                             painter = painterResource(R.drawable.ic_baseline_public_24),
                             contentDescription = stringResource(R.string.open_in_browser),
-                            tint = colors.onBackground
+                            tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 }
@@ -319,7 +319,7 @@ fun MainPageSearchBar(
                         painter = painterResource(if (searchIsRowState) R.drawable.ic_baseline_grid_view_24 else R.drawable.ic_baseline_list_24),
                         contentDescription = stringResource(if (searchIsRowState) R.string.grid_view else R.string.list_view),
                         modifier = Modifier.size(24.dp),
-                        tint = colors.onBackground
+                        tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
             }

@@ -432,10 +432,6 @@ fun resolveDynamicSecondaryColor(): Color {
 
 val LocalCloudStreamColors = staticCompositionLocalOf { darkScheme() }
 
-object CloudStreamTheme {
-    val colors: CloudStreamColorScheme @Composable @ReadOnlyComposable get() = LocalCloudStreamColors.current
-}
-
 private fun CloudStreamColorScheme.toMaterial3ColorScheme() = if (isLight) {
     lightColorScheme(
         primary = primary,

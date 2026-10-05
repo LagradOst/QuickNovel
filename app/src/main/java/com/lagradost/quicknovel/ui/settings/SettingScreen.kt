@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,7 +53,6 @@ import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.BlackButton
 import com.lagradost.quicknovel.compose.CloudStreamPrimaryColor
 import com.lagradost.quicknovel.compose.CloudStreamTheme
-import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.WhiteButton
 import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.modeToTheme
@@ -470,7 +470,7 @@ fun LogcatDialog(dismiss: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     AlertDialog(
-        containerColor = colors.background,
+        containerColor = MaterialTheme.colorScheme.background,
         onDismissRequest = dismiss,
         title = {
             Text(text = stringResource(R.string.log_cat))
@@ -575,9 +575,9 @@ fun LogcatItem(item: LogcatItem) {
                 modifier = Modifier
                     .padding(2.dp)
                     .rounded()
-                    .background(colors.onBackground)
+                    .background(MaterialTheme.colorScheme.onBackground)
                     .padding(4.dp),
-                color = colors.surfaceVariant
+                color = MaterialTheme.colorScheme.surfaceVariant
             )
         }
         Text(
@@ -585,18 +585,18 @@ fun LogcatItem(item: LogcatItem) {
             modifier = Modifier
                 .padding(2.dp)
                 .rounded()
-                .background(colors.surfaceVariant)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
                 .padding(4.dp),
-            color = colors.onBackground
+            color = MaterialTheme.colorScheme.onBackground
         )
         Text(
             item.tag,
             modifier = Modifier
                 .padding(2.dp)
                 .rounded()
-                .background(colors.surfaceVariant)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
                 .padding(4.dp),
-            color = colors.onBackground
+            color = MaterialTheme.colorScheme.onBackground
         )
     }
     Row(
@@ -620,7 +620,7 @@ fun LogcatItem(item: LogcatItem) {
         Spacer(modifier = Modifier.width(5.dp))
         Text(
             item.message,
-            color = colors.onBackground,
+            color = MaterialTheme.colorScheme.onBackground,
             fontSize = 14.sp,
             lineHeight = 15.sp,
         )
@@ -633,7 +633,7 @@ fun RoundColor(color: Color) {
         modifier = Modifier
             .padding(start = 15.dp)
             .size(20.dp)
-            .border(width = 1.5.dp, shape = CircleShape, color = colors.onBackground)
+            .border(width = 1.5.dp, shape = CircleShape, color = MaterialTheme.colorScheme.onBackground)
             .background(color, CircleShape)
     )
 }

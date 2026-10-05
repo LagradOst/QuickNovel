@@ -4,7 +4,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -57,7 +56,6 @@ import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.NotificationHelper.etaToString
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.CloudStreamTheme
-import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.RoundedShape
 import com.lagradost.quicknovel.compose.animatedOutline
 import com.lagradost.quicknovel.compose.circle
@@ -191,7 +189,7 @@ fun SearchResponseRow(
             .fillMaxWidth()
             .height(100.dp)
             .rounded()
-            .background(colors.surfaceContainer)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .combinedClickable(onClick = {
                 action(
                     SearchResponseAction(
@@ -250,7 +248,7 @@ fun SearchResponseRow(
             Text(
                 response.name,
                 maxLines = 2,
-                color = colors.onBackground,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 14.sp,
                 lineHeight = 15.sp,
                 overflow = TextOverflow.Ellipsis
@@ -303,7 +301,7 @@ fun SearchResponseRow(
             if (text != null) {
                 Text(
                     text,
-                    color = colors.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp,
                     lineHeight = 15.sp,
                 )
@@ -321,12 +319,12 @@ fun SearchResponseRow(
                 modifier = Modifier
                     .padding(horizontal = 5.dp)
                     .circle()
-                    .background(colors.primary)
+                    .background(MaterialTheme.colorScheme.primary)
                     .padding(vertical = 3.dp, horizontal = 13.dp)
             ) {
                 Text(
                     text = "+${(response.downloadState.progress - response.epubSize)}",
-                    color = colors.background
+                    color = MaterialTheme.colorScheme.background
                 )
             }
         }
@@ -421,16 +419,16 @@ fun Modifier.downloadOutline(downloadState: DownloadState?): Modifier {
             animatedOutline(
                 defaultPalette = listOf(
                     Color.Transparent,
-                    colors.primary.copy(alpha = alpha),
+                    MaterialTheme.colorScheme.primary.copy(alpha = alpha),
                     Color.Transparent,
-                    colors.primary.copy(alpha = alpha),
+                    MaterialTheme.colorScheme.primary.copy(alpha = alpha),
                 )
             )
         }
 
         DownloadState.IsPaused -> {
             border(
-                width = 1.5.dp, color = colors.onBackground, shape = RoundedShape()
+                width = 1.5.dp, color = MaterialTheme.colorScheme.onBackground, shape = RoundedShape()
             )
         }
 
@@ -442,7 +440,7 @@ fun Modifier.downloadOutline(downloadState: DownloadState?): Modifier {
             if (alpha > 0f) {
                 border(
                     width = 1.5.dp,
-                    color = colors.primary.copy(alpha = alpha),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = alpha),
                     shape = RoundedShape()
                 )
             } else {
@@ -523,12 +521,12 @@ fun SearchResponseItem(
                         Box(
                             modifier = Modifier
                                 .rounded()
-                                .background(colors.primary)
+                                .background(MaterialTheme.colorScheme.primary)
                                 .padding(4.dp)
                         ) {
                             Text(
                                 text = "+${(response.downloadState.progress - response.epubSize)}",
-                                color = colors.background,
+                                color = MaterialTheme.colorScheme.background,
                                 fontSize = 12.sp, lineHeight = 12.sp
                             )
                         }
@@ -548,7 +546,7 @@ fun SearchResponseItem(
                 text = response.name,
                 fontSize = 13.sp,
                 lineHeight = 14.sp,
-                color = colors.onBackground,
+                color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 2,
                 textAlign = TextAlign.Center,
                 overflow = TextOverflow.Ellipsis

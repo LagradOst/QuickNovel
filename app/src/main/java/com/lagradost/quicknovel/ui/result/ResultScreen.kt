@@ -43,6 +43,7 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -86,7 +87,6 @@ import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.BackHandler
 import com.lagradost.quicknovel.compose.CloudStreamTheme
-import com.lagradost.quicknovel.compose.CloudStreamTheme.colors
 import com.lagradost.quicknovel.compose.Colors
 import com.lagradost.quicknovel.compose.RoundedShape
 import com.lagradost.quicknovel.compose.SingleSelectDialog
@@ -292,7 +292,7 @@ fun ResultScreenImpl(
                         overflow = TextOverflow.Ellipsis
                     )
                     if (response.author != null) {
-                        Text(response.author, color = colors.primary, fontSize = 14.sp)
+                        Text(response.author, color = MaterialTheme.colorScheme.primary, fontSize = 14.sp)
                     }
                     response.loadData?.status?.let { status ->
                         Text(
@@ -340,7 +340,7 @@ fun ResultScreenImpl(
                 Column(
                     modifier = Modifier
                         .clip(RoundedCornerShape(15.dp, 15.dp))
-                        .background(color = colors.background)
+                        .background(color = MaterialTheme.colorScheme.background)
                         .padding(10.dp)
                 ) {
                     Row(
@@ -349,7 +349,7 @@ fun ResultScreenImpl(
                             .fillMaxWidth()
                             .height(75.dp)
                             .clip(RoundedCornerShape(15.dp))
-                            .background(colors.surfaceContainer)
+                            .background(MaterialTheme.colorScheme.surfaceContainer)
                     ) {
                         TextIcon(
                             stringResource(if (state.bookmark == ReadType.NONE) R.string.bookmark else state.bookmark.stringRes),
@@ -384,7 +384,7 @@ fun ResultScreenImpl(
                         edgePadding = 15.dp,
                         pagerState = pagerState,
                         names = tabNames,
-                        containerColor = colors.background
+                        containerColor = MaterialTheme.colorScheme.background
                     )
                 }
             }
@@ -394,7 +394,7 @@ fun ResultScreenImpl(
                     state = pagerState,
                     modifier = Modifier
                         .fillParentMaxHeight()
-                        .background(colors.background),
+                        .background(MaterialTheme.colorScheme.background),
                     verticalAlignment = Alignment.Top
                 ) { page ->
                     when (tabNames[page]) {
@@ -461,7 +461,7 @@ fun ResultScreenImpl(
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(color = colors.background.copy(alpha = 0.8f * animatedAlpha))
+                    .background(color = MaterialTheme.colorScheme.background.copy(alpha = 0.8f * animatedAlpha))
                     .clickable(
                         onClick = {
                             isPosterShown.value = !isPosterShown.value
@@ -497,8 +497,8 @@ fun BoxScope.FloatingStreamRead(
             focusedElevation = 0.dp,
             hoveredElevation = 0.dp
         ),
-        containerColor = colors.onBackground,
-        contentColor = colors.surfaceVariant,
+        containerColor = MaterialTheme.colorScheme.onBackground,
+        contentColor = MaterialTheme.colorScheme.surfaceVariant,
         text = {
             Text(stringResource(R.string.stream_read))
         },
@@ -526,7 +526,7 @@ fun ChapterPage(
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(nestedScrollConnection)
-            .background(colors.background),
+            .background(MaterialTheme.colorScheme.background),
     ) {
         items(chapters.sorted, key = { item ->
             item.randomUuid
@@ -564,7 +564,7 @@ fun ChapterItem(
                 chapter.dateOfRelease,
                 fontSize = 12.sp,
                 lineHeight = 11.sp,
-                color = colors.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -583,7 +583,7 @@ fun ReviewsPage(
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(nestedScrollConnection)
-            .background(colors.background),
+            .background(MaterialTheme.colorScheme.background),
     ) {
         items(reviews, key = { item ->
             item.randomUuid
@@ -633,7 +633,7 @@ fun ReviewItem(
                         .circle()
                         .border(
                             width = 1.dp,
-                            color = colors.onBackground.copy(alpha = 0.2f),
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
                             shape = CircleShape
                         )
                 )
@@ -652,7 +652,7 @@ fun ReviewItem(
                     if (review.username != null) {
                         Text(
                             text = review.username,
-                            color = colors.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp,
                             lineHeight = 11.sp,
                             modifier = Modifier.padding(end = 5.dp)
@@ -661,7 +661,7 @@ fun ReviewItem(
                     if (review.date != null) {
                         Text(
                             text = review.date,
-                            color = colors.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp,
                             lineHeight = 11.sp
                         )
@@ -675,9 +675,9 @@ fun ReviewItem(
                 Text(
                     modifier = Modifier
                         .padding(4.dp)
-                        .background(color = colors.onBackground, shape = RoundedShape())
+                        .background(color = MaterialTheme.colorScheme.onBackground, shape = RoundedShape())
                         .padding(horizontal = 6.dp),
-                    color = colors.background,
+                    color = MaterialTheme.colorScheme.background,
                     text = stringResource(R.string.overall) + " " + LocalContext.current.getRatingReview(
                         it
                     ),
@@ -688,9 +688,9 @@ fun ReviewItem(
                 Text(
                     modifier = Modifier
                         .padding(4.dp)
-                        .background(color = colors.surfaceVariant, shape = RoundedShape())
+                        .background(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedShape())
                         .padding(horizontal = 6.dp),
-                    color = colors.onBackground,
+                    color = MaterialTheme.colorScheme.onBackground,
                     text = "$name " + LocalContext.current.getRatingReview(
                         rating
                     ),
@@ -716,7 +716,7 @@ fun ReviewItem(
                 .padding(5.dp)
                 .background(
                     if (isSpoilerActive) {
-                        colors.onBackground
+                        MaterialTheme.colorScheme.onBackground
                     } else {
                         Color.Transparent
                     }, shape = RoundedShape()
@@ -725,7 +725,7 @@ fun ReviewItem(
             color = if (isSpoilerActive) {
                 Color.Transparent
             } else {
-                colors.onBackground
+                MaterialTheme.colorScheme.onBackground
             },
             fontSize = 14.sp,
             lineHeight = 15.sp,
@@ -781,7 +781,7 @@ fun NovelPage(
                     .height(1.dp)
                     .padding(horizontal = 15.dp)
                     .fillMaxWidth()
-                    .background(color = colors.onBackground.copy(alpha = 0.5f))
+                    .background(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
             )
         }
 
@@ -797,7 +797,7 @@ fun NovelPage(
                         .rounded()
                         .padding(5.dp),
                     text = response.synopsis.html(),
-                    color = colors.onBackground,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 14.sp,
                     lineHeight = 15.sp,
                     maxLines = if (expanded.value) Int.MAX_VALUE else 8,
@@ -848,7 +848,7 @@ fun DownloadButtons(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (response.generating) {
                     CircularProgressIndicator(
-                        color = colors.surfaceVariant,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
                         modifier = Modifier
                             .padding(horizontal = 4.dp)
                             .size(24.dp), strokeWidth = 3.0.dp
@@ -891,7 +891,7 @@ fun DownloadButtons(
                         modifier = Modifier
                             .padding(horizontal = 4.dp)
                             .size(24.dp),
-                        color = colors.onBackground,
+                        color = MaterialTheme.colorScheme.onBackground,
                         strokeWidth = 3.0.dp
                     )
                 } else {
@@ -947,7 +947,7 @@ fun DownloadButtons(
             .fillMaxWidth()
             .padding(10.dp),
         amplitude = { animatedWavy },
-        color = colors.onBackground
+        color = MaterialTheme.colorScheme.onBackground
     )
     Spacer(Modifier.height(60.dp))
 }
@@ -981,7 +981,7 @@ fun Tags(tags: ImmutableList<String>) {
                 modifier = Modifier
                     .padding(4.dp)
                     .rounded()
-                    .background(color = colors.surfaceVariant)
+                    .background(color = MaterialTheme.colorScheme.surfaceVariant)
                     .padding(7.dp)
             )
         }
@@ -1002,7 +1002,7 @@ fun RelatedPage(
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(nestedScrollConnection)
-            .background(colors.background),
+            .background(MaterialTheme.colorScheme.background),
         searchAction = { value: SearchResponseAction ->
             action(ResultPageAction.ResultAction(value))
         })
@@ -1026,7 +1026,7 @@ fun RowScope.TextInfo(
             fontSize = 12.sp,
             lineHeight = 11.sp,
             modifier = Modifier.padding(2.dp),
-            color = colors.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
