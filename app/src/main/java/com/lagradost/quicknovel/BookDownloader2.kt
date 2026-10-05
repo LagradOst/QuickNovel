@@ -4,6 +4,7 @@ import android.Manifest.permission.POST_NOTIFICATIONS
 import android.Manifest.permission.READ_EXTERNAL_STORAGE
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.app.Activity
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -18,6 +19,7 @@ import android.graphics.RectF
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -788,7 +790,7 @@ object BookDownloader2Helper {
         for (i in 0..maxTries) {
             val work = async {
                 try {
-                    if(rateLimit) {
+                    if (rateLimit) {
                         api.api.rateLimitMutex.lock()
                     }
                     val page = api.loadHtml(data.url)
@@ -805,7 +807,7 @@ object BookDownloader2Helper {
                             return@async DownloadResult.Cancel
                         }
                     }
-                } catch (_ : CancellationException) {
+                } catch (_: CancellationException) {
                     return@async DownloadResult.Cancel
                 } catch (e: Exception) {
                     logError(e)
@@ -986,7 +988,7 @@ object NotificationHelper {
     // The id is fixed so the foreground notification is replaced, not stacked, per worker
     const val FOREGROUND_NOTIFICATION_ID = 6660
 
-    fun buildForegroundNotification(context: Context): android.app.Notification {
+    fun buildForegroundNotification(context: Context): Notification {
         if (!hasCreatedNotChanel) {
             context.createNotificationChannel()
         }
@@ -2381,7 +2383,7 @@ object BookDownloader2 {
     }
 
     fun preloadPartialImportedPdf(bk: ImmutableSearchResponse) {
-        val context = BaseApplication.context ?: return
+        val context = context ?: return
         try {
             val finalBook = File(
                 File(context.filesDir, getDirectory(bk.apiName, bk.author ?: "", bk.name)),
@@ -2444,7 +2446,7 @@ object BookDownloader2 {
         val name = if (book.coverImage?.data != null) book.metadata.firstTitle
         else {
             contentResolver.query(data, null, null, null, null)?.use { cursor ->
-                val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                 if (cursor.moveToFirst())
                     cursor.getString(nameIndex).substringBeforeLast(".")
                 else null
@@ -2489,7 +2491,7 @@ object BookDownloader2 {
                         }?.let { entry ->
                             val rawBytes = zipFile.getInputStream(entry).use { it.readBytes() }
                             // Downsample the image before assigning it to coverBytes
-                            coverBytes = BookDownloader2Helper.getSafeByteArray(rawBytes)
+                            coverBytes = getSafeByteArray(rawBytes)
                         }
                 }
 
@@ -2827,30 +2829,6 @@ object BookDownloader2 {
             for (index in range.start..range.endInclusive) {
                 val data = load.data.getOrNull(index) ?: continue
 
-                // consume any action and wait until not paused
-                while (true) {
-                    when (consumeAction(id)) {
-                        DownloadActionType.Pause -> {
-                            DownloadState.IsPaused
-                        }
-
-                        DownloadActionType.Resume -> DownloadState.IsDownloading
-                        DownloadActionType.Stop -> DownloadState.IsStopped
-                        else -> null
-                    }?.let { newState ->
-                        // if a new state is consumed then push that data instantly
-                        changeDownload(id) {
-                            state = newState
-                        }?.let { progressState ->
-                            createNotification(context, id, load, progressState)
-                        }
-                        currentState = newState
-                    }
-                    if (currentState != DownloadState.IsPaused) {
-                        break
-                    }
-                    worker.delay(5000.milliseconds)
-                }
                 val filepath =
                     filesDir.toString() + BookDownloader2Helper.getFilename(
                         sApiName,
@@ -2865,27 +2843,57 @@ object BookDownloader2 {
                 }
 
                 val beforeDownloadTime = System.currentTimeMillis()
-                val hasDownloadedChapter =
-                    BookDownloader2Helper.downloadIndividualChapter(
-                        filepath,
-                        api,
-                        data,
-                        worker = worker
-                    )
+                val hasDownloadedChapter: Boolean
+                while (true) {
+                    // consume any action and wait until not paused
+                    while (true) {
+                        when (consumeAction(id)) {
+                            DownloadActionType.Pause -> {
+                                DownloadState.IsPaused
+                            }
 
-                /* It may be canceled by an action */
-                if (hasDownloadedChapter == BookDownloader2Helper.DownloadResult.Cancel) {
-                    continue
+                            DownloadActionType.Resume -> DownloadState.IsDownloading
+                            DownloadActionType.Stop -> DownloadState.IsStopped
+                            else -> null
+                        }?.let { newState ->
+                            // if a new state is consumed then push that data instantly
+                            changeDownload(id) {
+                                state = newState
+                            }?.let { progressState ->
+                                createNotification(context, id, load, progressState)
+                            }
+                            currentState = newState
+                        }
+                        if (currentState != DownloadState.IsPaused) {
+                            break
+                        }
+                        worker.delay(5000.milliseconds)
+                    }
+
+                    val result =
+                        BookDownloader2Helper.downloadIndividualChapter(
+                            filepath,
+                            api,
+                            data,
+                            worker = worker
+                        )
+
+                    /* It may be canceled by an action */
+                    if (result == BookDownloader2Helper.DownloadResult.Cancel) {
+                        continue
+                    }
+                    hasDownloadedChapter = (result == BookDownloader2Helper.DownloadResult.Success)
+                    break
                 }
 
-                if (hasDownloadedChapter == BookDownloader2Helper.DownloadResult.Success) {
+                if (hasDownloadedChapter) {
                     downloadedTotal += 1
                 } else {
                     currentState = DownloadState.IsFailed
                 }
 
                 val processedItems = index - range.start +
-                        if (hasDownloadedChapter == BookDownloader2Helper.DownloadResult.Success) {
+                        if (hasDownloadedChapter) {
                             1
                         } else {
                             0
