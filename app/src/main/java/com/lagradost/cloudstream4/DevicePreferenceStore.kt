@@ -10,13 +10,13 @@ import com.mihon.common.preference.PreferenceStore
 import kotlinx.collections.immutable.toPersistentHashSet
 
 @Composable
-fun rememberAppSettings() : AppSettings {
+fun rememberAppSettings(): AppSettings {
     val context = LocalContext.current
     val value = remember(context) { AppSettings(context) }
     return value
 }
 
-fun AppSettings(context: Context) : AppSettings {
+fun AppSettings(context: Context): AppSettings {
     return AppSettings(preferences = AndroidPreferenceStore(context))
 }
 
@@ -32,11 +32,30 @@ class AppSettings internal constructor(
 ) {
     val ui = UIPreferences(preferences)
     val provider = ProviderPreferences(preferences)
+    val download = DownloadPreferences(preferences)
+    val reader = ReaderPreferences(preferences)
 }
 
+class ReaderPreferences(preferences: PreferenceStore) {
+    val externalReader = preferences.getBoolean(
+        "external_reader",
+        true,
+    )
+}
+
+
 class ProviderPreferences(preferences: PreferenceStore) {
-    val searchProvidersList = preferences.getStringSet("search_providers_list",apis.map { it.name }.toSet())
-    val searchLangList = preferences.getStringSet("provider_lang_key", apis.map { it.lang }.toPersistentHashSet())
+    val searchProvidersList =
+        preferences.getStringSet("search_providers_list", apis.map { it.name }.toSet())
+    val searchLangList =
+        preferences.getStringSet("provider_lang_key", apis.map { it.lang }.toPersistentHashSet())
+}
+
+class DownloadPreferences(preferences: PreferenceStore) {
+    val autoUpdate = preferences.getBoolean(
+        "auto_update",
+        true,
+    )
 }
 
 class UIPreferences(preferences: PreferenceStore) {
@@ -45,5 +64,13 @@ class UIPreferences(preferences: PreferenceStore) {
     )
     val theme = preferences.getString(
         "theme_key", "AmoledLight"
+    )
+    val ratingFormat = preferences.getString(
+        "rating_format",
+        "star",
+    )
+    val locale = preferences.getString(
+        "locale_key",
+        "en",
     )
 }

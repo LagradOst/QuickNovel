@@ -9,7 +9,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -24,7 +23,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,6 +46,7 @@ import com.lagradost.cloudstream4.compose.BlackButton
 import com.lagradost.cloudstream4.compose.WhiteButton
 import com.lagradost.cloudstream4.compose.circle
 import com.lagradost.cloudstream4.compose.rounded
+import com.lagradost.cloudstream4.rememberAppSettings
 import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
 import com.lagradost.cloudstream4.theme.CloudStreamPrimaryColor
 import com.lagradost.cloudstream4.theme.modeToTheme
@@ -145,11 +144,7 @@ object SettingScreen : SearchableSettings {
         val context = LocalContext.current
         val store = AndroidPreferenceStore(context)
         val scope = rememberCoroutineScope()
-
-        /*val backupPathStore = FileHelper.backup.toPreference(context, store)
-        val backupPath = backupPathStore.collectAsState()
-        val logcatPathStore = FileHelper.logcat.toPreference(context, store)
-        val logcatPath = backupPathStore.collectAsState()*/
+        val settings = rememberAppSettings()
 
         val logcat =
             getFilePreference(FileHelper.logcat, store, stringResource(R.string.log_cat_location))
@@ -184,10 +179,7 @@ object SettingScreen : SearchableSettings {
                     Preference.PreferenceItem.ListPreference(
                         icon = painterResource(R.drawable.language_korean_latin_24px),
                         title = stringResource(R.string.locale_settings),
-                        preference = store.getString(
-                            stringResource(R.string.locale_key),
-                            "en",
-                        ),
+                        preference = settings.ui.locale,
                         entries = arrayListOf(
                             /* begin language list */
                             ("en" to "English"),
@@ -203,7 +195,7 @@ object SettingScreen : SearchableSettings {
                     Preference.PreferenceItem.MultiSelectListPreference(
                         icon = painterResource(R.drawable.plugin_lang),
                         title = stringResource(R.string.provider_lang_settings),
-                        preference = store.searchLangList(),
+                        preference = settings.provider.searchLangList,
                         entries = apis.map { api ->
                             val lang = api.lang
                             val langName = SubtitleHelper.fromTwoLettersToLanguage(lang)!!
@@ -216,7 +208,7 @@ object SettingScreen : SearchableSettings {
                     Preference.PreferenceItem.MultiSelectListPreference(
                         icon = painterResource(R.drawable.extension_24px),
                         title = stringResource(R.string.search_providers),
-                        preference = store.searchProvidersList(),
+                        preference = settings.provider.searchProvidersList,
                         entries = apis.associate { it.name to "${SubtitleHelper.getFlagFromIso(it.lang) ?: "🌐"} ${it.name}" }
                             .toPersistentMap(),
                         subtitleProvider = { v, _ ->
@@ -230,10 +222,7 @@ object SettingScreen : SearchableSettings {
                     Preference.PreferenceItem.ListPreference(
                         icon = painterResource(R.drawable.palette_24px),
                         title = stringResource(R.string.theme),
-                        preference = store.getString(
-                            stringResource(R.string.theme_key),
-                            "AmoledLight",
-                        ),
+                        preference = settings.ui.theme,
                         entries = stringArrayResource(R.array.themes_names_values).zip(
                             stringArrayResource(R.array.themes_names)
                         ).associate { it }.toPersistentMap().let { mapping ->
@@ -251,10 +240,7 @@ object SettingScreen : SearchableSettings {
                     Preference.PreferenceItem.ListPreference(
                         icon = painterResource(R.drawable.colors_24px),
                         title = stringResource(R.string.primary_color_settings),
-                        preference = store.getString(
-                            stringResource(R.string.primary_color_key),
-                            "Normal",
-                        ),
+                        preference = settings.ui.primaryColor,
                         entries = stringArrayResource(R.array.themes_overlay_names_values).zip(
                             stringArrayResource(R.array.themes_overlay_names)
                         ).associate { it }.toPersistentMap().let { mapping ->
@@ -272,10 +258,7 @@ object SettingScreen : SearchableSettings {
                     Preference.PreferenceItem.ListPreference(
                         icon = painterResource(R.drawable.star_24px),
                         title = stringResource(R.string.rating_format),
-                        preference = store.getString(
-                            stringResource(R.string.rating_format_key),
-                            "star",
-                        ),
+                        preference = settings.ui.ratingFormat,
                         entries = stringArrayResource(R.array.RatingFormatData).zip(
                             stringArrayResource(R.array.RatingFormat)
                         ).associate { it }.toPersistentMap()
@@ -303,10 +286,7 @@ object SettingScreen : SearchableSettings {
                         icon = painterResource(R.drawable.notifications_active_24px),
                         title = stringResource(R.string.show_app_updates),
                         subtitle = stringResource(R.string.show_app_updates_desc),
-                        preference = store.getBoolean(
-                            stringResource(R.string.auto_update_key),
-                            true,
-                        ),
+                        preference = settings.download.autoUpdate,
                     ),
                     Preference.PreferenceItem.TextPreference(
                         icon = painterResource(R.drawable.save_as_24px),
@@ -372,10 +352,7 @@ object SettingScreen : SearchableSettings {
                         icon = painterResource(R.drawable.ic_baseline_menu_book_24),
                         title = stringResource(R.string.external_reader),
                         subtitle = stringResource(R.string.external_reader_desc),
-                        preference = store.getBoolean(
-                            stringResource(R.string.external_reader_key),
-                            true,
-                        ),
+                        preference = settings.reader.externalReader,
                     ),
                     // Removed as the actual bloat filtering is shit and not very useful,
                     // but can increase the time too much
@@ -633,7 +610,11 @@ fun RoundColor(color: Color) {
         modifier = Modifier
             .padding(start = 15.dp)
             .size(20.dp)
-            .border(width = 1.5.dp, shape = CircleShape, color = MaterialTheme.colorScheme.onBackground)
+            .border(
+                width = 1.5.dp,
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.onBackground
+            )
             .background(color, CircleShape)
     )
 }
