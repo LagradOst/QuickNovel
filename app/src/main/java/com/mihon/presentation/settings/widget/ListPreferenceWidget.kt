@@ -7,9 +7,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.stringResource
+import com.lagradost.cloudstream4.compose.SingleSelectDialog
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.SingleSelectDialog
-import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun <T> ListPreferenceWidget(

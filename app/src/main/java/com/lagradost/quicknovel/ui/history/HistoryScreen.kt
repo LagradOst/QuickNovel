@@ -35,12 +35,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lagradost.cloudstream4.compose.ActionDialog
+import com.lagradost.cloudstream4.compose.Screen
+import com.lagradost.cloudstream4.compose.SinglePairSelectDialog
+import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.ActionDialog
 import com.lagradost.quicknovel.compose.BaseSearchBar
-import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.IsScrolling
-import com.lagradost.quicknovel.compose.SinglePairSelectDialog
 import com.lagradost.quicknovel.ui.common.SearchList
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseOperation
@@ -55,6 +58,15 @@ import com.lagradost.quicknovel.ui.history.HistoryAction.SelectSortingMethod
 import com.lagradost.quicknovel.ui.history.HistoryAction.ShowSorting
 import com.mihon.common.preference.AndroidPreferenceStore
 import com.mihon.presentation.settings.collectAsState
+
+object HistoryScreen : Screen {
+    @Composable
+    override fun Content() {
+        val viewModel = viewModel<HistoryViewModel2>()
+        val state by viewModel.state.collectAsStateWithLifecycle()
+        HistoryScreen(state, viewModel::onAction)
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -248,7 +260,7 @@ fun HistoryDialog(
 @PreviewLightDark
 @Composable
 private fun SettingsScreenPreview() {
-    CloudStreamTheme {
+    CloudStreamPreviewTheme {
         HistoryScreen(state = HistoryState(), action = {})
     }
 }

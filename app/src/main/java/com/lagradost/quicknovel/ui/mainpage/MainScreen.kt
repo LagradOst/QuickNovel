@@ -1,8 +1,7 @@
 package com.lagradost.quicknovel.ui.mainpage
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -46,12 +45,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lagradost.cloudstream4.compose.Colors
+import com.lagradost.cloudstream4.compose.SingleSelectDialog
+import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.BackHandler
 import com.lagradost.quicknovel.compose.BaseSearchBar
-import com.lagradost.quicknovel.compose.CloudStreamTheme
-import com.lagradost.quicknovel.compose.Colors
-import com.lagradost.quicknovel.compose.SingleSelectDialog
 import com.lagradost.quicknovel.ui.common.SearchList
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.search.SearchRow
@@ -373,7 +371,7 @@ fun RowScope.SelectButton(text: String, onClick: () -> Unit) {
 @PreviewLightDark
 @Composable
 private fun SettingsScreenPreview() {
-    CloudStreamTheme {
+    CloudStreamPreviewTheme {
         MainPageScreen(
             state = MainPageState(apiName = "hello world"),
             action = {})

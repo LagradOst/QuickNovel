@@ -7,7 +7,7 @@ import android.content.ContextWrapper
 import androidx.work.Configuration
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
-import com.lagradost.cloudstream3.utils.ImageLoader
+import com.lagradost.quicknovel.util.ImageLoader
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
 import com.lagradost.quicknovel.DataStore.removeKey

@@ -34,6 +34,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,23 +50,67 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lagradost.cloudstream4.compose.MultiSelectDialog
+import com.lagradost.cloudstream4.compose.Screen
+import com.lagradost.cloudstream4.compose.rounded
+import com.lagradost.cloudstream4.rememberAppSettings
+import com.lagradost.cloudstream4.state.ObserveEffect
+import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
+import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.MainAPI
+import com.lagradost.quicknovel.MainActivity.Companion.navigate
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.BaseSearchBar
-import com.lagradost.quicknovel.compose.CloudStreamTheme
-import com.lagradost.quicknovel.compose.MultiSelectDialog
 import com.lagradost.quicknovel.compose.isLandscape
-import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseItem
+import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.ui.mainpage.SearchResponseDialog
+import com.lagradost.quicknovel.ui.settings.searchLangList
 import com.lagradost.quicknovel.ui.settings.searchProvidersList
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.SubtitleHelper
 import com.mihon.common.preference.AndroidPreferenceStore
+import com.mihon.presentation.settings.collectAsState
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
+
+object SearchScreen : Screen {
+    @Composable
+    override fun Content() {
+        val viewModel = viewModel<HomeViewModel2>()
+        //val viewModel: HomeViewModel2 =
+        //     viewModel(factory = HomeViewModel2.provideFactory(store.searchProvidersList()))
+        val state by viewModel.state.collectAsStateWithLifecycle()
+
+        val store = rememberAppSettings()
+        val selectionState by store.provider.searchProvidersList.collectAsState()
+        LaunchedEffect(selectionState) {
+            viewModel.onAction(HomeAction.ConfigureApisNames(selectionState.toPersistentSet()))
+        }
+
+        val selectionLangState by store.provider.searchLangList.collectAsState()
+        LaunchedEffect(selectionLangState) {
+            viewModel.onAction(HomeAction.ConfigureApisLanguages(selectionLangState.toPersistentSet()))
+        }
+
+        ObserveEffect(viewModel.effect) { effect ->
+            when (effect) {
+                is HomeEffect.NavigateToMainPage -> {
+                    CommonActivity.activity?.navigate(
+                        R.id.global_to_navigation_mainpage,
+                        MainPageFragment.newInstance(effect.api, effect.filter)
+                    )
+                }
+            }
+        }
+
+        SearchScreen(state, viewModel::onAction)
+    }
+}
 
 @Composable
 fun SearchScreen(state: HomeViewModelState, action: (HomeAction) -> Unit) {
@@ -263,7 +309,7 @@ fun MainAPIItem(
 @PreviewLightDark
 @Composable
 private fun SettingsScreenPreview() {
-    CloudStreamTheme {
+    CloudStreamPreviewTheme {
         SearchScreen(state = HomeViewModelState(), action = {})
     }
 }

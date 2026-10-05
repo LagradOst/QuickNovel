@@ -14,9 +14,8 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.CloudStreamPreviewTheme
-import org.jetbrains.compose.resources.painterResource
 import com.mihon.presentation.secondaryItemAlpha
 
 @Composable

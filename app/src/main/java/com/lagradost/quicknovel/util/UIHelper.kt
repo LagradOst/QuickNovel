@@ -54,11 +54,10 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import coil3.dispose
 import coil3.request.transformations
-import com.lagradost.cloudstream3.utils.ImageLoader.loadImage
+import com.lagradost.quicknovel.util.ImageLoader.loadImage
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.CommonActivity.showToast
-import com.lagradost.quicknovel.QuickBook
 import com.lagradost.quicknovel.ui.UiImage
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.databinding.ImageLayoutBinding

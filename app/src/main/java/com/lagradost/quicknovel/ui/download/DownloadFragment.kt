@@ -1,100 +1,14 @@
 package com.lagradost.quicknovel.ui.download
 
-import android.annotation.SuppressLint
-import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget.ImageView
-import androidx.appcompat.widget.SearchView
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.recyclerview.widget.RecyclerView
-import androidx.viewpager2.widget.ViewPager2
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.tabs.TabLayout
-import com.google.android.material.tabs.TabLayoutMediator
-import com.lagradost.quicknovel.BaseApplication.Companion.getKey
-import com.lagradost.quicknovel.BaseApplication.Companion.setKey
-import com.lagradost.quicknovel.BookDownloader2Helper
+import com.lagradost.cloudstream4.BaseComposeFragment
+import com.lagradost.cloudstream4.compose.Screen
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
-import com.lagradost.quicknovel.CURRENT_TAB
-import com.lagradost.quicknovel.CommonActivity
-import com.lagradost.quicknovel.CommonActivity.activity
-import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
-import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
-import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
 import com.lagradost.quicknovel.DownloadState
-import com.lagradost.quicknovel.MainActivity.Companion.navigate
-import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.CloudStreamTheme
-import com.lagradost.quicknovel.compose.ObserveEffect
-import com.lagradost.quicknovel.compose.loadPrimaryColor
-import com.lagradost.quicknovel.compose.loadThemeMode
-import com.lagradost.quicknovel.databinding.FragmentDownloadsBinding
-import com.lagradost.quicknovel.databinding.SortBottomSheetBinding
-import com.lagradost.quicknovel.mvvm.observe
-import com.lagradost.quicknovel.ui.BaseFragment
-import com.lagradost.quicknovel.ui.SortingMethodAdapter
-import com.lagradost.quicknovel.ui.UiImage
-import com.lagradost.quicknovel.ui.img
-import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
-import com.lagradost.quicknovel.ui.search.HomeAction
-import com.lagradost.quicknovel.ui.search.HomeEffect
-import com.lagradost.quicknovel.ui.search.HomeViewModel2
-import com.lagradost.quicknovel.ui.search.SearchScreen
-import com.lagradost.quicknovel.ui.settings.searchLangList
-import com.lagradost.quicknovel.ui.settings.searchProvidersList
-import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
-import com.lagradost.quicknovel.util.UIHelper.fixPaddingStatusbar
-import kotlinx.collections.immutable.toPersistentSet
-import kotlinx.coroutines.launch
 
 
-class DownloadFragment : Fragment() {
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View = ComposeView(inflater.context).apply {
-        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-
-        setContent {
-            CloudStreamTheme(
-                mode = LocalContext.current.loadThemeMode(),
-                primaryColor = LocalContext.current.loadPrimaryColor(),
-            ) {
-                val viewModel = viewModel<DownloadViewModel2>()
-                val state by viewModel.state.collectAsStateWithLifecycle()
-
-                /*
-                ObserveEffect(viewModel.effect) { effect ->
-                    when (effect) {
-                        is HomeEffect.NavigateToMainPage -> {
-                            CommonActivity.activity?.navigate(
-                                R.id.global_to_navigation_mainpage,
-                                MainPageFragment.newInstance(effect.api, effect.filter)
-                            )
-                        }
-                    }
-                }*/
-
-                DownloadScreen(state, viewModel::onAction)
-            }
-        }
-    }
-
-
+class DownloadFragment : BaseComposeFragment(), Screen by DownloadScreen {
     data class DownloadData(
         @JsonProperty("source")
         val source: String,

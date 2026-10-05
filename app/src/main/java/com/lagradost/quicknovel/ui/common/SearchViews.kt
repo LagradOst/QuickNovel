@@ -52,15 +52,15 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.lagradost.cloudstream4.compose.RoundedShape
+import com.lagradost.cloudstream4.compose.circle
+import com.lagradost.cloudstream4.compose.rounded
+import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.NotificationHelper.etaToString
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.CloudStreamTheme
-import com.lagradost.quicknovel.compose.RoundedShape
 import com.lagradost.quicknovel.compose.animatedOutline
-import com.lagradost.quicknovel.compose.circle
 import com.lagradost.quicknovel.compose.isLandscape
-import com.lagradost.quicknovel.compose.rounded
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
@@ -428,7 +428,9 @@ fun Modifier.downloadOutline(downloadState: DownloadState?): Modifier {
 
         DownloadState.IsPaused -> {
             border(
-                width = 1.5.dp, color = MaterialTheme.colorScheme.onBackground, shape = RoundedShape()
+                width = 1.5.dp,
+                color = MaterialTheme.colorScheme.onBackground,
+                shape = RoundedShape()
             )
         }
 
@@ -629,19 +631,15 @@ fun SearchResponseGrid(
 @PreviewLightDark
 @Composable
 private fun RowPreview() {
-    CloudStreamTheme {
-        Surface {
-            SearchResponseRow(response = ImmutableSearchResponse.preview(), action = {})
-        }
+    CloudStreamPreviewTheme {
+        SearchResponseRow(response = ImmutableSearchResponse.preview(), action = {})
     }
 }
 
 @PreviewLightDark
 @Composable
 private fun GridPreview() {
-    CloudStreamTheme {
-        Surface {
-            SearchResponseItem(response = ImmutableSearchResponse.preview(), action = {})
-        }
+    CloudStreamPreviewTheme {
+        SearchResponseItem(response = ImmutableSearchResponse.preview(), action = {})
     }
 }

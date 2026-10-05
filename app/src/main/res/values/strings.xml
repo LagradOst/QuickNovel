@@ -203,6 +203,7 @@
     <string name="rating_format">Rating Format</string>
     <string name="cancel">Cancel</string>
     <string name="remove">Remove</string>
+    <string name="color_wheel">Color wheel</string>
     <string name="remove_from_history_format">This remove %s from your history.\nAre you sure?</string>
     <string name="permanently_delete_format">This will permanently delete %s.\nAre you sure?</string>
     <string name="remove_from_bookmarks_format">This remove %s from your bookmarks.\nAre you sure?</string>

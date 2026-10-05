@@ -11,12 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.CloudStreamPreviewTheme
-import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.stringResource
-import com.mihon.presentation.secondaryItemAlpha
 import com.mihon.material.padding
+import com.mihon.presentation.secondaryItemAlpha
 
 @Composable
 internal fun InfoWidget(text: String) {

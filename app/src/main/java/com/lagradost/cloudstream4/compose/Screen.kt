@@ -1,4 +1,4 @@
-package com.lagradost.quicknovel.compose
+package com.lagradost.cloudstream4.compose
 import androidx.compose.runtime.Composable
 
 // https://github.com/adrielcafe/voyager

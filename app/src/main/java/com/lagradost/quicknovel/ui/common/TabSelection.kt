@@ -23,9 +23,9 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.lagradost.cloudstream4.compose.circle
+import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.CloudStreamTheme
-import com.lagradost.quicknovel.compose.circle
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 
@@ -91,7 +91,7 @@ fun HorizontalTab(
 @PreviewLightDark
 @Composable
 fun Preview() {
-    CloudStreamTheme {
+    CloudStreamPreviewTheme {
         val list = persistentListOf(
             R.string.downloaded,
             R.string.type_reading,

@@ -3,6 +3,10 @@ package com.lagradost.quicknovel.ui.history
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lagradost.cloudstream4.state.ActionHandler
+import com.lagradost.cloudstream4.state.DebounceQuery
+import com.lagradost.cloudstream4.state.DefaultStateContainer
+import com.lagradost.cloudstream4.state.StateContainer
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
@@ -12,10 +16,6 @@ import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.HISTORY_SORTING_METHOD
-import com.lagradost.quicknovel.compose.ActionHandler
-import com.lagradost.quicknovel.compose.DebounceQuery
-import com.lagradost.quicknovel.compose.DefaultStateContainer
-import com.lagradost.quicknovel.compose.StateContainer
 import com.lagradost.quicknovel.ui.common.ImmutableSearchList
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.common.SearchResponseAction

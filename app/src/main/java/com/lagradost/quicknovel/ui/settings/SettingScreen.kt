@@ -44,21 +44,21 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
+import com.lagradost.cloudstream4.compose.BlackButton
+import com.lagradost.cloudstream4.compose.WhiteButton
+import com.lagradost.cloudstream4.compose.circle
+import com.lagradost.cloudstream4.compose.rounded
+import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
+import com.lagradost.cloudstream4.theme.CloudStreamPrimaryColor
+import com.lagradost.cloudstream4.theme.modeToTheme
+import com.lagradost.cloudstream4.theme.perfToColor
+import com.lagradost.cloudstream4.theme.perfToMode
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.FileHelper
 import com.lagradost.quicknovel.FileStorage
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.BlackButton
-import com.lagradost.quicknovel.compose.CloudStreamPrimaryColor
-import com.lagradost.quicknovel.compose.CloudStreamTheme
-import com.lagradost.quicknovel.compose.WhiteButton
-import com.lagradost.quicknovel.compose.circle
-import com.lagradost.quicknovel.compose.modeToTheme
-import com.lagradost.quicknovel.compose.perfToColor
-import com.lagradost.quicknovel.compose.perfToMode
-import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.txt
 import com.lagradost.quicknovel.util.Apis.Companion.apis
@@ -641,7 +641,7 @@ fun RoundColor(color: Color) {
 @PreviewLightDark
 @Composable
 private fun SettingScreenPreview() {
-    CloudStreamTheme {
+    CloudStreamPreviewTheme {
         SettingScreen.Content()
     }
 }

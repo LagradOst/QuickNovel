@@ -1,12 +1,12 @@
 package com.lagradost.quicknovel.ui.result
 
 import android.content.Intent
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -51,7 +51,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.currentRecomposeScope
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -81,17 +80,16 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.lagradost.cloudstream4.compose.Colors
+import com.lagradost.cloudstream4.compose.RoundedShape
+import com.lagradost.cloudstream4.compose.SingleSelectDialog
+import com.lagradost.cloudstream4.compose.circle
+import com.lagradost.cloudstream4.compose.rounded
+import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
 import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.BackHandler
-import com.lagradost.quicknovel.compose.CloudStreamTheme
-import com.lagradost.quicknovel.compose.Colors
-import com.lagradost.quicknovel.compose.RoundedShape
-import com.lagradost.quicknovel.compose.SingleSelectDialog
-import com.lagradost.quicknovel.compose.circle
-import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.providers.RoyalRoadProvider
 import com.lagradost.quicknovel.ui.ReadType
@@ -113,7 +111,6 @@ import com.lagradost.quicknovel.ui.common.SearchResponseOperation
 import com.lagradost.quicknovel.ui.common.html
 import com.lagradost.quicknovel.ui.common.loading
 import com.lagradost.quicknovel.ui.common.loadingLineMargin
-import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.AppUtils.openInBrowser
 import com.lagradost.quicknovel.util.SettingsHelper.getRating
 import com.lagradost.quicknovel.util.SettingsHelper.getRatingReview
@@ -126,11 +123,25 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.launch
 
+/*
+object ResultScreen : Screen {
+    @Composable
+    override fun Content() {
+        val viewModel: ResultViewModel2 =
+            viewModel(factory = ResultViewModel2.provideFactory(requireArguments()))
+        val state by viewModel.state.collectAsStateWithLifecycle()
+
+        ObserveEffect(viewModel.effect) { _ ->
+            // Not yet implemented
+        }
+        ResultScreen(state,viewModel::onAction)
+    }
+}*/
+
 
 @Composable
 fun ResultScreen(state: ResultState, action: (ResultPageAction) -> Unit) {
-    Scaffold(
-    ) { innerPadding ->
+    Scaffold { innerPadding ->
         if (state.loadingResponse) {
             LoadingScreen(Modifier.padding(innerPadding))
         } else {
@@ -1108,7 +1119,7 @@ fun LoadingScreen(modifier: Modifier) {
 @PreviewLightDark
 @Composable
 fun LoadingPreview() {
-    CloudStreamTheme {
+    CloudStreamPreviewTheme {
         Surface {
             ResultScreen(
                 state = ResultState(
@@ -1125,7 +1136,7 @@ fun LoadingPreview() {
 @PreviewLightDark
 @Composable
 fun ReviewPreview() {
-    CloudStreamTheme {
+    CloudStreamPreviewTheme {
         Surface {
             ReviewItem(
                 review = ImmutableReview(

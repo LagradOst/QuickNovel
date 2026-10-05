@@ -6,6 +6,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.lagradost.cloudstream4.state.ActionHandler
+import com.lagradost.cloudstream4.state.DefaultEffectContainer
+import com.lagradost.cloudstream4.state.DefaultStateContainer
+import com.lagradost.cloudstream4.state.EffectContainer
+import com.lagradost.cloudstream4.state.StateContainer
 import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.BaseApplication
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
@@ -27,11 +32,6 @@ import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
 import com.lagradost.quicknovel.RESULT_SORTING_METHOD
-import com.lagradost.quicknovel.compose.ActionHandler
-import com.lagradost.quicknovel.compose.DefaultEffectContainer
-import com.lagradost.quicknovel.compose.DefaultStateContainer
-import com.lagradost.quicknovel.compose.EffectContainer
-import com.lagradost.quicknovel.compose.StateContainer
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.common.ChapterSortingMethodType
 import com.lagradost.quicknovel.ui.common.ImmutableChapterData

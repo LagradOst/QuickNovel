@@ -3,8 +3,7 @@ package com.mihon.presentation.settings
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
-import com.lagradost.quicknovel.compose.Screen
-import com.mihon.presentation.LocalBackPress
+import com.lagradost.cloudstream4.compose.Screen
 
 interface SearchableSettings : Screen {
     @Composable
@@ -20,10 +19,10 @@ interface SearchableSettings : Screen {
 
     @Composable
     override fun Content() {
-        val handleBack = LocalBackPress.current
+        //val handleBack = LocalBackPress.current
         PreferenceScaffold(
             title = getTitleRes(),
-            onBackPressed = if (handleBack != null) handleBack::invoke else null,
+            //onBackPressed = if (handleBack != null) handleBack::invoke else null,
             actions = { AppBarAction() },
             itemsProvider = { getPreferences() },
         )

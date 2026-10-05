@@ -53,14 +53,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lagradost.cloudstream4.compose.ActionDialog
+import com.lagradost.cloudstream4.compose.Screen
+import com.lagradost.cloudstream4.compose.SinglePairSelectDialog
+import com.lagradost.cloudstream4.compose.rounded
+import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.ActionDialog
 import com.lagradost.quicknovel.compose.BaseSearchBar
-import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.IsScrolling
-import com.lagradost.quicknovel.compose.SinglePairSelectDialog
-import com.lagradost.quicknovel.compose.rounded
 import com.lagradost.quicknovel.ui.common.HorizontalTab
 import com.lagradost.quicknovel.ui.common.ImmutableSearchList
 import com.lagradost.quicknovel.ui.common.SearchList
@@ -77,6 +80,16 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
+
+object DownloadScreen : Screen {
+    @Composable
+    override fun Content() {
+        val viewModel = viewModel<DownloadViewModel2>()
+        val state by viewModel.state.collectAsStateWithLifecycle()
+        DownloadScreen(state, viewModel::onAction)
+    }
+}
+
 
 @Composable
 fun DownloadScreen(
@@ -525,8 +538,7 @@ fun BoxFooter() {
 @Composable
 @PreviewLightDark
 fun DownloadScreenPreview() {
-    CloudStreamTheme {
-        DownloadScreen(
-            state = DownloadPageState(), action = {})
+    CloudStreamPreviewTheme {
+        DownloadScreen(state = DownloadPageState(), action = {})
     }
 }

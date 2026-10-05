@@ -45,16 +45,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import com.lagradost.cloudstream4.compose.whiteOutline
+import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.CloudStreamPreviewTheme
-import com.lagradost.quicknovel.compose.whiteOutline
 import com.mihon.common.preference.PreferenceData
 import com.mihon.common.preference.toggle
 import com.mihon.presentation.secondaryItemAlpha
 import com.mihon.presentation.settings.collectAsState
 import com.mihon.presentation.settings.widget.PrefsHorizontalPadding
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 object SettingsItemsPaddings {

@@ -14,12 +14,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.core.content.edit
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
+import com.lagradost.cloudstream4.BaseComposeFragment
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.CloudStreamTheme
 import com.lagradost.quicknovel.compose.LaunchedEffectSkipFirst
-import com.lagradost.quicknovel.compose.loadPrimaryColor
-import com.lagradost.quicknovel.compose.loadThemeMode
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.SingleSelectionHelper.showMultiDialog
@@ -28,24 +26,7 @@ import com.mihon.common.preference.AndroidPreferenceStore
 import com.mihon.presentation.settings.SearchableSettings
 import com.mihon.presentation.settings.collectAsState
 
-class SettingsFragment : Fragment(), SearchableSettings by SettingScreen {
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View = ComposeView(inflater.context).apply {
-        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-
-        setContent {
-            CloudStreamTheme(
-                mode = LocalContext.current.loadThemeMode(),
-                primaryColor = LocalContext.current.loadPrimaryColor(),
-            ) {
-                this@SettingsFragment.Content()
-            }
-        }
-    }
-
+class SettingsFragment : BaseComposeFragment(), SearchableSettings by SettingScreen {
     @Composable
     override fun Content() {
         val store = AndroidPreferenceStore(LocalContext.current)

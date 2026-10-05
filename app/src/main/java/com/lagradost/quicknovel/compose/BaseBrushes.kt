@@ -1,44 +1,34 @@
 package com.lagradost.quicknovel.compose
 
 import android.graphics.Matrix
-import androidx.compose.animation.core.EaseInOutQuad
 import androidx.compose.animation.core.InfiniteRepeatableSpec
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisallowComposableCalls
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.SweepGradientShader
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.lagradost.quicknovel.R
-import kotlin.math.max
+import com.lagradost.cloudstream4.compose.RoundedShape
+import com.lagradost.cloudstream4.theme.LocalSharedInfiniteTransition
 
 @Composable
-fun Modifier.animatedOutline( width: Dp = 2.dp,  defaultPalette: List<Color>): Modifier {
+fun Modifier.animatedOutline(width: Dp = 2.dp, defaultPalette: List<Color>): Modifier {
     val imageShape = RoundedShape()
 
     val rotation = LocalSharedInfiniteTransition.current.animateFloat(
@@ -136,6 +126,7 @@ fun Modifier.gradientEffect(
         // drawOutline(brush = gradientBrush, outline = Outline.Rounded(RoundRect(rect = this.size.toRect())))
     }
 }
+
 @Stable
 class TransformableBrush(
     private val brush: ShaderBrush
