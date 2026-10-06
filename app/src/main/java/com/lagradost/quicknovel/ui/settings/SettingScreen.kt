@@ -52,6 +52,7 @@ import com.lagradost.cloudstream4.theme.CloudStreamPrimaryColor
 import com.lagradost.cloudstream4.theme.modeToTheme
 import com.lagradost.cloudstream4.theme.perfToColor
 import com.lagradost.cloudstream4.theme.perfToMode
+import com.lagradost.quicknovel.BuildConfig
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.ErrorLoadingException
@@ -271,6 +272,7 @@ object SettingScreen : SearchableSettings {
                     Preference.PreferenceItem.TextPreference(
                         icon = painterResource(R.drawable.mobile_arrow_down_24px),
                         title = stringResource(R.string.check_for_update),
+                        subtitle = BuildConfig.VERSION_NAME,
                         onClick = {
                             // Todo refactor
                             scope.launch {

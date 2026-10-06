@@ -94,13 +94,13 @@ object DownloadScreen : Screen {
 @Composable
 fun DownloadScreen(
     state: DownloadPageState,
-    action: (DownloadPageAction) -> Unit
+    onAction: (DownloadPageAction) -> Unit
 ) {
     DownloadSort(
-        state.downloadSortingMethod,
-        state.regularSortingMethod,
-        state.dialog,
-        action
+        downloadSortingMethod = state.downloadSortingMethod,
+        regularSortingMethod = state.regularSortingMethod,
+        sortingMethodDialog = state.dialog,
+        onAction = onAction
     )
 
     val pagesNames = persistentListOf(
@@ -125,7 +125,7 @@ fun DownloadScreen(
             ExtendedFloatingActionButton(
                 modifier = Modifier.padding(bottom = 40.dp),
                 onClick = {
-                    action(DownloadPageAction.ShowSorting)
+                    onAction(DownloadPageAction.ShowSorting)
                 },
                 // Elevation actually changes the color, because who wanted a sane framework
                 elevation = FloatingActionButtonDefaults.elevation(
@@ -154,10 +154,10 @@ fun DownloadScreen(
                     Spacer(modifier = Modifier.height(5.dp))
                 },
                 onQueryChange = { query ->
-                    action(DownloadPageAction.Search(query))
+                    onAction(DownloadPageAction.Search(query))
                 },
                 onSearch = { query ->
-                    action(DownloadPageAction.Search(query))
+                    onAction(DownloadPageAction.Search(query))
                 },
                 scrollBehavior = scrollBehavior,
                 leadingIcon = {
@@ -200,6 +200,13 @@ fun DownloadScreen(
                                     MainActivity.importEpubs()
                                 }
                             )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.refresh)) },
+                                onClick = {
+                                    expanded = false
+                                    onAction(DownloadPageAction.Refresh)
+                                }
+                            )
                         }
 
                         IconButton(onClick = {
@@ -229,7 +236,7 @@ fun DownloadScreen(
 
         val currentPage = pagerState.currentPage
         LaunchedEffect(currentPage) {
-            action(DownloadPageAction.SelectPage(currentPage))
+            onAction(DownloadPageAction.SelectPage(currentPage))
         }
 
         Column {
@@ -249,13 +256,17 @@ fun DownloadScreen(
                     isRow = downloadIsRowState,
                     page,
                     state.pages.getOrNull(page) ?: ImmutableSearchList(),
-                    action,
+                    onAction,
                     scrollingChange = { isScrollingUp ->
                         fabExpanded = isScrollingUp
                     })
             }
 
-            HorizontalTab(pagerState, pagesNames, containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            HorizontalTab(
+                pagerState,
+                pagesNames,
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
         }
     }
 }
@@ -265,7 +276,7 @@ fun DownloadSort(
     downloadSortingMethod: SortingMethodType,
     regularSortingMethod: SortingMethodType,
     sortingMethodDialog: DownloadDialog?,
-    action: (DownloadPageAction) -> Unit,
+    onAction: (DownloadPageAction) -> Unit,
 ) {
     when (sortingMethodDialog) {
         is DownloadDialog.DeleteBookmark -> {
@@ -278,11 +289,11 @@ fun DownloadSort(
                 confirmText = stringResource(R.string.remove),
                 dismissText = stringResource(R.string.cancel),
                 dismiss = {
-                    action(DownloadPageAction.DismissDialog)
+                    onAction(DownloadPageAction.DismissDialog)
                 },
                 confirm = {
-                    action(DownloadPageAction.DismissDialog)
-                    action(
+                    onAction(DownloadPageAction.DismissDialog)
+                    onAction(
                         DownloadPageAction.ResultAction(
                             SearchResponseAction(
                                 sortingMethodDialog.item,
@@ -304,11 +315,11 @@ fun DownloadSort(
                 confirmText = stringResource(R.string.delete),
                 dismissText = stringResource(R.string.cancel),
                 dismiss = {
-                    action(DownloadPageAction.DismissDialog)
+                    onAction(DownloadPageAction.DismissDialog)
                 },
                 confirm = {
-                    action(DownloadPageAction.DismissDialog)
-                    action(
+                    onAction(DownloadPageAction.DismissDialog)
+                    onAction(
                         DownloadPageAction.ResultAction(
                             SearchResponseAction(
                                 sortingMethodDialog.item,
@@ -325,20 +336,20 @@ fun DownloadSort(
                 items = normalSortingMethods,
                 sortingMethod = regularSortingMethod,
                 dismiss = {
-                    action(DownloadPageAction.DismissDialog)
+                    onAction(DownloadPageAction.DismissDialog)
                 },
                 select = { key ->
-                    action(DownloadPageAction.DismissDialog)
-                    action(DownloadPageAction.SelectSortingMethod(regularSortingMethod = key))
+                    onAction(DownloadPageAction.DismissDialog)
+                    onAction(DownloadPageAction.SelectSortingMethod(regularSortingMethod = key))
                 })
         }
 
         DownloadDialog.SortDownloads -> {
             SortDialog(items = sortingMethods, sortingMethod = downloadSortingMethod, dismiss = {
-                action(DownloadPageAction.DismissDialog)
+                onAction(DownloadPageAction.DismissDialog)
             }, select = { key ->
-                action(DownloadPageAction.DismissDialog)
-                action(DownloadPageAction.SelectSortingMethod(downloadSortingMethod = key))
+                onAction(DownloadPageAction.DismissDialog)
+                onAction(DownloadPageAction.SelectSortingMethod(downloadSortingMethod = key))
             })
         }
 
@@ -401,14 +412,14 @@ fun DownloadRow(
     isRow: Boolean,
     index: Int,
     row: ImmutableSearchList?,
-    action: (DownloadPageAction) -> Unit,
+    onAction: (DownloadPageAction) -> Unit,
     scrollingChange: (Boolean) -> Unit
 ) {
     if (row == null) return
 
-    val searchAction = remember<(SearchResponseAction) -> Unit>(action) {
+    val searchAction = remember<(SearchResponseAction) -> Unit>(onAction) {
         { item ->
-            action(DownloadPageAction.ResultAction(item))
+            onAction(DownloadPageAction.ResultAction(item))
         }
     }
     var refreshing by remember { mutableStateOf(false) }
@@ -424,7 +435,7 @@ fun DownloadRow(
         isRefreshing = refreshing,
         onRefresh = {
             refreshing = true
-            action(DownloadPageAction.Refresh)
+            onAction(DownloadPageAction.Refresh)
             scope.launch {
                 delay(200.milliseconds)
                 refreshing = false
@@ -539,6 +550,6 @@ fun BoxFooter() {
 @PreviewLightDark
 fun DownloadScreenPreview() {
     CloudStreamPreviewTheme {
-        DownloadScreen(state = DownloadPageState(), action = {})
+        DownloadScreen(state = DownloadPageState(), onAction = {})
     }
 }
