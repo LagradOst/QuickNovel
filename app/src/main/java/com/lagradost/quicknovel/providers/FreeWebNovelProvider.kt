@@ -139,8 +139,9 @@ open class FreewebnovelProvider : MainAPI() {
         val name = document.selectFirst("h1.tit")?.text() ?: return null
         val chaptersDataphp = getChapterList(document, response.url)
         return newStreamResponse(url = response.url, name = name, data = chaptersDataphp) {
-            author =
-                document.selectFirst("span.glyphicon.glyphicon-user")?.nextElementSibling()?.text()
+            author = document.selectFirst("a[href^=/author/]")?.text()
+                ?: document.selectFirst("div.item:has(span.glyphicon-user) a")?.text()
+                ?: document.selectFirst("span[title=Author]")?.parent()?.selectFirst("a")?.text()
             tags =
                 document.selectFirst("span.glyphicon.glyphicon-th-list")?.nextElementSiblings()
                     ?.get(0)

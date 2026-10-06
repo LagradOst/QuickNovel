@@ -54,7 +54,9 @@ class SonicMTLProvider : MainAPI() {
 
     private fun Element?.getImage(): String? {
         return this?.let {
-            if (it.hasAttr("data-src")) it.attr("data-src") else it.attr("src")
+            val thumb = if (it.hasAttr("data-src")) it.attr("data-src") else it.attr("src")
+            if (thumb.isBlank()) return@let null
+            return thumb.replace(Regex("-\\d+x\\d+(?=\\.\\w+\$)"), "")
         }
     }
 

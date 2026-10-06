@@ -144,7 +144,8 @@ open class NovelFireProvider : MainAPI() {
             this.author = infoDiv.selectFirst("div.author > a")?.text()
             this.posterUrl = fixUrlNull(document.selectFirst("figure.cover img")?.attr("src"))
             this.synopsis =
-                document.selectFirst("meta[itemprop=description]")?.attr("content") ?: ""
+                document.selectFirst("meta[itemprop=description]")?.attr("content")
+                    ?: document.selectFirst("div.summary > div")?.html() ?: ""
 
             this.tags = infoDiv.select("div.categories ul li").mapNotNull {
                 it.text().trim().takeIf { text -> text.isNotEmpty() }

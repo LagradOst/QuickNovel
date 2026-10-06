@@ -13,7 +13,7 @@ class RanobesProvider : MainAPI() {
     override val iconId = R.drawable.icon_ranobes
     override val iconBackgroundId = R.color.white
     override val usesCloudFlareKiller = true
-    override val rateLimitTime = 500L
+    override val rateLimitTime = 2000L
     override val hasReviews = true
 
     override val tags = listOf(
