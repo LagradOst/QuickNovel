@@ -78,7 +78,7 @@ class FenrirRealProvider : MainAPI() {
         "Yuri" to "35",
     )
 
-    fun String.getSlugFromUrl() = this.replace("$mainUrl/series/", "")
+    fun String.getSlugFromUrl() = this.substringAfterLast("/series/")
 
     override suspend fun loadMainPage(
         page: Int,
@@ -131,7 +131,7 @@ class FenrirRealProvider : MainAPI() {
                 if (ch.locked.price > 0) null
                 else newChapterData(
                     "${ch.name} ${if (ch.title.isNullOrEmpty()) "" else "- ${ch.title}"}",
-                    "$url/${ch.slug}/__data.json?x-sveltekit-invalidated=10001"
+                    "$mainUrl/api/new/v2/series/${url.getSlugFromUrl()}/${ch.slug}"
                 ) {
                     dateOfRelease = ch.updatedAt.split("T")[0]
                 }
@@ -181,12 +181,10 @@ class FenrirRealProvider : MainAPI() {
         }
     }
 
-    override suspend fun loadHtml(url: String): String {
+    override suspend fun loadHtml(url: String): String? {
         val response = app.get(url).parsed<ChapterResponse>()
-        val secondDataNode = response.nodes.filter { it.type == "data" }.getOrNull(1) ?: throw ErrorLoadingException("Cant' access to chapter: $response")
-        val chapterText = secondDataNode.data?.getOrNull(6)?.toString() ?: throw ErrorLoadingException("Cant' access to chapter: $response")
 
-        val chapterHtml = Jsoup.parse(chapterText)
+        val chapterHtml = Jsoup.parse(response.content ?: return null)
         chapterHtml.select("script, style, iframe, svg, noscript").remove()
         chapterHtml.select("[aria-hidden=\"true\"]").remove()
         return chapterHtml.html()
@@ -262,13 +260,7 @@ class FenrirRealProvider : MainAPI() {
     )
 
     data class ChapterResponse(
-        @JsonProperty("nodes")
-        val nodes: List<ChapterResponseData>
-    )
-    data class ChapterResponseData(
-        @JsonProperty("type")
-        val type: String,
-        @JsonProperty("data")
-        val data: List<Any>?
+        @JsonProperty("content")
+        val content: String?
     )
 }
