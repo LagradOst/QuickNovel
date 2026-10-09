@@ -8,7 +8,9 @@ import com.lagradost.nicehttp.Requests
 import com.lagradost.nicehttp.ResponseParser
 import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.mvvm.logError
+import com.lagradost.quicknovel.util.translation.models.FailedContext
 import com.lagradost.quicknovel.util.translation.models.GoogleTranslationResponse
+import com.lagradost.quicknovel.util.translation.models.TranslationResult
 import kotlinx.coroutines.delay
 import okhttp3.OkHttpClient
 import java.net.UnknownHostException
@@ -17,6 +19,7 @@ import kotlin.reflect.KClass
 import kotlin.time.Duration.Companion.seconds
 
 class GoogleTranslateOnline {
+    data class FragmentMeta(val shell: String, val content: String, val originalIndex: Int, val tags: List<String>)
     companion object {
         private val USER_AGENTS = listOf(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
@@ -78,99 +81,155 @@ class GoogleTranslateOnline {
         private const val PARAGRAPH_DELIMITER = "\n\n\n\nFDHJEJHGYRSTJFDGLKDFGJREWY\n\n\n\n"
         private val paragraphsSeparatorRegex = Regex("\\n?FDHJEJHGYRSTJFDGLKDFGJREWY\\n?")
         private const val MAX_CHARS_PER_CHUNK: Int = 2500
+    }
 
-        suspend fun onlineTranslate(
-            textList: List<String>,
-            from: String,
-            to: String,
-            progress: suspend (Int, Int) -> Unit
-        ): List<String> {
-            if (textList.isEmpty()) return emptyList()
+    /**
+     * Recursively attempts to fix paragraphs that failed to translate (where trans == orig).
+     */
+    suspend fun fixFailures(
+        translationResult: TranslationResult,
+        from: String,
+        to: String,
+        depth: Int = 0,
+        isHtml: Boolean = false
+    ): List<String> {
+        // If there are no failed chunks to fix, or we reached the maximum retry limit (3)
+        if (translationResult.failedChunks.isEmpty()  || depth >= 3) return translationResult.translatedLines
 
-            val allTranslatedLines = Array(textList.size) { "" }
-            val contentFragments = mutableListOf<Pair<String, Int>>()
+        val textsToFix = translationResult.failedChunks.map { it.text }
+        // Call the main translate function again, but ONLY for the failed texts
+        val retryResult = translate(textsToFix, from, to, isHtml, { _, _ -> })
 
-            textList.forEachIndexed { index, text ->
-                if (!TranslationsUtils.isTranslatable(text, false)) {
-                    allTranslatedLines[index] = text
-                } else {
-                    contentFragments.add(TranslationsUtils.sanitize(text) to index)
-                }
+        val finalLines = translationResult.translatedLines.toMutableList()
+
+        retryResult.translatedLines.forEachIndexed { index, fixedText ->
+            val originalMeta = translationResult.failedChunks.getOrNull(index)
+            if (originalMeta != null) {
+                // Use the global position in the book to place the newly translated text in the correct spot
+                finalLines[originalMeta.originalIndex] = fixedText
+            }
+        }
+
+
+        // If the retry attempt also produced failures, we need to handle them.
+        if (retryResult.failedChunks.isNotEmpty()) {
+            val deeperFailedContexts = retryResult.failedChunks.mapNotNull { retryFailed ->
+                translationResult.failedChunks.getOrNull(retryFailed.originalIndex)
             }
 
-            if (contentFragments.isNotEmpty()) {
-                val chunks = chunkByLimit(contentFragments)
-                chunks.forEachIndexed { i, chunk ->
-                    if (i > 0) delay(1.seconds)
-                    progress.invoke(i, chunks.size)
+            // try to fix the remaining failures, incrementing depth
+            return fixFailures(
+                TranslationResult(finalLines, deeperFailedContexts),
+                from,
+                to,
+                depth + 1,
+                isHtml = isHtml
+            )
+        }
+        return finalLines
+    }
 
-                    val combinedText = chunk.joinToString(PARAGRAPH_DELIMITER) { it.first }
-                    val translatedBatch = translateChunk(combinedText, from, to)
+    suspend fun translate(
+        textList: List<String>,
+        from: String,
+        to: String,
+        isHtml: Boolean,
+        progress: suspend (Int, Int) -> Unit
+    ): TranslationResult {
+        if (textList.isEmpty()) return TranslationResult(emptyList(), emptyList())
 
-                    val splitParts = translatedBatch.split(paragraphsSeparatorRegex)
-                        .map { it.trim() }
-                        .filter { it.isNotEmpty() }
+        val allTranslatedLines = textList.toMutableList()
+        val failedParagraphs = mutableListOf<FailedContext>()
+        val contentFragments = mutableListOf<FragmentMeta>()
 
-                    if (splitParts.size == chunk.size) {
-                        chunk.forEachIndexed { localIndex, pair ->
-                            allTranslatedLines[pair.second] = splitParts[localIndex]
+        textList.forEachIndexed { index, text ->
+            if (TranslationsUtils.isTranslatable(text, isHtml) != null) {
+                if (isHtml) {
+                    val (shell, content, tags) = TranslationsUtils.extractDeepShell(text)
+                    contentFragments.add(FragmentMeta(shell, TranslationsUtils.sanitize(content), index, tags))
+                } else {
+                    contentFragments.add(FragmentMeta("%s", TranslationsUtils.sanitize(text), index, emptyList()))
+                }
+            }
+        }
+
+        val chunks = contentFragments.chunkByLimit()
+        chunks.forEachIndexed { i, chunk ->
+            progress(i, chunks.size)
+            val combinedText = chunk.joinToString(PARAGRAPH_DELIMITER) { it.content }
+            val splitParts = translateChunk(combinedText, from, to)
+                .split(paragraphsSeparatorRegex)
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+
+            if (splitParts.size == chunk.size) {
+                chunk.forEachIndexed { localIndex, meta ->
+                    var translatedText = splitParts[localIndex]
+
+                    if (isHtml) {
+                        translatedText = translatedText.replace(Regex("\\n+"), " ")
+                            .replace("<", "&lt;").replace(">", "&gt;")
+
+                        val tagPattern = Regex.escape(TranslationsUtils.TAG_DELIMITER.trim())
+                        meta.tags.forEach { tag ->
+                            translatedText = translatedText.replaceFirst(Regex("\\s?$tagPattern\\s?"), tag)
                         }
-                    } else {
-                        // Fallback: translate one by one if batch fails
-                        chunk.forEach { pair ->
-                            allTranslatedLines[pair.second] = translateChunk(pair.first, from, to)
-                        }
+                        translatedText = translatedText.trim()
+                    }
+
+                    allTranslatedLines[meta.originalIndex] = meta.shell.replace("%s", translatedText)
+
+                    if (translatedText == meta.content && meta.content.any { it.isLetter() } && meta.content.split(" ").size >= 3) {
+                        failedParagraphs.add(FailedContext(meta.originalIndex, meta.content))
                     }
                 }
-            }
-
-            return allTranslatedLines.toList()
-        }
-
-        private suspend fun translateChunk(
-            text: String,
-            from: String,
-            to: String
-        ): String {
-            var retryNumber = 0
-            val maxRetry = 5
-            while (retryNumber < maxRetry) {
-                try {
-                    val res = app2.get(url = "$BASEURL$from&tl=$to&dt=t&q=${Uri.encode(text)}")
-                    val response: GoogleTranslationResponse = res.parsed()
-                    val sentences = response.sentences
-                    if (sentences.isEmpty()) return text
-
-                    return sentences.joinToString("") { it.trans }
-                } catch (t: Throwable) {
-                    logError(t)
-                    if (t is UnknownHostException) throw t
-                    rotateUserAgent()
-                    retryNumber++
-                    if (retryNumber >= maxRetry) throw t
+            } else {
+                chunk.forEach { meta ->
+                    failedParagraphs.add(FailedContext(meta.originalIndex, meta.content))
+                    allTranslatedLines[meta.originalIndex] = meta.shell.replace("%s", meta.content)
                 }
             }
-            return text
         }
 
-        private fun chunkByLimit(fragments: List<Pair<String, Int>>): List<List<Pair<String, Int>>> {
-            if (fragments.isEmpty()) return emptyList()
-            val chunks = mutableListOf<List<Pair<String, Int>>>()
-            var currentChunk = mutableListOf<Pair<String, Int>>()
-            var currentLength = 0
+        return TranslationResult(allTranslatedLines, failedParagraphs)
+    }
 
-            for (item in fragments) {
-                val itemLength = Uri.encode(item.first + PARAGRAPH_DELIMITER).length
-                if (currentChunk.isNotEmpty() && currentLength + itemLength > MAX_CHARS_PER_CHUNK) {
-                    chunks.add(currentChunk)
-                    currentChunk = mutableListOf()
-                    currentLength = 0
-                }
-                currentChunk.add(item)
-                currentLength += itemLength
+    private suspend fun callGoogleTranslateApi(text: String, from: String, to: String) =
+        app2.get(url = "$BASEURL$from&tl=$to&dt=t&q=${Uri.encode(text)}").parsed<GoogleTranslationResponse>()
+
+
+    private suspend fun translateChunk(text: String, from: String, to: String): String {
+        repeat(5) { attempt ->
+            try {
+                val sentences = callGoogleTranslateApi(text, from, to).sentences
+                if (sentences.isEmpty()) return text
+                return sentences.joinToString("") { it.trans }
+            } catch (t: Throwable) {
+                logError(t)
+                if (t is UnknownHostException || attempt == 4) throw t
+                rotateUserAgent()
             }
-            if (currentChunk.isNotEmpty()) chunks.add(currentChunk)
-            return chunks
         }
+        return text
+    }
+
+    private fun List<FragmentMeta>.chunkByLimit(): List<List<FragmentMeta>> {
+        if (this.isEmpty()) return emptyList()
+        val chunks = mutableListOf<List<FragmentMeta>>()
+        var currentChunk = mutableListOf<FragmentMeta>()
+        var currentLength = 0
+
+        for (item in this) {
+            val itemLength = Uri.encode(item.content + PARAGRAPH_DELIMITER).length
+            if (currentChunk.isNotEmpty() && currentLength + itemLength > MAX_CHARS_PER_CHUNK) {
+                chunks.add(currentChunk)
+                currentChunk = mutableListOf()
+                currentLength = 0
+            }
+            currentChunk.add(item)
+            currentLength += itemLength
+        }
+        if (currentChunk.isNotEmpty()) chunks.add(currentChunk)
+        return chunks
     }
 }
