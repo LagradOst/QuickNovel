@@ -108,7 +108,7 @@ class TranslationManager {
                 isHtml = true,
                 progress = progress
             )
-            translatedList.joinToString("<br>\n")
+            translatedList.joinToString("<br><br>")
         } else {
             val result = translate(
                 textList = listOf(text),
