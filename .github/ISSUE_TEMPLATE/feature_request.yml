@@ -1,0 +1,11 @@
+name: Feature request
+description: Suggest an idea or a new source
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: Describe the feature, or paste the link of the source you want added.
+    validations:
+      required: true
