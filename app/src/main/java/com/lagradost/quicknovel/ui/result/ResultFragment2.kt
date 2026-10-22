@@ -10,14 +10,10 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.lagradost.cloudstream4.rememberAppSettings
+import com.lagradost.cloudstream4.compose.CloudStreamThemeAppSettings
 import com.lagradost.cloudstream4.state.ObserveEffect
-import com.lagradost.cloudstream4.theme.CloudStreamTheme
-import com.lagradost.cloudstream4.theme.perfToColor
-import com.lagradost.cloudstream4.theme.perfToMode
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
-import com.mihon.presentation.settings.collectAsState
 
 class ResultFragment2 : Fragment() {
     override fun onCreateView(
@@ -28,16 +24,10 @@ class ResultFragment2 : Fragment() {
         setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
 
         setContent {
-            val settings = rememberAppSettings()
-            val mode by settings.ui.theme.collectAsState()
-            val primaryColor by settings.ui.primaryColor.collectAsState()
             val viewModel: ResultViewModel2 =
                 viewModel(factory = ResultViewModel2.provideFactory(requireArguments()))
 
-            CloudStreamTheme(
-                mode = perfToMode(mode),
-                primaryColor = perfToColor(primaryColor),
-            ) {
+            CloudStreamThemeAppSettings {
                 val state by viewModel.state.collectAsStateWithLifecycle()
 
                 ObserveEffect(viewModel.effect) { _ ->

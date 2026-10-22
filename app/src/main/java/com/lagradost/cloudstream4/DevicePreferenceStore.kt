@@ -32,7 +32,7 @@ class AppSettings internal constructor(
 ) {
     val ui = UIPreferences(preferences)
     val provider = ProviderPreferences(preferences)
-    val download = DownloadPreferences(preferences)
+    val updates = UpdatePreferences(preferences)
     val reader = ReaderPreferences(preferences)
 }
 
@@ -51,11 +51,13 @@ class ProviderPreferences(preferences: PreferenceStore) {
         preferences.getStringSet("provider_lang_key", apis.map { it.lang }.toPersistentHashSet())
 }
 
-class DownloadPreferences(preferences: PreferenceStore) {
-    val autoUpdate = preferences.getBoolean(
+class UpdatePreferences(preferences: PreferenceStore) {
+    val showAppUpdates = preferences.getBoolean(
         "auto_update",
         true,
     )
+    val skipUpdate = preferences.getString("skip_update_key", "")
+    val apkInstaller = preferences.getInt("apk_installer_key",1)
 }
 
 class UIPreferences(preferences: PreferenceStore) {

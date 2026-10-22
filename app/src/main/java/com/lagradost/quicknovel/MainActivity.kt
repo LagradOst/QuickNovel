@@ -16,6 +16,7 @@ import androidx.activity.viewModels
 import androidx.annotation.IdRes
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.ui.platform.ComposeView
 import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavController
@@ -31,6 +32,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.lagradost.cloudstream4.compose.CloudStreamThemeAppSettings
 import com.lagradost.nicehttp.Requests
 import com.lagradost.nicehttp.ResponseParser
 import com.lagradost.nicehttp.ignoreAllSSLErrors
@@ -61,13 +63,13 @@ import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.result.ResultFragment
 import com.lagradost.quicknovel.ui.result.ResultViewModel
+import com.lagradost.quicknovel.update.MainActivityScreen
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.Apis.Companion.printProviders
 import com.lagradost.quicknovel.util.Coroutines
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.main
-import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.util.ResultCached
 import com.lagradost.quicknovel.util.SettingsHelper.getRating
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
@@ -592,6 +594,14 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
+        findViewById<ComposeView>(R.id.compose_view)?.apply {
+            setContent {
+                CloudStreamThemeAppSettings {
+                    MainActivityScreen.Content()
+                }
+            }
+        }
+
         //val navController = findNavController(R.id.nav_host_fragment)
 
         //window.navigationBarColor = colorFromAttribute(R.attr.darkBackground)
@@ -776,10 +786,6 @@ class MainActivity : AppCompatActivity() {
             for (k in keys) {
                 getKey<DownloadFragment.DownloadData>(k)
             }
-        }
-
-        ioSafe {
-            runAutoUpdate()
         }
 
         handleIntent(intent)

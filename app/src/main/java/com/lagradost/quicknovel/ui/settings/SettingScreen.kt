@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.integerArrayResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -52,19 +53,20 @@ import com.lagradost.cloudstream4.theme.CloudStreamPrimaryColor
 import com.lagradost.cloudstream4.theme.modeToTheme
 import com.lagradost.cloudstream4.theme.perfToColor
 import com.lagradost.cloudstream4.theme.perfToMode
+import com.lagradost.cloudstream4.viewmodels.GithubAction
 import com.lagradost.quicknovel.BuildConfig
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.FileHelper
 import com.lagradost.quicknovel.FileStorage
+import com.lagradost.quicknovel.update.MainActivityScreen
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.txt
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.AppUtils.openInBrowser
 import com.lagradost.quicknovel.util.BackupUtils
-import com.lagradost.quicknovel.util.InAppUpdater.Companion.runAutoUpdate
 import com.lagradost.quicknovel.util.SubtitleHelper
 import com.lagradost.quicknovel.util.UIHelper.clipboardHelper
 import com.mihon.common.preference.AndroidPreferenceStore
@@ -146,7 +148,7 @@ object SettingScreen : SearchableSettings {
         val store = AndroidPreferenceStore(context)
         val scope = rememberCoroutineScope()
         val settings = rememberAppSettings()
-
+        val githubViewModel = MainActivityScreen.githubViewModel()
         val logcat =
             getFilePreference(FileHelper.logcat, store, stringResource(R.string.log_cat_location))
         val backup =
@@ -274,21 +276,25 @@ object SettingScreen : SearchableSettings {
                         title = stringResource(R.string.check_for_update),
                         subtitle = BuildConfig.VERSION_NAME,
                         onClick = {
-                            // Todo refactor
-                            scope.launch {
-                                withContext(Dispatchers.IO) {
-                                    if (true != activity?.runAutoUpdate(false)) {
-                                        showToast(R.string.no_update_found, Toast.LENGTH_SHORT)
-                                    }
-                                }
-                            }
+                            githubViewModel?.onAction(GithubAction.SearchForUpdate)
                         }
                     ),
+
+                    Preference.PreferenceItem.ListPreference(
+                        title = stringResource(R.string.apk_installer_settings),
+                        subtitle = stringResource(R.string.apk_installer_settings_des),
+                        icon = painterResource(R.drawable.mobile_wrench_24px),
+                        entries = integerArrayResource(R.array.apk_installer_values).zip(
+                            stringArrayResource(R.array.apk_installer_pref)
+                        ).toMap(),
+                        preference = settings.updates.apkInstaller
+                    ),
+
                     Preference.PreferenceItem.SwitchPreference(
                         icon = painterResource(R.drawable.notifications_active_24px),
                         title = stringResource(R.string.show_app_updates),
                         subtitle = stringResource(R.string.show_app_updates_desc),
-                        preference = settings.download.autoUpdate,
+                        preference = settings.updates.showAppUpdates,
                     ),
                     Preference.PreferenceItem.TextPreference(
                         icon = painterResource(R.drawable.save_as_24px),
