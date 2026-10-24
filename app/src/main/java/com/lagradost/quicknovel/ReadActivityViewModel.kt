@@ -298,24 +298,40 @@ class QuickBook(val data: QuickStreamData) : AbstractBook() {
 
 class RegularBook(val data: EpubBook) : AbstractBook() {
     private val allTocReferences: List<TOCReference>
+    private val spineIndexMap: Map<me.ag2s.epublib.domain.Resource?, Int> = data.spine.spineReferences.mapIndexed { index, ref -> ref.resource to index }.toMap()
+
+    private fun getSpineIndex(res: me.ag2s.epublib.domain.Resource?): Int {
+        return spineIndexMap[res] ?: -1
+    }
+
     init {
         val flatTOC = mutableListOf<TOCReference>()
         fun flatten(refs: List<TOCReference>) {
             refs.forEach { ref ->
                 //this variable is to corrupted epubs
-                val isValid = data.spine.getResourceIndex(ref.resource) != -1
-                if(isValid){
-                    flatTOC.add(ref)
-                    if (ref.children != null && ref.children.isNotEmpty()) {
-                        flatten(ref.children)
+                val isValid = getSpineIndex(ref.resource) != -1
+                if (isValid) {
+                    val children = ref.children
+                    if (children != null && children.isNotEmpty()) {
+                        val parentRes = ref.resource
+                        val childResources = children.mapNotNull { it.resource }.toSet()
+                        if (parentRes != null && !childResources.contains(parentRes)) {
+                            flatTOC.add(ref)
+                        }
+                        flatten(children)
+                    } else {
+                        flatTOC.add(ref)
                     }
                 }
             }
         }
         flatten(data.tableOfContents.tocReferences)
 
+        flatTOC.sortBy { getSpineIndex(it.resource) }
+        val distinctTOC = flatTOC.distinctBy { getSpineIndex(it.resource) }
+
         //this is to corrupted epubs
-        allTocReferences = if (flatTOC.size <= 1) {
+        allTocReferences = if (distinctTOC.size <= 1) {
             data.spine.spineReferences
                 .filter { it.isLinear }
                 .mapIndexed { index, spineRef ->
@@ -323,7 +339,18 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
                     TOCReference(res.title ?: "Chapter ${index + 1}", res)
                 }
         } else {
-            flatTOC
+            val finalTocList = mutableListOf<TOCReference>()
+            val firstRef = distinctTOC.firstOrNull()
+            val firstSpineIdx = getSpineIndex(firstRef?.resource)
+            //Some EPUBs, such as light novel EPUBs, have introductory images that aren't included in the TOC
+            if (firstSpineIdx > 0) {
+                val firstSpineRes = data.spine.getResource(0)
+                if (firstSpineRes != null) {
+                    finalTocList.add(TOCReference(data.title ?: "Cover", firstSpineRes))
+                }
+            }
+            finalTocList.addAll(distinctTOC)
+            finalTocList
         }
     }
 
@@ -352,18 +379,50 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
 
     override fun getLoadingStatus(index: Int): String? = null
 
+    private fun processResourceHtml(resource: org.jsoup.nodes.Document, basePath: String): String {
+        resource.select("img, image").forEach { img ->
+            val attrName = if (img.tagName() == "image") "xlink:href" else "src"
+            var src = img.attr(attrName)
+            if (src.isNotEmpty() && !src.startsWith("http") && !src.startsWith("data:")) {
+                try {
+                    val decodedSrc = URLDecoder.decode(src, "UTF-8")
+                    src = resolveRelativePath(basePath, decodedSrc)
+                } catch (e: Throwable) {
+                    logError(e)
+                }
+            }
+            val targetImg = if (img.tagName() == "image") {
+                val newImg = resource.createElement("img")
+                newImg.attr("src", src)
+                img.replaceWith(newImg)
+                newImg
+            } else {
+                img.attr("src", src)
+                img
+            }
+            targetImg.before("<br/>")
+            targetImg.after("<br/>")
+        }
+        return resource.body().html()
+    }
+
     override suspend fun getChapterData(index: Int, reload: Boolean): String {
         val start = allTocReferences[index].resource
         val startIdx = data.spine.getResourceIndex(start)
 
         val end = allTocReferences.getOrNull(index + 1)?.resource
-        var endIdx = data.spine.getResourceIndex(end)
-        if (endIdx == -1) {
-            endIdx = data.spine.spineReferences.size
-        }
+        val endIdx = data.spine.getResourceIndex(end)
         val builder = StringBuilder()
 
-        for (i in startIdx until endIdx) {
+        val indices = if (endIdx != -1 && endIdx > startIdx) { //Normal epubs
+            startIdx until endIdx
+        } else if (startIdx != -1) { //when TOC order is different from Spine
+            startIdx until (startIdx + 1)
+        } else {
+            IntRange.EMPTY
+        }
+
+        for (i in indices) {
             try {
                 val ref = data.spine.spineReferences[i]
 
@@ -373,28 +432,19 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
                 val html = ref.resource.reader.readText()
                 val doc = Jsoup.parse(html)
                 val basePath = ref.resource.href.substringBeforeLast("/", "")
+                builder.append(processResourceHtml(doc, basePath))
+            } catch (t: Throwable) {
+                logError(t)
+            }
+        }
 
-                doc.select("img, image").forEach { img ->
-                    val attrName = if (img.tagName() == "image") "xlink:href" else "src"
-                    var src = img.attr(attrName)
-                    if (src.isNotEmpty() && !src.startsWith("http") && !src.startsWith("data:")) {
-                        try {
-                            val decodedSrc = URLDecoder.decode(src, "UTF-8")
-                            src = resolveRelativePath(basePath, decodedSrc)
-                        } catch (e: Throwable) {
-                            logError(e)
-                        }
-                    }
-                    if (img.tagName() == "image") {
-                        val newImg = doc.createElement("img")
-                        newImg.attr("src", src)
-                        img.replaceWith(newImg)
-                    } else {
-                        img.attr("src", src)
-                    }
-                }
-
-                builder.append(doc.body().html())
+        //For corrupted EPUBs where the TOC contains orphaned resources.
+        if (builder.isEmpty() && start != null) {
+            try {
+                val html = start.reader.readText()
+                val doc = Jsoup.parse(html)
+                val basePath = start.href.substringBeforeLast("/", "")
+                builder.append(processResourceHtml(doc, basePath))
             } catch (t: Throwable) {
                 logError(t)
             }
