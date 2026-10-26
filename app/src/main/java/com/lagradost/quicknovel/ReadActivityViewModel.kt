@@ -325,6 +325,18 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
         } else {
             flatTOC
         }
+
+        val titleCounts = mutableMapOf<String, Int>()
+        allTocReferences = rawToc.map { ref ->
+            val rawTitle = ref.title ?: "Chapter"
+            val count = (titleCounts[rawTitle] ?: 0) + 1
+            titleCounts[rawTitle] = count
+            if (count > 1) {
+                TOCReference(rawTitle + "\u200B".repeat(count), ref.resource, ref.fragmentId, ref.children)
+            } else {
+                ref
+            }
+        }
     }
 
     override val canReload = false
