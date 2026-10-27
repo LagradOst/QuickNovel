@@ -25,11 +25,12 @@ open class FreewebnovelProvider : MainAPI() {
     override val mainUrl = "https://freewebnovel.com"
     override val iconId = R.drawable.icon_freewebnovel
     override val iconBackgroundId = R.color.wuxiaWorldOnlineColor
+    override val rateLimitTime = 1100L
     open val secondUrl = mainUrl
     override val hasMainPage = true
     open val removeHtml = true // because the two sites use .html or not for no reason
     override val hasReviews = true
-    override val usesCloudFlareKiller = true
+    //override val usesCloudFlareKiller = true
     override val mainCategories = listOf(
         "All" to "",
         "Completed" to "completed"
