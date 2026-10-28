@@ -249,12 +249,20 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                     viewModel.forwardsTTS()
                     return true
                 } else if (viewModel.scrollWithVolume) {
+                    val topY = getTopY()
                     val bottomY = getBottomY()
                     val lines = getAllLines()
                     val line = lines.firstOrNull {
                         it.bottom >= bottomY
-                    } ?: lines.lastOrNull() ?: return true
-                    binding.realText.scrollBy(0, line.top - getTopY())
+                    } ?: lines.lastOrNull()
+                    // Chapter headers and loading rows have no text lines. Once the
+                    // last line reaches the top, keep moving through those rows.
+                    val distance = line?.let { it.top - topY }
+                        ?.takeIf { it > 0 } ?: (bottomY - topY).coerceAtLeast(1)
+                    binding.realText.scrollBy(0, distance)
+                    // scrollBy does not change the scroll state, so explicitly
+                    // update the reading position and request adjacent chapters.
+                    onScroll()
 
                     return true
                 }
@@ -271,8 +279,11 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                         val topY = getTopY()
                         val line = lines.firstOrNull {
                             it.top >= topY
-                        } ?: return@post
-                        binding.realText.scrollBy(0, line.top - getTopY())
+                        }
+                        if (line != null) {
+                            binding.realText.scrollBy(0, line.top - topY)
+                        }
+                        onScroll()
                     }
 
                     return true
