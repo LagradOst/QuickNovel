@@ -39,6 +39,7 @@ import com.lagradost.quicknovel.ui.common.ImmutableDownloadState
 import com.lagradost.quicknovel.ui.common.ImmutableLoadData
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse.Companion.epubSize
+import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse.Companion.timeOfPageOpened
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
@@ -290,7 +291,9 @@ object BookDownloader {
         )?.lastDownloaded ?: System.currentTimeMillis()
         val newTotalChapters = getKey<Int>(DOWNLOAD_TOTAL, handle.id.toString()) ?: 0
         val downloadOffset = getKey<Int>(DOWNLOAD_OFFSET, handle.id.toString()) ?: 0
+        val timeOfPageOpened = timeOfPageOpened(handle.id)
         val epubGenerated = epubSize(handle.id)
+
         /**
          * Atomically start a new download with this response,
          * by replacing the old state, creating a new state or resuming the old state
@@ -341,6 +344,7 @@ object BookDownloader {
                             epubSize = epubGenerated,
                             timeOfCached = handle.created,
                             timeOfChapterDownloaded = lastDownloaded,
+                            timeOfPageOpened = timeOfPageOpened,
                             downloadState = current.response.downloadState?.copy(
                                 downloadStatus = BookDownloadStatus.Pending,
                                 totalChapters = newTotalChapters
@@ -354,6 +358,7 @@ object BookDownloader {
                             epubSize = epubGenerated,
                             timeOfCached = handle.created,
                             timeOfChapterDownloaded = lastDownloaded,
+                            timeOfPageOpened = timeOfPageOpened,
                             downloadState = ImmutableDownloadState(
                                 progressChapter = null,
                                 downloadedChapters = getDownloads(files = files),
@@ -501,7 +506,7 @@ object BookDownloader {
         }
 
         /** We need to update the state information */
-        updateState(status.id) {
+        updateState(status.id, notify = false) {
             newResponse.copy(downloadState = status.response.downloadState)
         }
         applyPackage(id = status.id, bookPackage = bookPackage)
@@ -515,11 +520,12 @@ object BookDownloader {
      * */
     private fun applyPackage(
         id: Int,
-        bookPackage: BookDownloadPackage
+        bookPackage: BookDownloadPackage,
+        notify: Boolean = false,
     ) {
         when (bookPackage) {
             is BookDownloadPackage.Chapters -> {
-                updateDownloadState(id) {
+                updateDownloadState(id, notify = notify) {
                     copy(pendingChapters = pendingChapters.copy().apply {
                         or(bookPackage.set)
                         andNot(downloadedChapters)
@@ -529,7 +535,7 @@ object BookDownloader {
 
             is BookDownloadPackage.AfterOffset -> {
                 setKey(DOWNLOAD_OFFSET, id.toString(), bookPackage.offset)
-                updateDownloadState(id) {
+                updateDownloadState(id, notify = notify) {
                     copy(
                         downloadOffset = bookPackage.offset,
                         pendingChapters = pendingChapters.copy().apply {
@@ -560,7 +566,7 @@ object BookDownloader {
 
         if (response.loadData.chapters != null) {
             setKey(DOWNLOAD_TOTAL, handle.id.toString(), response.loadData.chapters.size)
-            updateState(response.id) {
+            updateState(response.id, notify = false) {
                 copy(
                     downloadState = downloadState?.copy(downloadStatus = BookDownloadStatus.Downloading),
                     totalChapters = response.loadData.chapters.size
@@ -789,10 +795,16 @@ object BookDownloader {
             return
         }
 
-        app.get(
+        val getResponse = app.get(
             url = response.posterUrl,
             headers = response.posterHeaders ?: emptyMap()
-        ).body.use { body ->
+        )
+
+        getResponse.body.use { body ->
+            /** Early exit in case we already have a same file length file */
+            if (body.contentLength() == posterFile.length()) {
+                return
+            }
             if (transferTo(
                     target = posterFile,
                     readStream = body.byteStream(),
@@ -965,6 +977,7 @@ object BookDownloader {
     }
 
     private val chapterWriteMutex = Mutex()
+
     @Throws
     suspend fun downloadChapter(
         files: BookFileHandle,

@@ -283,7 +283,9 @@ class QuickBook(val data: QuickStreamData) : AbstractBook() {
                 )
             }
         }
-        return file.readText()
+        val text = file.readText()
+        val newline = text.indexOf('\n')
+        return text.substring(newline + 1)
     }
 
     override fun expand(last: String): Boolean {

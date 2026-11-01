@@ -139,7 +139,10 @@ object BookState {
             timeOfChapterDownloaded = timeOfChapterDownloaded,
             timeOfCached = creationTime
         )
-        updateState(handle.id) {
+
+        val cancelNotification = response.timeOfChapterDownloaded == null || response.timeOfChapterDownloaded < handle.created
+
+        updateState(handle.id, notify = !cancelNotification) {
             copy(
                 timeOfChapterDownloaded = timeOfChapterDownloaded,
                 timeOfCached = creationTime,
@@ -154,7 +157,7 @@ object BookState {
         }
 
         /** If we did nothing then clear it, as it is not relevant */
-        if (response.timeOfChapterDownloaded == null || response.timeOfChapterDownloaded < handle.created) {
+        if (cancelNotification) {
             BookNotifications.postNotification(response = null, id = handle.id)
         }
     }

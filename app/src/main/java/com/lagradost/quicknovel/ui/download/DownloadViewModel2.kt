@@ -494,7 +494,21 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         updateState {
             copy(
                 pages = pages.updateRow(0) {
-                    insert(item.id, item.response)
+                    val newResponse = item.response
+                    if (data.containsKey(item.id)) {
+                        update(item.id) {
+                            /**
+                             * We want to keep the uuid stuff here, and avoid setting loadData,
+                             * as that causes a cache problem */
+                            newResponse.copy(
+                                timeOfPageOpened = timeOfPageOpened,
+                                randomUuid = randomUuid,
+                                loadData = null,
+                            )
+                        }
+                    } else {
+                        insert(item.id, newResponse.copy(loadData = null))
+                    }
                 },
             )
         }

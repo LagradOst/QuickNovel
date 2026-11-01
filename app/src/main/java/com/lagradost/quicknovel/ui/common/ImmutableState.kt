@@ -481,6 +481,7 @@ data class ImmutableSearchResponse(
                     views = response.views,
                     peopleVoted = response.peopleVoted,
                 ),
+                timeOfPageOpened = timeOfPageOpened(id),
                 reviewData = response.reviewData,
                 tags = response.tags?.toPersistentList(),
                 posterHeaders = response.posterHeaders?.toImmutableMap(),
