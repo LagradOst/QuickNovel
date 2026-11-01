@@ -13,23 +13,25 @@ import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
-import com.lagradost.quicknovel.BookDownloader2.currentDownloads
-import com.lagradost.quicknovel.BookDownloader2.downloadInfoMutex
-import com.lagradost.quicknovel.BookDownloader2.downloadProgress
-import com.lagradost.quicknovel.BookDownloader2.downloadProgressChanged
+import com.lagradost.quicknovel.downloader.BookAction
+import com.lagradost.quicknovel.downloader.BookDownloadPackage
+import com.lagradost.quicknovel.downloader.BookDownloadPayload
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
+import com.lagradost.quicknovel.downloader.BookStateChanged
 import com.lagradost.quicknovel.CURRENT_TAB
 import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
-import com.lagradost.quicknovel.DownloadActionType
 import com.lagradost.quicknovel.DownloadFileWorkManager
-import com.lagradost.quicknovel.DownloadProgressState
-import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
+import com.lagradost.quicknovel.downloader.BookDownloadStatus
+import com.lagradost.quicknovel.downloader.BookDownloader
+import com.lagradost.quicknovel.downloader.BookNotifications
+import com.lagradost.quicknovel.downloader.BookReader
+import com.lagradost.quicknovel.downloader.BookState
+import com.lagradost.quicknovel.downloader.BookState.setupMutex
 import com.lagradost.quicknovel.ui.ReadType
-import com.lagradost.quicknovel.ui.common.ImmutableDownloadState
 import com.lagradost.quicknovel.ui.common.ImmutableSearchList
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
@@ -44,10 +46,27 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentHashMap
 import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.util.BitSet
+
+const val DEFAULT_SORT = 0
+const val ALPHA_SORT = 1
+const val REVERSE_ALPHA_SORT = 2
+const val DOWNLOADSIZE_SORT = 3
+const val REVERSE_DOWNLOADSIZE_SORT = 4
+const val DOWNLOADPRECENTAGE_SORT = 5
+const val REVERSE_DOWNLOADPRECENTAGE_SORT = 6
+const val LAST_ACCES_SORT = 7
+const val REVERSE_LAST_ACCES_SORT = 8
+const val LAST_UPDATED_SORT = 9
+const val REVERSE_LAST_UPDATED_SORT = 10
+
+const val CHAPTER_SORT = 11
+const val REVERSE_CHAPTER_SORT = 12
 
 @Immutable
 data class DownloadPageState(
@@ -222,10 +241,9 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
     }
 
     private fun readEpub(response: ImmutableSearchResponse) = viewModelScope.launch {
-        withContext(Dispatchers.Default) {
-            val id = response.id!!
-            val downloadState = response.downloadState!!
-            try {
+        val id = response.id!!
+        try {
+            BookReader.readEpub(response, generating = {
                 updateState {
                     copy(pages = pages.updateRow(0) {
                         update(id) {
@@ -233,22 +251,41 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                         }
                     })
                 }
+            })
+        } finally {
+            updateState {
+                copy(pages = pages.updateRow(0) {
+                    update(id) {
+                        copy(
+                            generating = false,
+                        )
+                    }
+                })
+            }
+        }
+    }
 
-                if (response.isImported && downloadState.progress < downloadState.total) {
-                    BookDownloader2.preloadPartialImportedPdf(response)
-                }
-
-                BookDownloader2.readEpub(response)
-            } finally {
+    private fun streamEpub(response: ImmutableSearchResponse) = viewModelScope.launch {
+        val id = response.id!!
+        try {
+            BookReader.streamRead(response, generating = {
                 updateState {
                     copy(pages = pages.updateRow(0) {
                         update(id) {
-                            copy(
-                                generating = false,
-                            )
+                            copy(generating = true)
                         }
                     })
                 }
+            })
+        } finally {
+            updateState {
+                copy(pages = pages.updateRow(0) {
+                    update(id) {
+                        copy(
+                            generating = false,
+                        )
+                    }
+                })
             }
         }
     }
@@ -264,27 +301,7 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             }
 
             SearchResponseOperation.Stream -> {
-                viewModelScope.launch {
-                    val id = action.response.id!!
-                    updateState {
-                        copy(pages = pages.updateRows {
-                            update(id) {
-                                copy(generating = true)
-                            }
-                        })
-                    }
-
-                    BookDownloader2.stream(action.response)
-                    updateState {
-                        copy(pages = pages.updateRows {
-                            update(id) {
-                                copy(
-                                    generating = false,
-                                )
-                            }
-                        })
-                    }
-                }
+                streamEpub(action.response)
             }
 
             SearchResponseOperation.AskDelete -> {
@@ -298,15 +315,12 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             SearchResponseOperation.Delete -> {
                 val id = action.response.id!!
                 if (action.response.downloadState != null) {
-                    BookDownloader2.deleteNovel(
-                        action.response.author,
-                        action.response.name,
-                        action.response.apiName
-                    )
+                    viewModelScope.launch {
+                        BookDownloader.delete(id)
+                    }
                 } else {
                     removeKey(RESULT_BOOKMARK, id.toString())
                     removeKey(RESULT_BOOKMARK_STATE, id.toString())
-
                     updateState {
                         copy(
                             pages = pages.updateRows { index ->
@@ -326,33 +340,35 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             }
 
             SearchResponseOperation.Download -> {
-                DownloadFileWorkManager.download(
-                    action.response,
-                    BaseApplication.context ?: return
+                BookDownloader.download(
+                    response = action.response,
+                    bookPackage = BookDownloadPackage.AfterOffset(
+                        offset = action.response.downloadState?.downloadOffset ?: 0
+                    )
                 )
             }
 
             SearchResponseOperation.Pause -> {
                 val id = action.response.id!!
-                BookDownloader2.addPendingAction(
+                BookNotifications.notify(
                     id,
-                    DownloadActionType.Pause
+                    BookAction.Pause
                 )
             }
 
             SearchResponseOperation.Resume -> {
                 val id = action.response.id!!
-                BookDownloader2.addPendingAction(
+                BookNotifications.notify(
                     id,
-                    DownloadActionType.Resume
+                    BookAction.Resume
                 )
             }
 
             SearchResponseOperation.Stop -> {
                 val id = action.response.id!!
-                BookDownloader2.addPendingAction(
+                BookNotifications.notify(
                     id,
-                    DownloadActionType.Stop
+                    BookAction.Stop
                 )
             }
         }
@@ -366,24 +382,24 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         )
     }
 
-    suspend fun refreshDownloads() {
+    fun refreshDownloads() {
         val progressState = state.value
         val downloadPage = progressState.pages.getOrNull(0) ?: return
 
         val values =
-            downloadPage.data.filter { (id, card) ->
+            downloadPage.data.filter { (_, card) ->
                 val notImported = !card.isImported && card.apiName != IMPORT_SOURCE_PDF
                 val downloadState = card.downloadState ?: return@filter false
 
                 val canDownload =
-                    downloadState.total > 0 && downloadState.progressPercentage > 0.9f
+                    downloadState.totalChapters > 0 && downloadState.progressPercentage > 0.9f
 
-                val notDownloading = !currentDownloads.containsKey(
-                    id
-                )
+                val notDownloading =
+                    card.downloadState.downloadStatus != BookDownloadStatus.Downloading
                 notImported && canDownload && notDownloading
             }
 
+        /*
         downloadInfoMutex.withLock {
             for ((id, _) in values) {
                 downloadProgress[id]?.apply {
@@ -392,11 +408,15 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                     downloadProgressChanged.invoke(id to this@apply)
                 }
             }
-        }
+        }*/
 
-        val context = BaseApplication.context ?: return
         for (card in values.values) {
-            DownloadFileWorkManager.download(card, context)
+            BookDownloader.download(
+                response = card,
+                bookPackage = BookDownloadPackage.AfterOffset(
+                    card.downloadState?.downloadOffset ?: 0
+                )
+            )
         }
     }
 
@@ -416,9 +436,9 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         viewModelScope.launch {
             loadAll()
         }
-        BookDownloader2.downloadProgressChanged += this::onDownloadStateChange
-        BookDownloader2.downloadRemoved += this::onDownloadRemoved
-        BookDownloader2.downloadDataChanged += this::onDownloadAdded
+        BookState.onRemoved += this::onDownloadRemoved
+        BookState.onStatusChanged += this::onDownloadAdded
+
         BookDownloader2.bookmarkChanged += this::onBookmarkChanged
         BookDownloader2.refreshingChanged += this::onRefreshingChanged
         BookDownloader2.chapterReadChanged += this::onChapterChanged
@@ -426,9 +446,9 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
     }
 
     override fun onCleared() {
-        BookDownloader2.downloadProgressChanged -= this::onDownloadStateChange
-        BookDownloader2.downloadRemoved -= this::onDownloadRemoved
-        BookDownloader2.downloadDataChanged -= this::onDownloadAdded
+        BookState.onRemoved -= this::onDownloadRemoved
+        BookState.onStatusChanged -= this::onDownloadAdded
+
         BookDownloader2.bookmarkChanged -= this::onBookmarkChanged
         BookDownloader2.refreshingChanged -= this::onRefreshingChanged
         BookDownloader2.chapterReadChanged -= this::onChapterChanged
@@ -470,21 +490,11 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         }
     }
 
-    fun onDownloadAdded(item: Pair<Int, DownloadFragment.DownloadData>) = viewModelScope.launch {
-        val (id, page) = item
-
-        val searchResponse = ImmutableSearchResponse.from(
-            id,
-            page,
-            ImmutableDownloadState.from(
-                downloadInfoMutex.withLock { downloadProgress[id] } ?: return@launch
-            )
-        )
-
+    fun onDownloadAdded(item: BookStateChanged) = viewModelScope.launch {
         updateState {
             copy(
                 pages = pages.updateRow(0) {
-                    insert(id, searchResponse)
+                    insert(item.id, item.response)
                 },
             )
         }
@@ -500,27 +510,13 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         }
     }
 
-    fun onDownloadStateChange(data: Pair<Int, DownloadProgressState>) = viewModelScope.launch {
-        val (id, downloadState) = data
-        val newDownloadState = ImmutableDownloadState.from(downloadState)
-
-        updateState {
-            copy(
-                pages = pages.updateRow(0) {
-                    update(id) {
-                        copy(downloadState = newDownloadState)
-                    }
-                }
-            )
-        }
-    }
-
     suspend fun loadAll() = withContext(Dispatchers.Default) {
         run {
             val downloadSortingMethod =
-                getKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD) ?: DEFAULT_SORT
+                getKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD) ?: SortingMethodType.Default.id
             val regularSortingMethod =
-                getKey(DOWNLOAD_SETTINGS, DOWNLOAD_NORMAL_SORTING_METHOD) ?: DEFAULT_SORT
+                getKey(DOWNLOAD_SETTINGS, DOWNLOAD_NORMAL_SORTING_METHOD)
+                    ?: SortingMethodType.Default.id
             val query = ""
             val page = getKey<Int>(DOWNLOAD_SETTINGS, CURRENT_TAB) ?: 0
             updateState {
@@ -553,16 +549,10 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             )
         }
 
-        val map = downloadInfoMutex.withLock {
-            BookDownloader2.downloadData.mapNotNull { entry ->
-                entry.key to ImmutableSearchResponse.from(
-                    entry.key,
-                    entry.value,
-                    ImmutableDownloadState.from(
-                        downloadProgress[entry.key] ?: return@mapNotNull null
-                    )
-                )
-            }
+        /** Somewhat racy here, but we assume that setupMutex is taken by the BookDownloader3 first */
+        val map = setupMutex.withLock {
+            BookState.currentStatusMap.entries.associate { it.key to it.value.response }
+                .toPersistentMap()
         }
 
         val stateValue = state.value
@@ -570,7 +560,7 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         val concat: List<ImmutableSearchList> = buildList {
             add(
                 ImmutableSearchList.new(
-                    map.toMap().toPersistentHashMap(),
+                    map,
                     stateValue.query,
                     stateValue.downloadSortingMethod
                 )

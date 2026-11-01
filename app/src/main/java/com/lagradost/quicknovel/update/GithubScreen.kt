@@ -45,7 +45,7 @@ import com.lagradost.quicknovel.update.GithubReleases.APK_USERNAME
 import com.lagradost.quicknovel.R
 import com.mihon.material.padding
 
-object MainActivityScreen : Screen {
+object GithubScreen : Screen {
     private var hasSearchedForUpdate: Boolean = false
 
     /** Unused for now */

@@ -968,6 +968,9 @@ object NotificationHelper {
     }
 
     fun Context.createNotificationChannel() {
+        if(hasCreatedNotChanel) {
+           return
+        }
         hasCreatedNotChanel = true
         // Create the NotificationChannel, but only on API 26+ because
         // the NotificationChannel class is new and not in the support library
@@ -1168,21 +1171,18 @@ object ImageDownloader {
             }
 
             val imageLoader = SingletonImageLoader.get(this)
-
             val request = ImageRequest.Builder(this)
                 .data(url)
                 .apply {
                     headers?.forEach { (key, value) ->
-                        extras[Extras.Key<String>(key)] = value
+                        extras[Extras.Key(key)] = value
                     }
                 }
                 .build()
 
-            val bitmap = runBlocking {
-                val result = imageLoader.execute(request)
-                (result as? SuccessResult)?.image?.asDrawable(applicationContext.resources)
-                    ?.toBitmap()
-            }
+            val result = imageLoader.execute(request)
+            val bitmap = (result as? SuccessResult)?.image?.asDrawable(applicationContext.resources)
+                ?.toBitmap()
 
             bitmap?.let {
                 cachedBitmaps[url] = it
@@ -1397,7 +1397,8 @@ object BookDownloader2 {
     private val readEpubMutex = Mutex()
 
     suspend fun readEpub(response: ImmutableSearchResponse, generating: () -> Unit = {}) {
-        val id = response.id ?: return
+        throw NotImplementedError()
+        /*val id = response.id ?: return
         val downloadedCount = response.downloadState?.progress?.toInt() ?: return
         ImmutableSearchResponse.addToHistory(response)
         ImmutableSearchResponse.setTimeOfPageOpened(id, System.currentTimeMillis())
@@ -1414,7 +1415,7 @@ object BookDownloader2 {
         )
 
         // Update epub size
-        chapterReadChanged(response.name)
+        chapterReadChanged(response.name)*/
     }
 
     @WorkerThread
@@ -1621,6 +1622,7 @@ object BookDownloader2 {
         }
     }
 
+    @Deprecated("Outdated", level= DeprecationLevel.ERROR)
     fun addPendingAction(id: Int, action: DownloadActionType) {
         addPendingActionAsync(id, action)
     }
@@ -2098,7 +2100,6 @@ object BookDownloader2 {
 
                 // only over NKB images
                 if (imgBytes.size >= MIN_IMAGE_SIZE) {
-
                     val imgHref = "img_$count.jpeg"
                     File(tempFolder, imgHref).writeBytes(imgBytes).also {
                         chapterBuilder.append("<div style='text-align:center;'><img src=\"$imgHref\" style='max-width:100%;'/></div>")
@@ -2315,7 +2316,6 @@ object BookDownloader2 {
                     EpubWriter().write(book, fos)
                 }
                 setSuffixData(load, apiName)
-
 
                 changeDownload(id) {
                     state = DownloadState.IsDone
@@ -2969,7 +2969,7 @@ object BookDownloader2 {
         }
     }
 
-    init {
+    /*init {
         initDownloadProgress()
-    }
+    }*/
 }

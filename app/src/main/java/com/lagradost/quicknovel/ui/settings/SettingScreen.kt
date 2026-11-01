@@ -60,7 +60,7 @@ import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.FileHelper
 import com.lagradost.quicknovel.FileStorage
-import com.lagradost.quicknovel.update.MainActivityScreen
+import com.lagradost.quicknovel.update.GithubScreen
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.txt
@@ -148,7 +148,7 @@ object SettingScreen : SearchableSettings {
         val store = AndroidPreferenceStore(context)
         val scope = rememberCoroutineScope()
         val settings = rememberAppSettings()
-        val githubViewModel = MainActivityScreen.githubViewModel()
+        val githubViewModel = GithubScreen.githubViewModel()
         val logcat =
             getFilePreference(FileHelper.logcat, store, stringResource(R.string.log_cat_location))
         val backup =
@@ -361,6 +361,11 @@ object SettingScreen : SearchableSettings {
                         title = stringResource(R.string.external_reader),
                         subtitle = stringResource(R.string.external_reader_desc),
                         preference = settings.reader.externalReader,
+                    ),
+                    Preference.PreferenceItem.SwitchPreference(
+                        icon = painterResource(R.drawable.notes),
+                        title = stringResource(R.string.show_authors_notes),
+                        preference = settings.reader.authorNotes,
                     ),
                     // Removed as the actual bloat filtering is shit and not very useful,
                     // but can increase the time too much

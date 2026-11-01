@@ -299,8 +299,7 @@ fun MainAPIItem(
         Text(
             text = api.name,
             color = MaterialTheme.colorScheme.onBackground,
-            fontSize = 14.sp,
-            lineHeight = 15.sp,
+            style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center
         )
     }

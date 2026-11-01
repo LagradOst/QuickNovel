@@ -14,6 +14,7 @@ import com.lagradost.cloudstream4.state.SingleActiveQuery
 import com.lagradost.cloudstream4.state.StateContainer
 import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.BookDownloader2
+import com.lagradost.quicknovel.downloader.BookReader
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseOperation
@@ -299,15 +300,15 @@ class MainPageViewModel2(
         when (action.operation) {
             SearchResponseOperation.Stream -> {
                 viewModelScope.launch {
-                    updateState {
-                        copy(query = query.copy(items = query.items.updateItem(action.response) {
-                            copy(generating = true)
-                        }), filter = filter.copy(items = filter.items.updateItem(action.response) {
-                            copy(generating = true)
-                        }))
-                    }
-
-                    BookDownloader2.stream(action.response)
+                    BookReader.streamRead(action.response, generating = {
+                        updateState {
+                            copy(query = query.copy(items = query.items.updateItem(action.response) {
+                                copy(generating = true)
+                            }), filter = filter.copy(items = filter.items.updateItem(action.response) {
+                                copy(generating = true)
+                            }))
+                        }
+                    })
 
                     updateState {
                         copy(query = query.copy(items = query.items.updateItem(action.response) {

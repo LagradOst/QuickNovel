@@ -25,7 +25,7 @@ import java.util.Date
 class RoyalRoadProvider : MainAPI() {
     override val name = "Royal Road"
     override val mainUrl = "https://www.royalroad.com"
-    override val rateLimitTime = 500L
+    override val rateLimitTime = 2000L
     override val hasMainPage = true
     override val hasReviews = true
     override val iconId = R.drawable.big_icon_royalroad
@@ -508,10 +508,13 @@ class RoyalRoadProvider : MainAPI() {
         val id = data!!.toInt()
         val data = review(id, page)
         return data.data.map { review ->
+            val reviewContent = Jsoup.parse(review.content)
             newReview(content = review.content) {
                 title = review.title
                 username = review.user.userName
                 avatarUrl = review.user.avatar
+                containsSpoilers = reviewContent.getElementsByClass("spoiler-new")
+                    .isNotEmpty() || reviewContent.getElementsByClass("spoiler").isNotEmpty()
                 rating = review.overallScore.toInt() * 100
                 ratings = review.advancedScores?.let { scores ->
                     listOf(

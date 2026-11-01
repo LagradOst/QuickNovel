@@ -12,10 +12,10 @@ import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
-import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.HISTORY_SORTING_METHOD
+import com.lagradost.quicknovel.downloader.BookReader
 import com.lagradost.quicknovel.ui.common.ImmutableSearchList
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
@@ -39,7 +39,7 @@ data class HistoryState(
 
 @Immutable
 sealed class HistoryDialog {
-    data class DeleteItem(val about: ImmutableSearchResponse) : HistoryDialog()
+    data class DeleteItem(val item: ImmutableSearchResponse) : HistoryDialog()
     object DeleteAll : HistoryDialog()
     data class Sort(val method: SortingMethodType) : HistoryDialog()
 }
@@ -141,12 +141,13 @@ class HistoryViewModel2 : ViewModel(),
             SearchResponseOperation.Stream -> {
                 viewModelScope.launch {
                     val id = action.response.id!!
-                    updateState {
-                        copy(history = history.update(id) {
-                            copy(generating = true)
-                        })
+                    BookReader.streamRead(response = action.response) {
+                        updateState {
+                            copy(history = history.update(id) {
+                                copy(generating = true)
+                            })
+                        }
                     }
-                    BookDownloader2.stream(action.response)
                     updateState {
                         copy(history = history.update(id) {
                             copy(generating = false, timeOfPageOpened = ImmutableSearchResponse.timeOfPageOpened(id))

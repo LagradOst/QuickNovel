@@ -16,6 +16,16 @@ import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
 
 class ResultFragment2 : Fragment() {
+    companion object {
+        fun newInstance(url: String, apiName: String, startAction: Int = 0): Bundle =
+            Bundle().apply {
+                //println(data)
+                putString("url", url)
+                putString("apiName", apiName)
+                putInt("startAction", startAction)
+            }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -33,7 +43,7 @@ class ResultFragment2 : Fragment() {
                 ObserveEffect(viewModel.effect) { _ ->
                     // Not yet implemented
                 }
-                ResultScreen(state, viewModel::onAction)
+                ResultScreen.ResultScreen(state, viewModel::onAction)
             }
         }
     }

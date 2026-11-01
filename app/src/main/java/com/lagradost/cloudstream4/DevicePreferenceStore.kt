@@ -41,6 +41,10 @@ class ReaderPreferences(preferences: PreferenceStore) {
         "external_reader",
         true,
     )
+    val authorNotes =  preferences.getBoolean(
+        "author_notes",
+        false,
+    )
 }
 
 

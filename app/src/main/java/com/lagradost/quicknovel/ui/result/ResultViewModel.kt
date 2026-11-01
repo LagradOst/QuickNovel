@@ -2,7 +2,9 @@ package com.lagradost.quicknovel.ui.result
 
 import android.content.DialogInterface
 import android.content.Intent
+import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
+import androidx.compose.runtime.Immutable
 import androidx.core.net.toUri
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -12,6 +14,7 @@ import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
+import com.lagradost.quicknovel.downloader.BookAction
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.BookDownloader2.downloadProgress
 import com.lagradost.quicknovel.BookDownloader2Helper
@@ -19,7 +22,6 @@ import com.lagradost.quicknovel.BookDownloader2Helper.generateId
 import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
-import com.lagradost.quicknovel.DownloadActionType
 import com.lagradost.quicknovel.DownloadProgressState
 import com.lagradost.quicknovel.DownloadState
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
@@ -40,6 +42,7 @@ import com.lagradost.quicknovel.RESULT_CHAPTER_FILTER_UNREAD
 import com.lagradost.quicknovel.RESULT_CHAPTER_SORT
 import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.UserReview
+import com.lagradost.quicknovel.downloader.BookNotifications
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.launchSafe
 import com.lagradost.quicknovel.ui.ReadType
@@ -47,10 +50,9 @@ import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.download.CHAPTER_SORT
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.ui.download.LAST_ACCES_SORT
-import com.lagradost.quicknovel.ui.download.LAST_UPDATED_SORT
 import com.lagradost.quicknovel.ui.download.REVERSE_CHAPTER_SORT
 import com.lagradost.quicknovel.ui.download.REVERSE_LAST_ACCES_SORT
-import com.lagradost.quicknovel.ui.download.SortingMethod
+
 import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.ResultCached
@@ -58,6 +60,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+@Immutable
+data class SortingMethod(@StringRes val name: Int, val id: Int, val inverse: Int = id)
 
 class ResultViewModel : ViewModel() {
     companion object {
@@ -195,7 +199,7 @@ class ResultViewModel : ViewModel() {
     var id: MutableLiveData<Int> = MutableLiveData<Int>(-1)
     var readState: MutableLiveData<ReadType> = MutableLiveData<ReadType>(ReadType.NONE)
 
-    var apiName : String = ""
+    var apiName: String = ""
 
     /*This is to detect whether it actually returned to
      the fragment after reading a chapter, and thus update the list of chapters.*/
@@ -354,14 +358,14 @@ class ResultViewModel : ViewModel() {
             BookDownloader2.downloadInfoMutex.withLock {
                 downloadProgress[loadId]?.let { downloadState ->
                     when (downloadState.state) {
-                        DownloadState.IsPaused -> BookDownloader2.addPendingAction(
+                        DownloadState.IsPaused -> BookNotifications.notify(
                             loadId,
-                            DownloadActionType.Resume
+                            BookAction.Resume
                         )
 
-                        DownloadState.IsDownloading -> BookDownloader2.addPendingAction(
+                        DownloadState.IsDownloading -> BookNotifications.notify(
                             loadId,
-                            DownloadActionType.Pause
+                            BookAction.Pause
                         )
 
                         DownloadState.IsDone, DownloadState.IsPending -> {
@@ -384,9 +388,9 @@ class ResultViewModel : ViewModel() {
             BookDownloader2.downloadInfoMutex.withLock {
                 downloadProgress[loadId]?.let { downloadState ->
                     when (downloadState.state) {
-                        DownloadState.IsDownloading -> BookDownloader2.addPendingAction(
+                        DownloadState.IsDownloading -> BookNotifications.notify(
                             loadId,
-                            DownloadActionType.Pause
+                            BookAction.Pause
                         )
 
                         else -> {
@@ -410,9 +414,9 @@ class ResultViewModel : ViewModel() {
                         }
 
                         else -> {
-                            BookDownloader2.addPendingAction(
+                            BookNotifications.notify(
                                 loadId,
-                                DownloadActionType.Stop
+                                BookAction.Stop
                             )
                         }
                     }
@@ -429,9 +433,9 @@ class ResultViewModel : ViewModel() {
                 BookDownloader2.changeDownloadStart(load, api, start)
                 downloadProgress[loadId]?.let { downloadState ->
                     when (downloadState.state) {
-                        DownloadState.IsPaused -> BookDownloader2.addPendingAction(
+                        DownloadState.IsPaused -> BookNotifications.notify(
                             loadId,
-                            DownloadActionType.Resume
+                            BookAction.Resume
                         )
 
                         DownloadState.IsPending -> {
@@ -454,9 +458,9 @@ class ResultViewModel : ViewModel() {
             BookDownloader2.downloadInfoMutex.withLock {
                 downloadProgress[loadId]?.let { downloadState ->
                     when (downloadState.state) {
-                        DownloadState.IsPaused -> BookDownloader2.addPendingAction(
+                        DownloadState.IsPaused -> BookNotifications.notify(
                             loadId,
-                            DownloadActionType.Resume
+                            BookAction.Resume
                         )
 
                         DownloadState.IsDone, DownloadState.IsPending -> {
@@ -752,6 +756,7 @@ class ResultViewModel : ViewModel() {
             setState(card.id)
         }
     }
+
     fun initState(card: ImmutableSearchResponse) = viewModelScope.launch {
         val id = card.id ?: throw ErrorLoadingException("Require Id")
         isGetLoaded = false

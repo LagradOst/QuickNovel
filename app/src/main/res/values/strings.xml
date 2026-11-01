@@ -13,7 +13,7 @@
 
     <string name="active_providers">%d providers enabled</string>
     <string name="search_hint">Search Novels…</string>
-    <string name="synopsis">Synopsis</string>
+    <string name="synopsis">Description</string>
     <string name="no_data">No Data</string>
     <string name="none">@string/type_none</string>
     <string name="action_bar_up_description">Navigate up</string>
@@ -263,7 +263,7 @@
 
     <string name="reload_chapter_format">Reloading chapter %s</string>
     <string name="ok">Ok</string>
-    <string name="more_info">More Info</string>
+    <string name="more_info">More info</string>
     <string name="download_path_key">download_path_key</string>
 
     <string name="logcat_path_key">logcat_path_key</string>
@@ -336,4 +336,5 @@
     <string name="apk_installer_settings_des">Some devices do not support the new package installer. Try the legacy option if updates do not install.</string>
     <string name="apk_installer_legacy">Legacy</string>
     <string name="apk_installer_package_installer">PackageInstaller</string>
+    <string name="spoilers">Spoilers</string>
 </resources>

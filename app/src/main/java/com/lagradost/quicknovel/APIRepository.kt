@@ -9,6 +9,8 @@ import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.util.Coroutines.threadSafeListOf
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.toPersistentList
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 
 data class OnGoingSearch(
@@ -50,6 +52,7 @@ class APIRepository(val api: MainAPI) {
             val response: LoadResponse,
             val hash: Pair<String, String>
         )
+
         private val cache = threadSafeListOf<SavedLoadResponse>()
         private var cacheIndex: Int = 0
         const val cacheSize = 20
@@ -113,41 +116,31 @@ class APIRepository(val api: MainAPI) {
         }
     }
 
-    suspend fun loadResult(url: String, allowCache: Boolean = true): Result<ImmutableSearchResponse> {
-        return runCatching {
-            try {
-                if (api.hasRateLimit) {
-                    api.rateLimitMutex.lock()
-                }
-                val fixedUrl = api.fixUrl(url)
-                val lookingForHash = api.name to fixedUrl
+    suspend fun loadResult(
+        url: String,
+        allowCache: Boolean = true
+    ): Result<ImmutableSearchResponse> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                try {
+                    if (api.hasRateLimit) {
+                        api.rateLimitMutex.lock()
+                    }
+                    val fixedUrl = api.fixUrl(url)
+                    val lookingForHash = api.name to fixedUrl
 
-                if (allowCache) {
-                    synchronized(cache) {
-                        for (item in cache) {
-                            // 10 min save
-                            if (item.hash == lookingForHash && (unixTime - item.unixTime) < cacheTimeSec) {
-                                return@runCatching ImmutableSearchResponse.from(item.response)
+                    if (allowCache) {
+                        synchronized(cache) {
+                            for (item in cache) {
+                                // 10 min save
+                                if (item.hash == lookingForHash && (unixTime - item.unixTime) < cacheTimeSec) {
+                                    return@runCatching ImmutableSearchResponse.from(item.response)
+                                }
                             }
                         }
                     }
-                }
 
-                val response = api.load(fixedUrl) ?: throw ErrorLoadingException("No data")
-                val add = SavedLoadResponse(unixTime, response, lookingForHash)
-                if (allowCache) {
-                    synchronized(cache) {
-                        if (cache.size > cacheSize) {
-                            cache[cacheIndex] = add // rolling cache
-                            cacheIndex = (cacheIndex + 1) % cacheSize
-                        } else {
-                            cache.add(add)
-                        }
-                    }
-                }
-                ImmutableSearchResponse.from(response)
-                /*?.also { response ->
-                    // Remove all blank tags as early as possible
+                    val response = api.load(fixedUrl) ?: throw ErrorLoadingException("No data")
                     val add = SavedLoadResponse(unixTime, response, lookingForHash)
                     if (allowCache) {
                         synchronized(cache) {
@@ -159,15 +152,15 @@ class APIRepository(val api: MainAPI) {
                             }
                         }
                     }
-                }*/
-
-            } finally {
-                if (api.hasRateLimit) {
-                    api.rateLimitMutex.unlock()
+                    /** Do not cache the ImmutableSearchResponse, as it contain stuff that needs updating */
+                    ImmutableSearchResponse.from(response)
+                } finally {
+                    if (api.hasRateLimit) {
+                        api.rateLimitMutex.unlock()
+                    }
                 }
             }
         }
-    }
 
     suspend fun search(query: String): Resource<List<SearchResponse>> {
         return safeApiCall {
@@ -204,7 +197,7 @@ class APIRepository(val api: MainAPI) {
     suspend fun loadReviews(
         url: String,
         page: Int,
-        data : String?,
+        data: String?,
     ): Resource<List<UserReview>> {
         return safeApiCall {
             api.loadReviews(url, page, data)
@@ -214,7 +207,7 @@ class APIRepository(val api: MainAPI) {
     suspend fun loadReviewsResult(
         url: String,
         page: Int,
-        data : String?,
+        data: String?,
     ): Result<PersistentList<ImmutableReview>> {
         return runCatching {
             api.loadReviews(url, page, data).map(ImmutableReview::from).toPersistentList()

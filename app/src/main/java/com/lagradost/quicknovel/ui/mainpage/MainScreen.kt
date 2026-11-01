@@ -218,8 +218,7 @@ fun SearchResponseDialog(
         if (dialog.error != null) {
             Text(
                 color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 14.sp,
-                lineHeight = 15.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 text = dialog.error.toString(),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxSize(),
@@ -227,8 +226,7 @@ fun SearchResponseDialog(
         } else if (dialog.items.isEmpty()) {
             Text(
                 color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 14.sp,
-                lineHeight = 15.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 text = stringResource(R.string.no_data),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxSize(),

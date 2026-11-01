@@ -217,7 +217,7 @@ fun HistoryDialog(
                 title = stringResource(R.string.remove),
                 text = stringResource(
                     R.string.remove_from_history_format,
-                    dialog.about.name
+                    dialog.item.name
                 ),
                 confirmText = stringResource(R.string.remove),
                 dismissText = stringResource(R.string.cancel),
@@ -228,7 +228,7 @@ fun HistoryDialog(
                     action(
                         ResultAction(
                             SearchResponseAction(
-                                dialog.about,
+                                dialog.item,
                                 SearchResponseOperation.Delete
                             )
                         )

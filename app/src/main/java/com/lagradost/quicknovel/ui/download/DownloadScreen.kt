@@ -74,6 +74,7 @@ import com.lagradost.quicknovel.ui.common.SortingMethodType
 import com.lagradost.quicknovel.ui.common.normalSortingMethods
 import com.lagradost.quicknovel.ui.common.sortingMethods
 import com.mihon.common.preference.AndroidPreferenceStore
+import com.mihon.material.padding
 import com.mihon.presentation.settings.collectAsState
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
@@ -529,15 +530,14 @@ fun BoxFooter() {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(40.dp)
-                .padding(horizontal = 5.dp),
+                .height(45.dp)
+                .padding(horizontal = MaterialTheme.padding.extraSmall),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = stringResource(R.string.import_epub),
                 color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 13.sp,
-                lineHeight = 14.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 maxLines = 2,
                 textAlign = TextAlign.Center,
                 overflow = TextOverflow.Ellipsis
