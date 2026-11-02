@@ -265,6 +265,7 @@ class QuickBook(val data: QuickStreamData) : AbstractBook() {
             fileDir = ctx.filesDir,
             cacheDir = ctx.cacheDir
         )
+        files.directoryFile().mkdirs()
         val file = files.chapterFile(index)
         if (!file.exists()) {
             val chapter = data.data[index]
