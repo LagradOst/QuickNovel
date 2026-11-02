@@ -405,9 +405,8 @@ data class ImmutableSearchResponse(
         )
 
         fun lastChaptersRead(name: String, id: Int?): Int =
-            id?.let { id ->
-                getKey<Int>(EPUB_CURRENT_VISUAL_POSITION, id.toString())
-            } ?: getKey<Int>(EPUB_CURRENT_POSITION, name)?.let { it + 1 } ?: 0
+            (id?.let { id -> getKey<Int>(EPUB_CURRENT_VISUAL_POSITION, id.toString()) }
+                ?: getKey<Int>(EPUB_CURRENT_POSITION, name))?.let { it + 1 } ?: 0
 
         fun chaptersRead(id: Int): BitSet =
             getKey<ByteArray>(EPUB_BITSET_POSITION, id.toString())?.let { bytes ->
@@ -1013,14 +1012,17 @@ data class ImmutableChapterList(
     @CheckResult
     fun filterBy(
         newFilter: FilterChapters
-    ) : ImmutableChapterList =
+    ): ImmutableChapterList =
         copy(internalData = internalData.filteringBy(newFilter = newFilter), filtering = newFilter)
 
     @CheckResult
     fun sortBy(
         newSorting: ChapterSortingMethodType
-    ) : ImmutableChapterList =
-        copy(internalData = internalData.sortingBy(newSorting = getSortingMethod(newSorting)), sortingMethod = newSorting)
+    ): ImmutableChapterList =
+        copy(
+            internalData = internalData.sortingBy(newSorting = getSortingMethod(newSorting)),
+            sortingMethod = newSorting
+        )
 
     companion object {
         private val Ascending = sortByInt<ImmutableChapterData> { chapter -> chapter.index }
