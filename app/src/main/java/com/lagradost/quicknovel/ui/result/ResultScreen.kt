@@ -7,7 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -53,6 +54,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,6 +64,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -89,19 +92,22 @@ import com.lagradost.cloudstream4.compose.ActionDialog
 import com.lagradost.cloudstream4.compose.BlackButton
 import com.lagradost.cloudstream4.compose.Colors
 import com.lagradost.cloudstream4.compose.RoundedShape
+import com.lagradost.cloudstream4.compose.SinglePairSelectDialog
 import com.lagradost.cloudstream4.compose.SingleSelectDialog
 import com.lagradost.cloudstream4.compose.WhiteButton
+import com.lagradost.cloudstream4.compose.WhiteFilterChip
 import com.lagradost.cloudstream4.compose.circle
 import com.lagradost.cloudstream4.compose.rounded
 import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
-import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.downloader.BookDownloadStatus
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.compose.BaseSearchBar
+import com.lagradost.quicknovel.compose.RootBaseSearchBar
 import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.mvvm.throwableToMessage
-import com.lagradost.quicknovel.providers.RoyalRoadProvider
 import com.lagradost.quicknovel.ui.ReadType
+import com.lagradost.quicknovel.ui.common.ChapterFilterMethodType
 import com.lagradost.quicknovel.ui.common.DownloadStateAction
 import com.lagradost.quicknovel.ui.common.HorizontalTab
 import com.lagradost.quicknovel.ui.common.ImmutableChapterData
@@ -117,8 +123,10 @@ import com.lagradost.quicknovel.ui.common.LoadingWidth
 import com.lagradost.quicknovel.ui.common.SearchList
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseOperation
+import com.lagradost.quicknovel.ui.common.chapterSortingMethods
 import com.lagradost.quicknovel.ui.common.html
 import com.lagradost.quicknovel.ui.common.loading
+import com.lagradost.quicknovel.ui.common.normalSortingMethods
 import com.lagradost.quicknovel.ui.result.ResultPageAction.*
 import com.lagradost.quicknovel.util.AppUtils.openInBrowser
 import com.lagradost.quicknovel.util.SettingsHelper.getRating
@@ -128,6 +136,7 @@ import com.lagradost.quicknovel.util.toPx
 import com.mihon.material.padding
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
@@ -633,6 +642,100 @@ object ResultScreen {
     }
 
     @Composable
+    fun SortHeader(chapters: ImmutableChapterList, onAction: (ResultPageAction) -> Unit) {
+        var selectSortingMethodDialog by remember { mutableStateOf(false) }
+
+        if (selectSortingMethodDialog) {
+            SinglePairSelectDialog(
+                entries = chapterSortingMethods.associate {
+                    (it.id to it.inverse) to stringResource(
+                        it.name
+                    )
+                },
+                selectedKey = chapters.sortingMethod,
+                title = stringResource(R.string.filter_dialog_sort_by),
+                confirmText = stringResource(R.string.sort_apply),
+                dismissText = stringResource(R.string.sort_cancel),
+                dismiss = {
+                    selectSortingMethodDialog = false
+                },
+                confirm = { key ->
+                    onAction(SetChapterSort(key))
+                    selectSortingMethodDialog = false
+                }
+            )
+        }
+
+        RootBaseSearchBar(
+            windowInsets = WindowInsets(),
+            onQueryChange = { query ->
+                onAction(SetChapterFilterQuery(query))
+            }, onSearch = { query ->
+                onAction(SetChapterFilterQuery(query))
+            },
+            leadingIcon = {
+                Icon(
+                    painter = painterResource(R.drawable.search_icon),
+                    contentDescription = stringResource(R.string.search),
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.onBackground,
+                )
+            },
+            trailingIcon = {
+                IconButton(onClick = {
+                    selectSortingMethodDialog = true
+                }) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_sort_24dp),
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        contentDescription = stringResource(R.string.mainpage_sort_by_button_text),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            placeholder = stringResource(R.string.search_chapters_hint)
+        )
+    }
+
+    @Composable
+    fun FilterHeader(chapters: ImmutableChapterList, onAction: (ResultPageAction) -> Unit) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.small),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(state = rememberScrollState())
+        ) {
+            Spacer(modifier = Modifier.width(MaterialTheme.padding.small))
+            SelectSingleButton(
+                name = R.string.downloaded,
+                filterMethodType = ChapterFilterMethodType.Downloaded,
+                filtering = chapters.filtering.filterMethodType,
+                onAction = onAction
+            )
+            SelectSingleButton(
+                name = R.string.not_downloaded,
+                filterMethodType = ChapterFilterMethodType.UnDownloaded,
+                filtering = chapters.filtering.filterMethodType,
+                onAction = onAction
+            )
+            SelectSingleButton(
+                name = R.string.has_read,
+                filterMethodType = ChapterFilterMethodType.Read,
+                filtering = chapters.filtering.filterMethodType,
+                onAction = onAction
+            )
+            SelectSingleButton(
+                name = R.string.not_read,
+                filterMethodType = ChapterFilterMethodType.UnRead,
+                filtering = chapters.filtering.filterMethodType,
+                onAction = onAction
+            )
+            Spacer(modifier = Modifier.width(MaterialTheme.padding.small))
+        }
+    }
+
+    @Composable
     fun ChapterPage(
         response: ImmutableSearchResponse,
         chapters: ImmutableChapterList,
@@ -647,15 +750,41 @@ object ResultScreen {
                 .nestedScroll(nestedScrollConnection)
                 .background(MaterialTheme.colorScheme.background),
         ) {
-            items(chapters.sorted, key = { item ->
-                item.randomUuid
-            }) { chapter ->
+            item(key = "sort header") {
+                SortHeader(chapters = chapters, onAction = onAction)
+            }
+            item(key = "filter header") {
+                FilterHeader(chapters = chapters, onAction = onAction)
+            }
+            items(chapters.sorted, key = { index ->
+                index
+            }) { index ->
                 ChapterItem(
                     response = response,
-                    chapter = chapter,
+                    chapter = chapters.data[index]!!,
                     onAction = onAction,
                     modifier = Modifier.animateItem()
                 )
+            }
+        }
+    }
+
+    @Composable
+    fun SelectSingleButton(
+        name: Int,
+        filtering: PersistentSet<ChapterFilterMethodType>,
+        filterMethodType: ChapterFilterMethodType,
+        onAction: (ResultPageAction) -> Unit,
+    ) {
+        val selected = filtering.contains(filterMethodType)
+        WhiteFilterChip(
+            selected = selected,
+            label = stringResource(name)
+        ) {
+            if (selected) {
+                onAction(SetChapterFilterMethod(filtering.removing(filterMethodType)))
+            } else {
+                onAction(SetChapterFilterMethod(filtering.adding(filterMethodType)))
             }
         }
     }
@@ -683,6 +812,18 @@ object ResultScreen {
                 })
                 .padding(MaterialTheme.padding.small)
         ) {
+            if (response.chaptersRead?.get(chapter.index) == true) {
+                Icon(
+                    painter = painterResource(R.drawable.check_24px),
+                    contentDescription = stringResource(R.string.has_read)
+                )
+            }
+
+            Spacer(
+                Modifier
+                    .width(MaterialTheme.padding.small)
+            )
+
             Column(modifier = Modifier.weight(1.0f)) {
                 Text(
                     text = chapter.name,
@@ -701,7 +842,7 @@ object ResultScreen {
 
             Spacer(
                 Modifier
-                    .width(5.dp)
+                    .width(MaterialTheme.padding.small)
                     .weight(0.01f)
             )
 
@@ -1389,7 +1530,7 @@ object ResultScreen {
     }
 }
 
-
+/*
 @PreviewLightDark
 @Composable
 fun LoadingPreview() {
@@ -1405,7 +1546,7 @@ fun LoadingPreview() {
             ) { }
         }
     }
-}
+}*/
 /*
 @PreviewLightDark
 @Composable
@@ -1429,7 +1570,7 @@ fun ReviewPreview() {
         }
     }
 }*/
-/*
+
 @PreviewLightDark
 @Composable
 fun ChapterPreview() {
@@ -1444,9 +1585,9 @@ fun ChapterPreview() {
                     url = "",
                     dateOfRelease = "date",
                     views = 123,
-                    index = 4
+                    index = 2
                 )
             )
         }
     }
-}*/
+}

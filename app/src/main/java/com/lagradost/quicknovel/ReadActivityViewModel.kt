@@ -27,30 +27,22 @@ import coil3.request.Disposable
 import coil3.request.ImageRequest
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.google.android.gms.tasks.Tasks
-import com.google.mlkit.common.model.RemoteModelManager
 import com.google.mlkit.nl.translate.TranslateLanguage
-import com.google.mlkit.nl.translate.TranslateRemoteModel
-import com.google.mlkit.nl.translate.Translation
-import com.google.mlkit.nl.translate.Translator
-import com.google.mlkit.nl.translate.TranslatorOptions
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeyClass
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKeyClass
-import com.lagradost.quicknovel.BookDownloader2Helper.getQuickChapter
 import com.lagradost.quicknovel.CommonActivity.TAG
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.TTSHelper.parseTextToSpans
 import com.lagradost.quicknovel.TTSHelper.preParseHtml
 import com.lagradost.quicknovel.TTSHelper.ttsParseText
-import com.lagradost.quicknovel.downloader.BookDownloader
 import com.lagradost.quicknovel.downloader.BookDownloader.downloadChapter
 import com.lagradost.quicknovel.downloader.BookFileHandle
-import com.lagradost.quicknovel.downloader.BookFiles
+import com.lagradost.quicknovel.downloader.BookReader
 import com.lagradost.quicknovel.downloader.BookState
 import com.lagradost.quicknovel.downloader.copy
 import com.lagradost.quicknovel.mvvm.Resource
@@ -75,7 +67,6 @@ import com.lagradost.quicknovel.util.CoilImagesPlugin
 import com.lagradost.quicknovel.util.CoilImagesPlugin.CoilStore
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.runOnMainThread
-import com.lagradost.quicknovel.util.SubtitleHelper
 import com.lagradost.quicknovel.util.translation.TranslationManager
 import com.lagradost.quicknovel.util.translation.models.TranslatorAgents
 import io.noties.markwon.AbstractMarkwonPlugin
@@ -106,9 +97,8 @@ import java.io.File
 import java.io.InputStream
 import java.net.URLDecoder
 import java.security.MessageDigest
+import java.util.BitSet
 import java.util.Locale
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
@@ -171,6 +161,9 @@ class PreferenceDelegateLiveView<T : Any>(
 }
 
 abstract class AbstractBook {
+    abstract val id: Int
+    abstract val offset: Int
+
     open fun resolveUrl(url: String): String {
         return url
     }
@@ -226,6 +219,12 @@ abstract class AbstractBook {
 }
 
 class QuickBook(val data: QuickStreamData) : AbstractBook() {
+    override val id: Int = BookDownloader2Helper.generateId(
+        apiName = data.meta.apiName,
+        name = data.meta.name,
+        author = data.meta.author
+    )
+    override val offset: Int = 0
     override fun resolveUrl(url: String): String {
         return Apis.getApiFromNameNull(data.meta.apiName)?.fixUrl(url) ?: url
     }
@@ -329,6 +328,8 @@ class QuickBook(val data: QuickStreamData) : AbstractBook() {
 }
 
 class RegularBook(val data: EpubBook) : AbstractBook() {
+    override val id: Int = BookReader.getId(data)
+    override val offset: Int = BookReader.getOffset(data)
     private val allTocReferences: List<TOCReference>
 
     init {
@@ -1694,6 +1695,17 @@ class ReadActivityViewModel : ViewModel() {
             scrollIndex.char
         )
         setKey(EPUB_CURRENT_POSITION, book.title(), scrollIndex.index)
+
+        val correctedPosition = book.offset + scrollIndex.index
+        setKey(EPUB_CURRENT_VISUAL_POSITION, book.id.toString(), correctedPosition)
+        setKey<ByteArray>(
+            EPUB_BITSET_POSITION,
+            book.id.toString(),
+            (getKey<ByteArray>(EPUB_BITSET_POSITION, book.id.toString())?.let { BitSet.valueOf(it) }
+                ?: BitSet()).apply {
+                set(correctedPosition)
+            }.toByteArray()
+        )
 
         context?.let {
             setKey(

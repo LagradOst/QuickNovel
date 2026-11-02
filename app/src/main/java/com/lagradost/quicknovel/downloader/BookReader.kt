@@ -2,18 +2,20 @@ package com.lagradost.quicknovel.downloader
 
 import android.app.Activity
 import android.content.Intent
+import androidx.core.net.toUri
 import com.anggrayudi.storage.extension.closeStreamQuietly
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream4.AppSettings
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2.openEpub
+import com.lagradost.quicknovel.BookDownloader2Helper
+import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.BookDownloader2Helper.createQuickStream
 import com.lagradost.quicknovel.BookDownloader2Helper.getSafeByteArray
 import com.lagradost.quicknovel.BuildConfig
 import com.lagradost.quicknovel.ChapterData
-import com.lagradost.quicknovel.CommonActivity
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.DOWNLOAD_OFFSET
@@ -43,7 +45,7 @@ import org.jsoup.nodes.Element
 import org.jsoup.nodes.Entities
 import java.io.File
 import java.io.OutputStream
-import kotlin.concurrent.read
+import javax.xml.namespace.QName
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -67,7 +69,7 @@ private data class CachedFileOptions(
     @JsonProperty("lastModified")
     val lastModified: Long,
     @JsonProperty("chapters")
-    val chapters : Int,
+    val chapters: Int,
     @JsonProperty("options")
     val options: GenerationOptions,
 )
@@ -251,7 +253,8 @@ object BookReader {
 
         val internalEpub = handle.files.localEpubFile()
 
-        val downloadedChapters = BookState.downloadStatus(id)?.downloadState?.totalDownloadedAfterOffset ?: 1
+        val downloadedChapters =
+            BookState.downloadStatus(id)?.downloadState?.totalDownloadedAfterOffset ?: 1
 
         /**
          * Re-generate the file if anything has changed,
@@ -325,7 +328,35 @@ object BookReader {
         openEpub(activity = activity, uri = file.uri)
     }
 
-    fun newBook(response: ImmutableSearchResponse): EpubBook {
+    private const val QN_ID = "QuickNovel-id"
+    private const val QN_API_NAME = "QuickNovel-apiName"
+    private const val QN_AUTHOR = "QuickNovel-author"
+    private const val QN_NAME = "QuickNovel-name"
+    private const val QN_URL = "QuickNovel-author"
+    private const val QN_OFFSET = "QuickNovel-offset"
+
+    fun getOffset(book: EpubBook) = book.metadata.otherProperties[QName(QN_OFFSET)]?.toInt() ?: 0
+
+    fun getId(book: EpubBook): Int {
+        val id = book.metadata.otherProperties[QName(QN_ID)]?.toInt()
+        if (id != null) {
+            return id
+        }
+        val author =
+            book.metadata.otherProperties[QName(QN_AUTHOR)] ?: book.metadata.authors?.firstOrNull()
+                ?.let { author ->
+                    if (author.firstname.isBlank()) {
+                        author.lastname
+                    } else {
+                        "${author.firstname} ${author.lastname}"
+                    }
+                }
+        val apiName = book.metadata.otherProperties[QName(QN_API_NAME)] ?: IMPORT_SOURCE
+        val name = book.metadata.otherProperties[QName(QN_NAME)] ?: book.title
+        return BookDownloader2Helper.generateId(apiName = apiName, author = author, name = name)
+    }
+
+    fun newBook(response: ImmutableSearchResponse, offset : Int): EpubBook {
         return EpubBook().apply {
             metadata.addTitle(response.name)
             metadata.addAuthor(Author(response.author))
@@ -337,25 +368,28 @@ object BookReader {
                 metadata.addDescription(synopsis)
             }
 
-            /**
-            Add this when we want to add the option to re-import an epub,
-            this is currently removed to avoid any reader problems caused by the null name
+            /** Add this when we want to add the option to re-import an epub */
+            response.id?.let { id ->
+                metadata.otherProperties[QName(QN_ID)] = id.toString()
+            }
+            metadata.otherProperties[QName(QN_API_NAME)] = response.apiName
+            response.author?.let {
+                metadata.otherProperties[QName(QN_AUTHOR)] = it
+            }
+            metadata.otherProperties[QName(QN_AUTHOR)] = response.name
 
-            metadata.otherProperties[QName("id")] = response.apiName
-            metadata.otherProperties[QName("apiName")] = response.apiName
             try {
-            val scheme = response.url.toUri().scheme
-            if (scheme == "http" || scheme == "https") {
-            /**
-             * We embed an additional source url so we can track this if we want to re-import it
-             * we only accept http(s) sources to avoid leaking sensative information (like file path)
-             * */
-            metadata.otherProperties[QName("sourceUrl")] = response.url
-            }
+                val scheme = response.url.toUri().scheme
+                if (scheme == "http" || scheme == "https") {
+                    /**
+                     * We embed an additional source url so we can track this if we want to re-import it
+                     * we only accept http(s) sources to avoid leaking sensative information (like file path)
+                     * */
+                    metadata.otherProperties[QName(QN_URL)] = response.url
+                }
             } catch (_: Throwable) {
-            /** Silent ignore, as the uri parse might have failed */
+                /** Silent ignore, as the uri parse might have failed */
             }
-             */
         }
     }
 
@@ -382,14 +416,13 @@ object BookReader {
             return@withContext
         }
 
-        val writeBook = newBook(response)
-
         /**
          * If we have a PDF that is currently being imported,
          * we still allow it to write an epub directly to the output stream
          * */
         val epubWriter = EpubWriter()
         if (response.apiName == IMPORT_SOURCE_PDF) {
+            val writeBook = newBook(response,0 )
             PDFDownloader.writeEpubFromPdfFiles(handle = handle, writeBook = writeBook)
             epubWriter.write(writeBook, writeStream)
             writeStream.flush()
@@ -399,6 +432,10 @@ object BookReader {
             }
             return@withContext
         }
+
+        val startChapter = getKey<Int>(DOWNLOAD_OFFSET, handle.id.toString()) ?: 0
+        val writeBook = newBook(response = response, offset = startChapter)
+
         /**
          * Otherwise we must have chapter based content
          * */
@@ -407,8 +444,6 @@ object BookReader {
             writeBook.coverImage = Resource(getSafeByteArray(poster.readBytes()), poster.name)
         }
         writeBook.addResource(getGeneralCSStyleForEPUBs())
-
-        val startChapter = getKey<Int>(DOWNLOAD_OFFSET, handle.id.toString()) ?: 0
 
         /**
          * 1. Filter out chapter < start, as we do not want to include e.g. streamed chapters

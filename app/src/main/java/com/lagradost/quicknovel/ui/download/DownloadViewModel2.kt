@@ -15,7 +15,6 @@ import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.downloader.BookAction
 import com.lagradost.quicknovel.downloader.BookDownloadPackage
-import com.lagradost.quicknovel.downloader.BookDownloadPayload
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.downloader.BookStateChanged
 import com.lagradost.quicknovel.CURRENT_TAB
@@ -51,7 +50,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.util.BitSet
 
 const val DEFAULT_SORT = 0
 const val ALPHA_SORT = 1
@@ -460,7 +458,7 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             copy(pages = pages.updateRows {
                 update(id) {
                     copy(
-                        chaptersRead = ImmutableSearchResponse.chaptersRead(name),
+                        lastChaptersRead = ImmutableSearchResponse.lastChaptersRead(name, id),
                         timeOfPageOpened = ImmutableSearchResponse.timeOfPageOpened(id),
                         epubSize = ImmutableSearchResponse.epubSize(id)
                     )
@@ -479,7 +477,8 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                 for (id in ids.keys) {
                     out = out.update(id) {
                         copy(
-                            chaptersRead = ImmutableSearchResponse.chaptersRead(name),
+                            lastChaptersRead = ImmutableSearchResponse.lastChaptersRead(name, id),
+                            chaptersRead = ImmutableSearchResponse.chaptersRead(id),
                             timeOfPageOpened = ImmutableSearchResponse.timeOfPageOpened(id),
                             epubSize = ImmutableSearchResponse.epubSize(id)
                         )

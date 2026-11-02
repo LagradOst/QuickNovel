@@ -301,7 +301,7 @@ object PDFDownloader {
             )
         }
 
-        val writeBook = newBook(response)
+        val writeBook = newBook(response = response, offset = 0)
 
         writeEpubFromPdfFiles(handle = handle, writeBook = writeBook)
 

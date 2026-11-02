@@ -48,7 +48,9 @@ import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
 import com.lagradost.quicknovel.DOWNLOAD_OFFSET
 import com.lagradost.quicknovel.DownloadExtractLink
 import com.lagradost.quicknovel.DownloadLink
+import com.lagradost.quicknovel.EPUB_BITSET_POSITION
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
+import com.lagradost.quicknovel.EPUB_CURRENT_VISUAL_POSITION
 import com.lagradost.quicknovel.EpubResponse
 import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.HeadMainPageResponse
@@ -68,6 +70,7 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
+import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
@@ -262,8 +265,10 @@ data class ImmutableSearchResponse(
     val timeOfPageOpened: Long? = null,
     /** The size of the last written epub in chapters, aka how many chapters have we actually might have read */
     val epubSize: Int? = null,
+    /** What the last chapter we read in the built-in reader was */
+    val lastChaptersRead: Int,
     /** How many chapters we have read with the built-in reader */
-    val chaptersRead: Int,
+    val chaptersRead: BitSet?,
     val loadData: ImmutableLoadData? = null,
     val reviewData: String? = null,
 ) {
@@ -387,19 +392,30 @@ data class ImmutableSearchResponse(
             rating = 123,
             latestChapterName = "hello world chapters",
             generating = false,
-            chaptersRead = 0,
+            lastChaptersRead = 0,
             timeOfCached = 0,
+            chaptersRead = BitSet().apply { set(0); set(1); set(2) },
             downloadState = ImmutableDownloadState(
                 downloadStatus = BookDownloadStatus.Idle,
                 downloadedChapters = BitSet().apply { set(0); set(1); set(2) },
                 totalChapters = 200,
                 downloadOffset = 0,
-                estimateDownloadTime = 123.seconds
+                estimateDownloadTime = 123.seconds,
             )
         )
 
-        fun chaptersRead(name: String): Int =
-            getKey<Int>(EPUB_CURRENT_POSITION, name)?.let { it + 1 } ?: 0
+        fun lastChaptersRead(name: String, id: Int?): Int =
+            id?.let { id ->
+                getKey<Int>(EPUB_CURRENT_VISUAL_POSITION, id.toString())
+            } ?: getKey<Int>(EPUB_CURRENT_POSITION, name)?.let { it + 1 } ?: 0
+
+        fun chaptersRead(id: Int): BitSet =
+            getKey<ByteArray>(EPUB_BITSET_POSITION, id.toString())?.let { bytes ->
+                BitSet.valueOf(
+                    bytes
+                )
+            }
+                ?: BitSet()
 
         fun addToHistory(response: ImmutableSearchResponse) {
             val id = response.id ?: return
@@ -440,7 +456,8 @@ data class ImmutableSearchResponse(
                 apiName = response.apiName,
                 posterHeaders = response.posterHeaders?.toImmutableMap(),
                 timeOfCached = System.currentTimeMillis(),
-                chaptersRead = chaptersRead(response.name)
+                lastChaptersRead = lastChaptersRead(response.name, null),
+                chaptersRead = null
             )
 
         fun downloadState(id: Int, totalChapters: Int) =
@@ -486,9 +503,10 @@ data class ImmutableSearchResponse(
                 tags = response.tags?.toPersistentList(),
                 posterHeaders = response.posterHeaders?.toImmutableMap(),
                 timeOfCached = System.currentTimeMillis(),
-                chaptersRead = chaptersRead(response.name),
+                lastChaptersRead = lastChaptersRead(response.name, id),
                 epubSize = epubSize(id),
-                downloadState = currentDownloadProgress
+                downloadState = currentDownloadProgress,
+                chaptersRead = chaptersRead(id)
             )
         }
 
@@ -507,7 +525,8 @@ data class ImmutableSearchResponse(
                 author = cache.author,
                 synopsis = cache.synopsis,
                 timeOfPageOpened = timeOfPageOpened(cache.id),
-                chaptersRead = chaptersRead(cache.name)
+                lastChaptersRead = lastChaptersRead(cache.name, cache.id),
+                chaptersRead = chaptersRead(cache.id)
             )
 
         fun from(
@@ -531,7 +550,8 @@ data class ImmutableSearchResponse(
                 tags = cache.tags?.toImmutableList(),
                 timeOfPageOpened = timeOfPageOpened(id),
                 epubSize = epubSize(id),
-                chaptersRead = chaptersRead(cache.name)
+                lastChaptersRead = lastChaptersRead(cache.name, id),
+                chaptersRead = chaptersRead(id)
             )
     }
 
@@ -672,7 +692,7 @@ data class DownloadStateAction(
             BookDownloadStatus.Paused -> R.drawable.play_arrow_24px
             BookDownloadStatus.Stopped -> R.drawable.arrow_circle_down_24px
             BookDownloadStatus.Failed -> R.drawable.arrow_circle_down_24px
-            BookDownloadStatus.Done -> R.drawable.check
+            BookDownloadStatus.Done -> R.drawable.check_24px
             BookDownloadStatus.Pending -> null
             BookDownloadStatus.Idle -> R.drawable.arrow_circle_down_24px
         }
@@ -773,6 +793,28 @@ enum class ChapterSortingMethodType(val id: Int) {
         }
     }
 }
+
+@Immutable
+data class ChapterMethodPair(
+    @StringRes val name: Int,
+    val id: ChapterSortingMethodType,
+    /** if inverse == id then it is a singular option */
+    val inverse: ChapterSortingMethodType = id
+)
+
+val chapterSortingMethods = persistentListOf(
+    ChapterMethodPair(R.string.default_sort, ChapterSortingMethodType.Default),
+    ChapterMethodPair(
+        R.string.release_sort,
+        ChapterSortingMethodType.Ascending,
+        ChapterSortingMethodType.RevAscending
+    ),
+    ChapterMethodPair(
+        R.string.alpha_sort,
+        ChapterSortingMethodType.Alphabetical,
+        ChapterSortingMethodType.RevAlphabetical
+    ),
+)
 
 @Immutable
 enum class ChapterFilterMethodType(val id: Int) {
@@ -924,24 +966,96 @@ fun <T> PersistentList<T>.updateRows(
     return this.mapIndexed { index, t -> t.update(index) }.toPersistentList()
 }
 
+data class FilterChapters(
+    val query: FilterByQuery<ImmutableChapterData> = FilterByQuery<ImmutableChapterData>(query = "") { it.name },
+    val filterMethodType: PersistentSet<ChapterFilterMethodType> = persistentSetOf(
+        ChapterFilterMethodType.Downloaded,
+        ChapterFilterMethodType.UnDownloaded
+    ),
+    val downloaded: BitSet = BitSet(),
+    val read: BitSet = BitSet(),
+    val bookmark: BitSet = BitSet()
+) : Function1<ImmutableChapterData, Boolean> {
+    override fun invoke(data: ImmutableChapterData): Boolean =
+        query(data)
+                && filterMethodType.any {
+            when (it) {
+                ChapterFilterMethodType.Downloaded -> downloaded.get(data.index)
+                ChapterFilterMethodType.UnDownloaded -> !downloaded.get(data.index)
+                ChapterFilterMethodType.Read -> read.get(data.index)
+                ChapterFilterMethodType.UnRead -> !read.get(data.index)
+                ChapterFilterMethodType.Bookmark -> bookmark.get(data.index)
+                ChapterFilterMethodType.UnBookmark -> !bookmark.get(data.index)
+            }
+        }
+}
+
 /**
  * Contrary to the SearchList, the chapter data will be truly immutable
  * therefore we use the PersistentList<ImmutableChapterData> instead of passing by index/id
- *
- * TODO bitset for downloads
- * TODO bitset for read status
  * */
 @Immutable
 data class ImmutableChapterList(
-    private val data: PersistentList<ImmutableChapterData>,
-    private val filtered: PersistentList<ImmutableChapterData> = persistentListOf(),
-    val sorted: PersistentList<ImmutableChapterData> = persistentListOf(),
-    val query: String = "",
+    private val internalData: SearchableData<Int, ImmutableChapterData> = SearchableData(
+        data = persistentMapOf(),
+        filtered = persistentSetOf(),
+        sorted = persistentListOf(),
+        filteredBy = null,
+        sortedBy = SortByName { it.name }
+    ),
     val sortingMethod: ChapterSortingMethodType = ChapterSortingMethodType.Default,
-    //val filterMethod: EnumSet<ChapterFilterMethodType> = EnumSet.allOf<ChapterFilterMethodType>(), // TODO
+    val filtering: FilterChapters = FilterChapters(),
 ) {
+    val data get() = internalData.data
+    val sorted get() = internalData.sorted
+    val filtered get() = internalData.filtered
 
     @CheckResult
+    fun filterBy(
+        newFilter: FilterChapters
+    ) : ImmutableChapterList =
+        copy(internalData = internalData.filteringBy(newFilter = newFilter), filtering = newFilter)
+
+    @CheckResult
+    fun sortBy(
+        newSorting: ChapterSortingMethodType
+    ) : ImmutableChapterList =
+        copy(internalData = internalData.sortingBy(newSorting = getSortingMethod(newSorting)), sortingMethod = newSorting)
+
+    companion object {
+        private val Ascending = sortByInt<ImmutableChapterData> { chapter -> chapter.index }
+        private val RevAscending =
+            sortByInt<ImmutableChapterData> { chapter -> chapter.index }.rev()
+        private val Alphabetical = SortByName<ImmutableChapterData> { chapter -> chapter.name }
+        private val RevAlphabetical =
+            SortByName<ImmutableChapterData> { chapter -> chapter.name }.rev()
+
+        private fun getSortingMethod(method: ChapterSortingMethodType): Comparator<ImmutableChapterData> {
+            return when (method) {
+                ChapterSortingMethodType.Default, ChapterSortingMethodType.Ascending -> Ascending
+                ChapterSortingMethodType.RevAscending -> RevAscending
+                ChapterSortingMethodType.Alphabetical -> Alphabetical
+                ChapterSortingMethodType.RevAlphabetical -> RevAlphabetical
+            }
+        }
+
+        @CheckResult
+        fun from(
+            chapters: PersistentList<ImmutableChapterData>,
+            sortBy: ChapterSortingMethodType = ChapterSortingMethodType.Default,
+            filteredBy: FilterChapters
+        ): ImmutableChapterList = ImmutableChapterList(
+            sortingMethod = sortBy,
+            filtering = filteredBy,
+            internalData = SearchableData.from(
+                data = chapters.associateBy { it.index }.toPersistentMap(),
+                sortedBy = getSortingMethod(sortBy),
+                filteredBy = filteredBy
+            )
+        )
+    }
+
+    /*@CheckResult
     fun search(
         query: String = this.query,
         sortingMethod: ChapterSortingMethodType = this.sortingMethod
@@ -1012,7 +1126,7 @@ data class ImmutableChapterList(
                 sortingMethod = sortingMethod
             )
         }
-    }
+    }*/
 }
 
 /**

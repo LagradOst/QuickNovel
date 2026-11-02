@@ -383,6 +383,11 @@ class MainActivity : AppCompatActivity() {
         val file = StorageFile.from(ctx, uri) ?: return@safe
         val name = file.name.substringBeforeLast(".")
 
+        val id = BookDownloader2Helper.generateId(
+            author = null,
+            apiName = IMPORT_SOURCE,
+            name = name
+        )
         BookDownloader.download(
             context = ctx,
             response = ImmutableSearchResponse(
@@ -391,12 +396,9 @@ class MainActivity : AppCompatActivity() {
                 author = null,
                 url = uri.toString(),
                 timeOfCached = System.currentTimeMillis(),
-                chaptersRead = ImmutableSearchResponse.chaptersRead(name),
-                id = BookDownloader2Helper.generateId(
-                    author = null,
-                    apiName = IMPORT_SOURCE,
-                    name = name
-                )
+                lastChaptersRead = ImmutableSearchResponse.lastChaptersRead(name, id),
+                chaptersRead = ImmutableSearchResponse.chaptersRead(id),
+                id = id,
             ),
             bookPackage = BookDownloadPackage.Import(uri = uri)
         )

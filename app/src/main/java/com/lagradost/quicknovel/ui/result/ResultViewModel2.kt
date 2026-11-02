@@ -20,10 +20,10 @@ import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_CHAPTER
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_SCROLL_CHAR
+import com.lagradost.quicknovel.EPUB_CURRENT_VISUAL_POSITION
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
-import com.lagradost.quicknovel.RESULT_SORTING_METHOD
 import com.lagradost.quicknovel.downloader.BookAction
 import com.lagradost.quicknovel.downloader.BookDownloadPackage
 import com.lagradost.quicknovel.downloader.BookDownloader
@@ -34,18 +34,21 @@ import com.lagradost.quicknovel.downloader.BookState
 import com.lagradost.quicknovel.downloader.BookStateChanged
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.ReadType
+import com.lagradost.quicknovel.ui.common.ChapterFilterMethodType
 import com.lagradost.quicknovel.ui.common.ChapterSortingMethodType
+import com.lagradost.quicknovel.ui.common.FilterChapters
 import com.lagradost.quicknovel.ui.common.ImmutableChapterData
 import com.lagradost.quicknovel.ui.common.ImmutableChapterList
 import com.lagradost.quicknovel.ui.common.ImmutableReview
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseOperation
-import com.lagradost.quicknovel.ui.download.DEFAULT_SORT
 import com.lagradost.quicknovel.ui.result.ResultDialog.Bookmark
-import com.lagradost.quicknovel.ui.result.ResultPageEffect.*
+import com.lagradost.quicknovel.ui.result.ResultPageEffect.Error
+import com.lagradost.quicknovel.ui.result.ResultPageEffect.Toast
 import com.lagradost.quicknovel.util.Apis.Companion.getApiFromName
 import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -100,6 +103,15 @@ sealed class ResultPageAction {
         val chapter: ImmutableChapterData,
         val operation: ChapterOperation
     ) : ResultPageAction()
+
+    data class SetChapterFilterMethod(val data: PersistentSet<ChapterFilterMethodType>) :
+        ResultPageAction()
+
+    data class SetChapterFilterQuery(val query: String) :
+        ResultPageAction()
+
+    data class SetChapterSort(val sortingMethodType: ChapterSortingMethodType) :
+        ResultPageAction()
 }
 
 @Immutable
@@ -144,11 +156,22 @@ class ResultViewModel2(
             val chapters = initializer?.loadData?.chapters ?: return null
             val id = initializer.id ?: return null
 
-            val method = ChapterSortingMethodType.from(
+            /*val method = ChapterSortingMethodType.from(
                 getKey<Int>(RESULT_SORTING_METHOD, id.toString()) ?: DEFAULT_SORT
-            )
+            )*/
 
-            return ImmutableChapterList.new(chapters, query = "", sortingMethod = method)
+            val downloaded =
+                BookState.downloadStatus(id)?.downloadState?.downloadedChapters ?: BitSet()
+            val read = ImmutableSearchResponse.chaptersRead(id)
+
+            return ImmutableChapterList.from(
+                chapters = chapters,
+                sortBy = ChapterSortingMethodType.Ascending,
+                filteredBy = FilterChapters(
+                    downloaded = downloaded,
+                    read = read,
+                )
+            )
         }
 
         fun provideFactory(bundle: Bundle) = viewModelFactory {
@@ -281,7 +304,10 @@ class ResultViewModel2(
                 copy(
                     response = response.copy(
                         downloadState = item.response.downloadState
-                    )
+                    ),
+                    chapters = item.response.downloadState?.let { downloadState ->
+                        chapters?.filterBy(newFilter = chapters.filtering.copy(downloaded = downloadState.downloadedChapters))
+                    } ?: chapters
                 )
             }
         }
@@ -311,9 +337,20 @@ class ResultViewModel2(
             if (name != response?.name) {
                 this
             } else {
+                val chaptersRead = response.id?.let { ImmutableSearchResponse.chaptersRead(it) }
+                    ?: response.chaptersRead
                 copy(
+                    chapters = if (chaptersRead != null && chapters != null) {
+                        chapters.filterBy(chapters.filtering.copy(read = chaptersRead))
+                    } else {
+                        chapters
+                    },
                     response = response.copy(
-                        chaptersRead = ImmutableSearchResponse.chaptersRead(name),
+                        lastChaptersRead = ImmutableSearchResponse.lastChaptersRead(
+                            name,
+                            response.id
+                        ),
+                        chaptersRead = chaptersRead,
                         timeOfPageOpened = System.currentTimeMillis(),
                         epubSize = response.id?.let { ImmutableSearchResponse.epubSize(it) }
                             ?: response.epubSize
@@ -390,6 +427,32 @@ class ResultViewModel2(
                     initLoad()
                 }
             }
+
+            is ResultPageAction.SetChapterFilterMethod -> {
+                updateState {
+                    copy(chapters = chapters?.filterBy(chapters.filtering.copy(filterMethodType = action.data)))
+                }
+            }
+
+            is ResultPageAction.SetChapterFilterQuery -> {
+                updateState {
+                    copy(
+                        chapters = chapters?.filterBy(
+                            chapters.filtering.copy(
+                                query = chapters.filtering.query.update(
+                                    action.query
+                                )
+                            )
+                        )
+                    )
+                }
+            }
+
+            is ResultPageAction.SetChapterSort -> {
+                updateState {
+                    copy(chapters = chapters?.sortBy(action.sortingMethodType))
+                }
+            }
         }
     }
 
@@ -463,6 +526,11 @@ class ResultViewModel2(
                 try {
                     val activity = activity ?: return
                     setKey(EPUB_CURRENT_POSITION, action.response.name, action.chapter.index)
+                    setKey(
+                        EPUB_CURRENT_VISUAL_POSITION,
+                        action.response.id.toString(),
+                        action.chapter.index
+                    )
                     setKey(
                         EPUB_CURRENT_POSITION_CHAPTER,
                         action.response.name,

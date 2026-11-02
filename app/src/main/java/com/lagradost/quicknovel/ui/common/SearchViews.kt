@@ -51,14 +51,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.lagradost.cloudstream4.compose.RoundedShape
 import com.lagradost.cloudstream4.compose.circle
 import com.lagradost.cloudstream4.compose.rounded
 import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
 import com.lagradost.quicknovel.downloader.BookDownloadStatus
-import com.lagradost.quicknovel.NotificationHelper.etaToString
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.animatedOutline
 import com.lagradost.quicknovel.compose.isLandscape
@@ -287,7 +285,7 @@ fun SearchResponseRow(
                     null
                 }
             } else if (response.chapters != null) {
-                "${response.chaptersRead}/${response.chapters} $chaptersEnding"
+                "${response.lastChaptersRead}/${response.chapters} $chaptersEnding"
             } else {
                 response.latestChapterName
             }
@@ -527,7 +525,7 @@ fun SearchResponseItem(
                         ) {
                             /**+ (response.downloadState?.downloadOffset ?: 0)  */
                             Text(
-                                text = "${response.chaptersRead}/${chapters}",
+                                text = "${response.lastChaptersRead}/${chapters}",
                                 color = Color.White,
                                 style = MaterialTheme.typography.bodySmall,
                             )

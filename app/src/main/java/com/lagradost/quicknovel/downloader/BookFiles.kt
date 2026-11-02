@@ -15,10 +15,12 @@ import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
 import com.lagradost.quicknovel.DOWNLOAD_FOLDER
 import com.lagradost.quicknovel.DOWNLOAD_OFFSET
 import com.lagradost.quicknovel.DOWNLOAD_TOTAL
+import com.lagradost.quicknovel.EPUB_BITSET_POSITION
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_CHAPTER
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_SCROLL
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION_SCROLL_CHAR
+import com.lagradost.quicknovel.EPUB_CURRENT_VISUAL_POSITION
 import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
@@ -449,6 +451,15 @@ object BookFiles {
         setKey(
             EPUB_CURRENT_POSITION_CHAPTER, toStatus.response.name,
             getKey<String>(EPUB_CURRENT_POSITION_CHAPTER, fromStatus.response.name)
+        )
+
+        setKey(
+            EPUB_CURRENT_VISUAL_POSITION, to,
+            getKey<Int>(EPUB_CURRENT_VISUAL_POSITION, from)
+        )
+        setKey(
+            EPUB_BITSET_POSITION, to,
+            getKey<ByteArray>(EPUB_BITSET_POSITION, from)
         )
 
         setKey(

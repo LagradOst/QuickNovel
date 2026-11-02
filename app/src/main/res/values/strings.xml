@@ -13,6 +13,7 @@
 
     <string name="active_providers">%d providers enabled</string>
     <string name="search_hint">Search Novels…</string>
+    <string name="search_chapters_hint">Search Chapters…</string>
     <string name="synopsis">Description</string>
     <string name="no_data">No Data</string>
     <string name="none">@string/type_none</string>
@@ -131,6 +132,7 @@
     <string name="type_plan_to_read">Plan to Read</string>
     <string name="type_none">None</string>
     <string name="has_read">Has read</string>
+    <string name="not_read">Not read</string>
 
     <string name="read_display_settings">Settings</string>
     <string name="tab_translation">Translate</string>
@@ -235,6 +237,7 @@
     <string name="update">Update</string>
     <string name="dont_show_again">Don\'t show again</string>
     <string name="downloaded">Downloaded</string>
+    <string name="not_downloaded">Not downloaded</string>
     <string name="manage">Manage</string>
     <string name="pause">Pause</string>
     <string name="resume">Resume</string>
@@ -249,6 +252,7 @@
     <string name="recently_checked_sort">Recently refreshed</string>
     <string name="recently_visisted_sort">Recently read</string>
     <string name="alpha_sort">Alphabetical</string>
+    <string name="release_sort">Release order</string>
     <string name="download_sort">Download count</string>
     <string name="download_perc">Download percentage</string>
     <string name="recently_updated_sort">Recently updated</string>
