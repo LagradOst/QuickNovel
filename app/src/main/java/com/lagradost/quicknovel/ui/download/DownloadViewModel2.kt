@@ -415,8 +415,6 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                     card.downloadState?.downloadOffset ?: 0
                 )
             )
-            // Stagger them slightly to prevent a lag spike
-            delay(10.milliseconds)
         }
     }
 

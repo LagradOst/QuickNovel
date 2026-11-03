@@ -68,7 +68,7 @@ object BookState {
             val newResponse = updater(current.response)
             val newStatus = current.copy(response = newResponse)
             if (currentStatusMap.replace(id, current, newStatus)) {
-                println("New state ($id) = ${newStatus.response.downloadState?.pendingChapters}")
+                //println("New state ($id) = ${newStatus.response.downloadState?.pendingChapters}")
                 postStateUpdate(response = newResponse, id = id, notify = notify)
                 break
             }
