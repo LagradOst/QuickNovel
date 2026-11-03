@@ -282,7 +282,7 @@ object PDFDownloader {
                 val insertedText =
                     "<div style='text-align:center;'><img src=\"${imageFile.name}\" style='max-width:100%;'/></div>"
                 if (imageFile.exists()) {
-                    if(currentChapterText.length >= PDF_MIN_IMAGE_SIZE) {
+                    if (currentChapterText.length >= PDF_MIN_IMAGE_SIZE) {
                         currentChapterText.append(insertedText)
                     }
                     continue
@@ -358,8 +358,12 @@ object PDFDownloader {
             }
         }
 
-        updateDownloadState(handle.id) {
-            copy(downloadedChapters = BitSet().apply { set(0) })
+        updateState(handle.id) {
+            copy(
+                /** Force update the image, to avoid the cache by e.g. compose */
+                posterUrl = handle.files.posterFile().absolutePath,
+                downloadState = downloadState?.copy(downloadedChapters = BitSet().apply { set(0) })
+            )
         }
         setDone(response = response, handle = handle)
     }

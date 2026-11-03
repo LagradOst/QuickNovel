@@ -26,6 +26,7 @@ import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import coil3.request.error
 import coil3.request.transformations
 import com.lagradost.cloudstream4.state.FilterByQuery
 import com.lagradost.cloudstream4.state.SearchableData
@@ -178,7 +179,7 @@ data class ImmutableReview(
     val imageRequest
         get() = @Composable {
             val context = LocalContext.current
-            remember(context) {
+            remember(context, avatarUrl, avatarHeaders) {
                 ImageRequest(context)
             }
         }
@@ -287,14 +288,14 @@ data class ImmutableSearchResponse(
     val imageRequest
         get() = @Composable {
             val context = LocalContext.current
-            remember(context) {
+            remember(context, posterUrl, posterHeaders) {
                 ImageRequest(context)
             }
         }
     val blurImageRequest
         get() = @Composable {
             val context = LocalContext.current
-            remember(context) {
+            remember(context, posterUrl, posterHeaders) {
                 ImageRequest(context, radius = 100, sample = 3)
             }
         }
@@ -322,18 +323,18 @@ data class ImmutableSearchResponse(
             if (file.exists()) {
                 val uri = file.toUri()
                 ImageRequest.Builder(context)
-                    .data(uri)
+                    .data(uri).error(R.drawable.error_poster)
                     .crossfade(true).transformations(transformations)
                     .build()
             } else {
                 ImageRequest.Builder(context)
-                    .data(R.drawable.error_24px)
+                    .data(R.drawable.error_poster)
                     .crossfade(true).transformations(transformations)
                     .build()
             }
         } else {
             ImageRequest.Builder(context)
-                .data(posterUrl)
+                .data(posterUrl).error(R.drawable.error_poster)
                 .httpHeaders(NetworkHeaders.Builder().also { headerBuilder ->
                     posterHeaders?.forEach { (key, value) ->
                         headerBuilder[key] = value
