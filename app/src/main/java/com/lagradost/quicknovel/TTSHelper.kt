@@ -655,11 +655,16 @@ object TTSHelper {
 
             try {
                 // THIS PART IF FOR THE SPEAK PART, REMOVING STUFF THAT IS WACK
-                var msg = text.substring(index, endIndex).trimEnd()
+                var msg = text.substring(index, endIndex)
+                val oldLength = msg.length
+                msg = msg.trimEnd()
+                val newLength = msg.length
+                val trimLength = oldLength - newLength
+
                 msg = msg.replace(replaceWithSpaceChars, " ")
                 msg = msg.replace("...", " ")
                 if (isValidSpeakOutMsg(msg)) {
-                    ttsLines.add(TTSLine(msg, index, endIndex, index = tag))
+                    ttsLines.add(TTSLine(msg, index, endIndex - trimLength, index = tag))
                 }
             } catch (_: Throwable) {
                 break
