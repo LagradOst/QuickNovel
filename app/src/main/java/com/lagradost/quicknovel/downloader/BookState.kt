@@ -4,17 +4,24 @@ import android.content.Context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
+import com.lagradost.quicknovel.BaseApplication.Companion.setKey
+import com.lagradost.quicknovel.BookDownloader2
+import com.lagradost.quicknovel.BookDownloader2.bookmarkChanged
 import com.lagradost.quicknovel.BookDownloader2Helper
 import com.lagradost.quicknovel.DOWNLOAD_FOLDER
 import com.lagradost.quicknovel.DOWNLOAD_OFFSET
 import com.lagradost.quicknovel.DOWNLOAD_TOTAL
+import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.downloader.BookFiles.updatePersistentData
 import com.lagradost.quicknovel.mvvm.launchSafe
+import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.ui.common.ImmutableDownloadState
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.download.DownloadFragment
+import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Event
+import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
@@ -53,11 +60,51 @@ object BookState {
         }
     }
 
+    /** Unique refresh reading check to allow many jobs to spawn the same */
+    private val updateReadingProgress = ConcurrentHashMap<Int, Unit>()
+    suspend fun updateReadingProgress(response: ImmutableSearchResponse, page : Int, context: Context)  {
+        if(response.id == null) {
+            return
+        }
+        val api = Apis.getApiFromNameOrNull(response.apiName) ?: return
+        if(updateReadingProgress.putIfAbsent(response.id, Unit) != null) {
+            return
+        }
+        try {
+            BookDownloader2.refreshingChanged(BookDownloader2.RefreshQuery(id = response.id, refreshing = true, page = page))
+            BookFiles.resetApiLastRequestTime(api)
+            api.loadResult(url = response.url).onFailure { error ->
+                logError(error)
+            }.onSuccess { newResponse ->
+                val cached = getKey<ResultCached>(RESULT_BOOKMARK, response.id.toString()) ?: return
+                val newCache = newResponse.toResultCached(response.id).copy(cachedTime = cached.cachedTime)
+                setKey(
+                    RESULT_BOOKMARK,
+                    response.id.toString(),
+                    newCache
+                )
+                bookmarkChanged(cached.id)
+
+                // Also migrate if possible
+                if (response.id != newResponse.id) {
+                    BookDownloader.migrateNonDownloadedInformation(
+                        context = context,
+                        from = response,
+                        to = newResponse
+                    )
+                }
+            }
+        } finally {
+            updateReadingProgress.remove(response.id)
+            BookDownloader2.refreshingChanged(BookDownloader2.RefreshQuery(id = response.id, refreshing = false, page = page))
+        }
+    }
+
     /** Automatically */
     @OptIn(ExperimentalContracts::class)
     fun updateState(
         id: Int,
-        notify : Boolean = true,
+        notify: Boolean = true,
         updater: ImmutableSearchResponse.() -> ImmutableSearchResponse
     ) {
         contract {
@@ -78,19 +125,19 @@ object BookState {
     @OptIn(ExperimentalContracts::class)
     fun updateDownloadState(
         id: Int,
-        notify : Boolean = true,
+        notify: Boolean = true,
         updater: ImmutableDownloadState.() -> ImmutableDownloadState
     ) {
         contract {
             callsInPlace(lambda = updater, kind = InvocationKind.UNKNOWN)
         }
-        updateState(id,notify) {
+        updateState(id, notify) {
             copy(downloadState = downloadState?.let(updater))
         }
     }
 
     fun postStateUpdate(response: ImmutableSearchResponse, id: Int, notify: Boolean) {
-        if(notify) {
+        if (notify) {
             safe {
                 BookNotifications.postNotification(response = response, id = id)
             }
@@ -101,7 +148,7 @@ object BookState {
     }
 
 
-    fun setStop(id : Int) {
+    fun setStop(id: Int) {
         updateDownloadState(id) {
             copy(
                 downloadStatus = BookDownloadStatus.Stopped,
@@ -113,7 +160,7 @@ object BookState {
         }
     }
 
-    fun setError(id : Int, error : Throwable?) {
+    fun setError(id: Int, error: Throwable?) {
         updateDownloadState(id) {
             copy(
                 downloadStatus = BookDownloadStatus.Failed,
@@ -140,7 +187,8 @@ object BookState {
             timeOfCached = creationTime
         )
 
-        val cancelNotification = response.timeOfChapterDownloaded == null || response.timeOfChapterDownloaded < handle.created
+        val cancelNotification =
+            response.timeOfChapterDownloaded == null || response.timeOfChapterDownloaded < handle.created
 
         updateState(handle.id, notify = !cancelNotification) {
             copy(

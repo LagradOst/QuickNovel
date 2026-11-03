@@ -7,29 +7,30 @@ import com.lagradost.cloudstream4.state.ActionHandler
 import com.lagradost.cloudstream4.state.DebounceQuery
 import com.lagradost.cloudstream4.state.DefaultStateContainer
 import com.lagradost.cloudstream4.state.StateContainer
-import com.lagradost.quicknovel.BaseApplication
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
-import com.lagradost.quicknovel.downloader.BookAction
-import com.lagradost.quicknovel.downloader.BookDownloadPackage
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
-import com.lagradost.quicknovel.downloader.BookStateChanged
 import com.lagradost.quicknovel.CURRENT_TAB
 import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
 import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
-import com.lagradost.quicknovel.DownloadFileWorkManager
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
+import com.lagradost.quicknovel.downloader.BookAction
+import com.lagradost.quicknovel.downloader.BookDownloadListPayload
+import com.lagradost.quicknovel.downloader.BookDownloadPackage
+import com.lagradost.quicknovel.downloader.BookDownloadPayload
 import com.lagradost.quicknovel.downloader.BookDownloadStatus
 import com.lagradost.quicknovel.downloader.BookDownloader
 import com.lagradost.quicknovel.downloader.BookNotifications
 import com.lagradost.quicknovel.downloader.BookReader
+import com.lagradost.quicknovel.downloader.BookRefreshListPayload
 import com.lagradost.quicknovel.downloader.BookState
 import com.lagradost.quicknovel.downloader.BookState.setupMutex
+import com.lagradost.quicknovel.downloader.BookStateChanged
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.common.ImmutableSearchList
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
@@ -47,11 +48,9 @@ import kotlinx.collections.immutable.toPersistentHashMap
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlin.time.Duration.Companion.milliseconds
 
 const val DEFAULT_SORT = 0
 const val ALPHA_SORT = 1
@@ -376,9 +375,10 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
 
 
     fun refreshPage(page: Int) {
-        DownloadFileWorkManager.refreshAllReadingProgress(
-            BaseApplication.context ?: return,
-            page
+        val pageData = state.value.pages.getOrNull(page) ?: return
+        BookDownloader.refreshBookmarks(
+            data = BookRefreshListPayload(responses = pageData.sorted.map { pageData.data[it]!! }
+                .toPersistentList(), page = page)
         )
     }
 
@@ -407,15 +407,15 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                 }
             }
         }*/
-
-        for (card in values) {
-            BookDownloader.download(
-                response = card,
-                bookPackage = BookDownloadPackage.AfterOffset(
-                    card.downloadState?.downloadOffset ?: 0
+        BookDownloader.downloadList(
+            payload = BookDownloadListPayload(payloads = values.map { response ->
+                BookDownloadPayload(
+                    response = response, bookPackage = BookDownloadPackage.AfterOffset(
+                        response.downloadState?.downloadOffset ?: 0
+                    )
                 )
-            )
-        }
+            }.toPersistentList()),
+        )
     }
 
     init {

@@ -65,10 +65,6 @@ data class SortingMethod(@StringRes val name: Int, val id: Int, val inverse: Int
 
 class ResultViewModel : ViewModel() {
     companion object {
-        val chapterSortingMethods = arrayOf(
-            SortingMethod(R.string.chapter_sort, CHAPTER_SORT, REVERSE_CHAPTER_SORT),
-            SortingMethod(R.string.recently_sort, LAST_ACCES_SORT, REVERSE_LAST_ACCES_SORT),
-        )
         var sortChapterBy by PreferenceDelegate(RESULT_CHAPTER_SORT, CHAPTER_SORT, Int::class)
 
         var filterChapterByDownloads by PreferenceDelegate(

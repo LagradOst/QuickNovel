@@ -45,6 +45,7 @@ import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
+import kotlinx.collections.immutable.PersistentList
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
@@ -172,6 +173,17 @@ data class BookDownloadPayload(
     val bookPackage: BookDownloadPackage,
 )
 
+@Immutable
+data class BookDownloadListPayload(
+    val payloads: PersistentList<BookDownloadPayload>
+)
+
+@Immutable
+data class BookRefreshListPayload(
+    val page : Int,
+    val responses: PersistentList<ImmutableSearchResponse>
+)
+
 fun BitSet.copy(): BitSet {
     return this.clone() as BitSet
 }
@@ -198,6 +210,11 @@ fun BitSet.copy(): BitSet {
 object BookDownloader {
     suspend fun delete(id: Int) = safeAsync {
         deleteDownload(id)
+    }
+
+    fun refreshBookmarks(data: BookRefreshListPayload, context: Context? = BaseApplication.context) {
+        val context = context ?: return
+        DownloadFileWorkManager.startRefreshBookmark(data = data, context = context)
     }
 
     fun download(
@@ -235,6 +252,43 @@ object BookDownloader {
         }
     }
 
+    fun downloadList(
+        payload: BookDownloadListPayload,
+        context: Context? = BaseApplication.context
+    ) = safe {
+        val copy = payload.payloads.removingAll { (response, bookPackage) ->
+            val id = response.id ?: return@removingAll true
+            val current = currentStatusMap[response.id]
+
+            /**
+             * Fast case, we avoid the DownloadFileWorkManager if possible as it is slow af
+             * */
+            when (current?.response?.downloadState?.downloadStatus) {
+                BookDownloadStatus.Paused -> {
+                    applyPackage(id, bookPackage)
+                    current.handle.notification.trySend(BookAction.Resume)
+                    return@removingAll true
+                }
+
+                BookDownloadStatus.Downloading, BookDownloadStatus.Pending -> {
+                    applyPackage(id, bookPackage)
+                    return@removingAll true
+                }
+
+                else -> {
+                    false
+                }
+            }
+        }
+
+        if (copy.isNotEmpty()) {
+            DownloadFileWorkManager.startRefreshDownloads(
+                data = payload.copy(payloads = copy),
+                context = context ?: return@safe
+            )
+        }
+    }
+
     @Throws
     private suspend fun deleteDownload(id: Int) = withContext(Dispatchers.IO) {
         if (!currentStatusMap.containsKey(id)) {
@@ -269,6 +323,37 @@ object BookDownloader {
             }
 
             postRemoved(id)
+        }
+    }
+
+    /**
+     * Bookmarks should also migrate information, however this migration should only happen if
+     * both the migration from and to is not already downloaded.
+     *
+     * As the downloader should migrate outdated bookmarks when refreshing a download
+     * */
+    suspend fun migrateNonDownloadedInformation(
+        from: ImmutableSearchResponse,
+        to: ImmutableSearchResponse,
+        context: Context,
+    ) = withContext(Dispatchers.IO) {
+        require(from.id != null)
+        require(to.id != null)
+        if (currentStatusMap.containsKey(from.id) || currentStatusMap.containsKey(to.id)) {
+            return@withContext
+        }
+        val fromHandle = BookHandle.from(context = context, response = from, id = from.id)
+        val toHandle = BookHandle.from(context = context, response = to, id = to.id)
+        val fromStatus = BookStatus(handle = fromHandle, response = from)
+        val toStatus = BookStatus(handle = toHandle, response = to)
+        fromHandle.mutex.withLock {
+            toHandle.mutex.withLock {
+                if(currentStatusMap.putIfAbsent(from.id, fromStatus) != null || currentStatusMap.putIfAbsent(to.id, toStatus) != null) {
+                    return@withContext
+                }
+                /** We can now safely migrate from A -> B as both A and B are not downloaded */
+                migrateAllInformation(fromStatus = fromStatus, toStatus = toStatus)
+            }
         }
     }
 
@@ -832,7 +917,7 @@ object BookDownloader {
         val current =
             currentStatusMap[handle.id]
                 ?: throw IllegalStateException("No current download state exists")
-        val total = current.response.loadData?.chapters?.size ?:return null
+        val total = current.response.loadData?.chapters?.size ?: return null
         val pendingChapters = current.response.downloadState?.pendingChapters ?: return null
         val chapterIndex: Int = pendingChapters.nextSetBit(0)
         if (chapterIndex == -1) {

@@ -618,7 +618,6 @@ object TTSHelper {
     private val endAt = Regex("[.\n;?:!‽।॥]")
     private val startAt =
         Regex("[^-<>_^/\\\\|()«»「」—–¿*~【】〈〉❬❭〈〉❰❱《》〚〛⟦⟧〘〙❲❳❴❵\\[\\]\u200C .\n\"'’‘“”…,]")
-    private const val INVALID_END_CHARS = "\n"
     private val prePassRegex = arrayOf(
         "\\.([A-z])".toRegex() to ",$1",
         "([.:])([0-9])".toRegex() to ",$2",

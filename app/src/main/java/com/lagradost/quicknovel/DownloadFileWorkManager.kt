@@ -14,11 +14,16 @@ import androidx.work.WorkerParameters
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.BookDownloader2Helper.generateId
+import com.lagradost.quicknovel.downloader.BookDownloadListPayload
 import com.lagradost.quicknovel.downloader.BookDownloadPayload
 import com.lagradost.quicknovel.downloader.BookDownloader
+import com.lagradost.quicknovel.downloader.BookRefreshListPayload
+import com.lagradost.quicknovel.downloader.BookState
 import com.lagradost.quicknovel.mvvm.logError
-import com.lagradost.quicknovel.ui.download.DownloadFragment
+import com.lagradost.quicknovel.util.cmap
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -66,23 +71,6 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
             WorkManager.getInstance(context.applicationContext)
         }
 
-
-        fun refreshAllReadingProgress(context: Context, currentTab: Int) {
-            val uniqueWorkName = "${ID_REFRESH_READINGPROGRESS}_$currentTab"
-            getWorkerManager(context).enqueueUniqueWork(
-                uniqueWorkName,
-                ExistingWorkPolicy.KEEP,
-                OneTimeWorkRequest.Builder(DownloadFileWorkManager::class.java)
-                    .setInputData(
-                        Data.Builder()
-                            .putString(ID, ID_REFRESH_READINGPROGRESS)
-                            .putInt(CURRENT_TAB, currentTab)
-                            .build()
-                    )
-                    .build()
-            )
-        }
-
         fun startDownload(data: Any, downloadId: Int, context: Context) {
             getWorkerManager(context).enqueueUniqueWork(
                 ID_DOWNLOAD + downloadId, // Only 1 download / worker
@@ -93,6 +81,32 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
                             .putString(ID, ID_DOWNLOAD)
                             .putInt(DATA, insertWork(data))
                             .putInt(DOWNLOAD_ID, downloadId)
+                            .build()
+                    )
+                    .build()
+            )
+        }
+
+        fun startRefreshDownloads(data: BookDownloadListPayload, context: Context) {
+            getWorkerManager(context).enqueue(
+                OneTimeWorkRequest.Builder(DownloadFileWorkManager::class.java)
+                    .setInputData(
+                        Data.Builder()
+                            .putString(ID, ID_REFRESH_DOWNLOADS)
+                            .putInt(DATA, insertWork(data))
+                            .build()
+                    )
+                    .build()
+            )
+        }
+
+        fun startRefreshBookmark(data: BookRefreshListPayload, context: Context) {
+            getWorkerManager(context).enqueue(
+                OneTimeWorkRequest.Builder(DownloadFileWorkManager::class.java)
+                    .setInputData(
+                        Data.Builder()
+                            .putString(ID, ID_REFRESH_READINGPROGRESS)
+                            .putInt(DATA, insertWork(data))
                             .build()
                     )
                     .build()
@@ -186,46 +200,65 @@ class DownloadFileWorkManager(val context: Context, private val workerParams: Wo
         val id = this.workerParams.inputData.getString(ID)
         when (id) {
             ID_DOWNLOAD -> {
-                runInForeground()
                 when (val data = popWork(this.workerParams.inputData.getInt(DATA, -1))) {
                     is BookDownloadPayload -> {
+                        runInForeground()
                         BookDownloader.startNewDownloadOrReturn(
                             context = context,
                             response = data.response,
                             bookPackage = data.bookPackage
                         )
-                        //BookDownloader2.downloadWorkThread(data, context)
-                    }
-
-                    is DownloadFragment.DownloadDataLoaded -> {
-                        /*BookDownloader3.startDownload(
-                            context = context,
-                            response = ImmutableSearchResponse.from(id = id, cache = data)
-                        )*/
-
-                        /*if (data.apiName == IMPORT_SOURCE_PDF)
-                            BookDownloader2.downloadPDFWorkThread(data.source.toUri(), context)
-                        else
-                            BookDownloader2.downloadWorkThread(data, context)
-                        */
                     }
 
                     else -> {} /*return retryFromStoredData()*/
                 }
             }
 
-            /*
             ID_REFRESH_DOWNLOADS -> {
-                runInForeground()
-                viewModel?.refreshInternal()
+                when (val data = popWork(this.workerParams.inputData.getInt(DATA, -1))) {
+                    is BookDownloadListPayload -> {
+                        runInForeground()
+                        withContext(Dispatchers.IO) {
+                            try {
+                                data.payloads.cmap { payload ->
+                                    BookDownloader.startNewDownloadOrReturn(
+                                        context = context,
+                                        response = payload.response,
+                                        bookPackage = payload.bookPackage
+                                    )
+                                }
+                            } catch (t: Throwable) {
+                                logError(t)
+                            }
+                        }
+                    }
+
+                    else -> {}
+                }
             }
 
             ID_REFRESH_READINGPROGRESS -> {
-                val currentTab = this.workerParams.inputData.getInt(CURRENT_TAB, 1)
-                viewModel?.setIsLoading(true, currentTab)
-                BookDownloader2.getOldDataReadingProgress(currentTab)
-                viewModel?.setIsLoading(false, currentTab)
-            }*/
+                when (val data = popWork(this.workerParams.inputData.getInt(DATA, -1))) {
+                    is BookRefreshListPayload -> {
+                        runInForeground()
+                        withContext(Dispatchers.IO) {
+                            try {
+                                data.responses.cmap { response ->
+                                    BookState.updateReadingProgress(
+                                        response = response,
+                                        context = context,
+                                        page = data.page
+                                    )
+                                }
+                            } catch (t: Throwable) {
+                                logError(t)
+                            }
+                        }
+                    }
+
+                    else -> {}
+                }
+            }
 
             else -> return Result.failure()
         }

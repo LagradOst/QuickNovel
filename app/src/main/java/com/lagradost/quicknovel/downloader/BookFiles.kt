@@ -5,9 +5,11 @@ import android.graphics.BitmapFactory
 import android.os.Build
 import androidx.annotation.CheckResult
 import androidx.compose.runtime.Immutable
+import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
+import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.BookDownloader2.LOCAL_EPUB
 import com.lagradost.quicknovel.BookDownloader2Helper.decodeSafeBitmap
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
@@ -32,6 +34,7 @@ import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.ResultCached
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -174,6 +177,11 @@ object BookFiles {
     @CheckResult
     suspend fun resetApiLastRequestTime(handle: BookHandle): Boolean {
         val api = handle.files.getApiOrNull() ?: return false
+        return resetApiLastRequestTime(api = api, handle = handle)
+    }
+
+    @Throws
+    suspend fun resetApiLastRequestTime(api: APIRepository, handle: BookHandle? = null): Boolean {
         val addedTime = api.rateLimitTime
         if (addedTime <= 0L) return false
         val key = api.name
@@ -182,8 +190,12 @@ object BookFiles {
             val current = lastUpdatedMainAPI[key] ?: 0L
             val remain = current - System.currentTimeMillis()
             if (remain > 0L) {
-                if (waitForAction(handle = handle, timeout = remain.milliseconds)) {
-                    return true
+                if (handle != null) {
+                    if (waitForAction(handle = handle, timeout = remain.milliseconds)) {
+                        return true
+                    }
+                } else {
+                    delay(remain.milliseconds)
                 }
             }
             /** Pause resume -> this is early */
@@ -329,7 +341,6 @@ object BookFiles {
         }
 
 
-
     @CheckResult
     private suspend fun waitForUnpause(handle: BookHandle): Boolean {
         /** Wait for valid */
@@ -376,7 +387,7 @@ object BookFiles {
         return result
     }
 
-    fun removeDownloadedFiles(status : BookStatus) {
+    fun removeDownloadedFiles(status: BookStatus) {
         val fromDir = status.handle.files.directoryFile()
         fromDir.deleteRecursively()
         val from = status.id.toString()
@@ -392,7 +403,7 @@ object BookFiles {
         toDir.mkdirs()
         try {
             fromDir.copyRecursively(toDir, overwrite = false)
-        } catch (_ : NoSuchFileException) {
+        } catch (_: NoSuchFileException) {
             /** Ignore only this error, as it is useless. */
         }
 
@@ -418,15 +429,21 @@ object BookFiles {
             getKey<Int>(DOWNLOAD_OFFSET, from)
         )
 
+        /**
+         * Migrate the bookmark/history without modifying the cache time, as migration should
+         * only refresh the information, not remove it
+         * */
+        val newCache = toStatus.response.toResultCached(toStatus.id)
+        val oldHistory = getKey<ResultCached>(HISTORY_FOLDER, from)
         setKey(
             HISTORY_FOLDER, to,
-            getKey<ResultCached>(HISTORY_FOLDER, from)
+            newCache.copy(cachedTime = oldHistory?.cachedTime ?: newCache.cachedTime)
         )
         removeKey(HISTORY_FOLDER, from)
-
+        val oldBookmark = getKey<ResultCached>(RESULT_BOOKMARK, from)
         setKey(
             RESULT_BOOKMARK, to,
-            getKey<ResultCached>(RESULT_BOOKMARK, from)
+            newCache.copy(cachedTime = oldBookmark?.cachedTime ?: newCache.cachedTime)
         )
         removeKey(RESULT_BOOKMARK, from)
 
@@ -470,6 +487,11 @@ object BookFiles {
         )
         safe {
             removeDownloadedFiles(fromStatus)
+        }
+
+        safe {
+            BookDownloader2.bookmarkChanged(fromStatus.id)
+            BookDownloader2.bookmarkChanged(toStatus.id)
         }
     }
 }
