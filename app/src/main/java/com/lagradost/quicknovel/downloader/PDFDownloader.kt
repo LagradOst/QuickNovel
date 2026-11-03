@@ -282,7 +282,9 @@ object PDFDownloader {
                 val insertedText =
                     "<div style='text-align:center;'><img src=\"${imageFile.name}\" style='max-width:100%;'/></div>"
                 if (imageFile.exists()) {
-                    currentChapterText.append(insertedText)
+                    if(currentChapterText.length >= PDF_MIN_IMAGE_SIZE) {
+                        currentChapterText.append(insertedText)
+                    }
                     continue
                 }
                 val scaledBitmap = scaleBitmap(bitmap = bitmap, maxSize = 1200)
@@ -290,6 +292,10 @@ object PDFDownloader {
                 scaledBitmap.compress(
                     android.graphics.Bitmap.CompressFormat.JPEG, 85, imageFile.outputStream()
                 )
+                /** Do not include  */
+                if (imageFile.length() < PDF_MIN_IMAGE_SIZE) {
+                    continue
+                }
                 currentChapterText.append(insertedText)
             }
             val time = monotonicNow() - start
