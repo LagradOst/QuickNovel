@@ -106,7 +106,7 @@ object BookState {
             copy(
                 downloadStatus = BookDownloadStatus.Stopped,
                 pendingChapters = BitSet(),
-                progressChapter = null,
+                chapterProgress = null,
                 estimateDownloadTime = null,
                 error = null,
             )
@@ -119,7 +119,7 @@ object BookState {
                 downloadStatus = BookDownloadStatus.Failed,
                 error = error,
                 pendingChapters = BitSet(),
-                progressChapter = null,
+                chapterProgress = null,
                 estimateDownloadTime = null
             )
         }
@@ -148,7 +148,7 @@ object BookState {
                 timeOfCached = creationTime,
                 downloadState = downloadState?.copy(
                     error = null,
-                    progressChapter = null,
+                    chapterProgress = null,
                     estimateDownloadTime = null,
                     pendingChapters = BitSet(),
                     downloadStatus = BookDownloadStatus.Done
@@ -214,15 +214,15 @@ object BookState {
                             id = localId
                         ),
                         response = response.copy(
+                            visualTotalChapters = downloadTotal,
                             downloadState = ImmutableDownloadState(
-                                progressChapter = null,
+                                chapterProgress = null,
                                 downloadedChapters = downloads,
                                 pendingChapters = BitSet(),
                                 downloadedBytes = 0L,
                                 totalBytes = 0L,
                                 downloadStatus = BookDownloadStatus.Idle,
                                 error = null,
-                                totalChapters = downloadTotal,
                                 downloadOffset = downloadOffset
                             )
                         ),

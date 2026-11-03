@@ -36,7 +36,6 @@ import com.lagradost.cloudstream4.state.sortByInt
 import com.lagradost.cloudstream4.state.sortByLong
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
-import com.lagradost.quicknovel.downloader.BookDownloadStatus
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.BookDownloader2Helper.generateId
@@ -62,6 +61,7 @@ import com.lagradost.quicknovel.ReleaseStatus
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.UserReview
+import com.lagradost.quicknovel.downloader.BookDownloadStatus
 import com.lagradost.quicknovel.downloader.BookState
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.util.BlurTransformation
@@ -78,11 +78,10 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
-import me.xdrop.fuzzywuzzy.FuzzySearch
 import java.io.File
 import java.util.BitSet
-import kotlin.Int
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
 import kotlin.uuid.Uuid
@@ -146,9 +145,6 @@ data class ImmutableChapterData(
                 index = index,
             )
     }
-
-    fun matchesQuery(query: String): Boolean =
-        FuzzySearch.partialRatio(name.lowercase(), query) > 50
 }
 
 @Immutable
@@ -246,7 +242,7 @@ data class ImmutableSearchResponse(
     /** This is a random uuid that is stable for e.g. using a key but not persistent between launches */
     val randomUuid: Uuid = Uuid.random(),
     /** The total chapter count, use chapters instead to also work on downloaded items */
-    private val totalChapters: Int? = null,
+    private val visualTotalChapters: Int? = null,
     /** The current download state, only present on "downloaded" items */
     val downloadState: ImmutableDownloadState? = null,
     /** The "synopsis" or "plot" of the item, absent for regular search results */
@@ -272,11 +268,21 @@ data class ImmutableSearchResponse(
     val loadData: ImmutableLoadData? = null,
     val reviewData: String? = null,
 ) {
-    fun matchesQuery(query: String): Boolean =
-        FuzzySearch.partialRatio(name.lowercase(), query) > 50
-
-    val chapters: Int? get() = totalChapters ?: downloadState?.totalChapters
+    val chapters: Int? get() = loadData?.chapters?.size ?: visualTotalChapters
     val isImported: Boolean get() = (apiName == IMPORT_SOURCE || apiName == IMPORT_SOURCE_PDF)
+
+    /**
+     * The current offline download percentage with the offset,
+     * aka 60(with offset = 0)/100 == 60(with offset = 4)/100 but the first 4 chapters may not be downloaded
+     * */
+    val downloadPercentage
+        get() = downloadState?.let { state ->
+            if (state.downloadedBytes > 0) {
+                state.downloadedBytes.toFloat() / maxOf(state.totalBytes, 1L).toFloat()
+            } else {
+                state.totalDownloadedAfterOffset.toFloat() / maxOf(chapters ?: 1, 1).toFloat()
+            }
+        }
 
     val imageRequest
         get() = @Composable {
@@ -350,7 +356,7 @@ data class ImmutableSearchResponse(
             poster = posterUrl,
             tags = tags,
             rating = rating,
-            totalChapters = loadData?.chapters?.size ?: downloadState?.totalChapters ?: 1,
+            totalChapters = chapters ?: 1,
             cachedTime = System.currentTimeMillis(),
             synopsis = synopsis,
             posterHeaders = posterHeaders
@@ -398,7 +404,6 @@ data class ImmutableSearchResponse(
             downloadState = ImmutableDownloadState(
                 downloadStatus = BookDownloadStatus.Idle,
                 downloadedChapters = BitSet().apply { set(0); set(1); set(2) },
-                totalChapters = 200,
                 downloadOffset = 0,
                 estimateDownloadTime = 123.seconds,
             )
@@ -459,10 +464,9 @@ data class ImmutableSearchResponse(
                 chaptersRead = null
             )
 
-        fun downloadState(id: Int, totalChapters: Int) =
-            BookState.downloadStatus(id)?.downloadState ?: ImmutableDownloadState(
+        fun downloadState(id: Int) =
+            BookState.downloadStatus(id)?.downloadState?.copy() ?: ImmutableDownloadState(
                 downloadStatus = BookDownloadStatus.Idle,
-                totalChapters = totalChapters,
                 downloadOffset = getKey<Int>(DOWNLOAD_OFFSET, id.toString()) ?: 0,
                 downloadedChapters = BitSet(),
             )
@@ -472,8 +476,9 @@ data class ImmutableSearchResponse(
             val epubResponse = (response as? EpubResponse)
             val streamResponse = (response as? StreamResponse)
 
+            val totalChapters = streamResponse?.data?.size ?: 1
             val currentDownloadProgress: ImmutableDownloadState =
-                downloadState(id = id, totalChapters = streamResponse?.data?.size ?: 1)
+                downloadState(id = id)
 
             return ImmutableSearchResponse(
                 id = id,
@@ -497,6 +502,7 @@ data class ImmutableSearchResponse(
                     views = response.views,
                     peopleVoted = response.peopleVoted,
                 ),
+                visualTotalChapters = totalChapters,
                 timeOfPageOpened = timeOfPageOpened(id),
                 reviewData = response.reviewData,
                 tags = response.tags?.toPersistentList(),
@@ -520,7 +526,7 @@ data class ImmutableSearchResponse(
                 rating = cache.rating,
                 id = cache.id,
                 timeOfCached = cache.cachedTime,
-                totalChapters = cache.totalChapters,
+                visualTotalChapters = cache.totalChapters,
                 author = cache.author,
                 synopsis = cache.synopsis,
                 timeOfPageOpened = timeOfPageOpened(cache.id),
@@ -586,6 +592,12 @@ data class SearchResponseAction(
     }
 }
 
+@Immutable
+data class ImmutableChapterProgress(
+    val progress: Int,
+    val total: Int
+)
+
 /**
  * Book downloader -> Viewmodel + UI
  *
@@ -599,13 +611,11 @@ data class ImmutableDownloadState(
     val downloaded: Long,
     */
     val downloadOffset: Int,
-    /** How many chapters there in total */
-    val totalChapters: Int,
     val estimateDownloadTime: Duration? = null,
     /** When was this state updated */
     //val lastUpdatedMs: Long = System.currentTimeMillis(),
     /** What chapter is currently being downloaded */
-    val progressChapter: Int? = null,
+    val chapterProgress: ImmutableChapterProgress? = null,
     /** What chapters we have downloaded */
     val downloadedChapters: BitSet,
     /** What chapters are pending in progress of being downloaded */
@@ -620,38 +630,24 @@ data class ImmutableDownloadState(
     /** How many milliseconds until this item is fully downloaded */
     val etaMs: Long? get() = estimateDownloadTime?.toLong(DurationUnit.MILLISECONDS)
     val estimateDownloadTimeFormat
-        get() = estimateDownloadTime?.toComponents { hours, minutes, seconds, _ ->
-            if (hours > 0) {
-                "${hours}h ${minutes}m"
-            } else if (minutes > 0) {
-                "${minutes}m ${seconds}s"
-            } else if (seconds > 0) {
-                "${seconds}s"
-            } else {
-                null
+        get() = estimateDownloadTime?.plus(999.milliseconds) // Round up: 0.1s -> 1.1s -> 1s
+            ?.toComponents { hours, minutes, seconds, _ ->
+                if (hours > 0) {
+                    "${hours}h ${minutes}m"
+                } else if (minutes > 0) {
+                    "${minutes}m ${seconds}s"
+                } else if (seconds > 0) {
+                    "${seconds}s"
+                } else {
+                    null
+                }
             }
-        }
     /*val downloaded: Long
         get() = if (downloadedBytes > 0L) downloadedBytes else downloadedChapters.length().toLong()
     val progress: Long
         get() = if (totalBytes > 0L) totalBytes else progressChapter?.toLong() ?: downloaded
      */
 
-    val downloadPercentage
-        get() = if (downloadedBytes > 0) {
-            downloadedBytes.toFloat() / maxOf(totalBytes, 1L).toFloat()
-        } else {
-            downloadedChapters.size().toFloat() / maxOf(totalChapters, 1).toFloat()
-        }
-    val progressPercentage
-        get() = if (downloadedBytes > 0) {
-            downloadedBytes.toFloat() / maxOf(totalBytes, 1L).toFloat()
-        } else {
-            (progressChapter?.toFloat() ?: downloadedChapters.length().toFloat()) / maxOf(
-                totalChapters,
-                1
-            ).toFloat()
-        }
 
     /** Get the associated action */
     val action: DownloadStateAction get() = DownloadStateAction(downloadStatus)
@@ -1209,10 +1205,10 @@ data class ImmutableSearchList(
                 it.downloadState?.downloadedChapters?.length() ?: 0
             }
         private val DownloadPercentage = sortByFloat<ImmutableSearchResponse> {
-            it.downloadState?.downloadPercentage ?: 0.0f
+            it.downloadPercentage ?: 0.0f
         }.rev()
         private val RevDownloadPercentage =
-            sortByFloat<ImmutableSearchResponse> { it.downloadState?.downloadPercentage ?: 0.0f }
+            sortByFloat<ImmutableSearchResponse> { it.downloadPercentage ?: 0.0f }
         private val LastOpened =
             sortByLong<ImmutableSearchResponse> { it.timeOfPageOpened ?: 0L }.rev()
         private val RevLastOpened =

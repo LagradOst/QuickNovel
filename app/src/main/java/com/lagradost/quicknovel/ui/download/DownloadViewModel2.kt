@@ -47,9 +47,11 @@ import kotlinx.collections.immutable.toPersistentHashMap
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.milliseconds
 
 const val DEFAULT_SORT = 0
 const val ALPHA_SORT = 1
@@ -380,20 +382,18 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
         )
     }
 
-    fun refreshDownloads() {
+    suspend fun refreshDownloads() = withContext(Dispatchers.Default) {
         val progressState = state.value
-        val downloadPage = progressState.pages.getOrNull(0) ?: return
+        val downloadPage = progressState.pages.getOrNull(0) ?: return@withContext
 
         val values =
-            downloadPage.data.filter { (_, card) ->
+            /** Only refresh the selected ones */
+            downloadPage.sorted.mapNotNull { index -> downloadPage.data[index] }.filter { card ->
                 val notImported = !card.isImported && card.apiName != IMPORT_SOURCE_PDF
                 val downloadState = card.downloadState ?: return@filter false
-
-                val canDownload =
-                    downloadState.totalChapters > 0 && downloadState.progressPercentage > 0.9f
-
+                val canDownload = (card.downloadPercentage ?: return@filter false) > 0.9f
                 val notDownloading =
-                    card.downloadState.downloadStatus != BookDownloadStatus.Downloading
+                    downloadState.downloadStatus != BookDownloadStatus.Downloading
                 notImported && canDownload && notDownloading
             }
 
@@ -408,13 +408,15 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             }
         }*/
 
-        for (card in values.values) {
+        for (card in values) {
             BookDownloader.download(
                 response = card,
                 bookPackage = BookDownloadPackage.AfterOffset(
                     card.downloadState?.downloadOffset ?: 0
                 )
             )
+            // Stagger them slightly to prevent a lag spike
+            delay(10.milliseconds)
         }
     }
 

@@ -848,7 +848,7 @@ object ResultScreen {
 
             val downloadState = response.downloadState
             val isDownloaded = downloadState?.downloadedChapters?.get(chapter.index)
-            val isDownloading = downloadState?.progressChapter == chapter.index
+            val isDownloading = downloadState?.chapterProgress?.progress == chapter.index
             val isPending = downloadState?.pendingChapters?.get(chapter.index)
 
             when {
@@ -1182,7 +1182,7 @@ object ResultScreen {
 
             // Overwrite nothing to done when we are finished
             val action =
-                DownloadStateAction(if (downloadState.downloadedChapters.length() >= downloadState.totalChapters && downloadState.downloadStatus == BookDownloadStatus.Idle) BookDownloadStatus.Done else downloadState.downloadStatus)
+                DownloadStateAction(if (downloadState.downloadedChapters.length() >= (response.chapters ?: 1) && downloadState.downloadStatus == BookDownloadStatus.Idle) BookDownloadStatus.Done else downloadState.downloadStatus)
             IconTextButton(
                 modifier = Modifier.weight(1.0f),
                 onClick = {
@@ -1237,7 +1237,7 @@ object ResultScreen {
         )
 
         val animatedProgress: Float by animateFloatAsState(
-            downloadState.progressPercentage,
+            response.downloadPercentage ?: 0.0f,
             label = "alpha",
             animationSpec = tween(durationMillis = 1000),
         )

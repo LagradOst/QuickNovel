@@ -135,10 +135,7 @@ class ResultViewModel2(
             response = initializer?.let { response ->
                 if (response.id != null && response.downloadState == null) {
                     response.copy(
-                        downloadState = ImmutableSearchResponse.downloadState(
-                            response.id,
-                            totalChapters = response.chapters ?: 1
-                        )
+                        downloadState = ImmutableSearchResponse.downloadState(response.id)
                     )
                 } else {
                     response

@@ -207,7 +207,7 @@ fun SearchResponseRow(
                 if (
                     !response.generating
                     && response.downloadState != null
-                    && response.downloadState.downloadedChapters.length() > response.downloadState.totalChapters
+                    && response.downloadState.downloadedChapters.length() > (response.chapters ?: 1)
                     && (response.downloadState.downloadStatus == BookDownloadStatus.Idle || response.downloadState.downloadStatus == BookDownloadStatus.Done)
                 ) {
                     modifier.border(
@@ -264,8 +264,8 @@ fun SearchResponseRow(
             val text = if (response.downloadState != null) {
                 val downloadState = response.downloadState
 
-                if (downloadState.progressChapter != null) {
-                    "${downloadState.progressChapter}/${downloadState.totalChapters} $chaptersEnding"
+                if (downloadState.chapterProgress != null) {
+                    "${downloadState.chapterProgress.progress}/${downloadState.chapterProgress.total} $chaptersEnding"
                 } else if (downloadState.downloadedBytes != downloadState.totalBytes) {
                     val prefixText = "${
                         formatFileSize(
@@ -276,10 +276,15 @@ fun SearchResponseRow(
                     "$prefixText $chaptersEnding"
                 } else if (!response.isImported) {
                     val downloaded = downloadState.totalDownloadedAfterOffset
-                    if (downloaded != downloadState.totalChapters) {
-                        "$downloaded/${downloadState.totalChapters} $chaptersEnding"
+                    val chapters = response.chapters
+                    if(chapters != null) {
+                        if (downloaded != chapters) {
+                            "$downloaded/$chapters $chaptersEnding"
+                        } else {
+                            "$chapters $chaptersEnding"
+                        }
                     } else {
-                        "${downloadState.totalChapters} $chaptersEnding"
+                        null
                     }
                 } else {
                     null

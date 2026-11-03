@@ -20,6 +20,7 @@ import com.lagradost.quicknovel.downloader.BookState.setDone
 import com.lagradost.quicknovel.downloader.BookState.updateDownloadState
 import com.lagradost.quicknovel.downloader.BookState.updateState
 import com.lagradost.quicknovel.mvvm.safe
+import com.lagradost.quicknovel.ui.common.ImmutableChapterProgress
 import com.lagradost.quicknovel.util.AppUtils.textToHtmlChapter
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.PDPage
@@ -39,6 +40,8 @@ import java.util.BitSet
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
+import kotlin.time.Duration
+import kotlin.time.times
 
 /**
  * PDFs are sorta complicated, and to make the downloader happy with the ID each PDF gets 2 ids
@@ -50,6 +53,7 @@ import kotlin.concurrent.write
  */
 object PDFDownloader {
     private const val PDF_MIN_IMAGE_SIZE = 30 * 1024
+
     /** This is a guard to prevent delete + create at the same time */
     private fun pdfSplitName(name: String): Pair<Int, Int> {
         val range = name.split('_').mapNotNull { it.toIntOrNull() }
@@ -208,10 +212,16 @@ object PDFDownloader {
             skipPage.set(a, b)
         }
 
+        var totalTime = Duration.ZERO
+        var totalProcessed = 0
         for ((pageIndex, page) in pages.withIndex()) {
+            val start = monotonicNow()
             updateDownloadState(handle.id) {
                 copy(
-                    totalChapters = totalPages, progressChapter = pageIndex
+                    chapterProgress = ImmutableChapterProgress(
+                        progress = pageIndex,
+                        total = totalPages
+                    ),
                 )
             }
 
@@ -282,6 +292,15 @@ object PDFDownloader {
                 )
                 currentChapterText.append(insertedText)
             }
+            val time = monotonicNow() - start
+            totalProcessed += 1
+            totalTime += time
+            val avgTime = time * 0.2 + (totalTime / totalProcessed)
+            val remain = totalPages - pageIndex - 1
+            val estimateDownloadTime = remain * avgTime
+            updateDownloadState(id = handle.id) {
+                copy(estimateDownloadTime = estimateDownloadTime)
+            }
         }
 
         if (currentChapterText.isNotEmpty()) {
@@ -297,7 +316,10 @@ object PDFDownloader {
 
         updateDownloadState(handle.id) {
             copy(
-                totalChapters = totalPages, progressChapter = totalPages
+                chapterProgress = ImmutableChapterProgress(
+                    progress = totalPages,
+                    total = totalPages
+                ),
             )
         }
 
@@ -331,10 +353,7 @@ object PDFDownloader {
         }
 
         updateDownloadState(handle.id) {
-            copy(
-                totalChapters = 1,
-                progressChapter = null,
-                downloadedChapters = BitSet().apply { set(0) })
+            copy(downloadedChapters = BitSet().apply { set(0) })
         }
         setDone(response = response, handle = handle)
     }

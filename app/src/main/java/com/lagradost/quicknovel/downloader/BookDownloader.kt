@@ -35,6 +35,7 @@ import com.lagradost.quicknovel.get
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.mvvm.safeAsync
+import com.lagradost.quicknovel.ui.common.ImmutableChapterProgress
 import com.lagradost.quicknovel.ui.common.ImmutableDownloadState
 import com.lagradost.quicknovel.ui.common.ImmutableLoadData
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
@@ -57,12 +58,9 @@ import me.ag2s.epublib.util.zip.AndroidZipFile
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.util.BitSet
-import java.util.concurrent.ConcurrentHashMap
-import kotlin.concurrent.write
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
-import kotlin.uuid.Uuid
 
 enum class BookAction {
     Stop,
@@ -289,7 +287,6 @@ object BookDownloader {
             DOWNLOAD_FOLDER,
             handle.id.toString()
         )?.lastDownloaded ?: System.currentTimeMillis()
-        val newTotalChapters = getKey<Int>(DOWNLOAD_TOTAL, handle.id.toString()) ?: 0
         val downloadOffset = getKey<Int>(DOWNLOAD_OFFSET, handle.id.toString()) ?: 0
         val timeOfPageOpened = timeOfPageOpened(handle.id)
         val epubGenerated = epubSize(handle.id)
@@ -347,7 +344,6 @@ object BookDownloader {
                             timeOfPageOpened = timeOfPageOpened,
                             downloadState = current.response.downloadState?.copy(
                                 downloadStatus = BookDownloadStatus.Pending,
-                                totalChapters = newTotalChapters
                             )
                         )
                     )
@@ -360,14 +356,13 @@ object BookDownloader {
                             timeOfChapterDownloaded = lastDownloaded,
                             timeOfPageOpened = timeOfPageOpened,
                             downloadState = ImmutableDownloadState(
-                                progressChapter = null,
+                                chapterProgress = null,
                                 downloadedChapters = getDownloads(files = files),
                                 pendingChapters = BitSet(),
                                 downloadedBytes = 0L,
                                 totalBytes = 0L,
                                 downloadStatus = BookDownloadStatus.Pending,
                                 error = null,
-                                totalChapters = newTotalChapters,
                                 downloadOffset = downloadOffset
                             )
                         )
@@ -535,13 +530,18 @@ object BookDownloader {
 
             is BookDownloadPackage.AfterOffset -> {
                 setKey(DOWNLOAD_OFFSET, id.toString(), bookPackage.offset)
-                updateDownloadState(id, notify = notify) {
+                updateState(id, notify = notify) {
                     copy(
-                        downloadOffset = bookPackage.offset,
-                        pendingChapters = pendingChapters.copy().apply {
-                            set(downloadOffset, totalChapters)
-                            andNot(downloadedChapters)
-                        })
+                        downloadState = downloadState?.copy(
+                            downloadOffset = bookPackage.offset,
+                            pendingChapters = downloadState.pendingChapters.copy().apply {
+                                set(
+                                    downloadState.downloadOffset,
+                                    chapters ?: downloadState.downloadOffset
+                                )
+                                andNot(downloadState.downloadedChapters)
+                            })
+                    )
                 }
             }
 
@@ -569,7 +569,7 @@ object BookDownloader {
             updateState(response.id, notify = false) {
                 copy(
                     downloadState = downloadState?.copy(downloadStatus = BookDownloadStatus.Downloading),
-                    totalChapters = response.loadData.chapters.size
+                    visualTotalChapters = response.loadData.chapters.size
                 )
             }
             downloadPoster(response = response, handle = handle)
@@ -597,7 +597,7 @@ object BookDownloader {
                             if (pendingChapters.isEmpty || downloadStatus != BookDownloadStatus.Downloading || !averageDuration.isPositive()) {
                                 null
                             } else {
-                                (averageDuration * pendingChapters.size())
+                                (averageDuration * pendingChapters.cardinality())
                             }
                     )
                 }
@@ -832,6 +832,7 @@ object BookDownloader {
         val current =
             currentStatusMap[handle.id]
                 ?: throw IllegalStateException("No current download state exists")
+        val total = current.response.loadData?.chapters?.size ?:return null
         val pendingChapters = current.response.downloadState?.pendingChapters ?: return null
         val chapterIndex: Int = pendingChapters.nextSetBit(0)
         if (chapterIndex == -1) {
@@ -845,7 +846,7 @@ object BookDownloader {
 
         updateDownloadState(handle.id) {
             copy(
-                progressChapter = chapterIndex,
+                chapterProgress = ImmutableChapterProgress(progress = chapterIndex, total = total),
                 downloadStatus = BookDownloadStatus.Downloading
             )
         }

@@ -215,14 +215,14 @@ object BookNotifications {
                                 downloadState.downloadedBytes
                             )
                         } / ${formatFileSize(context, downloadState.totalBytes)}"
-                    } else if (downloadState.progressChapter != null) {
+                    } else if (downloadState.chapterProgress != null) {
                         builder.setProgress(
-                            downloadState.totalChapters,
-                            downloadState.progressChapter,
+                            downloadState.chapterProgress.total,
+                            downloadState.chapterProgress.progress,
                             false
                         )
 
-                        "${downloadState.progressChapter} / ${downloadState.totalChapters}"
+                        "${downloadState.chapterProgress.progress} / ${downloadState.chapterProgress.total}"
                     } else {
                         builder.setProgress(
                             1, 0,
