@@ -615,7 +615,7 @@ object TTSHelper {
     private fun isValidSpeakOutMsg(msg: String): Boolean = msg.any { it.isLetter() }
     private val replaceWithSpaceChars =
         Regex("[-<>_^«»「」—–¿*~【】〈〉❬❭〈〉❰❱《》〚〛⟦⟧〘〙❲❳❴❵\\[\\]\u200C]")
-    private val endAt = Regex("[.\n;?:!‽]")
+    private val endAt = Regex("[.\n;?:!‽।॥]")
     private val startAt =
         Regex("[^-<>_^/\\\\|()«»「」—–¿*~【】〈〉❬❭〈〉❰❱《》〚〛⟦⟧〘〙❲❳❴❵\\[\\]\u200C .\n\"'’‘“”…,]")
     private const val INVALID_END_CHARS = "\n"
