@@ -5,6 +5,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -74,11 +75,15 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -89,6 +94,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.lagradost.cloudstream4.compose.ActionDialog
@@ -111,6 +117,7 @@ import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.mvvm.throwableToMessage
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.common.ChapterFilterMethodType
+import com.lagradost.quicknovel.ui.common.ChapterSortingMethodType
 import com.lagradost.quicknovel.ui.common.DownloadStateAction
 import com.lagradost.quicknovel.ui.common.HorizontalTab
 import com.lagradost.quicknovel.ui.common.ImmutableChapterData
@@ -126,6 +133,7 @@ import com.lagradost.quicknovel.ui.common.LoadingWidth
 import com.lagradost.quicknovel.ui.common.SearchList
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseOperation
+import com.lagradost.quicknovel.ui.common.SortingMethodType
 import com.lagradost.quicknovel.ui.common.chapterSortingMethods
 import com.lagradost.quicknovel.ui.common.html
 import com.lagradost.quicknovel.ui.common.loading
@@ -345,7 +353,8 @@ object ResultScreen {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .padding(horizontal = MaterialTheme.padding.medium),
             verticalArrangement = Arrangement.spacedBy(
                 space = MaterialTheme.padding.medium,
                 alignment = Alignment.CenterVertically
@@ -912,9 +921,11 @@ object ResultScreen {
         ) {
             item(key = "sort header") {
                 SortHeader(chapters = chapters, onAction = onAction)
+                Spacer(Modifier.height(MaterialTheme.padding.small))
             }
             item(key = "filter header") {
                 FilterHeader(chapters = chapters, onAction = onAction)
+                Spacer(Modifier.height(MaterialTheme.padding.small))
             }
             items(chapters.sorted, key = { index ->
                 index
@@ -924,7 +935,8 @@ object ResultScreen {
                     chapter = chapters.data[index]!!,
                     onAction = onAction,
                     modifier = Modifier.animateItem(),
-                    selection = chapters.selected
+                    selection = chapters.selected,
+                    sortingMethodType = chapters.sortingMethod
                 )
             }
         }
@@ -960,7 +972,8 @@ object ResultScreen {
         chapter: ImmutableChapterData,
         onAction: (ResultPageAction) -> Unit,
         selection: BitSet,
-        modifier: Modifier
+        modifier: Modifier,
+        sortingMethodType: ChapterSortingMethodType
     ) {
         val isSelectingChapters = !selection.isEmpty
         val isSelected = selection.get(chapter.index)
@@ -981,8 +994,19 @@ object ResultScreen {
             )
         }
 
+        val isSpecialChapter =
+            /** Offset = 0 is no partial download */
+            chapter.index > 0 && response.downloadState?.downloadOffset == chapter.index
+
+        if (isSpecialChapter && (
+                    sortingMethodType == ChapterSortingMethodType.Default || sortingMethodType == ChapterSortingMethodType.Ascending
+                    )
+        ) {
+            ChapterStroke((chapter.index + 1).toString())
+        }
+
         val backgroundColor = if (isSelected) {
-            MaterialTheme.colorScheme.onBackground
+            MaterialTheme.colorScheme.primary
         } else {
             Color.Transparent
         }
@@ -1097,6 +1121,62 @@ object ResultScreen {
                 }
             }
         }
+
+        if (isSpecialChapter && (sortingMethodType == ChapterSortingMethodType.RevAscending)) {
+            ChapterStroke((chapter.index + 1).toString())
+        }
+    }
+
+    @Composable
+    fun ChapterStroke(
+        name: String
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(MaterialTheme.padding.medium),
+            horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.medium),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            StrokeLine(
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1.0f)
+            )
+            Text(
+                stringResource(R.string.download_from_chapter) + " $name +",
+                color = MaterialTheme.colorScheme.primary
+            )
+            StrokeLine(
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1.0f)
+            )
+        }
+    }
+
+    @Composable
+    fun StrokeLine(
+        dashWidth: Dp = 10.dp,
+        gapWidth: Dp = 10.dp,
+        dashHeight: Dp = 3.dp,
+        color: Color,
+        modifier: Modifier
+    ) {
+        Canvas(
+            modifier = modifier.height(dashHeight)
+        ) {
+            val pathEffect = PathEffect.dashPathEffect(
+                intervals = floatArrayOf(dashWidth.toPx(), gapWidth.toPx()),
+                phase = 0f
+            )
+
+            drawLine(
+                color = color,
+                start = Offset(0f, 0f),
+                end = Offset(size.width, 0f),
+                pathEffect = pathEffect,
+                strokeWidth = dashHeight.toPx()
+            )
+        }
     }
 
     @Composable
@@ -1174,10 +1254,12 @@ object ResultScreen {
                 }
 
                 Column {
-                    Text(
-                        text = review.title ?: stringResource(R.string.no_data),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
+                    if (!review.title.isNullOrBlank()) {
+                        Text(
+                            text = review.title,
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1805,7 +1887,8 @@ fun ChapterPreview() {
                     dateOfRelease = "date",
                     views = 123,
                     index = 2
-                )
+                ),
+                sortingMethodType = ChapterSortingMethodType.Default
             )
         }
     }
