@@ -56,9 +56,11 @@
     <string name="sort_downloads_descript">Sort Downloads</string>
     <string name="search_providers">Search Providers</string>
     <string name="search">Search</string>
+    <string name="selected_format" formatted="true">Selected %d</string>
     <string name="general">General</string>
     <string name="overall">Overall</string>
     <string name="info">Info</string>
+    <string name="all">All</string>
     <string name="app_settings">App settings</string>
 
     <string name="advanced_search">Advanced Search</string>

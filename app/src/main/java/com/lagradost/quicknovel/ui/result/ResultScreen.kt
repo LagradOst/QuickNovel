@@ -2,11 +2,13 @@ package com.lagradost.quicknovel.ui.result
 
 import android.content.Intent
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -49,14 +51,14 @@ import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -82,6 +84,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -99,11 +102,10 @@ import com.lagradost.cloudstream4.compose.WhiteFilterChip
 import com.lagradost.cloudstream4.compose.circle
 import com.lagradost.cloudstream4.compose.rounded
 import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
-import com.lagradost.quicknovel.downloader.BookDownloadStatus
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.compose.RootBaseSearchBar
+import com.lagradost.quicknovel.downloader.BookDownloadStatus
 import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.mvvm.throwableToMessage
 import com.lagradost.quicknovel.ui.ReadType
@@ -126,8 +128,18 @@ import com.lagradost.quicknovel.ui.common.SearchResponseOperation
 import com.lagradost.quicknovel.ui.common.chapterSortingMethods
 import com.lagradost.quicknovel.ui.common.html
 import com.lagradost.quicknovel.ui.common.loading
-import com.lagradost.quicknovel.ui.common.normalSortingMethods
-import com.lagradost.quicknovel.ui.result.ResultPageAction.*
+import com.lagradost.quicknovel.ui.result.ResultPageAction.ChapterAction
+import com.lagradost.quicknovel.ui.result.ResultPageAction.DismissDialog
+import com.lagradost.quicknovel.ui.result.ResultPageAction.DownloadSelection
+import com.lagradost.quicknovel.ui.result.ResultPageAction.ExpandReviews
+import com.lagradost.quicknovel.ui.result.ResultPageAction.MarkSelection
+import com.lagradost.quicknovel.ui.result.ResultPageAction.Reload
+import com.lagradost.quicknovel.ui.result.ResultPageAction.ResultAction
+import com.lagradost.quicknovel.ui.result.ResultPageAction.SelectChapters
+import com.lagradost.quicknovel.ui.result.ResultPageAction.SetBookmark
+import com.lagradost.quicknovel.ui.result.ResultPageAction.SetChapterFilterMethod
+import com.lagradost.quicknovel.ui.result.ResultPageAction.SetChapterFilterQuery
+import com.lagradost.quicknovel.ui.result.ResultPageAction.SetChapterSort
 import com.lagradost.quicknovel.util.AppUtils.openInBrowser
 import com.lagradost.quicknovel.util.SettingsHelper.getRating
 import com.lagradost.quicknovel.util.SettingsHelper.getRatingReview
@@ -139,6 +151,8 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.launch
 
 /*
@@ -159,7 +173,11 @@ object ResultScreen : Screen {
 object ResultScreen {
     @Composable
     fun ResultScreen(state: ResultState, onAction: (ResultPageAction) -> Unit) {
-        Scaffold { innerPadding ->
+        com.mihon.material.Scaffold(
+            bottomBar = {
+                BottomBar(state, onAction)
+            }
+        ) { innerPadding ->
             if (state.loadingResponse) {
                 LoadingScreen(Modifier.padding(innerPadding))
             } else if (state.responseError != null) {
@@ -172,6 +190,163 @@ object ResultScreen {
             } else {
                 ResultScreenImpl(innerPadding, state, onAction)
             }
+        }
+    }
+
+    @Composable
+    fun BottomBar(state: ResultState, onAction: (ResultPageAction) -> Unit) {
+        val selection = state.chapters?.selected
+        if (selection.isNullOrEmpty() || state.response == null || state.response.id == null) {
+            return
+        }
+        BackHandler {
+            onAction(SelectChapters(persistentSetOf()))
+        }
+        val isSingle = selection.size == 1
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(color = MaterialTheme.colorScheme.surfaceContainer)
+                .padding(MaterialTheme.padding.medium)
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }) {
+                    /** We only want to consume the keypress */
+                },
+            verticalArrangement = Arrangement.spacedBy(MaterialTheme.padding.medium)
+        ) {
+            Text(
+                text = stringResource(R.string.selected_format, selection.size),
+                style = MaterialTheme.typography.titleLarge
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceAround,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                IconButton(onClick = {
+                    onAction(SelectChapters(persistentSetOf()))
+                }) {
+                    Icon(
+                        painter = painterResource(R.drawable.close_24px),
+                        contentDescription = stringResource(R.string.close)
+                    )
+                }
+                if (isSingle) {
+                    val index = selection.first()
+                    val isRead = state.response.chaptersRead?.get(index) == true
+
+                    if (index > 0) {
+                        IconButton(onClick = {
+                            onAction(
+                                SelectChapters(
+                                    newSelection = (0..index).toPersistentSet(),
+                                )
+                            )
+                        }) {
+                            Icon(
+                                painter = painterResource(R.drawable.move_selection_up),
+                                contentDescription = null
+                            )
+                        }
+                    }
+                    if (index + 1 < state.chapters.data.size) {
+                        IconButton(onClick = {
+                            onAction(
+                                SelectChapters(
+                                    newSelection = (index until state.chapters.data.size).toPersistentSet(),
+                                )
+                            )
+                        }) {
+                            Icon(
+                                painter = painterResource(R.drawable.move_selection_down),
+                                contentDescription = null
+                            )
+                        }
+                    }
+
+                    IconButton(onClick = {
+                        onAction(
+                            MarkSelection(
+                                response = state.response,
+                                selection = persistentSetOf(index),
+                                setToRead = !isRead
+                            )
+                        )
+                    }) {
+                        Icon(
+                            painter = if (isRead) painterResource(R.drawable.remove_done) else painterResource(
+                                R.drawable.done_all
+                            ),
+                            contentDescription = if (isRead) stringResource(R.string.not_read) else stringResource(
+                                R.string.has_read
+                            )
+                        )
+                    }
+
+                    if (state.response.downloadState?.downloadedChapters?.get(index) != true) {
+                        IconButton(onClick = {
+                            onAction(
+                                DownloadSelection(
+                                    response = state.response,
+                                    selection = selection
+                                )
+                            )
+                        }) {
+                            Icon(
+                                painter = painterResource(R.drawable.arrow_circle_down_24px),
+                                contentDescription = stringResource(R.string.download)
+                            )
+                        }
+                    }
+                } else {
+                    IconButton(onClick = {
+                        onAction(
+                            MarkSelection(
+                                response = state.response,
+                                selection = selection,
+                                setToRead = false
+                            )
+                        )
+                    }) {
+                        Icon(
+                            painter = painterResource(R.drawable.remove_done),
+                            contentDescription = stringResource(R.string.not_read)
+                        )
+                    }
+                    IconButton(onClick = {
+                        onAction(
+                            MarkSelection(
+                                response = state.response,
+                                selection = selection,
+                                setToRead = true
+                            )
+                        )
+                    }) {
+                        Icon(
+                            painter = painterResource(R.drawable.done_all),
+                            contentDescription = stringResource(R.string.has_read)
+                        )
+                    }
+
+                    IconButton(onClick = {
+                        onAction(
+                            DownloadSelection(
+                                response = state.response,
+                                selection = selection
+                            )
+                        )
+                    }) {
+                        Icon(
+                            painter = painterResource(R.drawable.arrow_circle_down_24px),
+                            contentDescription = stringResource(R.string.download)
+                        )
+                    }
+                }
+            }
+
+
         }
     }
 
@@ -296,6 +471,12 @@ object ResultScreen {
             initialPage = 0,
             pageCount = { tabNames.size }
         )
+        LaunchedEffect(pagerState.currentPage) {
+            /** If we scroll to a different page, then unselect stuff */
+            if (tabNames.getOrNull(pagerState.currentPage) != R.string.chapters) {
+                onAction(SelectChapters(persistentSetOf()))
+            }
+        }
 
         val outerListState = rememberLazyListState()
         val novelScroll = rememberLazyListState()
@@ -708,26 +889,20 @@ object ResultScreen {
         ) {
             Spacer(modifier = Modifier.width(MaterialTheme.padding.small))
             SelectSingleButton(
-                name = R.string.downloaded,
-                filterMethodType = ChapterFilterMethodType.Downloaded,
+                name = R.string.all to R.string.all,
+                filterMethodType = ChapterFilterMethodType.All to ChapterFilterMethodType.All,
                 filtering = chapters.filtering.filterMethodType,
                 onAction = onAction
             )
             SelectSingleButton(
-                name = R.string.not_downloaded,
-                filterMethodType = ChapterFilterMethodType.UnDownloaded,
+                name = R.string.downloaded to R.string.not_downloaded,
+                filterMethodType = ChapterFilterMethodType.Downloaded to ChapterFilterMethodType.UnDownloaded,
                 filtering = chapters.filtering.filterMethodType,
                 onAction = onAction
             )
             SelectSingleButton(
-                name = R.string.has_read,
-                filterMethodType = ChapterFilterMethodType.Read,
-                filtering = chapters.filtering.filterMethodType,
-                onAction = onAction
-            )
-            SelectSingleButton(
-                name = R.string.not_read,
-                filterMethodType = ChapterFilterMethodType.UnRead,
+                name = R.string.has_read to R.string.not_read,
+                filterMethodType = ChapterFilterMethodType.Read to ChapterFilterMethodType.UnRead,
                 filtering = chapters.filtering.filterMethodType,
                 onAction = onAction
             )
@@ -763,7 +938,8 @@ object ResultScreen {
                     response = response,
                     chapter = chapters.data[index]!!,
                     onAction = onAction,
-                    modifier = Modifier.animateItem()
+                    modifier = Modifier.animateItem(),
+                    selection = chapters.selected
                 )
             }
         }
@@ -771,20 +947,24 @@ object ResultScreen {
 
     @Composable
     fun SelectSingleButton(
-        name: Int,
+        name: Pair<Int, Int>,
         filtering: PersistentSet<ChapterFilterMethodType>,
-        filterMethodType: ChapterFilterMethodType,
+        filterMethodType: Pair<ChapterFilterMethodType, ChapterFilterMethodType>,
         onAction: (ResultPageAction) -> Unit,
     ) {
-        val selected = filtering.contains(filterMethodType)
+        val (aName, bName) = name
+        val (aFilter, bFilter) = filterMethodType
+        val aSelected = filtering.contains(aFilter)
+        val bSelected = filtering.contains(bFilter)
+
         WhiteFilterChip(
-            selected = selected,
-            label = stringResource(name)
+            selected = aSelected || bSelected,
+            label = stringResource(if (bSelected) bName else aName)
         ) {
-            if (selected) {
-                onAction(SetChapterFilterMethod(filtering.removing(filterMethodType)))
+            if (aSelected) {
+                onAction(SetChapterFilterMethod(persistentSetOf(bFilter)))
             } else {
-                onAction(SetChapterFilterMethod(filtering.adding(filterMethodType)))
+                onAction(SetChapterFilterMethod(persistentSetOf(aFilter)))
             }
         }
     }
@@ -794,91 +974,136 @@ object ResultScreen {
         response: ImmutableSearchResponse,
         chapter: ImmutableChapterData,
         onAction: (ResultPageAction) -> Unit,
+        selection: PersistentSet<Int>,
         modifier: Modifier
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = modifier
-                .fillMaxWidth()
-                .clickable(onClick = {
-                    onAction(
-                        ChapterAction(
-                            response,
-                            chapter,
-                            ChapterOperation.Stream
-                        )
-                    )
-                })
-                .padding(MaterialTheme.padding.small)
-        ) {
-            if (response.chaptersRead?.get(chapter.index) == true) {
-                Icon(
-                    painter = painterResource(R.drawable.check_24px),
-                    contentDescription = stringResource(R.string.has_read)
-                )
-            }
+        val isSelectingChapters = selection.isNotEmpty()
+        val isSelected = selection.contains(chapter.index)
 
-            Spacer(
-                Modifier
-                    .width(MaterialTheme.padding.small)
+        val toggleClick = {
+            onAction(
+                SelectChapters(
+                    if (isSelected) {
+                        selection.removing(chapter.index)
+                    } else {
+                        selection.adding(chapter.index)
+                    }
+                )
             )
+        }
 
-            Column(modifier = Modifier.weight(1.0f)) {
-                Text(
-                    text = chapter.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (chapter.dateOfRelease != null) {
-                    Text(
-                        text = chapter.dateOfRelease,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+        val backgroundColor = if (isSelected) {
+            MaterialTheme.colorScheme.onBackground
+        } else {
+            Color.Transparent
+        }
+
+        val contentColor = if (isSelected) {
+            MaterialTheme.colorScheme.background
+        } else {
+            MaterialTheme.colorScheme.onBackground
+        }
+
+        CompositionLocalProvider(LocalContentColor provides contentColor) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = modifier
+                    .fillMaxWidth()
+                    .background(backgroundColor)
+                    .combinedClickable(
+                        role = Role.Button,
+                        onClick = if (isSelectingChapters) {
+                            toggleClick
+                        } else {
+                            {
+                                onAction(
+                                    ChapterAction(
+                                        response,
+                                        chapter,
+                                        ChapterOperation.Stream
+                                    )
+                                )
+                            }
+                        },
+                        onClickLabel = if (isSelectingChapters) {
+                            stringResource(R.string.select_chapter)
+                        } else {
+                            stringResource(R.string.stream_read)
+                        },
+                        onLongClick = toggleClick,
+                        onLongClickLabel = stringResource(R.string.select_chapter)
+                    )
+                    .padding(MaterialTheme.padding.small)
+            ) {
+                AnimatedVisibility(response.chaptersRead?.get(chapter.index) == true) {
+                    Icon(
+                        painter = painterResource(R.drawable.check_24px),
+                        contentDescription = stringResource(R.string.has_read)
                     )
                 }
-            }
 
-            Spacer(
-                Modifier
-                    .width(MaterialTheme.padding.small)
-                    .weight(0.01f)
-            )
+                Spacer(
+                    Modifier
+                        .width(MaterialTheme.padding.small)
+                )
 
-            val downloadState = response.downloadState
-            val isDownloaded = downloadState?.downloadedChapters?.get(chapter.index)
-            val isDownloading = downloadState?.chapterProgress?.progress == chapter.index
-            val isPending = downloadState?.pendingChapters?.get(chapter.index)
-
-            when {
-                isDownloading -> null to null
-                isPending == true -> R.drawable.not_started to null
-                isDownloaded == true -> R.drawable.check_circle to null
-                isDownloaded == false -> R.drawable.arrow_circle_down_24px to ChapterOperation.Download
-                else -> null
-            }?.let { (icon, action) ->
-                IconButton(onClick = {
-                    if (action != null) {
-                        onAction(
-                            ChapterAction(
-                                response,
-                                chapter,
-                                action
-                            )
+                Column(modifier = Modifier.weight(1.0f)) {
+                    Text(
+                        text = chapter.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (chapter.dateOfRelease != null) {
+                        Text(
+                            text = chapter.dateOfRelease,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = LocalContentColor.current.copy(alpha = 0.7f)
                         )
                     }
-                }) {
-                    if (icon != null) {
-                        Icon(painter = painterResource(icon), contentDescription = null)
-                    } else {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .padding(horizontal = 4.dp)
-                                .size(24.dp),
-                            color = MaterialTheme.colorScheme.onBackground,
-                            strokeWidth = 3.0.dp
-                        )
+                }
+
+                Spacer(
+                    Modifier
+                        .width(MaterialTheme.padding.small)
+                        .weight(0.01f)
+                )
+
+                val downloadState = response.downloadState
+                val isDownloaded = downloadState?.downloadedChapters?.get(chapter.index)
+                val isDownloading = downloadState?.chapterProgress?.progress == chapter.index
+                val isPending = downloadState?.pendingChapters?.get(chapter.index)
+
+                when {
+                    isDownloading -> null to null
+                    isPending == true -> R.drawable.not_started to null
+                    isDownloaded == true -> R.drawable.check_circle to null
+                    isDownloaded == false -> R.drawable.arrow_circle_down_24px to ChapterOperation.Download
+                    else -> null
+                }?.let { (icon, action) ->
+                    IconButton(onClick = {
+                        if (action != null) {
+                            onAction(
+                                ChapterAction(
+                                    response,
+                                    chapter,
+                                    action
+                                )
+                            )
+                        }
+                    }) {
+                        if (icon != null) {
+                            Icon(painter = painterResource(icon), contentDescription = null)
+                        } else {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .padding(horizontal = 4.dp)
+                                    .size(24.dp),
+                                color = LocalContentColor.current,
+                                strokeWidth = 3.0.dp
+                            )
+                        }
                     }
                 }
             }
@@ -1182,7 +1407,11 @@ object ResultScreen {
 
             // Overwrite nothing to done when we are finished
             val action =
-                DownloadStateAction(if (downloadState.downloadedChapters.length() >= (response.chapters ?: 1) && downloadState.downloadStatus == BookDownloadStatus.Idle) BookDownloadStatus.Done else downloadState.downloadStatus)
+                DownloadStateAction(
+                    if (downloadState.downloadedChapters.length() >= (response.chapters
+                            ?: 1) && downloadState.downloadStatus == BookDownloadStatus.Idle
+                    ) BookDownloadStatus.Done else downloadState.downloadStatus
+                )
             IconTextButton(
                 modifier = Modifier.weight(1.0f),
                 onClick = {
@@ -1580,6 +1809,7 @@ fun ChapterPreview() {
                 response = ImmutableSearchResponse.preview(),
                 modifier = Modifier,
                 onAction = {},
+                selection = persistentSetOf(),
                 chapter = ImmutableChapterData(
                     name = "hello world",
                     url = "",

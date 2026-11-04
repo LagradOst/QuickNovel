@@ -425,6 +425,10 @@ data class ImmutableSearchResponse(
             }
                 ?: BitSet()
 
+        fun setChaptersRead(id: Int, set : BitSet) {
+            setKey<ByteArray>(EPUB_BITSET_POSITION, id.toString(), set.toByteArray())
+        }
+
         fun addToHistory(response: ImmutableSearchResponse) {
             val id = response.id ?: return
             // we won't add it to history from cache
@@ -817,6 +821,7 @@ val chapterSortingMethods = persistentListOf(
 
 @Immutable
 enum class ChapterFilterMethodType(val id: Int) {
+    All(0),
     /** Filter by download status */
     Downloaded(1),
     UnDownloaded(2),
@@ -968,8 +973,7 @@ fun <T> PersistentList<T>.updateRows(
 data class FilterChapters(
     val query: FilterByQuery<ImmutableChapterData> = FilterByQuery<ImmutableChapterData>(query = "") { it.name },
     val filterMethodType: PersistentSet<ChapterFilterMethodType> = persistentSetOf(
-        ChapterFilterMethodType.Downloaded,
-        ChapterFilterMethodType.UnDownloaded
+        ChapterFilterMethodType.All
     ),
     val downloaded: BitSet = BitSet(),
     val read: BitSet = BitSet(),
@@ -979,6 +983,7 @@ data class FilterChapters(
         query(data)
                 && filterMethodType.any {
             when (it) {
+                ChapterFilterMethodType.All -> true
                 ChapterFilterMethodType.Downloaded -> downloaded.get(data.index)
                 ChapterFilterMethodType.UnDownloaded -> !downloaded.get(data.index)
                 ChapterFilterMethodType.Read -> read.get(data.index)
@@ -989,10 +994,6 @@ data class FilterChapters(
         }
 }
 
-/**
- * Contrary to the SearchList, the chapter data will be truly immutable
- * therefore we use the PersistentList<ImmutableChapterData> instead of passing by index/id
- * */
 @Immutable
 data class ImmutableChapterList(
     private val internalData: SearchableData<Int, ImmutableChapterData> = SearchableData(
@@ -1004,6 +1005,7 @@ data class ImmutableChapterList(
     ),
     val sortingMethod: ChapterSortingMethodType = ChapterSortingMethodType.Default,
     val filtering: FilterChapters = FilterChapters(),
+    val selected : PersistentSet<Int>,
 ) {
     val data get() = internalData.data
     val sorted get() = internalData.sorted
@@ -1052,8 +1054,9 @@ data class ImmutableChapterList(
             internalData = SearchableData.from(
                 data = chapters.associateBy { it.index }.toPersistentMap(),
                 sortedBy = getSortingMethod(sortBy),
-                filteredBy = filteredBy
-            )
+                filteredBy = filteredBy,
+            ),
+            selected = persistentSetOf()
         )
     }
 

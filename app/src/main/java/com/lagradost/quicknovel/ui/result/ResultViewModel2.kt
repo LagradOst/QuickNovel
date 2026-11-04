@@ -112,6 +112,18 @@ sealed class ResultPageAction {
 
     data class SetChapterSort(val sortingMethodType: ChapterSortingMethodType) :
         ResultPageAction()
+
+    data class SelectChapters(val newSelection: PersistentSet<Int>) : ResultPageAction()
+    data class MarkSelection(
+        val response: ImmutableSearchResponse,
+        val selection: PersistentSet<Int>, val setToRead: Boolean
+    ) :
+        ResultPageAction()
+
+    data class DownloadSelection(
+        val response: ImmutableSearchResponse,
+        val selection: PersistentSet<Int>
+    ) : ResultPageAction()
 }
 
 @Immutable
@@ -336,6 +348,7 @@ class ResultViewModel2(
             } else {
                 val chaptersRead = response.id?.let { ImmutableSearchResponse.chaptersRead(it) }
                     ?: response.chaptersRead
+
                 copy(
                     chapters = if (chaptersRead != null && chapters != null) {
                         chapters.filterBy(chapters.filtering.copy(read = chaptersRead))
@@ -448,6 +461,42 @@ class ResultViewModel2(
             is ResultPageAction.SetChapterSort -> {
                 updateState {
                     copy(chapters = chapters?.sortBy(action.sortingMethodType))
+                }
+            }
+
+            is ResultPageAction.SelectChapters -> {
+                updateState {
+                    copy(chapters = chapters?.copy(selected = action.newSelection))
+                }
+            }
+
+            is ResultPageAction.DownloadSelection -> {
+                val set = BitSet().apply {
+                    action.selection.forEach { index -> set(index) }
+                }
+                viewModelScope.launch {
+                    requireLoadData()
+                    BookDownloader.download(
+                        response = action.response,
+                        bookPackage = BookDownloadPackage.Chapters(set)
+                    )
+                }
+            }
+
+            is ResultPageAction.MarkSelection -> {
+                val id = action.response.id ?: return
+                val newSet = ImmutableSearchResponse.chaptersRead(id)
+                if (action.setToRead) {
+                    action.selection.forEach { index -> newSet.set(index) }
+                } else {
+                    action.selection.forEach { index -> newSet.clear(index) }
+                }
+                ImmutableSearchResponse.setChaptersRead(id, newSet)
+                updateState {
+                    copy(
+                        response = response?.copy(chaptersRead = newSet),
+                        chapters = chapters?.filterBy(newFilter = chapters.filtering.copy(read = newSet))
+                    )
                 }
             }
         }
