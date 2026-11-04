@@ -79,6 +79,7 @@ import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import kotlin.properties.Delegates
 import com.google.android.material.tabs.TabLayout
+import com.lagradost.cloudstream4.AppSettings
 import com.lagradost.quicknovel.ReadActivityViewModel.MLSettings.Companion.AUTO_LANG
 import com.lagradost.quicknovel.util.SubtitleHelper
 import com.lagradost.quicknovel.util.UIHelper.fixSystemBarsPadding
@@ -1534,9 +1535,11 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                     viewModel.scrollWithVolume = isChecked
                 }
 
-                readSettingsAuthorNotes.isChecked = viewModel.authorNotes
+                val settings = AppSettings(this@ReadActivity2)
+
+                readSettingsAuthorNotes.isChecked = settings.reader.authorNotes.get()
                 readSettingsAuthorNotes.setOnCheckedChangeListener { _, isChecked ->
-                    viewModel.authorNotes = isChecked
+                    settings.reader.authorNotes.set(isChecked)
                     viewModel.refreshChapters()
                 }
 

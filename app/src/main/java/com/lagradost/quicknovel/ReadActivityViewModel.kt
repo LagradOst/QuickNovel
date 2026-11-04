@@ -28,6 +28,7 @@ import coil3.request.ImageRequest
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.google.mlkit.nl.translate.TranslateLanguage
+import com.lagradost.cloudstream4.AppSettings
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeyClass
@@ -903,7 +904,8 @@ class ReadActivityViewModel : ViewModel() {
             val data = safeApiCall {
                 book.getChapterData(index, reload)
             }.map { text ->
-                val rawText = preParseHtml(text, authorNotes)
+                val settings = context?.let { AppSettings(it) }
+                val rawText = preParseHtml(text, settings?.reader?.authorNotes?.get() ?: false)
                 // val renderedBuilder = SpannableStringBuilder()
                 // val lengths : IntArray
                 // val nodes : Array<Node>
@@ -1797,7 +1799,7 @@ class ReadActivityViewModel : ViewModel() {
 
 
     var scrollWithVolume by PreferenceDelegate(EPUB_SCROLL_VOL, true, Boolean::class)
-    var authorNotes by PreferenceDelegate(EPUB_AUTHOR_NOTES, true, Boolean::class)
+    //var authorNotes by PreferenceDelegate(EPUB_AUTHOR_NOTES, true, Boolean::class)
     var ttsLock by PreferenceDelegate(EPUB_TTS_LOCK, true, Boolean::class)
     //var ttsOSSpeed by PreferenceDelegate(EPUB_TTS_OS_SPEED, true, Boolean::class)
 
