@@ -180,13 +180,13 @@ object MainActivityScreen {
                 horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.medium),
                 modifier = Modifier.padding(horizontal = MaterialTheme.padding.large)
             ) {
-                    Icon(painter = painterResource(R.drawable.warning), contentDescription = null)
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        overflow = TextOverflow.Ellipsis,
-                        maxLines = 2
-                    )
+                Icon(painter = painterResource(R.drawable.warning), contentDescription = null)
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 2
+                )
             }
 
             Spacer(modifier = Modifier.height(MaterialTheme.padding.medium))
@@ -265,6 +265,11 @@ object MainActivityScreen {
             Column(
                 verticalArrangement = Arrangement.spacedBy(MaterialTheme.padding.medium)
             ) {
+                LoadingLine()
+                LoadingLine()
+                LoadingLine()
+                LoadingLine(0.7f)
+
                 LoadingButton()
                 LoadingButton()
                 LoadingButton()
@@ -338,7 +343,11 @@ object MainActivityScreen {
                         .fillMaxWidth()
                         .defaultMinSize(minHeight = 75.dp)
                         .rounded()
-                        .clickable(onClick = { descriptionDialogShown = true })
+                        .clickable(onClick = {
+                            //descriptionDialogShown = true
+                            loadResult(url = response.url, apiName = response.apiName)
+                            onDismissRequest()
+                        })
                         .padding(MaterialTheme.padding.small),
                 ) {
                     Text(
@@ -381,6 +390,24 @@ object MainActivityScreen {
 
             val modifier = Modifier.padding(horizontal = MaterialTheme.padding.medium)
             Column {
+                if (!response.synopsis.isNullOrBlank()) {
+                    Text(
+                        text = response.synopsis.html(),
+                        modifier = Modifier
+                            .padding(
+                                horizontal = MaterialTheme.padding.medium,
+                            )
+                            .rounded()
+                            .clickable {
+                                descriptionDialogShown = true
+                            }
+                            .padding(MaterialTheme.padding.small),
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 6,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
                 IconTextButton2(
                     modifier = modifier,
                     onClick = {
@@ -390,7 +417,7 @@ object MainActivityScreen {
                     text = stringResource(if (state.bookmark == ReadType.NONE) R.string.bookmark else state.bookmark.stringRes),
                 )
 
-                if (!response.synopsis.isNullOrBlank()) {
+                /*if (!response.synopsis.isNullOrBlank()) {
                     IconTextButton2(
                         modifier = modifier,
                         onClick = {
@@ -399,7 +426,7 @@ object MainActivityScreen {
                         icon = painterResource(R.drawable.description),
                         text = stringResource(R.string.synopsis),
                     )
-                }
+                }*/
 
                 if (!response.isImported) {
                     IconTextButton2(
