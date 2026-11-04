@@ -423,6 +423,11 @@ object BookDownloader {
                     current.copy(
                         handle = handle,
                         response = current.response.copy(
+                            /**
+                             * Always use the most up-to-date load data, even if it is null,
+                             * as otherwise, new chapters will never get checked
+                             * */
+                            loadData = response.loadData,
                             epubSize = epubGenerated,
                             timeOfCached = handle.created,
                             timeOfChapterDownloaded = lastDownloaded,
