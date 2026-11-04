@@ -879,7 +879,8 @@ object ResultScreen {
             horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.small),
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(state = rememberScrollState())
+                .horizontalScroll(state = rememberScrollState()),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Spacer(modifier = Modifier.width(MaterialTheme.padding.small))
             SelectSingleButton(
@@ -902,6 +903,19 @@ object ResultScreen {
             )
             Spacer(modifier = Modifier.width(MaterialTheme.padding.small))
         }
+        Spacer(modifier = Modifier.height(MaterialTheme.padding.small))
+        Text(
+            text = stringResource(
+                R.string.read_action_chapters_formatted,
+                if (chapters.filtered.size == chapters.data.size) {
+                    chapters.filtered.size.toString()
+                } else {
+                    "${chapters.filtered.size}/${chapters.data.size}"
+                }
+            ),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = MaterialTheme.padding.medium)
+        )
     }
 
     @Composable
@@ -1006,16 +1020,16 @@ object ResultScreen {
         }
 
         val backgroundColor = if (isSelected) {
-            MaterialTheme.colorScheme.primary
+            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
         } else {
             Color.Transparent
         }
 
-        val contentColor = if (isSelected) {
+        val contentColor = MaterialTheme.colorScheme.onBackground /*if (isSelected) {
             MaterialTheme.colorScheme.background
         } else {
             MaterialTheme.colorScheme.onBackground
-        }
+        }*/
 
         CompositionLocalProvider(LocalContentColor provides contentColor) {
             Row(

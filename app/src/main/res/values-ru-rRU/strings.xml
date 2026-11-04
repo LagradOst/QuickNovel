@@ -79,7 +79,7 @@
     <string name="mainpage_sort_by_button_text">Сортировать</string>
     <string name="read_action_settings">Настройки</string>
     <string name="read_action_chapters">Главы</string>
-    <string name="read_action_chapters_formatted" formatted="true">%d глав</string>
+    <string name="read_action_chapters_formatted" formatted="true">%s глав</string>
 
     <string name="read_action_tts">Озвучка</string>
     <string name="read_action_screen_rotation">Поворот экрана</string>
