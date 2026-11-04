@@ -1005,7 +1005,7 @@ data class ImmutableChapterList(
     ),
     val sortingMethod: ChapterSortingMethodType = ChapterSortingMethodType.Default,
     val filtering: FilterChapters = FilterChapters(),
-    val selected : PersistentSet<Int>,
+    val selected : BitSet,
 ) {
     val data get() = internalData.data
     val sorted get() = internalData.sorted
@@ -1056,7 +1056,7 @@ data class ImmutableChapterList(
                 sortedBy = getSortingMethod(sortBy),
                 filteredBy = filteredBy,
             ),
-            selected = persistentSetOf()
+            selected = BitSet()
         )
     }
 

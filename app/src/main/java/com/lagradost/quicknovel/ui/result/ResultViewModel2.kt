@@ -113,16 +113,16 @@ sealed class ResultPageAction {
     data class SetChapterSort(val sortingMethodType: ChapterSortingMethodType) :
         ResultPageAction()
 
-    data class SelectChapters(val newSelection: PersistentSet<Int>) : ResultPageAction()
+    data class SelectChapters(val newSelection: BitSet) : ResultPageAction()
     data class MarkSelection(
         val response: ImmutableSearchResponse,
-        val selection: PersistentSet<Int>, val setToRead: Boolean
+        val selection: BitSet, val setToRead: Boolean
     ) :
         ResultPageAction()
 
     data class DownloadSelection(
         val response: ImmutableSearchResponse,
-        val selection: PersistentSet<Int>
+        val selection: BitSet
     ) : ResultPageAction()
 }
 
@@ -471,14 +471,11 @@ class ResultViewModel2(
             }
 
             is ResultPageAction.DownloadSelection -> {
-                val set = BitSet().apply {
-                    action.selection.forEach { index -> set(index) }
-                }
                 viewModelScope.launch {
                     requireLoadData()
                     BookDownloader.download(
                         response = action.response,
-                        bookPackage = BookDownloadPackage.Chapters(set)
+                        bookPackage = BookDownloadPackage.Chapters(action.selection)
                     )
                 }
             }
@@ -487,9 +484,9 @@ class ResultViewModel2(
                 val id = action.response.id ?: return
                 val newSet = ImmutableSearchResponse.chaptersRead(id)
                 if (action.setToRead) {
-                    action.selection.forEach { index -> newSet.set(index) }
+                    newSet.or(action.selection)
                 } else {
-                    action.selection.forEach { index -> newSet.clear(index) }
+                    newSet.andNot(action.selection)
                 }
                 ImmutableSearchResponse.setChaptersRead(id, newSet)
                 updateState {

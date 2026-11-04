@@ -106,6 +106,7 @@ import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.RootBaseSearchBar
 import com.lagradost.quicknovel.downloader.BookDownloadStatus
+import com.lagradost.quicknovel.downloader.copy
 import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.mvvm.throwableToMessage
 import com.lagradost.quicknovel.ui.ReadType
@@ -154,6 +155,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.launch
+import java.util.BitSet
 
 /*
 object ResultScreen : Screen {
@@ -196,13 +198,14 @@ object ResultScreen {
     @Composable
     fun BottomBar(state: ResultState, onAction: (ResultPageAction) -> Unit) {
         val selection = state.chapters?.selected
-        if (selection.isNullOrEmpty() || state.response == null || state.response.id == null) {
+        if (selection == null || selection.isEmpty || state.response == null || state.response.id == null) {
             return
         }
         BackHandler {
-            onAction(SelectChapters(persistentSetOf()))
+            onAction(SelectChapters(BitSet()))
         }
-        val isSingle = selection.size == 1
+        val selectedSize = selection.cardinality()
+        val isSingle = selectedSize == 1
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -216,7 +219,7 @@ object ResultScreen {
             verticalArrangement = Arrangement.spacedBy(MaterialTheme.padding.medium)
         ) {
             Text(
-                text = stringResource(R.string.selected_format, selection.size),
+                text = stringResource(R.string.selected_format, selectedSize),
                 style = MaterialTheme.typography.titleLarge
             )
 
@@ -226,22 +229,21 @@ object ResultScreen {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 IconButton(onClick = {
-                    onAction(SelectChapters(persistentSetOf()))
+                    onAction(SelectChapters(BitSet()))
                 }) {
                     Icon(
                         painter = painterResource(R.drawable.close_24px),
                         contentDescription = stringResource(R.string.close)
                     )
                 }
-                if (isSingle) {
-                    val index = selection.first()
-                    val isRead = state.response.chaptersRead?.get(index) == true
 
+                if (isSingle) {
+                    val index = selection.nextSetBit(0)
                     if (index > 0) {
                         IconButton(onClick = {
                             onAction(
                                 SelectChapters(
-                                    newSelection = (0..index).toPersistentSet(),
+                                    newSelection = BitSet().apply { set(0, index + 1) },
                                 )
                             )
                         }) {
@@ -255,7 +257,12 @@ object ResultScreen {
                         IconButton(onClick = {
                             onAction(
                                 SelectChapters(
-                                    newSelection = (index until state.chapters.data.size).toPersistentSet(),
+                                    newSelection = BitSet().apply {
+                                        set(
+                                            index,
+                                            state.chapters.data.size
+                                        )
+                                    },
                                 )
                             )
                         }) {
@@ -265,71 +272,51 @@ object ResultScreen {
                             )
                         }
                     }
+                }
 
-                    IconButton(onClick = {
-                        onAction(
-                            MarkSelection(
-                                response = state.response,
-                                selection = persistentSetOf(index),
-                                setToRead = !isRead
-                            )
-                        )
-                    }) {
-                        Icon(
-                            painter = if (isRead) painterResource(R.drawable.remove_done) else painterResource(
-                                R.drawable.done_all
-                            ),
-                            contentDescription = if (isRead) stringResource(R.string.not_read) else stringResource(
-                                R.string.has_read
-                            )
-                        )
-                    }
+                if (state.response.chaptersRead != null) {
+                    val intersection =
+                        state.response.chaptersRead.copy().apply { and(selection) }.cardinality()
 
-                    if (state.response.downloadState?.downloadedChapters?.get(index) != true) {
+                    if (intersection > 0) {
                         IconButton(onClick = {
                             onAction(
-                                DownloadSelection(
+                                MarkSelection(
                                     response = state.response,
-                                    selection = selection
+                                    selection = selection,
+                                    setToRead = false
                                 )
                             )
                         }) {
                             Icon(
-                                painter = painterResource(R.drawable.arrow_circle_down_24px),
-                                contentDescription = stringResource(R.string.download)
+                                painter = painterResource(R.drawable.remove_done),
+                                contentDescription = stringResource(R.string.not_read)
                             )
                         }
                     }
-                } else {
-                    IconButton(onClick = {
-                        onAction(
-                            MarkSelection(
-                                response = state.response,
-                                selection = selection,
-                                setToRead = false
-                            )
-                        )
-                    }) {
-                        Icon(
-                            painter = painterResource(R.drawable.remove_done),
-                            contentDescription = stringResource(R.string.not_read)
-                        )
-                    }
-                    IconButton(onClick = {
-                        onAction(
-                            MarkSelection(
-                                response = state.response,
-                                selection = selection,
-                                setToRead = true
-                            )
-                        )
-                    }) {
-                        Icon(
-                            painter = painterResource(R.drawable.done_all),
-                            contentDescription = stringResource(R.string.has_read)
-                        )
-                    }
 
+                    if (intersection != selectedSize) {
+                        IconButton(onClick = {
+                            onAction(
+                                MarkSelection(
+                                    response = state.response,
+                                    selection = selection,
+                                    setToRead = true
+                                )
+                            )
+                        }) {
+                            Icon(
+                                painter = painterResource(R.drawable.done_all),
+                                contentDescription = stringResource(R.string.has_read)
+                            )
+                        }
+                    }
+                }
+
+                if (state.response.downloadState != null && !selection.copy().apply {
+                        andNot(state.response.downloadState.downloadedChapters)
+                    }.isEmpty
+                ) {
                     IconButton(onClick = {
                         onAction(
                             DownloadSelection(
@@ -345,8 +332,6 @@ object ResultScreen {
                     }
                 }
             }
-
-
         }
     }
 
@@ -474,7 +459,7 @@ object ResultScreen {
         LaunchedEffect(pagerState.currentPage) {
             /** If we scroll to a different page, then unselect stuff */
             if (tabNames.getOrNull(pagerState.currentPage) != R.string.chapters) {
-                onAction(SelectChapters(persistentSetOf()))
+                onAction(SelectChapters(BitSet()))
             }
         }
 
@@ -974,19 +959,23 @@ object ResultScreen {
         response: ImmutableSearchResponse,
         chapter: ImmutableChapterData,
         onAction: (ResultPageAction) -> Unit,
-        selection: PersistentSet<Int>,
+        selection: BitSet,
         modifier: Modifier
     ) {
-        val isSelectingChapters = selection.isNotEmpty()
-        val isSelected = selection.contains(chapter.index)
+        val isSelectingChapters = !selection.isEmpty
+        val isSelected = selection.get(chapter.index)
 
         val toggleClick = {
             onAction(
                 SelectChapters(
                     if (isSelected) {
-                        selection.removing(chapter.index)
+                        selection.copy().apply {
+                            clear(chapter.index)
+                        }
                     } else {
-                        selection.adding(chapter.index)
+                        selection.copy().apply {
+                            set(chapter.index)
+                        }
                     }
                 )
             )
@@ -1809,7 +1798,7 @@ fun ChapterPreview() {
                 response = ImmutableSearchResponse.preview(),
                 modifier = Modifier,
                 onAction = {},
-                selection = persistentSetOf(),
+                selection = BitSet(),
                 chapter = ImmutableChapterData(
                     name = "hello world",
                     url = "",
