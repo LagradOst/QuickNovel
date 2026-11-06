@@ -130,6 +130,18 @@ class TTSNotificationService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // start() and MediaButtonReceiver both use startForegroundService(), so every command, not
+        // only the one that created the service, has to reach startForeground(). If the service is
+        // not in the foreground at that point, the system crashes the app 30 seconds later.
+        try {
+            val notification = TTSNotifications.lastNotification
+                ?: TTSNotifications.createNotification(
+                    "Unknown", txt(""), null, TTSHelper.TTSStatus.IsRunning, this
+                )
+            startForeground(TTSNotifications.TTS_NOTIFICATION_ID, notification)
+        } catch (t: Throwable) {
+            logError(t)
+        }
         TTSNotifications.mediaSession?.let {
             MediaButtonReceiver.handleIntent(it, intent)
         }

@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.os.Build
+import android.os.Bundle
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
@@ -24,8 +25,22 @@ import com.lagradost.quicknovel.ui.UiText
 object TTSNotifications {
     private const val TTS_CHANNEL_ID = "QuickNovelTTS"
     const val TTS_NOTIFICATION_ID = 133742
+    private const val TTS_ACTION_STOP = "com.lagradost.quicknovel.TTS_STOP"
+    private const val TTS_PLAYBACK_ACTIONS = PlaybackStateCompat.ACTION_PLAY or
+            PlaybackStateCompat.ACTION_PAUSE or
+            PlaybackStateCompat.ACTION_PLAY_PAUSE or
+            PlaybackStateCompat.ACTION_STOP or
+            PlaybackStateCompat.ACTION_REWIND or
+            PlaybackStateCompat.ACTION_FAST_FORWARD or
+            PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
+            PlaybackStateCompat.ACTION_SKIP_TO_NEXT
 
     private var hasCreateedNotificationChannel = false
+
+    /** The last notification built, so the service can re-enter the foreground without blanking it */
+    @Volatile
+    var lastNotification: Notification? = null
+        private set
 
     private fun createNotificationChannel(context: Context) {
         // Create the NotificationChannel, but only on API 26+ because
@@ -100,6 +115,19 @@ object TTSNotifications {
 
                         return super.onMediaButtonEvent(mediaButtonEvent)
                     }
+
+                    // The system media player builds its controls from the playback state on
+                    // Android 13+ and calls these directly instead of sending key events
+                    override fun onPlay() = viewModel.playTTS()
+                    override fun onPause() = viewModel.pauseTTS()
+                    override fun onStop() = viewModel.stopTTS()
+                    override fun onFastForward() = viewModel.forwardsTTS()
+                    override fun onSkipToNext() = viewModel.forwardsTTS()
+                    override fun onRewind() = viewModel.backwardsTTS()
+                    override fun onSkipToPrevious() = viewModel.backwardsTTS()
+                    override fun onCustomAction(action: String?, extras: Bundle?) {
+                        if (action == TTS_ACTION_STOP) viewModel.stopTTS()
+                    }
                 }
             )
 
@@ -116,13 +144,39 @@ object TTSNotifications {
                 .build()
             setMetadata(mediaMetadata)
             //setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS)
-            //isActive = true
         }
+
+        // Do this before the service posts its notification. Since Android 16 the system moves a
+        // mediaPlayback foreground service to the background as soon as its notification appears
+        // if the linked session is not playing, and then stops the service once the app has been
+        // idle for a minute, which ends TTS.
+        updatePlaybackState(viewModel.currentTTSStatus)
+        mediaSession?.isActive = true
+    }
+
+    fun updatePlaybackState(status: TTSHelper.TTSStatus) {
+        val state = when (status) {
+            TTSHelper.TTSStatus.IsRunning -> PlaybackStateCompat.STATE_PLAYING
+            TTSHelper.TTSStatus.IsPaused -> PlaybackStateCompat.STATE_PAUSED
+            TTSHelper.TTSStatus.IsStopped -> PlaybackStateCompat.STATE_STOPPED
+        }
+        mediaSession?.setPlaybackState(
+            PlaybackStateCompat.Builder()
+                .setActions(TTS_PLAYBACK_ACTIONS)
+                .setState(
+                    state,
+                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                    if (status == TTSHelper.TTSStatus.IsRunning) 1f else 0f
+                )
+                .addCustomAction(TTS_ACTION_STOP, "Stop", R.drawable.ic_baseline_stop_24)
+                .build()
+        )
     }
 
     fun releaseMediaSession() {
         mediaSession?.release()
         mediaSession = null
+        lastNotification = null
     }
 
     fun createNotification(
@@ -268,7 +322,7 @@ object TTSNotifications {
                 )
             )
         }*/
-        return builder.build()
+        return builder.build().also { lastNotification = it }
     }
 
     fun notify(
