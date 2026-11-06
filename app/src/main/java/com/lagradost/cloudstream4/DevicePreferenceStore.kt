@@ -40,6 +40,11 @@ class AppSettings internal constructor(
     val results = ResultsPagePreferences(preferences)
     val history = HistoryPagePreferences(preferences)
     val downloads = DownloadPagePreferences(preferences)
+    val main = MainPagePreferences(preferences)
+}
+
+class MainPagePreferences(preferences: PreferenceStore) {
+    val isRow = preferences.getBoolean("search_list_view_key", false)
 }
 
 class DownloadPagePreferences(preferences: PreferenceStore) {
@@ -55,6 +60,7 @@ class DownloadPagePreferences(preferences: PreferenceStore) {
         "bookmark_sorting_method",
         SortingMethodType.Default,
     )
+    val isRow = preferences.getBoolean("download_list_view_key", true)
 }
 
 class HistoryPagePreferences(preferences: PreferenceStore) {
@@ -62,6 +68,7 @@ class HistoryPagePreferences(preferences: PreferenceStore) {
         "history_sort_method",
         SortingMethodType.Default,
     )
+    val isRow = preferences.getBoolean("history_list_view_key", true)
 }
 class ResultsPagePreferences(preferences: PreferenceStore) {
     val sortingMethod = preferences.getEnum(

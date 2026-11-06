@@ -47,13 +47,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lagradost.cloudstream4.compose.Colors
 import com.lagradost.cloudstream4.compose.SingleSelectDialog
+import com.lagradost.cloudstream4.rememberAppSettings
 import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.BaseSearchBar
 import com.lagradost.quicknovel.ui.common.SearchList
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.search.SearchRow
-import com.mihon.common.preference.AndroidPreferenceStore
 import com.mihon.presentation.settings.collectAsState
 import kotlinx.coroutines.launch
 
@@ -120,9 +120,8 @@ fun MainPageScreen(state: MainPageState, action: (MainPageAction) -> Unit) {
         }
     }
 
-    val context = LocalContext.current
-    val store = AndroidPreferenceStore(context)
-    val searchIsRow = store.getBoolean(stringResource(R.string.search_list_view_key), false)
+    val settings = rememberAppSettings()
+    val searchIsRow = settings.main.isRow
     val searchIsRowState by searchIsRow.collectAsState()
 
     Scaffold(
@@ -254,9 +253,8 @@ fun MainPageSearchBar(
     scrollBehavior: TopAppBarScrollBehavior,
     apiName: String,
 ) {
-    val context = LocalContext.current
-    val store = AndroidPreferenceStore(context)
-    val searchIsRow = store.getBoolean(stringResource(R.string.search_list_view_key), false)
+    val settings = rememberAppSettings()
+    val searchIsRow = settings.main.isRow
     val searchIsRowState by searchIsRow.collectAsState()
 
     BaseSearchBar(

@@ -57,7 +57,6 @@ import com.lagradost.quicknovel.ui.history.HistoryAction.ResultAction
 import com.lagradost.quicknovel.ui.history.HistoryAction.Search
 import com.lagradost.quicknovel.ui.history.HistoryAction.SelectSortingMethod
 import com.lagradost.quicknovel.ui.history.HistoryAction.ShowSorting
-import com.mihon.common.preference.AndroidPreferenceStore
 import com.mihon.presentation.settings.collectAsState
 
 object HistoryScreen : Screen {
@@ -87,9 +86,8 @@ fun HistoryScreen(
         }
     }
 
-    val context = LocalContext.current
-    val store = AndroidPreferenceStore(context)
-    val historyIsRow = store.getBoolean(stringResource(R.string.history_list_view_key), true)
+    val settings = rememberAppSettings()
+    val historyIsRow = settings.history.isRow
     val historyIsRowState by historyIsRow.collectAsState()
 
     var fabExpanded by remember { mutableStateOf(false) }

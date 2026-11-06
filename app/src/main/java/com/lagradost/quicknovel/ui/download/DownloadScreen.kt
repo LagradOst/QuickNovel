@@ -74,7 +74,6 @@ import com.lagradost.quicknovel.ui.common.SortingMethodPair
 import com.lagradost.quicknovel.ui.common.SortingMethodType
 import com.lagradost.quicknovel.ui.common.normalSortingMethods
 import com.lagradost.quicknovel.ui.common.sortingMethods
-import com.mihon.common.preference.AndroidPreferenceStore
 import com.mihon.material.padding
 import com.mihon.presentation.settings.collectAsState
 import kotlinx.collections.immutable.PersistentList
@@ -114,10 +113,9 @@ fun DownloadScreen(
         R.string.type_dropped,
     )
 
-    val context = LocalContext.current
-    val store = AndroidPreferenceStore(context)
+    val store = rememberAppSettings()
 
-    val downloadIsRow = store.getBoolean(stringResource(R.string.download_list_view_key), true)
+    val downloadIsRow = store.downloads.isRow
     val downloadIsRowState by downloadIsRow.collectAsState()
 
     var fabExpanded by remember { mutableStateOf(false) }
