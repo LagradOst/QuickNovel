@@ -1354,6 +1354,7 @@ class ReadActivityViewModel : ViewModel() {
 
             _ttsStatus.postValue(value)
             _currentTTSStatus = value
+            TTSNotifications.updatePlaybackState(value)
         }
 
     fun stopTTS() {
