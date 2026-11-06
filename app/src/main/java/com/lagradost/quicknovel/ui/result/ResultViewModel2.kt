@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.lagradost.cloudstream4.AppSettings
 import com.lagradost.cloudstream4.state.ActionHandler
 import com.lagradost.cloudstream4.state.DefaultEffectContainer
 import com.lagradost.cloudstream4.state.DefaultStateContainer
@@ -133,6 +134,7 @@ sealed class ResultPageEffect {
 }
 
 class ResultViewModel2(
+    val appSettings: AppSettings,
     val api: APIRepository?,
     val url: String,
     initializer: ImmutableSearchResponse?,
@@ -154,14 +156,14 @@ class ResultViewModel2(
                 }
             },
             bookmark = initializer?.id?.let { getBookmarkState(it) } ?: ReadType.NONE,
-            chapters = newChaptersList(initializer),
+            chapters = newChaptersList(initializer, appSettings),
             api = api,
             loadUrl = url
         )
     ),
     EffectContainer<ResultPageEffect> by DefaultEffectContainer() {
     companion object {
-        fun newChaptersList(initializer: ImmutableSearchResponse?): ImmutableChapterList? {
+        fun newChaptersList(initializer: ImmutableSearchResponse?, settings: AppSettings): ImmutableChapterList? {
             val chapters = initializer?.loadData?.chapters ?: return null
             val id = initializer.id ?: return null
 
@@ -175,7 +177,7 @@ class ResultViewModel2(
 
             return ImmutableChapterList.from(
                 chapters = chapters,
-                sortBy = ChapterSortingMethodType.Ascending,
+                sortBy = settings.results.sortingMethod.get(),
                 filteredBy = FilterChapters(
                     downloaded = downloaded,
                     read = read,
@@ -183,11 +185,11 @@ class ResultViewModel2(
             )
         }
 
-        fun provideFactory(bundle: Bundle) = viewModelFactory {
+        fun provideFactory(bundle: Bundle, settings: AppSettings) = viewModelFactory {
             initializer {
                 val url = bundle.getString("url")!!
                 val apiName = bundle.getString("apiName")!!
-                ResultViewModel2(api = getApiFromName(apiName), url = url, initializer = null)
+                ResultViewModel2(api = getApiFromName(apiName), url = url, initializer = null, appSettings = settings)
             }
         }
 
@@ -241,7 +243,7 @@ class ResultViewModel2(
                     loadingResponse = false,
                     responseError = null,
                     bookmark = bookmarkState,
-                    chapters = newChaptersList(value)
+                    chapters = newChaptersList(value, settings = appSettings)
                 )
             }
 
@@ -268,7 +270,7 @@ class ResultViewModel2(
                     loadingResponse = false,
                     responseError = null,
                     bookmark = bookmarkState,
-                    chapters = newChaptersList(value)
+                    chapters = newChaptersList(value, settings = appSettings)
                 )
             }
             setBookmark(id = id, response = value, type = bookmarkState)
@@ -419,7 +421,7 @@ class ResultViewModel2(
                                         loadingResponse = false,
                                         responseError = null,
                                         bookmark = getBookmarkState(id),
-                                        chapters = newChaptersList(newResponse)
+                                        chapters = newChaptersList(newResponse, settings = appSettings)
                                     )
                                 }
                                 setBookmark(id = id, response = newResponse, type = action.type)
@@ -459,6 +461,7 @@ class ResultViewModel2(
             }
 
             is ResultPageAction.SetChapterSort -> {
+                appSettings.results.sortingMethod.set(action.sortingMethodType)
                 updateState {
                     copy(chapters = chapters?.sortBy(action.sortingMethodType))
                 }
@@ -526,7 +529,7 @@ class ResultViewModel2(
                     copy(reviews = reviews.copy(loading = false, error = error))
                 }
                 postEffect {
-                    ResultPageEffect.Error(error)
+                    Error(error)
                 }
             }?.onSuccess { response ->
                 val newList = query.items.addingAll(response)

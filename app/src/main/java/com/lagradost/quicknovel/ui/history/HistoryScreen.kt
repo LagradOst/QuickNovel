@@ -40,6 +40,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lagradost.cloudstream4.compose.ActionDialog
 import com.lagradost.cloudstream4.compose.Screen
 import com.lagradost.cloudstream4.compose.SinglePairSelectDialog
+import com.lagradost.cloudstream4.rememberAppSettings
 import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.BaseSearchBar
@@ -62,7 +63,8 @@ import com.mihon.presentation.settings.collectAsState
 object HistoryScreen : Screen {
     @Composable
     override fun Content() {
-        val viewModel = viewModel<HistoryViewModel2>()
+        val settings = rememberAppSettings()
+        val viewModel = viewModel<HistoryViewModel2> { HistoryViewModel2(settings) }
         val state by viewModel.state.collectAsStateWithLifecycle()
         HistoryScreen(state, viewModel::onAction)
     }

@@ -59,6 +59,7 @@ import com.lagradost.cloudstream4.compose.ActionDialog
 import com.lagradost.cloudstream4.compose.Screen
 import com.lagradost.cloudstream4.compose.SinglePairSelectDialog
 import com.lagradost.cloudstream4.compose.rounded
+import com.lagradost.cloudstream4.rememberAppSettings
 import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
 import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.R
@@ -85,12 +86,12 @@ import kotlin.time.Duration.Companion.milliseconds
 object DownloadScreen : Screen {
     @Composable
     override fun Content() {
-        val viewModel = viewModel<DownloadViewModel2>()
+        val settings = rememberAppSettings()
+        val viewModel = viewModel<DownloadViewModel2> { DownloadViewModel2(settings) }
         val state by viewModel.state.collectAsStateWithLifecycle()
         DownloadScreen(state, viewModel::onAction)
     }
 }
-
 
 @Composable
 fun DownloadScreen(
@@ -99,7 +100,7 @@ fun DownloadScreen(
 ) {
     DownloadSort(
         downloadSortingMethod = state.downloadSortingMethod,
-        regularSortingMethod = state.regularSortingMethod,
+        regularSortingMethod = state.bookmarkSortingMethod,
         sortingMethodDialog = state.dialog,
         onAction = onAction
     )

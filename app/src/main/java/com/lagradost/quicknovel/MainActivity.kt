@@ -82,6 +82,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.reflect.KClass
 import androidx.core.content.edit
+import com.lagradost.cloudstream4.AppSettings
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -347,7 +348,8 @@ class MainActivity : AppCompatActivity() {
                 url = result.url,
                 initializer = result,
                 loadData = result.id == null,
-                loadingResponse = result.id == null
+                loadingResponse = result.id == null,
+                appSettings = AppSettings(this)
             )
     }
 
@@ -368,7 +370,7 @@ class MainActivity : AppCompatActivity() {
         apiName: String,
     ) {
         val api = Apis.getApiFromNameOrNull(apiName) ?: return
-        viewModel2.value = ResultViewModel2(api = api, url = url, initializer = null)
+        viewModel2.value = ResultViewModel2(api = api, url = url, initializer = null, appSettings = AppSettings(this))
     }
 
     fun importUri(uri: Uri) = safe {

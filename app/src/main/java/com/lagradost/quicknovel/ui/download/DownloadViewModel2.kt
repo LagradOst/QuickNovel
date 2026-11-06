@@ -3,6 +3,7 @@ package com.lagradost.quicknovel.ui.download
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lagradost.cloudstream4.AppSettings
 import com.lagradost.cloudstream4.state.ActionHandler
 import com.lagradost.cloudstream4.state.DebounceQuery
 import com.lagradost.cloudstream4.state.DefaultStateContainer
@@ -10,13 +11,8 @@ import com.lagradost.cloudstream4.state.StateContainer
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
-import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
-import com.lagradost.quicknovel.CURRENT_TAB
-import com.lagradost.quicknovel.DOWNLOAD_NORMAL_SORTING_METHOD
-import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
-import com.lagradost.quicknovel.DOWNLOAD_SORTING_METHOD
 import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
 import com.lagradost.quicknovel.downloader.BookAction
@@ -52,18 +48,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
-const val DEFAULT_SORT = 0
-const val ALPHA_SORT = 1
-const val REVERSE_ALPHA_SORT = 2
-const val DOWNLOADSIZE_SORT = 3
-const val REVERSE_DOWNLOADSIZE_SORT = 4
-const val DOWNLOADPRECENTAGE_SORT = 5
-const val REVERSE_DOWNLOADPRECENTAGE_SORT = 6
 const val LAST_ACCES_SORT = 7
 const val REVERSE_LAST_ACCES_SORT = 8
-const val LAST_UPDATED_SORT = 9
-const val REVERSE_LAST_UPDATED_SORT = 10
-
 const val CHAPTER_SORT = 11
 const val REVERSE_CHAPTER_SORT = 12
 
@@ -72,7 +58,7 @@ data class DownloadPageState(
     val query: String = "",
     val pages: PersistentList<ImmutableSearchList> = persistentListOf(),
     val downloadSortingMethod: SortingMethodType = SortingMethodType.Default,
-    val regularSortingMethod: SortingMethodType = SortingMethodType.Default,
+    val bookmarkSortingMethod: SortingMethodType = SortingMethodType.Default,
     val activePage: Int = 0,
     /** null -> not shown */
     val dialog: DownloadDialog? = null,
@@ -101,7 +87,9 @@ sealed class DownloadPageAction {
     data class SelectPage(val page: Int) : DownloadPageAction()
 }
 
-class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
+class DownloadViewModel2(
+    val appSettings: AppSettings
+) : ViewModel(), ActionHandler<DownloadPageAction>,
     StateContainer<DownloadPageState> by DefaultStateContainer(DownloadPageState()) {
     companion object {
         val readList = persistentListOf(
@@ -150,7 +138,7 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
             }
 
             is DownloadPageAction.SelectPage -> {
-                setKey(DOWNLOAD_SETTINGS, CURRENT_TAB, action.page)
+                appSettings.downloads.currentPage.set(action.page)
                 updateState {
                     copy(activePage = action.page)
                 }
@@ -164,26 +152,22 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
 
             is DownloadPageAction.SelectSortingMethod -> {
                 updateState {
-                    val newRegularSortingMethod =
-                        action.regularSortingMethod ?: regularSortingMethod
+                    val newBookmarkSortingMethod =
+                        action.regularSortingMethod ?: bookmarkSortingMethod
                     val newDownloadSortingMethod =
                         action.downloadSortingMethod ?: downloadSortingMethod
 
-                    setKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD, newDownloadSortingMethod.id)
-                    setKey(
-                        DOWNLOAD_SETTINGS,
-                        DOWNLOAD_NORMAL_SORTING_METHOD,
-                        newRegularSortingMethod.id
-                    )
+                    appSettings.downloads.downloadSortingMethod.set(newDownloadSortingMethod)
+                    appSettings.downloads.bookmarkSortingMethod.set(newDownloadSortingMethod)
 
                     val activeQuery = query
                     copy(
                         downloadSortingMethod = newDownloadSortingMethod,
-                        regularSortingMethod = newRegularSortingMethod,
+                        bookmarkSortingMethod = newBookmarkSortingMethod,
                         pages = pages.updateRows { index ->
                             search(
                                 query = activeQuery,
-                                sortingMethod = if (index == 0) newDownloadSortingMethod else newRegularSortingMethod
+                                sortingMethod = if (index == 0) newDownloadSortingMethod else newBookmarkSortingMethod
                             )
                         }
                     )
@@ -525,18 +509,15 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
 
     suspend fun loadAll() = withContext(Dispatchers.Default) {
         run {
-            val downloadSortingMethod =
-                getKey(DOWNLOAD_SETTINGS, DOWNLOAD_SORTING_METHOD) ?: SortingMethodType.Default.id
-            val regularSortingMethod =
-                getKey(DOWNLOAD_SETTINGS, DOWNLOAD_NORMAL_SORTING_METHOD)
-                    ?: SortingMethodType.Default.id
+            val downloadSortingMethod = appSettings.downloads.downloadSortingMethod.get()
+            val regularSortingMethod = appSettings.downloads.bookmarkSortingMethod.get()
             val query = ""
-            val page = getKey<Int>(DOWNLOAD_SETTINGS, CURRENT_TAB) ?: 0
+            val page = appSettings.downloads.currentPage.get()
             updateState {
                 copy(
                     query = query,
-                    regularSortingMethod = SortingMethodType.from(regularSortingMethod),
-                    downloadSortingMethod = SortingMethodType.from(downloadSortingMethod),
+                    bookmarkSortingMethod = regularSortingMethod,
+                    downloadSortingMethod = downloadSortingMethod,
                     activePage = page
                 )
             }
@@ -583,7 +564,7 @@ class DownloadViewModel2 : ViewModel(), ActionHandler<DownloadPageAction>,
                     ImmutableSearchList.new(
                         mapping[x.prefValue]!!.toMap().toPersistentHashMap(),
                         stateValue.query,
-                        stateValue.regularSortingMethod
+                        stateValue.bookmarkSortingMethod
                     )
                 )
             }
