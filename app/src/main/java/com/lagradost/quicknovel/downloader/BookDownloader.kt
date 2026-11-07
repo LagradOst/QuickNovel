@@ -8,6 +8,7 @@ import com.anggrayudi.storage.StorageFile
 import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.BaseApplication
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
+import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2.LOCAL_EPUB_MIN_SIZE
 import com.lagradost.quicknovel.DOWNLOAD_FOLDER
@@ -443,6 +444,8 @@ object BookDownloader {
                             timeOfPageOpened = timeOfPageOpened,
                             downloadState = current.response.downloadState?.copy(
                                 downloadStatus = BookDownloadStatus.Pending,
+                                downloadOffset = downloadOffset,
+                                error = null,
                             )
                         )
                     )
@@ -635,8 +638,8 @@ object BookDownloader {
                             downloadOffset = bookPackage.offset,
                             pendingChapters = downloadState.pendingChapters.copy().apply {
                                 set(
-                                    downloadState.downloadOffset,
-                                    chapters ?: downloadState.downloadOffset
+                                    bookPackage.offset,
+                                    chapters ?: bookPackage.offset
                                 )
                                 andNot(downloadState.downloadedChapters)
                             })

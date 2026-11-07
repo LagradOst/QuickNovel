@@ -47,8 +47,13 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
@@ -57,6 +62,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -67,6 +73,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -93,6 +100,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -101,6 +109,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.lagradost.cloudstream4.compose.ActionDialog
 import com.lagradost.cloudstream4.compose.BlackButton
+import com.lagradost.cloudstream4.compose.BlackTextField
 import com.lagradost.cloudstream4.compose.Colors
 import com.lagradost.cloudstream4.compose.RoundedShape
 import com.lagradost.cloudstream4.compose.SinglePairSelectDialog
@@ -112,6 +121,7 @@ import com.lagradost.cloudstream4.compose.rounded
 import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
 import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.CommonActivity.activity
+import com.lagradost.quicknovel.MainActivity
 import com.lagradost.quicknovel.MainActivity.Companion.navigate
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.RootBaseSearchBar
@@ -142,6 +152,7 @@ import com.lagradost.quicknovel.ui.common.SearchResponseOperation
 import com.lagradost.quicknovel.ui.common.chapterSortingMethods
 import com.lagradost.quicknovel.ui.common.html
 import com.lagradost.quicknovel.ui.common.loading
+import com.lagradost.quicknovel.ui.download.DownloadPageAction
 import com.lagradost.quicknovel.ui.mainpage.MainPageAction
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.ui.result.ResultPageAction.ChapterAction
@@ -161,6 +172,7 @@ import com.lagradost.quicknovel.util.SettingsHelper.getRating
 import com.lagradost.quicknovel.util.SettingsHelper.getRatingReview
 import com.lagradost.quicknovel.util.UIHelper.humanReadableByteCountSI
 import com.lagradost.quicknovel.util.toPx
+import com.mihon.material.Slider
 import com.mihon.material.padding
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.PersistentList
@@ -169,9 +181,13 @@ import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.coroutines.launch
+import me.xdrop.fuzzywuzzy.FuzzySearch
 import java.util.BitSet
+import kotlin.collections.component1
+import kotlin.collections.component2
 
 /*
 object ResultScreen : Screen {
@@ -1457,9 +1473,9 @@ object ResultScreen {
                 }
             }
 
-            val tags = response.tags
-            if (tags != null) {
-                item(key = "tags") {
+            item(key = "tags") {
+                val tags = response.tags
+                if (tags != null) {
                     Tags(tags) { name ->
                         val api = state.api ?: return@Tags
                         val tagIndex = api.tags.indexOfFirst { tag -> tag.first == name }
@@ -1475,8 +1491,8 @@ object ResultScreen {
                 }
             }
 
-            if (response.downloadState != null && response.loadData != null) {
-                item(key = "downloads") {
+            item(key = "downloads") {
+                if (response.downloadState != null && response.loadData != null) {
                     DownloadButtons(
                         response = response,
                         downloadState = response.downloadState,
@@ -1534,9 +1550,16 @@ object ResultScreen {
                 }
             }
 
-            if (downloadState.downloadOffset != 0 || downloadState.totalDownloadedAfterOffset < loadData.chapters.size) {
-                entries += LocalDownloadSelection.PartialDownload to stringResource(R.string.download_from_chapter)
+            when (downloadState.downloadStatus) {
+                BookDownloadStatus.Idle, BookDownloadStatus.Done, BookDownloadStatus.Stopped, BookDownloadStatus.Failed -> {
+                    if (downloadState.downloadOffset != 0 || downloadState.totalDownloadedAfterOffset < loadData.chapters.size) {
+                        entries += LocalDownloadSelection.PartialDownload to stringResource(R.string.download_from_chapter)
+                    }
+                }
+
+                else -> {}
             }
+
 
             if (!downloadState.downloadedChapters.isEmpty) {
                 entries += LocalDownloadSelection.Delete to stringResource(R.string.delete)
@@ -1574,21 +1597,126 @@ object ResultScreen {
     }
 
     @Composable
-    fun DownloadDialog(
-        entries: PersistentMap<LocalDownloadSelection, String>,
-        onConfirm: (LocalDownloadSelection) -> Unit = {},
-        onDismissRequest: () -> Unit = {}
+    fun DownloadFromChapter(
+        response: ImmutableSearchResponse,
+        downloadState: ImmutableDownloadState,
+        loadData: ImmutableLoadData,
+        onAction: (ResultPageAction) -> Unit,
+        onDismissRequest: () -> Unit,
     ) {
-        SingleSelectDialog(
-            entries = entries,
-            dismiss = onDismissRequest,
-            confirm = { entry ->
-                if (entry != null) {
-                    onConfirm(entry)
-                }
-                onDismissRequest()
+        if (loadData.chapters.isNullOrEmpty()) {
+            return
+        }
+
+        var localOffset by remember { mutableIntStateOf(downloadState.downloadOffset) }
+        AlertDialog(
+            containerColor = MaterialTheme.colorScheme.background,
+            onDismissRequest = onDismissRequest,
+            title = {
+                Text(text = stringResource(R.string.download_from_chapter))
             },
-            selectedKey = null
+            text = {
+                var text by remember {
+                    mutableStateOf("")
+                }
+                var dropdown by remember { mutableStateOf(persistentListOf<ImmutableChapterData>()) }
+
+                Column(verticalArrangement = Arrangement.spacedBy(MaterialTheme.padding.small)) {
+                    Text(text = "$localOffset ${stringResource(R.string.start_chapter)}")
+
+                    BlackTextField(
+                        value = text,
+                        onValueChange = { newValue ->
+                            text = newValue
+                        },
+                        placeHolder = stringResource(R.string.chapter),
+                        keyboardOptions = KeyboardOptions.Default,
+                        singleLine = true,
+                        keyboardActions = KeyboardActions(onDone = {
+                            dropdown =
+                                loadData.chapters.map {
+                                    it to FuzzySearch.partialRatio(
+                                        text,
+                                        it.name
+                                    )
+                                }.sortedBy { -it.second }.map { it.first }.take(5)
+                                    .toPersistentList()
+                        })
+                    )
+                    /*dropdown.forEach { chapter ->
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .combinedClickable(
+                                    role = Role.Button,
+                                    onClick = {
+                                        text = chapter.name
+                                    },
+                                    onClickLabel = stringResource(R.string.start_chapter),
+                                )
+                        ) {
+                            Text(
+                                text = chapter.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (chapter.dateOfRelease != null) {
+                                Text(
+                                    text = chapter.dateOfRelease,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = LocalContentColor.current.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    }*/
+
+
+                    Slider(
+                        value = localOffset,
+                        onValueChange = {
+                            text = loadData.chapters[it].name
+                            localOffset = it
+                        },
+                        colors = SliderDefaults.colors().copy(
+                            activeTickColor = Color.Transparent,
+                            inactiveTickColor = Color.Transparent,
+                            disabledActiveTickColor = Color.Transparent,
+                            disabledInactiveTickColor = Color.Transparent
+                        ),
+                        valueRange = loadData.chapters.indices,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                DropdownMenu(expanded = dropdown.isNotEmpty(), onDismissRequest = {
+                    dropdown = persistentListOf()
+                }) {
+                    dropdown.forEach { item ->
+                        DropdownMenuItem(text = {
+                            Text(text = item.name)
+                        }, onClick = {
+                            localOffset = item.index
+                            text = item.name
+                            dropdown = persistentListOf()
+                        })
+                    }
+                }
+            },
+            confirmButton = {
+                WhiteButton(text = stringResource(R.string.download), onClick = {
+                    onAction(
+                        ResultPageAction.DownloadOffset(
+                            response = response,
+                            offset = localOffset
+                        )
+                    )
+                    onDismissRequest()
+                })
+            },
+            dismissButton = {
+                BlackButton(text = stringResource(R.string.cancel), onClick = onDismissRequest)
+            }
         )
     }
 
@@ -1600,12 +1728,22 @@ object ResultScreen {
         loadData: ImmutableLoadData,
         onAction: (ResultPageAction) -> Unit
     ) {
-        val onConfirm = { entry : LocalDownloadSelection ->
+        var partialDownload by remember { mutableStateOf(false) }
+        if (partialDownload) {
+            DownloadFromChapter(
+                response = response,
+                downloadState = downloadState,
+                loadData = loadData,
+                onAction = onAction,
+                onDismissRequest = {
+                    partialDownload = false
+                })
+        }
+
+        val onConfirm = { entry: LocalDownloadSelection ->
             when (entry) {
                 LocalDownloadSelection.PartialDownload -> {
-                    ResultPageAction.DownloadOffset(
-                        response = response, offset = 0 // TODO
-                    )
+                    partialDownload = true
                 }
 
                 LocalDownloadSelection.Pause, LocalDownloadSelection.Stop,
@@ -1618,25 +1756,17 @@ object ResultScreen {
                                 LocalDownloadSelection.Pause -> SearchResponseOperation.Pause
                                 LocalDownloadSelection.Stop -> SearchResponseOperation.Stop
                                 LocalDownloadSelection.Resume -> SearchResponseOperation.Resume
-                                LocalDownloadSelection.Delete -> SearchResponseOperation.Delete
+                                LocalDownloadSelection.Delete -> SearchResponseOperation.AskDelete
                                 LocalDownloadSelection.Download -> SearchResponseOperation.Download
                             }
                         )
                     )
                 )
             }
-            Unit
         }
 
         var downloadPopupEnabled by remember { mutableStateOf(false) }
         val options = getDownloadOptions(downloadState = downloadState, loadData = loadData)
-        if (downloadPopupEnabled) {
-            DownloadDialog(
-                entries = options,
-                onDismissRequest = {
-                    downloadPopupEnabled = false
-                }, onConfirm = onConfirm)
-        }
 
         Row(Modifier.padding(horizontal = MaterialTheme.padding.medium)) {
             IconTextButton(
@@ -1671,7 +1801,7 @@ object ResultScreen {
             IconTextButton(
                 modifier = Modifier.weight(1.0f),
                 onClick = {
-                    if(options.size == 1) {
+                    if (options.size == 1) {
                         onConfirm(options.keys.first())
                     } else {
                         downloadPopupEnabled = true
@@ -1684,12 +1814,29 @@ object ResultScreen {
                         )
                     )*/
                 },
+                content = {
+                    DropdownMenu(
+                        expanded = downloadPopupEnabled,
+                        onDismissRequest = { downloadPopupEnabled = false }
+                    ) {
+                        options.entries.forEach { (key, value) ->
+                            DropdownMenuItem(
+                                text = { Text(value) },
+                                onClick = {
+                                    downloadPopupEnabled = false
+                                    onConfirm(key)
+                                }
+                            )
+                        }
+                    }
+                },
                 loading = downloadState.downloadStatus == BookDownloadStatus.Pending,
                 icon = action.iconBig?.let { icon -> painterResource(icon) },
                 text = stringResource(action.operationName),
                 isWhite = false,
                 enabled = options.isNotEmpty()
             )
+
 
             /*TextButton(
                 colors = whiteButtonColors,
@@ -1774,10 +1921,12 @@ object ResultScreen {
         )
         if (text != null) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(
-                    horizontal = MaterialTheme.padding.medium,
-                    vertical = MaterialTheme.padding.small
-                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = MaterialTheme.padding.medium,
+                        vertical = MaterialTheme.padding.small
+                    ),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
@@ -1803,7 +1952,8 @@ object ResultScreen {
         icon: Painter?,
         text: String,
         isWhite: Boolean,
-        enabled: Boolean = true
+        enabled: Boolean = true,
+        content: (@Composable () -> Unit)? = null
     ) {
         TextButton(
             shape = RoundedShape(),
@@ -1813,6 +1963,7 @@ object ResultScreen {
             enabled = enabled
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                content?.invoke()
                 if (loading) {
                     CircularProgressIndicator(
                         modifier = Modifier

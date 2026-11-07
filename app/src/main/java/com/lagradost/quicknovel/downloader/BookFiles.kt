@@ -392,6 +392,7 @@ object BookFiles {
         fromDir.deleteRecursively()
         val from = status.id.toString()
         removeKey(DOWNLOAD_FOLDER, from)
+        removeKey(DOWNLOAD_OFFSET, from)
     }
 
     fun migrateAllInformation(

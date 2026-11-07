@@ -666,7 +666,7 @@ class ResultViewModel2(
                     requireLoadData()
                     BookDownloader.download(
                         response = action.response,
-                        bookPackage = BookDownloadPackage.AfterOffset(
+                        bookPackage = AfterOffset(
                             action.response.downloadState?.downloadOffset ?: 0
                         )
                     )
