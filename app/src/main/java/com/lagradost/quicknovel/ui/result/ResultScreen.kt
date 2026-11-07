@@ -2,6 +2,7 @@ package com.lagradost.quicknovel.ui.result
 
 import android.content.Intent
 import android.content.res.Configuration
+import android.text.format.Formatter.formatFileSize
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -63,6 +64,7 @@ import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -126,6 +128,7 @@ import com.lagradost.quicknovel.ui.common.HorizontalTab
 import com.lagradost.quicknovel.ui.common.ImmutableChapterData
 import com.lagradost.quicknovel.ui.common.ImmutableChapterList
 import com.lagradost.quicknovel.ui.common.ImmutableDownloadState
+import com.lagradost.quicknovel.ui.common.ImmutableLoadData
 import com.lagradost.quicknovel.ui.common.ImmutableReview
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.common.LoadingButton
@@ -139,6 +142,7 @@ import com.lagradost.quicknovel.ui.common.SearchResponseOperation
 import com.lagradost.quicknovel.ui.common.chapterSortingMethods
 import com.lagradost.quicknovel.ui.common.html
 import com.lagradost.quicknovel.ui.common.loading
+import com.lagradost.quicknovel.ui.mainpage.MainPageAction
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.ui.result.ResultPageAction.ChapterAction
 import com.lagradost.quicknovel.ui.result.ResultPageAction.DismissDialog
@@ -160,10 +164,12 @@ import com.lagradost.quicknovel.util.toPx
 import com.mihon.material.padding
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.coroutines.launch
 import java.util.BitSet
 
@@ -1469,12 +1475,121 @@ object ResultScreen {
                 }
             }
 
-            if (response.downloadState != null) {
+            if (response.downloadState != null && response.loadData != null) {
                 item(key = "downloads") {
-                    DownloadButtons(response, response.downloadState, onAction)
+                    DownloadButtons(
+                        response = response,
+                        downloadState = response.downloadState,
+                        loadData = response.loadData,
+                        onAction = onAction
+                    )
                 }
             }
         }
+    }
+
+
+    /*
+     */
+
+    enum class LocalDownloadSelection {
+        PartialDownload,
+        Pause,
+        Stop,
+        Resume,
+        Delete,
+        Download,
+
+    }
+
+    @Composable
+    @ReadOnlyComposable
+    fun getDownloadOptions(
+        downloadState: ImmutableDownloadState,
+        loadData: ImmutableLoadData
+    ): PersistentMap<LocalDownloadSelection, String> {
+        val entries = mutableMapOf<LocalDownloadSelection, String>()
+
+        val chapters = loadData.chapters
+        if (!chapters.isNullOrEmpty()) {
+            when (downloadState.downloadStatus) {
+                BookDownloadStatus.Paused -> {
+                    entries += LocalDownloadSelection.Resume to stringResource(R.string.resume)
+                    entries += LocalDownloadSelection.Stop to stringResource(R.string.stop)
+                }
+
+                BookDownloadStatus.Stopped, BookDownloadStatus.Failed -> {
+                    entries += LocalDownloadSelection.Download to stringResource(R.string.re_downloaded)
+                }
+
+                BookDownloadStatus.Pending, BookDownloadStatus.Downloading -> {
+                    entries += LocalDownloadSelection.Stop to stringResource(R.string.stop)
+                    entries += LocalDownloadSelection.Pause to stringResource(R.string.pause)
+                }
+
+                BookDownloadStatus.Idle, BookDownloadStatus.Done -> {
+                    if (downloadState.totalDownloadedAfterOffset < loadData.chapters.size) {
+                        entries += LocalDownloadSelection.Download to stringResource(R.string.download)
+                    }
+                }
+            }
+
+            if (downloadState.downloadOffset != 0 || downloadState.totalDownloadedAfterOffset < loadData.chapters.size) {
+                entries += LocalDownloadSelection.PartialDownload to stringResource(R.string.download_from_chapter)
+            }
+
+            if (!downloadState.downloadedChapters.isEmpty) {
+                entries += LocalDownloadSelection.Delete to stringResource(R.string.delete)
+            }
+        } else if (downloadState.totalBytes > 0) {
+            when (downloadState.downloadStatus) {
+                BookDownloadStatus.Paused -> {
+                    entries += LocalDownloadSelection.Resume to stringResource(R.string.resume)
+                    entries += LocalDownloadSelection.Stop to stringResource(R.string.stop)
+                }
+
+                BookDownloadStatus.Failed, BookDownloadStatus.Stopped -> {
+                    entries += if (downloadState.downloadedBytes < downloadState.totalBytes) {
+                        LocalDownloadSelection.Download to stringResource(R.string.re_downloaded)
+                    } else {
+                        LocalDownloadSelection.Delete to stringResource(R.string.delete)
+                    }
+                }
+
+                BookDownloadStatus.Pending, BookDownloadStatus.Downloading -> {
+                    entries += LocalDownloadSelection.Stop to stringResource(R.string.stop)
+                    entries += LocalDownloadSelection.Pause to stringResource(R.string.pause)
+                }
+
+                BookDownloadStatus.Idle, BookDownloadStatus.Done -> {
+                    entries += if (downloadState.downloadedBytes < downloadState.totalBytes) {
+                        LocalDownloadSelection.Download to stringResource(R.string.download)
+                    } else {
+                        LocalDownloadSelection.Delete to stringResource(R.string.delete)
+                    }
+                }
+            }
+        }
+        return entries.toPersistentMap()
+    }
+
+    @Composable
+    fun DownloadDialog(
+        entries: PersistentMap<LocalDownloadSelection, String>,
+        onConfirm: (LocalDownloadSelection) -> Unit = {},
+        onDismissRequest: () -> Unit = {}
+    ) {
+        SingleSelectDialog(
+            entries = entries,
+            dismiss = onDismissRequest,
+            confirm = { entry ->
+                if (entry != null) {
+                    onConfirm(entry)
+                }
+                onDismissRequest()
+            },
+            selectedKey = null
+        )
     }
 
     @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -1482,8 +1597,47 @@ object ResultScreen {
     fun DownloadButtons(
         response: ImmutableSearchResponse,
         downloadState: ImmutableDownloadState,
+        loadData: ImmutableLoadData,
         onAction: (ResultPageAction) -> Unit
     ) {
+        val onConfirm = { entry : LocalDownloadSelection ->
+            when (entry) {
+                LocalDownloadSelection.PartialDownload -> {
+                    ResultPageAction.DownloadOffset(
+                        response = response, offset = 0 // TODO
+                    )
+                }
+
+                LocalDownloadSelection.Pause, LocalDownloadSelection.Stop,
+                LocalDownloadSelection.Resume, LocalDownloadSelection.Delete,
+                LocalDownloadSelection.Download -> onAction(
+                    ResultAction(
+                        SearchResponseAction(
+                            response = response,
+                            operation = when (entry) {
+                                LocalDownloadSelection.Pause -> SearchResponseOperation.Pause
+                                LocalDownloadSelection.Stop -> SearchResponseOperation.Stop
+                                LocalDownloadSelection.Resume -> SearchResponseOperation.Resume
+                                LocalDownloadSelection.Delete -> SearchResponseOperation.Delete
+                                LocalDownloadSelection.Download -> SearchResponseOperation.Download
+                            }
+                        )
+                    )
+                )
+            }
+            Unit
+        }
+
+        var downloadPopupEnabled by remember { mutableStateOf(false) }
+        val options = getDownloadOptions(downloadState = downloadState, loadData = loadData)
+        if (downloadPopupEnabled) {
+            DownloadDialog(
+                entries = options,
+                onDismissRequest = {
+                    downloadPopupEnabled = false
+                }, onConfirm = onConfirm)
+        }
+
         Row(Modifier.padding(horizontal = MaterialTheme.padding.medium)) {
             IconTextButton(
                 modifier = Modifier
@@ -1500,7 +1654,8 @@ object ResultScreen {
                 loading = response.generating,
                 icon = painterResource(R.drawable.book_2_24px),
                 text = stringResource(R.string.read_epub),
-                isWhite = true
+                isWhite = true,
+                enabled = (downloadState.totalDownloadedAfterOffset > downloadState.downloadOffset) || (downloadState.downloadStatus == BookDownloadStatus.Done && downloadState.totalBytes > 0)
             )
 
             Spacer(Modifier.width(MaterialTheme.padding.small))
@@ -1512,21 +1667,28 @@ object ResultScreen {
                             ?: 1) && downloadState.downloadStatus == BookDownloadStatus.Idle
                     ) BookDownloadStatus.Done else downloadState.downloadStatus
                 )
+
             IconTextButton(
                 modifier = Modifier.weight(1.0f),
                 onClick = {
-                    onAction(
-                        ResultPageAction.ResultAction(
+                    if(options.size == 1) {
+                        onConfirm(options.keys.first())
+                    } else {
+                        downloadPopupEnabled = true
+                    }
+                    /*onAction(
+                        ResultAction(
                             SearchResponseAction(
                                 response, action.operation
                             )
                         )
-                    )
+                    )*/
                 },
                 loading = downloadState.downloadStatus == BookDownloadStatus.Pending,
                 icon = action.iconBig?.let { icon -> painterResource(icon) },
                 text = stringResource(action.operationName),
-                isWhite = false
+                isWhite = false,
+                enabled = options.isNotEmpty()
             )
 
             /*TextButton(
@@ -1547,23 +1709,26 @@ object ResultScreen {
             }*/
         }
 
-        IconTextButton(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = MaterialTheme.padding.medium),
-            onClick = {
-                onAction(
-                    ResultAction(
-                        SearchResponseAction(
-                            response, SearchResponseOperation.Stream
+        if (loadData.chapters != null) {
+            IconTextButton(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = MaterialTheme.padding.medium),
+                onClick = {
+                    onAction(
+                        ResultAction(
+                            SearchResponseAction(
+                                response, SearchResponseOperation.Stream
+                            )
                         )
                     )
-                )
-            },
-            icon = painterResource(R.drawable.play_arrow_24px),
-            text = stringResource(R.string.stream_read),
-            isWhite = true
-        )
+                },
+                icon = painterResource(R.drawable.play_arrow_24px),
+                text = stringResource(R.string.stream_read),
+                isWhite = true,
+                enabled = loadData.chapters.isNotEmpty()
+            )
+        }
 
         val animatedProgress: Float by animateFloatAsState(
             response.downloadPercentage ?: 0.0f,
@@ -1580,15 +1745,53 @@ object ResultScreen {
             label = "alpha",
             animationSpec = tween(durationMillis = 500),
         )
+        val text = if (downloadState.totalBytes > 0) {
+            val context = LocalContext.current
+            "${
+                formatFileSize(
+                    context,
+                    downloadState.downloadedBytes
+                )
+            } / ${formatFileSize(context, downloadState.totalBytes)}"
+        } else if (downloadState.chapterProgress != null) {
+            "${downloadState.chapterProgress.progress}/${downloadState.chapterProgress.total}"
+        } else if (loadData.chapters != null) {
+            "${downloadState.totalDownloadedAfterOffset}/${loadData.chapters.size}"
+        } else {
+            null
+        }
 
         LinearWavyProgressIndicator(
             progress = { animatedProgress },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(MaterialTheme.padding.medium),
+                .padding(
+                    horizontal = MaterialTheme.padding.medium,
+                    vertical = MaterialTheme.padding.small
+                ),
             amplitude = { animatedWavy },
             color = MaterialTheme.colorScheme.onBackground
         )
+        if (text != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(
+                    horizontal = MaterialTheme.padding.medium,
+                    vertical = MaterialTheme.padding.small
+                ),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "$text ${stringResource(R.string.downloaded)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                downloadState.estimateDownloadTimeFormat?.let { eta ->
+                    Text(
+                        text = eta,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+        }
         Spacer(Modifier.height(60.dp))
     }
 
@@ -1599,13 +1802,15 @@ object ResultScreen {
         loading: Boolean = false,
         icon: Painter?,
         text: String,
-        isWhite: Boolean
+        isWhite: Boolean,
+        enabled: Boolean = true
     ) {
         TextButton(
             shape = RoundedShape(),
             colors = if (isWhite) Colors.whiteButton else Colors.blackButton,
             modifier = modifier,
-            onClick = onClick
+            onClick = onClick,
+            enabled = enabled
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (loading) {
@@ -1779,7 +1984,7 @@ object ResultScreen {
                 .nestedScroll(nestedScrollConnection)
                 .background(MaterialTheme.colorScheme.background),
             searchAction = { value: SearchResponseAction ->
-                onAction(ResultPageAction.ResultAction(value))
+                onAction(ResultAction(value))
             })
     }
 

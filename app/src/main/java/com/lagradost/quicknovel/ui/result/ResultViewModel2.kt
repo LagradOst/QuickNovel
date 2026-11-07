@@ -27,6 +27,7 @@ import com.lagradost.quicknovel.RESULT_BOOKMARK
 import com.lagradost.quicknovel.RESULT_BOOKMARK_STATE
 import com.lagradost.quicknovel.downloader.BookAction
 import com.lagradost.quicknovel.downloader.BookDownloadPackage
+import com.lagradost.quicknovel.downloader.BookDownloadPackage.*
 import com.lagradost.quicknovel.downloader.BookDownloader
 import com.lagradost.quicknovel.downloader.BookNotifications
 import com.lagradost.quicknovel.downloader.BookReader
@@ -125,6 +126,11 @@ sealed class ResultPageAction {
         val response: ImmutableSearchResponse,
         val selection: BitSet
     ) : ResultPageAction()
+
+    data class DownloadOffset(
+        val response: ImmutableSearchResponse,
+        val offset: Int
+    ) : ResultPageAction()
 }
 
 @Immutable
@@ -163,7 +169,10 @@ class ResultViewModel2(
     ),
     EffectContainer<ResultPageEffect> by DefaultEffectContainer() {
     companion object {
-        fun newChaptersList(initializer: ImmutableSearchResponse?, settings: AppSettings): ImmutableChapterList? {
+        fun newChaptersList(
+            initializer: ImmutableSearchResponse?,
+            settings: AppSettings
+        ): ImmutableChapterList? {
             val chapters = initializer?.loadData?.chapters ?: return null
             val id = initializer.id ?: return null
 
@@ -189,7 +198,12 @@ class ResultViewModel2(
             initializer {
                 val url = bundle.getString("url")!!
                 val apiName = bundle.getString("apiName")!!
-                ResultViewModel2(api = getApiFromName(apiName), url = url, initializer = null, appSettings = settings)
+                ResultViewModel2(
+                    api = getApiFromName(apiName),
+                    url = url,
+                    initializer = null,
+                    appSettings = settings
+                )
             }
         }
 
@@ -297,7 +311,7 @@ class ResultViewModel2(
                 // how?
                 this
             } else {
-                copy(response = response.copy(downloadState = null))
+                copy(response = response.copy(downloadState = ImmutableSearchResponse.defaultDownloadState(id)))
             }
         }
     }
@@ -314,7 +328,7 @@ class ResultViewModel2(
             } else {
                 copy(
                     response = response.copy(
-                        downloadState = item.response.downloadState
+                        downloadState = item.response.downloadState ?: ImmutableSearchResponse.defaultDownloadState(id)
                     ),
                     chapters = item.response.downloadState?.let { downloadState ->
                         chapters?.filterBy(newFilter = chapters.filtering.copy(downloaded = downloadState.downloadedChapters))
@@ -421,7 +435,10 @@ class ResultViewModel2(
                                         loadingResponse = false,
                                         responseError = null,
                                         bookmark = getBookmarkState(id),
-                                        chapters = newChaptersList(newResponse, settings = appSettings)
+                                        chapters = newChaptersList(
+                                            newResponse,
+                                            settings = appSettings
+                                        )
                                     )
                                 }
                                 setBookmark(id = id, response = newResponse, type = action.type)
@@ -478,7 +495,7 @@ class ResultViewModel2(
                     requireLoadData()
                     BookDownloader.download(
                         response = action.response,
-                        bookPackage = BookDownloadPackage.Chapters(action.selection)
+                        bookPackage = Chapters(action.selection)
                     )
                 }
             }
@@ -498,6 +515,13 @@ class ResultViewModel2(
                         chapters = chapters?.filterBy(newFilter = chapters.filtering.copy(read = newSet))
                     )
                 }
+            }
+
+            is ResultPageAction.DownloadOffset -> {
+                BookDownloader.download(
+                    response = action.response,
+                    bookPackage = AfterOffset(action.offset)
+                )
             }
         }
     }
@@ -597,7 +621,7 @@ class ResultViewModel2(
 
             ChapterOperation.Download -> {
                 BookDownloader.download(
-                    response = action.response, bookPackage = BookDownloadPackage.Chapters(
+                    response = action.response, bookPackage = Chapters(
                         BitSet().apply { set(action.chapter.index) })
                 )
             }

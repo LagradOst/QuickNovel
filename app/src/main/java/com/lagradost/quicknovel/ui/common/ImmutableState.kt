@@ -425,7 +425,7 @@ data class ImmutableSearchResponse(
             }
                 ?: BitSet()
 
-        fun setChaptersRead(id: Int, set : BitSet) {
+        fun setChaptersRead(id: Int, set: BitSet) {
             setKey<ByteArray>(EPUB_BITSET_POSITION, id.toString(), set.toByteArray())
         }
 
@@ -472,12 +472,15 @@ data class ImmutableSearchResponse(
                 chaptersRead = null
             )
 
-        fun downloadState(id: Int) =
-            BookState.downloadStatus(id)?.downloadState?.copy() ?: ImmutableDownloadState(
+        fun defaultDownloadState(id: Int) =
+            ImmutableDownloadState(
                 downloadStatus = BookDownloadStatus.Idle,
                 downloadOffset = getKey<Int>(DOWNLOAD_OFFSET, id.toString()) ?: 0,
                 downloadedChapters = BitSet(),
             )
+
+        fun downloadState(id: Int) =
+            BookState.downloadStatus(id)?.downloadState?.copy() ?: defaultDownloadState(id)
 
         fun from(response: LoadResponse): ImmutableSearchResponse {
             val id = generateId(response, response.apiName)
@@ -822,6 +825,7 @@ val chapterSortingMethods = persistentListOf(
 @Immutable
 enum class ChapterFilterMethodType(val id: Int) {
     All(0),
+
     /** Filter by download status */
     Downloaded(1),
     UnDownloaded(2),
@@ -1005,7 +1009,7 @@ data class ImmutableChapterList(
     ),
     val sortingMethod: ChapterSortingMethodType = ChapterSortingMethodType.Default,
     val filtering: FilterChapters = FilterChapters(),
-    val selected : BitSet,
+    val selected: BitSet,
 ) {
     val data get() = internalData.data
     val sorted get() = internalData.sorted

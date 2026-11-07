@@ -201,7 +201,7 @@ object BookNotifications {
         val extraText =
             when (downloadState.downloadStatus) {
                 BookDownloadStatus.Pending, BookDownloadStatus.Downloading -> {
-                    if (downloadState.downloadedBytes > 0) {
+                    if (downloadState.totalBytes > 0) {
                         val div = 1024
                         builder.setProgress(
                             maxOf((downloadState.totalBytes / div).toInt(), 1),
