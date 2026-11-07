@@ -43,6 +43,7 @@ import com.lagradost.quicknovel.TTSHelper.preParseHtml
 import com.lagradost.quicknovel.TTSHelper.ttsParseText
 import com.lagradost.quicknovel.downloader.BookDownloader.downloadChapter
 import com.lagradost.quicknovel.downloader.BookFileHandle
+import com.lagradost.quicknovel.downloader.BookFiles.resetApiLastRequestTime
 import com.lagradost.quicknovel.downloader.BookReader
 import com.lagradost.quicknovel.downloader.BookState
 import com.lagradost.quicknovel.downloader.copy
@@ -269,14 +270,19 @@ class QuickBook(val data: QuickStreamData) : AbstractBook() {
         val file = files.chapterFile(index)
         if (!file.exists()) {
             val chapter = data.data[index]
-            downloadChapter(
+            val api = Apis.getApiFromNameOrNull(data.meta.apiName)
+                ?: throw ErrorLoadingException("No api")
+            resetApiLastRequestTime(api = api, handle = null)
+            val success = downloadChapter(
                 files = files,
-                api = Apis.getApiFromNameOrNull(data.meta.apiName)
-                    ?: throw ErrorLoadingException("No api"),
+                api = api,
                 chapterUrl = chapter.url,
                 chapterName = chapter.name,
                 chapterIndex = index,
             )
+            if (!success) {
+                throw ErrorLoadingException("Chapter failed")
+            }
             BookState.updateDownloadState(id = files.id, notify = false) {
                 copy(
                     downloadedChapters = downloadedChapters.copy().apply { set(index) },
@@ -1800,6 +1806,7 @@ class ReadActivityViewModel : ViewModel() {
 
 
     var scrollWithVolume by PreferenceDelegate(EPUB_SCROLL_VOL, true, Boolean::class)
+
     //var authorNotes by PreferenceDelegate(EPUB_AUTHOR_NOTES, true, Boolean::class)
     var ttsLock by PreferenceDelegate(EPUB_TTS_LOCK, true, Boolean::class)
     //var ttsOSSpeed by PreferenceDelegate(EPUB_TTS_OS_SPEED, true, Boolean::class)

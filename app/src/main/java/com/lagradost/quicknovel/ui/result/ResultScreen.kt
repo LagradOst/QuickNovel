@@ -590,7 +590,7 @@ object ResultScreen {
                         contentDescription = stringResource(R.string.poster_descript),
                     )
                     Column(
-                        modifier = Modifier.padding(MaterialTheme.padding.medium),
+                        modifier = Modifier.padding(horizontal = MaterialTheme.padding.medium),
                         verticalArrangement = Arrangement.spacedBy(
                             MaterialTheme.padding.extraSmall
                         )
@@ -601,13 +601,12 @@ object ResultScreen {
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
-                        if (response.author != null) {
-                            Text(
-                                text = response.author,
-                                color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
+                        Text(
+                            text = (response.author?.let { "$it · " } ?: "") + response.apiName,
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+
                         response.loadData?.status?.let { status ->
                             Text(
                                 text = stringResource(status.resource),
@@ -623,6 +622,7 @@ object ResultScreen {
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
+
                     }
                 }
             }
@@ -1635,9 +1635,14 @@ object ResultScreen {
                         keyboardActions = KeyboardActions(onDone = {
                             dropdown =
                                 loadData.chapters.map {
-                                    it to FuzzySearch.partialRatio(
-                                        text,
-                                        it.name
+                                    it to maxOf(
+                                        FuzzySearch.partialRatio(
+                                            text,
+                                            it.name
+                                        ), FuzzySearch.partialRatio(
+                                            text,
+                                            (it.index + 1).toString()
+                                        )
                                     )
                                 }.sortedBy { -it.second }.map { it.first }.take(5)
                                     .toPersistentList()
@@ -1694,7 +1699,17 @@ object ResultScreen {
                 }) {
                     dropdown.forEach { item ->
                         DropdownMenuItem(text = {
-                            Text(text = item.name)
+                            Column(verticalArrangement = Arrangement.spacedBy(MaterialTheme.padding.extraSmall)) {
+                                Text(text = item.name, style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    text = stringResource(
+                                        R.string.chapter_format,
+                                        (item.index + 1).toString()
+                                    ),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = LocalContentColor.current.copy(alpha = 0.7f)
+                                )
+                            }
                         }, onClick = {
                             localOffset = item.index
                             text = item.name
