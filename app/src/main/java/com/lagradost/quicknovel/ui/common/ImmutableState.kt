@@ -673,7 +673,7 @@ data class DownloadStateAction(
                 BookDownloadStatus.Stopped -> SearchResponseOperation.Download
                 BookDownloadStatus.Failed -> SearchResponseOperation.Download
                 BookDownloadStatus.Done -> SearchResponseOperation.Download
-                BookDownloadStatus.Pending -> SearchResponseOperation.NoOp
+                BookDownloadStatus.Pending -> SearchResponseOperation.Stop
                 BookDownloadStatus.Idle -> SearchResponseOperation.Download
             }
 
@@ -696,7 +696,7 @@ data class DownloadStateAction(
             BookDownloadStatus.Stopped -> R.drawable.arrow_circle_down_24px
             BookDownloadStatus.Failed -> R.drawable.arrow_circle_down_24px
             BookDownloadStatus.Done -> R.drawable.check_24px
-            BookDownloadStatus.Pending -> null
+            BookDownloadStatus.Pending -> R.drawable.stop_circle_24px
             BookDownloadStatus.Idle -> R.drawable.arrow_circle_down_24px
         }
 

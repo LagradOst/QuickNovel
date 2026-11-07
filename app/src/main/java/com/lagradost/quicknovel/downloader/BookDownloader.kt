@@ -12,6 +12,7 @@ import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BookDownloader2.LOCAL_EPUB_MIN_SIZE
 import com.lagradost.quicknovel.DOWNLOAD_FOLDER
 import com.lagradost.quicknovel.DOWNLOAD_OFFSET
+import com.lagradost.quicknovel.DOWNLOAD_POSTER
 import com.lagradost.quicknovel.DOWNLOAD_TOTAL
 import com.lagradost.quicknovel.DownloadFileWorkManager
 import com.lagradost.quicknovel.ErrorLoadingException
@@ -180,7 +181,7 @@ data class BookDownloadListPayload(
 
 @Immutable
 data class BookRefreshListPayload(
-    val page : Int,
+    val page: Int,
     val responses: PersistentList<ImmutableSearchResponse>
 )
 
@@ -212,7 +213,10 @@ object BookDownloader {
         deleteDownload(id)
     }
 
-    fun refreshBookmarks(data: BookRefreshListPayload, context: Context? = BaseApplication.context) {
+    fun refreshBookmarks(
+        data: BookRefreshListPayload,
+        context: Context? = BaseApplication.context
+    ) {
         val context = context ?: return
         DownloadFileWorkManager.startRefreshBookmark(data = data, context = context)
     }
@@ -348,7 +352,11 @@ object BookDownloader {
         val toStatus = BookStatus(handle = toHandle, response = to)
         fromHandle.mutex.withLock {
             toHandle.mutex.withLock {
-                if(currentStatusMap.putIfAbsent(from.id, fromStatus) != null || currentStatusMap.putIfAbsent(to.id, toStatus) != null) {
+                if (currentStatusMap.putIfAbsent(
+                        from.id,
+                        fromStatus
+                    ) != null || currentStatusMap.putIfAbsent(to.id, toStatus) != null
+                ) {
                     return@withContext
                 }
                 /** We can now safely migrate from A -> B as both A and B are not downloaded */
@@ -422,9 +430,10 @@ object BookDownloader {
                     /** Replace the mutex with the active mutex */
                     current.copy(
                         handle = handle,
-                        response = current.response.copy(
+                        /** Use the new response instead of the one that is cached */
+                        response = response.copy(
                             /**
-                             * Always use the most up-to-date load data, even if it is null,
+                             * Explicitly always use the most up-to-date load data, even if it is null,
                              * as otherwise, new chapters will never get checked
                              * */
                             loadData = response.loadData,
@@ -866,17 +875,21 @@ object BookDownloader {
     private suspend fun downloadPoster(response: ImmutableSearchResponse, handle: BookHandle) {
         if (response.posterUrl.isNullOrBlank()) return
         val posterFile = handle.files.posterFile()
-        val key = handle.files.filenameImage()
+        val key = handle.id.toString()
 
-        // Only redownload if we do not have a file, or if the poster was changed
+        /** Only redownload if we do not have a file, or if the poster was changed */
         if (posterFile.exists() && getKey<String>(
+                DOWNLOAD_POSTER,
                 key,
                 response.posterUrl
             ) == response.posterUrl
-        ) return
+        ) {
+            return
+        }
 
         // Clear the key so if we have a partial download it fixes it
         setKey(
+            DOWNLOAD_POSTER,
             key,
             ""
         )
@@ -907,11 +920,11 @@ object BookDownloader {
 
         // This acts as a checkpoint
         setKey(
+            DOWNLOAD_POSTER,
             key,
             response.posterUrl
         )
     }
-
 
     @Throws
     private suspend fun downloadNextChapter(

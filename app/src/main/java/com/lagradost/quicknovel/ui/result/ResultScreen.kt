@@ -1,6 +1,7 @@
 package com.lagradost.quicknovel.ui.result
 
 import android.content.Intent
+import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -34,6 +35,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -75,16 +77,14 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
@@ -108,13 +108,16 @@ import com.lagradost.cloudstream4.compose.WhiteFilterChip
 import com.lagradost.cloudstream4.compose.circle
 import com.lagradost.cloudstream4.compose.rounded
 import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
+import com.lagradost.quicknovel.APIRepository
 import com.lagradost.quicknovel.CommonActivity.activity
+import com.lagradost.quicknovel.MainActivity.Companion.navigate
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.RootBaseSearchBar
 import com.lagradost.quicknovel.downloader.BookDownloadStatus
 import com.lagradost.quicknovel.downloader.copy
 import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.mvvm.throwableToMessage
+import com.lagradost.quicknovel.providers.RoyalRoadProvider
 import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.common.ChapterFilterMethodType
 import com.lagradost.quicknovel.ui.common.ChapterSortingMethodType
@@ -133,10 +136,10 @@ import com.lagradost.quicknovel.ui.common.LoadingWidth
 import com.lagradost.quicknovel.ui.common.SearchList
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseOperation
-import com.lagradost.quicknovel.ui.common.SortingMethodType
 import com.lagradost.quicknovel.ui.common.chapterSortingMethods
 import com.lagradost.quicknovel.ui.common.html
 import com.lagradost.quicknovel.ui.common.loading
+import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.ui.result.ResultPageAction.ChapterAction
 import com.lagradost.quicknovel.ui.result.ResultPageAction.DismissDialog
 import com.lagradost.quicknovel.ui.result.ResultPageAction.DownloadSelection
@@ -161,7 +164,6 @@ import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
-import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.launch
 import java.util.BitSet
 
@@ -1429,28 +1431,41 @@ object ResultScreen {
 
             if (!response.synopsis.isNullOrBlank()) {
                 item(key = "synopsis") {
+                    Spacer(modifier = Modifier.height(MaterialTheme.padding.small))
                     Text(
                         modifier = Modifier
-                            .padding(5.dp)
+                            .padding(horizontal = MaterialTheme.padding.medium)
+                            .rounded()
                             .clickable(
                                 onClick = {
                                     expanded.value = !expanded.value
                                 })
-                            .rounded()
-                            .padding(5.dp),
+                            .padding(MaterialTheme.padding.small),
                         text = response.synopsis.html(),
                         color = MaterialTheme.colorScheme.onBackground,
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = if (expanded.value) Int.MAX_VALUE else 8,
                         overflow = TextOverflow.Ellipsis
                     )
+                    Spacer(modifier = Modifier.height(MaterialTheme.padding.small))
                 }
             }
 
             val tags = response.tags
             if (tags != null) {
                 item(key = "tags") {
-                    Tags(tags)
+                    Tags(tags) { name ->
+                        val api = state.api ?: return@Tags
+                        val tagIndex = api.tags.indexOfFirst { tag -> tag.first == name }
+                        if (tagIndex == -1) return@Tags
+                        activity?.navigate(
+                            R.id.global_to_navigation_mainpage,
+                            MainPageFragment.newInstance(
+                                apiName = api.name,
+                                tag = tagIndex
+                            )
+                        )
+                    }
                 }
             }
 
@@ -1475,7 +1490,7 @@ object ResultScreen {
                     .weight(1.0f),
                 onClick = {
                     onAction(
-                        ResultPageAction.ResultAction(
+                        ResultAction(
                             SearchResponseAction(
                                 response, SearchResponseOperation.Read
                             )
@@ -1684,34 +1699,65 @@ object ResultScreen {
     }
 
     @Composable
-    fun Tags(tags: ImmutableList<String>) {
-        val tagInteractionSource = remember { MutableInteractionSource() }
+    fun LazyItemScope.Tags(tags: ImmutableList<String>, onTagClicked: (String) -> Unit) {
+        val configuration = LocalConfiguration.current
+        val orientation = configuration.orientation
+        val minimumReveal = 4
+        val defaultMaxTags = when (orientation) {
+            Configuration.ORIENTATION_LANDSCAPE -> 25
+            else -> 7
+        }
 
-        val expandedTags = rememberSaveable { mutableStateOf(false) }
+        /** We have a slight overflow to prevent the reaveal button from just showing 1 item */
+        val maxTags = if (defaultMaxTags + minimumReveal >= tags.size) {
+            tags.size
+        } else {
+            defaultMaxTags
+        }
+
+        var expandedTags by rememberSaveable { mutableStateOf(false) }
         FlowRow(
             Modifier
                 .fillMaxWidth()
-                .padding(5.dp)
-                .rounded()
-                .clickable(
-                    onClick = {
-                        expandedTags.value = !expandedTags.value
-                    }, interactionSource = tagInteractionSource
-                ), maxLines = if (expandedTags.value) {
-                Int.MAX_VALUE
-            } else {
-                3
-            }
+                .padding(horizontal = MaterialTheme.padding.medium)
+                .animateItem(),
         ) {
-            tags.forEach { tag ->
+            if (expandedTags) {
+                tags
+            } else {
+                tags.subList(0, minOf(tags.size, maxTags))
+            }.forEach { tag ->
                 Text(
                     text = tag,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier
                         .padding(MaterialTheme.padding.extraSmall)
                         .rounded()
+                        .clickable {
+                            onTagClicked(tag)
+                        }
                         .background(color = MaterialTheme.colorScheme.surfaceVariant)
                         .padding(7.dp)
+                )
+            }
+        }
+        if (tags.size > maxTags) {
+            IconButton(
+                onClick = {
+                    expandedTags = !expandedTags
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = MaterialTheme.padding.medium)
+                    .animateItem()
+            ) {
+                Icon(
+                    painter = if (expandedTags) {
+                        painterResource(R.drawable.keyboard_arrow_up)
+                    } else {
+                        painterResource(R.drawable.keyboard_arrow_down)
+                    },
+                    contentDescription = stringResource(R.string.tags)
                 )
             }
         }
@@ -1844,7 +1890,6 @@ object ResultScreen {
     }
 }
 
-/*
 @PreviewLightDark
 @Composable
 fun LoadingPreview() {
@@ -1860,7 +1905,7 @@ fun LoadingPreview() {
             ) { }
         }
     }
-}*/
+}
 /*
 @PreviewLightDark
 @Composable
@@ -1885,6 +1930,7 @@ fun ReviewPreview() {
     }
 }*/
 
+/*
 @PreviewLightDark
 @Composable
 fun ChapterPreview() {
@@ -1906,4 +1952,4 @@ fun ChapterPreview() {
             )
         }
     }
-}
+}*/

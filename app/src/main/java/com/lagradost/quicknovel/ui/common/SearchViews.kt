@@ -384,10 +384,10 @@ fun RefreshButton(
         return
     }
 
-    if (response.downloadState.downloadStatus == BookDownloadStatus.Pending) {
+    /*if (response.downloadState.downloadStatus == BookDownloadStatus.Pending) {
         Spacer(Modifier.width(54.dp))
         return
-    }
+    }*/
 
     val action = response.downloadState.action
 

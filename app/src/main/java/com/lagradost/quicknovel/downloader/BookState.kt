@@ -187,8 +187,7 @@ object BookState {
             timeOfCached = creationTime
         )
 
-        val cancelNotification =
-            response.timeOfChapterDownloaded == null || response.timeOfChapterDownloaded < handle.created
+        val cancelNotification = timeOfChapterDownloaded < handle.created
 
         updateState(handle.id, notify = !cancelNotification) {
             copy(

@@ -12,6 +12,7 @@ import androidx.core.content.edit
 
 const val PREFERENCES_NAME: String = "rebuild_preference"
 const val DOWNLOAD_FOLDER: String = "downloads_data"
+const val DOWNLOAD_POSTER: String = "downloads_poster"
 const val DOWNLOAD_SIZE: String = "downloads_size"
 const val DOWNLOAD_TOTAL: String = "downloads_total"
 const val DOWNLOAD_OFFSET: String = "downloads_offset"
