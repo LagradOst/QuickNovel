@@ -180,6 +180,7 @@ import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
@@ -1237,6 +1238,20 @@ object ResultScreen {
             }) { review ->
                 ReviewItem(review, modifier = Modifier.animateItem(), onAction = onAction)
             }
+            if (loadingReviews) {
+                item("loading more reviews") {
+                    if (reviews.isEmpty()) {
+                        Column {
+                            ReviewLoadingItem()
+                            ReviewLoadingItem()
+                            ReviewLoadingItem()
+                            ReviewLoadingItem()
+                        }
+                    } else {
+                        ReviewLoadingItem()
+                    }
+                }
+            }
         }
 
         val shouldLoadMore = remember {
@@ -1255,6 +1270,38 @@ object ResultScreen {
         }
     }
 
+    @Composable
+    fun ReviewLoadingItem(
+        modifier: Modifier = Modifier,
+    ) {
+        Column(
+            modifier = modifier
+                .padding(MaterialTheme.padding.medium),
+            verticalArrangement = Arrangement.spacedBy(MaterialTheme.padding.small)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.medium)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .circle()
+                        .loading()
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(MaterialTheme.padding.small)) {
+                    LoadingLine(0.8f)
+                    LoadingLine(0.4f)
+                }
+            }
+
+            LoadingLine()
+            LoadingLine()
+            LoadingLine()
+            LoadingLine(0.7f)
+        }
+    }
 
     @Composable
     fun ReviewItem(
@@ -2261,6 +2308,7 @@ object ResultScreen {
     }
 }
 
+/*
 @PreviewLightDark
 @Composable
 fun LoadingPreview() {
@@ -2276,7 +2324,35 @@ fun LoadingPreview() {
             ) { }
         }
     }
+}*/
+
+@PreviewLightDark
+@Composable
+fun ReviewPreview() {
+    CloudStreamPreviewTheme {
+        Surface {
+            Column {
+                ResultScreen.ReviewItem(
+                    review = ImmutableReview(
+                        content = "hello world",
+                        title = "title",
+                        username = "username",
+                        date = "today",
+                        avatarUrl = "https://www.royalroad.com/dist/img/anon.jpg",
+                        avatarHeaders = persistentMapOf(),
+                        rating = 1337,
+                        ratings = persistentListOf()
+                    ),
+                    modifier = Modifier,
+                    onAction = {}
+                )
+                ResultScreen.ReviewLoadingItem(Modifier)
+            }
+
+        }
+    }
 }
+
 /*
 @PreviewLightDark
 @Composable
