@@ -10,16 +10,23 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lagradost.cloudstream4.compose.CloudStreamThemeAppSettings
 import com.lagradost.cloudstream4.rememberAppSettings
 import com.lagradost.cloudstream4.state.ObserveEffect
-import com.lagradost.cloudstream4.theme.CloudStreamTheme
-import com.lagradost.cloudstream4.theme.perfToColor
-import com.lagradost.cloudstream4.theme.perfToMode
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
-import com.mihon.presentation.settings.collectAsState
 
 class ResultFragment2 : Fragment() {
+    companion object {
+        fun newInstance(url: String, apiName: String, startAction: Int = 0): Bundle =
+            Bundle().apply {
+                //println(data)
+                putString("url", url)
+                putString("apiName", apiName)
+                putInt("startAction", startAction)
+            }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -28,22 +35,18 @@ class ResultFragment2 : Fragment() {
         setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
 
         setContent {
-            val settings = rememberAppSettings()
-            val mode by settings.ui.theme.collectAsState()
-            val primaryColor by settings.ui.primaryColor.collectAsState()
             val viewModel: ResultViewModel2 =
-                viewModel(factory = ResultViewModel2.provideFactory(requireArguments()))
+                viewModel(factory = ResultViewModel2.provideFactory(requireArguments(),
+                    rememberAppSettings()
+                ))
 
-            CloudStreamTheme(
-                mode = perfToMode(mode),
-                primaryColor = perfToColor(primaryColor),
-            ) {
+            CloudStreamThemeAppSettings {
                 val state by viewModel.state.collectAsStateWithLifecycle()
 
                 ObserveEffect(viewModel.effect) { _ ->
                     // Not yet implemented
                 }
-                ResultScreen(state, viewModel::onAction)
+                ResultScreen.ResultScreen(state, viewModel::onAction)
             }
         }
     }

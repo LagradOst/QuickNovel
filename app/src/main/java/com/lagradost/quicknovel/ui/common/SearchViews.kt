@@ -1,5 +1,6 @@
 package com.lagradost.quicknovel.ui.common
 
+import android.text.format.Formatter.formatFileSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -31,7 +32,6 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -44,23 +44,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.lagradost.cloudstream4.compose.RoundedShape
 import com.lagradost.cloudstream4.compose.circle
 import com.lagradost.cloudstream4.compose.rounded
 import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
-import com.lagradost.quicknovel.DownloadState
-import com.lagradost.quicknovel.NotificationHelper.etaToString
+import com.lagradost.quicknovel.downloader.BookDownloadStatus
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.animatedOutline
 import com.lagradost.quicknovel.compose.isLandscape
+import com.mihon.material.padding
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
@@ -207,8 +207,8 @@ fun SearchResponseRow(
                 if (
                     !response.generating
                     && response.downloadState != null
-                    && response.downloadState.progress > response.downloadState.total
-                    && (response.downloadState.status == DownloadState.Nothing || response.downloadState.status == DownloadState.IsDone)
+                    && response.downloadState.downloadedChapters.length() > (response.chapters ?: 1)
+                    && (response.downloadState.downloadStatus == BookDownloadStatus.Idle || response.downloadState.downloadStatus == BookDownloadStatus.Done)
                 ) {
                     modifier.border(
                         width = 1.5.dp,
@@ -216,7 +216,7 @@ fun SearchResponseRow(
                         shape = RoundedShape()
                     )
                 } else {
-                    modifier.downloadOutline(if (response.generating) DownloadState.IsDownloading else response.downloadState?.status)
+                    modifier.downloadOutline(if (response.generating) BookDownloadStatus.Downloading else response.downloadState?.downloadStatus)
                 }
             }
 
@@ -249,61 +249,64 @@ fun SearchResponseRow(
                 response.name,
                 maxLines = 2,
                 color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 14.sp,
-                lineHeight = 15.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 overflow = TextOverflow.Ellipsis
             )
 
-            val text =
-                if (response.downloadState != null && response.downloadState.progress != response.downloadState.total) {
-                    "${response.downloadState.progress}/${response.downloadState.total} ${
-                        if (response.downloadState.etaMs != null && response.downloadState.status == DownloadState.IsDownloading) {
-                            "• " + etaToString(
-                                response.downloadState.etaMs
-                            )
+            val chaptersEnding = stringResource(
+                if (response.chapters == 1) {
+                    R.string.chapter
+                } else {
+                    R.string.chapters
+                }
+            )
+
+            val text = if (response.downloadState != null) {
+                val downloadState = response.downloadState
+
+                if (downloadState.chapterProgress != null) {
+                    "${downloadState.chapterProgress.progress}/${downloadState.chapterProgress.total} $chaptersEnding"
+                } else if (downloadState.downloadedBytes != downloadState.totalBytes) {
+                    val prefixText = "${
+                        formatFileSize(
+                            LocalContext.current,
+                            downloadState.downloadedBytes
+                        )
+                    } / ${formatFileSize(LocalContext.current, downloadState.totalBytes)}"
+                    "$prefixText $chaptersEnding"
+                } else if (!response.isImported) {
+                    val downloaded = downloadState.totalDownloadedAfterOffset
+                    val chapters = response.chapters
+                    if(chapters != null) {
+                        if (downloaded != chapters) {
+                            "$downloaded/$chapters $chaptersEnding"
                         } else {
-                            stringResource(
-                                if (response.chapters == 1L) {
-                                    R.string.chapter
-                                } else {
-                                    R.string.chapters
-                                }
-                            )
+                            "$chapters $chaptersEnding"
                         }
-                    }"
-                } else if (response.chapters != null) {
-                    if (response.id != null && response.downloadState == null) {
-                        // Do not show response.chaptersRead for downloaded items, as it looks weird
-                        "${response.chaptersRead}/${response.chapters} ${
-                            stringResource(
-                                if (response.chapters == 1L) {
-                                    R.string.chapter
-                                } else {
-                                    R.string.chapters
-                                }
-                            )
-                        }"
                     } else {
-                        "${response.chapters} ${
-                            stringResource(
-                                if (response.chapters == 1L) {
-                                    R.string.chapter
-                                } else {
-                                    R.string.chapters
-                                }
-                            )
-                        }"
+                        null
                     }
                 } else {
-                    response.latestChapterName
+                    null
                 }
+            } else if (response.chapters != null) {
+                "${response.lastChaptersRead}/${response.chapters} $chaptersEnding"
+            } else {
+                response.latestChapterName
+            }
 
             if (text != null) {
                 Text(
-                    text,
+                    text = text,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 14.sp,
-                    lineHeight = 15.sp,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            response.downloadState?.estimateDownloadTimeFormat?.let { text ->
+                Text(
+                    text = text,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             }
         }
@@ -314,18 +317,22 @@ fun SearchResponseRow(
                 .weight(0.01f)
         )
 
-        if (response.downloadState != null && response.epubSize != null && response.hasNewChapters) {
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 5.dp)
-                    .circle()
-                    .background(MaterialTheme.colorScheme.primary)
-                    .padding(vertical = 3.dp, horizontal = 13.dp)
-            ) {
-                Text(
-                    text = "+${(response.downloadState.progress - response.epubSize)}",
-                    color = MaterialTheme.colorScheme.background
-                )
+        if (response.downloadState != null && response.epubSize != null) {
+            val afterOffset = response.downloadState.totalDownloadedAfterOffset
+            val added = afterOffset - response.epubSize
+            if (added > 0) {
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 5.dp)
+                        .circle()
+                        .background(MaterialTheme.colorScheme.primary)
+                        .padding(vertical = 3.dp, horizontal = 13.dp)
+                ) {
+                    Text(
+                        text = "+$added",
+                        color = MaterialTheme.colorScheme.background
+                    )
+                }
             }
         }
 
@@ -377,10 +384,10 @@ fun RefreshButton(
         return
     }
 
-    if (response.downloadState.status == DownloadState.IsPending) {
+    /*if (response.downloadState.downloadStatus == BookDownloadStatus.Pending) {
         Spacer(Modifier.width(54.dp))
         return
-    }
+    }*/
 
     val action = response.downloadState.action
 
@@ -394,16 +401,18 @@ fun RefreshButton(
         },
         modifier = Modifier.size(54.dp)
     ) {
-        Icon(
-            painter = painterResource(action.icon),
-            contentDescription = stringResource(R.string.download),
-        )
+        action.icon?.let { icon ->
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = stringResource(R.string.download),
+            )
+        }
     }
 }
 
 
 @Composable
-fun Modifier.downloadOutline(downloadState: DownloadState?): Modifier {
+fun Modifier.downloadOutline(downloadState: BookDownloadStatus?): Modifier {
     var targetAlpha by remember { mutableFloatStateOf(0f) }
     val alpha by animateFloatAsState(
         targetValue = targetAlpha,
@@ -412,7 +421,7 @@ fun Modifier.downloadOutline(downloadState: DownloadState?): Modifier {
     )
 
     return when (downloadState) {
-        DownloadState.IsDownloading, DownloadState.IsPending -> {
+        BookDownloadStatus.Downloading, BookDownloadStatus.Pending -> {
             LaunchedEffect(downloadState) {
                 targetAlpha = 1f
             }
@@ -426,7 +435,7 @@ fun Modifier.downloadOutline(downloadState: DownloadState?): Modifier {
             )
         }
 
-        DownloadState.IsPaused -> {
+        BookDownloadStatus.Paused -> {
             border(
                 width = 1.5.dp,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -434,7 +443,7 @@ fun Modifier.downloadOutline(downloadState: DownloadState?): Modifier {
             )
         }
 
-        DownloadState.IsDone -> {
+        BookDownloadStatus.Done -> {
             LaunchedEffect(downloadState) {
                 delay(1000.milliseconds)
                 targetAlpha = 0f
@@ -450,7 +459,7 @@ fun Modifier.downloadOutline(downloadState: DownloadState?): Modifier {
             }
         }
 
-        DownloadState.IsFailed -> {
+        BookDownloadStatus.Failed -> {
             border(
                 width = 1.5.dp, color = Color.Red, shape = RoundedShape()
             )
@@ -493,7 +502,7 @@ fun SearchResponseItem(
                 .aspectRatio(0.68f)
                 .rounded()
                 // We do the funny and assign generating = downloading
-                .downloadOutline(if (response.generating) DownloadState.IsDownloading else response.downloadState?.status)
+                .downloadOutline(if (response.generating) BookDownloadStatus.Downloading else response.downloadState?.downloadStatus)
                 .indication(interactionSource = interactionSource, indication = ripple()),
             contentAlignment = Alignment.BottomStart
         ) {
@@ -505,32 +514,45 @@ fun SearchResponseItem(
             )
 
             if (response.id != null) {
-                Row(modifier = Modifier.padding(5.dp)) {
-                    if (response.downloadState == null) {
+                Row(
+                    modifier = Modifier.padding(MaterialTheme.padding.extraSmall),
+                    horizontalArrangement = Arrangement.spacedBy(
+                        MaterialTheme.padding.extraSmall
+                    )
+                ) {
+                    val chapters = response.chapters
+                    if (chapters != null && chapters > 1) {
                         Box(
                             modifier = Modifier
                                 .rounded()
                                 .background(Color.Black.copy(alpha = 0.6f))
                                 .padding(4.dp)
                         ) {
+                            /**+ (response.downloadState?.downloadOffset ?: 0)  */
                             Text(
-                                text = "${response.chaptersRead}/${response.chapters}",
+                                text = "${response.lastChaptersRead}/${chapters}",
                                 color = Color.White,
-                                fontSize = 12.sp, lineHeight = 12.sp
+                                style = MaterialTheme.typography.bodySmall,
                             )
                         }
-                    } else if (response.epubSize != null && response.hasNewChapters) {
-                        Box(
-                            modifier = Modifier
-                                .rounded()
-                                .background(MaterialTheme.colorScheme.primary)
-                                .padding(4.dp)
-                        ) {
-                            Text(
-                                text = "+${(response.downloadState.progress - response.epubSize)}",
-                                color = MaterialTheme.colorScheme.background,
-                                fontSize = 12.sp, lineHeight = 12.sp
-                            )
+                    }
+
+                    if (response.downloadState != null && response.epubSize != null) {
+                        val afterOffset = response.downloadState.totalDownloadedAfterOffset
+                        val added = afterOffset - response.epubSize
+                        if (added > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .rounded()
+                                    .background(MaterialTheme.colorScheme.primary)
+                                    .padding(4.dp)
+                            ) {
+                                Text(
+                                    text = "+$added",
+                                    color = MaterialTheme.colorScheme.background,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
                         }
                     }
                 }
@@ -540,14 +562,13 @@ fun SearchResponseItem(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(40.dp)
-                .padding(horizontal = 5.dp),
+                .height(45.dp)
+                .padding(horizontal = MaterialTheme.padding.extraSmall),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = response.name,
-                fontSize = 13.sp,
-                lineHeight = 14.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 2,
                 textAlign = TextAlign.Center,

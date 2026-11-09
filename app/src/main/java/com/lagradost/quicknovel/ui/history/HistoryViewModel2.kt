@@ -3,6 +3,7 @@ package com.lagradost.quicknovel.ui.history
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lagradost.cloudstream4.AppSettings
 import com.lagradost.cloudstream4.state.ActionHandler
 import com.lagradost.cloudstream4.state.DebounceQuery
 import com.lagradost.cloudstream4.state.DefaultStateContainer
@@ -11,11 +12,8 @@ import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeys
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKeys
-import com.lagradost.quicknovel.BaseApplication.Companion.setKey
-import com.lagradost.quicknovel.BookDownloader2
-import com.lagradost.quicknovel.DOWNLOAD_SETTINGS
 import com.lagradost.quicknovel.HISTORY_FOLDER
-import com.lagradost.quicknovel.HISTORY_SORTING_METHOD
+import com.lagradost.quicknovel.downloader.BookReader
 import com.lagradost.quicknovel.ui.common.ImmutableSearchList
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.common.SearchResponseAction
@@ -39,7 +37,7 @@ data class HistoryState(
 
 @Immutable
 sealed class HistoryDialog {
-    data class DeleteItem(val about: ImmutableSearchResponse) : HistoryDialog()
+    data class DeleteItem(val item: ImmutableSearchResponse) : HistoryDialog()
     object DeleteAll : HistoryDialog()
     data class Sort(val method: SortingMethodType) : HistoryDialog()
 }
@@ -60,7 +58,9 @@ sealed class HistoryAction {
 
 // HistoryAction, HistoryState, HistoryEffect
 @OptIn(FlowPreview::class)
-class HistoryViewModel2 : ViewModel(),
+class HistoryViewModel2(
+    val appSettings: AppSettings,
+) : ViewModel(),
     StateContainer<HistoryState> by DefaultStateContainer(HistoryState()),
     //EffectContainer<HistoryEffect> by effectContainer,
     ActionHandler<HistoryAction> {
@@ -105,7 +105,7 @@ class HistoryViewModel2 : ViewModel(),
             }
 
             is HistoryAction.SelectSortingMethod -> {
-                setKey(DOWNLOAD_SETTINGS, HISTORY_SORTING_METHOD, action.method.id)
+                appSettings.history.sortingMethod.set(action.method)
                 updateState {
                     copy(history = history.search(sortingMethod = action.method))
                 }
@@ -141,12 +141,13 @@ class HistoryViewModel2 : ViewModel(),
             SearchResponseOperation.Stream -> {
                 viewModelScope.launch {
                     val id = action.response.id!!
-                    updateState {
-                        copy(history = history.update(id) {
-                            copy(generating = true)
-                        })
+                    BookReader.streamRead(response = action.response) {
+                        updateState {
+                            copy(history = history.update(id) {
+                                copy(generating = true)
+                            })
+                        }
                     }
-                    BookDownloader2.stream(action.response)
                     updateState {
                         copy(history = history.update(id) {
                             copy(generating = false, timeOfPageOpened = ImmutableSearchResponse.timeOfPageOpened(id))
@@ -185,15 +186,13 @@ class HistoryViewModel2 : ViewModel(),
                     ImmutableSearchResponse.from(cached)
                 }.associateBy { searchResponse -> searchResponse.id!! }.toPersistentHashMap()
 
-            val method = getKey<Int>(DOWNLOAD_SETTINGS, HISTORY_SORTING_METHOD) ?: 0
-
             updateState {
                 copy(
                     loading = false,
                     history = ImmutableSearchList.new(
                         data,
                         query = history.query,
-                        sortingMethod = SortingMethodType.from(method)
+                        sortingMethod = appSettings.history.sortingMethod.get()
                     )
                 )
             }

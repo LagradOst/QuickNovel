@@ -138,4 +138,13 @@
         <item>Green</item>
         <item>GreenApple</item>
     </string-array>
+
+    <array name="apk_installer_pref">
+        <item>@string/apk_installer_package_installer</item>
+        <item>@string/apk_installer_legacy</item>
+    </array>
+    <array name="apk_installer_values">
+        <item>0</item>
+        <item>1</item>
+    </array>
 </resources>

@@ -21,6 +21,9 @@ import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import javax.net.ssl.SSLHandshakeException
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 
@@ -109,7 +112,11 @@ fun logError(throwable: Throwable) {
     Log.d("ApiError", "-------------------------------------------------------------------")
 }
 
+@OptIn(ExperimentalContracts::class)
 fun <T> safe(apiCall: () -> T): T? {
+    contract {
+        callsInPlace(apiCall, InvocationKind.AT_MOST_ONCE)
+    }
     return try {
         apiCall.invoke()
     } catch (throwable: Throwable) {
@@ -118,7 +125,11 @@ fun <T> safe(apiCall: () -> T): T? {
     }
 }
 
+@OptIn(ExperimentalContracts::class)
 suspend fun <T> safeAsync(apiCall: suspend () -> T): T? {
+    contract {
+        callsInPlace(apiCall, InvocationKind.AT_MOST_ONCE)
+    }
     return try {
         apiCall.invoke()
     } catch (throwable: Throwable) {

@@ -109,7 +109,7 @@ fun Modifier.gradientEffect(
 
     val gradientBrush = rememberTransformableBrush {
         Brush.horizontalGradient(
-            0.0f to Color.Transparent, 0.5f to gradientColor, 1.0f to Color.Transparent,
+            0.0f to Color.Transparent, 0.2f to gradientColor, 0.8f to gradientColor, 1.0f to Color.Transparent,
             startX = 0f,
             endX = 1.0f,
         )

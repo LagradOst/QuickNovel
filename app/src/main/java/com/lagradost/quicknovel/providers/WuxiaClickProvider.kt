@@ -11,17 +11,19 @@ import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrl
 import com.lagradost.quicknovel.fixUrlNull
+import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newReview
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
+import com.lagradost.quicknovel.util.AppUtils.parseJson
+import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 
 class WuxiaClickProvider : MainAPI() {
     override val name = "WuxiaClick"
     override val mainUrl = "https://wuxia.click"
-    val secondUrl = "https://wuxiaworld.eu"
     override val iconId = R.drawable.icon_wuxiaclick
     override val iconBackgroundId = R.color.wuxiacliColor
     override val hasReviews = true
@@ -70,10 +72,10 @@ class WuxiaClickProvider : MainAPI() {
     )
 
     override val orderBys = listOf(
-        "Translated chapters" to "-num_of_chaps",
-        "Rating" to "-rating",
-        "Name" to "-name",
-        "Old" to "-created_at",
+        "Name" to "name",
+        "Translated chapters" to "num_of_chaps",
+        "Rating" to "rating",
+        "Old" to "created_at",
         "New" to "created_at"
     )
 
@@ -264,161 +266,184 @@ class WuxiaClickProvider : MainAPI() {
         val url = "$mainUrl/${
             if (mainCategory.isNullOrEmpty() && !tag.isNullOrEmpty()) "tag/$tag"
             else if (!mainCategory.isNullOrEmpty() && tag.isNullOrEmpty()) "category/$mainCategory"
-            else "search"
-        }?page=$page&order_by=$orderBy"
+            else "browse"
+        }?order_by=$orderBy&page=$page"
         val document = app.get(url).document
-
-        val returnValue = document.select("div.mantine-Grid-root > div.mantine-Grid-col > div > a")
+        val returnValue = document.select("div.grid a[href^='/novel/']")
             .mapNotNull { card ->
-                val href = card.attr("href") ?: return@mapNotNull null
+                val href = card.attr("href")
                 val title =
-                    card.selectFirst("div.mantine-w2rcte > div")?.text() ?: return@mapNotNull null
+                    card.selectFirst("h3")?.text() ?: return@mapNotNull null
                 newSearchResponse(
                     name = title,
-                    url = href
+                    url = fixUrl(href)
                 ) {
-                    posterUrl = card.selectFirst("img")?.attr("src")
+                    posterUrl = fixUrlNull(card.selectFirst("img")?.attr("src"))
                 }
             }
         return HeadMainPageResponse(url, returnValue)
     }
 
-    private fun getChapters(dc: Element?, url: String): List<ChapterData> {
-        if (dc == null) return emptyList()
-        val totalChapters = dc.selectFirst("div.mantine-Group-root div.mantine-19n0k2t")?.text()
-            ?.substringBefore(" C")?.toIntOrNull()
-        val slug = url.substringAfterLast("/")
-        return if (totalChapters == null) emptyList() else (1..totalChapters).map { chapterNumber ->
+    override suspend fun load(url: String): LoadResponse {
+        val document = app.get(url).document
+        val jsonData = document.selectFirst("script#__NEXT_DATA__")?.data()
+            ?: throw Exception("Invalid data")
+        val nextData = parseJson<NextData>(jsonData)
+        val novel = nextData.props.pageProps.novel ?: throw Exception("Novel data not found")
+        val title = novel.title ?: throw Exception("Title not found")
+        val slug = novel.slug ?: url.removeSuffix("/").substringAfterLast("/")
+        val chapterCount = novel.chapterCount ?: 0
+
+        val chapters = (1..chapterCount).map { chapterNumber ->
             val chapterUrl = "$mainUrl/chapter/$slug-$chapterNumber"
             newChapterData("Chapter $chapterNumber", chapterUrl)
         }
-    }
 
-    override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url).document//body > div.body > div > div > div.col-lg-8
-        val infoDiv =
-            document.selectFirst("div.mantine-Container-root > div.mantine-Paper-root.mantine-Card-root > div")
-        val title = infoDiv?.selectFirst("h5")?.text() ?: throw Exception("Title not found")
-        val chapters = getChapters(infoDiv, url)
-        val id = url.removeSuffix("/").substringAfterLast("/")
-        return newStreamResponse(title, fixUrl(url), chapters) {
-            this.posterUrl = infoDiv.selectFirst("img")?.attr("src")
-            this.synopsis =
-                infoDiv.selectFirst("div.mantine-Spoiler-root > div.mantine-Spoiler-content > div > div.mantine-Text-root")
-                    ?.text() ?: ""
+        val id = novel.id?.toString() ?: url.removeSuffix("/").substringAfterLast("/")
 
-            this.author =
-                infoDiv.selectFirst("div.mantine-lqk3v2 > div")?.text()?.substringAfterLast("By ")
-                    ?: ""
-
-            setStatus(
-                infoDiv.selectFirst("div.mantine-Group-root.mantine-1uxmzbt > div.mantine-1huvzos")
-                    ?.text()
-            )
-
-            this.tags =
-                infoDiv.select("div.mantine-Spoiler-root > div.mantine-Spoiler-content > div > div.mantine-Group-root > div")
-                    .mapNotNull {
-                        it.text().trim().takeIf { text -> !text.isEmpty() }
-                    }
+        return newStreamResponse(title, url, chapters) {
+            posterUrl = novel.coverKey?.let { "https://cdn.wuxiaworld.eu/$it-480.webp" }
+                ?: document.selectFirst("meta[property='og:image']")?.attr("content")
+            synopsis = novel.description
+            author = novel.author?.name
+            setStatus(novel.status?.lowercase())
+            tags = novel.genres?.mapNotNull { it.name }.orEmpty() + novel.tags?.mapNotNull { it.name }.orEmpty()
             reviewData = id
-            related = getRelated(id)
+            related = getRelated(document)
         }
     }
 
-    suspend fun getRelated(id: String): List<SearchResponse> {
-        val url = "$secondUrl/api/novels/$id/recommendations/"
-        val response = app.get(url).parsed<RelatedResponse>()
-        return response.results.map { item ->
-            val title = item.name
-            val slug = item.slug
-
-            val href = "$mainUrl/novel/$slug"
-
+    private fun getRelated(document: Document): List<SearchResponse>? {
+        val section = document.selectFirst("section[aria-label='You may also like'] > div.grid")
+        return section?.select("a")?.mapNotNull { aTag ->
+            val href = aTag.attr("href")
+            val title = aTag.selectFirst("h3")?.text() ?: return@mapNotNull null
+            if (href.isEmpty() || title.isEmpty()) return@mapNotNull null
             newSearchResponse(
                 name = title,
                 url = href
             ) {
-                posterUrl = fixUrlNull(item.image)
+                posterUrl = fixUrlNull(aTag.selectFirst("img")?.attr("src"))
+            }
+        }.takeIf { !it.isNullOrEmpty() }
+    }
+
+    override suspend fun loadReviews(url: String, page: Int, data: String?): List<UserReview> {
+        val id = data?.toIntOrNull() ?: return emptyList()
+        val inputJson = "{\"0\":{\"json\":{\"novelId\":$id,\"sort\":\"helpful\",\"rating\":null,\"limit\":10,\"direction\":\"forward\"}}}"
+        val realUrl = "$mainUrl/api/trpc/review.list?batch=1&input=${Uri.encode(inputJson)}"
+
+
+        val res = app.get(realUrl).parsedSafe<Array<TrpcReviewResponse>>()
+        val items = res?.firstOrNull()?.result?.data?.json?.items ?: return emptyList()
+        return items.mapNotNull { item ->
+            val reviewTxt = item.bodyHtml ?: return@mapNotNull null
+            val cleanDate = item.createdAt?.replace("T", " ")
+
+            newReview(org.jsoup.Jsoup.parse(reviewTxt).text()) {
+                containsSpoilers = item.isSpoiler == true
+                username = item.author?.name
+                date = cleanDate
+                avatarUrl = item.author?.avatar
+                rating = item.rating?.times(200)
             }
         }
     }
 
-    override suspend fun loadReviews(url: String, page: Int, data: String?): List<UserReview> {
-        val id = data ?: return emptyList()
-        val realUrl = "$secondUrl/api/review/?novel_id=$id&page=$page&itemsPerPage=10"
-        val res = app.get(realUrl).parsedSafe<WuxiaWorldReviewResponse>()
-
-        return res?.results?.mapNotNull { item ->
-            val reviewTxt = item.description ?: return@mapNotNull null
-            val cleanDate = item.createdAt?.replace("T", " ")
-
-            newReview(reviewTxt) {
-                containsSpoilers = item.spoiler == true
-                username = item.ownerUser?.user?.username
-                date = cleanDate
-                avatarUrl = item.ownerUser?.imageUrl
-                rating = item.totalScore?.times(200)
-            }
-        } ?: emptyList()
-    }
-
-    override suspend fun loadHtml(url: String): String {
+    override suspend fun loadHtml(url: String): String? {
         val document = app.get(url).document
-        return document.selectFirst("#__next .mantine-Container-root .mantine-Paper-root > div:nth-child(4) > div")
-            ?.html() ?: ""
+        val content = document.selectFirst("article, div.chapter-content, div.prose, #main") ?: return null
+        content.select("script, style, .ads, header, footer").remove()
+        return content.html()
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/search/${Uri.encode(query)}"
         val document = app.get(url).document
-        return document.select("div.mantine-Grid-root > div.mantine-Grid-col > div > a")
+        return document.select("div.grid a[href^='/novel/']")
             .mapNotNull { card ->
-                val href = card.attr("href") ?: return@mapNotNull null
+                val href = card.attr("href")
                 val title =
-                    card.selectFirst("div.mantine-w2rcte > div")?.text() ?: return@mapNotNull null
+                    card.selectFirst("h3")?.text() ?: return@mapNotNull null
                 newSearchResponse(
                     name = title,
-                    url = href
+                    url = fixUrl(href)
                 ) {
-                    posterUrl = card.selectFirst("img")?.attr("src")
+                    posterUrl = fixUrlNull(card.selectFirst("img")?.attr("src"))
                 }
             }
     }
 
-    data class RelatedResponse(
-        @JsonProperty("results")
-        val results: List<Related>
+
+
+    data class TrpcReviewResponse(
+        @JsonProperty("result") val result: TrpcResult?
     )
 
-    data class Related(
-        @JsonProperty("name")
-        val name: String,
-        @JsonProperty("image")
-        val image: String?,
-        @JsonProperty("slug")
-        val slug: String
+    data class TrpcResult(
+        @JsonProperty("data") val data: TrpcData?
     )
 
-    data class WuxiaWorldReviewResponse(
-        @JsonProperty("results") val results: List<WuxiaWorldReviewItem>? = null,
-        @JsonProperty("count") val count: Int? = null
+    data class TrpcData(
+        @JsonProperty("json") val json: TrpcJson?
     )
 
-    data class WuxiaWorldReviewItem(
-        @JsonProperty("description") val description: String? = null,
-        @JsonProperty("total_score") val totalScore: Int? = null,
-        @JsonProperty("created_at") val createdAt: String? = null,
-        @JsonProperty("owner_user") val ownerUser: WuxiaWorldOwner? = null,
-        @JsonProperty("spoiler") val spoiler: Boolean? = null
+    data class TrpcJson(
+        @JsonProperty("items") val items: List<TrpcReviewItem>?
     )
 
-    data class WuxiaWorldOwner(
-        @JsonProperty("user") val user: WuxiaWorldUserDetail? = null,
-        @JsonProperty("imageUrl") val imageUrl: String? = null
+    data class TrpcReviewItem(
+        @JsonProperty("bodyHtml") val bodyHtml: String?,
+        @JsonProperty("rating") val rating: Int?,
+        @JsonProperty("isSpoiler") val isSpoiler: Boolean?,
+        @JsonProperty("createdAt") val createdAt: String?,
+        @JsonProperty("author") val author: TrpcAuthor?
     )
 
-    data class WuxiaWorldUserDetail(
-        @JsonProperty("username") val username: String? = null
+    data class TrpcAuthor(
+        @JsonProperty("name") val name: String?,
+        @JsonProperty("avatar") val avatar: String?
+    )
+
+    data class NextData(
+        @JsonProperty("props") val props: NextProps
+    )
+
+    data class NextProps(
+        @JsonProperty("pageProps") val pageProps: NextPageProps
+    )
+
+    data class NextPageProps(
+        @JsonProperty("novel") val novel: WuxiaNovelDto?
+    )
+
+    data class WuxiaAuthorDto(
+        @JsonProperty("name") val name: String?,
+        @JsonProperty("slug") val slug: String?
+    )
+
+    data class WuxiaNovelDto(
+        @JsonProperty("id") val id: Int?,
+        @JsonProperty("slug") val slug: String?,
+        @JsonProperty("title") val title: String?,
+        @JsonProperty("description") val description: String?,
+        @JsonProperty("status") val status: String?,
+        @JsonProperty("coverKey") val coverKey: String?,
+        @JsonProperty("chapterCount") val chapterCount: Int?,
+        @JsonProperty("genres") val genres: List<WuxiaGenreDto>?,
+        @JsonProperty("tags") val tags: List<WuxiaTagDto>?,
+        @JsonProperty("author") val author: WuxiaAuthorDto?
+    )
+
+    data class WuxiaGenreDto(
+        @JsonProperty("id") val id: Int?,
+        @JsonProperty("slug") val slug: String?,
+        @JsonProperty("name") val name: String?
+    )
+
+    data class WuxiaTagDto(
+        @JsonProperty("id") val id: Int?,
+        @JsonProperty("slug") val slug: String?,
+        @JsonProperty("name") val name: String?
     )
 }

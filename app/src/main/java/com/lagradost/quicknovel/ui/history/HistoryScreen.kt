@@ -40,6 +40,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lagradost.cloudstream4.compose.ActionDialog
 import com.lagradost.cloudstream4.compose.Screen
 import com.lagradost.cloudstream4.compose.SinglePairSelectDialog
+import com.lagradost.cloudstream4.rememberAppSettings
 import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.compose.BaseSearchBar
@@ -56,13 +57,13 @@ import com.lagradost.quicknovel.ui.history.HistoryAction.ResultAction
 import com.lagradost.quicknovel.ui.history.HistoryAction.Search
 import com.lagradost.quicknovel.ui.history.HistoryAction.SelectSortingMethod
 import com.lagradost.quicknovel.ui.history.HistoryAction.ShowSorting
-import com.mihon.common.preference.AndroidPreferenceStore
 import com.mihon.presentation.settings.collectAsState
 
 object HistoryScreen : Screen {
     @Composable
     override fun Content() {
-        val viewModel = viewModel<HistoryViewModel2>()
+        val settings = rememberAppSettings()
+        val viewModel = viewModel<HistoryViewModel2> { HistoryViewModel2(settings) }
         val state by viewModel.state.collectAsStateWithLifecycle()
         HistoryScreen(state, viewModel::onAction)
     }
@@ -85,9 +86,8 @@ fun HistoryScreen(
         }
     }
 
-    val context = LocalContext.current
-    val store = AndroidPreferenceStore(context)
-    val historyIsRow = store.getBoolean(stringResource(R.string.history_list_view_key), true)
+    val settings = rememberAppSettings()
+    val historyIsRow = settings.history.isRow
     val historyIsRowState by historyIsRow.collectAsState()
 
     var fabExpanded by remember { mutableStateOf(false) }
@@ -217,7 +217,7 @@ fun HistoryDialog(
                 title = stringResource(R.string.remove),
                 text = stringResource(
                     R.string.remove_from_history_format,
-                    dialog.about.name
+                    dialog.item.name
                 ),
                 confirmText = stringResource(R.string.remove),
                 dismissText = stringResource(R.string.cancel),
@@ -228,7 +228,7 @@ fun HistoryDialog(
                     action(
                         ResultAction(
                             SearchResponseAction(
-                                dialog.about,
+                                dialog.item,
                                 SearchResponseOperation.Delete
                             )
                         )

@@ -12,6 +12,7 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -59,10 +60,9 @@ fun BaseSearchBar(
     trailingIcon: @Composable (() -> Unit)? = null,
     leadingIcon: @Composable (() -> Unit)? = null,
     scrollBehavior: TopAppBarScrollBehavior,
-    placeholder : String = stringResource(R.string.search_hint),
+    placeholder: String = stringResource(R.string.search_hint),
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
 
     CustomFlexibleTopAppBar(scrollBehavior = scrollBehavior) {
         Column(
@@ -72,42 +72,66 @@ fun BaseSearchBar(
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .semantics { isTraversalGroup = true },
         ) {
-            SearchBar(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 10.dp)
-                    .semantics { traversalIndex = 0f },
-                colors = SearchBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    dividerColor = Color.Transparent,
-                    inputFieldColors = inputFieldColors()
-                ),
-                inputField = {
-                    SearchBarDefaults.InputField(
-                        query = textFieldState.text.toString(),
-                        onQueryChange = {
-                            textFieldState.edit { replace(0, length, it) }
-                            onQueryChange(textFieldState.text.toString())
-                        },
-                        onSearch = {
-                            onSearch(textFieldState.text.toString())
-                            expanded = false
-                        },
-                        expanded = false,
-                        onExpandedChange = { },
-                        placeholder = { Text(placeholder) },
-                        leadingIcon = leadingIcon,
-                        trailingIcon = trailingIcon
-                    )
-                },
-                expanded = expanded,
-                onExpandedChange = { expanded = it },
-                content = { },
+            RootBaseSearchBar(
+                onQueryChange = onQueryChange,
+                onSearch = onSearch,
+                textFieldState = textFieldState,
+                trailingIcon = trailingIcon,
+                leadingIcon = leadingIcon,
+                placeholder = placeholder
             )
             Spacer(modifier = Modifier.height(5.dp))
             content()
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RootBaseSearchBar(
+    onQueryChange: (String) -> Unit,
+    onSearch: (String) -> Unit,
+    textFieldState: TextFieldState = rememberTextFieldState(),
+    trailingIcon: @Composable (() -> Unit)? = null,
+    leadingIcon: @Composable (() -> Unit)? = null,
+    containerColor: Color = MaterialTheme.colorScheme.background,
+    placeholder: String = stringResource(R.string.search_hint),
+    windowInsets: WindowInsets = SearchBarDefaults.windowInsets,
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    SearchBar(
+        windowInsets = windowInsets,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp)
+            .semantics { traversalIndex = 0f },
+        colors = SearchBarColors(
+            containerColor = containerColor,
+            dividerColor = Color.Transparent,
+            inputFieldColors = inputFieldColors()
+        ),
+        inputField = {
+            SearchBarDefaults.InputField(
+                query = textFieldState.text.toString(),
+                onQueryChange = {
+                    textFieldState.edit { replace(0, length, it) }
+                    onQueryChange(textFieldState.text.toString())
+                },
+                onSearch = {
+                    onSearch(textFieldState.text.toString())
+                    expanded = false
+                },
+                expanded = false,
+                onExpandedChange = { },
+                placeholder = { Text(placeholder) },
+                leadingIcon = leadingIcon,
+                trailingIcon = trailingIcon
+            )
+        },
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        content = { },
+    )
 }
 
 @ExperimentalMaterial3Api
@@ -161,7 +185,7 @@ fun CustomFlexibleTopAppBar(
                 heightOffsetLimit = placeable.height.toFloat() * -1
                 val scrollOffset = scrollBehavior?.state?.heightOffset ?: 0f
                 val height = placeable.height.toFloat() + scrollOffset
-                val layoutHeight = maxOf(0,height.roundToInt())
+                val layoutHeight = maxOf(0, height.roundToInt())
                 layout(constraints.maxWidth, layoutHeight) {
                     placeable.place(0, scrollOffset.toInt())
                 }

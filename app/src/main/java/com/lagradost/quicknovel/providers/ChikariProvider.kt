@@ -18,7 +18,6 @@ class ChikariProvider : MainAPI() {
     override val name = "Chikari"
     override val mainUrl = "https://chikari.moe"
     private val apiUrl = "$mainUrl/api"
-    private val postersUrl = "https://cdn.chikari.moe/novels"
     override val iconId = R.drawable.icon_chikari
     override val hasMainPage = true
     override val hasReviews = true
@@ -40,7 +39,7 @@ class ChikariProvider : MainAPI() {
                 name = item.title,
                 url = "$mainUrl/novels/${item.slug}/"
             ) {
-                posterUrl = "$postersUrl/${item.id}/cover.webp"
+                posterUrl = item.cover
             }
         }.orEmpty()
        
@@ -56,7 +55,7 @@ class ChikariProvider : MainAPI() {
 
         return newStreamResponse(data.title, url, chapters) {
             author = data.authors?.joinToString { it.name ?: "" }
-            posterUrl = "$postersUrl/${data.id}/cover.webp"
+            posterUrl = data.cover
             synopsis = data.description
             tags = (data.genres?.mapNotNull { it.name } ?: emptyList()) + (data.tags?.mapNotNull { it.name } ?: emptyList())
             setStatus(data.status)
@@ -97,7 +96,7 @@ class ChikariProvider : MainAPI() {
                 name = item.title,
                 url = "$mainUrl/novels/${item.slug}/"
             ) {
-                posterUrl = "$postersUrl/${item.id}/cover.webp"
+                posterUrl = item.cover
             }
         }.orEmpty()
     }
@@ -129,7 +128,8 @@ class ChikariProvider : MainAPI() {
         @JsonProperty("slug") val slug: String,
         @JsonProperty("title") val title: String,
         @JsonProperty("type") val type: String?,
-        @JsonProperty("status") val status: String?
+        @JsonProperty("status") val status: String?,
+        @JsonProperty("cover_url") val cover: String?,
     )
 
     data class ApiNovelDetails(
@@ -140,7 +140,8 @@ class ChikariProvider : MainAPI() {
         @JsonProperty("status") val status: String?,
         @JsonProperty("genres") val genres: List<ApiGenre>?,
         @JsonProperty("tags") val tags: List<ApiTag>?,
-        @JsonProperty("rating") val rating: Float?
+        @JsonProperty("rating") val rating: Float?,
+        @JsonProperty("cover_url") val cover: String?,
     )
 
     data class ApiAuthor(@JsonProperty("name") val name: String?)

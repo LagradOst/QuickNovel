@@ -27,26 +27,26 @@ import coil3.request.Disposable
 import coil3.request.ImageRequest
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.google.android.gms.tasks.Tasks
-import com.google.mlkit.common.model.RemoteModelManager
 import com.google.mlkit.nl.translate.TranslateLanguage
-import com.google.mlkit.nl.translate.TranslateRemoteModel
-import com.google.mlkit.nl.translate.Translation
-import com.google.mlkit.nl.translate.Translator
-import com.google.mlkit.nl.translate.TranslatorOptions
+import com.lagradost.cloudstream4.AppSettings
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.getKeyClass
 import com.lagradost.quicknovel.BaseApplication.Companion.removeKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKeyClass
-import com.lagradost.quicknovel.BookDownloader2Helper.getQuickChapter
 import com.lagradost.quicknovel.CommonActivity.TAG
 import com.lagradost.quicknovel.CommonActivity.activity
 import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.TTSHelper.parseTextToSpans
 import com.lagradost.quicknovel.TTSHelper.preParseHtml
 import com.lagradost.quicknovel.TTSHelper.ttsParseText
+import com.lagradost.quicknovel.downloader.BookDownloader.downloadChapter
+import com.lagradost.quicknovel.downloader.BookFileHandle
+import com.lagradost.quicknovel.downloader.BookFiles.resetApiLastRequestTime
+import com.lagradost.quicknovel.downloader.BookReader
+import com.lagradost.quicknovel.downloader.BookState
+import com.lagradost.quicknovel.downloader.copy
 import com.lagradost.quicknovel.mvvm.Resource
 import com.lagradost.quicknovel.mvvm.letInner
 import com.lagradost.quicknovel.mvvm.logError
@@ -69,7 +69,6 @@ import com.lagradost.quicknovel.util.CoilImagesPlugin
 import com.lagradost.quicknovel.util.CoilImagesPlugin.CoilStore
 import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.runOnMainThread
-import com.lagradost.quicknovel.util.SubtitleHelper
 import com.lagradost.quicknovel.util.translation.TranslationManager
 import com.lagradost.quicknovel.util.translation.models.TranslatorAgents
 import io.noties.markwon.AbstractMarkwonPlugin
@@ -100,9 +99,8 @@ import java.io.File
 import java.io.InputStream
 import java.net.URLDecoder
 import java.security.MessageDigest
+import java.util.BitSet
 import java.util.Locale
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
@@ -165,6 +163,9 @@ class PreferenceDelegateLiveView<T : Any>(
 }
 
 abstract class AbstractBook {
+    abstract val id: Int
+    abstract val offset: Int
+
     open fun resolveUrl(url: String): String {
         return url
     }
@@ -184,9 +185,8 @@ abstract class AbstractBook {
             // read file and not save
             val stream = this.loadImage(image)
             return if (stream != null) {
-                 BookDownloader2Helper.decodeSafeBitmap(data = stream.readBytes())
-            }
-            else null
+                BookDownloader2Helper.decodeSafeBitmap(data = stream.readBytes())
+            } else null
         } catch (t: Throwable) {
             logError(t)
             null
@@ -221,6 +221,12 @@ abstract class AbstractBook {
 }
 
 class QuickBook(val data: QuickStreamData) : AbstractBook() {
+    override val id: Int = BookDownloader2Helper.generateId(
+        apiName = data.meta.apiName,
+        name = data.meta.name,
+        author = data.meta.author
+    )
+    override val offset: Int = 0
     override fun resolveUrl(url: String): String {
         return Apis.getApiFromNameNull(data.meta.apiName)?.fixUrl(url) ?: url
     }
@@ -249,12 +255,44 @@ class QuickBook(val data: QuickStreamData) : AbstractBook() {
 
     override suspend fun getChapterData(index: Int, reload: Boolean): String {
         val ctx = context ?: throw ErrorLoadingException("Invalid context")
-        return ctx.getQuickChapter(
-            data.meta,
-            data.data[index],
-            index,
-            reload
-        )?.html ?: throw ErrorLoadingException("Error loading chapter")
+
+        /**
+         * Somewhat dirty to include it here, but it should work fine
+         */
+        val files = BookFileHandle(
+            apiName = data.meta.apiName,
+            author = data.meta.author,
+            name = data.meta.name,
+            fileDir = ctx.filesDir,
+            cacheDir = ctx.cacheDir
+        )
+        files.directoryFile().mkdirs()
+        val file = files.chapterFile(index)
+        if (!file.exists()) {
+            val chapter = data.data[index]
+            val api = Apis.getApiFromNameOrNull(data.meta.apiName)
+                ?: throw ErrorLoadingException("No api")
+            resetApiLastRequestTime(api = api, handle = null)
+            val success = downloadChapter(
+                files = files,
+                api = api,
+                chapterUrl = chapter.url,
+                chapterName = chapter.name,
+                chapterIndex = index,
+            )
+            if (!success) {
+                throw ErrorLoadingException("Chapter failed")
+            }
+            BookState.updateDownloadState(id = files.id, notify = false) {
+                copy(
+                    downloadedChapters = downloadedChapters.copy().apply { set(index) },
+                    pendingChapters = pendingChapters.copy().apply { clear(index) }
+                )
+            }
+        }
+        val text = file.readText()
+        val newline = text.indexOf('\n')
+        return text.substring(newline + 1)
     }
 
     override fun expand(last: String): Boolean {
@@ -297,14 +335,17 @@ class QuickBook(val data: QuickStreamData) : AbstractBook() {
 }
 
 class RegularBook(val data: EpubBook) : AbstractBook() {
+    override val id: Int = BookReader.getId(data)
+    override val offset: Int = BookReader.getOffset(data)
     private val allTocReferences: List<TOCReference>
+
     init {
         val flatTOC = mutableListOf<TOCReference>()
         fun flatten(refs: List<TOCReference>) {
             refs.forEach { ref ->
                 //this variable is to corrupted epubs
                 val isValid = data.spine.getResourceIndex(ref.resource) != -1
-                if(isValid){
+                if (isValid) {
                     flatTOC.add(ref)
                     if (ref.children != null && ref.children.isNotEmpty()) {
                         flatten(ref.children)
@@ -335,7 +376,11 @@ class RegularBook(val data: EpubBook) : AbstractBook() {
     }
 
     override fun loadImage(image: String): InputStream? {
-        val decodedImage = try { URLDecoder.decode(image, "UTF-8") } catch (e: Exception) { image }
+        val decodedImage = try {
+            URLDecoder.decode(image, "UTF-8")
+        } catch (e: Exception) {
+            image
+        }
         val res = data.resources.resourceMap[decodedImage]
             ?: data.resources.resourceMap[image]
         return res?.inputStream
@@ -492,7 +537,11 @@ class ReadActivityViewModel : ViewModel() {
 
 
     var mlSettings
-        get() = getKey<MLSettings>(EPUB_CURRENT_ML, book.title()) ?: MLSettings("en", "en", TranslatorAgents.OFFLINE)
+        get() = getKey<MLSettings>(EPUB_CURRENT_ML, book.title()) ?: MLSettings(
+            "en",
+            "en",
+            TranslatorAgents.OFFLINE
+        )
         set(value) = setKey(EPUB_CURRENT_ML, book.title(), value)
 
     private val _chapterData: MutableLiveData<ChapterUpdate> =
@@ -579,8 +628,6 @@ class ReadActivityViewModel : ViewModel() {
         private set
 
 
-
-
     /** lower padding for preloading current-chapterPaddingBottom*/
     private var initPaddingBottom = 1//these are to reduce loadings times
     private var chapterPaddingBottom: Int = 1
@@ -627,7 +674,7 @@ class ReadActivityViewModel : ViewModel() {
         postLoading: Boolean = false,
     ) {
         val range =
-            if(!notify) (index - initPaddingBottom..index + initPaddingTop)
+            if (!notify) (index - initPaddingBottom..index + initPaddingTop)
             else (index - chapterPaddingBottom..index + chapterPaddingTop)
 
         for (idx in range) {
@@ -638,7 +685,7 @@ class ReadActivityViewModel : ViewModel() {
     }
 
     private fun updateIndex(index: Int) {
-        val range = (index - chapterPaddingBottom .. index + chapterPaddingTop)
+        val range = (index - chapterPaddingBottom..index + chapterPaddingTop)
         val needToLoad = range.any { !requested.contains(it) }
         if (needToLoad)
             ioSafe {
@@ -863,8 +910,11 @@ class ReadActivityViewModel : ViewModel() {
             val data = safeApiCall {
                 book.getChapterData(index, reload)
             }.map { text ->
-                val rawText = preParseHtml(text, authorNotes)
-
+                val settings = context?.let { AppSettings(it) }
+                val rawText = preParseHtml(text, settings?.reader?.authorNotes?.get() ?: false)
+                // val renderedBuilder = SpannableStringBuilder()
+                // val lengths : IntArray
+                // val nodes : Array<Node>
                 val rendered: Spanned
                 val spans: ArrayList<TextSpan>
 
@@ -953,7 +1003,8 @@ class ReadActivityViewModel : ViewModel() {
             val agentSuffix = currentSettings.agent.title.ifEmpty { TranslatorAgents.OFFLINE.title }
 
             //the file
-            val filePrefix = "ml_${textHash}.${currentSettings.from}_to_${currentSettings.to}.$agentSuffix"
+            val filePrefix =
+                "ml_${textHash}.${currentSettings.from}_to_${currentSettings.to}.$agentSuffix"
 
             // read from cache if it exists
             val cachedData = safe {
@@ -966,7 +1017,7 @@ class ReadActivityViewModel : ViewModel() {
                 }
                 return@safe null
             }
-            if(cachedData != null) return cachedData
+            if (cachedData != null) return cachedData
 
             val translatedText = translationManager.translate(
                 text = text,
@@ -1085,7 +1136,11 @@ class ReadActivityViewModel : ViewModel() {
             translationManager.release()
 
             if (settings.isValid() && settings.agent == TranslatorAgents.OFFLINE) {
-                translationManager.prepareModel(settings.from, settings.to, downloadIfNeeded = allowDownload)
+                translationManager.prepareModel(
+                    settings.from,
+                    settings.to,
+                    downloadIfNeeded = allowDownload
+                )
             }
             mlSettings = settings
         } catch (_: TimeoutException) {
@@ -1271,6 +1326,7 @@ class ReadActivityViewModel : ViewModel() {
 
             _ttsStatus.postValue(value)
             _currentTTSStatus = value
+            TTSNotifications.updatePlaybackState(value)
         }
 
     fun stopTTS() {
@@ -1615,6 +1671,17 @@ class ReadActivityViewModel : ViewModel() {
         )
         setKey(EPUB_CURRENT_POSITION, book.title(), scrollIndex.index)
 
+        val correctedPosition = book.offset + scrollIndex.index
+        setKey(EPUB_CURRENT_VISUAL_POSITION, book.id.toString(), correctedPosition)
+        setKey<ByteArray>(
+            EPUB_BITSET_POSITION,
+            book.id.toString(),
+            (getKey<ByteArray>(EPUB_BITSET_POSITION, book.id.toString())?.let { BitSet.valueOf(it) }
+                ?: BitSet()).apply {
+                set(correctedPosition)
+            }.toByteArray()
+        )
+
         context?.let {
             setKey(
                 EPUB_CURRENT_POSITION_CHAPTER,
@@ -1669,7 +1736,6 @@ class ReadActivityViewModel : ViewModel() {
     }*/
 
 
-
     // FUCK ANDROID WITH ALL MY HEART
     // SEE https://stackoverflow.com/questions/45960265/android-o-oreo-8-and-higher-media-buttons-issue WHY
     private fun playDummySound() {
@@ -1685,7 +1751,7 @@ class ReadActivityViewModel : ViewModel() {
         ttsSession?.release()
         ttsSession = null
         translationManager.release()
-        if(::book.isInitialized) {
+        if (::book.isInitialized) {
             BookDownloader2.chapterReadChanged(book.title())
         }
     }
@@ -1706,7 +1772,8 @@ class ReadActivityViewModel : ViewModel() {
 
 
     var scrollWithVolume by PreferenceDelegate(EPUB_SCROLL_VOL, true, Boolean::class)
-    var authorNotes by PreferenceDelegate(EPUB_AUTHOR_NOTES, true, Boolean::class)
+
+    //var authorNotes by PreferenceDelegate(EPUB_AUTHOR_NOTES, true, Boolean::class)
     var ttsLock by PreferenceDelegate(EPUB_TTS_LOCK, true, Boolean::class)
     //var ttsOSSpeed by PreferenceDelegate(EPUB_TTS_OS_SPEED, true, Boolean::class)
 
@@ -1830,14 +1897,20 @@ class ReadActivityViewModel : ViewModel() {
         mlToLanguageLive
     )
 
-    val mlTranslationAgentLive: MutableLiveData<String> = MutableLiveData(TranslatorAgents.OFFLINE.name)
+    val mlTranslationAgentLive: MutableLiveData<String> =
+        MutableLiveData(TranslatorAgents.OFFLINE.name)
     var mlTranslationAgent by PreferenceDelegateLiveView(
         "ml_translation_agent",
         TranslatorAgents.OFFLINE.name,
         String::class,
         mlTranslationAgentLive
     )
-    val currentAgent get() = try { TranslatorAgents.valueOf(mlTranslationAgent) } catch (e: Exception) { TranslatorAgents.OFFLINE }
+    val currentAgent
+        get() = try {
+            TranslatorAgents.valueOf(mlTranslationAgent)
+        } catch (e: Exception) {
+            TranslatorAgents.OFFLINE
+        }
     /*
    // Moved up to ensure correct initialization order. Having it lower caused a race condition  // where the default 'false' value was loaded before the actual saved preference.
     var mlSettings

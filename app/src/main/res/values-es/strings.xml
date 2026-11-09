@@ -94,7 +94,7 @@
     <!-- Interfaz del Lector -->
     <string name="read_action_settings">Ajustes</string>
     <string name="read_action_chapters">Capítulos</string>
-    <string name="read_action_chapters_formatted" formatted="true">%d Capítulos</string>
+    <string name="read_action_chapters_formatted" formatted="true">%s Capítulos</string>
     <string name="select_chapter">Seleccionar capítulo</string>
     <string name="reload_chapter">Recargar capítulo</string>
     <string name="reload_chapter_format">Recargando capítulo %s</string>

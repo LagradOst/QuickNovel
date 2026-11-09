@@ -46,7 +46,7 @@
 
     <fragment
             android:id="@+id/navigation_results"
-            android:name="com.lagradost.quicknovel.ui.result.ResultFragment"
+            android:name="com.lagradost.quicknovel.ui.result.ResultFragment2"
             android:layout_height="match_parent">
     </fragment>
 

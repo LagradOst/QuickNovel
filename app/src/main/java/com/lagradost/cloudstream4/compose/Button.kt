@@ -65,7 +65,7 @@ fun BaseButton(
     ) {
         AnimatedVisibility(hasFocus) {
             Icon(
-                painter = painterResource(R.drawable.check),
+                painter = painterResource(R.drawable.check_24px),
                 modifier = Modifier.padding(end = 5.dp),
                 contentDescription = null
             )

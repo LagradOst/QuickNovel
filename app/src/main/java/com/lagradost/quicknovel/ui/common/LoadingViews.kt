@@ -2,6 +2,7 @@ package com.lagradost.quicknovel.ui.common
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,7 +21,6 @@ import com.lagradost.quicknovel.compose.gradientEffect
 val grayColor = Color(0x24696969)
 val shimmerColor = Color.White.copy(alpha = 0.05f)
 const val loadingLineHeight = 15
-const val loadingLineMargin = 7.5
 
 @Composable
 fun Modifier.loading(): Modifier {
@@ -35,18 +35,24 @@ fun LoadingLine(fraction: Float = 1.0f) {
     Box(
         modifier = Modifier
             .fillMaxWidth(fraction)
-            .padding(loadingLineMargin.dp)
             .height(loadingLineHeight.dp)
             .loading()
     )
 }
-
+@Composable
+fun ColumnScope.LoadingButton() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(35.dp)
+            .loading()
+    )
+}
 @Composable
 fun RowScope.LoadingButton() {
     Box(
         modifier = Modifier
             .weight(1.0f)
-            .padding(loadingLineMargin.dp)
             .height(35.dp)
             .loading()
     )
@@ -57,7 +63,6 @@ fun LoadingWidth(width: Dp) {
     Box(
         modifier = Modifier
             .width(width)
-            .padding(loadingLineMargin.dp)
             .height(loadingLineHeight.dp)
             .loading()
     )
@@ -68,7 +73,6 @@ fun RowScope.LoadingWeight() {
     Box(
         modifier = Modifier
             .weight(1.0f)
-            .padding(loadingLineMargin.dp)
             .height(loadingLineHeight.dp)
             .loading()
     )
@@ -79,7 +83,6 @@ fun LoadingPoster() {
     Box(
         modifier = Modifier
             .size(width = 100.dp, height = 140.dp)
-            .padding(loadingLineMargin.dp)
             .loading()
         //.gradientEffect(listOf(Color.White, Color.Transparent))
     )

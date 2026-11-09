@@ -61,7 +61,7 @@
     <string name="mainpage_sort_by_button_text">Sırala</string>
     <string name="read_action_settings">Ayarlar</string>
     <string name="read_action_chapters">Bölümler</string>
-    <string name="read_action_chapters_formatted" formatted="true">%d Bölüm</string>
+    <string name="read_action_chapters_formatted" formatted="true">%s Bölüm</string>
 
     <string name="read_action_tts">Metni Seslendirme</string>
     <string name="read_action_screen_rotation">Ekran Döndürme</string>
