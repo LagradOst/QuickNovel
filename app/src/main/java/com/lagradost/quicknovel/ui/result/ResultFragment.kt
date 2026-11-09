@@ -13,7 +13,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
-import androidx.core.view.postDelayed
 import androidx.core.widget.NestedScrollView
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.viewModels
@@ -37,7 +36,6 @@ import com.lagradost.quicknovel.mvvm.observe
 import com.lagradost.quicknovel.mvvm.observeNullable
 import com.lagradost.quicknovel.ui.BaseFragment
 import com.lagradost.quicknovel.ui.ReadType
-import com.lagradost.quicknovel.ui.SortingMethodAdapter
 import com.lagradost.quicknovel.ui.mainpage.MainAdapter
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.ui.setRecycledViewPool
@@ -55,6 +53,7 @@ import com.lagradost.quicknovel.util.UIHelper.popupMenu
 import com.lagradost.quicknovel.util.UIHelper.setImage
 import com.lagradost.quicknovel.util.toPx
 
+/*
 const val MAX_SYNO_LENGH = 300
 
 class ResultFragment : BaseFragment<FragmentResultBinding>(
@@ -70,7 +69,6 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
                 putString("apiName", apiName)
                 putInt("startAction", startAction)
             }
-
     }
 
     override fun fixLayout(view: View) {
@@ -869,4 +867,4 @@ class ResultFragment : BaseFragment<FragmentResultBinding>(
             }
         }
     }
-}
+}*/

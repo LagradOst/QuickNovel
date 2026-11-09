@@ -12,10 +12,13 @@ import android.view.MenuItem
 import android.view.WindowManager
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.annotation.IdRes
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.referentialEqualityPolicy
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentActivity
@@ -39,46 +42,38 @@ import com.lagradost.nicehttp.ignoreAllSSLErrors
 import com.lagradost.quicknovel.APIRepository.Companion.providersActive
 import com.lagradost.quicknovel.BookDownloader2.openQuickStream
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
-import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.BookDownloader2Helper.checkWrite
 import com.lagradost.quicknovel.BookDownloader2Helper.createQuickStream
 import com.lagradost.quicknovel.BookDownloader2Helper.requestRW
 import com.lagradost.quicknovel.CommonActivity.activity
-import com.lagradost.quicknovel.CommonActivity.showToast
 import com.lagradost.quicknovel.CommonActivity.updateLocale
 import com.lagradost.quicknovel.DataStore.getKey
 import com.lagradost.quicknovel.DataStore.getKeys
 import com.lagradost.quicknovel.NotificationHelper.requestNotifications
 import com.lagradost.quicknovel.databinding.ActivityMainBinding
 import com.lagradost.quicknovel.databinding.BottomPreviewBinding
-import com.lagradost.quicknovel.mvvm.Resource
+import com.lagradost.quicknovel.downloader.BookDownloadPackage
+import com.lagradost.quicknovel.downloader.BookDownloader
+import com.lagradost.quicknovel.downloader.BookState
 import com.lagradost.quicknovel.mvvm.logError
-import com.lagradost.quicknovel.mvvm.observe
-import com.lagradost.quicknovel.mvvm.observeNullable
 import com.lagradost.quicknovel.mvvm.safe
 import com.lagradost.quicknovel.network.CloudflareKiller
 import com.lagradost.quicknovel.providers.RedditProvider
-import com.lagradost.quicknovel.ui.ReadType
 import com.lagradost.quicknovel.ui.common.ImmutableSearchResponse
 import com.lagradost.quicknovel.ui.download.DownloadFragment
-import com.lagradost.quicknovel.ui.result.ResultFragment
-import com.lagradost.quicknovel.ui.result.ResultViewModel
-import com.lagradost.quicknovel.update.MainActivityScreen
+import com.lagradost.quicknovel.ui.result.ResultFragment2
+import com.lagradost.quicknovel.ui.result.ResultViewModel2
+import com.lagradost.quicknovel.update.GithubScreen
+import com.lagradost.quicknovel.util.Apis
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.Apis.Companion.getApiSettings
 import com.lagradost.quicknovel.util.Apis.Companion.printProviders
 import com.lagradost.quicknovel.util.Coroutines
-import com.lagradost.quicknovel.util.Coroutines.ioSafe
 import com.lagradost.quicknovel.util.Coroutines.main
 import com.lagradost.quicknovel.util.ResultCached
-import com.lagradost.quicknovel.util.SettingsHelper.getRating
 import com.lagradost.quicknovel.util.UIHelper.colorFromAttribute
-import com.lagradost.quicknovel.util.UIHelper.dismissSafe
 import com.lagradost.quicknovel.util.UIHelper.fixSystemBarsPadding
 import com.lagradost.quicknovel.util.UIHelper.getResourceColor
-import com.lagradost.quicknovel.util.UIHelper.html
-import com.lagradost.quicknovel.util.UIHelper.popupMenu
-import com.lagradost.quicknovel.util.UIHelper.setImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -86,6 +81,8 @@ import java.lang.ref.WeakReference
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.reflect.KClass
+import androidx.core.content.edit
+import com.lagradost.cloudstream4.AppSettings
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -101,15 +98,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         fun loadPreviewPage(searchResponse: ImmutableSearchResponse) {
-            if (searchResponse.id == null) {
-                mainActivity?.loadPopup(searchResponse.url, searchResponse.apiName)
-            } else {
-                mainActivity?.loadPopup(searchResponse)
-            }
-        }
-
-        fun loadPreviewPage(card: DownloadFragment.DownloadDataLoaded) {
-            mainActivity?.loadPopup(card)
+            mainActivity?.loadPopup(searchResponse)
         }
 
         fun loadPreviewPage(cached: ResultCached) {
@@ -191,7 +180,7 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 this.navigate(
                     R.id.global_to_navigation_results,
-                    ResultFragment.newInstance(url, apiName, startAction)
+                    ResultFragment2.newInstance(url, apiName, startAction)
                 )
                 /*supportFragmentManager.beginTransaction()
                         .setCustomAnimations(
@@ -346,34 +335,42 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val viewModel: ResultViewModel by viewModels()
-
-    private fun hidePreviewPopupDialog() {
-        viewModel.clear()
-        bottomPreviewPopup.dismissSafe(this)
-    }
+    private val viewModel2 =
+        mutableStateOf<ResultViewModel2?>(null, policy = referentialEqualityPolicy())
 
     fun loadPopup(
         result: ImmutableSearchResponse,
     ) {
-        viewModel.initState(result)
+        val api = Apis.getApiFromNameOrNull(result.apiName)
+        viewModel2.value =
+            ResultViewModel2(
+                api = api,
+                url = result.url,
+                initializer = result,
+                loadData = result.id == null,
+                loadingResponse = result.id == null,
+                appSettings = AppSettings(this)
+            )
     }
 
+    @Deprecated(message = "outdated")
     fun loadPopup(
         resultCached: ResultCached,
     ) {
-        viewModel.initState(resultCached)
+
     }
 
+    @Deprecated(message = "outdated")
     fun loadPopup(card: DownloadFragment.DownloadDataLoaded) {
-        viewModel.initState(card)
+
     }
 
     fun loadPopup(
         url: String,
         apiName: String,
     ) {
-        viewModel.initState(apiName, url)
+        val api = Apis.getApiFromNameOrNull(apiName) ?: return
+        viewModel2.value = ResultViewModel2(api = api, url = url, initializer = null, appSettings = AppSettings(this))
     }
 
     fun importUri(uri: Uri) = safe {
@@ -385,9 +382,31 @@ class MainActivity : AppCompatActivity() {
                 Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             )
         }
+        val file = StorageFile.from(ctx, uri) ?: return@safe
+        val name = file.name.substringBeforeLast(".")
 
-        val file = StorageFile.from(ctx, uri)
-        val fileName = file?.name
+        val id = BookDownloader2Helper.generateId(
+            author = null,
+            apiName = IMPORT_SOURCE,
+            name = name
+        )
+        BookDownloader.download(
+            context = ctx,
+            response = ImmutableSearchResponse(
+                name = name,
+                apiName = IMPORT_SOURCE,
+                author = null,
+                url = uri.toString(),
+                timeOfCached = System.currentTimeMillis(),
+                lastChaptersRead = ImmutableSearchResponse.lastChaptersRead(name, id),
+                chaptersRead = ImmutableSearchResponse.chaptersRead(id),
+                id = id,
+            ),
+            bookPackage = BookDownloadPackage.Import(uri = uri)
+        )
+
+        /*
+
         val mimeType = file?.mimeType //ctx.contentResolver.getType(uri)
         println("Loaded epub file. Selected URI path: $uri - Name: $fileName with type $mimeType")
 
@@ -402,7 +421,7 @@ class MainActivity : AppCompatActivity() {
                 logError(t)
                 showToast(t.message)
             }
-        }
+        }*/
     }
 
     private val epubPathsPicker =
@@ -433,6 +452,7 @@ class MainActivity : AppCompatActivity() {
             )
         }
     }
+
     private fun openEpubPickers() {
         safe {
             epubPathsPicker.launch(
@@ -459,7 +479,6 @@ class MainActivity : AppCompatActivity() {
             builder.setOnDismissListener {
                 bottomPreviewBinding = null
                 bottomPreviewPopup = null
-                viewModel.clear()
             }
             builder.setCanceledOnTouchOutside(true)
             builder.show()
@@ -545,6 +564,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         mainActivity = this
 
+        BookState.setup(this)
+
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
 
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
@@ -597,7 +618,19 @@ class MainActivity : AppCompatActivity() {
         findViewById<ComposeView>(R.id.compose_view)?.apply {
             setContent {
                 CloudStreamThemeAppSettings {
-                    MainActivityScreen.Content()
+                    var nullableViewmodel by viewModel2
+                    nullableViewmodel?.let { viewModel ->
+                        val viewModelState by viewModel.state.collectAsState()
+                        MainActivityScreen.Content(
+                            state = viewModelState,
+                            onAction = viewModel::onAction,
+                            onDismissRequest = {
+                                nullableViewmodel = null
+                            }
+                        )
+                    }
+
+                    GithubScreen.Content()
                 }
             }
         }
@@ -642,6 +675,7 @@ class MainActivity : AppCompatActivity() {
             true
         }*/
 
+        /*
         observe(viewModel.readState) {
             bottomPreviewBinding?.apply {
                 bookmark.setIconResource(if (it == ReadType.NONE) R.drawable.ic_baseline_bookmark_border_24 else R.drawable.ic_baseline_bookmark_24)
@@ -694,7 +728,7 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         readMore.setOnClickListener {
-                            if(!d.isImported) {
+                            if (!d.isImported) {
                                 loadResult(d.url, viewModel.apiName)
                                 hidePreviewPopupDialog()
                             }
@@ -711,7 +745,7 @@ class MainActivity : AppCompatActivity() {
                         resultviewPreviewPoster.apply {
                             setImage(d.downloadImage())
                             setOnClickListener {
-                                if(!d.isImported) {
+                                if (!d.isImported) {
                                     loadResult(d.url, viewModel.apiName)
                                     hidePreviewPopupDialog()
                                 }
@@ -721,7 +755,7 @@ class MainActivity : AppCompatActivity() {
                         resultviewPreviewTitle.text = d.name
 
                         resultviewPreviewMoreInfo.setOnClickListener {
-                            if(!d.isImported) {
+                            if (!d.isImported) {
                                 loadResult(d.url, viewModel.apiName)
                                 hidePreviewPopupDialog()
                             }
@@ -764,16 +798,16 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
-        }
+        }*/
 
         //navView.itemRippleColor =
         //    ColorStateList.valueOf(getResourceColor(R.attr.colorPrimary, 0.1f))
 
         val apiNames = getApiSettings()
         providersActive = apiNames
-        val edit = settingsManager.edit()
-        edit.putStringSet(getString(R.string.search_providers_list_key), providersActive)
-        edit.apply()
+        settingsManager.edit {
+            putStringSet(getString(R.string.search_providers_list_key), providersActive)
+        }
         /*
         val apiName = settingsManager.getString(getString(R.string.provider_list_key), apis[0].name)
         activeAPI = getApiFromName(apiName ?: apis[0].name)

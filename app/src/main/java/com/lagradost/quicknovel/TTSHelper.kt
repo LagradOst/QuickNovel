@@ -27,11 +27,11 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import org.jsoup.Jsoup
 import java.util.Locale
 import java.util.Stack
 import kotlin.math.roundToInt
+import kotlin.text.replace
 
 
 class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boolean) {
@@ -612,18 +612,23 @@ object TTSHelper {
         return parseSpan(render, index)
     }
 
-    private fun isValidSpeakOutMsg(msg: String): Boolean {
-        return msg.isNotEmpty() && msg.isNotBlank() && msg.contains("[A-z0-9]".toRegex())
-    }
+    private fun isValidSpeakOutMsg(msg: String): Boolean = msg.any { it.isLetter() }
+    private val replaceWithSpaceChars =
+        Regex("[-<>_^«»「」—–¿*~【】〈〉❬❭〈〉❰❱《》〚〛⟦⟧〘〙❲❳❴❵\\[\\]\u200C]")
+    private val endAt = Regex("[.\n;?:!‽।॥]")
+    private val startAt =
+        Regex("[^-<>_^/\\\\|()«»「」—–¿*~【】〈〉❬❭〈〉❰❱《》〚〛⟦⟧〘〙❲❳❴❵\\[\\]\u200C .\n\"'’‘“”…,]")
+    private val prePassRegex = arrayOf(
+        "\\.([A-z])".toRegex() to ",$1",
+        "([.:])([0-9])".toRegex() to ",$2",
+        "(^|[ \"“‘'])(Dr|Mr|Mrs)\\. ([A-Z])".toRegex() to "$1$2, $3"
+    )
 
     fun ttsParseText(text: String, tag: Int): ArrayList<TTSLine> {
-        val cleanText = text
-            .replace("\\.([A-z])".toRegex(), ",$1")//\.([A-z]) \.([^-\s])
-            .replace("([.:])([0-9])".toRegex(), ",$2") // GOOD FOR DECIMALS
-            .replace(
-                "(^|[ \"“‘'])(Dr|Mr|Mrs)\\. ([A-Z])".toRegex(),
-                "$1$2, $3"
-            )
+        var cleanText = text
+        for ((regex, replacement) in prePassRegex) {
+            cleanText = text.replace(regex, replacement)
+        }
 
         //println("SIZE: ${text.length}")
 
@@ -632,97 +637,35 @@ object TTSHelper {
         }
 
         val ttsLines = ArrayList<TTSLine>()
-
-
-        val invalidStartChars =
-            arrayOf(
-                ' ', '.', ',', '\n', '\"',
-                '\'', '’', '‘', '“', '”', '«', '»', '「', '」', '…', '[', ']'
-            )
-        val endingCharacters = arrayOf(".", "\n", ";", "?", ":")
         var index = 0
         while (true) {
+            index = startAt.find(cleanText, index)?.range?.last ?: Int.MAX_VALUE
             if (index >= text.length) {
                 break
             }
-            while (invalidStartChars.contains(text[index])) {
-                index++
-                if (index >= text.length) {
-                    break
-                }
-            }
-
-            var endIndex = Int.MAX_VALUE
-            for (a in endingCharacters) {
-                val indexEnd = cleanText.indexOf(a, index)
-
-                if (indexEnd == -1) continue
-
-                if (indexEnd < endIndex) {
-                    endIndex = indexEnd + 1
-                }
-            }
-
+            var endIndex =
+                endAt.find(cleanText, index)?.range?.last?.plus(1)
+                /** +1 for inclusive as substring is [start, end) */
+                    ?: Int.MAX_VALUE
 
             if (endIndex > text.length) {
                 endIndex = text.length
             }
-            if (index >= text.length) {
-                break
-            }
-
-            val invalidEndChars =
-                arrayOf('\n')
-            while (true) {
-                var containsInvalidEndChar = false
-                for (a in invalidEndChars) {
-                    if (endIndex <= 0 || endIndex > text.length) break
-                    if (text[endIndex - 1] == a) {
-                        containsInvalidEndChar = true
-                        endIndex--
-                    }
-                }
-                if (!containsInvalidEndChar) {
-                    break
-                }
-            }
 
             try {
                 // THIS PART IF FOR THE SPEAK PART, REMOVING STUFF THAT IS WACK
-                val message = text.substring(index, endIndex)
-                var msg = message
-                val invalidChars =
-                    arrayOf(
-                        "-",
-                        "<",
-                        ">",
-                        "_",
-                        "^",
-                        "«",
-                        "»",
-                        "「",
-                        "」",
-                        "—",
-                        "–",
-                        "¿",
-                        "*",
-                        "~",
-                        "\u200c" // Zero width joiner
-                    ) // "\'", //Don't ect
-                for (c in invalidChars) {
-                    msg = msg.replace(c, " ")
-                }
+                var msg = text.substring(index, endIndex)
+                val oldLength = msg.length
+                msg = msg.trimEnd()
+                val newLength = msg.length
+                val trimLength = oldLength - newLength
+
+                msg = msg.replace(replaceWithSpaceChars, " ")
                 msg = msg.replace("...", " ")
-                if (msg
-                        .replace("\n", "")
-                        .replace("\t", "")
-                        .replace(".", "").isNotEmpty()
-                ) {
-                    if (isValidSpeakOutMsg(msg)) {
-                        ttsLines.add(TTSLine(msg, index, endIndex, index = tag))
-                    }
+                if (isValidSpeakOutMsg(msg)) {
+                    ttsLines.add(TTSLine(msg, index, endIndex - trimLength, index = tag))
                 }
-            } catch (t: Throwable) {
+            } catch (_: Throwable) {
                 break
             }
             index = endIndex

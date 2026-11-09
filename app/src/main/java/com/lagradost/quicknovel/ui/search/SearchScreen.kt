@@ -68,11 +68,8 @@ import com.lagradost.quicknovel.ui.common.SearchResponseAction
 import com.lagradost.quicknovel.ui.common.SearchResponseItem
 import com.lagradost.quicknovel.ui.mainpage.MainPageFragment
 import com.lagradost.quicknovel.ui.mainpage.SearchResponseDialog
-import com.lagradost.quicknovel.ui.settings.searchLangList
-import com.lagradost.quicknovel.ui.settings.searchProvidersList
 import com.lagradost.quicknovel.util.Apis.Companion.apis
 import com.lagradost.quicknovel.util.SubtitleHelper
-import com.mihon.common.preference.AndroidPreferenceStore
 import com.mihon.presentation.settings.collectAsState
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.toPersistentMap
@@ -245,9 +242,9 @@ fun ShowDialog(
                     }
         }.toPersistentMap()
     }
-    val context = LocalContext.current
-    val store = AndroidPreferenceStore(context)
-    val apisSettings = store.searchProvidersList()
+
+    val settings = rememberAppSettings()
+    val apisSettings = settings.provider.searchProvidersList
     val keys = apisSettings.get().toPersistentSet()
 
     MultiSelectDialog(
@@ -299,8 +296,7 @@ fun MainAPIItem(
         Text(
             text = api.name,
             color = MaterialTheme.colorScheme.onBackground,
-            fontSize = 14.sp,
-            lineHeight = 15.sp,
+            style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center
         )
     }

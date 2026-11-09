@@ -132,7 +132,7 @@ fun <T> SingleSelectDialog(
     iconProvider: (@Composable (key: T, value: String) -> Unit)? = null
 ) {
     var selected by remember { mutableStateOf(selectedKey) }
-    val selectedPainter = painterResource(R.drawable.check)
+    val selectedPainter = painterResource(R.drawable.check_24px)
     val (dismissFocus, confirmFocus) = remember { FocusRequester.createRefs() }
 
     AlertDialog(
@@ -352,7 +352,7 @@ fun <T> MultiSelectDialog(
             .toMutableStateList()
     }
 
-    val selectedPainter = painterResource(R.drawable.check)
+    val selectedPainter = painterResource(R.drawable.check_24px)
     val (dismissFocus, confirmFocus) = remember { FocusRequester.createRefs() }
 
     AlertDialog(

@@ -26,18 +26,17 @@ import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import coil3.request.error
 import coil3.request.transformations
 import com.lagradost.cloudstream4.state.FilterByQuery
 import com.lagradost.cloudstream4.state.SearchableData
 import com.lagradost.cloudstream4.state.SortByName
 import com.lagradost.cloudstream4.state.rev
 import com.lagradost.cloudstream4.state.sortByFloat
+import com.lagradost.cloudstream4.state.sortByInt
 import com.lagradost.cloudstream4.state.sortByLong
-import com.lagradost.quicknovel.BaseApplication
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
-import com.lagradost.quicknovel.BookDownloader2.downloadProgress
-import com.lagradost.quicknovel.BookDownloader2Helper
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.BookDownloader2Helper.generateId
@@ -46,11 +45,12 @@ import com.lagradost.quicknovel.BookDownloader2Helper.sanitizeFilename
 import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_LAST_ACCESS
 import com.lagradost.quicknovel.DOWNLOAD_EPUB_SIZE
+import com.lagradost.quicknovel.DOWNLOAD_OFFSET
 import com.lagradost.quicknovel.DownloadExtractLink
 import com.lagradost.quicknovel.DownloadLink
-import com.lagradost.quicknovel.DownloadProgressState
-import com.lagradost.quicknovel.DownloadState
+import com.lagradost.quicknovel.EPUB_BITSET_POSITION
 import com.lagradost.quicknovel.EPUB_CURRENT_POSITION
+import com.lagradost.quicknovel.EPUB_CURRENT_VISUAL_POSITION
 import com.lagradost.quicknovel.EpubResponse
 import com.lagradost.quicknovel.HISTORY_FOLDER
 import com.lagradost.quicknovel.HeadMainPageResponse
@@ -62,6 +62,8 @@ import com.lagradost.quicknovel.ReleaseStatus
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.UserReview
+import com.lagradost.quicknovel.downloader.BookDownloadStatus
+import com.lagradost.quicknovel.downloader.BookState
 import com.lagradost.quicknovel.ui.download.DownloadFragment
 import com.lagradost.quicknovel.util.BlurTransformation
 import com.lagradost.quicknovel.util.ResultCached
@@ -77,8 +79,12 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
-import kotlinx.collections.immutable.toPersistentSet
-import me.xdrop.fuzzywuzzy.FuzzySearch
+import java.io.File
+import java.util.BitSet
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.DurationUnit
 import kotlin.uuid.Uuid
 
 
@@ -140,9 +146,6 @@ data class ImmutableChapterData(
                 index = index,
             )
     }
-
-    fun matchesQuery(query: String): Boolean =
-        FuzzySearch.partialRatio(name.lowercase(), query) > 50
 }
 
 @Immutable
@@ -176,7 +179,7 @@ data class ImmutableReview(
     val imageRequest
         get() = @Composable {
             val context = LocalContext.current
-            remember(context) {
+            remember(context, avatarUrl, avatarHeaders) {
                 ImageRequest(context)
             }
         }
@@ -240,7 +243,7 @@ data class ImmutableSearchResponse(
     /** This is a random uuid that is stable for e.g. using a key but not persistent between launches */
     val randomUuid: Uuid = Uuid.random(),
     /** The total chapter count, use chapters instead to also work on downloaded items */
-    private val totalChapters: Long? = null,
+    private val visualTotalChapters: Int? = null,
     /** The current download state, only present on "downloaded" items */
     val downloadState: ImmutableDownloadState? = null,
     /** The "synopsis" or "plot" of the item, absent for regular search results */
@@ -259,30 +262,40 @@ data class ImmutableSearchResponse(
     val timeOfPageOpened: Long? = null,
     /** The size of the last written epub in chapters, aka how many chapters have we actually might have read */
     val epubSize: Int? = null,
+    /** What the last chapter we read in the built-in reader was */
+    val lastChaptersRead: Int,
     /** How many chapters we have read with the built-in reader */
-    val chaptersRead: Int,
+    val chaptersRead: BitSet?,
     val loadData: ImmutableLoadData? = null,
     val reviewData: String? = null,
 ) {
-
-    fun matchesQuery(query: String): Boolean =
-        FuzzySearch.partialRatio(name.lowercase(), query) > 50
-
-    val chapters: Long? get() = totalChapters ?: downloadState?.total
+    val chapters: Int? get() = loadData?.chapters?.size ?: visualTotalChapters
     val isImported: Boolean get() = (apiName == IMPORT_SOURCE || apiName == IMPORT_SOURCE_PDF)
-    val hasNewChapters: Boolean get() = downloadState != null && epubSize != null && !isImported && epubSize < downloadState.progress
+
+    /**
+     * The current offline download percentage with the offset,
+     * aka 60(with offset = 0)/100 == 60(with offset = 4)/100 but the first 4 chapters may not be downloaded
+     * */
+    val downloadPercentage
+        get() = downloadState?.let { state ->
+            if (state.downloadedBytes > 0) {
+                state.downloadedBytes.toFloat() / maxOf(state.totalBytes, 1L).toFloat()
+            } else {
+                state.totalDownloadedAfterOffset.toFloat() / maxOf(chapters ?: 1, 1).toFloat()
+            }
+        }
 
     val imageRequest
         get() = @Composable {
             val context = LocalContext.current
-            remember(context) {
+            remember(context, posterUrl, posterHeaders) {
                 ImageRequest(context)
             }
         }
     val blurImageRequest
         get() = @Composable {
             val context = LocalContext.current
-            remember(context) {
+            remember(context, posterUrl, posterHeaders) {
                 ImageRequest(context, radius = 100, sample = 3)
             }
         }
@@ -300,18 +313,28 @@ data class ImmutableSearchResponse(
         ) else emptyList()
 
         return if (isImported) {
-            val uri = (context.filesDir.toString() + getFilenameIMG(
-                sanitizeFilename(apiName),
-                sanitizeFilename(author ?: ""),
-                sanitizeFilename(name)
-            )).toUri()
-            ImageRequest.Builder(context)
-                .data(uri)
-                .crossfade(true).transformations(transformations)
-                .build()
+            val file = File(
+                context.filesDir.toString() + getFilenameIMG(
+                    sanitizeFilename(apiName),
+                    sanitizeFilename(author ?: ""),
+                    sanitizeFilename(name)
+                )
+            )
+            if (file.exists()) {
+                val uri = file.toUri()
+                ImageRequest.Builder(context)
+                    .data(uri).error(R.drawable.error_poster)
+                    .crossfade(true).transformations(transformations)
+                    .build()
+            } else {
+                ImageRequest.Builder(context)
+                    .data(R.drawable.error_poster)
+                    .crossfade(true).transformations(transformations)
+                    .build()
+            }
         } else {
             ImageRequest.Builder(context)
-                .data(posterUrl)
+                .data(posterUrl).error(R.drawable.error_poster)
                 .httpHeaders(NetworkHeaders.Builder().also { headerBuilder ->
                     posterHeaders?.forEach { (key, value) ->
                         headerBuilder[key] = value
@@ -334,7 +357,7 @@ data class ImmutableSearchResponse(
             poster = posterUrl,
             tags = tags,
             rating = rating,
-            totalChapters = loadData?.chapters?.size ?: downloadState?.total?.toInt() ?: 1,
+            totalChapters = chapters ?: 1,
             cachedTime = System.currentTimeMillis(),
             synopsis = synopsis,
             posterHeaders = posterHeaders
@@ -371,25 +394,40 @@ data class ImmutableSearchResponse(
                 "Hello World",
                 "More tags"
             ),
-            synopsis = "synopsis",
+            synopsis = """Ryan "Quicksave" Romano is an eccentric adventurer with a strange power: he can create a save-point in time and redo his life whenever he dies. Arriving in New Rome, the glitzy capital of sin of a rebuilding Europe, he finds the city torn between mega-corporations, sponsored heroes, superpowered criminals, and true monsters. It's a time of chaos, where potions can grant the power to rule the world and dangers lurk everywhere. 
+
+                Ryan only sees different routes; and from Hero to Villain, he has to try them all. Only then will he achieve his perfect ending... no matter how many loops it takes.
+            """.trimIndent(),
             id = 0,
             rating = 123,
             latestChapterName = "hello world chapters",
             generating = false,
-            chaptersRead = 0,
+            lastChaptersRead = 0,
             timeOfCached = 0,
+            chaptersRead = BitSet().apply { set(0); set(1); set(2) },
             downloadState = ImmutableDownloadState(
-                status = DownloadState.Nothing,
-                progress = 123,
-                downloaded = 50,
-                total = 200,
-                lastUpdatedMs = System.currentTimeMillis(),
-                etaMs = 65240
+                downloadStatus = BookDownloadStatus.Idle,
+                downloadedChapters = BitSet().apply { set(0); set(1); set(2) },
+                downloadOffset = 0,
+                estimateDownloadTime = 123.seconds,
             )
         )
 
-        fun chaptersRead(name: String): Int =
-            getKey<Int>(EPUB_CURRENT_POSITION, name)?.let { it + 1 } ?: 0
+        fun lastChaptersRead(name: String, id: Int?): Int =
+            (id?.let { id -> getKey<Int>(EPUB_CURRENT_VISUAL_POSITION, id.toString()) }
+                ?: getKey<Int>(EPUB_CURRENT_POSITION, name))?.let { it + 1 } ?: 0
+
+        fun chaptersRead(id: Int): BitSet =
+            getKey<ByteArray>(EPUB_BITSET_POSITION, id.toString())?.let { bytes ->
+                BitSet.valueOf(
+                    bytes
+                )
+            }
+                ?: BitSet()
+
+        fun setChaptersRead(id: Int, set: BitSet) {
+            setKey<ByteArray>(EPUB_BITSET_POSITION, id.toString(), set.toByteArray())
+        }
 
         fun addToHistory(response: ImmutableSearchResponse) {
             val id = response.id ?: return
@@ -430,39 +468,28 @@ data class ImmutableSearchResponse(
                 apiName = response.apiName,
                 posterHeaders = response.posterHeaders?.toImmutableMap(),
                 timeOfCached = System.currentTimeMillis(),
-                chaptersRead = chaptersRead(response.name)
+                lastChaptersRead = lastChaptersRead(response.name, null),
+                chaptersRead = null
             )
+
+        fun defaultDownloadState(id: Int) =
+            ImmutableDownloadState(
+                downloadStatus = BookDownloadStatus.Idle,
+                downloadOffset = getKey<Int>(DOWNLOAD_OFFSET, id.toString()) ?: 0,
+                downloadedChapters = BitSet(),
+            )
+
+        fun downloadState(id: Int) =
+            BookState.downloadStatus(id)?.downloadState?.copy() ?: defaultDownloadState(id)
 
         fun from(response: LoadResponse): ImmutableSearchResponse {
             val id = generateId(response, response.apiName)
             val epubResponse = (response as? EpubResponse)
             val streamResponse = (response as? StreamResponse)
 
-            val currentDownloadProgress =
-                downloadProgress[id] ?: BookDownloader2Helper.downloadInfo(
-                    BaseApplication.context,
-                    response.author,
-                    response.name,
-                    response.apiName
-                )?.let { info ->
-                    DownloadProgressState(
-                        state = DownloadState.Nothing,
-                        progress = info.progress,
-                        total = info.total,
-                        downloaded = info.downloaded,
-                        lastUpdatedMs = System.currentTimeMillis(),
-                        etaMs = null
-                    )
-                } ?: run {
-                    DownloadProgressState(
-                        state = DownloadState.Nothing,
-                        progress = 0,
-                        total = streamResponse?.data?.size?.toLong() ?: 1,
-                        downloaded = 0,
-                        lastUpdatedMs = System.currentTimeMillis(),
-                        etaMs = null
-                    )
-                }
+            val totalChapters = streamResponse?.data?.size ?: 1
+            val currentDownloadProgress: ImmutableDownloadState =
+                downloadState(id = id)
 
             return ImmutableSearchResponse(
                 id = id,
@@ -486,12 +513,16 @@ data class ImmutableSearchResponse(
                     views = response.views,
                     peopleVoted = response.peopleVoted,
                 ),
+                visualTotalChapters = totalChapters,
+                timeOfPageOpened = timeOfPageOpened(id),
                 reviewData = response.reviewData,
                 tags = response.tags?.toPersistentList(),
                 posterHeaders = response.posterHeaders?.toImmutableMap(),
                 timeOfCached = System.currentTimeMillis(),
-                chaptersRead = chaptersRead(response.name),
-                downloadState = ImmutableDownloadState.from(currentDownloadProgress)
+                lastChaptersRead = lastChaptersRead(response.name, id),
+                epubSize = epubSize(id),
+                downloadState = currentDownloadProgress,
+                chaptersRead = chaptersRead(id)
             )
         }
 
@@ -506,11 +537,12 @@ data class ImmutableSearchResponse(
                 rating = cache.rating,
                 id = cache.id,
                 timeOfCached = cache.cachedTime,
-                totalChapters = cache.totalChapters.toLong(),
+                visualTotalChapters = cache.totalChapters,
                 author = cache.author,
                 synopsis = cache.synopsis,
                 timeOfPageOpened = timeOfPageOpened(cache.id),
-                chaptersRead = chaptersRead(cache.name)
+                lastChaptersRead = lastChaptersRead(cache.name, cache.id),
+                chaptersRead = chaptersRead(cache.id)
             )
 
         fun from(
@@ -534,7 +566,8 @@ data class ImmutableSearchResponse(
                 tags = cache.tags?.toImmutableList(),
                 timeOfPageOpened = timeOfPageOpened(id),
                 epubSize = epubSize(id),
-                chaptersRead = chaptersRead(cache.name)
+                lastChaptersRead = lastChaptersRead(cache.name, id),
+                chaptersRead = chaptersRead(id)
             )
     }
 
@@ -570,90 +603,115 @@ data class SearchResponseAction(
     }
 }
 
+@Immutable
+data class ImmutableChapterProgress(
+    val progress: Int,
+    val total: Int
+)
+
 /**
  * Book downloader -> Viewmodel + UI
  *
  * The download state of a ImmutableSearchResponse */
 @Immutable
 data class ImmutableDownloadState(
-    val status: DownloadState,
+    /*
     /** How many chapters/bytes much have we downloaded, not including skipped chapters */
     val progress: Long,
     /** How many have we actually downloaded */
     val downloaded: Long,
-    /** How many is there in total */
-    val total: Long,
+    */
+    val downloadOffset: Int,
+    val estimateDownloadTime: Duration? = null,
     /** When was this state updated */
-    val lastUpdatedMs: Long,
-    /** How many milliseconds until this item is fully downloaded */
-    val etaMs: Long?
+    //val lastUpdatedMs: Long = System.currentTimeMillis(),
+    /** What chapter is currently being downloaded */
+    val chapterProgress: ImmutableChapterProgress? = null,
+    /** What chapters we have downloaded */
+    val downloadedChapters: BitSet,
+    /** What chapters are pending in progress of being downloaded */
+    val pendingChapters: BitSet = BitSet(),
+    val downloadedBytes: Long = 0,
+    val totalBytes: Long = 0,
+    val downloadStatus: BookDownloadStatus = BookDownloadStatus.Idle,
+    val error: Throwable? = null,
 ) {
-    val downloadPercentage get() = downloaded.toFloat() / maxOf(total, 1)
-    val progressPercentage get() = progress.toFloat() / maxOf(total, 1)
+    val totalDownloadedAfterOffset get() = downloadedChapters.nextClearBit(downloadOffset)
 
-    companion object {
-        fun from(state: DownloadProgressState) = ImmutableDownloadState(
-            status = state.state,
-            progress = state.progress,
-            downloaded = state.downloaded,
-            total = state.total,
-            lastUpdatedMs = state.lastUpdatedMs,
-            etaMs = state.etaMs
-        )
-    }
+    /** How many milliseconds until this item is fully downloaded */
+    val etaMs: Long? get() = estimateDownloadTime?.toLong(DurationUnit.MILLISECONDS)
+    val estimateDownloadTimeFormat
+        get() = estimateDownloadTime?.plus(999.milliseconds) // Round up: 0.1s -> 1.1s -> 1s
+            ?.toComponents { hours, minutes, seconds, _ ->
+                if (hours > 0) {
+                    "${hours}h ${minutes}m"
+                } else if (minutes > 0) {
+                    "${minutes}m ${seconds}s"
+                } else if (seconds > 0) {
+                    "${seconds}s"
+                } else {
+                    null
+                }
+            }
+    /*val downloaded: Long
+        get() = if (downloadedBytes > 0L) downloadedBytes else downloadedChapters.length().toLong()
+    val progress: Long
+        get() = if (totalBytes > 0L) totalBytes else progressChapter?.toLong() ?: downloaded
+     */
+
 
     /** Get the associated action */
-    val action: DownloadStateAction get() = DownloadStateAction(status)
+    val action: DownloadStateAction get() = DownloadStateAction(downloadStatus)
 }
 
 @Immutable
 data class DownloadStateAction(
-    val status: DownloadState
+    val status: BookDownloadStatus
 ) {
     val operation
         get() =
             when (status) {
-                DownloadState.IsDownloading -> SearchResponseOperation.Stop
-                DownloadState.IsPaused -> SearchResponseOperation.Resume
-                DownloadState.IsStopped -> SearchResponseOperation.Download
-                DownloadState.IsFailed -> SearchResponseOperation.Download
-                DownloadState.IsDone -> SearchResponseOperation.Download
-                DownloadState.IsPending -> SearchResponseOperation.NoOp
-                DownloadState.Nothing -> SearchResponseOperation.Download
+                BookDownloadStatus.Downloading -> SearchResponseOperation.Stop
+                BookDownloadStatus.Paused -> SearchResponseOperation.Resume
+                BookDownloadStatus.Stopped -> SearchResponseOperation.Download
+                BookDownloadStatus.Failed -> SearchResponseOperation.Download
+                BookDownloadStatus.Done -> SearchResponseOperation.Download
+                BookDownloadStatus.Pending -> SearchResponseOperation.Stop
+                BookDownloadStatus.Idle -> SearchResponseOperation.Download
             }
 
     val operationName
         get() =
             when (status) {
-                DownloadState.IsDownloading -> R.string.stop
-                DownloadState.IsPaused -> R.string.resume
-                DownloadState.IsStopped -> R.string.stopped
-                DownloadState.IsFailed -> R.string.failed
-                DownloadState.IsDone -> R.string.downloaded
-                DownloadState.IsPending -> R.string.loading
-                DownloadState.Nothing -> R.string.download
+                BookDownloadStatus.Downloading -> R.string.stop
+                BookDownloadStatus.Paused -> R.string.resume
+                BookDownloadStatus.Stopped -> R.string.stopped
+                BookDownloadStatus.Failed -> R.string.failed
+                BookDownloadStatus.Done -> R.string.downloaded
+                BookDownloadStatus.Pending -> R.string.loading
+                BookDownloadStatus.Idle -> R.string.download
             }
 
     val icon
         get() = when (status) {
-            DownloadState.IsDownloading -> R.drawable.stop_circle_24px
-            DownloadState.IsPaused -> R.drawable.play_arrow_24px
-            DownloadState.IsStopped -> R.drawable.arrow_circle_down_24px
-            DownloadState.IsFailed -> R.drawable.arrow_circle_down_24px
-            DownloadState.IsDone -> R.drawable.check
-            DownloadState.IsPending -> R.drawable.nothing
-            DownloadState.Nothing -> R.drawable.arrow_circle_down_24px
+            BookDownloadStatus.Downloading -> R.drawable.stop_circle_24px
+            BookDownloadStatus.Paused -> R.drawable.play_arrow_24px
+            BookDownloadStatus.Stopped -> R.drawable.arrow_circle_down_24px
+            BookDownloadStatus.Failed -> R.drawable.arrow_circle_down_24px
+            BookDownloadStatus.Done -> R.drawable.check_24px
+            BookDownloadStatus.Pending -> R.drawable.stop_circle_24px
+            BookDownloadStatus.Idle -> R.drawable.arrow_circle_down_24px
         }
 
     val iconBig
         get() = when (status) {
-            DownloadState.IsDownloading -> R.drawable.ic_baseline_stop_24
-            DownloadState.IsPaused -> R.drawable.netflix_play
-            DownloadState.IsStopped -> R.drawable.ic_sharp_clear_24
-            DownloadState.IsFailed -> R.drawable.ic_sharp_clear_24
-            DownloadState.IsDone -> R.drawable.ic_baseline_check_24
-            DownloadState.IsPending -> R.drawable.nothing
-            DownloadState.Nothing -> R.drawable.netflix_download
+            BookDownloadStatus.Downloading -> R.drawable.ic_baseline_stop_24
+            BookDownloadStatus.Paused -> R.drawable.netflix_play
+            BookDownloadStatus.Stopped -> R.drawable.ic_sharp_clear_24
+            BookDownloadStatus.Failed -> R.drawable.ic_sharp_clear_24
+            BookDownloadStatus.Done -> R.drawable.ic_baseline_check_24
+            BookDownloadStatus.Pending -> null
+            BookDownloadStatus.Idle -> R.drawable.netflix_download
         }
 }
 
@@ -743,7 +801,31 @@ enum class ChapterSortingMethodType(val id: Int) {
 }
 
 @Immutable
+data class ChapterMethodPair(
+    @StringRes val name: Int,
+    val id: ChapterSortingMethodType,
+    /** if inverse == id then it is a singular option */
+    val inverse: ChapterSortingMethodType = id
+)
+
+val chapterSortingMethods = persistentListOf(
+    ChapterMethodPair(R.string.default_sort, ChapterSortingMethodType.Default),
+    ChapterMethodPair(
+        R.string.release_sort,
+        ChapterSortingMethodType.Ascending,
+        ChapterSortingMethodType.RevAscending
+    ),
+    ChapterMethodPair(
+        R.string.alpha_sort,
+        ChapterSortingMethodType.Alphabetical,
+        ChapterSortingMethodType.RevAlphabetical
+    ),
+)
+
+@Immutable
 enum class ChapterFilterMethodType(val id: Int) {
+    All(0),
+
     /** Filter by download status */
     Downloaded(1),
     UnDownloaded(2),
@@ -892,24 +974,97 @@ fun <T> PersistentList<T>.updateRows(
     return this.mapIndexed { index, t -> t.update(index) }.toPersistentList()
 }
 
-/**
- * Contrary to the SearchList, the chapter data will be truly immutable
- * therefore we use the PersistentList<ImmutableChapterData> instead of passing by index/id
- *
- * TODO bitset for downloads
- * TODO bitset for read status
- * */
+data class FilterChapters(
+    val query: FilterByQuery<ImmutableChapterData> = FilterByQuery<ImmutableChapterData>(query = "") { it.name },
+    val filterMethodType: PersistentSet<ChapterFilterMethodType> = persistentSetOf(
+        ChapterFilterMethodType.All
+    ),
+    val downloaded: BitSet = BitSet(),
+    val read: BitSet = BitSet(),
+    val bookmark: BitSet = BitSet()
+) : Function1<ImmutableChapterData, Boolean> {
+    override fun invoke(data: ImmutableChapterData): Boolean =
+        query(data)
+                && filterMethodType.any {
+            when (it) {
+                ChapterFilterMethodType.All -> true
+                ChapterFilterMethodType.Downloaded -> downloaded.get(data.index)
+                ChapterFilterMethodType.UnDownloaded -> !downloaded.get(data.index)
+                ChapterFilterMethodType.Read -> read.get(data.index)
+                ChapterFilterMethodType.UnRead -> !read.get(data.index)
+                ChapterFilterMethodType.Bookmark -> bookmark.get(data.index)
+                ChapterFilterMethodType.UnBookmark -> !bookmark.get(data.index)
+            }
+        }
+}
+
 @Immutable
 data class ImmutableChapterList(
-    private val data: PersistentList<ImmutableChapterData>,
-    private val filtered: PersistentList<ImmutableChapterData> = persistentListOf(),
-    val sorted: PersistentList<ImmutableChapterData> = persistentListOf(),
-    val query: String = "",
+    private val internalData: SearchableData<Int, ImmutableChapterData> = SearchableData(
+        data = persistentMapOf(),
+        filtered = persistentSetOf(),
+        sorted = persistentListOf(),
+        filteredBy = null,
+        sortedBy = SortByName { it.name }
+    ),
     val sortingMethod: ChapterSortingMethodType = ChapterSortingMethodType.Default,
-    //val filterMethod: EnumSet<ChapterFilterMethodType> = EnumSet.allOf<ChapterFilterMethodType>(), // TODO
+    val filtering: FilterChapters = FilterChapters(),
+    val selected: BitSet,
 ) {
+    val data get() = internalData.data
+    val sorted get() = internalData.sorted
+    val filtered get() = internalData.filtered
 
     @CheckResult
+    fun filterBy(
+        newFilter: FilterChapters
+    ): ImmutableChapterList =
+        copy(internalData = internalData.filteringBy(newFilter = newFilter), filtering = newFilter)
+
+    @CheckResult
+    fun sortBy(
+        newSorting: ChapterSortingMethodType
+    ): ImmutableChapterList =
+        copy(
+            internalData = internalData.sortingBy(newSorting = getSortingMethod(newSorting)),
+            sortingMethod = newSorting
+        )
+
+    companion object {
+        private val Ascending = sortByInt<ImmutableChapterData> { chapter -> chapter.index }
+        private val RevAscending =
+            sortByInt<ImmutableChapterData> { chapter -> chapter.index }.rev()
+        private val Alphabetical = SortByName<ImmutableChapterData> { chapter -> chapter.name }
+        private val RevAlphabetical =
+            SortByName<ImmutableChapterData> { chapter -> chapter.name }.rev()
+
+        private fun getSortingMethod(method: ChapterSortingMethodType): Comparator<ImmutableChapterData> {
+            return when (method) {
+                ChapterSortingMethodType.Default, ChapterSortingMethodType.Ascending -> Ascending
+                ChapterSortingMethodType.RevAscending -> RevAscending
+                ChapterSortingMethodType.Alphabetical -> Alphabetical
+                ChapterSortingMethodType.RevAlphabetical -> RevAlphabetical
+            }
+        }
+
+        @CheckResult
+        fun from(
+            chapters: PersistentList<ImmutableChapterData>,
+            sortBy: ChapterSortingMethodType = ChapterSortingMethodType.Default,
+            filteredBy: FilterChapters
+        ): ImmutableChapterList = ImmutableChapterList(
+            sortingMethod = sortBy,
+            filtering = filteredBy,
+            internalData = SearchableData.from(
+                data = chapters.associateBy { it.index }.toPersistentMap(),
+                sortedBy = getSortingMethod(sortBy),
+                filteredBy = filteredBy,
+            ),
+            selected = BitSet()
+        )
+    }
+
+    /*@CheckResult
     fun search(
         query: String = this.query,
         sortingMethod: ChapterSortingMethodType = this.sortingMethod
@@ -980,7 +1135,7 @@ data class ImmutableChapterList(
                 sortingMethod = sortingMethod
             )
         }
-    }
+    }*/
 }
 
 /**
@@ -1003,6 +1158,7 @@ data class ImmutableSearchList(
     val sortingMethod: SortingMethodType = SortingMethodType.Default,
 ) {
     val data = internalData.data
+
     //val filtered = internalData.filtered
     val sorted = internalData.sorted
 
@@ -1052,14 +1208,18 @@ data class ImmutableSearchList(
         private val Alphabetical = SortByName<ImmutableSearchResponse> { it.name }
         private val RevAlphabetical = SortByName<ImmutableSearchResponse> { it.name }.rev()
         private val DownloadCount =
-            sortByLong<ImmutableSearchResponse> { it.downloadState?.downloaded ?: 0L }.rev()
+            sortByInt<ImmutableSearchResponse> {
+                it.downloadState?.downloadedChapters?.length() ?: 0
+            }.rev()
         private val RevDownloadCount =
-            sortByLong<ImmutableSearchResponse> { it.downloadState?.downloaded ?: 0L }
+            sortByInt<ImmutableSearchResponse> {
+                it.downloadState?.downloadedChapters?.length() ?: 0
+            }
         private val DownloadPercentage = sortByFloat<ImmutableSearchResponse> {
-            it.downloadState?.downloadPercentage ?: 0.0f
+            it.downloadPercentage ?: 0.0f
         }.rev()
         private val RevDownloadPercentage =
-            sortByFloat<ImmutableSearchResponse> { it.downloadState?.downloadPercentage ?: 0.0f }
+            sortByFloat<ImmutableSearchResponse> { it.downloadPercentage ?: 0.0f }
         private val LastOpened =
             sortByLong<ImmutableSearchResponse> { it.timeOfPageOpened ?: 0L }.rev()
         private val RevLastOpened =
@@ -1070,8 +1230,8 @@ data class ImmutableSearchList(
             sortByLong<ImmutableSearchResponse> { it.timeOfChapterDownloaded ?: 0L }
         private val LastCached = sortByLong<ImmutableSearchResponse> { it.timeOfCached }.rev()
         private val RevLastCached = sortByLong<ImmutableSearchResponse> { it.timeOfCached }
-        private val ChapterCount = sortByLong<ImmutableSearchResponse> { it.chapters ?: 0L }.rev()
-        private val RevChapterCount = sortByLong<ImmutableSearchResponse> { it.chapters ?: 0L }
+        private val ChapterCount = sortByInt<ImmutableSearchResponse> { it.chapters ?: 0 }.rev()
+        private val RevChapterCount = sortByInt<ImmutableSearchResponse> { it.chapters ?: 0 }
         private val DefaultQuery = FilterByQuery<ImmutableSearchResponse>("") { it.name }
 
         private fun getQuery(query: String): FilterByQuery<ImmutableSearchResponse>? {
