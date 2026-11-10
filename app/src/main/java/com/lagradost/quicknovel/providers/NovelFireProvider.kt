@@ -212,7 +212,7 @@ open class NovelFireProvider : MainAPI() {
         return response.data?.mapNotNull { item ->
             val nSort = item.nSort ?: return@mapNotNull null
 
-            val rawTitle = item.title ?: "Chapter $nSort"
+            val rawTitle = "Ch $nSort. ${item.title}"
             val chapterUrl = "$mainUrl/$sectionUrl/$bookSlug/chapter-$nSort"
             newChapterData(rawTitle, chapterUrl) {
                 this.dateOfRelease = item.createdAt
