@@ -135,7 +135,7 @@ class Apis {
             ReadNovelFullProvider(),
             ReadOnlineFreeBookProvider(),
             RewayatProvider(),
-            RoyalRoadProvider(),
+            RoyalRoadProvider,
             SakuraNovelProvider(), // cloudflare?
             ScribblehubProvider(),
             ScrollersPubProvider(),

@@ -515,8 +515,8 @@ fun Preview() {
                 state = ResultState(
                     loadingResponse = false,
                     responseError = null,//Throwable("Hello world"),
-                    response = ImmutableSearchResponse.preview(),
-                    api = APIRepository(RoyalRoadProvider())
+                    response = ImmutableSearchResponse.preview,
+                    api = APIRepository(RoyalRoadProvider)
                 ), onAction = { }, onDismissRequest = {})
         }
     }

@@ -60,6 +60,7 @@ import com.lagradost.quicknovel.MainActivity.Companion.loadResult
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.ReleaseStatus
 import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.SlopStatus
 import com.lagradost.quicknovel.StreamResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.downloader.BookDownloadStatus
@@ -249,7 +250,7 @@ data class ImmutableSearchResponse(
     /** The "synopsis" or "plot" of the item, absent for regular search results */
     val synopsis: String? = null,
     /** The tags of an item */
-    val tags: ImmutableList<String>? = null,
+    val tags: PersistentList<String>? = null,
     /** If the item is "loading" in some way, like generating an epub or having some misc loading state unrelated to "downloading" */
     val generating: Boolean = false,
     /** The ID of a card used for all keys, only non-null on regular search results */
@@ -268,6 +269,12 @@ data class ImmutableSearchResponse(
     val chaptersRead: BitSet?,
     val loadData: ImmutableLoadData? = null,
     val reviewData: String? = null,
+    /** Is this written by a human? */
+    val slopStatus: SlopStatus? = null,
+    /** Does this content have any warnings that might make it unpleasant to read */
+    val contentWarnings : PersistentList<String>? = null,
+    /** What genre is this content? This is slightly different from tags */
+    val genre : PersistentList<String>? = null,
 ) {
     val chapters: Int? get() = loadData?.chapters?.size ?: visualTotalChapters
     val isImported: Boolean get() = (apiName == IMPORT_SOURCE || apiName == IMPORT_SOURCE_PDF)
@@ -360,12 +367,15 @@ data class ImmutableSearchResponse(
             totalChapters = chapters ?: 1,
             cachedTime = System.currentTimeMillis(),
             synopsis = synopsis,
-            posterHeaders = posterHeaders
+            posterHeaders = posterHeaders,
+            slopStatus = slopStatus,
+            genre = genre,
+            contentWarnings = contentWarnings,
         )
     }
 
     companion object {
-        fun preview(): ImmutableSearchResponse = ImmutableSearchResponse(
+        val preview: ImmutableSearchResponse = ImmutableSearchResponse(
             name = "hello world",
             apiName = "hello world",
             author = "author",
@@ -381,6 +391,7 @@ data class ImmutableSearchResponse(
                 downloadLinks = null,
                 downloadExtractLinks = null,
             ),
+            slopStatus = SlopStatus.AiAssisted,
             tags = persistentListOf(
                 "tag 1",
                 "tag 2",
@@ -391,8 +402,18 @@ data class ImmutableSearchResponse(
                 "tag 7",
                 "tag 8",
                 "tag 9",
-                "Hello World",
-                "More tags"
+            ),
+            genre = persistentListOf(
+                "genre 1",
+                "genre 2",
+                "genre 3",
+                "genre 4",
+            ),
+            contentWarnings =  persistentListOf(
+                "cw 1",
+                "cw 2",
+                "cw 3",
+                "cw 4",
             ),
             synopsis = """Ryan "Quicksave" Romano is an eccentric adventurer with a strange power: he can create a save-point in time and redo his life whenever he dies. Arriving in New Rome, the glitzy capital of sin of a rebuilding Europe, he finds the city torn between mega-corporations, sponsored heroes, superpowered criminals, and true monsters. It's a time of chaos, where potions can grant the power to rule the world and dangers lurk everywhere. 
 
@@ -469,7 +490,12 @@ data class ImmutableSearchResponse(
                 posterHeaders = response.posterHeaders?.toImmutableMap(),
                 timeOfCached = System.currentTimeMillis(),
                 lastChaptersRead = lastChaptersRead(response.name, null),
-                chaptersRead = null
+                chaptersRead = null,
+                slopStatus = response.slopStatus,
+                contentWarnings = response.contentWarnings?.toPersistentList(),
+                tags = response.tags?.toPersistentList(),
+                genre = response.genre?.toPersistentList(),
+                synopsis = response.synopsis
             )
 
         fun defaultDownloadState(id: Int) =
@@ -500,6 +526,9 @@ data class ImmutableSearchResponse(
                 apiName = response.apiName,
                 author = response.author,
                 synopsis = response.synopsis,
+                slopStatus = response.slopStatus,
+                genre = response.genre?.toPersistentList(),
+                contentWarnings = response.contentWarnings?.toPersistentList(),
                 loadData = ImmutableLoadData(
                     related = response.related?.map { from(it) }?.toPersistentList(),
                     status = response.status,
@@ -529,6 +558,10 @@ data class ImmutableSearchResponse(
 
         fun from(cache: ResultCached): ImmutableSearchResponse =
             ImmutableSearchResponse(
+                slopStatus = cache.slopStatus,
+                genre = cache.genre?.toPersistentList(),
+                tags = cache.tags?.toPersistentList(),
+                contentWarnings = cache.contentWarnings?.toPersistentList(),
                 name = cache.name,
                 url = cache.source,
                 posterUrl = cache.poster,
@@ -563,7 +596,10 @@ data class ImmutableSearchResponse(
                 author = cache.author,
                 downloadState = downloadState,
                 synopsis = cache.synopsis,
-                tags = cache.tags?.toImmutableList(),
+                tags = cache.tags?.toPersistentList(),
+                contentWarnings = cache.contentWarnings?.toPersistentList(),
+                genre = cache.genre?.toPersistentList(),
+                slopStatus = cache.slopStatus,
                 timeOfPageOpened = timeOfPageOpened(id),
                 epubSize = epubSize(id),
                 lastChaptersRead = lastChaptersRead(cache.name, id),

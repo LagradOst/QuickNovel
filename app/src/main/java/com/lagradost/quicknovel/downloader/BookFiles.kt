@@ -163,6 +163,9 @@ object BookFiles {
                     id.toString()
                 )?.lastDownloaded)
                 ?: System.currentTimeMillis(),
+                contentWarnings = response.contentWarnings,
+                genre = response.genre,
+                slopStatus = response.slopStatus,
                 posterHeaders = response.posterHeaders
             )
         )

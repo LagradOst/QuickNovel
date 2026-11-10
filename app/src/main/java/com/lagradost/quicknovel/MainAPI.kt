@@ -214,7 +214,12 @@ data class SearchResponse(
     var rating: Int? = null,
     var latestChapter: String? = null,
     val apiName: String,
-    var posterHeaders: Map<String, String>? = null
+    var synopsis: String? = null,
+    var posterHeaders: Map<String, String>? = null,
+    var slopStatus: SlopStatus? = null,
+    var genre: List<String>? = null,
+    var tags: List<String>? = null,
+    var contentWarnings: List<String>? = null,
 ) {
     val image get() = img(posterUrl, posterHeaders)
 }
@@ -252,6 +257,12 @@ fun MainAPI.newReview(
     return builder
 }
 
+enum class SlopStatus {
+    Human,
+    AiAssisted,
+    AiGenerated,
+}
+
 enum class ReleaseStatus(@StringRes val resource: Int) {
     Ongoing(R.string.ongoing),
     Completed(R.string.completed),
@@ -287,31 +298,16 @@ interface LoadResponse {
     var views: Int?
     var synopsis: String?
     var tags: List<String>?
+    var genre: List<String>?
+    var contentWarnings: List<String>?
     var status: ReleaseStatus? // 0 = null - implemented but not found, 1 = Ongoing, 2 = Complete, 3 = Pause/HIATUS, 4 = Dropped
     var posterHeaders: Map<String, String>?
-
     val image: UiImage? get() = img(url = posterUrl, headers = posterHeaders)
     val apiName: String
     var related: List<SearchResponse>?
     var reviewData : String?
-
     val isImported: Boolean get() = (apiName == IMPORT_SOURCE || apiName == IMPORT_SOURCE_PDF)
-
-    fun downloadImage(): UiImage? {
-
-        return if ((apiName == IMPORT_SOURCE || apiName == IMPORT_SOURCE_PDF)) {
-            activity?.let {
-                val uri = (it.filesDir.toString() + getFilenameIMG(
-                    sanitizeFilename(apiName),
-                    sanitizeFilename(author ?: ""),
-                    sanitizeFilename(name)
-                )).toUri()
-                UiImage.Uri(uri)
-            }
-        } else {
-            img(url = posterUrl, headers = posterHeaders)
-        }
-    }
+    var slopStatus: SlopStatus?
 }
 
 data class StreamResponse(
@@ -330,7 +326,10 @@ data class StreamResponse(
     override var posterHeaders: Map<String, String>? = null,
     var nextChapter: ChapterData? = null,
     override var related: List<SearchResponse>? = null,
-    override var reviewData: String? = null
+    override var reviewData: String? = null,
+    override var slopStatus: SlopStatus? = null,
+    override var contentWarnings: List<String>? = null,
+    override var genre: List<String>? = null,
 ) : LoadResponse
 
 suspend fun MainAPI.newStreamResponse(
@@ -407,7 +406,10 @@ data class EpubResponse(
     var downloadExtractLinks: List<DownloadExtractLink>,
     override val apiName: String,
     override var related: List<SearchResponse>? = null,
-    override var reviewData: String? = null
+    override var reviewData: String? = null,
+    override var slopStatus: SlopStatus? = null,
+    override var contentWarnings: List<String>? = null,
+    override var genre: List<String>? = null,
 ) : LoadResponse
 
 suspend fun MainAPI.newEpubResponse(

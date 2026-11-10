@@ -27,6 +27,7 @@ import com.tom_roush.pdfbox.pdmodel.PDPage
 import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject
 import com.tom_roush.pdfbox.text.PDFTextStripperByArea
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -141,7 +142,7 @@ object PDFDownloader {
             apiName = IMPORT_SOURCE_PDF,
             id = generateId(apiName = IMPORT_SOURCE_PDF, name = name, author = author),
             /** Comma separated keyword list */
-            tags = info.keywords?.split(Regex("\\s*[,;]\\s*"))?.toImmutableList()
+            tags = info.keywords?.split(Regex("\\s*[,;]\\s*"))?.toPersistentList()
         )
 
         if (newResponse.id == status.id) {

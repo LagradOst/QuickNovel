@@ -1521,9 +1521,11 @@ object ResultScreen {
             }
 
             item(key = "tags") {
-                val tags = response.tags
-                if (tags != null) {
-                    Tags(tags) { name ->
+                val tags = (response.tags ?: persistentListOf()).addingAll(
+                    response.genre ?: persistentListOf()
+                )
+                if (tags.isNotEmpty() || !response.contentWarnings.isNullOrEmpty()) {
+                    Tags(tags, response.contentWarnings ?: persistentListOf()) { name ->
                         val api = state.api ?: return@Tags
                         val tagIndex = api.tags.indexOfFirst { tag -> tag.first == name }
                         if (tagIndex == -1) return@Tags
@@ -1611,15 +1613,15 @@ object ResultScreen {
             if (!downloadState.downloadedChapters.isEmpty) {
                 entries += LocalDownloadSelection.Delete to stringResource(R.string.delete)
             }
-        } else if (downloadState.totalBytes > 0) {
+        } else if (downloadState.totalBytes > 0 || downloadState.downloadedBytes > 0 || !loadData.downloadLinks.isNullOrEmpty() || !loadData.downloadExtractLinks.isNullOrEmpty()) {
             when (downloadState.downloadStatus) {
                 BookDownloadStatus.Paused -> {
-                    entries += LocalDownloadSelection.Resume to stringResource(R.string.resume)
                     entries += LocalDownloadSelection.Stop to stringResource(R.string.stop)
+                    entries += LocalDownloadSelection.Resume to stringResource(R.string.resume)
                 }
 
                 BookDownloadStatus.Failed, BookDownloadStatus.Stopped -> {
-                    entries += if (downloadState.downloadedBytes < downloadState.totalBytes) {
+                    entries += if (downloadState.downloadedBytes == 0L || downloadState.downloadedBytes < downloadState.totalBytes) {
                         LocalDownloadSelection.Download to stringResource(R.string.re_downloaded)
                     } else {
                         LocalDownloadSelection.Delete to stringResource(R.string.delete)
@@ -1632,7 +1634,7 @@ object ResultScreen {
                 }
 
                 BookDownloadStatus.Idle, BookDownloadStatus.Done -> {
-                    entries += if (downloadState.downloadedBytes < downloadState.totalBytes) {
+                    entries += if (downloadState.downloadedBytes == 0L || downloadState.downloadedBytes < downloadState.totalBytes) {
                         LocalDownloadSelection.Download to stringResource(R.string.download)
                     } else {
                         LocalDownloadSelection.Delete to stringResource(R.string.delete)
@@ -2117,14 +2119,20 @@ object ResultScreen {
     }
 
     @Composable
-    fun LazyItemScope.Tags(tags: ImmutableList<String>, onTagClicked: (String) -> Unit) {
+    fun LazyItemScope.Tags(
+        tags: ImmutableList<String>,
+        contentWarnings: ImmutableList<String>,
+        onTagClicked: (String) -> Unit
+    ) {
         val configuration = LocalConfiguration.current
         val orientation = configuration.orientation
         val minimumReveal = 4
-        val defaultMaxTags = when (orientation) {
-            Configuration.ORIENTATION_LANDSCAPE -> 25
-            else -> 7
-        }
+        val defaultMaxTags = maxOf(
+            0, when (orientation) {
+                Configuration.ORIENTATION_LANDSCAPE -> 25
+                else -> 7
+            } - contentWarnings.size
+        )
 
         /** We have a slight overflow to prevent the reaveal button from just showing 1 item */
         val maxTags = if (defaultMaxTags + minimumReveal >= tags.size) {
@@ -2140,6 +2148,19 @@ object ResultScreen {
                 .padding(horizontal = MaterialTheme.padding.medium)
                 .animateItem(),
         ) {
+            contentWarnings.forEach { tag ->
+                Text(
+                    text = tag,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.background,
+                    modifier = Modifier
+                        .padding(MaterialTheme.padding.extraSmall)
+                        .rounded()
+                        .background(color = MaterialTheme.colorScheme.onBackground)
+                        .padding(7.dp)
+                )
+            }
+
             if (expandedTags) {
                 tags
             } else {

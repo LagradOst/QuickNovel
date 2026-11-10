@@ -6,6 +6,7 @@ import com.lagradost.cloudstream4.compose.Screen
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.DownloadState
+import com.lagradost.quicknovel.SlopStatus
 
 
 class DownloadFragment : BaseComposeFragment(), Screen by DownloadScreen {
@@ -29,6 +30,12 @@ class DownloadFragment : BaseComposeFragment(), Screen by DownloadScreen {
         val synopsis: String?,
         @JsonProperty("tags")
         val tags: List<String>?,
+        @JsonProperty("contentWarnings")
+        val contentWarnings: List<String>?,
+        @JsonProperty("genre")
+        val genre: List<String>?,
+        @JsonProperty("slopStatus")
+        val slopStatus: SlopStatus?,
         @JsonProperty("apiName")
         val apiName: String,
         /** Unix time ms, downloaded update check */

@@ -58,6 +58,7 @@ import com.lagradost.cloudstream4.compose.rounded
 import com.lagradost.cloudstream4.theme.CloudStreamPreviewTheme
 import com.lagradost.quicknovel.downloader.BookDownloadStatus
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.SlopStatus
 import com.lagradost.quicknovel.compose.animatedOutline
 import com.lagradost.quicknovel.compose.isLandscape
 import com.mihon.material.padding
@@ -219,15 +220,9 @@ fun SearchResponseRow(
                     modifier.downloadOutline(if (response.generating) BookDownloadStatus.Downloading else response.downloadState?.downloadStatus)
                 }
             }
-
     ) {
-        AsyncImage(
-            contentScale = ContentScale.Crop,
-            model = imageRequest,
-            contentDescription = response.name,
-            modifier = Modifier
-                .width(67.5.dp)
-                .fillMaxHeight()
+        Box(
+            contentAlignment = Alignment.TopStart, modifier = Modifier
                 .rounded()
                 .combinedClickable(
                     onClick = {
@@ -236,7 +231,34 @@ fun SearchResponseRow(
                     onLongClick = {
                         action(SearchResponseAction(response, SearchResponseOperation.Metadata))
                     })
-        )
+        ) {
+            AsyncImage(
+                contentScale = ContentScale.Crop,
+                model = imageRequest,
+                contentDescription = response.name,
+                modifier = Modifier
+                    .width(67.5.dp)
+                    .fillMaxHeight()
+            )
+            when (response.slopStatus) {
+                SlopStatus.AiAssisted, SlopStatus.AiGenerated -> {
+                    Text(
+                        text = "AI",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.background,
+                        modifier = Modifier
+                            .padding(MaterialTheme.padding.extraSmall)
+                            .rounded()
+                            .background(color = MaterialTheme.colorScheme.onBackground)
+                            .padding(5.dp)
+                    )
+                }
+
+                else -> {
+
+                }
+            }
+        }
 
         Column(
             modifier = Modifier
@@ -277,7 +299,7 @@ fun SearchResponseRow(
                 } else if (!response.isImported) {
                     val downloaded = downloadState.totalDownloadedAfterOffset
                     val chapters = response.chapters
-                    if(chapters != null) {
+                    if (chapters != null) {
                         if (downloaded != chapters) {
                             "$downloaded/$chapters $chaptersEnding"
                         } else {
@@ -506,12 +528,34 @@ fun SearchResponseItem(
                 .indication(interactionSource = interactionSource, indication = ripple()),
             contentAlignment = Alignment.BottomStart
         ) {
-            AsyncImage(
-                contentScale = ContentScale.Crop,
-                model = imageRequest,
-                contentDescription = response.name,
-                modifier = Modifier.fillMaxSize()
-            )
+            Box {
+                AsyncImage(
+                    contentScale = ContentScale.Crop,
+                    model = imageRequest,
+                    contentDescription = response.name,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                when (response.slopStatus) {
+                    SlopStatus.AiAssisted, SlopStatus.AiGenerated -> {
+                        Text(
+                            text = "AI",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.background,
+                            modifier = Modifier
+                                .padding(MaterialTheme.padding.extraSmall)
+                                .rounded()
+                                .background(color = MaterialTheme.colorScheme.onBackground)
+                                .padding(5.dp)
+                        )
+                    }
+
+                    else -> {
+
+                    }
+                }
+            }
+
 
             if (response.id != null) {
                 Row(
@@ -653,7 +697,7 @@ fun SearchResponseGrid(
 @Composable
 private fun RowPreview() {
     CloudStreamPreviewTheme {
-        SearchResponseRow(response = ImmutableSearchResponse.preview(), action = {})
+        SearchResponseRow(response = ImmutableSearchResponse.preview, action = {})
     }
 }
 
@@ -661,6 +705,6 @@ private fun RowPreview() {
 @Composable
 private fun GridPreview() {
     CloudStreamPreviewTheme {
-        SearchResponseItem(response = ImmutableSearchResponse.preview(), action = {})
+        SearchResponseItem(response = ImmutableSearchResponse.preview, action = {})
     }
 }
