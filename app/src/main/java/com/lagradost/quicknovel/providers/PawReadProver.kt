@@ -6,6 +6,7 @@ import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrlNull
@@ -125,8 +126,7 @@ object PawReadProver : MainAPI() {
             val info = document.select("#views_info>div")
             views = info[1].text().trim().removeSuffix("Views").trimEnd().toIntOrNull()
             author = info[3].text()
-            rating = document.select(".comic-score>span").getOrNull(1)?.text()?.toFloatOrNull()
-                ?.times(1000.0 / 5.0)?.roundToInt()
+            score = Score.from5(document.select(".comic-score>span").getOrNull(1)?.text())
             peopleVoted = document.selectFirst("#scoreCount")?.text()?.toIntOrNull()
             tags = document.select("div.col-md-9 > div.mt20 > a.btn")
                 .map { it.text().trim().removePrefix("#").trim() }
@@ -175,19 +175,18 @@ object PawReadProver : MainAPI() {
                 username = item.user?.username
                 date = item.createdAt
                 avatarUrl = item.user?.avatar
-                rating = item.rating?.times(200)
+                score = Score.from5(item.rating)
             }
         }
     }
 
-    override suspend fun loadHtml(url: String): String? {
+    override suspend fun loadHtml(url: String): String {
         val document = app.get(url).document
         val count = document.selectFirst("#countdown")
         if (count != null) {
             throw ErrorLoadingException("Not released, time until released ${count.text()}")
         }
-        val html = document.selectFirst("#chapter_item")!!.html()
-        return html
+        return document.selectFirst("#chapter_item")!!.html()
     }
 
     data class PawReadReviewsResponse(

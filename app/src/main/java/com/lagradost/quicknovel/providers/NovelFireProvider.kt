@@ -8,6 +8,7 @@ import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrl
@@ -110,7 +111,6 @@ open class NovelFireAPI : MainAPI() {
         val url = "$mainUrl/genre-${tag}/${orderBy}/${mainCategory}/all-novel?page=$page"
         val document = app.get(url).document
 
-
         val returnValue = document.select("li.novel-item").mapNotNull { select ->
             val node = select.selectFirst("a[title]") ?: return@mapNotNull null
             val href = node.attr("href")
@@ -174,8 +174,7 @@ open class NovelFireAPI : MainAPI() {
                     ?.replace(Regex("[^0-9]"), "")
                     ?.trim()
                     ?.toIntOrNull() ?: 0
-            this.rating = document.selectFirst("div.rating strong.nub")?.text()
-                ?.toFloatOrNull()?.times(20)?.times(10)?.roundToInt()
+            score = Score.from5(document.selectFirst("div.rating strong.nub")?.text())
             related = getRelated(id)
             reviewData = id
         }

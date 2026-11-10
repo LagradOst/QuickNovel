@@ -6,6 +6,7 @@ import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.mvvm.logError
@@ -193,7 +194,7 @@ object ScrollersPubProvider : MainAPI() {
                 Jsoup.parse(item.content ?: return@mapNotNull null).text().trim()
             ) {
                 username = item.userName ?: "Anonymous"
-                rating = item.authorScore?.times(200)
+                score = Score.from5(item.authorScore)
                 date = item.createdAt?.toString()
             }
         } ?: emptyList()

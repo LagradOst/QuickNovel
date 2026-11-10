@@ -4,6 +4,7 @@ import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
@@ -79,7 +80,7 @@ object MtlNovelProvider : MainAPI() {
             val name =
                 h.selectFirst("h3")?.text()
                     ?: return@mapNotNull null
-            val cUrl = fixUrlNull(h.selectFirst("a")?.attr("href"))?:""
+            val cUrl = fixUrlNull(h.selectFirst("a")?.attr("href")) ?: ""
             newSearchResponse(
                 name = name,
                 url = cUrl,
@@ -99,10 +100,10 @@ object MtlNovelProvider : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val response = app.get("$mainUrl/search/?keyword=$query").document
 
-        return response.select("div.novel-box").mapNotNull { c->
+        return response.select("div.novel-box").mapNotNull { c ->
             newSearchResponse(
                 name = c.selectFirst("h3")?.text() ?: return@mapNotNull null,
-                url = fixUrlNull(c.selectFirst("a")?.attr("href"))?: return@mapNotNull null
+                url = fixUrlNull(c.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
             ) {
                 posterUrl = fixUrlNull(c.selectFirst("img")?.attr("src"))
             }
@@ -117,7 +118,7 @@ object MtlNovelProvider : MainAPI() {
         val chaptersGroup = app.get("$mainUrl/ajax/chapters/?slug=$chaptersProvider")
             .document.select("p.update-box-chapter")
             .mapNotNull { c ->
-                val href = c.selectFirst("a")?.attr("href")?: return@mapNotNull null
+                val href = c.selectFirst("a")?.attr("href") ?: return@mapNotNull null
                 val cName = c.text()
                 newChapterData(name = cName, url = href)
             }
@@ -126,25 +127,17 @@ object MtlNovelProvider : MainAPI() {
             val lis = document.select("div.m-card li")
 
             author = lis.getOrNull(2)?.selectFirst("pull-right")?.text()
-
             posterUrl = fixUrlNull(document.selectFirst("div.content-main-image img")?.attr("src"))
-
             tags = lis.getOrNull(3)?.select("a")?.map { it.text() }
-
             synopsis = document.selectFirst("div.m-card.text-break")?.ownText()
 
             peopleVoted = 0
-            rating = document.selectFirst("span.rating")
-                ?.text()
-                ?.trim()
-                ?.toFloat()
-                ?.times(200)
-                ?.toInt()
+            score = Score.from5(document.selectFirst("span.rating")?.text())
             related = getRelated(url.substringAfter("info/").removeSuffix("/"))
         }
     }
 
-    suspend fun getRelated(slug:String): List<SearchResponse> {
+    suspend fun getRelated(slug: String): List<SearchResponse> {
         val url = "$mainUrl/ajax/list/?type=related&slug=$slug"
         val document = app.get(url).document
         return document.select("div.novel-box").mapNotNull { element ->

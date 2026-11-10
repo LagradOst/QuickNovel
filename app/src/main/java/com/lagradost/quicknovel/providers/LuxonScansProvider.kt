@@ -1,11 +1,12 @@
 package com.lagradost.quicknovel.providers
+
 import android.net.Uri
-import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
@@ -13,7 +14,7 @@ import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import org.jsoup.nodes.Document
 
-object LuxonScansProvider:  MainAPI() {
+object LuxonScansProvider : MainAPI() {
     override val name = "Luxon Scan"
     override val mainUrl = "https://lunoxscans.com"
     override val iconId = R.drawable.icon_luxoscan
@@ -22,7 +23,8 @@ object LuxonScansProvider:  MainAPI() {
     override val rateLimitTime = 800L
 
 
-    override val tags = listOf("All" to "",
+    override val tags = listOf(
+        "All" to "",
         "Action" to "action",
         "Adult" to "adult",
         "Adventure" to "adventure",
@@ -66,13 +68,13 @@ object LuxonScansProvider:  MainAPI() {
     )
 
     override val orderBys = listOf(
-            "Default" to "",
-            "New" to "new-manga",
-            "Most Views" to "views",
-            "Trending" to "trending",
-            "Rating" to "rating",
-            "A-Z" to "alphabet",
-            "Latest" to "latest"
+        "Default" to "",
+        "New" to "new-manga",
+        "Most Views" to "views",
+        "Trending" to "trending",
+        "Rating" to "rating",
+        "A-Z" to "alphabet",
+        "Latest" to "latest"
     )
 
 
@@ -81,8 +83,7 @@ object LuxonScansProvider:  MainAPI() {
         mainCategory: String?,
         orderBy: String?,
         tag: String?
-    ): HeadMainPageResponse
-    {
+    ): HeadMainPageResponse {
         val order = when (tag) {
             "" -> "all-series"
             else -> "series-genre/$tag"
@@ -106,27 +107,27 @@ object LuxonScansProvider:  MainAPI() {
     }
 
 
-    override suspend fun load(url: String): LoadResponse
-    {
+    override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
-        val title = document.selectFirst("h1")?.text() ?: throw ErrorLoadingException("Invalid Name")
-        val chapters = document.select("div.lunox-chapters-container > div > a:not(.premium)").mapNotNull { li ->
-            val name = li.attr("data-name") ?: return@mapNotNull null
-            val url = li.attr("href") ?: return@mapNotNull null
-            newChapterData(name, url)
-        }.reversed()
-        return newStreamResponse(title,url, chapters) {
-            this.posterUrl = document.selectFirst("div.summary_image img")?.attr("src")
-            this.synopsis = document.select("div.summary__content").html()
+        val title =
+            document.selectFirst("h1")?.text() ?: throw ErrorLoadingException("Invalid Name")
+        val chapters = document.select("div.lunox-chapters-container > div > a:not(.premium)")
+            .mapNotNull { li ->
+                val name = li.attr("data-name")
+                val url = li.attr("href")
+                newChapterData(name, url)
+            }.reversed()
+        return newStreamResponse(title, url, chapters) {
+            posterUrl = document.selectFirst("div.summary_image img")?.attr("src")
+            synopsis = document.select("div.summary__content").html()
 
             author = document.selectFirst("div.summary-content > div.author-content")?.text()
 
-            this.tags = document.select("div.genres-content > a").mapNotNull {
-                it.text().trim().takeIf { text ->  !text.isEmpty() }
+            tags = document.select("div.genres-content > a").mapNotNull {
+                it.text().trim().takeIf { text -> !text.isEmpty() }
             }
 
-            rating = ((document.selectFirst("span.score")?.text()?.toFloatOrNull()
-                ?: 0f) * 200).toInt()
+            score = Score.from5(document.selectFirst("span.score")?.text())
             peopleVoted = document.selectFirst("div.vote-details")
                 ?.text()
                 ?.substringAfterLast("of ")
@@ -134,20 +135,21 @@ object LuxonScansProvider:  MainAPI() {
                 ?.toIntOrNull()
 
             // Turn K to thousands, 9.3k -> 2 zeroes | 95K -> 3 zeroes
-            val totViews = document.selectFirst("div.summary_content_wrap > div > div > div:nth-child(4) > div.summary-content")
-                ?.text()
-                ?.substringAfterLast("has ")
-                ?.substringBeforeLast(" views")
+            val totViews =
+                document.selectFirst("div.summary_content_wrap > div > div > div:nth-child(4) > div.summary-content")
+                    ?.text()
+                    ?.substringAfterLast("has ")
+                    ?.substringBeforeLast(" views")
             views = totViews
-                    ?.replace("K", if (totViews.contains(".")) "00" else "000")
-                    ?.replace(".", "")
-                    ?.toIntOrNull() ?: 0
+                ?.replace("K", if (totViews.contains(".")) "00" else "000")
+                ?.replace(".", "")
+                ?.toIntOrNull() ?: 0
 
             related = getRelated(document)
         }
     }
 
-    fun getRelated(dc: Document): List<SearchResponse>{
+    fun getRelated(dc: Document): List<SearchResponse> {
         return dc.select("div.related-manga > div.col-md-3").mapNotNull { element ->
             val href = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
             val title = element.selectFirst("h5")?.text() ?: return@mapNotNull null
@@ -167,7 +169,11 @@ object LuxonScansProvider:  MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val document = app.get("$mainUrl/?s=${Uri.encode(query.trim()).replace("%20", "+")}&post_type=wp-manga").document
+        val document = app.get(
+            "$mainUrl/?s=${
+                Uri.encode(query.trim()).replace("%20", "+")
+            }&post_type=wp-manga"
+        ).document
         return document.select("div.page-item-detail").mapNotNull { h ->
             val name = h.selectFirst("h3")?.text() ?: return@mapNotNull null
             newSearchResponse(

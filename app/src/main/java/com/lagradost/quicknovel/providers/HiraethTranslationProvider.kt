@@ -130,7 +130,7 @@ open class HiraethTranslationAPI : MainAPI() {
             synopsis = document.selectFirst("div.summary__content")?.text()
             val votes = document.selectFirst("div.summary-content.vote-details")
             if (votes != null) {
-                rating = votes.select("span#averagerate").text().toFloat().times(200).toInt()
+                score = Score.from5(votes.select("span#averagerate").text())
                 peopleVoted = votes.select("span#countrate").text().toInt()
             }
             val statusHeader0 = document.selectFirst("div.summary-content")

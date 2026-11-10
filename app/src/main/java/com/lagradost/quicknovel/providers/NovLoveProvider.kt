@@ -2,6 +2,7 @@ package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.LoadResponse
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newStreamResponse
@@ -40,8 +41,7 @@ object NovLoveProvider : MeioNovelAPI() {
                 it.attr("data-src").takeIf { src -> src.isNotBlank() } ?: it.attr("src")
             })
 
-            rating = (document.selectFirst("span#averagerate")?.text()?.toFloatOrNull()
-                ?.times(200))?.toInt()
+            score = Score.from5(document.selectFirst("span#averagerate")?.text())
             peopleVoted = document.selectFirst("span#countrate")?.text()?.let { text ->
                 text.replace("K", if (text.contains(".")) "00" else "000")
                     .replace(".", "").toIntOrNull()

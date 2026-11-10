@@ -6,6 +6,7 @@ import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.addPath
 import com.lagradost.quicknovel.clean
@@ -16,7 +17,6 @@ import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import com.lagradost.quicknovel.synopsis
-import com.lagradost.quicknovel.toRate
 import com.lagradost.quicknovel.toUrlBuilderSafe
 
 object IndoWebNovelProvider : IndoWebNovelAPI()
@@ -80,7 +80,7 @@ open class IndoWebNovelAPI : MainAPI() {
             .select(if (tag == "") ".flexbox3-content > a" else ".flexbox2-content > a")
             .mapNotNull { element ->
                 newSearchResponse(
-                    name = element.attr("title") ?: return@mapNotNull null,
+                    name = element.attr("title"),
                     url = element.attr("href")
                 ) {
                     posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
@@ -93,20 +93,22 @@ open class IndoWebNovelAPI : MainAPI() {
     override suspend fun loadHtml(url: String): String? {
         val con = app.get(url).document
 
-        con.select("input, div.reader-settings, label.showsetting, div.entry-pagination, div.ads, div.comment").remove()
+        con.select("input, div.reader-settings, label.showsetting, div.entry-pagination, div.ads, div.comment")
+            .remove()
 
         val res = con.select("div.content > div.container > div > *")
             .joinToString("<br>")
 
         return res.ifBlank { null }
     }
+
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/?s=${Uri.encode(query)}"
         return app.get(url).document
             .select("div.flexbox2 > div.flexbox2-item > div.flexbox2-content > a")
             .mapNotNull { element ->
                 newSearchResponse(
-                    name = element.attr("title") ?: return@mapNotNull null,
+                    name = element.attr("title"),
                     url = element.attr("href")
                 ) {
                     posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
@@ -133,7 +135,7 @@ open class IndoWebNovelAPI : MainAPI() {
                 ?.selectFirst("span")?.text()?.clean()
             posterUrl = doc.selectFirst("div.series-thumb img")
                 ?.attr("src")
-            rating = doc.selectFirst("span[itemprop=ratingValue]")?.text()?.toRate()
+            score = Score.from10(doc.selectFirst("span[itemprop=ratingValue]")?.text())
 
             synopsis = doc.selectFirst(".series-synops")?.text()?.synopsis() ?: ""
             tags = doc.selectFirst("div.series-genres")?.select("a")

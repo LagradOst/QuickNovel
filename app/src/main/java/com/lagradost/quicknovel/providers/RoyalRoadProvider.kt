@@ -6,6 +6,7 @@ import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.SlopStatus
 import com.lagradost.quicknovel.UserReview
@@ -283,7 +284,7 @@ object RoyalRoadProvider : MainAPI() {
     data class Daum(
         val id: Long,
         val user: User,
-        val overallScore: Long,
+        val overallScore: Int,
         val title: String,
         val content: String,
         val advancedScores: AdvancedScores?,
@@ -398,8 +399,7 @@ object RoyalRoadProvider : MainAPI() {
             contentWarnings = similar.tags.filter { it.type == "Warning" }.map { it.name }
             genre = similar.tags.filter { it.type == "Genre" }.map { it.name }
             synopsis = similar.description
-            // 0-10
-            rating = similar.averageRating?.times(200.0)?.toInt()
+            score = Score.from5(similar.averageRating)
         }
 
     override suspend fun search(query: String): List<SearchResponse> {
@@ -465,7 +465,7 @@ object RoyalRoadProvider : MainAPI() {
             genre = data.tags.filter { it.type == "Genre" }.map { it.name }
             author = data.authorInfo.username
             views = data.advancedStats?.totalViews?.toInt()
-            rating = (data.averageRating * 200.0).toInt()
+            score = Score.from5(data.averageRating)
             peopleVoted = data.advancedStats?.ratings?.toInt()
             reviewData = id.toString()
             related = similar(id).map(::newSearchResponse)
@@ -483,13 +483,13 @@ object RoyalRoadProvider : MainAPI() {
                 avatarUrl = review.user.avatar
                 containsSpoilers = reviewContent.getElementsByClass("spoiler-new")
                     .isNotEmpty() || reviewContent.getElementsByClass("spoiler").isNotEmpty()
-                rating = review.overallScore.toInt() * 100
-                ratings = review.advancedScores?.let { scores ->
+                score = Score.from10(review.overallScore)
+                scores = review.advancedScores?.let { scores ->
                     listOf(
-                        scores.storyScore.times(100.0).toInt() to "Story",
-                        scores.styleScore.times(100.0).toInt() to "Style",
-                        scores.grammarScore.times(100.0).toInt() to "Grammar",
-                        scores.characterScore.times(100.0).toInt() to "Character"
+                        Score.from10(scores.storyScore) to "Story",
+                        Score.from10(scores.styleScore) to "Style",
+                        Score.from10(scores.grammarScore) to "Grammar",
+                        Score.from10(scores.characterScore) to "Character"
                     )
                 }
             }

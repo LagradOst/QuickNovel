@@ -1,26 +1,5 @@
 package com.lagradost.quicknovel.providers
 
-import com.lagradost.quicknovel.ChapterData
-import com.lagradost.quicknovel.ErrorLoadingException
-import com.lagradost.quicknovel.HeadMainPageResponse
-import com.lagradost.quicknovel.LoadResponse
-import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity.Companion.app
-import com.lagradost.quicknovel.R
-import com.lagradost.quicknovel.SearchResponse
-import com.lagradost.quicknovel.StreamResponse
-import com.lagradost.quicknovel.add
-import com.lagradost.quicknovel.addPath
-import com.lagradost.quicknovel.clean
-import com.lagradost.quicknovel.fixUrlNull
-import com.lagradost.quicknovel.ifCase
-import com.lagradost.quicknovel.newSearchResponse
-import com.lagradost.quicknovel.newStreamResponse
-import com.lagradost.quicknovel.synopsis
-import com.lagradost.quicknovel.toRate
-import com.lagradost.quicknovel.toUrlBuilderSafe
-import com.lagradost.quicknovel.toVote
-
 /*
 abstract class MadaraReader : MainAPI() {
     override val name = ""

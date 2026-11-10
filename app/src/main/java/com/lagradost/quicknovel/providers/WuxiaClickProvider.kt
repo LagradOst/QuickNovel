@@ -6,6 +6,7 @@ import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrl
@@ -342,7 +343,7 @@ object WuxiaClickProvider : MainAPI() {
                 username = item.author?.name
                 date = cleanDate
                 avatarUrl = item.author?.avatar
-                rating = item.rating?.times(200)
+                score = Score.from5(item.rating)
             }
         }
     }

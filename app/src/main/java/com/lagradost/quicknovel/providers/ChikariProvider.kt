@@ -6,6 +6,7 @@ import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.newChapterData
@@ -46,8 +47,6 @@ object ChikariProvider : MainAPI() {
         return HeadMainPageResponse(url, novels)
     }
 
-
-
     override suspend fun load(url: String): LoadResponse {
         val slug = url.removeSuffix("/").substringAfterLast("/")
         val data = app.get("$apiUrl/novels/$slug").parsed<ApiNovelDetails>()
@@ -59,9 +58,8 @@ object ChikariProvider : MainAPI() {
             synopsis = data.description
             tags = (data.genres?.mapNotNull { it.name } ?: emptyList()) + (data.tags?.mapNotNull { it.name } ?: emptyList())
             setStatus(data.status)
-            rating = (data.rating?.times(100))?.toInt()
+            score = Score.from10(data.rating)
         }
-
     }
 
     private suspend fun loadAllChapters(slug: String): List<ChapterData> {

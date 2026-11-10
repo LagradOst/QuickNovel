@@ -5,6 +5,7 @@ import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
@@ -82,15 +83,15 @@ object SkyNovelsProvider : MainAPI() {
         return image?.let { "${apiBase}get-image/$it/novels/false" }
     }
 
-    private fun Novel.toSearchResponse(): SearchResponse? {
-        val slug = slug ?: return null
+    private fun toSearchResponse(novel: Novel): SearchResponse? {
+        val slug = novel.slug ?: return null
         return newSearchResponse(
-            name = title,
-            url = "$mainUrl/novelas/$id/$slug"
+            name = novel.title,
+            url = "$mainUrl/novelas/${novel.id}/$slug"
         ) {
-            posterUrl = buildPoster(this@toSearchResponse.image)
-            rating = rating?.let { (it * 200) }
-            latestChapter = chapters?.let { "Capítulos: $it" }
+            posterUrl = buildPoster(novel.image)
+            score = Score.from5(novel.rating)
+            latestChapter = novel.chapters?.let { "Capítulos: $it" }
         }
     }
 
@@ -154,19 +155,19 @@ object SkyNovelsProvider : MainAPI() {
             tag?.takeIf { it.isNotBlank() }?.let { append("&genres=$it") }
         }
 
-        val root = app.get(url, headers = mapOf("referer" to mainUrl)).parsed<NovelListResponse>()
-        return HeadMainPageResponse(url, root.novels.mapNotNull { it.toSearchResponse() })
+        val root = app.get(url, referer = mainUrl).parsed<NovelListResponse>()
+        return HeadMainPageResponse(url, root.novels.mapNotNull(::toSearchResponse))
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val root = app.get("${apiBase}novels?q=$query", headers = mapOf("referer" to mainUrl))
+        val root = app.get("${apiBase}novels?q=$query", referer = mainUrl)
             .parsed<NovelListResponse>()
-        return root.novels.mapNotNull { it.toSearchResponse() }
+        return root.novels.mapNotNull(::toSearchResponse)
     }
 
     override suspend fun load(url: String): LoadResponse? {
         val id = url.split("/").getOrNull(4)?.toIntOrNull() ?: return null
-        val res = app.get("${apiBase}novel/$id/reading?&q", headers = mapOf("referer" to mainUrl))
+        val res = app.get("${apiBase}novel/$id/reading?&q", referer = mainUrl)
         val root = parseJson<NovelDetailResponse>(res.text)
         val novel = root.novel.firstOrNull() ?: return null
 
@@ -197,7 +198,7 @@ object SkyNovelsProvider : MainAPI() {
     override suspend fun loadHtml(url: String): String? {
         val chapterId = url.split("/").getOrNull(6) ?: return null
         val root =
-            app.get("${apiBase}novel-chapter/$chapterId", headers = mapOf("referer" to mainUrl))
+            app.get("${apiBase}novel-chapter/$chapterId", referer = mainUrl)
                 .parsed<ChapterResponse>()
         val rawContent = root.chapter.firstOrNull()?.content ?: return null
 

@@ -85,7 +85,7 @@ object KolNovelProvider : MainAPI() {
             val imageHeader = h.selectFirst("a.tip")
 
             val cUrl = imageHeader?.attr("href") ?: return@mapNotNull null
-            val name = imageHeader.attr("title") ?: return@mapNotNull null
+            val name = imageHeader.attr("title")
             newSearchResponse(name = name, url = cUrl) {
                 posterUrl = imageHeader.selectFirst("img")?.attr("src")
             }
@@ -104,23 +104,22 @@ object KolNovelProvider : MainAPI() {
             val imageHeader = h.selectFirst("a.tip")
 
             val cUrl = imageHeader?.attr("href") ?: return@mapNotNull null
-            val name = imageHeader.attr("title") ?: return@mapNotNull null
+            val name = imageHeader.attr("title")
             newSearchResponse(name = name, url = cUrl) {
                 posterUrl = imageHeader.selectFirst("img")?.attr("src")
             }
         }
     }
 
-    override suspend fun load(url: String): LoadResponse? {
+    override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
-        val name = document.select("h1.entry-title")?.text()
-            ?: return null//select("h1.entry-title")?.text()
-        val authors = document.select("div.serl:contains(الكاتب)")?.text()?.replace("الكاتب","")
+        val name = document.select("h1.entry-title").text()
+        val authors = document.select("div.serl:contains(الكاتب)").text().replace("الكاتب","")
 
         val data: ArrayList<ChapterData> = ArrayList()
         val chapterHeaders = document.select("li[data-id] > a")//.eplister ul
         for (c in chapterHeaders) {
-            val cUrl = c.attr("href") ?: continue
+            val cUrl = c.attr("href")
             val cName = c.select("div.epl-title").text() + ":" + c.select("div.epl-num").text()
             val added = c.select("div.epl-date").text()
             val views = null
@@ -134,10 +133,7 @@ object KolNovelProvider : MainAPI() {
             posterUrl = document.select("div.sertothumb > img").attr("src")
             synopsis = document.select("div.entry-content p:first-of-type").text()
             setStatus(document.selectFirst("div.sertoinfo > div.sertostat > span")?.text()?.lowercase(Locale.getDefault()))
-            rating =
-                ((document.selectFirst("div.rating > strong")?.text()?.replace("درجة", "")
-                    ?.toFloat()
-                    ?: 0f) * 100).toInt()
+            score = Score.from10(document.selectFirst("div.rating > strong")?.text()?.replace("درجة", ""))
         }
     }
 }

@@ -5,6 +5,7 @@ import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newSearchResponse
@@ -81,18 +82,21 @@ open class MeioNovelAPI : MainAPI() {
             "completed" -> "manga-tag/$tag"
             else -> "novel-genre/$tag"
         }
-        val url = "$mainUrl/$order/page/$page/${if (orderBy.isNullOrBlank()) "" else "?m_orderby=$orderBy"}"
+        val url =
+            "$mainUrl/$order/page/$page/${if (orderBy.isNullOrBlank()) "" else "?m_orderby=$orderBy"}"
         val document = app.get(url).document
         val returnValue = document.select("div.page-item-detail").mapNotNull { h ->
             val imageHeader = h.selectFirst("div.item-thumb > a") ?: return@mapNotNull null
             val name = imageHeader.attr("title")
             if (name.contains("Comic", ignoreCase = true)) return@mapNotNull null
 
-            newSearchResponse(name, imageHeader.attr("href") ?: return@mapNotNull null) {
+            newSearchResponse(name, imageHeader.attr("href")) {
                 val sum = h.selectFirst("div.item-summary")
-                latestChapter = sum?.selectFirst("> div.list-chapter > div.chapter-item > span > a")?.text()
-                rating = sum?.selectFirst("> div.rating > div.post-total-rating > span.score")?.text()
-                    ?.toFloatOrNull()?.times(200)?.toInt()
+                latestChapter =
+                    sum?.selectFirst("> div.list-chapter > div.chapter-item > span > a")?.text()
+                score = Score.from5(
+                    sum?.selectFirst("> div.rating > div.post-total-rating > span.score")?.text()
+                )
                 posterUrl = imageHeader.selectFirst("> img")?.let {
                     it.attr("data-src").takeIf { src -> src.isNotBlank() } ?: it.attr("src")
                 }
@@ -110,17 +114,21 @@ open class MeioNovelAPI : MainAPI() {
             tags = document.select("div.genres-content > a").map { it.text() }
             author = document.selectFirst("div.author-content > a")?.text()
 
-            synopsis = document.select("#editdescription > p, div.j_synopsis > p, div.summary__content > p")
-                .filter { it.hasText() && !it.text().lowercase().contains(mainUrl) }
-                .joinToString("\n\n") { it.text() }
+            synopsis =
+                document.select("#editdescription > p, div.j_synopsis > p, div.summary__content > p")
+                    .filter { it.hasText() && !it.text().lowercase().contains(mainUrl) }
+                    .joinToString("\n\n") { it.text() }
 
-            setStatus(document.select("div.post-status > div.post-content_item > div.summary-content").last()?.text())
+            setStatus(
+                document.select("div.post-status > div.post-content_item > div.summary-content")
+                    .last()?.text()
+            )
 
             posterUrl = fixUrlNull(document.selectFirst("div.summary_image > a > img")?.let {
                 it.attr("data-src").takeIf { src -> src.isNotBlank() } ?: it.attr("src")
             })
 
-            rating = (document.selectFirst("span#averagerate")?.text()?.toFloatOrNull()?.times(200))?.toInt()
+            score = Score.from5(document.selectFirst("span#averagerate")?.text())
             peopleVoted = document.selectFirst("span#countrate")?.text()?.let { text ->
                 text.replace("K", if (text.contains(".")) "00" else "000")
                     .replace(".", "").toIntOrNull()
@@ -136,7 +144,7 @@ open class MeioNovelAPI : MainAPI() {
             val header = c.selectFirst("> a") ?: return@mapNotNull null
             ChapterData(
                 name = header.text().clean(),
-                url = header.attr("href") ?: return@mapNotNull null,
+                url = header.attr("href"),
                 dateOfRelease = c.selectFirst("> span.chapter-release-date > i")?.text(),
                 views = 0
             )
@@ -159,14 +167,20 @@ open class MeioNovelAPI : MainAPI() {
         if (res == null || res.html().isBlank()) return null
         res.select("a[target=_blank]").remove()
         return res.html()
-            .replace(Regex("\\(If you have problems with this website.*?THANKS!\\)", RegexOption.IGNORE_CASE), "")
+            .replace(
+                Regex(
+                    "\\(If you have problems with this website.*?THANKS!\\)",
+                    RegexOption.IGNORE_CASE
+                ), ""
+            )
             .replace("Read latest Chapters at BoxNovel.Com Only", "")
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
         val document = app.get("$mainUrl/?s=$query&post_type=wp-manga").document
         return document.select("div.c-tabs-item__content").mapNotNull { h ->
-            val title = h.selectFirst("div.tab-summary div.post-title h3 a") ?: return@mapNotNull null
+            val title =
+                h.selectFirst("div.tab-summary div.post-title h3 a") ?: return@mapNotNull null
             val name = title.text()
             if (name.contains("Comic", ignoreCase = true)) return@mapNotNull null
 
@@ -174,7 +188,7 @@ open class MeioNovelAPI : MainAPI() {
                 posterUrl = fixUrlNull(h.selectFirst("div.tab-thumb a img")?.let {
                     it.attr("data-src").takeIf { src -> src.isNotBlank() } ?: it.attr("src")
                 })
-                rating = h.selectFirst("div.tab-meta div.rating span.total_votes")?.text()?.toFloatOrNull()?.times(200)?.toInt()
+                score = Score.from5(h.selectFirst("div.tab-meta div.rating span.total_votes")?.text())
                 latestChapter = h.selectFirst("div.tab-meta div.latest-chap span.chapter a")?.text()
             }
         }

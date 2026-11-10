@@ -5,6 +5,7 @@ import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrlNull
@@ -186,7 +187,7 @@ object WattpadProvider : MainAPI() {
             newReview(reviewTxt) {
                 username = item.username
                 date = item.createdAt
-                rating = item.rate?.times(200)
+                score = Score.from5(item.rate)
             }
         } ?: emptyList()
     }

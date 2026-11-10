@@ -3,6 +3,7 @@ package com.lagradost.quicknovel.providers
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.USER_AGENT
 import com.lagradost.quicknovel.fixUrlNull
@@ -49,15 +50,13 @@ object ReadNovelFullProvider : MainAPI() {
     }
 
     override suspend fun loadHtml(url: String): String? {
-        val response = app.get(url)
-        val document = Jsoup.parse(response.text)
+        val document = app.get(url).document
         return document.selectFirst("div#chr-content")
             ?.html().textClean?.replace("[Updated from F r e e w e b n o v e l. c o m]", "")
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val response = app.get(url)
-        val document = Jsoup.parse(response.text)
+        val document = app.get(url).document
 
         val header = document.selectFirst("div.col-info-desc")
         val bookInfo = header?.selectFirst("> div.info-holder > div.books")
@@ -84,15 +83,13 @@ object ReadNovelFullProvider : MainAPI() {
         }
 
         val dataUrl = "$mainUrl/ajax/chapter-archive?novelId=$novelId"
-        val dataResponse = app.get(dataUrl)
-        val dataDocument =
-            Jsoup.parse(dataResponse.text) ?: throw ErrorLoadingException("invalid dataDocument")
+        val dataDocument = app.get(dataUrl).document
         val items =
             dataDocument.select("div.panel-body > div.row > div > ul.list-chapter > li > a")
                 .mapNotNull {
                     newChapterData(
                         name = it.selectFirst("> span")?.text() ?: return@mapNotNull null,
-                        url = it.attr("href") ?: return@mapNotNull null,
+                        url = it.attr("href"),
                     )
                 }
         return newStreamResponse(
@@ -105,10 +102,9 @@ object ReadNovelFullProvider : MainAPI() {
             val statusText = getData("Status:")?.selectFirst("> a")?.text()
             setStatus(statusText)
             synopsis = document.selectFirst("div.desc-text")?.text()
-            rating = rate.selectFirst("> input")?.attr("value")?.toFloatOrNull()?.times(100)
-                ?.toInt()
+            score = Score.from10(rate.selectFirst("> input")?.attr("value"))
             peopleVoted =
-                rateInfo.select("> div.small > em > strong > span")?.last()?.text()?.toIntOrNull()
+                rateInfo.select("> div.small > em > strong > span").last()?.text()?.toIntOrNull()
             posterUrl = bookInfo.selectFirst("> div.book > img")?.attr("src")
         }
     }

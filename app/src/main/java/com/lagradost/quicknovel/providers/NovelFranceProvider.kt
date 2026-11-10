@@ -6,6 +6,7 @@ import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrlNull
@@ -125,7 +126,7 @@ open class NovelFranceAPI : MainAPI() {
             posterUrl = fixUrlNull(data.coverImage)
             synopsis = data.description
             tags = data.genres.map { it.name }
-            rating = (data.rating * 200).toInt()
+            score = Score.from5(data.rating * 200)
             views = data.views
             reviewData = data.id
             related = app.get(url).document.let { getRelated(it) }
@@ -154,7 +155,7 @@ open class NovelFranceAPI : MainAPI() {
                 username = r.author.username
                 date = r.createdAt
                 avatarUrl = r.author.avatar
-                rating = r.rating
+                score = Score.from5(r.rating)
             }
         }
     }

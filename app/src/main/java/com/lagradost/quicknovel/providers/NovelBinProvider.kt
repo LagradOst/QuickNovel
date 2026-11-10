@@ -1,13 +1,11 @@
 package com.lagradost.quicknovel.providers
 
-import android.net.Uri
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
-import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrlNull
@@ -17,7 +15,6 @@ import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import org.jsoup.nodes.Document
-import kotlin.math.roundToInt
 
 object NovelBinProvider : NovelBinAPI()
 
@@ -178,13 +175,10 @@ open class NovelBinAPI : AllNovelAPI() {
                 imgElement?.attr("src").takeIf { !it.isNullOrBlank() }  ?: imgElement?.attr("data-src")
             )
             synopsis = document.selectFirst("div.desc-text")?.text()
-
             peopleVoted =
                 document.selectFirst(" div.small > em > strong:nth-child(3) > span")?.text()
                     ?.toIntOrNull() ?: 0
-            rating = document.selectFirst("div.small > em > strong:nth-child(1) > span")?.text()
-                ?.toFloatOrNull()?.times(100)?.roundToInt()
-
+            score = Score.from10(document.selectFirst("div.small > em > strong:nth-child(1) > span")?.text())
             related = getRelated(document)
             reviewData = url
             setStatus(infoDivs.find { it.text().contains("Status:") }?.selectFirst("a")?.text())

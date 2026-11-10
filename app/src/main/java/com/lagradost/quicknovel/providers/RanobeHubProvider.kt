@@ -6,6 +6,7 @@ import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrlNull
@@ -77,8 +78,8 @@ open class RanobeHubAPI : MainAPI() {
                     ?: item.names.original!!
 
                 newSearchResponse(title, "/ranobe/${item.id}") {
-                    this.posterUrl = fixUrlNull(item.poster?.medium)
-                    this.rating = item.rating?.let { (it * 100).toInt() }
+                    posterUrl = fixUrlNull(item.poster?.medium)
+                    score = Score.from10(item.rating)
                 }
             })
         }
@@ -127,11 +128,11 @@ open class RanobeHubAPI : MainAPI() {
         }
 
         return newStreamResponse(title, url, chapters) {
-            this.posterUrl = fixUrlNull(response.posters?.medium)
-            this.author = response.authors?.firstOrNull()?.nameEng
-            this.synopsis = response.description
-            this.rating = response.rating?.let { (it * 100).toInt() }
-            this.tags = response.tags?.let { tags ->
+            posterUrl = fixUrlNull(response.posters?.medium)
+            author = response.authors?.firstOrNull()?.nameEng
+            synopsis = response.description
+            score = Score.from10(response.rating)
+            tags = response.tags?.let { tags ->
                 (tags.genres.map { it.names.rus ?: it.names.eng ?: it.title } +
                         tags.events.map { it.names.rus ?: it.names.eng ?: it.title })
             }

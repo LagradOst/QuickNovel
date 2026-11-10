@@ -8,6 +8,7 @@ import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrlNull
@@ -196,10 +197,8 @@ object WtrLabProvider : MainAPI() {
             peopleVoted = ratingText?.let { text ->
                 Regex("""\((\d+)""").find(text)?.groupValues?.get(1)?.toIntOrNull()
             }
-            rating = ratingText?.let { text ->
-                Regex("""([\d.]+)""").find(text)?.groupValues?.get(1)?.toFloatOrNull()?.let {
-                    it.times(20).times(10).roundToInt()
-                }
+            score = ratingText?.let { text ->
+                Score.from5(Regex("""([\d.]+)""").find(text)?.groupValues?.get(1))
             }
             reviewData = id
             related = getRelated(url, id)
@@ -237,7 +236,7 @@ object WtrLabProvider : MainAPI() {
             newReview(reviewTxt) {
                 username = item.username
                 date = item.createdAt
-                rating = item.rate?.times(200)
+                score = Score.from5(item.rate)
             }
         } ?: emptyList()
     }

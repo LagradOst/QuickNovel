@@ -3,6 +3,7 @@ package com.lagradost.quicknovel.providers
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.MainActivity.Companion.app
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
@@ -77,9 +78,7 @@ object BestLightNovelProvider : MainAPI() {
                 .replace("\"", "").substring("View : ".length).toInt()
             try {
                 val ratingHeader = infoHeaders[9].selectFirst("> em > em")?.select("> em")
-                rating = (ratingHeader?.get(1)?.selectFirst("> em > em")?.text()?.toFloat()
-                    ?.times(200))?.toInt() ?: 0
-
+                score = Score.from5(ratingHeader?.get(1)?.selectFirst("> em > em")?.text())
                 peopleVoted = ratingHeader?.get(2)?.text()?.replace(",", "")?.toInt() ?: 0
             } catch (_: Throwable) {
             }

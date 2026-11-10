@@ -5,6 +5,7 @@ import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.Score
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
@@ -186,7 +187,7 @@ open class AllNovelAPI : MainAPI() {
             if (cUrl.isNullOrBlank()) {
                 cUrl = c.attr("href")
             }
-            if (cUrl.isNullOrBlank()) {
+            if (cUrl.isBlank()) {
                 return@mapNotNull null
             }
             val cName = c.text().ifEmpty {
@@ -210,11 +211,9 @@ open class AllNovelAPI : MainAPI() {
             peopleVoted =
                 document.selectFirst(" div.small > em > strong:nth-child(3) > span")?.text()
                     ?.toIntOrNull() ?: 0
-            rating = document.selectFirst("div.small > em > strong:nth-child(1) > span")?.text()
-                ?.toFloatOrNull()?.times(100)?.roundToInt()
+            score = Score.from10(document.selectFirst("div.small > em > strong:nth-child(1) > span")?.text())
 
             setStatus(infoDivs.find { it.text().contains("Status:") }?.selectFirst("a")?.text())
-
         }
     }
 }

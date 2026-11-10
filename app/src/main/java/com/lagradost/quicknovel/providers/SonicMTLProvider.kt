@@ -99,7 +99,7 @@ object SonicMTLProvider : MainAPI() {
 
             newSearchResponse(name = name, url = titleA.attr("href")) {
                 posterUrl = h.selectFirst("div.tab-thumb img").getImage()
-                rating = ratingTxt?.toFloatOrNull()?.let { (it * 200).toInt() }
+                score = Score.from5(ratingTxt)
             }
         }
     }
