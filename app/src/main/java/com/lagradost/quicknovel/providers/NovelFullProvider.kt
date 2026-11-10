@@ -2,7 +2,7 @@ package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.R
 
-class NovelFullProvider : AllNovelProvider() {
+object NovelFullProvider : AllNovelAPI() {
     override val name = "NovelFull"
     override val mainUrl = "https://novelfull.com"
     override val hasMainPage = true

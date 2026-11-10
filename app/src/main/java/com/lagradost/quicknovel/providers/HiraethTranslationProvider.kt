@@ -5,7 +5,9 @@ import com.lagradost.quicknovel.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
-open class HiraethTranslationProvider : MainAPI() {
+object HiraethTranslationProvider : HiraethTranslationAPI()
+
+open class HiraethTranslationAPI : MainAPI() {
     override val name = "HiraethTranslation"
     override val mainUrl = "https://hiraethtranslation.com"
     override val hasMainPage = true

@@ -15,7 +15,7 @@ import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import com.lagradost.quicknovel.util.AppUtils.parseJson
 
-class NovelBuddyProvider : MainAPI() {
+object NovelBuddyProvider : MainAPI() {
     override val name = "Novel Buddy"
     override val mainUrl = "https://novelbuddy.me"
     private val apiUrl = "https://api.novelbuddy.me/titles"

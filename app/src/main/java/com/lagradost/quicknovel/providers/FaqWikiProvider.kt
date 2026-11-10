@@ -14,7 +14,7 @@ import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import org.jsoup.Jsoup
 
-class FaqWikiProvider :  MainAPI() {
+object FaqWikiProvider :  MainAPI() {
     override val name = "FaqWiki"
     override val mainUrl = "https://faqwiki.us/novel"
     override val iconId = R.drawable.icon_faqwiki

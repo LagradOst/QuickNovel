@@ -21,7 +21,9 @@ import org.jsoup.Jsoup
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
 
-open class NovelFireProvider : MainAPI() {
+object NovelFireProvider : NovelFireAPI()
+
+open class NovelFireAPI : MainAPI() {
     override val name = "NovelFire"
     override val mainUrl = "https://novelfire.net"
     override val iconId = R.drawable.icon_novelfire

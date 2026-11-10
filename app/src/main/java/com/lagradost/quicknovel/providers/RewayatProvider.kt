@@ -8,7 +8,6 @@ import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrl
@@ -18,7 +17,7 @@ import com.lagradost.quicknovel.newStreamResponse
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
-class RewayatProvider():  MainAPI() {
+object RewayatProvider:  MainAPI() {
     override val name = "Rewayat"
     override val mainUrl = "https://rewayat.club"
     private val secondUrl = "https://api.rewayat.club"

@@ -17,7 +17,7 @@ import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 
-class LightNovelWorldProvider : MainAPI() {
+object LightNovelWorldProvider : MainAPI() {
     override val name = "LightNovelWorld"
     override val mainUrl = "https://lightnovelworld.org"
     override val hasMainPage = true

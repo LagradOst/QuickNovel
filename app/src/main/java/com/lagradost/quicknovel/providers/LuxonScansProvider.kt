@@ -13,7 +13,7 @@ import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import org.jsoup.nodes.Document
 
-class LuxonScansProvider:  MainAPI() {
+object LuxonScansProvider:  MainAPI() {
     override val name = "Luxon Scan"
     override val mainUrl = "https://lunoxscans.com"
     override val iconId = R.drawable.icon_luxoscan

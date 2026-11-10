@@ -5,7 +5,7 @@ import com.lagradost.quicknovel.*
 import org.jsoup.nodes.Document
 import com.lagradost.quicknovel.R
 
-class ChrysanthemumGardenProvider : MainAPI() {
+object ChrysanthemumGardenProvider : MainAPI() {
     override val name = "Chrysanthemum Garden"
     override val mainUrl = "https://chrysanthemumgarden.com"
     override val hasMainPage = true
@@ -32,7 +32,9 @@ class ChrysanthemumGardenProvider : MainAPI() {
 
     private fun parseNovels(doc: Document): List<SearchResponse> {
         return doc.select("article").mapNotNull { element ->
-            if (element.select("div.series-genres > a").text().contains("Manhua", true)) return@mapNotNull null
+            if (element.select("div.series-genres > a").text()
+                    .contains("Manhua", true)
+            ) return@mapNotNull null
             val titleElement = element.selectFirst("h2.novel-title > a") ?: return@mapNotNull null
             val name = titleElement.text()
             val url = titleElement.attr("href").removePrefix(mainUrl).trim('/')

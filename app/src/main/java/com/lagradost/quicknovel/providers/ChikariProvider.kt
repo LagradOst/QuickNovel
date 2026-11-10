@@ -14,7 +14,7 @@ import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import java.net.URLEncoder
 
-class ChikariProvider : MainAPI() {
+object ChikariProvider : MainAPI() {
     override val name = "Chikari"
     override val mainUrl = "https://chikari.moe"
     private val apiUrl = "$mainUrl/api"

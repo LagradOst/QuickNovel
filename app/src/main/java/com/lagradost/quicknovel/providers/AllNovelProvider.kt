@@ -13,7 +13,9 @@ import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import kotlin.math.roundToInt
 
-open class AllNovelProvider : MainAPI() {
+object AllNovelProvider : AllNovelAPI()
+
+open class AllNovelAPI : MainAPI() {
     override val name = "AllNovel"
     override val mainUrl = "https://allnovel.org"
     override val hasMainPage = true

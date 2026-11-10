@@ -2,7 +2,7 @@ package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.R
 
-class GraycityProvider : ReadfromnetProvider() {
+object GraycityProvider : ReadfromnetAPI() {
     override val name: String = "Graycity"
     override val iconId = R.drawable.icon_efremnet
     override val mainUrl = "https://graycity.net"

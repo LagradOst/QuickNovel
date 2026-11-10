@@ -19,7 +19,9 @@ import com.lagradost.quicknovel.synopsis
 import com.lagradost.quicknovel.toRate
 import com.lagradost.quicknovel.toUrlBuilderSafe
 
-open class IndoWebNovelProvider : MainAPI() {
+object IndoWebNovelProvider : IndoWebNovelAPI()
+
+open class IndoWebNovelAPI : MainAPI() {
     override val name = "IndoWebNovel"
     override val mainUrl = "https://indowebnovel.id"
     override val lang = "id"

@@ -6,8 +6,7 @@ import com.lagradost.quicknovel.*
 import com.lagradost.quicknovel.util.AppUtils.parseJson
 import kotlin.collections.mapNotNull
 
-class NovelManiaProvider : MainAPI() {
-
+object NovelManiaProvider : MainAPI() {
     override val name = "Novelmania"
     override val mainUrl = "https://novelmania.com.br"
     override val iconId = R.drawable.icon_novelmaina

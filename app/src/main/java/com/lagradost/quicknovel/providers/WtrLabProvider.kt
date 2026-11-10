@@ -24,7 +24,7 @@ import javax.crypto.spec.SecretKeySpec
 import kotlin.math.roundToInt
 
 
-class WtrLabProvider : MainAPI() {
+object WtrLabProvider : MainAPI() {
     override val mainUrl = "https://wtr-lab.com"
     override val name = "WTR-LAB"
     override val lang = "en"

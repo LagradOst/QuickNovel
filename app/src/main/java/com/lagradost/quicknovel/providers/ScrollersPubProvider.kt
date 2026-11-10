@@ -17,7 +17,7 @@ import com.lagradost.quicknovel.setStatus
 import org.jsoup.Jsoup
 import java.net.URLEncoder
 
-class ScrollersPubProvider : MainAPI() {
+object ScrollersPubProvider : MainAPI() {
     override val name = "ScrollersPub"
     override val mainUrl = "https://www.scrollerspub.com"
     override val iconId = R.drawable.icon_scrollerspub

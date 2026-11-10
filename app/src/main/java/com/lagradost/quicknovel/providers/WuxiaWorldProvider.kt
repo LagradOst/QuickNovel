@@ -23,7 +23,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okio.Buffer
 import okio.BufferedSource
 
-class WuxiaWorldProvider : MainAPI() {
+object WuxiaWorldProvider : MainAPI() {
     override val name = "WuxiaWorld"
     override val mainUrl = "https://www.wuxiaworld.com"
     override val iconId = R.drawable.icon_wuxiaworld

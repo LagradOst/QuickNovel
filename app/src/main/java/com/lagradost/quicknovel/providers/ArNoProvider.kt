@@ -2,7 +2,7 @@ package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.R
 
-class ArNoProvider: MeioNovelProvider() {
+object ArNoProvider: MeioNovelAPI() {
     override val name = "Ar-No"
     override val mainUrl = "https://ar-no.com"
     override val lang = "ar"

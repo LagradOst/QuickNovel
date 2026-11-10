@@ -6,7 +6,7 @@ import com.lagradost.quicknovel.util.AppUtils.parseJson
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
-class RanobesProvider : MainAPI() {
+object RanobesProvider : MainAPI() {
     override val name = "Ranobes"
     override val mainUrl = "https://ranobes.net"
     override val hasMainPage = true

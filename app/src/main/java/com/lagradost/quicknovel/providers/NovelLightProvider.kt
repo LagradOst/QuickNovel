@@ -20,7 +20,7 @@ import com.lagradost.quicknovel.setStatus
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
-class NovelLightProvider:  MainAPI() {
+object NovelLightProvider:  MainAPI() {
     override val name = "Novel Light"
     override val mainUrl = "https://novelight.net"
     val ajaxUrl = "$mainUrl/book/ajax/read-chapter"

@@ -1,13 +1,10 @@
 package com.lagradost.quicknovel.providers
 
-import android.net.Uri
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.USER_AGENT
@@ -15,13 +12,9 @@ import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
-import com.lagradost.quicknovel.providers.NovelFireProvider.RelatedResponse
-import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
-import kotlin.jvm.Throws
 
-class DevilNovelsProvider : MainAPI() {
-
+object DevilNovelsProvider : MainAPI() {
     override val name = "DevilNovels"
     override val mainUrl = "https://devilnovels.com"
     private val ajaxUrl = "$mainUrl/wp-admin/admin-ajax.php"

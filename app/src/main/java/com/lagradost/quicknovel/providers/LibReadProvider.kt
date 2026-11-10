@@ -1,26 +1,19 @@
 package com.lagradost.quicknovel.providers
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.HeadMainPageResponse
-import com.lagradost.quicknovel.LoadResponse
-import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.USER_AGENT
-import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrlNull
-import com.lagradost.quicknovel.newChapterData
-import com.lagradost.quicknovel.newReview
 import com.lagradost.quicknovel.newSearchResponse
-import com.lagradost.quicknovel.newStreamResponse
-import com.lagradost.quicknovel.setStatus
-import org.jsoup.Jsoup
-import org.jsoup.nodes.Document
 
-open class LibReadProvider : FreewebnovelProvider() {
+object LibReadProvider : LibReadAPI()
+
+open class LibReadAPI : FreewebnovelAPI() {
     override val name = "LibRead"
     override val mainUrl = "https://libread.com"
+
     //for some reason, now is freewebnovel
     override val secondUrl = "https://freewebnovel.com"
     override val hasMainPage = true
@@ -38,7 +31,8 @@ open class LibReadProvider : FreewebnovelProvider() {
     )
 
 
-    override fun getAcode(url:String): String = url.substringAfterLast("/").substringBeforeLast("-")
+    override fun getAcode(url: String): String =
+        url.substringAfterLast("/").substringBeforeLast("-")
 
     override suspend fun loadMainPage(
         page: Int,

@@ -14,13 +14,15 @@ import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newReview
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
-import com.lagradost.quicknovel.providers.LibReadProvider.ChaptersResponse
-import com.lagradost.quicknovel.providers.LibReadProvider.LibReadCommentsResponse
+import com.lagradost.quicknovel.providers.LibReadAPI.ChaptersResponse
+import com.lagradost.quicknovel.providers.LibReadAPI.LibReadCommentsResponse
 import com.lagradost.quicknovel.setStatus
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
-open class FreewebnovelProvider : MainAPI() {
+object FreewebnovelProvider : FreewebnovelAPI()
+
+open class FreewebnovelAPI : MainAPI() {
     override val name = "FreeWebNovel"
     override val mainUrl = "https://freewebnovel.com"
     override val iconId = R.drawable.icon_freewebnovel

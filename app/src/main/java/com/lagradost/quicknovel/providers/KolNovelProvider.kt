@@ -3,7 +3,7 @@ package com.lagradost.quicknovel.providers
 import com.lagradost.quicknovel.*
 import java.util.*
 
-class KolNovelProvider : MainAPI() {
+object KolNovelProvider : MainAPI() {
     override val name = "KolNovel"
     override val mainUrl = "https://free.kolnovel.com"
     override val iconId = R.drawable.icon_kolnovel

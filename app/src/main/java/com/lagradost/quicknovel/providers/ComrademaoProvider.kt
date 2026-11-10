@@ -5,7 +5,7 @@ import com.lagradost.quicknovel.MainActivity.Companion.app
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
-class ComrademaoProvider : MainAPI() {
+object ComrademaoProvider : MainAPI() {
     override val name = "Comrademao"
     override val mainUrl = "https://comrademao.com"
 

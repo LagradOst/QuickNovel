@@ -15,7 +15,9 @@ import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import org.jsoup.nodes.Document
 
-open class WuxiaBoxProvider : MainAPI() {
+object WuxiaBoxProvider : WuxiaBoxAPI()
+
+open class WuxiaBoxAPI : MainAPI() {
     override val name = "WuxiaBox"
     override val mainUrl = "https://www.wuxiabox.com"
     override val iconId = R.drawable.icon_wuxiabox

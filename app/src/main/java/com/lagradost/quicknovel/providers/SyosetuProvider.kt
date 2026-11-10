@@ -4,7 +4,7 @@ import android.net.Uri
 import com.lagradost.quicknovel.*
 import org.jsoup.nodes.Document
 
-class SyosetuProvider : MainAPI() {
+object SyosetuProvider : MainAPI() {
     override val name = "Syosetu"
     override val mainUrl = "https://yomou.syosetu.com"
     override val iconId = R.drawable.icon_ncode

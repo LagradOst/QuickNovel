@@ -2,7 +2,9 @@ package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.*
 
-open class ReadfromnetProvider : MainAPI() {
+object ReadfromnetProvider : ReadfromnetAPI()
+
+open class ReadfromnetAPI : MainAPI() {
     override val name = "ReadFrom.Net"
     override val mainUrl = "https://readfrom.net"
     override val hasMainPage = true

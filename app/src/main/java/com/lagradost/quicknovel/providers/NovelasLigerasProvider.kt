@@ -9,15 +9,13 @@ import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrl
 import com.lagradost.quicknovel.fixUrlNull
-import com.lagradost.quicknovel.network.WebViewResolver
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
-import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.select.Elements
 
-class NovelasLigerasProvider : MainAPI() {
+object NovelasLigerasProvider : MainAPI() {
     override val name = "Nova"
     override val mainUrl = "https://novelasligeras.net"
     override val iconId = R.drawable.icon_novelasligeras

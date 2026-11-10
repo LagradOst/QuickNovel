@@ -4,7 +4,9 @@ import com.lagradost.quicknovel.*
 import org.jsoup.nodes.Document
 import java.net.URLEncoder
 
-open class QuanbenProvider : MainAPI() {
+object QuanbenProvider : QuanbenAPI()
+
+open class QuanbenAPI : MainAPI() {
     override val name = "Quanben"
     override val mainUrl = "https://www.quanben.io"
     override val iconId = R.drawable.icon_quanben

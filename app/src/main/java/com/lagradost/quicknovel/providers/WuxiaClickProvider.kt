@@ -2,7 +2,6 @@ package com.lagradost.quicknovel.providers
 
 import android.net.Uri
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.lagradost.quicknovel.ChapterData
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
@@ -11,7 +10,6 @@ import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.UserReview
 import com.lagradost.quicknovel.fixUrl
 import com.lagradost.quicknovel.fixUrlNull
-import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newReview
 import com.lagradost.quicknovel.newSearchResponse
@@ -19,9 +17,8 @@ import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import com.lagradost.quicknovel.util.AppUtils.parseJson
 import org.jsoup.nodes.Document
-import org.jsoup.nodes.Element
 
-class WuxiaClickProvider : MainAPI() {
+object WuxiaClickProvider : MainAPI() {
     override val name = "WuxiaClick"
     override val mainUrl = "https://wuxia.click"
     override val iconId = R.drawable.icon_wuxiaclick

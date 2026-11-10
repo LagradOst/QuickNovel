@@ -10,7 +10,7 @@ import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 
-class MtlNovelProvider : MainAPI() {
+object MtlNovelProvider : MainAPI() {
     override val name = "MtlNovel"
     override val mainUrl = "https://mtlnovel.me"
     override val hasMainPage = true

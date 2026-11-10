@@ -17,7 +17,9 @@ import com.lagradost.quicknovel.setStatus
 import org.jsoup.nodes.Document
 import android.net.Uri
 
-open class GalaxyNovelsProvider : MainAPI() {
+object GalaxyNovelsProvider : GalaxyNovelsAPI()
+
+open class GalaxyNovelsAPI : MainAPI() {
     override val name = "Galaxy Novels"
     override val mainUrl = "https://galaxynovels.com"
     override val lang = "ar"

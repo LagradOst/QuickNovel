@@ -13,7 +13,7 @@ import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import org.jsoup.nodes.Element
 
-class NoBadNovelProvider : MainAPI() {
+object NoBadNovelProvider : MainAPI() {
     override val name = "NoBadNovel"
     override val mainUrl = "https://www.nobadnovel.com"
     override val hasMainPage = true

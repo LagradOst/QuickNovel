@@ -12,7 +12,7 @@ import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import com.lagradost.quicknovel.util.AppUtils.parseJson
 
-class SkyNovelsProvider : MainAPI() {
+object SkyNovelsProvider : MainAPI() {
     override val name = "SkyNovels"
     override val mainUrl = "https://www.skynovels.net"
     override val lang = "es"
@@ -89,7 +89,7 @@ class SkyNovelsProvider : MainAPI() {
             url = "$mainUrl/novelas/$id/$slug"
         ) {
             posterUrl = buildPoster(this@toSearchResponse.image)
-            rating = rating?.let { (it * 200)}
+            rating = rating?.let { (it * 200) }
             latestChapter = chapters?.let { "Capítulos: $it" }
         }
     }
@@ -159,7 +159,8 @@ class SkyNovelsProvider : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val root = app.get("${apiBase}novels?q=$query", headers = mapOf("referer" to mainUrl)).parsed<NovelListResponse>()
+        val root = app.get("${apiBase}novels?q=$query", headers = mapOf("referer" to mainUrl))
+            .parsed<NovelListResponse>()
         return root.novels.mapNotNull { it.toSearchResponse() }
     }
 
@@ -195,7 +196,9 @@ class SkyNovelsProvider : MainAPI() {
 
     override suspend fun loadHtml(url: String): String? {
         val chapterId = url.split("/").getOrNull(6) ?: return null
-        val root = app.get("${apiBase}novel-chapter/$chapterId", headers = mapOf("referer" to mainUrl)).parsed<ChapterResponse>()
+        val root =
+            app.get("${apiBase}novel-chapter/$chapterId", headers = mapOf("referer" to mainUrl))
+                .parsed<ChapterResponse>()
         val rawContent = root.chapter.firstOrNull()?.content ?: return null
 
         return buildString {

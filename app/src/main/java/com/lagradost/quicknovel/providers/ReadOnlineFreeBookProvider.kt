@@ -10,7 +10,7 @@ import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.util.DefaultImagesHeaders
 
-class ReadOnlineFreeBookProvider : MainAPI() {
+object ReadOnlineFreeBookProvider : MainAPI() {
     override val name = "ReadNovelFreeBook"
     override val mainUrl = "https://readonlinefreebook.com"
 

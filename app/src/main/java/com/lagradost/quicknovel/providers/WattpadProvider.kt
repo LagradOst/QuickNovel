@@ -17,7 +17,7 @@ import com.lagradost.quicknovel.util.AppUtils.parseJson
 import org.json.JSONObject
 import org.jsoup.nodes.Document
 
-class WattpadProvider : MainAPI() {
+object WattpadProvider : MainAPI() {
     override val mainUrl = "https://www.wattpad.com"
     override val name = "Wattpad"
     override val hasMainPage = true

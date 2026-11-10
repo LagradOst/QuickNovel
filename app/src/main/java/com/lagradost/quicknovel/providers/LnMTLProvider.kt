@@ -16,8 +16,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.jsoup.nodes.Document
 
-class LnMTLProvider : MainAPI() {
-
+object LnMTLProvider : MainAPI() {
     override val name = "LnMTL"
     override val mainUrl = "https://lnmtl.com"
     override val hasMainPage = true
@@ -48,15 +47,14 @@ class LnMTLProvider : MainAPI() {
         mainCategory: String?,
         orderBy: String?,
         tag: String?
-    ): HeadMainPageResponse
-    {
+    ): HeadMainPageResponse {
         prefetchAllNovels()
 
         val returnValue = allNovels.map {
-                newSearchResponse(it.name, it.url) {
-                    posterUrl = it.image.replace("40.","200.")
-                }
+            newSearchResponse(it.name, it.url) {
+                posterUrl = it.image.replace("40.", "200.")
             }
+        }
         return HeadMainPageResponse(mainUrl, returnValue)
     }
 
@@ -93,12 +91,12 @@ class LnMTLProvider : MainAPI() {
             }
 
             val chaptersInVol = response.data
-            if (chaptersInVol.isNotEmpty()){
+            if (chaptersInVol.isNotEmpty()) {
                 val firstChapter = chaptersInVol.first()
                 val totalChaptersInVol = response.total
 
                 val slugBase = firstChapter.slug.substringBeforeLast("-") + "-"
-                firstChapter.slug.substringAfterLast("-").toIntOrNull() ?.let{ firstNum ->
+                firstChapter.slug.substringAfterLast("-").toIntOrNull()?.let { firstNum ->
                     for (i in 0 until totalChaptersInVol) {
                         val currentNum = firstNum + i
                         val chapterTitle = "Vol ${vol.number} Ch $currentNum"
@@ -167,7 +165,7 @@ class LnMTLProvider : MainAPI() {
             }
             .map {
                 newSearchResponse(it.name, it.url) {
-                    posterUrl = it.image.replace(  "40.","200.")
+                    posterUrl = it.image.replace("40.", "200.")
                 }
             }
     }
@@ -178,7 +176,7 @@ class LnMTLProvider : MainAPI() {
         @JsonProperty("data")
         val data: List<LNMTLChapterData>,
         @JsonProperty("total")
-        val total:Int,
+        val total: Int,
     )
 
     data class LNMTLChapterData(

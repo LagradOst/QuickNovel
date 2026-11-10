@@ -1,11 +1,21 @@
 package com.lagradost.quicknovel.providers
 
-import com.lagradost.quicknovel.*
-import com.lagradost.quicknovel.MainActivity.Companion.app
+import com.lagradost.quicknovel.ChapterData
+import com.lagradost.quicknovel.HeadMainPageResponse
+import com.lagradost.quicknovel.LoadResponse
+import com.lagradost.quicknovel.MainAPI
+import com.lagradost.quicknovel.R
+import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.USER_AGENT
+import com.lagradost.quicknovel.fixUrl
+import com.lagradost.quicknovel.fixUrlNull
+import com.lagradost.quicknovel.newSearchResponse
+import com.lagradost.quicknovel.newStreamResponse
+import com.lagradost.quicknovel.setStatus
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
-class ReadLightNovelProvider : MainAPI() {
+object ReadLightNovelProvider : MainAPI() {
     override val name = "ReadLightNovel"
     override val mainUrl = "https://www.readlightnovel.me"
     override val iconId = R.drawable.big_icon_readlightnovel

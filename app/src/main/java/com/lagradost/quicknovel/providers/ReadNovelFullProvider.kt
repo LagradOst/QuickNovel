@@ -1,7 +1,16 @@
 package com.lagradost.quicknovel.providers
 
-import com.lagradost.quicknovel.*
-import com.lagradost.quicknovel.MainActivity.Companion.app
+import com.lagradost.quicknovel.ErrorLoadingException
+import com.lagradost.quicknovel.LoadResponse
+import com.lagradost.quicknovel.MainAPI
+import com.lagradost.quicknovel.SearchResponse
+import com.lagradost.quicknovel.USER_AGENT
+import com.lagradost.quicknovel.fixUrlNull
+import com.lagradost.quicknovel.newChapterData
+import com.lagradost.quicknovel.newSearchResponse
+import com.lagradost.quicknovel.newStreamResponse
+import com.lagradost.quicknovel.setStatus
+import com.lagradost.quicknovel.textClean
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
@@ -11,7 +20,7 @@ import org.jsoup.nodes.Element
     override val ajaxUrl = "ajax/chapter-archive"
 }*/
 
-class ReadNovelFullProvider : MainAPI() {
+object ReadNovelFullProvider : MainAPI() {
     override val mainUrl = "https://readnovelfull.com"
     override val name = "ReadNovelFull"
 

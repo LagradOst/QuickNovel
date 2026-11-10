@@ -10,7 +10,7 @@ import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 
-class LnoriProvider :  MainAPI() {
+object LnoriProvider : MainAPI() {
     override val name = "Inori"
     override val mainUrl = "https://lnori.com"
     override val iconId = R.drawable.icon_lnori
@@ -177,8 +177,7 @@ class LnoriProvider :  MainAPI() {
         mainCategory: String?,
         orderBy: String?,
         tag: String?
-    ): HeadMainPageResponse
-    {
+    ): HeadMainPageResponse {
         val url = "$mainUrl/library"
         val document = app.get(url).document
 
@@ -191,7 +190,7 @@ class LnoriProvider :  MainAPI() {
 
 
         val card =
-            if(orderBy.isNullOrBlank())
+            if (orderBy.isNullOrBlank())
                 document.select(selector)
             else
                 document.select(selector)
@@ -213,23 +212,23 @@ class LnoriProvider :  MainAPI() {
     }
 
 
-    override suspend fun load(url: String): LoadResponse
-    {
+    override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
         val infoDiv = document.select("section.hero-section")
         val title = infoDiv.selectFirst("h1")?.text() ?: throw Exception("Title not found")
-        val chapters = document.select("section.content-section > section.vol-grid > article").mapNotNull { li ->
-            val name = li.selectFirst("h3.card-title")?.text()?:return@mapNotNull null
-            val url = li.selectFirst("figure > a")?.attr("href")?:return@mapNotNull null
-            newChapterData(name, url)
-        }
+        val chapters = document.select("section.content-section > section.vol-grid > article")
+            .mapNotNull { li ->
+                val name = li.selectFirst("h3.card-title")?.text() ?: return@mapNotNull null
+                val url = li.selectFirst("figure > a")?.attr("href") ?: return@mapNotNull null
+                newChapterData(name, url)
+            }
 
-        return newStreamResponse(title,fixUrl(url), chapters) {
+        return newStreamResponse(title, fixUrl(url), chapters) {
             this.author = infoDiv.selectFirst("header.s-info p")?.text()
             this.posterUrl = infoDiv.selectFirst("article > figure > img")?.attr("src")
             this.synopsis = document.selectFirst("p.description.desc-wrapper")?.text()
             this.tags = infoDiv.select("nav.tags-box.desktop a").mapNotNull {
-                it.text().trim().takeIf { text ->  !text.isEmpty() }
+                it.text().trim().takeIf { text -> !text.isEmpty() }
             }
         }
     }
@@ -261,7 +260,7 @@ class LnoriProvider :  MainAPI() {
 
         return document.select("section article.card").mapNotNull { card ->
             val title = card.selectFirst("h2")?.text() ?: return@mapNotNull null
-            if(!title.normalize().contains(query.normalize())) return@mapNotNull null
+            if (!title.normalize().contains(query.normalize())) return@mapNotNull null
 
             val href = card.selectFirst("a")?.attr("href") ?: return@mapNotNull null
 

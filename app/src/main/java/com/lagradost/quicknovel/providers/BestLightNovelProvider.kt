@@ -11,7 +11,7 @@ import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import com.lagradost.quicknovel.textClean
 
-class BestLightNovelProvider : MainAPI() {
+object BestLightNovelProvider : MainAPI() {
     override val name = "BestLightNovel"
     override val mainUrl = "https://bestlightnovel.com"
 

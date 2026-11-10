@@ -19,8 +19,9 @@ import com.lagradost.quicknovel.setStatus
 import org.jsoup.nodes.Document
 import kotlin.math.roundToInt
 
+object NovelBinProvider : NovelBinAPI()
 
-open class NovelBinProvider : AllNovelProvider(){
+open class NovelBinAPI : AllNovelAPI() {
     override val name = "NovelBin"
     override val mainUrl = "https://novelping.com"
     override val ajaxUrl = "ajax/chapter-archive"

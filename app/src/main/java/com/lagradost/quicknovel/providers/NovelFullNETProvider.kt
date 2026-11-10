@@ -3,7 +3,7 @@ package com.lagradost.quicknovel.providers
 import com.lagradost.quicknovel.R
 
 //It has content that novelfull.com  doesn’t have
-class NovelFullNETProvider: AllNovelProvider() {
+object NovelFullNETProvider: AllNovelAPI() {
     override val name = "NovelFull-Net"
     override val mainUrl = "https://novelfull.net"
     override val hasMainPage = false

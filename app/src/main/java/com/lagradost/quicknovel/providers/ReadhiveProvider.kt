@@ -13,7 +13,7 @@ import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import org.jsoup.nodes.Document
 
-class ReadhiveProvider  :  MainAPI() {
+object ReadhiveProvider : MainAPI() {
     override val name = "ReadHive"
     override val mainUrl = "https://readhive.org"
     override val iconId = R.drawable.icon_readhive
@@ -80,23 +80,23 @@ class ReadhiveProvider  :  MainAPI() {
         return HeadMainPageResponse(url, returnValue)
     }
 
-    override suspend fun load(url: String): LoadResponse
-    {
+    override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document//body > div.body > div > div > div.col-lg-8
-        val infoDiv = document.selectFirst("main")?: return newStreamResponse(url, url, emptyList())
+        val infoDiv =
+            document.selectFirst("main") ?: return newStreamResponse(url, url, emptyList())
 
         val title = infoDiv.selectFirst("h1")?.text() ?: throw Exception("Title not found")
 
         val chapters = document.select(
             "section.relative.grid.grid-cols-1.lg\\:grid-areas-series__body.lg\\:grid-cols-series.gap-x-4.px-4.py-2.sm\\:px-8 > div.lg\\:grid-in-content.mt-4 > div:nth-child(1) > div:nth-child(3) > div > div > a"
         ).mapNotNull { li ->
-            if(li.selectFirst("> span") != null) return@mapNotNull null
-            val name = li.selectFirst("div > div > span")?.text()?:return@mapNotNull null
-            val url = li.attr("href")?:return@mapNotNull null
+            if (li.selectFirst("> span") != null) return@mapNotNull null
+            val name = li.selectFirst("div > div > span")?.text() ?: return@mapNotNull null
+            val url = li.attr("href") ?: return@mapNotNull null
             newChapterData(name, url)
         }.reversed()
 
-        return newStreamResponse(title,fixUrl(url), chapters) {
+        return newStreamResponse(title, fixUrl(url), chapters) {
             this.posterUrl = fixUrlNull(infoDiv.selectFirst("img.object-cover")?.attr("src"))
             this.synopsis = document.select(
                 "section.relative.grid.grid-cols-1.lg\\:grid-areas-series__body.lg\\:grid-cols-series.gap-x-4.px-4.py-2.sm\\:px-8 div.mb-4 > p"
@@ -104,29 +104,34 @@ class ReadhiveProvider  :  MainAPI() {
 
             this.author = infoDiv.selectFirst("span.leading-7")?.text() ?: ""
 
-            this.tags = infoDiv.select("section.relative.grid.grid-cols-1.lg\\:grid-areas-series__body.lg\\:grid-cols-series.gap-x-4.px-4.py-2.sm\\:px-8 > div.lg\\:grid-in-info > div > a").mapNotNull {
-                it.text().trim().takeIf { text ->  !text.isEmpty() }
-            }
+            this.tags =
+                infoDiv.select("section.relative.grid.grid-cols-1.lg\\:grid-areas-series__body.lg\\:grid-cols-series.gap-x-4.px-4.py-2.sm\\:px-8 > div.lg\\:grid-in-info > div > a")
+                    .mapNotNull {
+                        it.text().trim().takeIf { text -> !text.isEmpty() }
+                    }
             related = getRelated(document)
         }
     }
 
-    private fun getRelated(dc: Document): List<SearchResponse>{
-        return dc.select("div.swiper > div.swiper-wrapper > div.swiper-slide").mapNotNull { element ->
-            val href = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
-            val title = element.selectFirst("h6")?.text() ?: return@mapNotNull null
-            newSearchResponse(
-                name = title,
-                url = href
-            ) {
-                posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
+    private fun getRelated(dc: Document): List<SearchResponse> {
+        return dc.select("div.swiper > div.swiper-wrapper > div.swiper-slide")
+            .mapNotNull { element ->
+                val href = element.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+                val title = element.selectFirst("h6")?.text() ?: return@mapNotNull null
+                newSearchResponse(
+                    name = title,
+                    url = href
+                ) {
+                    posterUrl = fixUrlNull(element.selectFirst("img")?.attr("src"))
+                }
             }
-        }
     }
 
     override suspend fun loadHtml(url: String): String? {
         val document = app.get(url).document
-        val reader = document.selectFirst("main > div.justify-center.flex-grow.mx-auto.prose.md\\:max-w-4xl.lg\\:relative") ?: return null
+        val reader =
+            document.selectFirst("main > div.justify-center.flex-grow.mx-auto.prose.md\\:max-w-4xl.lg\\:relative")
+                ?: return null
         return reader.html()
     }
 
@@ -138,14 +143,14 @@ class ReadhiveProvider  :  MainAPI() {
             )
         ).parsed<Root>()
         return document.data.map { card ->
-            val href = card.url.replace("\\","")
+            val href = card.url.replace("\\", "")
             val title = card.title
 
             newSearchResponse(
                 name = title,
                 url = href
             ) {
-                posterUrl = fixUrlNull(card.thumb.replace("\\",""))
+                posterUrl = fixUrlNull(card.thumb.replace("\\", ""))
             }
 
         }

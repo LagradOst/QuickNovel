@@ -17,7 +17,7 @@ import com.lagradost.quicknovel.newReview
 import org.jsoup.Jsoup
 import kotlin.collections.map
 
-class FenrirRealProvider : MainAPI() {
+object FenrirRealProvider : MainAPI() {
     override val name = "FenrirRealm"
     override val mainUrl = "https://fenrirealm.com"
     override val iconId = R.drawable.icon_fenrirealm

@@ -16,7 +16,7 @@ import com.lagradost.quicknovel.newStreamResponse
 import org.jsoup.nodes.Document
 import kotlin.math.roundToInt
 
-class PawReadProver : MainAPI() {
+object PawReadProver : MainAPI() {
     override val name = "PawRead"
     override val mainUrl = "https://pawread.com"
     override val iconId = R.drawable.pawread

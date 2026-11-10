@@ -15,7 +15,7 @@ import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 
-class LightNovelTranslationsProvider: MainAPI() {
+object LightNovelTranslationsProvider: MainAPI() {
     override val name = "Light Novel Translations"
     override val mainUrl = "https://lightnovelstranslations.com"
     override val iconId = R.drawable.icon_lightnoveltranslations

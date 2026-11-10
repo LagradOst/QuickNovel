@@ -16,7 +16,7 @@ import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import com.lagradost.quicknovel.util.AppUtils.parseJson
 
-class BrightNovelProvider: MainAPI() {
+object BrightNovelProvider : MainAPI() {
     override val name = "Bright Novel"
     override val mainUrl = "https://brightnovels.com"
     override val iconId = R.drawable.icon_brightnovel

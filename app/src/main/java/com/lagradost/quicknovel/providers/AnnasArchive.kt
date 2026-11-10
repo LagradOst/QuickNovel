@@ -17,7 +17,7 @@ import com.lagradost.quicknovel.newSearchResponse
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
-class AnnasArchive : MainAPI() {
+object AnnasArchive : MainAPI() {
     override val lang = "en"
     override val name = "Annas Archive"
     override val mainUrl = "https://annas-archive.gl"

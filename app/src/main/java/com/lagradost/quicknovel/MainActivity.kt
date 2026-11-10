@@ -208,7 +208,6 @@ class MainActivity : AppCompatActivity() {
             }
 
             // kinda dirty ik
-            val reddit = RedditProvider()
             RedditProvider.getName(url)?.let { name ->
                 try {
                     Coroutines.main {
@@ -218,7 +217,7 @@ class MainActivity : AppCompatActivity() {
                                     QuickStreamMetaData(
                                         "Not found",
                                         name,
-                                        reddit.name,
+                                        RedditProvider.name,
                                     ),
                                     null,
                                     mutableListOf(ChapterData("Single Post", url, null, null))

@@ -7,16 +7,14 @@ import com.lagradost.quicknovel.DownloadLinkType
 import com.lagradost.quicknovel.HeadMainPageResponse
 import com.lagradost.quicknovel.LoadResponse
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrl
-import com.lagradost.quicknovel.fixUrlNull
 import com.lagradost.quicknovel.newEpubResponse
 import com.lagradost.quicknovel.newSearchResponse
 import org.jsoup.nodes.Document
 
-class PlanetaEpubProvider :  MainAPI() {
+object PlanetaEpubProvider :  MainAPI() {
     override val name = "PlanetaEpub"
     override val mainUrl = "https://www.planetaepub.com"
     override val iconId = R.drawable.icon_planetaepub

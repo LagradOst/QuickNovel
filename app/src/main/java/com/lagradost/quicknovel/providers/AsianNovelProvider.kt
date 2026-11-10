@@ -18,8 +18,7 @@ import com.lagradost.quicknovel.util.AppUtils.parseJson
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 
-class AsianNovelProvider : MainAPI() {
-
+object AsianNovelProvider : MainAPI() {
     override val name = "Asian Novel"
     override val mainUrl = "https://www.asianovel.net"
     override val iconId = R.drawable.icon_asianovel

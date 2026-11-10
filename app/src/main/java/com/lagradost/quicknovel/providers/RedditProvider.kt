@@ -1,22 +1,18 @@
 package com.lagradost.quicknovel.providers
 
 import com.lagradost.quicknovel.MainAPI
-import com.lagradost.quicknovel.MainActivity.Companion.app
 import com.lagradost.quicknovel.USER_AGENT
 import org.jsoup.Jsoup
 
-class RedditProvider : MainAPI() {
+object RedditProvider : MainAPI() {
     override val mainUrl = "https://www.reddit.com"
     override val name = "Reddit"
 
-    companion object {
-        fun getName(url: String?): String? {
-            return Regex("reddit\\.com/r/.*?/comments.*?/.*?/(.*)/").find(
-                url ?: return null
-            )?.groupValues?.getOrNull(1)?.replace('_', ' ')
-        }
+    fun getName(url: String?): String? {
+        return Regex("reddit\\.com/r/.*?/comments.*?/.*?/(.*)/").find(
+            url ?: return null
+        )?.groupValues?.getOrNull(1)?.replace('_', ' ')
     }
-
 
     private fun findComment(url: String): String? {
         val str = Regex("comment/(\\w*?)/").find(url)?.groupValues?.get(1)

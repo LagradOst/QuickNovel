@@ -15,7 +15,9 @@ import com.lagradost.quicknovel.newSearchResponse
 import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 
-open class NovelFranceProvider : MainAPI() {
+object NovelFranceProvider : NovelFranceAPI()
+
+open class NovelFranceAPI : MainAPI() {
     override val name = "Novel France"
     override val mainUrl = "https://novelfrance.fr"
     override val iconId = R.drawable.icon_novelfrance

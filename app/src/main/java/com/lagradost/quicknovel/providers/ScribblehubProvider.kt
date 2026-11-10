@@ -13,7 +13,7 @@ import com.lagradost.quicknovel.newStreamResponse
 import com.lagradost.quicknovel.setStatus
 import org.jsoup.Jsoup
 
-class ScribblehubProvider : MainAPI() {
+object ScribblehubProvider : MainAPI() {
     override val rateLimitTime: Long = 1000L
     override val name = "Scribblehub"
     override val iconId = R.drawable.icon_scribblehub
