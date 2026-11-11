@@ -460,7 +460,7 @@ value class Score private constructor(
         "toOld() is deprecated. Use other Score methods instead.",
         level = DeprecationLevel.ERROR
     )*/
-    fun toOld(): Int = toInt(10000)
+    fun toOld(): Int = toInt(1000)
 
     fun toByte(maxScore: Int): Byte = toLong(maxScore).toByte()
 
@@ -493,7 +493,7 @@ value class Score private constructor(
         return toString(maxScore, decimals, removeTrailingZeros, decimalChar)
     }
 
-    /** Formats the rating to a human readable format (with no rounding) */
+    /** Formats the rating to a human-readable format (with no rounding) */
     @Throws(IllegalArgumentException::class)
     fun toString(
         maxScore: Int,
@@ -564,11 +564,11 @@ value class Score private constructor(
         )*/
         fun fromOld(value: Int?): Score? {
             if (value == null) return null
-            if (value !in 0..10000) {
-                //Log.w(TAG, "old: $value ∉ [0, 10000]")
+            if (value !in 0..1000) {
+                //Log.w(TAG, "old: $value ∉ [0, 1000]")
                 return null
             }
-            return Score(value * 100_000)
+            return Score(value * 1_000_000)
         }
 
         /** `value ∈ [0, maxScore]` */

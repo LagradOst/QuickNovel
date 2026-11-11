@@ -37,6 +37,7 @@ import com.lagradost.cloudstream4.state.sortByInt
 import com.lagradost.cloudstream4.state.sortByLong
 import com.lagradost.quicknovel.BaseApplication.Companion.getKey
 import com.lagradost.quicknovel.BaseApplication.Companion.setKey
+import com.lagradost.quicknovel.BookDownloader2.openChanged
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.BookDownloader2Helper.generateId
@@ -456,6 +457,8 @@ data class ImmutableSearchResponse(
             setKey(
                 HISTORY_FOLDER, id.toString(), response.toResultCached(id)
             )
+            setTimeOfPageOpened(id, System.currentTimeMillis())
+            openChanged.invoke(id)
         }
 
         fun timeOfPageOpened(id: Int): Long = getKey<Long>(

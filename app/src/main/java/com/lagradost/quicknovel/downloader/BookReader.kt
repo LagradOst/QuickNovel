@@ -226,8 +226,8 @@ object BookReader {
             callsInPlace(generating, InvocationKind.AT_MOST_ONCE)
         }
 
-        ImmutableSearchResponse.addToHistory(response = response)
         val id = response.id ?: throw IllegalArgumentException("Response needs id")
+        ImmutableSearchResponse.addToHistory(response = response)
 
         val settings = AppSettings(activity)
         val options = GenerationOptions(authorNotes = settings.reader.authorNotes.get())
