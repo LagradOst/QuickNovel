@@ -51,12 +51,16 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FlexibleBottomAppBar
 import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearWavyProgressIndicator
@@ -239,129 +243,143 @@ object ResultScreen {
         }
         val selectedSize = selection.cardinality()
         val isSingle = selectedSize == 1
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(color = MaterialTheme.colorScheme.surfaceContainer)
-                .padding(MaterialTheme.padding.medium)
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }) {
-                    /** We only want to consume the keypress */
-                },
-            verticalArrangement = Arrangement.spacedBy(MaterialTheme.padding.medium)
+
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            contentColor = MaterialTheme.colorScheme.onBackground
         ) {
-            Text(
-                text = stringResource(R.string.selected_format, selectedSize),
-                style = MaterialTheme.typography.titleLarge
-            )
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceAround,
-                modifier = Modifier.fillMaxWidth()
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        top = MaterialTheme.padding.medium,
+                        start = MaterialTheme.padding.medium,
+                        end = MaterialTheme.padding.medium
+                    ),
             ) {
-                IconButton(onClick = {
-                    onAction(SelectChapters(BitSet()))
-                }) {
-                    Icon(
-                        painter = painterResource(R.drawable.close_24px),
-                        contentDescription = stringResource(R.string.close)
-                    )
-                }
+                Text(
+                    text = stringResource(R.string.selected_format, selectedSize),
+                    style = MaterialTheme.typography.titleLarge
+                )
 
-                if (isSingle) {
-                    val index = selection.nextSetBit(0)
-                    if (index > 0) {
-                        IconButton(onClick = {
-                            onAction(
-                                SelectChapters(
-                                    newSelection = BitSet().apply { set(0, index + 1) },
-                                )
-                            )
-                        }) {
-                            Icon(
-                                painter = painterResource(R.drawable.move_selection_up),
-                                contentDescription = null
-                            )
-                        }
-                    }
-                    if (index + 1 < state.chapters.data.size) {
-                        IconButton(onClick = {
-                            onAction(
-                                SelectChapters(
-                                    newSelection = BitSet().apply {
-                                        set(
-                                            index,
-                                            state.chapters.data.size
-                                        )
-                                    },
-                                )
-                            )
-                        }) {
-                            Icon(
-                                painter = painterResource(R.drawable.move_selection_down),
-                                contentDescription = null
-                            )
-                        }
-                    }
-                }
-
-                if (state.response.chaptersRead != null) {
-                    val intersection =
-                        state.response.chaptersRead.copy().apply { and(selection) }.cardinality()
-
-                    if (intersection > 0) {
-                        IconButton(onClick = {
-                            onAction(
-                                MarkSelection(
-                                    response = state.response,
-                                    selection = selection,
-                                    setToRead = false
-                                )
-                            )
-                        }) {
-                            Icon(
-                                painter = painterResource(R.drawable.remove_done),
-                                contentDescription = stringResource(R.string.not_read)
-                            )
-                        }
-                    }
-
-                    if (intersection != selectedSize) {
-                        IconButton(onClick = {
-                            onAction(
-                                MarkSelection(
-                                    response = state.response,
-                                    selection = selection,
-                                    setToRead = true
-                                )
-                            )
-                        }) {
-                            Icon(
-                                painter = painterResource(R.drawable.done_all),
-                                contentDescription = stringResource(R.string.has_read)
-                            )
-                        }
-                    }
-                }
-
-                if (state.response.downloadState != null && !selection.copy().apply {
-                        andNot(state.response.downloadState.downloadedChapters)
-                    }.isEmpty
+                BottomAppBar(
+                    contentColor = MaterialTheme.colorScheme.onBackground,
+                    containerColor = Color.Transparent,
+                    tonalElevation = 0.dp
                 ) {
-                    IconButton(onClick = {
-                        onAction(
-                            DownloadSelection(
-                                response = state.response,
-                                selection = selection
-                            )
-                        )
+                    val modifier = Modifier.weight(1.0f)
+
+                    IconButton(modifier = modifier, onClick = {
+                        onAction(SelectChapters(BitSet()))
                     }) {
                         Icon(
-                            painter = painterResource(R.drawable.arrow_circle_down_24px),
-                            contentDescription = stringResource(R.string.download)
+                            painter = painterResource(R.drawable.close_24px),
+                            contentDescription = stringResource(R.string.close)
                         )
+                    }
+
+                    if (isSingle) {
+                        val index = selection.nextSetBit(0)
+                        if (index > 0) {
+                            IconButton(modifier = modifier, onClick = {
+                                onAction(
+                                    SelectChapters(
+                                        newSelection = BitSet().apply { set(0, index + 1) },
+                                    )
+                                )
+                            }) {
+                                Icon(
+                                    painter = if (state.chapters.sortingMethod == ChapterSortingMethodType.RevAscending) {
+                                        painterResource(R.drawable.move_selection_down)
+                                    } else {
+                                        painterResource(R.drawable.move_selection_up)
+                                    },
+                                    contentDescription = null
+                                )
+                            }
+                        }
+                        if (index + 1 < state.chapters.data.size) {
+                            IconButton(modifier = modifier, onClick = {
+                                onAction(
+                                    SelectChapters(
+                                        newSelection = BitSet().apply {
+                                            set(
+                                                index,
+                                                state.chapters.data.size
+                                            )
+                                        },
+                                    )
+                                )
+                            }) {
+                                Icon(
+                                    painter = if (state.chapters.sortingMethod != ChapterSortingMethodType.RevAscending) {
+                                        painterResource(R.drawable.move_selection_down)
+                                    } else {
+                                        painterResource(R.drawable.move_selection_up)
+                                    },
+                                    contentDescription = null
+                                )
+                            }
+                        }
+                    }
+
+                    if (state.response.chaptersRead != null) {
+                        val intersection =
+                            state.response.chaptersRead.copy().apply { and(selection) }
+                                .cardinality()
+
+                        if (intersection > 0) {
+                            IconButton(modifier = modifier, onClick = {
+                                onAction(
+                                    MarkSelection(
+                                        response = state.response,
+                                        selection = selection,
+                                        setToRead = false
+                                    )
+                                )
+                            }) {
+                                Icon(
+                                    painter = painterResource(R.drawable.remove_done),
+                                    contentDescription = stringResource(R.string.not_read)
+                                )
+                            }
+                        }
+
+                        if (intersection != selectedSize) {
+                            IconButton(modifier = modifier, onClick = {
+                                onAction(
+                                    MarkSelection(
+                                        response = state.response,
+                                        selection = selection,
+                                        setToRead = true
+                                    )
+                                )
+                            }) {
+                                Icon(
+                                    painter = painterResource(R.drawable.done_all),
+                                    contentDescription = stringResource(R.string.has_read)
+                                )
+                            }
+                        }
+                    }
+
+                    if (state.response.downloadState != null && !selection.copy().apply {
+                            andNot(state.response.downloadState.downloadedChapters)
+                        }.isEmpty
+                    ) {
+                        IconButton(modifier = modifier, onClick = {
+                            onAction(
+                                DownloadSelection(
+                                    response = state.response,
+                                    selection = selection
+                                )
+                            )
+                        }) {
+                            Icon(
+                                painter = painterResource(R.drawable.arrow_circle_down_24px),
+                                contentDescription = stringResource(R.string.download)
+                            )
+                        }
                     }
                 }
             }
@@ -623,7 +641,6 @@ object ResultScreen {
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
-
                     }
                 }
             }
@@ -957,6 +974,7 @@ object ResultScreen {
                 .fillMaxSize()
                 .nestedScroll(nestedScrollConnection)
                 .background(MaterialTheme.colorScheme.background),
+            contentPadding = PaddingValues(bottom = 80.dp + MaterialTheme.padding.medium * 2 + 20.dp)
         ) {
             item(key = "sort header") {
                 SortHeader(chapters = chapters, onAction = onAction)
