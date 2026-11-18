@@ -158,7 +158,7 @@ class DownloadViewModel2(
                         action.downloadSortingMethod ?: downloadSortingMethod
 
                     appSettings.downloads.downloadSortingMethod.set(newDownloadSortingMethod)
-                    appSettings.downloads.bookmarkSortingMethod.set(newDownloadSortingMethod)
+                    appSettings.downloads.bookmarkSortingMethod.set(newBookmarkSortingMethod)
 
                     val activeQuery = query
                     copy(
@@ -509,16 +509,16 @@ class DownloadViewModel2(
 
     suspend fun loadAll() = withContext(Dispatchers.Default) {
         run {
-            val downloadSortingMethod = appSettings.downloads.downloadSortingMethod.get()
-            val regularSortingMethod = appSettings.downloads.bookmarkSortingMethod.get()
-            val query = ""
-            val page = appSettings.downloads.currentPage.get()
+            val newDownloadSortingMethod = appSettings.downloads.downloadSortingMethod.get()
+            val newBookmarkSortingMethod = appSettings.downloads.bookmarkSortingMethod.get()
+            val newQuery = ""
+            val startPage = appSettings.downloads.currentPage.get()
             updateState {
                 copy(
-                    query = query,
-                    bookmarkSortingMethod = regularSortingMethod,
-                    downloadSortingMethod = downloadSortingMethod,
-                    activePage = page
+                    query = newQuery,
+                    bookmarkSortingMethod = newBookmarkSortingMethod,
+                    downloadSortingMethod = newDownloadSortingMethod,
+                    activePage = startPage
                 )
             }
         }
