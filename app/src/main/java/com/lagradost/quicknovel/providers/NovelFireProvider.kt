@@ -28,7 +28,7 @@ open class NovelFireAPI : MainAPI() {
     override val name = "NovelFire"
     override val mainUrl = "https://novelfire.net"
     override val iconId = R.drawable.icon_novelfire
-    override val rateLimitTime = 500L
+    override val rateLimitTime = 800L
     override val usesCloudFlareKiller = true
     override val hasMainPage = true
     override val hasReviews = true
@@ -286,7 +286,7 @@ open class NovelFireAPI : MainAPI() {
     }
 
     override suspend fun loadHtml(url: String): String? {
-        val document = app.get(url).document
+        val document = app.get(url.replace("https://novelfire.net/book/","https://novelphoenix.com/novel/")).document
         var title = document.selectFirst("span.chapter-title")?.text() ?: ""
         val contentElement = document.selectFirst("div#content")?.apply {
             selectFirst("p")?.let { p ->
@@ -308,7 +308,7 @@ open class NovelFireAPI : MainAPI() {
         return document.select("ul.novel-list.horizontal.col2.chapters li.novel-item")
             .mapNotNull { element ->
                 val a = element.selectFirst("a") ?: return@mapNotNull null
-                val title = a.attr("title").trim()
+                val title = a.attr("title").takeIf { it.isNotBlank() }?.trim() ?: a.selectFirst("h4")?.text() ?: ""
                 val novelUrl = a.attr("href")
                 val coverUrl = fixUrlNull(a.selectFirst("img")?.attr("src"))
                 newSearchResponse(title, novelUrl) {
