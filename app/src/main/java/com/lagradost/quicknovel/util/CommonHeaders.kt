@@ -1,4 +1,4 @@
-
+package com.lagradost.quicknovel.util
 object CommonHeaders  {
     val useCloudflareKillerHeader = "useCloudflareKiller"
     val useIgnore500Header = "useIgnore500" to "true"

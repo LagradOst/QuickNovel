@@ -23,7 +23,6 @@ import com.lagradost.quicknovel.util.CommonHeaders
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
-import kotlin.math.roundToInt
 
 
 object WtrLabProvider : MainAPI() {
