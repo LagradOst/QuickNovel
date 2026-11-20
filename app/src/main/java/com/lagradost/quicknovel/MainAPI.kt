@@ -30,8 +30,28 @@ abstract class MainAPI {
     val app get() = if (!usesCloudFlareKiller) MainActivity.app else MainActivity.appWithInterceptor
 
     fun fixPosterHeaders(headers: Map<String, String>?): Map<String, String>? {
-        return if (usesCloudFlareKiller) (headers
-            ?: emptyMap()) + DefaultImagesHeaders.useCloudflareKillerHeader else headers
+        return if (usesCloudFlareKiller) cloudflareHeaders(headers = headers) else headers
+    }
+
+    fun cloudflareHeaders(
+        waitSelector: String? = null,
+        waitScript: String? = null,
+        headers: Map<String, String>? = null
+    ): Map<String, String> {
+        val map = mutableMapOf<String, String>()
+        if (headers != null) {
+            map.putAll(headers)
+        }
+        if (usesCloudFlareKiller && map[CommonHeaders.useCloudflareKillerHeader] == null) {
+            map[CommonHeaders.useCloudflareKillerHeader] = "true"
+        }
+        if (waitSelector != null) {
+            map[CommonHeaders.cloudflareKillerWaitSelectorHeader] = waitSelector
+        }
+        if (waitScript != null) {
+            map[CommonHeaders.cloudflareKillerWaitScriptHeader] = waitScript.replace(Regex("\\s+"), " ")
+        }
+        return map
     }
 
     open val rateLimitTime: Long = 0

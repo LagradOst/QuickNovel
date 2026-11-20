@@ -4,6 +4,11 @@ import android.webkit.CookieManager
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
+data class HostSession(
+    val cookies: Map<String, String>,
+    val headers: Map<String, String>
+)
+
 object CookiesUtils {
     /** Parses a raw cookie string into a key-value Map */
     fun parseCookieMap(cookie: String?): Map<String, String> {
