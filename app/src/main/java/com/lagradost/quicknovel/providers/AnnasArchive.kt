@@ -10,7 +10,6 @@ import com.lagradost.quicknovel.MainAPI
 import com.lagradost.quicknovel.R
 import com.lagradost.quicknovel.SearchResponse
 import com.lagradost.quicknovel.fixUrlNull
-import com.lagradost.quicknovel.network.WebViewResolver
 import com.lagradost.quicknovel.network.utils.CookiesUtils
 import com.lagradost.quicknovel.newEpubResponse
 import com.lagradost.quicknovel.newSearchResponse
@@ -25,6 +24,7 @@ object AnnasArchive : MainAPI() {
     override val iconId = R.drawable.icon_annasarchive
     override val iconBackgroundId = R.color.white
     override val hasReviews = false
+    override val usesCloudFlareKiller = true
 
     //open val searchTags = "lang=en&content=book_fiction&ext=epub&sort=&"
     override val tags = listOf(
@@ -67,29 +67,11 @@ object AnnasArchive : MainAPI() {
         val contentParam = if (!tag.isNullOrBlank()) "&content=$tag" else ""
         val srcParam = if (!orderBy.isNullOrBlank()) "&src=$orderBy" else ""
         val url = "$mainUrl/search?index=&page=$page&sort=$langParam$contentParam$srcParam&ext=epub"
-        var document = try{
-            app.get(url, cookies = CookiesUtils.getAllCookiesForUrl(url)).document
-        }
-        catch (e: Throwable){
-            Element("")
-        }
-        if(document.selectFirst("div.js-aarecord-list-outer") == null){
-            val script = """
-                                 (function() {
-                                     var checkInterval = setInterval(function() {
-                                         var element = document.querySelector("div.js-aarecord-list-outer");
-                                         if (element.innerText.trim().length > 0) {
-                                             clearInterval(checkInterval);
-                                             NativeAndroid.onElementFound(element.outerHTML);
-                                         }
-                                     }, 1000);
-                                     setTimeout(function() { clearInterval(checkInterval); }, 30000);
-                                 })();
-                             """.trimIndent()
-            val docString = WebViewResolver(scriptToFinish = script, useOkhttp = false).resolveUsingWebView(url)
-            document = Jsoup.parse(docString ?: "")
-        }
 
+        val document = app.get(
+            url,
+            headers = cloudflareHeaders(waitSelector = "div.js-aarecord-list-outer")
+        ).document
 
         val returnValue = document.select("div.js-aarecord-list-outer > div").mapNotNull { node ->
             val a = node.selectFirst("a.line-clamp-\\[3\\]")
@@ -108,7 +90,7 @@ object AnnasArchive : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val url =
             "$mainUrl/search?index=&page=1&sort=&ext=epub&display=&q=${query.replace(" ", "+")}"
-        val text = app.get(url, cookies = CookiesUtils.getAllCookiesForUrl(mainUrl)).text.replace(
+        val text = app.get(url).text.replace(
             Regex("<!--([\\W\\w]*?)-->")
         ) { it.groupValues[1] }
 
@@ -154,7 +136,7 @@ object AnnasArchive : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val document = app.get(url, cookies = CookiesUtils.getAllCookiesForUrl(mainUrl)).document
+        val document = app.get(url).document
         var slowLink: String? = null
 
         return newEpubResponse(
@@ -188,18 +170,9 @@ object AnnasArchive : MainAPI() {
     }
 
     private suspend fun getSlowLinkWithWebView(url: String): String? {
-        val script = """
-                         (function() {
-                             var checkInterval = setInterval(function() {
-                                var element = document.querySelector("main > div > p.mb-4.text-xs > span > span");
-                                if (element && element.innerText.trim().length > 0) {
-                                    clearInterval(checkInterval);
-                                    NativeAndroid.onElementFound(element.innerText.trim());
-                                }
-                             }, 1000);
-                             setTimeout(function() { clearInterval(checkInterval); }, 30000);
-                         })();
-                     """.trimIndent()
-        return WebViewResolver(scriptToFinish = script, useOkhttp = false).resolveUsingWebView(url)
+        return app.get(
+            url,
+            headers = cloudflareHeaders(waitSelector = "main > div > p.mb-4.text-xs > span > span")
+        ).document.selectFirst("main > div > p.mb-4.text-xs > span > span")?.text()
     }
 }

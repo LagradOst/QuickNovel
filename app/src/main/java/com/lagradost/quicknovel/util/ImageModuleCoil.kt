@@ -47,18 +47,16 @@ class DynamicInterceptor : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
 
-        val useCloudflare = request.header(DefaultImagesHeaders.useCloudflareKillerHeader.first) == "true"
-        val useIgnore500 = request.header(DefaultImagesHeaders.useIgnore500Header.first) == "true"
-
-        val cleanRequest = request.newBuilder()
-            .removeHeader(DefaultImagesHeaders.useCloudflareKillerHeader.first)
-            .removeHeader(DefaultImagesHeaders.useIgnore500Header.first)
-            .build()
+        val useCloudflare = request.header(CommonHeaders.useCloudflareKillerHeader) == "true"
+        val useIgnore500 = request.header(CommonHeaders.useIgnore500Header.first) == "true"
 
         val response = if (useCloudflare) {
             cloudflareKiller.intercept(chain)
         } else {
-            chain.proceed(cleanRequest)
+            chain.proceed(request.newBuilder()
+                .removeHeader(CommonHeaders.useCloudflareKillerHeader)
+                .removeHeader(CommonHeaders.useIgnore500Header.first)
+                .build())
         }
         return if (useIgnore500 && response.code == 500) {
             response.newBuilder()

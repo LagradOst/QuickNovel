@@ -12,6 +12,7 @@ import com.lagradost.quicknovel.setStatus
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.quicknovel.ErrorLoadingException
 import com.lagradost.quicknovel.UserReview
+import com.lagradost.quicknovel.network.WebViewResolver
 import com.lagradost.quicknovel.newChapterData
 import com.lagradost.quicknovel.newReview
 import org.jsoup.Jsoup
@@ -124,6 +125,7 @@ object FenrirRealProvider : MainAPI() {
         val document = app.get(url).document
         document.select("style, iframe, svg, noscript").remove()//avoid out of memory
         val infoDiv = document.select("div#series-info")
+        val slug = url.removeSuffix("/").substringAfterLast("/")
         val chapters = app
             .get("$mainUrl/api/new/v2/series/${url.getSlugFromUrl()}/chapters")
             .parsed<Array<ChapterInf>>()
@@ -131,7 +133,7 @@ object FenrirRealProvider : MainAPI() {
                 if (ch.locked.price > 0) null
                 else newChapterData(
                     "${ch.name} ${if (ch.title.isNullOrEmpty()) "" else "- ${ch.title}"}",
-                    "$mainUrl/api/new/v2/series/${url.getSlugFromUrl()}/${ch.slug}"
+                    "$mainUrl/series/$slug/${ch.slug}"
                 ) {
                     dateOfRelease = ch.updatedAt.split("T")[0]
                 }
@@ -181,13 +183,13 @@ object FenrirRealProvider : MainAPI() {
         }
     }
 
-    override suspend fun loadHtml(url: String): String? {
-        val response = app.get(url).parsed<ChapterResponse>()
-
-        val chapterHtml = Jsoup.parse(response.content ?: return null)
+    override suspend fun loadHtml(url: String): String {
+        //WebView is mandatory because it uses dynamic cookies for each chapter, which require a real browser environment instead of a plain OkHttp request
+        val response = WebViewResolver(selectorToFinish = "div#reader-area div[role=region].reader-area > p:nth-child(7)").getHtml(url)
+        val chapterHtml = Jsoup.parse(response ?: throw ErrorLoadingException("Can't load chapter"))
         chapterHtml.select("script, style, iframe, svg, noscript").remove()
-        chapterHtml.select("[aria-hidden=\"true\"]").remove()
-        return chapterHtml.html()
+        chapterHtml.select("[aria-hidden=\"true\"], [aria-label='Advertisement'], [role='complementary']").remove()
+        return chapterHtml.body().html()
     }
 
 
@@ -261,6 +263,8 @@ object FenrirRealProvider : MainAPI() {
 
     data class ChapterResponse(
         @JsonProperty("content")
-        val content: String?
+        val content: Any?
     )
+
+
 }

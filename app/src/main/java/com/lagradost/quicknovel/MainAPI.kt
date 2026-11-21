@@ -8,12 +8,10 @@ import com.lagradost.nicehttp.NiceResponse
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE
 import com.lagradost.quicknovel.BookDownloader2Helper.IMPORT_SOURCE_PDF
 import com.lagradost.quicknovel.MainActivity.Companion.app
-import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.ui.UiImage
 import com.lagradost.quicknovel.ui.img
-import com.lagradost.quicknovel.util.DefaultImagesHeaders
+import com.lagradost.quicknovel.util.CommonHeaders
 import kotlinx.coroutines.sync.Mutex
-import org.jsoup.nodes.Element
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
@@ -30,8 +28,28 @@ abstract class MainAPI {
     val app get() = if (!usesCloudFlareKiller) MainActivity.app else MainActivity.appWithInterceptor
 
     fun fixPosterHeaders(headers: Map<String, String>?): Map<String, String>? {
-        return if (usesCloudFlareKiller) (headers
-            ?: emptyMap()) + DefaultImagesHeaders.useCloudflareKillerHeader else headers
+        return if (usesCloudFlareKiller) cloudflareHeaders(headers = headers) else headers
+    }
+
+    fun cloudflareHeaders(
+        waitSelector: String? = null,
+        waitScript: String? = null,
+        headers: Map<String, String>? = null
+    ): Map<String, String> {
+        val map = mutableMapOf<String, String>()
+        if (headers != null) {
+            map.putAll(headers)
+        }
+        if (usesCloudFlareKiller && map[CommonHeaders.useCloudflareKillerHeader] == null) {
+            map[CommonHeaders.useCloudflareKillerHeader] = "true"
+        }
+        if (waitSelector != null) {
+            map[CommonHeaders.cloudflareKillerWaitSelectorHeader] = waitSelector
+        }
+        if (waitScript != null) {
+            map[CommonHeaders.cloudflareKillerWaitScriptHeader] = waitScript.replace(Regex("\\s+"), " ")
+        }
+        return map
     }
 
     open val rateLimitTime: Long = 0

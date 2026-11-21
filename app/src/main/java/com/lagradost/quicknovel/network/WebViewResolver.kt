@@ -4,42 +4,44 @@ import android.annotation.SuppressLint
 import android.webkit.*
 import com.lagradost.quicknovel.mvvm.logError
 import com.lagradost.quicknovel.util.Coroutines.main
-import com.lagradost.quicknovel.util.Coroutines.mainWork
 import com.lagradost.nicehttp.requestCreator
 import com.lagradost.quicknovel.BaseApplication.Companion.context
 import com.lagradost.quicknovel.MainActivity.Companion.app
-import com.lagradost.quicknovel.network.utils.CookiesUtils
+import com.lagradost.quicknovel.network.utils.CookiesUtils.getAllCookiesForUrl
+import com.lagradost.quicknovel.network.utils.CookiesUtils.toCookieString
+import com.lagradost.quicknovel.toUrl
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Interceptor
 import okhttp3.Request
 import okhttp3.Response
 import java.io.ByteArrayInputStream
 import java.net.URI
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * An OkHttp interceptor that uses a hidden WebView to solve Cloudflare challenges.
- * It also supports extracting dynamic content through injected scripts.
- * When used as Interceptor additionalUrls cannot be returned, use WebViewResolver(...).resolveUsingWebView(...)
- * @param interceptUrl will stop the WebView when reaching this url.
- * @param additionalUrls this will make resolveUsingWebView also return all other requests matching the list of Regex.
- * @param userAgent if null then will use the default user agent
- * @param useOkhttp will try to use the okhttp client as much as possible, but this might cause some requests to fail. Disable for cloudflare.
- * @param scriptToFinish Optional JavaScript that, when injected, must call NativeAndroid.onElementFound(String).
+ * An OkHttp interceptor that uses a shared hidden WebView to solve Cloudflare challenges
+ * and extract dynamic content with lazy initialization, sequential mutex execution, and idle auto-destruction.
  * */
 class WebViewResolver(
     val interceptUrl: Regex? = null,
     val additionalUrls: List<Regex> = emptyList(),
     val userAgent: String? = null,
     val useOkhttp: Boolean = false,
-    val scriptToFinish: String? = null
-) :
-    Interceptor {
+    val selectorToFinish: String? = null,
+    val scriptToFinish: String? = null,
+) : Interceptor {
+
     private val blockedTrackerHosts = setOf(
         "google-analytics.com",
         "googletagmanager.com",
@@ -68,71 +70,124 @@ class WebViewResolver(
     }
 
     companion object {
-        /** Cache for the system WebView's default User-Agent. */
-        var webViewUserAgent: String? = null
-
-        /** Global map to store high-fidelity headers (like sec-ch-ua) captured from the WebView. */
         val capturedHeaders = ConcurrentHashMap<String, Map<String, String>>()
 
         /** Regex to parse Content-Type and Charset from HTTP headers. */
         val CONTENT_TYPE_REGEX = Regex("""(.*);(?:.*charset=(.*)(?:|;)|)""")
 
-        /** Lazily retrieves and caches the default User-Agent from a dummy WebView. */
-        @JvmName("getWebViewUserAgent1")
-        fun getWebViewUserAgent(): String? {
-            return webViewUserAgent ?: context?.let { ctx ->
-                runBlocking {
-                    mainWork {
-                        WebView(ctx).settings.userAgentString.also { userAgent ->
-                            webViewUserAgent = userAgent
+        // Shared WebView Singleton State
+        private val mutex = Mutex()
+        //This is only created when needed and is automatically destroyed after 3 minutes
+        @SuppressLint("StaticFieldLeak")
+        private var sharedWebView: WebView? = null
+        private var idleDestructionJob: Job? = null
+        private val scope = CoroutineScope(Dispatchers.Main + Job())
+        @SuppressLint("SetJavaScriptEnabled")
+        private fun getOrCreateWebView(ctx: android.content.Context): WebView {
+            idleDestructionJob?.cancel()
+            idleDestructionJob = null
+
+            return sharedWebView ?: run {
+                println("Initializing shared background WebView")
+                WebView.setWebContentsDebuggingEnabled(true)
+                WebView(ctx.applicationContext).apply {
+                    settings.javaScriptEnabled = true
+                    settings.domStorageEnabled = true
+                    settings.databaseEnabled = true
+                    settings.useWideViewPort = true
+                    settings.loadWithOverviewMode = true
+                    CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+                    sharedWebView = this
+                }
+            }
+        }
+
+        private fun scheduleIdleDestruction() {
+            idleDestructionJob?.cancel()
+            idleDestructionJob = scope.launch {
+                delay(3.minutes)
+                mutex.withLock {
+                    main {
+                        sharedWebView?.let { wv ->
+                            wv.stopLoading()
+                            wv.loadUrl("about:blank")
+                            wv.destroy()
+                            println("Destroyed shared WebView due to inactivity timeout")
                         }
+                        sharedWebView = null
                     }
                 }
             }
         }
-    }
 
-    /**
-     * Standard OkHttp Interceptor implementation.
-     * When a request is intercepted, it tries to "resolve" it using the hidden WebView.
-     */
-    override fun intercept(chain: Interceptor.Chain): Response {
-        val request = chain.request()
-        return runBlocking {
-            // resolveUsingWebView returns the final request after the bypass
-            val fixedRequest = resolveUsingWebView(request).first as? Request
-            return@runBlocking chain.proceed(fixedRequest ?: request)
+        private fun putWebViewToRest() {
+            main {
+                sharedWebView?.let { wv ->
+                    wv.stopLoading()
+                    wv.loadUrl("about:blank")
+                    wv.webViewClient = WebViewClient()
+                    wv.removeJavascriptInterface("NativeAndroid")
+                }
+            }
+            scheduleIdleDestruction()
         }
     }
 
-    /** Overload for resolveUsingWebView using raw URL parameters. */
-    suspend fun resolveUsingWebView(
-        url: String,
-        referer: String? = null,
-        method: String = "GET",
-    ): String? {
-        CookiesUtils.clearCookiesForHost(url.toHttpUrl())
-        return resolveUsingWebView(
-            request = requestCreator(method, url, referer = referer)
-        ).first as? String
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val request = chain.request()
+        return runBlocking {
+            val fixedRequest = getWellFormedRequest(request)
+            return@runBlocking chain.proceed(fixedRequest)
+        }
     }
 
-    /**
-     * Overload for intercepting requests and headers
-     * @param requestCallBack asynchronously return matched requests by either interceptUrl or additionalUrls. If true, destroy WebView.
-     * @return the final request (by interceptUrl) and all the collected urls (by additionalUrls).
-     * */
-    suspend fun resolveUsingWebView(
+    private fun buildWellFormedRequest(baseRequest: Request?, targetUrl: String): Request {
+        val cookies = getAllCookiesForUrl(targetUrl)
+        val host = targetUrl.toUrl()?.host ?: ""
+        val captured = capturedHeaders[host] ?: emptyMap()
+        val headerMap = mutableMapOf<String, String>()
+
+        baseRequest?.headers?.forEach { (k, v) ->
+            if (!k.equals("Cookie", ignoreCase = true)) {
+                headerMap[k] = v
+            }
+        }
+
+        captured.forEach { (k, v) ->
+            headerMap[k] = v
+        }
+
+        if (cookies.isNotEmpty()) {
+            headerMap["Cookie"] = cookies.toCookieString()
+        }
+
+        val reqUrl = baseRequest?.url?.toString() ?: targetUrl
+        val reqMethod = baseRequest?.method ?: "GET"
+
+        return requestCreator(reqMethod, reqUrl, headerMap)
+    }
+
+    suspend fun getWellFormedRequest(
+        request: Request,
+        requestCallBack: (Request) -> Boolean = { false }
+    ): Request {
+        val url = request.url.toString()
+        val result = resolveUsingWebView(request, requestCallBack)
+        val baseReq = (result.first as? Request) ?: requestCreator(request.method, url, request.headers.toMap())
+        return buildWellFormedRequest(baseReq, url)
+    }
+
+    suspend fun getHtml(
         url: String,
         referer: String? = null,
         method: String = "GET",
         requestCallBack: (Request) -> Boolean = { false },
-    ): Pair<Request?, List<Request>> {
+    ): String? {
         val result = resolveUsingWebView(
             request = requestCreator(method, url, referer = referer),
             requestCallBack = requestCallBack
         )
-        return (result.first as? Request) to result.second
+        return result.first as? String
     }
 
     /**
@@ -149,190 +204,185 @@ class WebViewResolver(
         val headers = request.headers
         println("Initial web-view request: $url")
 
-        // We use a Deferred to wait for the WebView to signal completion (success or timeout)
-        val deferredResponse = CompletableDeferred<Pair<Any?, List<Request>>>()
-        var webView: WebView? = null
-        val extraRequestList = mutableListOf<Request>()
-        var fixedRequest: Request? = null
-        var extractedResult: String? = null
+        return mutex.withLock {
+            val deferredResponse = CompletableDeferred<Pair<Any?, List<Request>>>()
 
-        /** Reference to a delayed job used to wait for cookie rotation/stability before closing. */
-        var stabilityJob: kotlinx.coroutines.Job? = null
+            val ctx = context ?: throw RuntimeException("No base context in WebViewResolver")
+            val extraRequestList = mutableListOf<Request>()
+            var fixedRequest: Request? = null
+            var stabilityJob: Job? = null
 
-        /** Safely tears down the WebView on the Main thread. */
-        fun destroyWebView() {
             main {
-                stabilityJob?.cancel()
-                webView?.stopLoading()
-                webView?.destroy()
-                webView = null
-                println("Destroyed webview")
-            }
-        }
+                try {
+                    val webView = getOrCreateWebView(ctx)
 
-        main {
-            // Useful for debugging
-            WebView.setWebContentsDebuggingEnabled(true)
-            try {
-                webView = WebView(
-                    context
-                        ?: throw RuntimeException("No base context in WebViewResolver")
-                ).apply {
-                    // Bare minimum to bypass captcha
-                    settings.javaScriptEnabled = true
-                    settings.domStorageEnabled = true
-                    settings.databaseEnabled = true
-                    settings.useWideViewPort = true
-                    settings.loadWithOverviewMode = true
-
-                    webViewUserAgent = settings.userAgentString
-                    // Don't set user agent, setting user agent will make cloudflare break.
                     if (userAgent != null) {
-                        settings.userAgentString = userAgent
+                        webView.settings.userAgentString = userAgent
                     }
-                    // Blocks unnecessary images, remove if captcha fucks.
-                    //settings.blockNetworkImage = true
 
-                    // allow third-party cookies for turnstile/challenges
-                    CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-                }
+                    class MyJavaScriptInterface {
+                        @JavascriptInterface
+                        fun onElementFound(html: String) {
+                            //println("---------------------------------")
+                            //println(html)
+                            //println("---------------------------------")
 
-                class MyJavaScriptInterface {
-                    @JavascriptInterface
-                    fun onElementFound(html: String) {
-                        if (html.isNotEmpty()) {
-                            extractedResult = html
-                            deferredResponse.complete(extractedResult to extraRequestList)
-                        }
-                    }
-                }
-                webView?.addJavascriptInterface(MyJavaScriptInterface(), "NativeAndroid")
-
-                webView?.webViewClient = object : WebViewClient() {
-                    /**
-                     * Called for every sub-resource request (scripts, images, AJAX).
-                     * We use this to block garbage, capture headers, and share the OkHttp state.
-                     */
-                    override fun shouldInterceptRequest(
-                        view: WebView,
-                        request: WebResourceRequest
-                    ): WebResourceResponse? = runBlocking {
-                        val webViewUrl = request.url.toString()
-                        if (isBlockedTrackerUrl(webViewUrl)) {
-                            return@runBlocking WebResourceResponse(
-                                "text/plain",
-                                "utf-8",
-                                ByteArrayInputStream(ByteArray(0))
-                            )
-                        }
-
-                        println("Loading WebView URL: $webViewUrl")
-                        val req = request.toRequest()
-
-                        if (!webViewUrl.contains("/cdn-cgi/") && !webViewUrl.contains("cloudflare")) {
-                            capturedHeaders[runCatching { URI(webViewUrl).host }.getOrNull() ?: ""] = request.requestHeaders
-                        }
-
-                        // Check if this request matches our target URL
-                        if (interceptUrl?.containsMatchIn(webViewUrl) == true) {
-                            fixedRequest = req
-                            deferredResponse.complete(req to extraRequestList)
-                            return@runBlocking null
-                        }
-
-                        // Track additional interesting URLs
-                        if (additionalUrls.any { it.containsMatchIn(webViewUrl) }) {
-                            extraRequestList.add(req)
-
-                            // If callback returns true (e.g., "I found what I wanted"), signal completion
-                            if (requestCallBack(req)) {
-                                deferredResponse.complete(fixedRequest to extraRequestList)
+                            CookieManager.getInstance().flush()
+                            if (deferredResponse.isActive) {
+                                deferredResponse.complete(html to extraRequestList)
                             }
                         }
-
-                        val path = runCatching { URI(webViewUrl).path }.getOrNull() ?: ""
-                        val extension = path.substringAfterLast('.', "").lowercase()
-
-                        // Optionally route WebView requests through OkHttp to sync cookies/state
-                        return@runBlocking try {
-                            when {
-                                blacklistedExtensions.contains(extension) || webViewUrl.endsWith("/favicon.ico") || webViewUrl.startsWith("wss://") ->
-                                    WebResourceResponse("image/png", null, null)
-                                webViewUrl.contains("recaptcha") || webViewUrl.contains("/cdn-cgi/") -> super.shouldInterceptRequest(view, request)
-                                useOkhttp && request.method == "GET" -> app.get(webViewUrl, headers = request.requestHeaders).okhttpResponse.toWebResourceResponse()
-                                useOkhttp && request.method == "POST" -> app.post(webViewUrl, headers = request.requestHeaders).okhttpResponse.toWebResourceResponse()
-                                else -> super.shouldInterceptRequest(view, request)
-                            }
-                        } catch (e: Exception) {
-                            null
-                        }
                     }
+                    webView.addJavascriptInterface(MyJavaScriptInterface(), "NativeAndroid")
 
-                    /**
-                     * Triggered when a page or frame finishes loading.
-                     * We use this to detect bypass success and run auto-click automation scripts.
-                     */
-                    override fun onPageFinished(view: WebView?, finishUrl: String?) {
-                        super.onPageFinished(view, finishUrl)
-                        if (finishUrl == null) return
+                    webView.webViewClient = object : WebViewClient() {
+                        /**
+                         * Called for every sub-resource request (scripts, images, AJAX).
+                         * We use this to block garbage, capture headers, and share the OkHttp state.
+                         */
+                        override fun shouldInterceptRequest(
+                            view: WebView,
+                            request: WebResourceRequest
+                        ): WebResourceResponse? = runBlocking {
+                            val webViewUrl = request.url.toString()
+                            if (isBlockedTrackerUrl(webViewUrl)) {
+                                return@runBlocking WebResourceResponse(
+                                    "text/plain",
+                                    "utf-8",
+                                    ByteArrayInputStream(ByteArray(0))
+                                )
+                            }
 
-                        if (requestCallBack(requestCreator("GET", finishUrl))) {
-                            if (scriptToFinish == null) {
-                                stabilityJob?.cancel()
-                                stabilityJob = main {
-                                    delay(5.seconds)
-                                    deferredResponse.complete(fixedRequest to extraRequestList)
+                            println("Loading WebView URL: $webViewUrl")
+                            val req = request.toRequest()
+                            if (!webViewUrl.contains("/cdn-cgi/") && !webViewUrl.contains("cloudflare")) {
+                                capturedHeaders[runCatching { URI(webViewUrl).host }.getOrNull() ?: ""] = request.requestHeaders
+                            }
+
+                            if (webViewUrl.contains(url, ignoreCase = true) || url.contains(webViewUrl, ignoreCase = true)) {
+                                fixedRequest = req
+                            }
+
+                            // Check if this request matches our target URL
+                            if (interceptUrl?.containsMatchIn(webViewUrl) == true) {
+                                fixedRequest = req
+                                if (deferredResponse.isActive) {
+                                    deferredResponse.complete(req to extraRequestList)
+                                }
+                                return@runBlocking null
+                            }
+
+                            // Track additional interesting URLs
+                            if (additionalUrls.any { it.containsMatchIn(webViewUrl) }) {
+                                extraRequestList.add(req)
+
+                                // If callback returns true (e.g., "I found what I wanted"), signal completion
+                                if (requestCallBack(req)) {
+                                    if (deferredResponse.isActive) {
+                                        deferredResponse.complete(fixedRequest to extraRequestList)
+                                    }
                                 }
                             }
+
+                            val path = webViewUrl.toUrl()?.path ?: ""
+                            val extension = path.substringAfterLast('.', "").lowercase()
+
+                            // Optionally route WebView requests through OkHttp to sync cookies/state
+                            return@runBlocking try {
+                                when {
+                                    blacklistedExtensions.contains(extension) || webViewUrl.endsWith("/favicon.ico") || webViewUrl.startsWith("wss://") ->
+                                        WebResourceResponse("image/png", null, null)
+                                    webViewUrl.contains("recaptcha") || webViewUrl.contains("/cdn-cgi/") -> super.shouldInterceptRequest(view, request)
+                                    useOkhttp && request.method == "GET" -> app.get(webViewUrl, headers = request.requestHeaders).okhttpResponse.toWebResourceResponse()
+                                    useOkhttp && request.method == "POST" -> app.post(webViewUrl, headers = request.requestHeaders).okhttpResponse.toWebResourceResponse()
+                                    else -> super.shouldInterceptRequest(view, request)
+                                }
+                            } catch (e: Exception) {
+                                null
+                            }
                         }
 
-                        scriptToFinish?.let {
-                            view?.evaluateJavascript(it, null)
-                        } ?: run {
-                            val script = """
-                                (function() {
-                                    if (window.wasClicked) return;
-                                    function tryClick() {
-                                        var isCloudflarePage = document.querySelector('#challenge-form') || 
-                                                               document.querySelector('#challenge-running') ||
-                                                               document.querySelector('#cf-challenge-running');
-                                        if (!isCloudflarePage) return; 
-                                        var cfToken = document.querySelector('[name="cf-turnstile-response"]')?.value 
-                                                      || document.querySelector('#cf-chl-widget-multi-token')?.value;
-                                        var submitButton = document.querySelector('#challenge-form button[type="submit"], .antibot-btn-success') 
-                                                           || document.querySelector('#challenge-form input[type="submit"]');
-                                        if (cfToken && submitButton) {
-                                            window.wasClicked = true;
-                                            submitButton.click();
-                                        } else {
-                                            if (!window.retryCount) window.retryCount = 0;
-                                            if (window.retryCount < 15) { 
-                                                window.retryCount++;
-                                                setTimeout(tryClick, 1000);
-                                            }
+                        /**
+                         * Triggered when a page or frame finishes loading.
+                         * We use this to detect bypass success and run auto-click automation scripts.
+                         */
+                        override fun onPageFinished(view: WebView?, finishUrl: String?) {
+                            super.onPageFinished(view, finishUrl)
+                            if (finishUrl.isNullOrBlank() || (!finishUrl.startsWith("http://") && !finishUrl.startsWith("https://"))) return
+                            if (requestCallBack(requestCreator("GET", finishUrl))) {
+                                if (scriptToFinish == null && selectorToFinish == null) {
+                                    stabilityJob?.cancel()
+                                    stabilityJob = scope.launch {
+                                        delay(5.seconds)
+                                        if (deferredResponse.isActive) {
+                                            deferredResponse.complete(fixedRequest to extraRequestList)
                                         }
                                     }
-                                    tryClick();
-                                })();
-                            """.trimIndent()
-                            view?.evaluateJavascript(script, null)
+                                }
+                            }
+                            selectorToFinish?.let { sel ->
+                                val escaped = sel.replace("\\", "\\\\").replace("'", "\\'")
+                                view?.evaluateJavascript("""
+                                    (function() {
+                                     clearInterval(checkClassInterval);
+                                     var checkClassInterval = setInterval(function() {
+                                            var el = document.querySelector('$escaped');
+                                            if (el) {
+                                                clearInterval(checkClassInterval);
+                                                NativeAndroid.onElementFound(document.body.outerHTML);
+                                            }
+                                     }, 1000);
+                                     setTimeout(function() { clearInterval(checkClassInterval); }, 30000);
+                                 })();
+                            """.trimIndent(), null)
+                            }
+                            view?.evaluateJavascript(scriptToFinish ?: """
+                                    (function() {
+                                        if (window.wasClicked) return;
+                                        function tryClick() {
+                                            var isCloudflarePage = document.querySelector('#challenge-form') || 
+                                                                   document.querySelector('#challenge-running') ||
+                                                                   document.querySelector('#cf-challenge-running');
+                                            if (!isCloudflarePage) return; 
+                                            var cfToken = document.querySelector('[name="cf-turnstile-response"]')?.value 
+                                                          || document.querySelector('#cf-chl-widget-multi-token')?.value;
+                                            var submitButton = document.querySelector('#challenge-form button[type="submit"], .antibot-btn-success') 
+                                                               || document.querySelector('#challenge-form input[type="submit"]');
+                                            if (cfToken && submitButton) {
+                                                window.wasClicked = true;
+                                                submitButton.click();
+                                            } else {
+                                                if (!window.retryCount) window.retryCount = 0;
+                                                if (window.retryCount < 15) { 
+                                                    window.retryCount++;
+                                                    setTimeout(tryClick, 1000);
+                                                }
+                                            }
+                                        }
+                                        tryClick();
+                                    })();
+                                """.trimIndent(), null)
                         }
                     }
+                    webView.loadUrl(url, headers.toMap())
+                } catch (e: Exception) {
+                    logError(e)
+                    if (deferredResponse.isActive) {
+                        deferredResponse.complete(null to emptyList())
+                    }
                 }
-                webView?.loadUrl(url, headers.toMap())
-            } catch (e: Exception) {
-                logError(e)
-                deferredResponse.complete(null to emptyList())
             }
-        }
 
-        // Wait for the WebView to finish (max 60 seconds)
-        val result = withTimeoutOrNull(60.seconds) {
-            deferredResponse.await()
-        }
+            // Wait for the WebView to finish (max 60 seconds)
+            val result = withTimeoutOrNull(60.seconds) {
+                deferredResponse.await()
+            }
 
-        destroyWebView()
-        return result ?: ((fixedRequest ?: extractedResult) to extraRequestList)
+            stabilityJob?.cancel()
+            putWebViewToRest()
+
+            result ?: (fixedRequest to extraRequestList)
+        }
     }
 }
 
@@ -342,6 +392,7 @@ fun WebResourceRequest.toRequest(): Request {
         this.method,
         this.url.toString(),
         this.requestHeaders,
+        this.url.toString()
     )
 }
 

@@ -273,12 +273,7 @@ object UIHelper {
         img.result?.let { drawable ->
             imageView.setImageDrawable(drawable)
         } ?: kotlin.run {
-            if(requireCloudFlare){
-                imageView.setImage(url, headers = mapOf(DefaultImagesHeaders.useCloudflareKillerHeader))
-            }
-            else{
-                imageView.setImage(url)
-            }
+            imageView.setImage(url, headers = mapOf(CommonHeaders.useCloudflareKillerHeader to "$requireCloudFlare"))
         }
     }
 
