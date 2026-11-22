@@ -595,6 +595,10 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
     }
 
     override fun onPause() {
+        if (::textAdapter.isInitialized && ::textLayoutManager.isInitialized &&
+            binding.realText.childCount > 0) {
+            onScroll()
+        }
         viewModel.leftApp()
         super.onPause()
     }
@@ -1100,9 +1104,9 @@ class ReadActivity2 : AppCompatActivity(), ColorPickerDialogListener {
                         }
                     } else {
                         updateFromCode = false
-                        onScroll()
                     }
 
+                    onScroll()
                     super.onScrolled(recyclerView, dx, dy)
 
                     // binding.tmpTtsEnd.fixLine((getBottomY()- remainingBottom) + 7.toPx)
