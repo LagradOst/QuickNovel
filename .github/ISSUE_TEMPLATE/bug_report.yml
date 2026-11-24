@@ -1,0 +1,38 @@
+name: Bug report
+description: Something is broken
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What went wrong, and what did you expect instead? Steps to reproduce if you know them.
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: QuickNovel version
+      placeholder: e.g. 3.6.1
+    validations:
+      required: false
+  - type: input
+    id: android-version
+    attributes:
+      label: Android version
+      placeholder: e.g. Android 15
+    validations:
+      required: false
+  - type: input
+    id: provider
+    attributes:
+      label: Source/provider (if provider-related)
+      placeholder: e.g. WTR-LAB
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots (optional)
+    validations:
+      required: false
