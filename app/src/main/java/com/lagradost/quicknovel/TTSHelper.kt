@@ -199,7 +199,9 @@ class TTSSession(val context: Context, event: (TTSHelper.TTSActionType) -> Boole
 
             val canSetLanguage = pendingTTS.setLanguage(
                 pendingTTS.availableLanguages.firstOrNull { it.displayName == langName }
-                    ?: Locale.US)
+                ?: pendingTTS.availableLanguages.firstOrNull { it.language.equals(Locale.getDefault().language, ignoreCase = true) }
+                ?: Locale.US
+            )
             pendingTTS.voice =
                 pendingTTS.voices.firstOrNull { it.name == voiceName }
                     ?: pendingTTS.defaultVoice
