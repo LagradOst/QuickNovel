@@ -190,6 +190,10 @@
                     android:pathPrefix="/"
                     android:scheme="https" />
                 <data
+                    android:host="ranobes.top"
+                    android:pathPrefix="/"
+                    android:scheme="https" />
+                <data
                     android:host="readfrom.net"
                     android:pathPrefix="/"
                     android:scheme="https" />
